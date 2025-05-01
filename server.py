@@ -2973,18 +2973,11 @@ if __name__ == '__main__':
     logger.info(f"Host: {host}")
     
     try:
-        # Initialize eventlet with minimal patching
-        import eventlet
-        eventlet.monkey_patch(os=False, thread=False, select=False)
-        
-        # Set eventlet timeout
-        eventlet.timeout.Timeout(60)
-        
-        # Configure SocketIO with more conservative timeouts
+        # Configure SocketIO
         socketio = SocketIO(
             app,
             cors_allowed_origins="*",
-            async_mode='eventlet',
+            async_mode='threading',  # Change to threading mode
             logger=True,
             engineio_logger=True,
             ping_timeout=30,
@@ -3004,15 +2997,12 @@ if __name__ == '__main__':
         def bad_gateway_error(error):
             logger.error(f"Bad Gateway Error: {error}")
             return jsonify({'error': 'Bad Gateway'}), 502
-        
+
         # Run the server
-        socketio.run(
-            app,
+        app.run(
             host=host,
             port=port,
-            debug=False,
-            use_reloader=False,
-            log_output=True
+            debug=False
         )
         logger.info("Server started successfully")
     except Exception as e:

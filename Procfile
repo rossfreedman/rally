@@ -1,1 +1,1 @@
-web: gunicorn -c gunicorn.conf.py --worker-class eventlet server:app 
+web: gunicorn -c gunicorn.conf.py server:app --preload 
