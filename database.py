@@ -1,22 +1,19 @@
 import os
-import psycopg
+import sqlite3
 from contextlib import contextmanager
 from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
 
-def get_database_url():
-    """Get database URL from environment or use default local database"""
-    if os.getenv('DATABASE_URL'):
-        # Railway provides DATABASE_URL in the format: postgres://user:pass@host:5432/dbname
-        return os.getenv('DATABASE_URL')
-    return "dbname=rally user=rossfreedman"
+def get_database_path():
+    """Get database path"""
+    return os.path.join('data', 'paddlepro.db')
 
 @contextmanager
 def get_db():
     """Get database connection"""
-    conn = psycopg.connect(get_database_url())
+    conn = sqlite3.connect(get_database_path())
     try:
         yield conn
     finally:
