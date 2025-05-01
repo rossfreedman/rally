@@ -21,6 +21,7 @@ COPY . .
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
 ENV PORT=3000
+ENV FLASK_ENV=production
 
 # Create data directory if it doesn't exist
 RUN mkdir -p data
@@ -29,4 +30,4 @@ RUN mkdir -p data
 EXPOSE ${PORT}
 
 # Command to run the application
-CMD ["python", "server.py"] 
+CMD gunicorn --worker-class eventlet -w 1 -b 0.0.0.0:$PORT server:app 
