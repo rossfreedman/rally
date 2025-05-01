@@ -22,7 +22,7 @@ COPY . .
 ENV PYTHONUNBUFFERED=1
 ENV PORT=3000
 ENV FLASK_ENV=production
-ENV FLASK_DEBUG=0
+ENV FLASK_APP=server.py
 
 # Create data directory if it doesn't exist
 RUN mkdir -p data

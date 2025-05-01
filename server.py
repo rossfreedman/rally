@@ -2953,6 +2953,12 @@ def log_click():
         print(traceback.format_exc())
         return jsonify({'error': str(e)}), 500
 
+# Add a basic healthcheck endpoint
+@app.route('/health')
+def healthcheck():
+    """Basic healthcheck endpoint"""
+    return jsonify({'status': 'ok'}), 200
+
 if __name__ == '__main__':
     # Get port from environment variable or use default
     port = int(os.environ.get("PORT", os.environ.get("RAILWAY_PORT", 3000)))
@@ -2962,31 +2968,13 @@ if __name__ == '__main__':
     logger.info(f"Environment: {os.environ.get('FLASK_ENV', 'development')}")
     logger.info(f"Port: {port}")
     logger.info(f"Host: {host}")
-    logger.info(f"Static folder: {app.static_folder}")
-    logger.info(f"Static URL path: {app.static_url_path}")
     
     try:
-        # Configure SocketIO for production
-        socketio = SocketIO(
-            app,
-            cors_allowed_origins="*",
-            async_mode='eventlet',
-            logger=True,
-            engineio_logger=True
-        )
-        
-        # Initialize eventlet
-        import eventlet
-        eventlet.monkey_patch()
-        
-        # Run the server
-        socketio.run(
-            app,
+        # Basic Flask server without SocketIO for initial deployment
+        app.run(
             host=host,
             port=port,
-            debug=False,
-            use_reloader=False,
-            log_output=True
+            debug=False
         )
         logger.info("Server started successfully")
     except Exception as e:
