@@ -2964,38 +2964,53 @@ def healthcheck():
 
 if __name__ == '__main__':
     # Get port from environment variable or use default
-    port = int(os.environ.get("PORT", os.environ.get("RAILWAY_PORT", 3000)))
+    port = int(os.environ.get("PORT", os.environ.get("RAILWAY_PORT", 8080)))
     host = os.environ.get("HOST", "0.0.0.0")
     
     logger.info("=== SERVER STARTING ===")
-    logger.info(f"Environment: {os.environ.get('FLASK_ENV', 'development')}")
+    logger.info(f"Environment: {os.environ.get('FLASK_ENV', 'production')}")
     logger.info(f"Port: {port}")
     logger.info(f"Host: {host}")
     
     try:
         # Initialize eventlet with minimal patching
         import eventlet
-        eventlet.monkey_patch(os=False, thread=False)
+        eventlet.monkey_patch(os=False, thread=False, select=False)
         
-        # Configure SocketIO
+        # Configure SocketIO with more conservative timeouts
         socketio = SocketIO(
             app,
             cors_allowed_origins="*",
             async_mode='eventlet',
             logger=True,
             engineio_logger=True,
-            ping_timeout=60,
-            ping_interval=25
+            ping_timeout=30,
+            ping_interval=15,
+            max_http_buffer_size=1024 * 1024,  # 1MB buffer size
+            async_handlers=True,
+            manage_session=False  # Let Flask handle sessions
         )
         
-        # Run the server
+        # Add error handlers
+        @app.errorhandler(500)
+        def internal_error(error):
+            logger.error(f"Internal Server Error: {error}")
+            return jsonify({'error': 'Internal Server Error'}), 500
+
+        @app.errorhandler(502)
+        def bad_gateway_error(error):
+            logger.error(f"Bad Gateway Error: {error}")
+            return jsonify({'error': 'Bad Gateway'}), 502
+        
+        # Run the server with worker timeout
         socketio.run(
             app,
             host=host,
             port=port,
             debug=False,
             use_reloader=False,
-            log_output=True
+            log_output=True,
+            worker_timeout=60  # 60 second worker timeout
         )
         logger.info("Server started successfully")
     except Exception as e:
