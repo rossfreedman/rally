@@ -33,6 +33,8 @@ logging.basicConfig(
     ]
 )
 
+logger = logging.getLogger(__name__)
+
 # Load environment variables
 load_dotenv()
 
@@ -42,20 +44,20 @@ openai_org_id = os.getenv('OPENAI_ORG_ID')  # Optional organization ID
 assistant_id = os.getenv('OPENAI_ASSISTANT_ID', 'asst_Q6GQOccbb0ymf9IpLMG1lFHe')  # Default to known ID
 
 if not openai_api_key:
-    print("ERROR: OPENAI_API_KEY environment variable is not set!")
-    print("Please set your OpenAI API key in the environment variables.")
+    logger.error("ERROR: OPENAI_API_KEY environment variable is not set!")
+    logger.error("Please set your OpenAI API key in the environment variables.")
     sys.exit(1)
 
 # Initialize OpenAI client with organization if provided
 client_kwargs = {'api_key': openai_api_key}
 if openai_org_id:
     client_kwargs['organization'] = openai_org_id
-    print(f"Using OpenAI organization: {openai_org_id}")
+    logger.info(f"Using OpenAI organization: {openai_org_id}")
 
 try:
     client = openai.OpenAI(**client_kwargs)
 except Exception as e:
-    print(f"ERROR: Failed to initialize OpenAI client: {str(e)}")
+    logger.error(f"ERROR: Failed to initialize OpenAI client: {str(e)}")
     sys.exit(1)
 
 # Store active threads
@@ -66,7 +68,7 @@ app.secret_key = os.getenv('FLASK_SECRET_KEY', 'your-secret-key-here')  # Change
 
 # Configure session settings
 app.config.update(
-    SESSION_COOKIE_SECURE=False,  # Set to True in production with HTTPS
+    SESSION_COOKIE_SECURE=True,  # Set to True for production with HTTPS
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE='Lax',
     PERMANENT_SESSION_LIFETIME=3600  # 1 hour
@@ -2955,6 +2957,18 @@ if __name__ == '__main__':
     # Get port from environment variable or use default
     port = int(os.environ.get("PORT", os.environ.get("RAILWAY_PORT", 3000)))
     host = os.environ.get("HOST", "0.0.0.0")
-    print(f"Server will run at: http://{host}:{port}")
-    print("=== SERVER STARTING ===")
-    socketio.run(app, host=host, port=port, debug=False, allow_unsafe_werkzeug=True)
+    
+    logger.info("=== SERVER STARTING ===")
+    logger.info(f"Environment: {os.environ.get('FLASK_ENV', 'development')}")
+    logger.info(f"Port: {port}")
+    logger.info(f"Host: {host}")
+    logger.info(f"Static folder: {app.static_folder}")
+    logger.info(f"Static URL path: {app.static_url_path}")
+    
+    try:
+        socketio.run(app, host=host, port=port, debug=False, allow_unsafe_werkzeug=True)
+        logger.info("Server started successfully")
+    except Exception as e:
+        logger.error(f"Failed to start server: {str(e)}")
+        logger.error(traceback.format_exc())
+        sys.exit(1)
