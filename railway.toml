@@ -3,7 +3,7 @@ builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
 
 [deploy]
-startCommand = "gunicorn --worker-class eventlet -w 1 --log-level debug --timeout 120 server:app"
+startCommand = "python server.py"
 healthcheckPath = "/login"
 healthcheckTimeout = 300
 restartPolicyType = "ON_FAILURE"
@@ -12,5 +12,4 @@ restartPolicyMaxRetries = 5
 [env]
 FLASK_ENV = "production"
 DISABLE_SELENIUM = "true"
-PYTHONUNBUFFERED = "1"
-GUNICORN_CMD_ARGS = "--access-logfile=- --error-logfile=- --capture-output" 
+PYTHONUNBUFFERED = "1" 

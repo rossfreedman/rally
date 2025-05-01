@@ -2966,7 +2966,28 @@ if __name__ == '__main__':
     logger.info(f"Static URL path: {app.static_url_path}")
     
     try:
-        socketio.run(app, host=host, port=port, debug=False, allow_unsafe_werkzeug=True)
+        # Configure SocketIO for production
+        socketio = SocketIO(
+            app,
+            cors_allowed_origins="*",
+            async_mode='eventlet',
+            logger=True,
+            engineio_logger=True
+        )
+        
+        # Initialize eventlet
+        import eventlet
+        eventlet.monkey_patch()
+        
+        # Run the server
+        socketio.run(
+            app,
+            host=host,
+            port=port,
+            debug=False,
+            use_reloader=False,
+            log_output=True
+        )
         logger.info("Server started successfully")
     except Exception as e:
         logger.error(f"Failed to start server: {str(e)}")
