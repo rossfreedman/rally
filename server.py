@@ -22,6 +22,17 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium import webdriver
 from database import get_db
+from init_db import init_db
+
+# Initialize database
+print("\n=== Initializing Database ===")
+try:
+    init_db()
+    print("Database initialized successfully!")
+except Exception as e:
+    print(f"Error initializing database: {str(e)}")
+    print(traceback.format_exc())
+    sys.exit(1)
 
 # Configure logging
 logging.basicConfig(
