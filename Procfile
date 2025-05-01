@@ -1,1 +1,1 @@
-web: gunicorn -c gunicorn.conf.py --worker-class eventlet --log-level info server:app 
+web: gunicorn server:app -c gunicorn.conf.py --preload --log-level debug 
