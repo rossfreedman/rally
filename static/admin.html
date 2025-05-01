@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rally Admin</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Activity tracking -->
+    <script src="/static/js/activity-tracker.js"></script>
+    <style>
+        :root {
+            --primary-color: #2196F3;
+            --border-color: #dee2e6;
+            --text-color: #333;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #f0f2f5;
+            padding-top: 56px; /* Add padding for fixed navbar */
+        }
+
+        .admin-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .admin-header {
+            margin-bottom: 30px;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .admin-section {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .table {
+            margin-bottom: 0;
+        }
+
+        .table th {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .edit-btn {
+            color: var(--primary-color);
+            cursor: pointer;
+            margin-left: 10px;
+        }
+
+        .edit-btn:hover {
+            color: #1976D2;
+        }
+
+        .modal-content {
+            border-radius: 8px;
+        }
+
+        .modal-header {
+            background-color: var(--primary-color);
+            color: white;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .modal-footer {
+            border-top: 1px solid var(--border-color);
+        }
+
+        .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(33, 150, 243, 0.25);
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .error-message {
+            color: #dc3545;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            background-color: #fff5f5;
+        }
+    </style>
+</head>
+<body>
+    <!-- Include the navigation bar -->
+    <div id="navbar-container"></div>
+
+    <div class="admin-container">
+        <div class="admin-header">
+            <h1><i class="fas fa-shield-alt me-2"></i>PaddlePro Admin Dashboard</h1>
+        </div>
+
+        <!-- Users Section -->
+        <div class="admin-section">
+            <div class="section-header">
+                <h2><i class="fas fa-users me-2"></i>Registered Users</h2>
+                <button class="btn btn-primary" onclick="refreshUsers()">
+                    <i class="fas fa-sync-alt me-2"></i>Refresh
+                </button>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Club</th>
+                            <th>Series</th>
+                            <th>Last Login</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersTableBody">
+                        <tr>
+                            <td colspan="6" class="text-center">Loading users...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Clubs Section -->
+        <div class="admin-section">
+            <div class="section-header">
+                <h2><i class="fas fa-building me-2"></i>Active Clubs</h2>
+                <button class="btn btn-primary" onclick="refreshClubs()">
+                    <i class="fas fa-sync-alt me-2"></i>Refresh
+                </button>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Club Name</th>
+                            <th>Member Count</th>
+                            <th>Active Series</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="clubsTableBody">
+                        <tr>
+                            <td colspan="4" class="text-center">Loading clubs...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Series Section -->
+        <div class="admin-section">
+            <div class="section-header">
+                <h2><i class="fas fa-list-ol me-2"></i>Active Series</h2>
+                <button class="btn btn-primary" onclick="refreshSeries()">
+                    <i class="fas fa-sync-alt me-2"></i>Refresh
+                </button>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Series Name</th>
+                            <th>Player Count</th>
+                            <th>Active Clubs</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="seriesTableBody">
+                        <tr>
+                            <td colspan="4" class="text-center">Loading series...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="loading-overlay" id="loadingOverlay" style="display: none;">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+
+    <!-- Edit User Modal -->
+    <div class="modal fade" id="editUserModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit User</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editUserForm">
+                        <input type="hidden" id="editUserEmail">
+                        <div class="mb-3">
+                            <label class="form-label">First Name</label>
+                            <input type="text" class="form-control" id="editUserFirstName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Last Name</label>
+                            <input type="text" class="form-control" id="editUserLastName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Club</label>
+                            <select class="form-control" id="editUserClub" required></select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Series</label>
+                            <select class="form-control" id="editUserSeries" required></select>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="saveUserChanges()">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Club Modal -->
+    <div class="modal fade" id="editClubModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Club</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editClubForm">
+                        <input type="hidden" id="editClubOldName">
+                        <div class="mb-3">
+                            <label class="form-label">Club Name</label>
+                            <input type="text" class="form-control" id="editClubNewName" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="saveClubChanges()">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Series Modal -->
+    <div class="modal fade" id="editSeriesModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Series</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="editSeriesForm">
+                        <input type="hidden" id="editSeriesOldName">
+                        <div class="mb-3">
+                            <label class="form-label">Series Name</label>
+                            <input type="text" class="form-control" id="editSeriesNewName" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" onclick="saveSeriesChanges()">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete User Confirmation Modal -->
+    <div class="modal fade" id="deleteUserModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title">Delete User</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to delete the user <strong id="deleteUserName"></strong>?</p>
+                    <p class="text-danger">This action cannot be undone.</p>
+                    <input type="hidden" id="deleteUserEmail">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" onclick="deleteUser()">Delete User</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Load the navigation bar
+        document.addEventListener('DOMContentLoaded', function() {
+            fetch('/static/components/navbar.html')
+                .then(response => response.text())
+                .then(html => {
+                    document.getElementById('navbar-container').innerHTML = html;
+                })
+                .catch(error => {
+                    console.error('Error loading navbar:', error);
+                });
+        });
+
+        // Show loading overlay
+        function showLoading() {
+            document.getElementById('loadingOverlay').style.display = 'flex';
+        }
+
+        // Hide loading overlay
+        function hideLoading() {
+            document.getElementById('loadingOverlay').style.display = 'none';
+        }
+
+        // Format date
+        function formatDate(dateString) {
+            if (!dateString) return 'Never';
+            const date = new Date(dateString);
+            return date.toLocaleString();
+        }
+
+        // Load users with edit buttons
+        async function loadUsers() {
+            showLoading();
+            try {
+                const response = await fetch('/api/admin/users');
+                if (!response.ok) throw new Error('Failed to load users');
+                const users = await response.json();
+                
+                const tbody = document.getElementById('usersTableBody');
+                tbody.innerHTML = '';
+                
+                users.forEach(user => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${user.first_name} ${user.last_name}</td>
+                        <td>${user.email}</td>
+                        <td>${user.club_name}</td>
+                        <td>${user.series_name}</td>
+                        <td>${formatDate(user.last_login)}</td>
+                        <td>
+                            <a href="/user-activity?email=${encodeURIComponent(user.email)}" 
+                               class="btn btn-info btn-sm" title="View Activity">
+                                <i class="bi bi-activity"></i>
+                            </a>
+                            <i class="fas fa-edit edit-btn" onclick="editUser('${user.email}', '${user.first_name}', '${user.last_name}', '${user.club_name}', '${user.series_name}')"></i>
+                            <i class="fas fa-trash-alt text-danger ms-2" style="cursor: pointer;" onclick="confirmDeleteUser('${user.email}', '${user.first_name} ${user.last_name}')"></i>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (error) {
+                console.error('Error loading users:', error);
+                const tbody = document.getElementById('usersTableBody');
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center text-danger">
+                            Error loading users: ${error.message}
+                        </td>
+                    </tr>
+                `;
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // Load clubs with edit buttons
+        async function loadClubs() {
+            showLoading();
+            try {
+                const response = await fetch('/api/admin/clubs');
+                if (!response.ok) throw new Error('Failed to load clubs');
+                const clubs = await response.json();
+                
+                const tbody = document.getElementById('clubsTableBody');
+                tbody.innerHTML = '';
+                
+                clubs.forEach(club => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${club.name}</td>
+                        <td>${club.member_count}</td>
+                        <td>${club.active_series}</td>
+                        <td>
+                            <i class="fas fa-edit edit-btn" onclick="editClub('${club.name}')"></i>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (error) {
+                console.error('Error loading clubs:', error);
+                const tbody = document.getElementById('clubsTableBody');
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="text-center text-danger">
+                            Error loading clubs: ${error.message}
+                        </td>
+                    </tr>
+                `;
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // Load series with edit buttons
+        async function loadSeries() {
+            showLoading();
+            try {
+                const response = await fetch('/api/admin/series');
+                if (!response.ok) throw new Error('Failed to load series');
+                const series = await response.json();
+                
+                const tbody = document.getElementById('seriesTableBody');
+                tbody.innerHTML = '';
+                
+                series.forEach(s => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${s.name}</td>
+                        <td>${s.player_count}</td>
+                        <td>${s.active_clubs}</td>
+                        <td>
+                            <i class="fas fa-edit edit-btn" onclick="editSeries('${s.name}')"></i>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (error) {
+                console.error('Error loading series:', error);
+                const tbody = document.getElementById('seriesTableBody');
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="text-center text-danger">
+                            Error loading series: ${error.message}
+                        </td>
+                    </tr>
+                `;
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // Edit user
+        async function editUser(email, firstName, lastName, clubName, seriesName) {
+            document.getElementById('editUserEmail').value = email;
+            document.getElementById('editUserFirstName').value = firstName;
+            document.getElementById('editUserLastName').value = lastName;
+            
+            // Load clubs and series for dropdowns
+            const clubsResponse = await fetch('/api/get-clubs');
+            const clubs = await clubsResponse.json();
+            const clubSelect = document.getElementById('editUserClub');
+            clubSelect.innerHTML = '';
+            clubs.clubs.forEach(club => {
+                const option = document.createElement('option');
+                option.value = club;
+                option.textContent = club;
+                if (club === clubName) option.selected = true;
+                clubSelect.appendChild(option);
+            });
+            
+            const seriesResponse = await fetch('/api/get-series');
+            const series = await seriesResponse.json();
+            const seriesSelect = document.getElementById('editUserSeries');
+            seriesSelect.innerHTML = '';
+            series.all_series.forEach(s => {
+                const option = document.createElement('option');
+                option.value = s;
+                option.textContent = s;
+                if (s === seriesName) option.selected = true;
+                seriesSelect.appendChild(option);
+            });
+            
+            new bootstrap.Modal(document.getElementById('editUserModal')).show();
+        }
+
+        // Edit club
+        function editClub(name) {
+            document.getElementById('editClubOldName').value = name;
+            document.getElementById('editClubNewName').value = name;
+            new bootstrap.Modal(document.getElementById('editClubModal')).show();
+        }
+
+        // Edit series
+        function editSeries(name) {
+            document.getElementById('editSeriesOldName').value = name;
+            document.getElementById('editSeriesNewName').value = name;
+            new bootstrap.Modal(document.getElementById('editSeriesModal')).show();
+        }
+
+        // Save user changes
+        async function saveUserChanges() {
+            showLoading();
+            try {
+                const response = await fetch('/api/admin/update-user', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        email: document.getElementById('editUserEmail').value,
+                        first_name: document.getElementById('editUserFirstName').value,
+                        last_name: document.getElementById('editUserLastName').value,
+                        club_name: document.getElementById('editUserClub').value,
+                        series_name: document.getElementById('editUserSeries').value
+                    })
+                });
+                
+                if (!response.ok) throw new Error('Failed to update user');
+                
+                bootstrap.Modal.getInstance(document.getElementById('editUserModal')).hide();
+                loadUsers();
+            } catch (error) {
+                console.error('Error updating user:', error);
+                alert('Failed to update user: ' + error.message);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // Save club changes
+        async function saveClubChanges() {
+            showLoading();
+            try {
+                const response = await fetch('/api/admin/update-club', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        old_name: document.getElementById('editClubOldName').value,
+                        new_name: document.getElementById('editClubNewName').value
+                    })
+                });
+                
+                if (!response.ok) throw new Error('Failed to update club');
+                
+                bootstrap.Modal.getInstance(document.getElementById('editClubModal')).hide();
+                loadClubs();
+            } catch (error) {
+                console.error('Error updating club:', error);
+                alert('Failed to update club: ' + error.message);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // Save series changes
+        async function saveSeriesChanges() {
+            showLoading();
+            try {
+                const response = await fetch('/api/admin/update-series', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        old_name: document.getElementById('editSeriesOldName').value,
+                        new_name: document.getElementById('editSeriesNewName').value
+                    })
+                });
+                
+                if (!response.ok) throw new Error('Failed to update series');
+                
+                bootstrap.Modal.getInstance(document.getElementById('editSeriesModal')).hide();
+                loadSeries();
+            } catch (error) {
+                console.error('Error updating series:', error);
+                alert('Failed to update series: ' + error.message);
+            } finally {
+                hideLoading();
+            }
+        }
+
+        // Refresh functions
+        function refreshUsers() {
+            loadUsers();
+        }
+
+        function refreshClubs() {
+            loadClubs();
+        }
+
+        function refreshSeries() {
+            loadSeries();
+        }
+
+        // Load all data when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            loadUsers();
+            loadClubs();
+            loadSeries();
+        });
+
+        // Confirm delete user
+        function confirmDeleteUser(email, name) {
+            document.getElementById('deleteUserEmail').value = email;
+            document.getElementById('deleteUserName').textContent = name;
+            new bootstrap.Modal(document.getElementById('deleteUserModal')).show();
+        }
+
+        // Delete user
+        async function deleteUser() {
+            showLoading();
+            try {
+                const email = document.getElementById('deleteUserEmail').value;
+                const response = await fetch('/api/admin/delete-user', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email })
+                });
+                
+                if (!response.ok) {
+                    const data = await response.json();
+                    throw new Error(data.error || 'Failed to delete user');
+                }
+                
+                bootstrap.Modal.getInstance(document.getElementById('deleteUserModal')).hide();
+                loadUsers();
+            } catch (error) {
+                console.error('Error deleting user:', error);
+                alert('Failed to delete user: ' + error.message);
+            } finally {
+                hideLoading();
+            }
+        }
+    </script>
+</body>
+</html> 

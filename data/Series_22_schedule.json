@@ -1,0 +1,952 @@
+[
+    {
+        "date": "09/24/2024",
+        "time": "06:30 pm",
+        "home_team": "Lake Bluff - 22",
+        "away_team": "Birchwood - 22",
+        "location": "Birchwood"
+    },
+    {
+        "date": "09/24/2024",
+        "time": "06:30 pm",
+        "home_team": "Skokie - 22",
+        "away_team": "Lake Forest - 22",
+        "location": "Lake Forest"
+    },
+    {
+        "date": "09/24/2024",
+        "time": "06:30 pm",
+        "home_team": "Michigan Shores - 22",
+        "away_team": "Lake Shore CC - 22",
+        "location": "Lake Shore CC"
+    },
+    {
+        "date": "09/24/2024",
+        "time": "06:30 pm",
+        "home_team": "BYE - 22",
+        "away_team": "Lakeshore S&F - 22",
+        "location": "Lakeshore S&F"
+    },
+    {
+        "date": "09/24/2024",
+        "time": "06:30 pm",
+        "home_team": "Exmoor - 22",
+        "away_team": "Saddle & Cycle - 22",
+        "location": "Saddle & Cycle"
+    },
+    {
+        "date": "09/24/2024",
+        "time": "06:30 pm",
+        "home_team": "Valley Lo - 22",
+        "away_team": "Tennaqua - 22",
+        "location": "Tennaqua"
+    },
+    {
+        "date": "09/29/2024",
+        "time": "06:30 pm",
+        "Practice": ""
+    },
+    {
+        "date": "10/01/2024",
+        "time": "06:30 pm",
+        "home_team": "Michigan Shores - 22",
+        "away_team": "Lake Bluff - 22",
+        "location": "Lake Bluff"
+    },
+    {
+        "date": "10/01/2024",
+        "time": "06:30 pm",
+        "home_team": "BYE - 22",
+        "away_team": "Lake Shore CC - 22",
+        "location": "Lake Shore CC"
+    },
+    {
+        "date": "10/01/2024",
+        "time": "06:30 pm",
+        "home_team": "Exmoor - 22",
+        "away_team": "Lakeshore S&F - 22",
+        "location": "Lakeshore S&F"
+    },
+    {
+        "date": "10/01/2024",
+        "time": "06:30 pm",
+        "home_team": "Lake Forest - 22",
+        "away_team": "Saddle & Cycle - 22",
+        "location": "Saddle & Cycle"
+    },
+    {
+        "date": "10/01/2024",
+        "time": "06:30 pm",
+        "home_team": "Birchwood - 22",
+        "away_team": "Tennaqua - 22",
+        "location": "Tennaqua"
+    },
+    {
+        "date": "10/01/2024",
+        "time": "06:30 pm",
+        "home_team": "Skokie - 22",
+        "away_team": "Valley Lo - 22",
+        "location": "Valley Lo"
+    },
+    {
+        "date": "10/06/2024",
+        "time": "06:30 pm",
+        "Practice": ""
+    },
+    {
+        "date": "10/08/2024",
+        "time": "06:30 pm",
+        "home_team": "Skokie - 22",
+        "away_team": "Birchwood - 22",
+        "location": "Birchwood"
+    },
+    {
+        "date": "10/08/2024",
+        "time": "06:30 pm",
+        "home_team": "BYE - 22",
+        "away_team": "Lake Bluff - 22",
+        "location": "Lake Bluff"
+    },
+    {
+        "date": "10/08/2024",
+        "time": "06:30 pm",
+        "home_team": "Exmoor - 22",
+        "away_team": "Lake Forest - 22",
+        "location": "Lake Forest"
+    },
+    {
+        "date": "10/08/2024",
+        "time": "06:30 pm",
+        "home_team": "Lake Shore CC - 22",
+        "away_team": "Lakeshore S&F - 22",
+        "location": "Lakeshore S&F"
+    },
+    {
+        "date": "10/08/2024",
+        "time": "06:30 pm",
+        "home_team": "Valley Lo - 22",
+        "away_team": "Saddle & Cycle - 22",
+        "location": "Saddle & Cycle"
+    },
+    {
+        "date": "10/08/2024",
+        "time": "06:30 pm",
+        "home_team": "Michigan Shores - 22",
+        "away_team": "Tennaqua - 22",
+        "location": "Tennaqua"
+    },
+    {
+        "date": "10/13/2024",
+        "time": "06:30 pm",
+        "Practice": ""
+    },
+    {
+        "date": "10/15/2024",
+        "time": "06:30 pm",
+        "home_team": "Valley Lo - 22",
+        "away_team": "Exmoor - 22",
+        "location": "Exmoor"
+    },
+    {
+        "date": "10/15/2024",
+        "time": "06:30 pm",
+        "home_team": "Lake Shore CC - 22",
+        "away_team": "Lake Bluff - 22",
+        "location": "Lake Bluff"
+    },
+    {
+        "date": "10/15/2024",
+        "time": "06:30 pm",
+        "home_team": "Lakeshore S&F - 22",
+        "away_team": "Lake Forest - 22",
+        "location": "Lake Forest"
+    },
+    {
+        "date": "10/15/2024",
+        "time": "06:30 pm",
+        "home_team": "Birchwood - 22",
+        "away_team": "Saddle & Cycle - 22",
+        "location": "Saddle & Cycle"
+    },
+    {
+        "date": "10/15/2024",
+        "time": "06:30 pm",
+        "home_team": "Michigan Shores - 22",
+        "away_team": "Skokie - 22",
+        "location": "Skokie"
+    },
+    {
+        "date": "10/15/2024",
+        "time": "06:30 pm",
+        "home_team": "BYE - 22",
+        "away_team": "Tennaqua - 22",
+        "location": "Tennaqua"
+    },
+    {
+        "date": "10/20/2024",
+        "time": "06:30 pm",
+        "Practice": ""
+    },
+    {
+        "date": "10/22/2024",
+        "time": "06:30 pm",
+        "home_team": "Birchwood - 22",
+        "away_team": "Exmoor - 22",
+        "location": "Exmoor"
+    },
+    {
+        "date": "10/22/2024",
+        "time": "06:30 pm",
+        "home_team": "Tennaqua - 22",
+        "away_team": "Lake Shore CC - 22",
+        "location": "Lake Shore CC"
+    },
+    {
+        "date": "10/22/2024",
+        "time": "06:30 pm",
+        "home_team": "Lake Bluff - 22",
+        "away_team": "Lakeshore S&F - 22",
+        "location": "Lakeshore S&F"
+    },
+    {
+        "date": "10/22/2024",
+        "time": "06:30 pm",
+        "home_team": "Michigan Shores - 22",
+        "away_team": "Saddle & Cycle - 22",
+        "location": "Saddle & Cycle"
+    },
+    {
+        "date": "10/22/2024",
+        "time": "06:30 pm",
+        "home_team": "BYE - 22",
+        "away_team": "Skokie - 22",
+        "location": "Skokie"
+    },
+    {
+        "date": "10/22/2024",
+        "time": "06:30 pm",
+        "home_team": "Lake Forest - 22",
+        "away_team": "Valley Lo - 22",
+        "location": "Valley Lo"
+    },
+    {
+        "date": "10/27/2024",
+        "time": "06:30 pm",
+        "Practice": ""
+    },
+    {
+        "date": "10/29/2024",
+        "time": "06:30 pm",
+        "home_team": "Lake Forest - 22",
+        "away_team": "Birchwood - 22",
+        "location": "Birchwood"
+    },
+    {
+        "date": "10/29/2024",
+        "time": "06:30 pm",
+        "home_team": "Valley Lo - 22",
+        "away_team": "Lakeshore S&F - 22",
+        "location": "Lakeshore S&F"
+    },
+    {
+        "date": "10/29/2024",
+        "time": "06:30 pm",
+        "home_team": "Exmoor - 22",
+        "away_team": "Michigan Shores - 22",
+        "location": "Michigan Shores"
+    },
+    {
+        "date": "10/29/2024",
+        "time": "06:30 pm",
+        "home_team": "BYE - 22",
+        "away_team": "Saddle & Cycle - 22",
+        "location": "Saddle & Cycle"
+    },
+    {
+        "date": "10/29/2024",
+        "time": "06:30 pm",
+        "home_team": "Lake Shore CC - 22",
+        "away_team": "Skokie - 22",
+        "location": "Skokie"
+    },
+    {
+        "date": "10/29/2024",
+        "time": "06:30 pm",
+        "home_team": "Lake Bluff - 22",
+        "away_team": "Tennaqua - 22",
+        "location": "Tennaqua"
+    },
+    {
+        "date": "11/03/2024",
+        "time": "06:30 pm",
+        "Practice": ""
+    },
+    {
+        "date": "11/05/2024",
+        "time": "06:30 pm",
+        "home_team": "Valley Lo - 22",
+        "away_team": "Birchwood - 22",
+        "location": "Birchwood"
+    },
+    {
+        "date": "11/05/2024",
+        "time": "06:30 pm",
+        "home_team": "BYE - 22",
+        "away_team": "Exmoor - 22",
+        "location": "Exmoor"
+    },
+    {
+        "date": "11/05/2024",
+        "time": "06:30 pm",
+        "home_team": "Michigan Shores - 22",
+        "away_team": "Lake Forest - 22",
+        "location": "Lake Forest"
+    },
+    {
+        "date": "11/05/2024",
+        "time": "06:30 pm",
+        "home_team": "Saddle & Cycle - 22",
+        "away_team": "Lake Shore CC - 22",
+        "location": "Lake Shore CC"
+    },
+    {
+        "date": "11/05/2024",
+        "time": "06:30 pm",
+        "home_team": "Tennaqua - 22",
+        "away_team": "Lakeshore S&F - 22",
+        "location": "Lakeshore S&F"
+    },
+    {
+        "date": "11/05/2024",
+        "time": "06:30 pm",
+        "home_team": "Lake Bluff - 22",
+        "away_team": "Skokie - 22",
+        "location": "Skokie"
+    },
+    {
+        "date": "11/10/2024",
+        "time": "06:30 pm",
+        "Practice": ""
+    },
+    {
+        "date": "11/12/2024",
+        "time": "06:30 pm",
+        "home_team": "Lakeshore S&F - 22",
+        "away_team": "Birchwood - 22",
+        "location": "Birchwood"
+    },
+    {
+        "date": "11/12/2024",
+        "time": "06:30 pm",
+        "home_team": "Lake Shore CC - 22",
+        "away_team": "Exmoor - 22",
+        "location": "Exmoor"
+    },
+    {
+        "date": "11/12/2024",
+        "time": "06:30 pm",
+        "home_team": "BYE - 22",
+        "away_team": "Lake Forest - 22",
+        "location": "Lake Forest"
+    },
+    {
+        "date": "11/12/2024",
+        "time": "06:30 pm",
+        "home_team": "Valley Lo - 22",
+        "away_team": "Michigan Shores - 22",
+        "location": "Michigan Shores"
+    },
+    {
+        "date": "11/12/2024",
+        "time": "06:30 pm",
+        "home_team": "Lake Bluff - 22",
+        "away_team": "Saddle & Cycle - 22",
+        "location": "Saddle & Cycle"
+    },
+    {
+        "date": "11/12/2024",
+        "time": "06:30 pm",
+        "home_team": "Tennaqua - 22",
+        "away_team": "Skokie - 22",
+        "location": "Skokie"
+    },
+    {
+        "date": "11/17/2024",
+        "time": "06:30 pm",
+        "Practice": ""
+    },
+    {
+        "date": "11/19/2024",
+        "time": "06:30 pm",
+        "home_team": "Michigan Shores - 22",
+        "away_team": "Birchwood - 22",
+        "location": "Birchwood"
+    },
+    {
+        "date": "11/19/2024",
+        "time": "06:30 pm",
+        "home_team": "Lake Bluff - 22",
+        "away_team": "Exmoor - 22",
+        "location": "Exmoor"
+    },
+    {
+        "date": "11/19/2024",
+        "time": "06:30 pm",
+        "home_team": "Lake Shore CC - 22",
+        "away_team": "Lake Forest - 22",
+        "location": "Lake Forest"
+    },
+    {
+        "date": "11/19/2024",
+        "time": "06:30 pm",
+        "home_team": "Skokie - 22",
+        "away_team": "Lakeshore S&F - 22",
+        "location": "Lakeshore S&F"
+    },
+    {
+        "date": "11/19/2024",
+        "time": "06:30 pm",
+        "home_team": "Saddle & Cycle - 22",
+        "away_team": "Tennaqua - 22",
+        "location": "Tennaqua"
+    },
+    {
+        "date": "11/19/2024",
+        "time": "06:30 pm",
+        "home_team": "BYE - 22",
+        "away_team": "Valley Lo - 22",
+        "location": "Valley Lo"
+    },
+    {
+        "date": "11/24/2024",
+        "time": "06:30 pm",
+        "Practice": ""
+    },
+    {
+        "date": "12/01/2024",
+        "time": "06:30 pm",
+        "Practice": ""
+    },
+    {
+        "date": "12/03/2024",
+        "time": "06:30 pm",
+        "home_team": "BYE - 22",
+        "away_team": "Birchwood - 22",
+        "location": "Birchwood"
+    },
+    {
+        "date": "12/03/2024",
+        "time": "06:30 pm",
+        "home_team": "Tennaqua - 22",
+        "away_team": "Exmoor - 22",
+        "location": "Exmoor"
+    },
+    {
+        "date": "12/03/2024",
+        "time": "06:30 pm",
+        "home_team": "Lake Bluff - 22",
+        "away_team": "Lake Forest - 22",
+        "location": "Lake Forest"
+    },
+    {
+        "date": "12/03/2024",
+        "time": "06:30 pm",
+        "home_team": "Valley Lo - 22",
+        "away_team": "Lake Shore CC - 22",
+        "location": "Lake Shore CC"
+    },
+    {
+        "date": "12/03/2024",
+        "time": "06:30 pm",
+        "home_team": "Lakeshore S&F - 22",
+        "away_team": "Michigan Shores - 22",
+        "location": "Michigan Shores"
+    },
+    {
+        "date": "12/03/2024",
+        "time": "06:30 pm",
+        "home_team": "Skokie - 22",
+        "away_team": "Saddle & Cycle - 22",
+        "location": "Saddle & Cycle"
+    },
+    {
+        "date": "12/08/2024",
+        "time": "06:30 pm",
+        "Practice": ""
+    },
+    {
+        "date": "12/10/2024",
+        "time": "06:30 pm",
+        "home_team": "Lake Shore CC - 22",
+        "away_team": "Birchwood - 22",
+        "location": "Birchwood"
+    },
+    {
+        "date": "12/10/2024",
+        "time": "06:30 pm",
+        "home_team": "Saddle & Cycle - 22",
+        "away_team": "Lakeshore S&F - 22",
+        "location": "Lakeshore S&F"
+    },
+    {
+        "date": "12/10/2024",
+        "time": "06:30 pm",
+        "home_team": "BYE - 22",
+        "away_team": "Michigan Shores - 22",
+        "location": "Michigan Shores"
+    },
+    {
+        "date": "12/10/2024",
+        "time": "06:30 pm",
+        "home_team": "Exmoor - 22",
+        "away_team": "Skokie - 22",
+        "location": "Skokie"
+    },
+    {
+        "date": "12/10/2024",
+        "time": "06:30 pm",
+        "home_team": "Lake Forest - 22",
+        "away_team": "Tennaqua - 22",
+        "location": "Tennaqua"
+    },
+    {
+        "date": "12/10/2024",
+        "time": "06:30 pm",
+        "home_team": "Lake Bluff - 22",
+        "away_team": "Valley Lo - 22",
+        "location": "Valley Lo"
+    },
+    {
+        "date": "12/15/2024",
+        "time": "06:30 pm",
+        "Practice": ""
+    },
+    {
+        "date": "12/17/2024",
+        "time": "06:30 pm",
+        "home_team": "Saddle & Cycle - 22",
+        "away_team": "Exmoor - 22",
+        "location": "Exmoor"
+    },
+    {
+        "date": "12/17/2024",
+        "time": "06:30 pm",
+        "home_team": "Birchwood - 22",
+        "away_team": "Lake Bluff - 22",
+        "location": "Lake Bluff"
+    },
+    {
+        "date": "12/17/2024",
+        "time": "06:30 pm",
+        "home_team": "BYE - 22",
+        "away_team": "Lakeshore S&F - 22",
+        "location": "Lakeshore S&F"
+    },
+    {
+        "date": "12/17/2024",
+        "time": "06:30 pm",
+        "home_team": "Lake Shore CC - 22",
+        "away_team": "Michigan Shores - 22",
+        "location": "Michigan Shores"
+    },
+    {
+        "date": "12/17/2024",
+        "time": "06:30 pm",
+        "home_team": "Lake Forest - 22",
+        "away_team": "Skokie - 22",
+        "location": "Skokie"
+    },
+    {
+        "date": "12/17/2024",
+        "time": "06:30 pm",
+        "home_team": "Tennaqua - 22",
+        "away_team": "Valley Lo - 22",
+        "location": "Valley Lo"
+    },
+    {
+        "date": "12/22/2024",
+        "time": "06:30 pm",
+        "Practice": ""
+    },
+    {
+        "date": "12/29/2024",
+        "time": "06:30 pm",
+        "Practice": ""
+    },
+    {
+        "date": "01/05/2025",
+        "time": "06:30 pm",
+        "Practice": ""
+    },
+    {
+        "date": "01/07/2025",
+        "time": "06:30 pm",
+        "home_team": "Tennaqua - 22",
+        "away_team": "Birchwood - 22",
+        "location": "Birchwood"
+    },
+    {
+        "date": "01/07/2025",
+        "time": "06:30 pm",
+        "home_team": "Lakeshore S&F - 22",
+        "away_team": "Exmoor - 22",
+        "location": "Exmoor"
+    },
+    {
+        "date": "01/07/2025",
+        "time": "06:30 pm",
+        "home_team": "Saddle & Cycle - 22",
+        "away_team": "Lake Forest - 22",
+        "location": "Lake Forest"
+    },
+    {
+        "date": "01/07/2025",
+        "time": "06:30 pm",
+        "home_team": "BYE - 22",
+        "away_team": "Lake Shore CC - 22",
+        "location": "Lake Shore CC"
+    },
+    {
+        "date": "01/07/2025",
+        "time": "06:30 pm",
+        "home_team": "Lake Bluff - 22",
+        "away_team": "Michigan Shores - 22",
+        "location": "Michigan Shores"
+    },
+    {
+        "date": "01/07/2025",
+        "time": "06:30 pm",
+        "home_team": "Valley Lo - 22",
+        "away_team": "Skokie - 22",
+        "location": "Skokie"
+    },
+    {
+        "date": "01/12/2025",
+        "time": "06:30 pm",
+        "Practice": ""
+    },
+    {
+        "date": "01/14/2025",
+        "time": "06:30 pm",
+        "home_team": "Lake Forest - 22",
+        "away_team": "Exmoor - 22",
+        "location": "Exmoor"
+    },
+    {
+        "date": "01/14/2025",
+        "time": "06:30 pm",
+        "home_team": "BYE - 22",
+        "away_team": "Lake Bluff - 22",
+        "location": "Lake Bluff"
+    },
+    {
+        "date": "01/14/2025",
+        "time": "06:30 pm",
+        "home_team": "Lakeshore S&F - 22",
+        "away_team": "Lake Shore CC - 22",
+        "location": "Lake Shore CC"
+    },
+    {
+        "date": "01/14/2025",
+        "time": "06:30 pm",
+        "home_team": "Tennaqua - 22",
+        "away_team": "Michigan Shores - 22",
+        "location": "Michigan Shores"
+    },
+    {
+        "date": "01/14/2025",
+        "time": "06:30 pm",
+        "home_team": "Birchwood - 22",
+        "away_team": "Skokie - 22",
+        "location": "Skokie"
+    },
+    {
+        "date": "01/14/2025",
+        "time": "06:30 pm",
+        "home_team": "Saddle & Cycle - 22",
+        "away_team": "Valley Lo - 22",
+        "location": "Valley Lo"
+    },
+    {
+        "date": "01/19/2025",
+        "time": "06:30 pm",
+        "Practice": ""
+    },
+    {
+        "date": "01/21/2025",
+        "time": "06:30 pm",
+        "home_team": "Saddle & Cycle - 22",
+        "away_team": "Birchwood - 22",
+        "location": "Birchwood"
+    },
+    {
+        "date": "01/21/2025",
+        "time": "06:30 pm",
+        "home_team": "Valley Lo - 22",
+        "away_team": "Exmoor - 22",
+        "location": "Exmoor"
+    },
+    {
+        "date": "01/21/2025",
+        "time": "06:30 pm",
+        "home_team": "Lake Bluff - 22",
+        "away_team": "Lake Shore CC - 22",
+        "location": "Lake Shore CC"
+    },
+    {
+        "date": "01/21/2025",
+        "time": "06:30 pm",
+        "home_team": "Lake Forest - 22",
+        "away_team": "Lakeshore S&F - 22",
+        "location": "Lakeshore S&F"
+    },
+    {
+        "date": "01/21/2025",
+        "time": "06:30 pm",
+        "home_team": "Skokie - 22",
+        "away_team": "Michigan Shores - 22",
+        "location": "Michigan Shores"
+    },
+    {
+        "date": "01/21/2025",
+        "time": "06:30 pm",
+        "home_team": "BYE - 22",
+        "away_team": "Tennaqua - 22",
+        "location": "Tennaqua"
+    },
+    {
+        "date": "01/26/2025",
+        "time": "06:30 pm",
+        "Practice": ""
+    },
+    {
+        "date": "01/28/2025",
+        "time": "06:30 pm",
+        "home_team": "Exmoor - 22",
+        "away_team": "Birchwood - 22",
+        "location": "Birchwood"
+    },
+    {
+        "date": "01/28/2025",
+        "time": "06:30 pm",
+        "home_team": "Lakeshore S&F - 22",
+        "away_team": "Lake Bluff - 22",
+        "location": "Lake Bluff"
+    },
+    {
+        "date": "01/28/2025",
+        "time": "06:30 pm",
+        "home_team": "Valley Lo - 22",
+        "away_team": "Lake Forest - 22",
+        "location": "Lake Forest"
+    },
+    {
+        "date": "01/28/2025",
+        "time": "06:30 pm",
+        "home_team": "Michigan Shores - 22",
+        "away_team": "Saddle & Cycle - 22",
+        "location": "Saddle & Cycle"
+    },
+    {
+        "date": "01/28/2025",
+        "time": "06:30 pm",
+        "home_team": "BYE - 22",
+        "away_team": "Skokie - 22",
+        "location": "Skokie"
+    },
+    {
+        "date": "01/28/2025",
+        "time": "06:30 pm",
+        "home_team": "Lake Shore CC - 22",
+        "away_team": "Tennaqua - 22",
+        "location": "Tennaqua"
+    },
+    {
+        "date": "02/02/2025",
+        "time": "06:30 pm",
+        "Practice": ""
+    },
+    {
+        "date": "02/04/2025",
+        "time": "06:30 pm",
+        "home_team": "Michigan Shores - 22",
+        "away_team": "Exmoor - 22",
+        "location": "Exmoor"
+    },
+    {
+        "date": "02/04/2025",
+        "time": "06:30 pm",
+        "home_team": "Tennaqua - 22",
+        "away_team": "Lake Bluff - 22",
+        "location": "Lake Bluff"
+    },
+    {
+        "date": "02/04/2025",
+        "time": "06:30 pm",
+        "home_team": "Birchwood - 22",
+        "away_team": "Lake Forest - 22",
+        "location": "Lake Forest"
+    },
+    {
+        "date": "02/04/2025",
+        "time": "06:30 pm",
+        "home_team": "Skokie - 22",
+        "away_team": "Lake Shore CC - 22",
+        "location": "Lake Shore CC"
+    },
+    {
+        "date": "02/04/2025",
+        "time": "06:30 pm",
+        "home_team": "Valley Lo - 22",
+        "away_team": "Lakeshore S&F - 22",
+        "location": "Lakeshore S&F"
+    },
+    {
+        "date": "02/04/2025",
+        "time": "06:30 pm",
+        "home_team": "BYE - 22",
+        "away_team": "Saddle & Cycle - 22",
+        "location": "Saddle & Cycle"
+    },
+    {
+        "date": "02/09/2025",
+        "time": "06:30 pm",
+        "Practice": ""
+    },
+    {
+        "date": "02/11/2025",
+        "time": "06:30 pm",
+        "home_team": "Valley Lo - 22",
+        "away_team": "Birchwood - 22",
+        "location": "Birchwood"
+    },
+    {
+        "date": "02/11/2025",
+        "time": "06:30 pm",
+        "home_team": "BYE - 22",
+        "away_team": "Exmoor - 22",
+        "location": "Exmoor"
+    },
+    {
+        "date": "02/11/2025",
+        "time": "06:30 pm",
+        "home_team": "Skokie - 22",
+        "away_team": "Lake Bluff - 22",
+        "location": "Lake Bluff"
+    },
+    {
+        "date": "02/11/2025",
+        "time": "06:30 pm",
+        "home_team": "Lake Forest - 22",
+        "away_team": "Michigan Shores - 22",
+        "location": "Michigan Shores"
+    },
+    {
+        "date": "02/11/2025",
+        "time": "06:30 pm",
+        "home_team": "Lake Shore CC - 22",
+        "away_team": "Saddle & Cycle - 22",
+        "location": "Saddle & Cycle"
+    },
+    {
+        "date": "02/11/2025",
+        "time": "06:30 pm",
+        "home_team": "Lakeshore S&F - 22",
+        "away_team": "Tennaqua - 22",
+        "location": "Tennaqua"
+    },
+    {
+        "date": "02/16/2025",
+        "time": "06:30 pm",
+        "Practice": ""
+    },
+    {
+        "date": "02/23/2025",
+        "time": "06:30 pm",
+        "Practice": ""
+    },
+    {
+        "date": "02/25/2025",
+        "time": "06:30 pm",
+        "home_team": "Exmoor - 22",
+        "away_team": "Lake Forest - 22",
+        "location": "Lake Forest"
+    },
+    {
+        "date": "02/25/2025",
+        "time": "06:30 pm",
+        "home_team": "Birchwood - 22",
+        "away_team": "Skokie - 22",
+        "location": "Skokie"
+    },
+    {
+        "date": "02/25/2025",
+        "time": "06:30 pm",
+        "home_team": "Lakeshore S&F - 22",
+        "away_team": "Tennaqua - 22",
+        "location": "Tennaqua"
+    },
+    {
+        "date": "02/25/2025",
+        "time": "06:30 pm",
+        "home_team": "Lake Shore CC - 22",
+        "away_team": "Valley Lo - 22",
+        "location": "Valley Lo"
+    },
+    {
+        "date": "03/02/2025",
+        "time": "06:30 pm",
+        "Practice": ""
+    },
+    {
+        "date": "03/04/2025",
+        "time": "06:30 pm",
+        "home_team": "Exmoor - 22",
+        "away_team": "Skokie - 22",
+        "location": "Skokie"
+    },
+    {
+        "date": "03/04/2025",
+        "time": "06:30 pm",
+        "home_team": "Tennaqua - 22",
+        "away_team": "Valley Lo - 22",
+        "location": "Valley Lo"
+    },
+    {
+        "date": "03/09/2025",
+        "time": "06:30 pm",
+        "Practice": ""
+    },
+    {
+        "date": "03/11/2025",
+        "time": "06:30 pm",
+        "home_team": "Exmoor - 22",
+        "away_team": "Valley Lo - 22",
+        "location": "Valley Lo"
+    },
+    {
+        "date": "03/16/2025",
+        "time": "06:30 pm",
+        "Practice": ""
+    },
+    {
+        "date": "03/23/2025",
+        "time": "06:30 pm",
+        "Practice": ""
+    },
+    {
+        "date": "03/30/2025",
+        "time": "06:30 pm",
+        "Practice": ""
+    },
+    {
+        "date": "04/06/2025",
+        "time": "06:30 pm",
+        "Practice": ""
+    },
+    {
+        "date": "04/13/2025",
+        "time": "06:30 pm",
+        "Practice": ""
+    }
+]
