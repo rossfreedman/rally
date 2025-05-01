@@ -48,11 +48,17 @@ if not openai_api_key:
     logger.error("Please set your OpenAI API key in the environment variables.")
     sys.exit(1)
 
-# Initialize OpenAI client with organization if provided
-client_kwargs = {'api_key': openai_api_key}
+# Initialize OpenAI client with organization if provided and disable audio features
+client_kwargs = {
+    'api_key': openai_api_key,
+    'base_url': os.getenv('OPENAI_API_BASE', 'https://api.openai.com/v1'),  # Use default base URL if not set
+}
 if openai_org_id:
     client_kwargs['organization'] = openai_org_id
     logger.info(f"Using OpenAI organization: {openai_org_id}")
+
+# Disable audio features by setting the environment variable
+os.environ['OPENAI_ENABLE_AUDIO'] = 'false'
 
 try:
     client = openai.OpenAI(**client_kwargs)
