@@ -20,12 +20,13 @@ COPY . .
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
+ENV PORT=3000
 
 # Create data directory if it doesn't exist
 RUN mkdir -p data
 
-# Expose port
-EXPOSE 3000
+# Expose port from environment variable
+EXPOSE ${PORT}
 
 # Command to run the application
 CMD ["python", "server.py"] 

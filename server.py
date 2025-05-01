@@ -38,13 +38,25 @@ load_dotenv()
 
 # Check for required environment variables
 openai_api_key = os.getenv('OPENAI_API_KEY')
+openai_org_id = os.getenv('OPENAI_ORG_ID')  # Optional organization ID
+assistant_id = os.getenv('OPENAI_ASSISTANT_ID', 'asst_Q6GQOccbb0ymf9IpLMG1lFHe')  # Default to known ID
+
 if not openai_api_key:
     print("ERROR: OPENAI_API_KEY environment variable is not set!")
     print("Please set your OpenAI API key in the environment variables.")
     sys.exit(1)
 
-# Initialize OpenAI client
-client = openai.OpenAI(api_key=openai_api_key)
+# Initialize OpenAI client with organization if provided
+client_kwargs = {'api_key': openai_api_key}
+if openai_org_id:
+    client_kwargs['organization'] = openai_org_id
+    print(f"Using OpenAI organization: {openai_org_id}")
+
+try:
+    client = openai.OpenAI(**client_kwargs)
+except Exception as e:
+    print(f"ERROR: Failed to initialize OpenAI client: {str(e)}")
+    sys.exit(1)
 
 # Store active threads
 active_threads = {}
@@ -109,24 +121,59 @@ def read_all_player_data():
         return pd.DataFrame()
 
 def get_or_create_assistant():
-    """Get the existing assistant"""
-    assistant_id = "asst_Q6GQOccbb0ymf9IpLMG1lFHe"
+    """Get or create the paddle tennis assistant"""
     try:
-        print(f"Attempting to retrieve assistant with ID: {assistant_id}")
-        assistant = client.beta.assistants.retrieve(assistant_id)
-        print(f"Successfully retrieved assistant: {assistant.name}")
+        # First try to retrieve the existing assistant
+        try:
+            assistant = client.beta.assistants.retrieve(assistant_id)
+            print(f"Successfully retrieved existing assistant with ID: {assistant.id}")
+            return assistant
+        except openai.NotFoundError:
+            print(f"Assistant {assistant_id} not found, creating new one...")
+        except Exception as e:
+            if "No access to organization" in str(e):
+                print(f"ERROR: No access to organization. Please check OPENAI_ORG_ID if using a shared assistant.")
+                raise
+            print(f"Error retrieving assistant: {str(e)}")
+            print("Attempting to create new assistant...")
+
+        # Create new assistant if retrieval failed
+        assistant = client.beta.assistants.create(
+            name="PaddlePro Assistant",
+            instructions="""You are a paddle tennis assistant. Help users with:
+            1. Generating optimal lineups based on player statistics
+            2. Analyzing match patterns and team performance
+            3. Providing strategic advice for upcoming matches
+            4. Answering questions about paddle tennis rules and strategy""",
+            model="gpt-4-turbo-preview"
+        )
+        print(f"Successfully created new assistant with ID: {assistant.id}")
+        print("\nIMPORTANT: Save this assistant ID in your environment variables:")
+        print(f"OPENAI_ASSISTANT_ID={assistant.id}")
         return assistant
     except Exception as e:
-        print(f"Error retrieving assistant: {str(e)}")
+        error_msg = str(e)
+        print(f"Error with assistant: {error_msg}")
         print("Full error details:", traceback.format_exc())
-        print("\nPlease ensure:")
-        print("1. Your OpenAI API key has access to this assistant")
-        print("2. The assistant ID exists in your OpenAI account")
-        print(f"3. The assistant ID '{assistant_id}' is correct")
-        raise Exception("Failed to retrieve assistant. Please check the assistant ID and API configuration.")
+        
+        if "No access to organization" in error_msg:
+            print("\nTROUBLESHOOTING STEPS:")
+            print("1. Verify your OPENAI_ORG_ID is correct")
+            print("2. Ensure your API key has access to the organization")
+            print("3. Check if the assistant ID belongs to the correct organization")
+        elif "Rate limit" in error_msg:
+            print("\nTROUBLESHOOTING STEPS:")
+            print("1. Check your API usage and limits")
+            print("2. Implement rate limiting or retry logic if needed")
+        elif "Invalid authentication" in error_msg:
+            print("\nTROUBLESHOOTING STEPS:")
+            print("1. Verify your OPENAI_API_KEY is correct and active")
+            print("2. Check if your API key has the necessary permissions")
+        
+        raise Exception("Failed to initialize assistant. Please check the error messages above.")
 
 try:
-    # Get the assistant
+    # Initialize the assistant
     print("\nInitializing OpenAI Assistant...")
     assistant = get_or_create_assistant()
     print("Assistant initialization complete.")
@@ -2905,7 +2952,8 @@ def log_click():
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
-    port = int(os.environ.get("PORT", 3000))
+    # Get port from environment variable or use default
+    port = int(os.environ.get("PORT", os.environ.get("RAILWAY_PORT", 3000)))
     host = os.environ.get("HOST", "0.0.0.0")
     print(f"Server will run at: http://{host}:{port}")
     print("=== SERVER STARTING ===")
