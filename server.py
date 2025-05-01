@@ -2977,6 +2977,9 @@ if __name__ == '__main__':
         import eventlet
         eventlet.monkey_patch(os=False, thread=False, select=False)
         
+        # Set eventlet timeout
+        eventlet.timeout.Timeout(60)
+        
         # Configure SocketIO with more conservative timeouts
         socketio = SocketIO(
             app,
@@ -3002,15 +3005,14 @@ if __name__ == '__main__':
             logger.error(f"Bad Gateway Error: {error}")
             return jsonify({'error': 'Bad Gateway'}), 502
         
-        # Run the server with worker timeout
+        # Run the server
         socketio.run(
             app,
             host=host,
             port=port,
             debug=False,
             use_reloader=False,
-            log_output=True,
-            worker_timeout=60  # 60 second worker timeout
+            log_output=True
         )
         logger.info("Server started successfully")
     except Exception as e:
