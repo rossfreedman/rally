@@ -20,7 +20,7 @@ Jinja2==3.1.6
 jiter==0.9.0
 MarkupSafe==3.0.2
 numpy==2.2.5
-openai==1.76.0; platform_system != "Windows"  # Exclude audio dependencies
+openai[datalib]==1.76.0  # Exclude audio dependencies by only including datalib extras
 outcome==1.3.0.post0
 pandas==2.2.3
 SQLAlchemy==2.0.28
