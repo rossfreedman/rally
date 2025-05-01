@@ -23,6 +23,8 @@ ENV PYTHONUNBUFFERED=1
 ENV PORT=3000
 ENV FLASK_ENV=production
 ENV FLASK_APP=server.py
+ENV WEB_CONCURRENCY=1
+ENV EVENTLET_NO_GREENDNS=yes
 
 # Create data directory if it doesn't exist
 RUN mkdir -p data

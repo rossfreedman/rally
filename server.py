@@ -2970,11 +2970,29 @@ if __name__ == '__main__':
     logger.info(f"Host: {host}")
     
     try:
-        # Basic Flask server without SocketIO for initial deployment
-        app.run(
+        # Initialize eventlet
+        import eventlet
+        eventlet.monkey_patch()
+        
+        # Configure SocketIO
+        socketio = SocketIO(
+            app,
+            cors_allowed_origins="*",
+            async_mode='eventlet',
+            logger=True,
+            engineio_logger=True,
+            ping_timeout=60,
+            ping_interval=25
+        )
+        
+        # Run the server
+        socketio.run(
+            app,
             host=host,
             port=port,
-            debug=False
+            debug=False,
+            use_reloader=False,
+            log_output=True
         )
         logger.info("Server started successfully")
     except Exception as e:
