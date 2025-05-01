@@ -36,6 +36,19 @@ logging.basicConfig(
 # Load environment variables
 load_dotenv()
 
+# Check for required environment variables
+openai_api_key = os.getenv('OPENAI_API_KEY')
+if not openai_api_key:
+    print("ERROR: OPENAI_API_KEY environment variable is not set!")
+    print("Please set your OpenAI API key in the environment variables.")
+    sys.exit(1)
+
+# Initialize OpenAI client
+client = openai.OpenAI(api_key=openai_api_key)
+
+# Store active threads
+active_threads = {}
+
 app = Flask(__name__, static_folder='static', static_url_path='/static')
 app.secret_key = os.getenv('FLASK_SECRET_KEY', 'your-secret-key-here')  # Change this in production
 
@@ -99,15 +112,27 @@ def get_or_create_assistant():
     """Get the existing assistant"""
     assistant_id = "asst_Q6GQOccbb0ymf9IpLMG1lFHe"
     try:
+        print(f"Attempting to retrieve assistant with ID: {assistant_id}")
         assistant = client.beta.assistants.retrieve(assistant_id)
-        print("Using assistant:", assistant.name)
+        print(f"Successfully retrieved assistant: {assistant.name}")
         return assistant
     except Exception as e:
-        print(f"Error retrieving assistant: {e}")
+        print(f"Error retrieving assistant: {str(e)}")
+        print("Full error details:", traceback.format_exc())
+        print("\nPlease ensure:")
+        print("1. Your OpenAI API key has access to this assistant")
+        print("2. The assistant ID exists in your OpenAI account")
+        print(f"3. The assistant ID '{assistant_id}' is correct")
         raise Exception("Failed to retrieve assistant. Please check the assistant ID and API configuration.")
 
-# Get or create the assistant
-assistant = get_or_create_assistant()
+try:
+    # Get the assistant
+    print("\nInitializing OpenAI Assistant...")
+    assistant = get_or_create_assistant()
+    print("Assistant initialization complete.")
+except Exception as e:
+    print(f"Failed to initialize assistant: {str(e)}")
+    sys.exit(1)
 
 # Add this near the top with other global variables
 selected_series = "Chicago 22"
