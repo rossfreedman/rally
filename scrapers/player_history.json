@@ -1,0 +1,494 @@
+[
+  {
+    "name": "Matthew Denison",
+    "series": "Chicago 22",
+    "rating": 52.3,
+    "wins": 15,
+    "losses": 4,
+    "matches": [
+      {
+        "date": "03/04/2025",
+        "end_pti": 31.6,
+        "series": "Chicago: 16"
+      },
+      {
+        "date": "02/27/2025",
+        "end_pti": 31.8,
+        "series": "Chicago: 8"
+      },
+      {
+        "date": "02/25/2025",
+        "end_pti": 33.4,
+        "series": "Chicago: 16"
+      },
+      {
+        "date": "02/13/2025",
+        "end_pti": 33.6,
+        "series": "Chicago: 8"
+      },
+      {
+        "date": "02/11/2025",
+        "end_pti": 36.7,
+        "series": "Chicago: 16"
+      },
+      {
+        "date": "02/06/2025",
+        "end_pti": 36.0,
+        "series": "Chicago: 8"
+      },
+      {
+        "date": "01/28/2025",
+        "end_pti": 35.8,
+        "series": "Chicago: 16"
+      },
+      {
+        "date": "01/23/2025",
+        "end_pti": 36.4,
+        "series": "Chicago: 8"
+      },
+      {
+        "date": "01/21/2025",
+        "end_pti": 38.4,
+        "series": "Chicago: 16"
+      },
+      {
+        "date": "01/16/2025",
+        "end_pti": 39.3,
+        "series": "Chicago: 8"
+      },
+      {
+        "date": "01/07/2025",
+        "end_pti": 40.7,
+        "series": "Chicago: 16"
+      },
+      {
+        "date": "12/17/2024",
+        "end_pti": 38.7,
+        "series": "Chicago: 16"
+      },
+      {
+        "date": "12/10/2024",
+        "end_pti": 40.3,
+        "series": "Chicago: 16"
+      },
+      {
+        "date": "12/03/2024",
+        "end_pti": 40.7,
+        "series": "Chicago: 16"
+      },
+      {
+        "date": "11/12/2024",
+        "end_pti": 42.3,
+        "series": "Chicago: 16"
+      },
+      {
+        "date": "11/05/2024",
+        "end_pti": 44.8,
+        "series": "Chicago: 16"
+      },
+      {
+        "date": "10/31/2024",
+        "end_pti": 47.1,
+        "series": "Chicago: 8"
+      },
+      {
+        "date": "10/29/2024",
+        "end_pti": 47.4,
+        "series": "Chicago: 16"
+      },
+      {
+        "date": "10/22/2024",
+        "end_pti": 42.9,
+        "series": "Chicago: 16"
+      }
+    ]
+  },
+  {
+    "name": "Nick Gerou",
+    "series": "Chicago 22",
+    "rating": 58.1,
+    "wins": 12,
+    "losses": 2,
+    "matches": [
+      {
+        "date": "04/05/2025",
+        "end_pti": 37.1,
+        "series": "APTA Men's PTI 40-45 Team Nationals 40-45 Play-Off"
+      },
+      {
+        "date": "04/05/2025",
+        "end_pti": 38.3,
+        "series": "APTA Men's PTI 40-45 Team Nationals 40-45 Play-Off"
+      },
+      {
+        "date": "04/05/2025",
+        "end_pti": 40.1,
+        "series": "APTA Men's PTI 40-45 Team Nationals Men 40-45"
+      },
+      {
+        "date": "04/05/2025",
+        "end_pti": 41.7,
+        "series": "APTA Men's PTI 40-45 Team Nationals Men 40-45"
+      },
+      {
+        "date": "02/25/2025",
+        "end_pti": 43.1,
+        "series": "Chicago: 22"
+      },
+      {
+        "date": "02/11/2025",
+        "end_pti": 40.8,
+        "series": "Chicago: 22"
+      },
+      {
+        "date": "01/28/2025",
+        "end_pti": 41.4,
+        "series": "Chicago: 22"
+      },
+      {
+        "date": "01/21/2025",
+        "end_pti": 44.5,
+        "series": "Chicago: 22"
+      },
+      {
+        "date": "01/14/2025",
+        "end_pti": 48.1,
+        "series": "Chicago: 22"
+      },
+      {
+        "date": "01/07/2025",
+        "end_pti": 49.5,
+        "series": "Chicago: 22"
+      },
+      {
+        "date": "12/17/2024",
+        "end_pti": 52.5,
+        "series": "Chicago: 22"
+      },
+      {
+        "date": "12/10/2024",
+        "end_pti": 57.3,
+        "series": "Chicago: 22"
+      },
+      {
+        "date": "12/03/2024",
+        "end_pti": 56.6,
+        "series": "Chicago: 22"
+      },
+      {
+        "date": "11/19/2024",
+        "end_pti": 60.1,
+        "series": "Chicago: 22"
+      }
+    ]
+  },
+  {
+    "name": "Will Frame",
+    "series": "Chicago 22",
+    "rating": 39.1,
+    "wins": 40,
+    "losses": 20,
+    "matches": [
+      {
+        "date": "02/25/2025",
+        "end_pti": 37.6,
+        "series": "Chicago: 22"
+      },
+      {
+        "date": "02/11/2025",
+        "end_pti": 38.3,
+        "series": "Chicago: 22"
+      },
+      {
+        "date": "02/04/2025",
+        "end_pti": 38.6,
+        "series": "Chicago: 22"
+      },
+      {
+        "date": "01/28/2025",
+        "end_pti": 39.0,
+        "series": "Chicago: 22"
+      },
+      {
+        "date": "01/21/2025",
+        "end_pti": 39.6,
+        "series": "Chicago: 22"
+      },
+      {
+        "date": "01/14/2025",
+        "end_pti": 38.2,
+        "series": "Chicago: 22"
+      },
+      {
+        "date": "01/07/2025",
+        "end_pti": 37.4,
+        "series": "Chicago: 22"
+      },
+      {
+        "date": "12/10/2024",
+        "end_pti": 37.1,
+        "series": "Chicago: 22"
+      },
+      {
+        "date": "12/03/2024",
+        "end_pti": 37.3,
+        "series": "Chicago: 22"
+      },
+      {
+        "date": "11/29/2024",
+        "end_pti": 38.3,
+        "series": "Brink/Newman vs Babcock/Frame"
+      },
+      {
+        "date": "11/29/2024",
+        "end_pti": 38.6,
+        "series": "Fogel/Segraves vs Babcock/Frame"
+      },
+      {
+        "date": "11/19/2024",
+        "end_pti": 38.1,
+        "series": "Chicago: 22"
+      },
+      {
+        "date": "11/12/2024",
+        "end_pti": 38.2,
+        "series": "Chicago: 22"
+      },
+      {
+        "date": "11/05/2024",
+        "end_pti": 39.0,
+        "series": "Chicago: 22"
+      },
+      {
+        "date": "10/29/2024",
+        "end_pti": 39.6,
+        "series": "Chicago: 22"
+      },
+      {
+        "date": "10/22/2024",
+        "end_pti": 39.8,
+        "series": "Chicago: 22"
+      },
+      {
+        "date": "10/15/2024",
+        "end_pti": 39.9,
+        "series": "Chicago: 22"
+      },
+      {
+        "date": "03/07/2024",
+        "end_pti": 39.1,
+        "series": "Chicago 25"
+      },
+      {
+        "date": "02/29/2024",
+        "end_pti": 38.0,
+        "series": "Chicago 25"
+      },
+      {
+        "date": "02/15/2024",
+        "end_pti": 39.4,
+        "series": "Chicago 25"
+      },
+      {
+        "date": "02/08/2024",
+        "end_pti": 38.2,
+        "series": "Chicago 25"
+      },
+      {
+        "date": "02/01/2024",
+        "end_pti": 39.1,
+        "series": "Chicago 25"
+      },
+      {
+        "date": "01/18/2024",
+        "end_pti": 37.4,
+        "series": "Chicago 25"
+      },
+      {
+        "date": "01/11/2024",
+        "end_pti": 37.5,
+        "series": "Chicago 25"
+      },
+      {
+        "date": "12/14/2023",
+        "end_pti": 37.9,
+        "series": "Chicago 25"
+      },
+      {
+        "date": "12/07/2023",
+        "end_pti": 38.4,
+        "series": "Chicago 25"
+      },
+      {
+        "date": "11/30/2023",
+        "end_pti": 38.5,
+        "series": "Chicago 25"
+      },
+      {
+        "date": "11/09/2023",
+        "end_pti": 38.9,
+        "series": "Chicago 25"
+      },
+      {
+        "date": "10/26/2023",
+        "end_pti": 39.8,
+        "series": "Chicago 25"
+      },
+      {
+        "date": "10/19/2023",
+        "end_pti": 40.1,
+        "series": "Chicago 25"
+      },
+      {
+        "date": "05/20/2023",
+        "end_pti": 40.4,
+        "series": "Spring 2023 C"
+      },
+      {
+        "date": "05/16/2023",
+        "end_pti": 41.7,
+        "series": "Spring 2023 C"
+      },
+      {
+        "date": "05/09/2023",
+        "end_pti": 42.6,
+        "series": "Spring 2023 C"
+      },
+      {
+        "date": "04/19/2023",
+        "end_pti": 43.2,
+        "series": "Spring 2023 B"
+      },
+      {
+        "date": "04/16/2023",
+        "end_pti": 41.5,
+        "series": "Haynes-Telesco/Rogers vs Rizzo/Frame"
+      },
+      {
+        "date": "04/15/2023",
+        "end_pti": 41.5,
+        "series": "Fogel/Frame vs Haynes-Telesco/Rogers"
+      },
+      {
+        "date": "04/09/2023",
+        "end_pti": 40.3,
+        "series": "Spring 2023 B"
+      },
+      {
+        "date": "04/02/2023",
+        "end_pti": 38.4,
+        "series": "Spring 2023 B"
+      },
+      {
+        "date": "03/23/2023",
+        "end_pti": 38.5,
+        "series": "Spring 2023 B"
+      },
+      {
+        "date": "02/24/2023",
+        "end_pti": 38.1,
+        "series": "Brink/Frame vs Rogers/Gage"
+      },
+      {
+        "date": "02/24/2023",
+        "end_pti": 38.7,
+        "series": "Brink/Frame vs Rogers/Gage"
+      },
+      {
+        "date": "02/20/2023",
+        "end_pti": 39.5,
+        "series": "Rogers/Gage vs Linnell/Frame"
+      },
+      {
+        "date": "02/19/2023",
+        "end_pti": 38.4,
+        "series": "Brink/Frame vs Smith/Peacock"
+      },
+      {
+        "date": "02/05/2023",
+        "end_pti": 39.9,
+        "series": "Haurani/Frame vs Newman/Rizzo"
+      },
+      {
+        "date": "02/04/2023",
+        "end_pti": 40.7,
+        "series": "GPPL Season 1 GP"
+      },
+      {
+        "date": "02/01/2023",
+        "end_pti": 40.5,
+        "series": "GPPL Season 1 GP"
+      },
+      {
+        "date": "01/24/2023",
+        "end_pti": 39.2,
+        "series": "GPPL Season 1 GP"
+      },
+      {
+        "date": "01/21/2023",
+        "end_pti": 39.8,
+        "series": "GPPL Season 1 GP"
+      },
+      {
+        "date": "01/09/2023",
+        "end_pti": 40.0,
+        "series": "GPPL Season 1 GP"
+      },
+      {
+        "date": "12/22/2022",
+        "end_pti": 40.9,
+        "series": "GPPL Season 1 GP"
+      },
+      {
+        "date": "12/05/2022",
+        "end_pti": 41.3,
+        "series": "GPPL Season 1 GP"
+      },
+      {
+        "date": "11/18/2022",
+        "end_pti": 43.0,
+        "series": "GPPL Season 1 GP"
+      },
+      {
+        "date": "11/13/2022",
+        "end_pti": 42.3,
+        "series": "GPPL Season 1 GP"
+      },
+      {
+        "date": "11/09/2022",
+        "end_pti": 44.2,
+        "series": "GPPL Season 1 GP"
+      },
+      {
+        "date": "11/05/2022",
+        "end_pti": 45.7,
+        "series": "GPPL Season 1 GP"
+      },
+      {
+        "date": "10/23/2022",
+        "end_pti": 43.3,
+        "series": "GPPL Season 1 GP"
+      },
+      {
+        "date": "10/16/2022",
+        "end_pti": 46.2,
+        "series": "GPPL Season 1 GP"
+      },
+      {
+        "date": "10/11/2022",
+        "end_pti": 46.9,
+        "series": "Brink/Lamb vs Frame/Roeder"
+      },
+      {
+        "date": "10/06/2022",
+        "end_pti": 45.2,
+        "series": "Haurani/Larson vs Linnell/Frame"
+      },
+      {
+        "date": "09/29/2022",
+        "end_pti": 48.2,
+        "series": "Stidham/Agosta vs Linnell/Frame"
+      }
+    ]
+  }
+]
