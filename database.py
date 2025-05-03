@@ -8,7 +8,7 @@ load_dotenv()
 
 def get_database_path():
     """Get database path"""
-    return os.path.join('data', 'paddlepro.db')
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
 
 @contextmanager
 def get_db():

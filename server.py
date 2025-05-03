@@ -34,12 +34,13 @@ except Exception as e:
     sys.exit(1)
 
 # Configure logging
+log_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'server.log')
 logging.basicConfig(
     level=logging.DEBUG,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(sys.stdout),  # Log to console
-        logging.FileHandler('server.log')   # Log to file
+        logging.FileHandler(log_file)   # Log to file in rally directory
     ]
 )
 
@@ -123,14 +124,11 @@ def login_required(f):
 def read_all_player_data():
     """Read and return all player data from the CSV file"""
     try:
-        file_path = os.path.join('Data', 'all_tennaqua_players.csv')
-        if os.path.exists(file_path):
-            df = pd.read_csv(file_path)
-            print(f"Successfully loaded {len(df)} player records")
-            return df
-        else:
-            print(f"Warning: Player data file not found at {file_path}")
-        return pd.DataFrame()
+        import os
+        csv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'all_tennaqua_players.csv')
+        df = pd.read_csv(csv_path)
+        print(f"Successfully loaded {len(df)} player records")
+        return df
     except Exception as e:
         print(f"Error reading player data: {str(e)}")
         return pd.DataFrame()
@@ -203,8 +201,7 @@ selected_club = f"Tennaqua - {selected_series.split()[-1]}"
 # Configure logging
 def setup_logging():
     # Set up logging to both console and file
-    log_file = 'server.log'
-    
+    log_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'server.log')
     # File handler
     file_handler = logging.FileHandler(log_file)
     file_handler.setFormatter(logging.Formatter('%(asctime)s - %(message)s'))
@@ -251,6 +248,23 @@ def serve_index():
     if 'user' not in session:
         print("User not authenticated, redirecting to login")
         return redirect(url_for('login'))
+    
+    # Robust: Check if user exists in the database, clear session if not
+    user_email = session['user'].get('email')
+    db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    try:
+        cursor.execute('''
+            SELECT u.id FROM users u WHERE u.email = ?
+        ''', (user_email,))
+        db_user = cursor.fetchone()
+        if not db_user:
+            print("User in session not found in database, clearing session and redirecting to login")
+            session.clear()
+            return redirect(url_for('login'))
+    finally:
+        conn.close()
     
     print(f"User in session: {session['user']['email']}")
     
@@ -325,7 +339,8 @@ def handle_register():
         # Hash the password
         password_hash = hash_password(password)
         
-        conn = sqlite3.connect('data/paddlepro.db')
+        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
+        conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
         
         try:
@@ -382,7 +397,8 @@ def handle_login():
         if not email or not password:
             return jsonify({'error': 'Please provide both email and password'}), 401
             
-        conn = sqlite3.connect('data/paddlepro.db')
+        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
+        conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
         
         try:
@@ -476,7 +492,8 @@ def serve_admin():
 def get_admin_users():
     """Get all registered users with their club and series information"""
     try:
-        conn = sqlite3.connect('data/paddlepro.db')
+        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
+        conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
         
         cursor.execute('''
@@ -596,7 +613,8 @@ def get_series():
     try:
         print("\n=== GET SERIES REQUEST ===")
         print("Connecting to database...")
-        conn = sqlite3.connect('data/paddlepro.db')
+        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
+        conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
         
         # Get all series from the database
@@ -634,7 +652,9 @@ def get_players_series_22():
     """Get all players in Series 22"""
     print("\n=== Getting Players for Series 22 ===")
     try:
-        df = pd.read_csv('data/all_tennaqua_players.csv')
+        import os
+        csv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'all_tennaqua_players.csv')
+        df = pd.read_csv(csv_path)
         
         # Filter for Series 22
         series_22_df = df[df['Series'] == 'Chicago 22']  # Changed from 'Series 22' to 'Chicago 22'
@@ -933,7 +953,7 @@ def get_teams():
     """Return a list of all teams from the schedule"""
     try:
         # Read the schedule file
-        schedule_path = os.path.join('data', 'Series_22_schedule.json')
+        schedule_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'Series_22_schedule.json')
         if not os.path.exists(schedule_path):
             return jsonify({'error': 'Schedule file not found'}), 404
             
@@ -966,8 +986,8 @@ def get_team_stats(team_id):
     """Return detailed statistics for a specific team"""
     try:
         # Read the series stats file
-        stats_path = os.path.join('data', 'Chicago_22_stats_20250425.json')
-        matches_path = os.path.join('data', 'tennis_matches_20250416.json')
+        stats_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'Chicago_22_stats_20250425.json')
+        matches_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'tennis_matches_20250416.json')
         
         if not os.path.exists(stats_path):
             return jsonify({'error': 'Stats file not found'}), 404
@@ -1150,7 +1170,8 @@ def lineup_instructions():
             if not team_id:
                 return jsonify({'error': 'Team ID is required'}), 400
                 
-            conn = sqlite3.connect('data/paddlepro.db')
+            db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
+            conn = sqlite3.connect(db_path)
             cursor = conn.cursor()
             
             cursor.execute('''
@@ -1160,6 +1181,7 @@ def lineup_instructions():
             ''', (instruction, user_email, team_id))
             
             conn.commit()
+            conn.close()
             return jsonify({'status': 'success'})
         except Exception as e:
             print(f"Error deleting lineup instruction: {str(e)}")
@@ -1172,7 +1194,8 @@ def get_user_instructions(user_email, team_id=None):
     """Get all active instructions for a user, optionally filtered by team"""
     logger.info(f"Getting instructions for user: {user_email}, team_id: {team_id}")
     try:
-        conn = sqlite3.connect('data/paddlepro.db')
+        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
+        conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
         
         query = '''
@@ -1218,7 +1241,8 @@ def add_user_instruction(user_email, instruction, team_id=None):
     logger.info(f"Adding instruction for user: {user_email}, team_id: {team_id}")
     logger.debug(f"Instruction text: {instruction}")
     try:
-        conn = sqlite3.connect('data/paddlepro.db')
+        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
+        conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
         
         query = '''
@@ -1243,7 +1267,8 @@ def add_user_instruction(user_email, instruction, team_id=None):
 def deactivate_instruction(user_email, instruction_id):
     """Deactivate an instruction for a user"""
     try:
-        conn = sqlite3.connect('data/paddlepro.db')
+        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
+        conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
         cursor.execute('''
             UPDATE user_instructions 
@@ -1275,7 +1300,8 @@ def serve_schedule():
         )
         
         # Read the schedule file
-        with open('data/Series_22_schedule.json', 'r') as f:
+        schedule_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'Series_22_schedule.json')
+        with open(schedule_path, 'r') as f:
             schedule_data = json.load(f)
 
         # Get the current series and club from the session
@@ -1316,7 +1342,7 @@ def serve_schedule():
         print("=== END SCHEDULE REQUEST ===\n")
         return jsonify(filtered_matches)
     except FileNotFoundError:
-        print(f"❌ Schedule file not found at data/Series_22_schedule.json")
+        print(f"❌ Schedule file not found at {schedule_path}")
         return jsonify({'error': 'Schedule file not found'}), 404
     except json.JSONDecodeError:
         print(f"❌ Error parsing schedule file: Invalid JSON format")
@@ -1330,7 +1356,8 @@ def get_player_availability(player_name, match_date, series):
     """Get a player's availability for a specific match date and series."""
     conn = None
     try:
-        conn = sqlite3.connect('data/paddlepro.db')
+        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
+        conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
         cursor.execute('''
             SELECT is_available 
@@ -1354,7 +1381,8 @@ def update_player_availability(player_name, match_date, is_available, series):
         
         conn = None
         try:
-            conn = sqlite3.connect('data/paddlepro.db')
+            db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
+            conn = sqlite3.connect(db_path)
             cursor = conn.cursor()
             
             # First, check if the record exists
@@ -1462,7 +1490,8 @@ def get_availability():
         # Get all availability data for the current series
         conn = None
         try:
-            conn = sqlite3.connect('data/paddlepro.db')
+            db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
+            conn = sqlite3.connect(db_path)
             cursor = conn.cursor()
             
             cursor.execute('''
@@ -1493,7 +1522,8 @@ def get_availability():
 @app.route('/api/get-clubs', methods=['GET'])
 def get_clubs():
     try:
-        conn = sqlite3.connect('data/paddlepro.db')
+        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
+        conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
         cursor.execute('SELECT name FROM clubs ORDER BY name')
         clubs = [row[0] for row in cursor.fetchall()]
@@ -1529,7 +1559,8 @@ def check_auth():
             })
             
         # Get additional user info from database
-        conn = sqlite3.connect('data/paddlepro.db')
+        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
+        conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
         
         try:
@@ -1591,7 +1622,8 @@ def get_user_settings():
         user = session['user']
         print(f"User from session: {user}")
         
-        conn = sqlite3.connect('data/paddlepro.db')
+        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
+        conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
         
         try:
@@ -1640,7 +1672,8 @@ def get_user_settings():
 def get_admin_clubs():
     """Get all active clubs with member counts and active series"""
     try:
-        conn = sqlite3.connect('data/paddlepro.db')
+        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
+        conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
         
         # Get clubs with member counts
@@ -1673,7 +1706,8 @@ def get_admin_clubs():
 def get_admin_series():
     """Get all active series with player counts and active clubs"""
     try:
-        conn = sqlite3.connect('data/paddlepro.db')
+        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
+        conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
         
         # Get series with player counts and active clubs
@@ -1724,7 +1758,8 @@ def update_user():
             details=f"Updated user: {email}"
         )
             
-        conn = sqlite3.connect('data/paddlepro.db')
+        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
+        conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
         
         try:
@@ -1773,7 +1808,8 @@ def update_club():
         if not all([old_name, new_name]):
             return jsonify({'error': 'Missing required fields'}), 400
             
-        conn = sqlite3.connect('data/paddlepro.db')
+        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
+        conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
         
         # Update club name - using ? instead of %s for SQLite
@@ -1798,7 +1834,8 @@ def update_series():
         if not all([old_name, new_name]):
             return jsonify({'error': 'Missing required fields'}), 400
             
-        conn = sqlite3.connect('data/paddlepro.db')
+        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
+        conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
         
         # Update series name
@@ -1866,7 +1903,8 @@ def reserve_court():
         
         # Get credentials from database
         try:
-            conn = sqlite3.connect('data/paddlepro.db')
+            db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
+            conn = sqlite3.connect(db_path)
             cursor = conn.cursor()
             cursor.execute('SELECT club_automation_password FROM users WHERE email = ?', (user_email,))
             result = cursor.fetchone()
@@ -2003,8 +2041,8 @@ def get_series_stats():
     """Return the series stats JSON file for Chicago 22"""
     try:
         # Read the stats file
-        stats_path = os.path.join('data', 'Chicago_22_stats_20250425.json')
-        matches_path = os.path.join('data', 'tennis_matches_20250416.json')
+        stats_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'Chicago_22_stats_20250425.json')
+        matches_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'tennis_matches_20250416.json')
         
         if not os.path.exists(stats_path):
             return jsonify({'error': 'Stats file not found'}), 404
@@ -2255,7 +2293,9 @@ def get_players_by_series():
             return jsonify({'error': 'Series parameter is required'}), 400
             
         print(f"\n=== Getting Players for {series} ===")
-        df = pd.read_csv('data/all_tennaqua_players.csv')
+        import os
+        csv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'all_tennaqua_players.csv')
+        df = pd.read_csv(csv_path)
         
         # Filter for the requested series
         series_df = df[df['Series'] == series]
@@ -2285,8 +2325,8 @@ def get_players_by_series():
 def get_team_players(team_id):
     """Get all players who have played for a specific team"""
     try:
-        matches_path = os.path.join('data', 'tennis_matches_20250416.json')
-        players_path = os.path.join('data', 'all_tennaqua_players.csv')  # Changed from 'Data' to 'data'
+        matches_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'tennis_matches_20250416.json')
+        players_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'all_tennaqua_players.csv')  # Changed from 'Data' to 'data'
         
         if not os.path.exists(matches_path):
             return jsonify({'error': 'Match data not found'}), 404
@@ -2451,7 +2491,8 @@ def update_settings():
         current_email = session['user']['email']
         print(f"Updating settings for user: {current_email}")
         
-        conn = sqlite3.connect('data/paddlepro.db')
+        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
+        conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
         
         try:
@@ -2581,7 +2622,8 @@ def delete_user():
         if not email:
             return jsonify({'error': 'Email is required'}), 400
             
-        conn = sqlite3.connect('data/paddlepro.db')
+        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
+        conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
         
         try:
@@ -2615,7 +2657,8 @@ def log_user_activity(user_email, activity_type, page=None, action=None, details
     print(f"Details: {details}")
     
     try:
-        conn = sqlite3.connect('data/paddlepro.db')
+        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
+        conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
         try:
             # Get IP address from request if available
@@ -2665,7 +2708,8 @@ def get_user_activity(email):
     """Get activity logs for a specific user"""
     try:
         print(f"\n=== Getting Activity for User: {email} ===")
-        conn = sqlite3.connect('data/paddlepro.db')
+        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
+        conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
         
         try:
@@ -2785,7 +2829,8 @@ def test_activity():
         )
         
         # Try to read back the test activity
-        conn = sqlite3.connect('data/paddlepro.db')
+        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
+        conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
         
         try:
@@ -2849,7 +2894,8 @@ def test_log():
         )
         
         # Verify the log was written
-        conn = sqlite3.connect('data/paddlepro.db')
+        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
+        conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
         
         try:
@@ -2916,7 +2962,8 @@ def verify_logging():
         )
         
         # Verify the log was written
-        conn = sqlite3.connect('data/paddlepro.db')
+        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
+        conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
         
         try:

@@ -78,7 +78,7 @@ def get_players():
         print("\n=== DEBUG START ===")
         
         # Read from all_tennaqua_players.csv in the Data directory
-        file_path = os.path.join('Data', 'all_tennaqua_players.csv')
+        file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'all_tennaqua_players.csv')
         df = pd.read_csv(file_path)
         
         # Get series parameter from request

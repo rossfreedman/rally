@@ -2,11 +2,12 @@ import openai
 from config import OPENAI_API_KEY
 import pandas as pd
 from datetime import datetime
+import os
 
 def get_lineup_suggestion(available_players, series):
     # Read match results and player stats from Data folder
-    match_results_file = "data/match_scores_20250415.csv"  # Updated path
-    player_stats_file = "data/all_tennaqua_players.csv"
+    match_results_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'match_scores_20250415.csv')
+    player_stats_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'all_tennaqua_players.csv')
     
     try:
         # Read both CSVs
