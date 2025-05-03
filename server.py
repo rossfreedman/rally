@@ -34,13 +34,12 @@ except Exception as e:
     sys.exit(1)
 
 # Configure logging
-log_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'server.log')
 logging.basicConfig(
     level=logging.DEBUG,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(sys.stdout),  # Log to console
-        logging.FileHandler(log_file)   # Log to file in rally directory
+        logging.FileHandler('server.log')   # Log to file
     ]
 )
 
@@ -201,7 +200,8 @@ selected_club = f"Tennaqua - {selected_series.split()[-1]}"
 # Configure logging
 def setup_logging():
     # Set up logging to both console and file
-    log_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'server.log')
+    log_file = 'server.log'
+    
     # File handler
     file_handler = logging.FileHandler(log_file)
     file_handler.setFormatter(logging.Formatter('%(asctime)s - %(message)s'))
@@ -304,7 +304,7 @@ def serve_index():
         print(traceback.format_exc())
         return "Error: Could not serve index page", 500
 
-@app.route('/login')
+@app.route('/login', methods=['GET', 'POST'])
 def login():
     """Serve the login page"""
     # If user is already authenticated, redirect to home

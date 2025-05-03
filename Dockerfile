@@ -22,7 +22,7 @@ COPY . .
 ENV PYTHONUNBUFFERED=1
 ENV PORT=3000
 ENV FLASK_ENV=production
-ENV FLASK_APP=rally/server.py
+ENV FLASK_APP=server.py
 ENV WEB_CONCURRENCY=1
 ENV EVENTLET_NO_GREENDNS=yes
 
@@ -36,4 +36,4 @@ RUN mkdir -p logs && touch logs/server.log && chmod 777 logs/server.log
 EXPOSE ${PORT}
 
 # Command to run the application
-CMD ["python", "rally/server.py"] 
+CMD ["python", "server.py"] 
