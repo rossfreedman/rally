@@ -21,7 +21,6 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium import webdriver
-from database import get_db
 from init_db import init_db
 
 # Initialize database
@@ -83,7 +82,7 @@ app.secret_key = os.getenv('FLASK_SECRET_KEY', 'your-secret-key-here')  # Change
 # Configure session settings
 app.config.update(
     SESSION_COOKIE_SECURE=True,  # Set to True for production with HTTPS
-    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_HTTPONLY=True,   
     SESSION_COOKIE_SAMESITE='Lax',
     PERMANENT_SESSION_LIFETIME=3600  # 1 hour
 )
@@ -1173,40 +1172,45 @@ def get_user_instructions(user_email, team_id=None):
     """Get all active instructions for a user, optionally filtered by team"""
     logger.info(f"Getting instructions for user: {user_email}, team_id: {team_id}")
     try:
-        with get_db() as conn:
-            with conn.cursor() as cursor:
-                query = '''
-                SELECT id, instruction, team_id, created_at
-                FROM user_instructions
-                WHERE user_email = %s AND is_active = true
-                '''
-                params = [user_email]
-                
-                if team_id:
-                    query += ' AND team_id = %s'
-                    params.append(team_id)
-                    
-                query += ' ORDER BY created_at DESC'
-                
-                logger.debug(f"Executing query: {query} with params: {params}")
-                cursor.execute(query, params)
-                instructions = cursor.fetchall()
-                logger.debug(f"Found {len(instructions)} instructions")
-                
-                # Convert to list of dictionaries
-                result = []
-                for row in instructions:
-                    result.append({
-                        'id': row[0],
-                        'instruction': row[1],
-                        'team_id': row[2],
-                        'created_at': row[3]
-                    })
-                    
-                return result
+        conn = sqlite3.connect('data/paddlepro.db')
+        cursor = conn.cursor()
+        
+        query = '''
+        SELECT id, instruction, team_id, created_at
+        FROM user_instructions
+        WHERE user_email = ? AND is_active = 1
+        '''
+        params = [user_email]
+        
+        if team_id:
+            query += ' AND team_id = ?'
+            params.append(team_id)
+            
+        query += ' ORDER BY created_at DESC'
+        
+        logger.debug(f"Executing query: {query} with params: {params}")
+        cursor.execute(query, params)
+        instructions = cursor.fetchall()
+        logger.debug(f"Found {len(instructions)} instructions")
+        
+        # Convert to list of dictionaries
+        result = []
+        for row in instructions:
+            result.append({
+                'id': row[0],
+                'instruction': row[1],
+                'team_id': row[2],
+                'created_at': row[3]
+            })
+        
+        cursor.close()
+        conn.close()
+        return result
     except Exception as e:
         logger.error(f"Error getting user instructions: {str(e)}")
         logger.error(traceback.format_exc())
+        if 'conn' in locals():
+            conn.close()
         return []
 
 def add_user_instruction(user_email, instruction, team_id=None):
@@ -1214,33 +1218,47 @@ def add_user_instruction(user_email, instruction, team_id=None):
     logger.info(f"Adding instruction for user: {user_email}, team_id: {team_id}")
     logger.debug(f"Instruction text: {instruction}")
     try:
-        with get_db() as conn:
-            with conn.cursor() as cursor:
-                query = '''
-                INSERT INTO user_instructions (user_email, instruction, team_id)
-                VALUES (%s, %s, %s)
-                '''
-                params = (user_email, instruction, team_id)
-                logger.debug(f"Executing query: {query} with params: {params}")
-                cursor.execute(query, params)
-                conn.commit()
-                logger.info("Successfully added instruction")
-                return True
+        conn = sqlite3.connect('data/paddlepro.db')
+        cursor = conn.cursor()
+        
+        query = '''
+        INSERT INTO user_instructions (user_email, instruction, team_id)
+        VALUES (?, ?, ?)
+        '''
+        params = (user_email, instruction, team_id)
+        logger.debug(f"Executing query: {query} with params: {params}")
+        cursor.execute(query, params)
+        conn.commit()
+        logger.info("Successfully added instruction")
+        cursor.close()
+        conn.close()
+        return True
     except Exception as e:
         logger.error(f"Error adding user instruction: {str(e)}")
         logger.error(traceback.format_exc())
+        if 'conn' in locals():
+            conn.close()
         return False
 
 def deactivate_instruction(user_email, instruction_id):
     """Deactivate an instruction for a user"""
-    with get_db() as conn:
-        with conn.cursor() as cursor:
-            cursor.execute('''
-                UPDATE user_instructions 
-                SET is_active = false 
-                WHERE id = %s AND user_email = %s
-            ''', (instruction_id, user_email))
-            conn.commit()
+    try:
+        conn = sqlite3.connect('data/paddlepro.db')
+        cursor = conn.cursor()
+        cursor.execute('''
+            UPDATE user_instructions 
+            SET is_active = 0 
+            WHERE id = ? AND user_email = ?
+        ''', (instruction_id, user_email))
+        conn.commit()
+        cursor.close()
+        conn.close()
+    except Exception as e:
+        logger.error(f"Error deactivating instruction: {str(e)}")
+        logger.error(traceback.format_exc())
+        if 'conn' in locals():
+            conn.close()
+        raise
 
 @app.route('/api/schedule')
 @login_required
@@ -1758,8 +1776,8 @@ def update_club():
         conn = sqlite3.connect('data/paddlepro.db')
         cursor = conn.cursor()
         
-        # Update club name
-        cursor.execute('UPDATE clubs SET name = %s WHERE name = %s', (new_name, old_name))
+        # Update club name - using ? instead of %s for SQLite
+        cursor.execute('UPDATE clubs SET name = ? WHERE name = ?', (new_name, old_name))
         
         conn.commit()
         conn.close()
@@ -1820,6 +1838,8 @@ def get_chrome_options():
         options.add_argument('--headless')
         options.add_argument('--disable-dev-shm-usage')
         options.add_argument('--disable-gpu')
+        options.add_argument('--remote-debugging-port=9222')  # Add this line
+        options.add_argument('--window-size=1920,1080')      # Add this line
         if os.environ.get('CHROME_BIN'):
             options.binary_location = os.environ['CHROME_BIN']
         return options
@@ -1848,7 +1868,7 @@ def reserve_court():
         try:
             conn = sqlite3.connect('data/paddlepro.db')
             cursor = conn.cursor()
-            cursor.execute('SELECT club_automation_password FROM users WHERE email = %s', (user_email,))
+            cursor.execute('SELECT club_automation_password FROM users WHERE email = ?', (user_email,))
             result = cursor.fetchone()
             if not result or not result[0]:
                 logger.error(f"No Club Automation password found for user {user_email}")
@@ -2187,30 +2207,42 @@ def get_series_stats():
         return jsonify({'error': 'Failed to read stats file'}), 500
 
 @app.route('/api/player-contact')
+@login_required  # Add login requirement for security
 def get_player_contact():
     first_name = request.args.get('firstName')
     last_name = request.args.get('lastName')
+    
+    print(f"\n=== Getting Contact Info ===")
+    print(f"First Name: {first_name}")
+    print(f"Last Name: {last_name}")
     
     if not first_name or not last_name:
         return jsonify({'error': 'Missing first or last name parameter'}), 400
         
     try:
-        # Query the database for player contact info
-        player = db.session.query(Player).filter(
-            Player.first_name == first_name,
-            Player.last_name == last_name
-        ).first()
-        
-        if not player:
-            return jsonify({'error': 'Player not found'}), 404
-            
-        return jsonify({
-            'phone': player.phone,
-            'email': player.email
-        })
-        
+        # Search the club directory CSV for the player
+        import pandas as pd
+        directory_path = os.path.join('data', 'club_directories', 'directory_tennaqua.csv')
+        df = pd.read_csv(directory_path)
+        # The columns are: Series,Last Name,First,Email,Phone
+        player = df[
+            (df['First'].str.lower() == first_name.lower()) & \
+            (df['Last Name'].str.lower() == last_name.lower())
+        ]
+        if not player.empty:
+            email = player.iloc[0]['Email'] if pd.notnull(player.iloc[0]['Email']) else 'Not available'
+            phone = player.iloc[0]['Phone'] if pd.notnull(player.iloc[0]['Phone']) else 'Not available'
+            return jsonify({
+                'email': email,
+                'phone': phone
+            })
+        else:
+            print(f"Player not found in directory: {first_name} {last_name}")
+            return jsonify({'error': 'Player not found in club directory'}), 404
     except Exception as e:
-        app.logger.error(f"Error fetching player contact info: {str(e)}")
+        print(f"Error fetching player contact info: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
         return jsonify({'error': 'Internal server error'}), 500
 
 @app.route('/api/players')
@@ -2590,12 +2622,12 @@ def log_user_activity(user_email, activity_type, page=None, action=None, details
             ip_address = request.remote_addr if request else None
             print(f"IP Address: {ip_address}")
             
-            # Insert the activity log
+            # Insert the activity log with UTC timestamp
             print("Inserting activity log...")
             insert_query = '''
                 INSERT INTO user_activity_logs 
-                (user_email, activity_type, page, action, details, ip_address)
-                VALUES (?, ?, ?, ?, ?, ?)
+                (user_email, activity_type, page, action, details, ip_address, timestamp)
+                VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
             '''
             params = (user_email, activity_type, page, action, details, ip_address)
             print(f"Query: {insert_query}")
@@ -2656,8 +2688,7 @@ def get_user_activity(email):
             print("Fetching activity logs...")
             cursor.execute('''
                 SELECT id, activity_type, page, action, details, ip_address, 
-                       datetime(timestamp, 'localtime') as local_time,
-                       timestamp as utc_time
+                       datetime(timestamp, '-5 hours') || '.000-05:00' as central_time
                 FROM user_activity_logs
                 WHERE user_email = ?
                 ORDER BY timestamp DESC, id DESC
@@ -2668,7 +2699,7 @@ def get_user_activity(email):
             print("\nMost recent activities:")
             for idx, row in enumerate(cursor.fetchall()):
                 if idx < 5:  # Print details of 5 most recent activities
-                    print(f"ID: {row[0]}, Type: {row[1]}, Time (Local): {row[6]}, Time (UTC): {row[7]}")
+                    print(f"ID: {row[0]}, Type: {row[1]}, Time: {row[6]}")
                 
                 logs.append({
                     'id': row[0],
@@ -2677,9 +2708,9 @@ def get_user_activity(email):
                     'action': row[3],
                     'details': row[4],
                     'ip_address': row[5],
-                    'timestamp': row[7]  # Use UTC time
+                    'timestamp': row[6]  # Send UTC time to frontend
                 })
-                
+            
             print(f"\nFound {len(logs)} activity logs")
             if logs:
                 print(f"Most recent log ID: {logs[0]['id']}")

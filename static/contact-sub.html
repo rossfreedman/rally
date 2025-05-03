@@ -96,14 +96,13 @@
             const lastName = urlParams.get('lastName');
 
             if (!firstName || !lastName) {
-                document.getElementById('error-message').textContent = 'Error: Missing player name parameters';
-                document.getElementById('error-message').style.display = 'block';
-                document.getElementById('player-info').style.display = 'none';
+                showError('Error: Missing player name parameters');
                 return;
             }
 
             // Display the player's name
-            document.getElementById('player-name').textContent = `${firstName} ${lastName}`;
+            const contactDiv = document.getElementById('contactInfo');
+            contactDiv.innerHTML = `<h4>${firstName} ${lastName}</h4><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>`;
 
             // Fetch player contact information
             fetch(`/api/player-contact?firstName=${firstName}&lastName=${lastName}`)
@@ -112,14 +111,16 @@
                     if (data.error) {
                         throw new Error(data.error);
                     }
-                    document.getElementById('player-phone').textContent = data.phone || 'Not available';
-                    document.getElementById('player-email').textContent = data.email || 'Not available';
-                    document.getElementById('player-info').style.display = 'block';
+                    contactDiv.innerHTML = `
+                        <h4>${firstName} ${lastName}</h4>
+                        <div class="contact-details">
+                            <p><strong>Email:</strong> ${data.email || 'Not available'}</p>
+                            <p><strong>Phone:</strong> ${data.phone || 'Not available'}</p>
+                        </div>
+                    `;
                 })
                 .catch(error => {
-                    document.getElementById('error-message').textContent = `Error: ${error.message}`;
-                    document.getElementById('error-message').style.display = 'block';
-                    document.getElementById('player-info').style.display = 'none';
+                    showError(`Error: ${error.message}`);
                 });
         });
     </script>

@@ -1,45 +1,55 @@
+#!/usr/bin/env python3
+
 import os
 import shutil
 from datetime import datetime
 import sys
 
 def create_backup():
-    # Get the parent directory of the current project
-    current_dir = os.path.abspath('.')
-    parent_dir = os.path.dirname(current_dir)
-    
-    # Create timestamp for backup folder
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    
-    # Create backup directory in the sibling rally_backups folder
-    backup_dir = os.path.join(parent_dir, 'rally_backups', f'rally_backup_{timestamp}')
-    os.makedirs(backup_dir, exist_ok=True)
-    
-    # Directories and files to exclude
-    exclude = {'.venv', '__pycache__', '.DS_Store'}
-    
-    # Copy files and directories
-    for item in os.listdir('.'):
-        if item in exclude:
-            continue
-            
-        source = os.path.join('.', item)
-        destination = os.path.join(backup_dir, item)
+    try:
+        # Get current directory (assuming script is in rally folder)
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        parent_dir = os.path.dirname(current_dir)
         
-        try:
-            if os.path.isdir(source):
-                shutil.copytree(source, destination, ignore=shutil.ignore_patterns('__pycache__', '*.pyc', '.DS_Store'))
-            else:
-                shutil.copy2(source, destination)
-            print(f"Backed up: {item}")
-        except Exception as e:
-            print(f"Error backing up {item}: {str(e)}")
-    
-    print(f"\nBackup completed successfully in: {backup_dir}")
+        # Create backup directory if it doesn't exist
+        backup_dir = os.path.join(parent_dir, 'rally_backups')
+        os.makedirs(backup_dir, exist_ok=True)
+        
+        # Get current timestamp in desired format (YYYY_MM_DD_HHMM)
+        timestamp = datetime.now().strftime('%Y_%m_%d_%I%M')
+        
+        # Create backup folder name
+        backup_name = f'rally_{timestamp}'
+        backup_path = os.path.join(backup_dir, backup_name)
+        
+        # Create the backup
+        print(f"\nCreating backup: {backup_name}")
+        print("Source directory:", current_dir)
+        print("Backup directory:", backup_path)
+        
+        # Copy the entire directory
+        shutil.copytree(current_dir, backup_path, dirs_exist_ok=True)
+        
+        print("\n✅ Backup completed successfully!")
+        print(f"Backup location: {backup_path}")
+        
+        # List the contents of the backup directory
+        backups = [d for d in os.listdir(backup_dir) 
+                  if os.path.isdir(os.path.join(backup_dir, d)) and d.startswith('rally_')]
+        backups.sort(reverse=True)
+        
+        print(f"\nExisting backups ({len(backups)}):")
+        for backup in backups[:5]:  # Show 5 most recent backups
+            backup_time = os.path.getmtime(os.path.join(backup_dir, backup))
+            backup_time_str = datetime.fromtimestamp(backup_time).strftime('%Y-%m-%d %I:%M %p')
+            print(f"- {backup} (created: {backup_time_str})")
+        
+        if len(backups) > 5:
+            print(f"... and {len(backups) - 5} more")
+        
+    except Exception as e:
+        print(f"\n❌ Error creating backup: {str(e)}")
+        sys.exit(1)
 
 if __name__ == "__main__":
-    try:
-        create_backup()
-    except Exception as e:
-        print(f"Backup failed: {str(e)}")
-        sys.exit(1)
+    create_backup()

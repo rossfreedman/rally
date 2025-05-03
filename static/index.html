@@ -1073,6 +1073,21 @@
             margin-top: 0;
             border-top: 1px solid var(--border-color);
         }
+
+        .player-analysis { margin-top: 10px; }
+        .player-analysis .overall-stats { background: #f8f9fa; border-radius: 8px; padding: 16px; margin-bottom: 20px; }
+        .player-analysis .stat-label { display: inline-block; min-width: 120px; color: #555; font-weight: 500; }
+        .player-analysis .stat-value { font-weight: 600; margin-left: 10px; }
+        .player-analysis .win-rate-high { color: #28a745; }
+        .player-analysis .win-rate-medium { color: #ffc107; }
+        .player-analysis .win-rate-low { color: #dc3545; }
+        .court-card { background: #fff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); padding: 16px; margin-bottom: 10px; }
+        .court-card h6 { font-weight: 600; margin-bottom: 10px; }
+        .partner-info { margin-top: 10px; }
+        .partner-list { padding-left: 18px; margin-bottom: 0; }
+        .partner-list li { margin-bottom: 3px; }
+        .player-history-card .card-header { font-size: 1.15rem; font-weight: 600; }
+        .player-history-card .stat-item { font-size: 1.08rem; margin-bottom: 8px; }
     </style>
 </head>
 <body>
@@ -1182,7 +1197,7 @@
                     <i class="fas fa-chart-bar"></i>
                     Analyze
                 </div>
-                <a href="#" onclick="showContent('research'); return false;" class="nav-item" id="nav-research">
+                <a href="#" onclick="showContent('research-dashboard'); return false;" class="nav-item" id="nav-research">
                     <i class="fas fa-search"></i>
                     Research Teams & Players
                 </a>
@@ -1405,16 +1420,33 @@
                     </div>
                 </div>
 
-        <!-- Research Content -->
-        <div id="research-content" class="content-section">
+        <!-- Research Dashboard Content -->
+        <div id="research-dashboard-content" class="content-section">
             <div class="content-header">
-                <h1>Research Teams & Players</h1>
-                <p class="text-muted">Analyze team and player statistics, performance trends, and historical data</p>
+                <h1>Research Dashboard</h1>
+                <p class="text-muted">Choose what you want to analyze:</p>
             </div>
-            
+            <div class="btn-group mb-4" role="group" aria-label="Research Navigation">
+                <button class="btn btn-outline-secondary" onclick="showContent('research-team')">Research Team</button>
+                <button class="btn btn-outline-secondary" onclick="showContent('research-player')">Research Player</button>
+                <button class="btn btn-outline-secondary" onclick="showContent('analyze-pairings')">Analyze Pairing Matchups</button>
+            </div>
+            <!-- No cards/buttons, dashboard now just redirects to Research Team -->
+        </div>
+
+        <!-- Research Team Content (moved from old research section) -->
+        <div id="research-team-content" class="content-section">
+            <div class="content-header">
+                <h1>Research Team</h1>
+                <p class="text-muted">Analyze team statistics, performance trends, and historical data</p>
+            </div>
+            <div class="btn-group mb-4" role="group" aria-label="Research Navigation">
+                <button class="btn btn-primary" onclick="showContent('research-team')">Research Team</button>
+                <button class="btn btn-outline-secondary" onclick="showContent('research-player')">Research Player</button>
+                <button class="btn btn-outline-secondary" onclick="showContent('analyze-pairings')">Analyze Pairing Matchups</button>
+            </div>
             <div class="row">
-                <!-- Team Research Card -->
-                <div class="col-md-6 mb-4">
+                <div class="col-md-12 mb-4">
                     <div class="card">
                         <div class="card-header">
                             <h5 class="mb-0">Team Analysis</h5>
@@ -1432,17 +1464,36 @@
                         </div>
                     </div>
                 </div>
-                
-                <!-- Player Research Card -->
-                <div class="col-md-6 mb-4">
+            </div>
+        </div>
+
+        <!-- Research Player Content (moved from old research section) -->
+        <div id="research-player-content" class="content-section">
+            <div class="content-header">
+                <h1>Research Player</h1>
+                <p class="text-muted">Analyze player statistics, performance trends, and historical data</p>
+            </div>
+            <div class="btn-group mb-4" role="group" aria-label="Research Navigation">
+                <button class="btn btn-outline-secondary" onclick="showContent('research-team')">Research Team</button>
+                <button class="btn btn-primary" onclick="showContent('research-player')">Research Player</button>
+                <button class="btn btn-outline-secondary" onclick="showContent('analyze-pairings')">Analyze Pairing Matchups</button>
+            </div>
+            <div class="row">
+                <div class="col-md-12 mb-4">
                     <div class="card">
                         <div class="card-header">
                             <h5 class="mb-0">Player Analysis</h5>
                         </div>
                         <div class="card-body">
                             <div class="form-group mb-3">
+                                <label for="playerTeamSelect">Select Team</label>
+                                <select class="form-select" id="playerTeamSelect">
+                                    <option value="">Choose a team...</option>
+                                </select>
+                            </div>
+                            <div class="form-group mb-3">
                                 <label for="playerSelect">Select Player</label>
-                                <select class="form-select" id="playerSelect">
+                                <select class="form-select" id="playerSelect" disabled>
                                     <option value="">Choose a player...</option>
                                 </select>
                             </div>
@@ -1451,6 +1502,24 @@
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analyze Pairing Matchups Content (placeholder) -->
+        <div id="analyze-pairings-content" class="content-section">
+            <div class="content-header">
+                <h1>Analyze Pairing Matchups</h1>
+                <p class="text-muted">This feature is coming soon. Here you will be able to analyze head-to-head and potential pairings for optimal matchups.</p>
+            </div>
+            <div class="btn-group mb-4" role="group" aria-label="Research Navigation">
+                <button class="btn btn-outline-secondary" onclick="showContent('research-team')">Research Team</button>
+                <button class="btn btn-outline-secondary" onclick="showContent('research-player')">Research Player</button>
+                <button class="btn btn-primary" onclick="showContent('analyze-pairings')">Analyze Pairing Matchups</button>
+            </div>
+            <div class="card">
+                <div class="card-body text-center">
+                    <p>Pairing matchup analysis will be available in a future update.</p>
                 </div>
             </div>
         </div>
@@ -1791,8 +1860,13 @@ Court 4: Player7/Player8</textarea>
                 }
 
                 // If switching to research section, load teams
-                if (contentId === 'research') {
+                if (contentId === 'research-team') {
                     loadTeams();
+                }
+
+                // If switching to research-player, load players
+                if (contentId === 'research-player') {
+                    loadPlayers();
                 }
             }
             
@@ -3724,6 +3798,152 @@ Court 4: Player7/Player8</textarea>
                 showContent('email-captain');
             }
         });
+
+        // Add logic for Research Player team/player picklists
+        async function loadPlayerTeamsAndPlayers() {
+            // Load teams for the player research picklist
+            try {
+                const teamSelect = document.getElementById('playerTeamSelect');
+                const playerSelect = document.getElementById('playerSelect');
+                const playerStats = document.getElementById('playerStats');
+                if (!teamSelect || !playerSelect) return;
+                teamSelect.innerHTML = '<option value="">Choose a team...</option>';
+                playerSelect.innerHTML = '<option value="">Choose a player...</option>';
+                playerSelect.disabled = true;
+                playerStats.innerHTML = '';
+                // Fetch teams
+                const response = await fetch('/api/teams');
+                const data = await response.json();
+                if (data.teams) {
+                    data.teams.forEach(team => {
+                        const option = document.createElement('option');
+                        option.value = team;
+                        option.textContent = team;
+                        teamSelect.appendChild(option);
+                    });
+                }
+                // Add change event to load players for selected team
+                teamSelect.onchange = async function() {
+                    const selectedTeam = this.value;
+                    playerSelect.innerHTML = '<option value="">Choose a player...</option>';
+                    playerSelect.disabled = !selectedTeam;
+                    playerStats.innerHTML = '';
+                    if (selectedTeam) {
+                        // Fetch players for this team
+                        const resp = await fetch(`/api/team-players/${encodeURIComponent(selectedTeam)}`);
+                        const pdata = await resp.json();
+                        if (pdata.players) {
+                            pdata.players.forEach(player => {
+                                const option = document.createElement('option');
+                                option.value = player.name;
+                                option.textContent = player.name;
+                                playerSelect.appendChild(option);
+                            });
+                        }
+                    }
+                };
+                // Add change event to load player stats when a player is selected
+                playerSelect.onchange = async function() {
+                    const selectedPlayer = this.value;
+                    playerStats.innerHTML = '';
+                    if (selectedPlayer) {
+                        // Fetch all players for the selected team (again, for stats)
+                        const selectedTeam = teamSelect.value;
+                        if (!selectedTeam) return;
+                        const resp = await fetch(`/api/team-players/${encodeURIComponent(selectedTeam)}`);
+                        const pdata = await resp.json();
+                        if (pdata.players) {
+                            const player = pdata.players.find(p => p.name === selectedPlayer);
+                            if (player) {
+                                // Calculate overall record
+                                const losses = player.matches - player.wins;
+                                // Determine win rate class
+                                function winRateClass(rate) {
+                                    if (rate >= 60) return 'win-rate-high';
+                                    if (rate >= 40) return 'win-rate-medium';
+                                    return 'win-rate-low';
+                                }
+                                let html = `<div class='player-analysis'>
+                                    <div class='overall-stats mb-4'>
+                                        <h6>Overall Performance</h6>
+                                        <p><span class='stat-label'>Total Matches</span><span class='stat-value'>${player.matches}</span></p>
+                                        <p><span class='stat-label'>Overall Record</span><span class='stat-value'>${player.wins}-${losses}</span></p>
+                                        <p><span class='stat-label'>Win Rate</span><span class='stat-value ${winRateClass(player.winRate)}'>${player.winRate}%</span></p>
+                                        <p><span class='stat-label'>PTI</span><span class='stat-value'>${player.pti}</span></p>
+                                    </div>
+                                    <div class='row g-3'>`;
+                                if (player.courts) {
+                                    Object.entries(player.courts).forEach(([court, stats]) => {
+                                        const courtNum = court.replace('court', 'Court ');
+                                        const courtLosses = stats.matches - stats.wins;
+                                        html += `<div class='col-md-6'>
+                                            <div class='court-card card h-100'>
+                                                <div class='card-body'>
+                                                    <h6>${courtNum}</h6>
+                                                    <p><span class='stat-label'>Matches</span><span class='stat-value'>${stats.matches}</span></p>
+                                                    <p><span class='stat-label'>Record</span><span class='stat-value'>${stats.wins}-${courtLosses}</span></p>
+                                                    <p><span class='stat-label'>Win Rate</span><span class='stat-value ${winRateClass(stats.winRate)}'>${stats.winRate}%</span></p>`;
+                                                if (stats.partners && stats.partners.length > 0) {
+                                                    html += `<div class='partner-info mt-2'>
+                                                        <strong>Most Common Partners:</strong>
+                                                        <ul class='partner-list'>`;
+                                                    stats.partners.forEach(ptn => {
+                                                        const partnerLosses = ptn.matches - ptn.wins;
+                                                        html += `<li>${ptn.name} (${ptn.wins}-${partnerLosses}, ${ptn.winRate}%)</li>`;
+                                                    });
+                                                    html += `</ul></div>`;
+                                                }
+                                                html += `</div></div></div>`;
+                                    });
+                                }
+                                html += `</div></div>`;
+                                // Add player history card (placeholder)
+                                html += `<div class='card mt-4 player-history-card'>
+                                    <div class='card-header bg-primary text-white'>
+                                        <h5 class='mb-0'>Player History (Previous Seasons)</h5>
+                                    </div>
+                                    <div class='card-body'>
+                                        <div class='d-flex flex-column gap-2'>
+                                            <div class='stat-item'><strong>2023-24:</strong> Chicago 6, PTI: 20.4, Record: 18-12</div>
+                                            <div class='stat-item'><strong>2022-23:</strong> Chicago 7, PTI: 22.1, Record: 15-15</div>
+                                            <div class='stat-item'><strong>2021-22:</strong> Chicago 8, PTI: 23.7, Record: 10-18</div>
+                                        </div>
+                                        <div class='mt-3 text-muted'>
+                                            <em>Full player history and season-by-season stats coming soon.</em>
+                                        </div>
+                                    </div>
+                                </div>`;
+                                html += `</div>`;
+                                playerStats.innerHTML = html;
+                            }
+                        }
+                    }
+                };
+            } catch (error) {
+                console.error('Error loading player teams/players:', error);
+            }
+        }
+        // When showing research-player, load teams/players
+        const origShowContent = showContent;
+        showContent = function(contentId) {
+            origShowContent.apply(this, arguments);
+            if (contentId === 'research-player') {
+                loadPlayerTeamsAndPlayers();
+            }
+        };
+
+        // In showContent, if 'research-dashboard' is requested, immediately redirect to 'research-team'
+        const origShowContent2 = showContent;
+        showContent = function(contentId) {
+            if (contentId === 'research-dashboard') {
+                origShowContent2('research-team');
+                return;
+            }
+            origShowContent2.apply(this, arguments);
+            if (contentId === 'research-player') {
+                loadPlayerTeamsAndPlayers();
+            }
+        };
     </script>
 </body>
 </html> 
