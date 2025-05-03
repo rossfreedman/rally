@@ -54,3 +54,6 @@ log/
 # Other
 *.bak
 *.tmp 
+rally_backups/
+scrapers/
+scrapers_backups/
