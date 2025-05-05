@@ -1,6 +1,8 @@
 // research-my-team.js
 // Handles displaying team statistics and analysis for the user's current team (My Team)
 
+console.log('[DEBUG] runMyTeamDualColumnDashboard called');
+
 let lastTeamPlayers = [];
 
 // === Dual-Column My Team Dashboard Logic (No Team Picklist) ===
