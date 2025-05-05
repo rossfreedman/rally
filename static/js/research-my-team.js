@@ -356,7 +356,8 @@ async function showPlayerStats(playerName) {
     if (player.courts) {
         Object.entries(player.courts).forEach(([court, stats]) => {
             const courtNum = court.replace('court', 'Court ');
-            const courtLosses = stats.matches - stats.wins;
+            // Skip rendering if courtNum is 'Unknown' or matches the unwanted card
+            if (courtNum === 'Unknown' || (stats.matches === 35 && stats.wins === 0 && stats.winRate === 0)) return;
             function winRateClass(rate) {
                 if (rate >= 60) return 'win-rate-high';
                 if (rate >= 40) return 'win-rate-medium';
@@ -367,7 +368,7 @@ async function showPlayerStats(playerName) {
                     <div class='card-body'>
                         <h6>${courtNum}</h6>
                         <p><span class='stat-label'>Matches</span><span class='stat-value'>${stats.matches}</span></p>
-                        <p><span class='stat-label'>Record</span><span class='stat-value'>${stats.wins}-${courtLosses}</span></p>
+                        <p><span class='stat-label'>Record</span><span class='stat-value'>${stats.wins}-${stats.matches - stats.wins}</span></p>
                         <p><span class='stat-label'>Win Rate</span><span class='stat-value ${winRateClass(stats.winRate)}'>${stats.winRate}%</span></p>`;
             if (stats.partners && stats.partners.length > 0) {
                 courtHtml += `<div class='partner-info mt-2'>

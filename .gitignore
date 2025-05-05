@@ -57,3 +57,7 @@ log/
 rally_backups/
 scrapers/
 scrapers_backups/
+
+# Ignore the SQLite database file
+/data/paddlepro.db
+/paddlepro.db

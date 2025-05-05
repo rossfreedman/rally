@@ -2284,7 +2284,7 @@ def get_player_contact():
             })
         else:
             print(f"Player not found in directory: {first_name} {last_name}")
-            return jsonify({'error': 'Player not found in club directory'}), 404
+            return jsonify({'error': 'Player not found in the club directory'}), 404
     except Exception as e:
         print(f"Error fetching player contact info: {str(e)}")
         import traceback
