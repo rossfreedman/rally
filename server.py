@@ -21,12 +21,12 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium import webdriver
-from init_db import init_db
+#from init_db import init_db
 
 # Initialize database
 print("\n=== Initializing Database ===")
 try:
-    init_db()
+    #init_db()
     print("Database initialized successfully!")
 except Exception as e:
     print(f"Error initializing database: {str(e)}")
@@ -565,6 +565,13 @@ def serve_static(path):
     
     return send_from_directory('static', path)
 
+@app.route('/api/player-history')
+def get_player_history():
+    import json
+    with open('data/series_22_player_history.json', 'r') as f:
+        data = json.load(f)
+    return jsonify(data)
+
 # Protect all API routes except check-auth and login
 @app.route('/api/<path:path>', methods=['GET', 'POST'])
 def api_route(path):
@@ -597,7 +604,8 @@ def api_route(path):
             print(traceback.format_exc())
     
     # Let the route continue to the specific handler
-    return None
+    # If no specific handler matched, return a 404 error
+    return jsonify({'error': 'API endpoint not found'}), 404
 
 @app.route('/api/set-series', methods=['POST'])
 def set_series():
@@ -2173,7 +2181,7 @@ def get_series_stats():
                                (not is_home and away_games > home_games):
                                 total_sets_won += 1
                         
-                        # Analyze match patterns
+                        #    match patterns
                         if len(scores) == 3:
                             three_set_matches += 1
                             if won_match:
@@ -2480,16 +2488,16 @@ def get_team_players(team_id):
 def update_settings():
     try:
         data = request.get_json()
-        print("\n=== UPDATING USER SETTINGS ===")
-        print("Received data:", data)
-        print("clubAutomationPassword received:", data.get('clubAutomationPassword', '[not present]'))
+        # print("\n=== UPDATING USER SETTINGS ===")
+        # print("Received data:", data)
+        # print("clubAutomationPassword received:", data.get('clubAutomationPassword', '[not present]'))
         
         if not all(key in data for key in ['firstName', 'lastName', 'email', 'series', 'club']):
-            print("Missing required fields in request data")
+            # print("Missing required fields in request data")
             return jsonify({'success': False, 'message': 'Missing required fields'}), 400
         
         current_email = session['user']['email']
-        print(f"Updating settings for user: {current_email}")
+        # print(f"Updating settings for user: {current_email}")
         
         db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
         conn = sqlite3.connect(db_path)
@@ -2500,7 +2508,7 @@ def update_settings():
             cursor.execute('SELECT id FROM series WHERE name = ?', (data['series'],))
             series_result = cursor.fetchone()
             if not series_result:
-                print(f"Series not found: {data['series']}")
+                # print(f"Series not found: {data['series']}")
                 return jsonify({'success': False, 'message': 'Invalid series selected'}), 400
             series_id = series_result[0]
             
@@ -2508,16 +2516,16 @@ def update_settings():
             cursor.execute('SELECT id FROM clubs WHERE name = ?', (data['club'],))
             club_result = cursor.fetchone()
             if not club_result:
-                print(f"Club not found: {data['club']}")
+                # print(f"Club not found: {data['club']}")
                 return jsonify({'success': False, 'message': 'Invalid club selected'}), 400
             club_id = club_result[0]
             
             # Optionally update club_automation_password if provided
             if 'clubAutomationPassword' in data and data['clubAutomationPassword'] is not None:
-                print("Updating club_automation_password to:", data.get('clubAutomationPassword', ''))
-                print("[DEBUG] SQL UPDATE with club_automation_password:")
-                print("SQL:", '''UPDATE users SET first_name = ?, last_name = ?, email = ?, series_id = ?, club_id = ?, club_automation_password = ? WHERE email = ?''')
-                print("Values:", data['firstName'], data['lastName'], data['email'], series_id, club_id, data.get('clubAutomationPassword', ''), current_email)
+                # print("Updating club_automation_password to:", data.get('clubAutomationPassword', ''))
+                # print("[DEBUG] SQL UPDATE with club_automation_password:")
+                # print("SQL:", '''UPDATE users SET first_name = ?, last_name = ?, email = ?, series_id = ?, club_id = ?, club_automation_password = ? WHERE email = ?''')
+                # print("Values:", data['firstName'], data['lastName'], data['email'], series_id, club_id, data.get('clubAutomationPassword', ''), current_email)
                 cursor.execute('''
                     UPDATE users 
                     SET first_name = ?, last_name = ?, email = ?, series_id = ?, club_id = ?, club_automation_password = ?
@@ -2532,9 +2540,9 @@ def update_settings():
                     current_email
                 ))
             else:
-                print("[DEBUG] SQL UPDATE without club_automation_password:")
-                print("SQL:", '''UPDATE users SET first_name = ?, last_name = ?, email = ?, series_id = ?, club_id = ? WHERE email = ?''')
-                print("Values:", data['firstName'], data['lastName'], data['email'], series_id, club_id, current_email)
+                # print("[DEBUG] SQL UPDATE without club_automation_password:")
+                # print("SQL:", '''UPDATE users SET first_name = ?, last_name = ?, email = ?, series_id = ?, club_id = ? WHERE email = ?''')
+                # print("Values:", data['firstName'], data['lastName'], data['email'], series_id, club_id, current_email)
                 cursor.execute('''
                     UPDATE users 
                     SET first_name = ?, last_name = ?, email = ?, series_id = ?, club_id = ?
@@ -2549,11 +2557,11 @@ def update_settings():
                 ))
             
             if cursor.rowcount == 0:
-                print("No rows were updated - user not found")
+                # print("No rows were updated - user not found")
                 return jsonify({'success': False, 'message': 'User not found'}), 404
             
             conn.commit()
-            print("Settings updated successfully")
+            # print("Settings updated successfully")
             
             # Update session data
             session['user'] = {
@@ -2590,7 +2598,7 @@ def update_settings():
                 return jsonify({'success': True, 'message': 'Settings updated successfully'})
             
         except sqlite3.Error as e:
-            print(f"Database error: {str(e)}")
+            # print(f"Database error: {str(e)}")
             conn.rollback()
             return jsonify({'success': False, 'message': 'Database error occurred'}), 500
             
@@ -2598,9 +2606,9 @@ def update_settings():
             conn.close()
             
     except Exception as e:
-        print(f"Error updating settings: {str(e)}")
-        import traceback
-        print("Full error:", traceback.format_exc())
+        # print(f"Error updating settings: {str(e)}")
+        # import traceback
+        # print("Full error:", traceback.format_exc())
         return jsonify({'success': False, 'message': 'Failed to update settings'}), 500
 
 @app.route('/test-static')
@@ -2649,13 +2657,12 @@ def delete_user():
 
 def log_user_activity(user_email, activity_type, page=None, action=None, details=None):
     """Log user activity to the database"""
-    print(f"\n=== LOGGING USER ACTIVITY ===")
-    print(f"User: {user_email}")
-    print(f"Type: {activity_type}")
-    print(f"Page: {page}")
-    print(f"Action: {action}")
-    print(f"Details: {details}")
-    
+    # print(f"\n=== LOGGING USER ACTIVITY ===")
+    # print(f"User: {user_email}")
+    # print(f"Type: {activity_type}")
+    # print(f"Page: {page}")
+    # print(f"Action: {action}")
+    # print(f"Details: {details}")
     try:
         db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
         conn = sqlite3.connect(db_path)
@@ -2663,25 +2670,24 @@ def log_user_activity(user_email, activity_type, page=None, action=None, details
         try:
             # Get IP address from request if available
             ip_address = request.remote_addr if request else None
-            print(f"IP Address: {ip_address}")
-            
+            # print(f"IP Address: {ip_address}")
             # Insert the activity log with UTC timestamp
-            print("Inserting activity log...")
+            # print("Inserting activity log...")
             insert_query = '''
                 INSERT INTO user_activity_logs 
                 (user_email, activity_type, page, action, details, ip_address, timestamp)
                 VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
             '''
             params = (user_email, activity_type, page, action, details, ip_address)
-            print(f"Query: {insert_query}")
-            print(f"Parameters: {params}")
+            # print(f"Query: {insert_query}")
+            # print(f"Parameters: {params}")
             
             cursor.execute(insert_query, params)
             conn.commit()
-            print("Activity logged successfully")
+            # print("Activity logged successfully")
             
             # Verify the log was written
-            print("Verifying log entry...")
+            # print("Verifying log entry...")
             cursor.execute('''
                 SELECT * FROM user_activity_logs 
                 WHERE user_email = ? 
@@ -2690,16 +2696,18 @@ def log_user_activity(user_email, activity_type, page=None, action=None, details
             ''', (user_email,))
             last_log = cursor.fetchone()
             if last_log:
-                print(f"Last log entry: {last_log}")
+                # print(f"Last log entry: {last_log}")
+                pass
             else:
-                print("WARNING: Log entry not found after insert!")
+                # print("WARNING: Log entry not found after insert!")
+                pass
         finally:
             conn.close()
                     
     except Exception as e:
-        print(f"Database error during transaction: {str(e)}")
-        print(f"Error type: {type(e).__name__}")
-        print(f"Full error details: {traceback.format_exc()}")
+        # print(f"Database error during transaction: {str(e)}")
+        # print(f"Error type: {type(e).__name__}")
+        # print(f"Full error details: {traceback.format_exc()}")
         raise
 
 @app.route('/api/admin/user-activity/<email>')
@@ -3050,6 +3058,184 @@ def log_click():
 def healthcheck():
     """Basic healthcheck endpoint"""
     return jsonify({'status': 'ok'}), 200
+
+@app.route('/api/team-matches')
+@login_required
+def get_team_matches():
+    """Return matches for a specific team"""
+    try:
+        team = request.args.get('team')
+        if not team:
+            return jsonify({'error': 'Team parameter is required'}), 400
+        
+        # Log the request
+        print(f"Fetching matches for team: {team}")
+        log_user_activity(
+            session['user']['email'], 
+            'feature_use', 
+            action='view_team_matches',
+            details=f"Team: {team}"
+        )
+        
+        # Read the matches file
+        matches_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'tennis_matches_20250416.json')
+        with open(matches_path, 'r') as f:
+            all_matches = json.load(f)
+        
+        # Filter matches for the specific team
+        team_matches = [match for match in all_matches if match.get('Home Team') == team or match.get('Away Team') == team]
+        
+        return jsonify(team_matches)
+    except Exception as e:
+        print(f"Error fetching team matches: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/data/<path:filename>')
+def serve_data_file(filename):
+    """Serve files from the data directory"""
+    # Restrict to only serving .json files for security
+    if not filename.endswith('.json'):
+        return "Not found", 404
+    
+    # Log the access
+    if 'user' in session:
+        log_user_activity(
+            session['user']['email'], 
+            'data_access', 
+            action='view_data_file',
+            details=f"File: {filename}"
+        )
+    
+    # Return the file from the data directory
+    return send_from_directory(os.path.join(app.root_path, 'data'), filename)
+
+@app.route('/api/research-team')
+@login_required
+def research_team():
+    """Return stats for a specific team (for research team page)"""
+    try:
+        team = request.args.get('team')
+        if not team:
+            return jsonify({'error': 'Team parameter is required'}), 400
+        
+        # Log the request
+        print(f"Fetching stats for team: {team}")
+        log_user_activity(
+            session['user']['email'], 
+            'feature_use', 
+            action='view_team_stats',
+            details=f"Team: {team}"
+        )
+        
+        # Read the stats file
+        stats_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'Chicago_22_stats_20250425.json')
+        with open(stats_path, 'r') as f:
+            all_stats = json.load(f)
+        
+        # Find stats for the specific team
+        team_stats = next((stats for stats in all_stats if stats.get('team') == team), None)
+        
+        if not team_stats:
+            return jsonify({'error': f'No stats found for team: {team}'}), 404
+        
+        return jsonify(team_stats)
+    except Exception as e:
+        print(f"Error fetching team stats: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+# --- New endpoint: Player Court Stats from JSON ---
+@app.route('/api/player-court-stats/<player_name>')
+def player_court_stats(player_name):
+    """
+    Returns court breakdown stats for a player using data/tennis_matches_20250416.json.
+    Output format:
+    {
+        "court1": {"matches": int, "wins": int, "losses": int, "winRate": float, "partners": [{"name": str, "matches": int, "wins": int, "winRate": float}]},
+        ...
+    }
+    """
+    import os
+    import json
+    from collections import defaultdict, Counter
+
+    json_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'tennis_matches_20250416.json')
+    try:
+        with open(json_path, 'r') as f:
+            matches = json.load(f)
+    except Exception as e:
+        return jsonify({"error": f"Failed to load match data: {e}"}), 500
+
+    # Group matches by date
+    matches_by_date = defaultdict(list)
+    for match in matches:
+        matches_by_date[match['Date']].append(match)
+
+    # For each date, assign court number by order
+    court_matches = defaultdict(list)  # court_num (1-based) -> list of matches for this player
+    for date, day_matches in matches_by_date.items():
+        for i, match in enumerate(day_matches):
+            court_num = i + 1
+            # Check if player is in this match
+            if player_name in [match['Home Player 1'], match['Home Player 2'], match['Away Player 1'], match['Away Player 2']]:
+                court_matches[court_num].append(match)
+
+    # For each court, calculate stats
+    result = {}
+    for court_num in range(1, 5):  # Courts 1-4
+        matches = court_matches.get(court_num, [])
+        num_matches = len(matches)
+        wins = 0
+        losses = 0
+        partners = []
+        partner_results = defaultdict(lambda: {'matches': 0, 'wins': 0})
+
+        for match in matches:
+            # Determine if player was home or away, and who was their partner
+            if player_name == match['Home Player 1']:
+                partner = match['Home Player 2']
+                is_home = True
+            elif player_name == match['Home Player 2']:
+                partner = match['Home Player 1']
+                is_home = True
+            elif player_name == match['Away Player 1']:
+                partner = match['Away Player 2']
+                is_home = False
+            elif player_name == match['Away Player 2']:
+                partner = match['Away Player 1']
+                is_home = False
+            else:
+                continue  # Shouldn't happen
+            partners.append(partner)
+            partner_results[partner]['matches'] += 1
+            # Determine win/loss
+            if (is_home and match['Winner'] == 'home') or (not is_home and match['Winner'] == 'away'):
+                wins += 1
+                partner_results[partner]['wins'] += 1
+            else:
+                losses += 1
+
+        # Win rate
+        win_rate = (wins / num_matches * 100) if num_matches > 0 else 0.0
+        # Most common partners
+        partner_list = []
+        for partner, stats in sorted(partner_results.items(), key=lambda x: -x[1]['matches']):
+            p_matches = stats['matches']
+            p_wins = stats['wins']
+            p_win_rate = (p_wins / p_matches * 100) if p_matches > 0 else 0.0
+            partner_list.append({
+                'name': partner,
+                'matches': p_matches,
+                'wins': p_wins,
+                'winRate': round(p_win_rate, 1)
+            })
+        result[f'court{court_num}'] = {
+            'matches': num_matches,
+            'wins': wins,
+            'losses': losses,
+            'winRate': round(win_rate, 1),
+            'partners': partner_list
+        }
+    return jsonify(result)
 
 if __name__ == '__main__':
     # Get port from environment variable or use default
