@@ -4077,40 +4077,9 @@ async function showPlayerStats(playerName) {
         const courtData = await courtResp.json();
         if (courtData.error) throw new Error(courtData.error);
 
-        // Render court breakdown cards using new data
-        let courtHtml = '';
-        Object.entries(courtData).forEach(([court, stats]) => {
-            const courtNum = court.replace('court', 'Court ');
-            const courtLosses = stats.matches - stats.wins;
-            const winRate = stats.winRate;
-            let winRateClass = 'win-rate-low';
-            if (winRate >= 66.7) winRateClass = 'win-rate-high';
-            else if (winRate >= 33.3) winRateClass = 'win-rate-medium';
-            let partnersHtml = '';
-            if (stats.partners && stats.partners.length > 0) {
-                partnersHtml = `<div class="partner-info mt-2"><strong>Most Common Partners:</strong><ul class="partner-list">`;
-                stats.partners.forEach(ptn => {
-                    const partnerLosses = ptn.matches - ptn.wins;
-                    partnersHtml += `<li>${ptn.name} (${ptn.wins}-${partnerLosses}, ${ptn.winRate}%)</li>`;
-                });
-                partnersHtml += `</ul></div>`;
-            }
-            courtHtml += `
-                <div class="col-md-6">
-                    <div class="court-card card h-100">
-                        <div class="card-body">
-                            <h6>${courtNum}</h6>
-                            <p><span class="stat-label">Matches</span><span class="stat-value">${stats.matches}</span></p>
-                            <p><span class="stat-label">Record</span><span class="stat-value">${stats.wins}-${courtLosses}</span></p>
-                            <p><span class="stat-label">Win Rate</span><span class="stat-value ${winRateClass}">${stats.winRate}%</span></p>
-                            ${partnersHtml}
-                        </div>
-                    </div>
-                </div>
-            `;
-        });
-        playerCourtBreakdown.innerHTML = courtHtml;
-        playerCourtBreakdown.style.display = '';
+        
+        //playerCourtBreakdown.innerHTML = courtHtml;
+        //playerCourtBreakdown.style.display = '';
         courtBreakdownCards.innerHTML = courtHtml;
         courtBreakdownCards.style.display = '';
 
@@ -4352,6 +4321,7 @@ async function showPlayerStats(playerName) {
                 if (player.courts) {
                     Object.entries(player.courts).forEach(([court, stats]) => {
                         const courtNum = court.replace('court', 'Court ');
+                        if (courtNum.trim().toLowerCase() === 'unknown') return;
                         const courtLosses = stats.matches - stats.wins;
                         const courtWinRate = stats.matches > 0 ? ((stats.wins / stats.matches) * 100).toFixed(1) : '0.0';
                         html += `<div class='col-md-6'>
@@ -4473,40 +4443,40 @@ async function showPlayerStats(playerName) {
                 playerSelect.innerHTML = '<option value="">Error loading players</option>';
             }
         }
-         function renderCourtBreakdownCards(player) {
-    if (!player || !player.courts) return '';
-    let html = `<div class='row g-3'>`;
-    Object.entries(player.courts).forEach(([court, stats]) => {
-        const courtNum = court.replace('court', 'Court ');
-        const courtLosses = stats.matches - stats.wins;
-        function winRateClass(rate) {
-            if (rate >= 60) return 'win-rate-high';
-            if (rate >= 40) return 'win-rate-medium';
-            return 'win-rate-low';
-        }
-        html += `<div class='col-md-6'>
-            <div class='court-card card h-100'>
-                <div class='card-body'>
-                    <h6>${courtNum}</h6>
-                    <p><span class='stat-label'>Matches</span><span class='stat-value'>${stats.matches}</span></p>
-                    <p><span class='stat-label'>Record</span><span class='stat-value'>${stats.wins}-${courtLosses}</span></p>
-                    <p><span class='stat-label'>Win Rate</span><span class='stat-value ${winRateClass(stats.winRate)}'>${stats.winRate}%</span></p>`;
-        if (stats.partners && stats.partners.length > 0) {
-            html += `<div class='partner-info mt-2'>
-                <strong>Most Common Partners:</strong>
-                <ul class='partner-list'>`;
-            stats.partners.forEach(ptn => {
-                const partnerLosses = ptn.matches - ptn.wins;
-                html += `<li>${ptn.name} (${ptn.wins}-${partnerLosses}, ${ptn.winRate}%)</li>`;
+        function renderCourtBreakdownCards(player) {
+            if (!player || !player.courts) return '';
+            let html = `<div class='row g-3'>`;
+            Object.entries(player.courts).forEach(([court, stats]) => {
+                const courtNum = court.replace('court', 'Court ');
+                if (courtNum.trim().toLowerCase() === 'unknown') return; // <-- This line skips the Unknown card
+                const courtLosses = stats.matches - stats.wins;
+                function winRateClass(rate) {
+                    if (rate >= 60) return 'win-rate-high';
+                    if (rate >= 40) return 'win-rate-medium';
+                    return 'win-rate-low';
+                }
+                html += `<div class='col-md-6'>
+                    <div class='court-card card h-100'>
+                        <div class='card-body'>
+                            <h6>${courtNum}</h6>
+                            <p><span class='stat-label'>Matches</span><span class='stat-value'>${stats.matches}</span></p>
+                            <p><span class='stat-label'>Record</span><span class='stat-value'>${stats.wins}-${courtLosses}</span></p>
+                            <p><span class='stat-label'>Win Rate</span><span class='stat-value ${winRateClass(stats.winRate)}'>${stats.winRate}%</span></p>`;
+                if (stats.partners && stats.partners.length > 0) {
+                    html += `<div class='partner-info mt-2'>
+                        <strong>Most Common Partners:</strong>
+                        <ul class='partner-list'>`;
+                    stats.partners.forEach(ptn => {
+                        const partnerLosses = ptn.matches - ptn.wins;
+                        html += `<li>${ptn.name} (${ptn.wins}-${partnerLosses}, ${ptn.winRate}%)</li>`;
+                    });
+                    html += `</ul></div>`;
+                }
+                html += `</div></div></div>`;
             });
-            html += `</ul></div>`;
+            html += `</div>`;
+            return html;
         }
-        html += `</div></div></div>`;
-    });
-    html += `</div>`;
-    return html;
-        }
-
         // Helper: fetch and display player stats
         async function showPlayerStats(playerName) {
             console.log("showPlayerStats called", playerName);
@@ -4630,44 +4600,7 @@ async function showPlayerStats(playerName) {
             detailsCard.style.display = '';
                 console.log('[DEBUG] Player details card should now be visible.');
 
-                // Render second court breakdown card (Me page logic)
-                const playerCourtBreakdown = document.getElementById('playerCourtBreakdown');
-                if (playerCourtBreakdown) {
-                    let courtHtml = '';
-                    if (player.courts) {
-                        Object.entries(player.courts).forEach(([court, stats]) => {
-                            const courtNum = court.replace('court', 'Court ');
-                            const courtLosses = stats.matches - stats.wins;
-                            const courtWinRate = stats.matches > 0 ? ((stats.wins / stats.matches) * 100).toFixed(1) : '0.0';
-                            function winRateClass(rate) {
-                                if (rate >= 60) return 'win-rate-high';
-                                if (rate >= 40) return 'win-rate-medium';
-                                return 'win-rate-low';
-                            }
-                            courtHtml += `<div class='col-md-6'>
-                                <div class='court-card card h-100'>
-                                    <div class='card-body'>
-                                        <h6>${courtNum}</h6>
-                                        <p><span class='stat-label'>Matches</span><span class='stat-value'>${stats.matches}</span></p>
-                                        <p><span class='stat-label'>Record</span><span class='stat-value'>${stats.wins}-${courtLosses}</span></p>
-                                        <p><span class='stat-label'>Win Rate</span><span class='stat-value ${winRateClass(courtWinRate)}'>${courtWinRate}%</span></p>`;
-                            if (stats.partners && stats.partners.length > 0) {
-                                courtHtml += `<div class='partner-info mt-2'>
-                                    <strong>Most Common Partners:</strong>
-                                    <ul class='partner-list'>`;
-                                stats.partners.forEach(ptn => {
-                                    const partnerLosses = ptn.matches - ptn.wins;
-                                    const partnerWinRate = ptn.matches > 0 ? ((ptn.wins / ptn.matches) * 100).toFixed(1) : '0.0';
-                                    courtHtml += `<li>${ptn.name} (${ptn.wins}-${partnerLosses}, ${partnerWinRate}%)</li>`;
-                                });
-                                courtHtml += `</ul></div>`;
-                            }
-                            courtHtml += `</div></div></div>`;
-                        });
-                    }
-                    playerCourtBreakdown.innerHTML = courtHtml;
-                    playerCourtBreakdown.style.display = '';
-                }
+                
         } catch (e) {
                 console.error('[DEBUG] Error in showPlayerStats:', e);
             statsDiv.innerHTML = '<div class="alert alert-danger">Error loading player stats.</div>';
