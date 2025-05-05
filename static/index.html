@@ -2404,31 +2404,34 @@ Court 4: Player7/Player8</textarea>
                     playersWithScores.sort((a, b) => b.compositeScore - a.compositeScore);
 
                     // Add rows in sorted order
+                    if (playersWithScores.length > 0) {
+                        // Insert label row above the top 3
+                        const labelRow = document.createElement('tr');
+                        labelRow.innerHTML = '<td colspan="8" id="top-player-label-row" class="top-player-label text-center" style="background:#145a32;color:#fff;font-weight:bold;">' +
+                            '<strong>Top recommended subs based upon Rally\'s algorithm</strong></td>';
+                        tableBody.appendChild(labelRow);
+                    }
                     playersWithScores.forEach((player, index) => {
                         const row = document.createElement('tr');
                         if (index < 3) {
                             row.classList.add('top-player');
                         }
-                        
                         // Split player.name into first and last name (now in correct order from server)
                         const [firstName, lastName] = player.name.split(' ');
                         row.innerHTML = `
-                            <td>${player.series}</td>
-                            <td>${player.name}</td>
-                            <td class="text-end">${player.rating}</td>
-                            <td class="text-end">${parseInt(player.wins) || 0}</td>
-                            <td class="text-end">${parseInt(player.losses) || 0}</td>
-                            <td class="text-end">${player.winRate}</td>
-                            <td class="text-center">
-                                <span class="composite-score">${(player.compositeScore * 100).toFixed(1)}</span>
-                            </td>
-                            <td class="text-center">
+                            <td style="font-weight:bold">${player.series}</td>
+                            <td style="font-weight:bold">${player.name}</td>
+                            <td class="text-end" style="font-weight:bold">${player.rating}</td>
+                            <td class="text-end" style="font-weight:bold">${parseInt(player.wins) || 0}</td>
+                            <td class="text-end" style="font-weight:bold">${parseInt(player.losses) || 0}</td>
+                            <td class="text-end" style="font-weight:bold">${player.winRate}</td>
+                            <td class="text-center" style="font-weight:bold"><span class="composite-score">${(player.compositeScore * 100).toFixed(1)}</span></td>
+                            <td class="text-center" style="font-weight:bold">
                                 <button class="btn btn-sm btn-primary" onclick="contactSub('${lastName}', '${firstName}')">
                                     Contact
                                 </button>
                             </td>
                         `;
-                        
                         tableBody.appendChild(row);
                     });
 
@@ -4856,4 +4859,9 @@ async function showPlayerStats(playerName) {
     </script>
 
 </body>
+<script>
+    function contactSub(lastName, firstName) {
+        window.location.href = `/contact-sub?firstName=${encodeURIComponent(firstName)}&lastName=${encodeURIComponent(lastName)}`;
+    }
+    </script>
 </html> 
