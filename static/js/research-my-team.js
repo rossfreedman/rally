@@ -150,7 +150,9 @@ function setupMyTeamPageListener() {
     window.showContent = function(contentId) {
         origShowContent.apply(this, arguments);
         if (contentId === 'research-my-team') {
-            runMyTeamDualColumnDashboard();
+            if (typeof runMyTeamDualColumnDashboard === 'function') {
+                runMyTeamDualColumnDashboard();
+            }
         }
     };
 }
