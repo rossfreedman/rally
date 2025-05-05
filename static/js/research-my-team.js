@@ -782,12 +782,15 @@ function renderMyTeamCourtBreakdownCards(player) {
 }
 // New: Render Team Analysis Cards (replaces old team analysis cards)
 async function renderTeamAnalysisCards(container) {
+    console.log('[DEBUG] renderTeamAnalysisCards called');
     const teamName = 'Tennaqua - 22';
     // Load match and stats data
     const [matches, stats] = await Promise.all([
         fetch('/data/tennis_matches_20250416.json').then(r => r.json()),
         fetch('/data/Chicago_22_stats_20250425.json').then(r => r.json())
     ]);
+    console.log('[DEBUG] matches:', matches);
+    console.log('[DEBUG] stats:', stats);
     // Team Record
     const teamMatches = matches.filter(
         m => m["Home Team"] === teamName || m["Away Team"] === teamName
@@ -902,6 +905,7 @@ async function renderTeamAnalysisCards(container) {
             </div>
         </div>
     `;
+    console.log('[DEBUG] About to insert Team Analysis HTML into #myTeamStats');
 }
 
 // Patch renderMyTeamDashboard to use the new cards
