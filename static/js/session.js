@@ -100,4 +100,28 @@ async function saveAvailabilityChange(button, playerName, date) {
     } finally {
         loadingOverlay.style.display = 'none';
     }
+}
+
+// Function to update the welcome message in the navbar
+function updateWelcomeMessage() {
+    fetch('/api/check-auth')
+        .then(response => response.json())
+        .then(data => {
+            console.log('[DEBUG] updateWelcomeMessage data:', data);
+            if (data.authenticated) {
+                const user = data.user;
+                const welcomeMsg = `Welcome back, ${user.first_name} ${user.last_name} (${user.series} at ${user.club})`;
+                const welcomeElem = document.getElementById('welcomeMessage');
+                if (welcomeElem) {
+                    welcomeElem.textContent = welcomeMsg;
+                } else {
+                    console.warn('[DEBUG] #welcomeMessage element not found');
+                }
+            } else {
+                console.warn('[DEBUG] User not authenticated');
+            }
+        })
+        .catch(error => {
+            console.error('[DEBUG] Error fetching user data:', error);
+        });
 } 

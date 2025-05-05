@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Player Court Analysis</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .court-card {
+            border: 1px solid #dee2e6;
+            margin-bottom: 20px;
+        }
+        .stat-label {
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        .win-rate-high {
+            color: #28a745;
+        }
+        .win-rate-medium {
+            color: #ffc107; 
+        }
+        .win-rate-low {
+            color: #dc3545;
+        }
+        .partner-list {
+            list-style-type: none;
+            padding-left: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <h2>Player Court Analysis</h2>
+        
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="playerSelect">Select Player:</label>
+                    <select class="form-control" id="playerSelect">
+                        <option value="">Choose a player...</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div id="courtBreakdown" class="row g-3">
+            <!-- Court cards will be inserted here -->
+        </div>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const playerSelect = document.getElementById('playerSelect');
+        const courtBreakdown = document.getElementById('courtBreakdown');
+        let allMatches = [];
+        let allPlayers = [];
+
+        // Load the JSON data once
+        fetch('/data/tennis_matches_20250416.json')
+            .then(resp => resp.json())
+            .then(data => {
+                allMatches = data;
+                // Extract unique player names
+                const playerSet = new Set();
+                data.forEach(match => {
+                    ['Home Player 1', 'Home Player 2', 'Away Player 1', 'Away Player 2'].forEach(field => {
+                        if (match[field]) playerSet.add(match[field].trim());
+                    });
+                });
+                allPlayers = Array.from(playerSet).sort((a, b) => a.localeCompare(b));
+                // Populate picklist
+                playerSelect.innerHTML = '<option value="">Choose a player...</option>' +
+                    allPlayers.map(name => `<option value="${name}">${name}</option>`).join('');
+            })
+            .catch(err => {
+                courtBreakdown.innerHTML = '<div class="alert alert-danger">Could not load match data.</div>';
+            });
+
+        playerSelect.addEventListener('change', function() {
+            searchPlayer(this.value);
+        });
+
+        function normalize(name) {
+            return (name || '').trim().toLowerCase();
+        }
+
+        function searchPlayer(playerName) {
+            if (!playerName || playerName.length < 3) {
+                courtBreakdown.innerHTML = '';
+                return;
+            }
+            if (!allMatches.length) {
+                courtBreakdown.innerHTML = '<div class="alert alert-warning">Match data not loaded yet.</div>';
+                return;
+            }
+
+            // Group matches by date
+            const matchesByDate = {};
+            allMatches.forEach(match => {
+                if (!matchesByDate[match.Date]) matchesByDate[match.Date] = [];
+                matchesByDate[match.Date].push(match);
+            });
+
+            // Assign court numbers per team (home or away) per date
+            const courtMatches = {1: [], 2: [], 3: [], 4: []};
+            Object.values(matchesByDate).forEach(dayMatches => {
+                // Find all teams this player played for on this date
+                const teams = new Set();
+                dayMatches.forEach(match => {
+                    if ([match['Home Player 1'], match['Home Player 2']].some(p => normalize(p) === normalize(playerName))) {
+                        teams.add(match['Home Team']);
+                    }
+                    if ([match['Away Player 1'], match['Away Player 2']].some(p => normalize(p) === normalize(playerName))) {
+                        teams.add(match['Away Team']);
+                    }
+                });
+                // For each team, assign court numbers to that team's matches
+                teams.forEach(team => {
+                    // Get all matches for this team (either as home or away)
+                    const teamMatches = dayMatches.filter(match => match['Home Team'] === team || match['Away Team'] === team);
+                    let courtIdx = 1;
+                    for (let match of teamMatches) {
+                        if (courtIdx > 4) break;
+                        if ([match['Home Player 1'], match['Home Player 2'], match['Away Player 1'], match['Away Player 2']]
+                            .some(p => normalize(p) === normalize(playerName))) {
+                            courtMatches[courtIdx].push(match);
+                        }
+                        courtIdx++;
+                    }
+                });
+            });
+
+            let html = '';
+            for (let i = 1; i <= 4; i++) {
+                const matches = courtMatches[i] || [];
+                const numMatches = matches.length;
+                let wins = 0;
+                let losses = 0;
+                const partnerResults = {};
+
+                matches.forEach(match => {
+                    let isHome = false, partner = '';
+                    if (normalize(match['Home Player 1']) === normalize(playerName)) {
+                        partner = match['Home Player 2'];
+                        isHome = true;
+                    } else if (normalize(match['Home Player 2']) === normalize(playerName)) {
+                        partner = match['Home Player 1'];
+                        isHome = true;
+                    } else if (normalize(match['Away Player 1']) === normalize(playerName)) {
+                        partner = match['Away Player 2'];
+                        isHome = false;
+                    } else if (normalize(match['Away Player 2']) === normalize(playerName)) {
+                        partner = match['Away Player 1'];
+                        isHome = false;
+                    }
+                    if (!partner) return;
+                    if (!partnerResults[partner]) partnerResults[partner] = {matches: 0, wins: 0};
+                    partnerResults[partner].matches += 1;
+
+                    const didWin = (isHome && match['Winner'] === 'home') || (!isHome && match['Winner'] === 'away');
+                    if (didWin) {
+                        wins += 1;
+                        partnerResults[partner].wins += 1;
+                    } else {
+                        losses += 1;
+                    }
+                });
+
+                const winRate = numMatches > 0 ? Math.round((wins / numMatches) * 100) : 0;
+                let winRateClass = 'win-rate-low';
+                if (winRate >= 60) winRateClass = 'win-rate-high';
+                else if (winRate >= 40) winRateClass = 'win-rate-medium';
+
+                // Most common partners
+                const partnersArr = Object.entries(partnerResults)
+                    .sort((a, b) => b[1].matches - a[1].matches)
+                    .map(([name, stats]) => ({
+                        name,
+                        matches: stats.matches,
+                        wins: stats.wins,
+                        winRate: stats.matches > 0 ? Math.round((stats.wins / stats.matches) * 100) : 0
+                    }));
+
+                let partnersHtml = '';
+                if (partnersArr.length > 0) {
+                    partnersHtml = `
+                        <div class="partner-info mt-2">
+                            <strong>Most Common Partners:</strong>
+                            <ul class="partner-list">
+                                ${partnersArr.map(p => `
+                                    <li>${p.name} (${p.wins}-${p.matches - p.wins}, ${p.winRate}%)</li>
+                                `).join('')}
+                            </ul>
+                        </div>
+                    `;
+                }
+
+                html += `
+                    <div class="col-md-6">
+                        <div class="court-card card h-100">
+                            <div class="card-body">
+                                <h6>Court ${i}</h6>
+                                <p><span class="stat-label">Matches</span><span class="stat-value">${numMatches}</span></p>
+                                <p><span class="stat-label">Record</span><span class="stat-value">${wins}-${losses}</span></p>
+                                <p><span class="stat-label">Win Rate</span><span class="stat-value ${winRateClass}">${winRate}%</span></p>
+                                ${partnersHtml}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            courtBreakdown.innerHTML = html;
+        }
+
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+    });
+    </script>
+</body>
+</html>

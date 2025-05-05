@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Stats - Rally</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="/static/css/styles.css" rel="stylesheet">
+    <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+    <style>
+        body { display: flex; }
+        .main-content { margin-left: 260px; padding: 20px; width: calc(100% - 260px); padding-top: 80px; }
+        .card { background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); color: #333; padding: 20px; }
+        .stat-label { min-width: 120px; color: #555; font-weight: 500; display: inline-block; }
+        .stat-value { font-weight: 600; margin-left: 10px; }
+        .win-rate-high { color: #28a745; }
+        .win-rate-medium { color: #ffc107; }
+        .win-rate-low { color: #dc3545; }
+        .pti-trend-chart { height: 320px; }
+        .match-history-table { margin-top: 24px; }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <div id="navbar-container"></div>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <a href="/" onclick="return false;">
+                <img src="/static/rallylogo.png" alt="Rally Logo" class="logo-img">
+            </a>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="/" class="nav-item"><i class="fas fa-home"></i>Home</a>
+            <div class="nav-section">
+                <div class="nav-section-header"><i class="fas fa-bolt"></i>Act</div>
+                <a href="/create-lineup" class="nav-item"><i class="fas fa-clipboard-list"></i>Create Lineup</a>
+                <a href="/update-availability" class="nav-item"><i class="fas fa-calendar-check"></i>Update Availability</a>
+                <a href="/find-sub" class="nav-item"><i class="fas fa-user-plus"></i>Find Sub</a>
+                <a href="#" class="nav-item"><i class="fas fa-table-tennis-paddle-ball"></i>Reserve Court</a>
+                <a href="#" class="nav-item"><i class="fas fa-envelope"></i>Email Team</a>
+                <a href="#email-captain" class="nav-item"><i class="fas fa-user-tie"></i>Email Captain</a>
+            </div>
+            <div class="nav-section">
+                <div class="nav-section-header"><i class="fas fa-chart-bar"></i>Analyze</div>
+                <a href="/my_stats.html" class="nav-item active"><i class="fas fa-user"></i>My Stats</a>
+                <a href="/research-dashboard" class="nav-item"><i class="fas fa-search"></i>Research</a>
+                <a href="/series-stats" class="nav-item"><i class="fas fa-chart-line"></i>Series Stats</a>
+            </div>
+            <div class="nav-section">
+                <div class="nav-section-header"><i class="fas fa-cog"></i>Settings</div>
+                <a href="/settings" class="nav-item"><i class="fas fa-user-cog"></i>User Settings</a>
+            </div>
+        </nav>
+    </div>
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="content-header">
+            <h1>My Stats</h1>
+            <p class="text-muted">View your personal paddle tennis statistics, match history, and PTI trend</p>
+        </div>
+        <div id="stats-card" class="card mb-4">
+            <div class="card-header"><h5 class="mb-0">Player Summary</h5></div>
+            <div class="card-body" id="player-summary">
+                <div class="text-center text-muted">Loading your stats...</div>
+            </div>
+        </div>
+        <div class="card mb-4">
+            <div class="card-header"><h5 class="mb-0">PTI Trend</h5></div>
+            <div class="card-body"><div id="ptiTrendChart" class="pti-trend-chart"></div></div>
+        </div>
+        <div class="card match-history-table">
+            <div class="card-header"><h5 class="mb-0">Match History</h5></div>
+            <div class="card-body" id="match-history-table">
+                <div class="text-center text-muted">Loading match history...</div>
+            </div>
+        </div>
+    </div>
+    <script>
+    // Load the navigation bar
+    document.addEventListener('DOMContentLoaded', function() {
+        fetch('/static/components/navbar.html')
+            .then(response => response.text())
+            .then(html => { document.getElementById('navbar-container').innerHTML = html; });
+    });
+
+    // Helper for win rate class
+    function winRateClass(rate) {
+        if (rate >= 60) return 'win-rate-high';
+        if (rate >= 40) return 'win-rate-medium';
+        return 'win-rate-low';
+    }
+
+    // Load user info and stats
+    async function loadMyStats() {
+        try {
+            // Get user info
+            const authResp = await fetch('/api/check-auth');
+            const authData = await authResp.json();
+            if (!authData.authenticated) {
+                window.location.href = '/login';
+                return;
+            }
+            const user = authData.user;
+            // Get player history
+            const histResp = await fetch('/api/player-history');
+            const allPlayers = await histResp.json();
+            // Try to match by full name (case-insensitive)
+            const player = allPlayers.find(p => p.name.toLowerCase() === (`${user.first_name} ${user.last_name}`).toLowerCase());
+            const summaryDiv = document.getElementById('player-summary');
+            if (!player) {
+                summaryDiv.innerHTML = '<div class="alert alert-warning">No stats found for your account.</div>';
+                document.getElementById('match-history-table').innerHTML = '<div class="alert alert-warning">No match history found.</div>';
+                return;
+            }
+            // Summary
+            const totalMatches = (player.wins || 0) + (player.losses || 0);
+            const winRate = totalMatches > 0 ? ((player.wins / totalMatches) * 100).toFixed(1) : '0.0';
+            summaryDiv.innerHTML = `
+                <div class="row mb-2">
+                    <div class="col-md-6"><span class="stat-label">Name:</span> <span class="stat-value">${player.name}</span></div>
+                    <div class="col-md-6"><span class="stat-label">Club:</span> <span class="stat-value">${user.club || '-'}</span></div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-md-6"><span class="stat-label">Series:</span> <span class="stat-value">${user.series || '-'}</span></div>
+                    <div class="col-md-6"><span class="stat-label">PTI:</span> <span class="stat-value">${player.rating ?? '-'}</span></div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-md-6"><span class="stat-label">Wins:</span> <span class="stat-value">${player.wins ?? 0}</span></div>
+                    <div class="col-md-6"><span class="stat-label">Losses:</span> <span class="stat-value">${player.losses ?? 0}</span></div>
+                </div>
+                <div class="row mb-2">
+                    <div class="col-md-6"><span class="stat-label">Total Matches:</span> <span class="stat-value">${totalMatches}</span></div>
+                    <div class="col-md-6"><span class="stat-label">Win Rate:</span> <span class="stat-value ${winRateClass(winRate)}">${winRate}%</span></div>
+                </div>
+            `;
+            // PTI Trend Chart
+            const matches = (player.matches || []).slice().sort((a,b)=>new Date(a.date)-new Date(b.date));
+            const dates = matches.map(m => m.date);
+            const ptis = matches.map(m => m.end_pti);
+            const chartDiv = document.getElementById('ptiTrendChart');
+            if (dates.length > 0 && ptis.length > 0) {
+                Plotly.newPlot(chartDiv, [{
+                    x: dates,
+                    y: ptis,
+                    mode: 'lines+markers',
+                    name: 'PTI',
+                    line: { color: '#2196F3', width: 3 },
+                    marker: { color: '#2196F3', size: 8 }
+                }], {
+                    title: 'PTI Over Time',
+                    xaxis: { title: 'Date', tickangle: -45 },
+                    yaxis: { title: 'PTI', autorange: 'reversed' },
+                    margin: { t: 40, b: 80 }
+                }, {responsive: true});
+            } else {
+                chartDiv.innerHTML = '<div class="text-muted">No PTI data available.</div>';
+            }
+            // Match History Table
+            const tableDiv = document.getElementById('match-history-table');
+            if (!matches.length) {
+                tableDiv.innerHTML = '<div class="text-muted">No match history available.</div>';
+            } else {
+                let table = `<div class='table-responsive'><table class='table table-striped table-bordered'><thead><tr><th>Date</th><th>Series</th><th>PTI After</th></tr></thead><tbody>`;
+                matches.reverse().forEach(m => {
+                    table += `<tr><td>${m.date}</td><td>${m.series}</td><td>${m.end_pti}</td></tr>`;
+                });
+                table += '</tbody></table></div>';
+                tableDiv.innerHTML = table;
+            }
+        } catch (e) {
+            document.getElementById('player-summary').innerHTML = '<div class="alert alert-danger">Error loading stats.</div>';
+            document.getElementById('match-history-table').innerHTML = '<div class="alert alert-danger">Error loading match history.</div>';
+        }
+    }
+    document.addEventListener('DOMContentLoaded', loadMyStats);
+    </script>
+</body>
+</html> 
