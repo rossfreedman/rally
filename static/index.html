@@ -1514,17 +1514,26 @@
                 </div>
             </div>
             <div class="row">
-                <div class="col-md-12 mb-4">
-                    <div class="card">
+                <div class="col-12 mb-4">
+                    <div class="card" id="myTeamAnalysisCard">
                         <div class="card-header">
                             <h5 class="mb-0">Team Analysis</h5>
                         </div>
                         <div class="card-body">
-                            <!-- My Team specific content goes here -->
                             <div id="myTeamStats" class="mt-3"></div>
                         </div>
                     </div>
                 </div>
+            </div>
+            <div class="row">
+                <!-- Left: Team info (no picklist, just your team) -->
+                <div class="col-md-6 mb-4">
+                    <div class="form-group mb-3 picklist-padding">
+                        <label for="myTeamSelect">Your Team</label>
+                        <span class="form-control-plaintext">Tennaqua - 22</span>
+                    </div>
+                </div>
+                <!-- Right column with player picklist and stats is removed -->
             </div>
         </div>
 
@@ -2078,9 +2087,9 @@ Court 4: Player7/Player8</textarea>
                 }
                 
                 // If switching to research-my-team, load the my team data
-                if (contentId === 'research-my-team') {
-                    if (typeof loadMyTeamData === 'function') loadMyTeamData();
-                }
+                //if (contentId === 'research-my-team') {
+                //    if (typeof loadMyTeamData === 'function') loadMyTeamData();
+                //}
                 
                 // If switching to club-stats, load club stats
                 //if (contentId === 'club-stats') {
@@ -4864,4 +4873,5 @@ async function showPlayerStats(playerName) {
         window.location.href = `/contact-sub?firstName=${encodeURIComponent(firstName)}&lastName=${encodeURIComponent(lastName)}`;
     }
     </script>
+    <script src="/static/js/research-my-team.js"></script>
 </html> 
