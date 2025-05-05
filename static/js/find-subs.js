@@ -375,8 +375,89 @@ document.addEventListener('DOMContentLoaded', function() {
     if (playerSelect) {
         playerSelect.addEventListener('change', handlePlayerSelection);
     }
+    fetchAndRenderSubs();
 });
 
 // Remove the old event listeners
 // document.getElementById('playerSelect').addEventListener('change', handlePlayerSelection);
 // document.getElementById('teamSelect').addEventListener('change', handleTeamSelection); 
+
+// Add this function to render the subs table with top player highlighting
+function renderSubsTable(players) {
+    const tableBody = document.getElementById('subsTableBody');
+    tableBody.innerHTML = '';
+    if (!players || players.length === 0) {
+        tableBody.innerHTML = `<tr><td colspan="8" class="text-center">No subs found</td></tr>`;
+        return;
+    }
+    // Sort by composite score (highest to lowest)
+    players.sort((a, b) => b.compositeScore - a.compositeScore);
+    // Top 3 players
+    const topPlayers = players.slice(0, 3);
+    const restPlayers = players.slice(3);
+    let html = '';
+    if (topPlayers.length > 0) {
+        html += `<tr id="top-player-label-row"><td colspan="8" class="top-player-label text-center" style="background:#145a32;color:#fff;font-weight:bold;">` +
+            `<strong>Top recommended subs based upon Rally's algorithm</strong></td></tr>`;
+        topPlayers.forEach(player => {
+            html += `
+            <tr class="top-player">
+                <td style="font-weight:bold">${player.series}</td>
+                <td style="font-weight:bold">${player.name}</td>
+                <td class="text-end" style="font-weight:bold">${player.pti}</td>
+                <td class="text-end" style="font-weight:bold">${player.wins}</td>
+                <td class="text-end" style="font-weight:bold">${player.losses}</td>
+                <td class="text-end" style="font-weight:bold">${player.winRate}%</td>
+                <td class="text-center" style="font-weight:bold"><span class="composite-score">${player.compositeScore}</span></td>
+                <td class="text-center" style="font-weight:bold">
+                    <button class="btn btn-sm btn-primary" onclick="contactSub('${player.lastName}', '${player.firstName}')">Contact</button>
+                </td>
+            </tr>`;
+        });
+    }
+    restPlayers.forEach(player => {
+        html += `
+        <tr>
+            <td>${player.series}</td>
+            <td>${player.name}</td>
+            <td class="text-end">${player.pti}</td>
+            <td class="text-end">${player.wins}</td>
+            <td class="text-end">${player.losses}</td>
+            <td class="text-end">${player.winRate}%</td>
+            <td class="text-center"><span class="composite-score">${player.compositeScore}</span></td>
+            <td class="text-center">
+                <button class="btn btn-sm btn-primary" onclick="contactSub('${player.lastName}', '${player.firstName}')">Contact</button>
+            </td>
+        </tr>`;
+    });
+    tableBody.innerHTML = html;
+}
+
+// Helper: Calculate composite score (example logic, adjust as needed)
+function calculateCompositeScore(pti, winRate, series) {
+    // Example: composite = PTI * 0.5 + winRate * 0.5 (customize as needed)
+    return (parseFloat(pti) || 0) * 0.5 + (parseFloat(winRate) || 0) * 0.5;
+}
+
+// Fetch and render subs table
+async function fetchAndRenderSubs() {
+    const tableBody = document.getElementById('subsTableBody');
+    tableBody.innerHTML = `<tr><td colspan="8" class="text-center">Loading subs...</td></tr>`;
+    try {
+        // Example: fetch all subs (customize endpoint/params as needed)
+        const response = await fetch('/api/players?all_subs=1');
+        const players = await response.json();
+        if (!players || players.length === 0) {
+            tableBody.innerHTML = `<tr><td colspan="8" class="text-center">No subs found</td></tr>`;
+            return;
+        }
+        // Calculate composite scores
+        const playersWithScores = players.map(player => ({
+            ...player,
+            compositeScore: calculateCompositeScore(player.pti, player.winRate, player.series)
+        }));
+        renderSubsTable(playersWithScores);
+    } catch (err) {
+        tableBody.innerHTML = `<tr><td colspan="8" class="text-center text-danger">Error loading subs</td></tr>`;
+    }
+} 

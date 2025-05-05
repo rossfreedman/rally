@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request, send_from_directory, render_template, session, redirect, url_for, make_response
+from flask import Flask, jsonify, request, send_from_directory, render_template, session, redirect, url_for, make_response, g
 from flask_socketio import SocketIO, emit
 import pandas as pd
 from flask_cors import CORS
@@ -3109,6 +3109,22 @@ def serve_data_file(filename):
     # Return the file from the data directory
     return send_from_directory(os.path.join(app.root_path, 'data'), filename)
 
+def transform_team_stats_to_overview(stats):
+    matches = stats.get("matches", {})
+    lines = stats.get("lines", {})
+    sets = stats.get("sets", {})
+    games = stats.get("games", {})
+    points = stats.get("points", 0)
+    overview = {
+        "points": points,
+        "match_win_rate": float(matches.get("percentage", "0").replace("%", "")),
+        "match_record": f"{matches.get('won', 0)}-{matches.get('lost', 0)}",
+        "line_win_rate": float(lines.get("percentage", "0").replace("%", "")),
+        "set_win_rate": float(sets.get("percentage", "0").replace("%", "")),
+        "game_win_rate": float(games.get("percentage", "0").replace("%", ""))
+    }
+    return overview
+
 @app.route('/api/research-team')
 @login_required
 def research_team():
@@ -3117,7 +3133,6 @@ def research_team():
         team = request.args.get('team')
         if not team:
             return jsonify({'error': 'Team parameter is required'}), 400
-        
         # Log the request
         print(f"Fetching stats for team: {team}")
         log_user_activity(
@@ -3126,19 +3141,20 @@ def research_team():
             action='view_team_stats',
             details=f"Team: {team}"
         )
-        
         # Read the stats file
         stats_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'Chicago_22_stats_20250425.json')
         with open(stats_path, 'r') as f:
             all_stats = json.load(f)
-        
         # Find stats for the specific team
         team_stats = next((stats for stats in all_stats if stats.get('team') == team), None)
-        
         if not team_stats:
             return jsonify({'error': f'No stats found for team: {team}'}), 404
-        
-        return jsonify(team_stats)
+        # Transform to nested format for My Team page
+        response = {
+            "overview": transform_team_stats_to_overview(team_stats),
+            "match_patterns": {}  # You can fill this in later if you want
+        }
+        return jsonify(response)
     except Exception as e:
         print(f"Error fetching team stats: {str(e)}")
         return jsonify({'error': str(e)}), 500
@@ -3236,6 +3252,65 @@ def player_court_stats(player_name):
             'partners': partner_list
         }
     return jsonify(result)
+
+@app.route('/api/research-my-team')
+@login_required
+def research_my_team():
+    print("=== /api/research-my-team called ===")
+    user = None
+    if hasattr(g, 'user') and g.user:
+        user = g.user
+    else:
+        from flask import session
+        user = session.get('user')
+        print("Session user:", user)
+        if not user:
+            print("No user in session, trying /api/check-auth")
+            from flask import request
+            import requests
+            try:
+                resp = requests.get(request.host_url.rstrip('/') + '/api/check-auth', cookies=request.cookies)
+                if resp.ok:
+                    user = resp.json().get('user')
+            except Exception as e:
+                print("Exception fetching /api/check-auth:", e)
+                user = None
+    print("User:", user)
+    if not user:
+        print("Not authenticated")
+        return jsonify({'error': 'Not authenticated'}), 401
+    team = user.get('team')
+    print("Team from user:", team)
+    if not team:
+        club = user.get('club')
+        series = user.get('series')
+        print("Club:", club, "Series:", series)
+        if club and series:
+            m = re.search(r'(\d+)', series)
+            series_num = m.group(1) if m else ''
+            team = f"{club} - {series_num}"
+        else:
+            print("No team info for user")
+            return jsonify({'error': 'No team info for user'}), 400
+    print("Final team:", team)
+    # Fetch stats for this team (same as /api/research-team)
+    try:
+        stats_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'Chicago_22_stats_20250425.json')
+        with open(stats_path, 'r') as f:
+            all_stats = json.load(f)
+        team_stats = next((stats for stats in all_stats if stats.get('team') == team), None)
+        if not team_stats:
+            print(f"No stats found for team: {team}")
+            return jsonify({'error': f'No stats found for team: {team}'}), 404
+        response = {
+            "overview": transform_team_stats_to_overview(team_stats),
+            "match_patterns": {}  # You can fill this in later if you want
+        }
+        print("Returning response for /api/research-my-team:", response)
+        return jsonify(response)
+    except Exception as e:
+        print(f"Error fetching team stats: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     # Get port from environment variable or use default
