@@ -1259,15 +1259,15 @@
                     <i class="fas fa-chart-line"></i>
                     My Series
                 </a>
+            
+                <a href="#" onclick="showContent('club-stats'); return false;" class="nav-item" id="nav-club-stats">
+                    <i class="fas fa-building"></i>
+                    My Club
+                </a>
                 <a href="#" onclick="showContent('research-team'); return false;" class="nav-item" id="nav-research-team">
                     <i class="fas fa-search"></i>
                     Teams & Players
                 </a>
-                <a href="#" onclick="showContent('club-stats'); return false;" class="nav-item" id="nav-club-stats">
-                    <i class="fas fa-building"></i>
-                    Club Stats
-                </a>
-               
         
               
             </div>
@@ -1487,30 +1487,44 @@
                 <h1>Club Analysis Dashboard</h1>
                 <p class="text-muted">View comprehensive statistics and trends for your club</p>
             </div>
+            <!-- Club Overview Cards -->
+            <div class="row mb-4" id="clubOverviewCardsRow">
+                <!-- Cards will be populated by JS -->
+            </div>
+            <!-- Teams Table -->
             <div class="card mb-4">
                 <div class="card-header">
-                    <h5 class="mb-0">Club Overview</h5>
+                    <h5 class="mb-0">Club Teams</h5>
                 </div>
                 <div class="card-body">
-                    <div id="clubOverview">
-                        <div class="text-center">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="visually-hidden">Loading...</span>
-                            </div>
-                            <p class="mt-2">Loading club data...</p>
-                        </div>
+                    <div class="table-responsive">
+                        <table class="table table-striped" id="clubTeamsTable">
+                            <thead>
+                                <tr>
+                                    <th>Team</th>
+                                    <th>Points</th>
+                                    <th>Match Record</th>
+                                    <th>Win Rate</th>
+                                    <th>Set Win Rate</th>
+                                    <th>Game Win Rate</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
-            
+            <!-- Top Performers Section -->
             <div class="row">
-                <div class="col-md-6 mb-4">
+                <div class="col-12 mb-4">
                     <div class="card h-100">
                         <div class="card-header">
                             <h5 class="mb-0">Top Performers</h5>
                         </div>
                         <div class="card-body">
-                            <div id="topPerformers">
+                            <div id="clubTopPerformers">
                                 <div class="text-center">
                                     <p>Loading top performers...</p>
                                 </div>
@@ -1518,8 +1532,10 @@
                         </div>
                     </div>
                 </div>
-                
-                <div class="col-md-6 mb-4">
+            </div>
+            <!-- Club Trends Section -->
+            <div class="row">
+                <div class="col-12 mb-4">
                     <div class="card h-100">
                         <div class="card-header">
                             <h5 class="mb-0">Club Performance Trends</h5>
@@ -1811,100 +1827,71 @@ Court 4: Player7/Player8</textarea>
             </div>
         </div>
 
-        <div id="club-stats-content" class="content-section">
+        <div id="club-stats-content" class="content-section active">
             <div class="content-header">
-                <h1>Tennaqua Club Stats (Preview)</h1>
-                <p class="text-muted">See how Tennaqua's teams are performing across all series, including recent results and rankings.</p>
+                <h1>Tennaqua Club Stats</h1>
+                <p class="text-muted">See how Tennaqua's teams are performing across all series, including real stats and rankings.</p>
             </div>
+            <!-- Club Overview Cards -->
+            <div class="row mb-4" id="clubStatsOverviewCardsRow">
+                <!-- Cards will be populated by JS -->
+            </div>
+            <!-- Teams Table -->
             <div class="card mb-4">
                 <div class="card-header">
-                    <h5 class="mb-0">Last Week's Results</h5>
+                    <h5 class="mb-0">Tennaqua Teams</h5>
                 </div>
                 <div class="card-body">
-                    <table class="table table-striped">
-                        <thead>
-                            <tr>
-                                <th>Series</th>
-                                <th>Opponent</th>
-                                <th>Result</th>
-                                <th>Score</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>Chicago 12</td>
-                                <td>North Shore Smash</td>
-                                <td><span class="text-success">Win</span></td>
-                                <td>12-2</td>
-                            </tr>
-                            <tr>
-                                <td>Chicago 22</td>
-                                <td>Lakeview Paddle</td>
-                                <td><span class="text-danger">Loss</span></td>
-                                <td>10-4</td>
-                            </tr>
-                            <tr>
-                                <td>Chicago 24</td>
-                                <td>Wilmette Waves</td>
-                                <td><span class="text-success">Win</span></td>
-                                <td>7-6</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                    <div class="table-responsive">
+                        <table class="table table-striped" id="clubStatsTeamsTable">
+                            <thead>
+                                <tr>
+                                    <th>Team</th>
+                                    <th>Points</th>
+                                    <th>Match Record</th>
+                                    <th>Win Rate</th>
+                                    <th>Set Win Rate</th>
+                                    <th>Game Win Rate</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0">Tennaqua Team Rankings in Series</h5>
-                </div>
-                <div class="card-body">
-                    <table class="table table-bordered">
-                        <thead>
-                            <tr>
-                                <th>Series</th>
-                                <th>Current Rank</th>
-                                <th>Points</th>
-                                <th>Record</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>Chicago 12</td>
-                                <td>2 / 12</td>
-                                <td>28</td>
-                                <td>7-2</td>
-                            </tr>
-                            <tr>
-                                <td>Chicago 22</td>
-                                <td>5 / 10</td>
-                                <td>19</td>
-                                <td>4-5</td>
-                            </tr>
-                            <tr>
-                                <td>Chicago 24</td>
-                                <td>1 / 14</td>
-                                <td>32</td>
-                                <td>8-1</td>
-                            </tr>
-                        </tbody>
-                    </table>
+            <!-- Top Performers Section -->
+            <div class="row">
+                <div class="col-12 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h5 class="mb-0">Top Performers</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="clubStatsTopPerformers">
+                                <div class="text-center">
+                                    <p>Loading top performers...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="card mb-4">
-                <div class="card-header">
-                    <h5 class="mb-0">Advanced Analytics (Coming Soon)</h5>
-                </div>
-                <div class="card-body">
-                    <ul>
-                        <li>Player win/loss streaks</li>
-                        <li>Team performance trends over time</li>
-                        <li>Head-to-head records vs. other clubs</li>
-                        <li>Playoff qualification projections</li>
-                        <li>Interactive charts and more!</li>
-                    </ul>
-                    <div class="alert alert-info mt-3">
-                        <i class="fas fa-info-circle me-2"></i>
-                        This page will soon provide real-time stats and deeper insights for all Tennaqua teams.
+            <!-- Club Trends Section -->
+            <div class="row">
+                <div class="col-12 mb-4">
+                    <div class="card h-100">
+                        <div class="card-header">
+                            <h5 class="mb-0">Club Performance Trends</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="clubStatsTrends">
+                                <div class="text-center">
+                                    <p>Loading performance trends...</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -4951,4 +4938,5 @@ async function showPlayerStats(playerName) {
     }
     </script>
     <script src="/static/js/research-my-team.js"></script>
+    <script src="/static/js/club-dashboard.js"></script>
 </html> 
