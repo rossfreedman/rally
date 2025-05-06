@@ -4331,13 +4331,52 @@ async function showPlayerStats(playerName) {
                     return 'win-rate-low';
                 }
                 let html = `<div class='player-analysis'>
-                    <div class='overall-stats mb-4'>
-                        <h6>Overall Performance</h6>
-                        <p><span class='stat-label'>Total Matches</span><span class='stat-value'>${totalMatches}</span></p>
-                        <p><span class='stat-label'>Overall Record</span><span class='stat-value'>${wins}-${losses}</span></p>
-                        <p><span class='stat-label'>Win Rate</span><span class='stat-value ${winRateClass(winRate)}'>${winRate}%</span></p>
-                        <p><span class='stat-label'>PTI</span><span class='stat-value'>${pti}</span></p>
-                    </div>
+                     <div class="row mb-4">
+       <div class="col-md-6 col-lg-3 mb-4">
+           <div class="card h-100 text-center">
+               <div class="card-header">
+                   <h5 class="mb-0"><i class="fas fa-list-ol me-2"></i>Total Matches</h5>
+               </div>
+               <div class="card-body d-flex flex-column align-items-center justify-content-center h-100">
+                   <h2 class="display-4 mb-0 fw-bold">${totalMatches}</h2>
+                   <p class="text-muted mb-0">Matches Played</p>
+               </div>
+           </div>
+       </div>
+       <div class="col-md-6 col-lg-3 mb-4">
+           <div class="card h-100 text-center">
+               <div class="card-header">
+                   <h5 class="mb-0"><i class="fas fa-medal me-2"></i>Overall Record</h5>
+               </div>
+               <div class="card-body d-flex flex-column align-items-center justify-content-center h-100">
+                   <h2 class="display-4 mb-0 fw-bold">${wins}-${losses}</h2>
+                   <p class="text-muted mb-0">Wins - Losses</p>
+               </div>
+           </div>
+       </div>
+       <div class="col-md-6 col-lg-3 mb-4">
+           <div class="card h-100 text-center">
+               <div class="card-header">
+                   <h5 class="mb-0"><i class="fas fa-percentage me-2"></i>Win Rate</h5>
+               </div>
+               <div class="card-body d-flex flex-column align-items-center justify-content-center h-100">
+                   <h2 class="display-4 mb-0 fw-bold ${winRateClass(winRate)}">${winRate}%</h2>
+                   <p class="text-muted mb-0">Win Percentage</p>
+               </div>
+           </div>
+       </div>
+       <div class="col-md-6 col-lg-3 mb-4">
+           <div class="card h-100 text-center">
+               <div class="card-header">
+                   <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>PTI</h5>
+               </div>
+               <div class="card-body d-flex flex-column align-items-center justify-content-center h-100">
+                   <h2 class="display-4 mb-0 fw-bold">${pti}</h2>
+                   <p class="text-muted mb-0">Player PTI</p>
+               </div>
+           </div>
+       </div>
+   </div>
                     <!-- Static example court breakdown -->
                     <div class="row g-3"><div class="col-md-6">
                         <div class="court-card card h-100">
