@@ -1988,16 +1988,12 @@ Court 4: Player7/Player8</textarea>
                 if (playerCheckboxes) {
                     playerCheckboxes.innerHTML = '';
                     players.forEach(player => {
-                        const nameParts = player.name.split(' ');
-                        const reversedName = nameParts.length > 1 ? 
-                            `${nameParts[1]} ${nameParts[0]}` : 
-                            player.name;
                         const checkboxDiv = document.createElement('div');
                         checkboxDiv.className = 'form-check mb-2';
                         checkboxDiv.innerHTML = `
                             <input class="form-check-input" type="checkbox" value="${player.name}" id="player-${player.name.replace(/\s+/g, '-')}" checked>
                             <label class="form-check-label" for="player-${player.name.replace(/\s+/g, '-')}">
-                                ${reversedName} (${player.winRate})
+                                ${player.name}
                             </label>
                         `;
                         playerCheckboxes.appendChild(checkboxDiv);
