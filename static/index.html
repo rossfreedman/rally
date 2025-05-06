@@ -1095,6 +1095,46 @@
             margin-bottom: 18px;
             box-shadow: 0 1px 4px rgba(0,0,0,0.04);
         }
+        .date-header.practice-day {
+            background: #333333 !important; /* Dark gray for practice columns */
+            color: #fff !important;
+        }
+        td.availability-cell.practice-day {
+            background: #444444 !important; /* Slightly lighter dark gray for practice cells */
+            color: #fff !important;
+        }
+        /* --- FORCE PRACTICE COLUMN COLORS --- */
+        .availability-table th.date-header.practice-day {
+            background: #333333 !important;
+            color: #fff !important;
+        }
+        .availability-table td.availability-cell.practice-day {
+            background: #444444 !important;
+            color: #fff !important;
+        }
+        /* --- FORCE PRACTICE COLUMN COLORS (REPEATED AT END FOR MAXIMUM SPECIFICITY) --- */
+        .availability-table th.date-header.practice-day {
+            background: #333333 !important;
+            color: #fff !important;
+            border-bottom: 3px solid #888 !important;
+        }
+        .availability-table td.availability-cell.practice-day {
+            background: #444444 !important;
+            color: #fff !important;
+        }
+        /* === GUARANTEED PRACTICE COLUMN COLOR OVERRIDE === */
+        .availability-table th.date-header.practice-day,
+        .availability-table th.practice-day.date-header,
+        .availability-table .date-header.practice-day,
+        .availability-table th.practice-day {
+            background: #333333 !important;
+            color: #fff !important;
+            border-bottom: 3px solid #888 !important;
+        }
+        .availability-table td.availability-cell.practice-day {
+            background: #444444 !important;
+            color: #fff !important;
+        }
     </style>
 </head>
 <body>
@@ -2591,20 +2631,22 @@ Court 4: Player7/Player8</textarea>
                 // Add date headers
                 matches.forEach(match => {
                     const th = document.createElement('th');
-                    th.className = `date-header ${match.type}-day`;
+                    // Determine if this is a practice column
+                    let isPractice = false;
+                    let locationOrPractice = match.location || '';
+                    if (!locationOrPractice || locationOrPractice.toLowerCase() === 'practice') {
+                        isPractice = true;
+                        locationOrPractice = 'Practice';
+                    }
+                    th.className = `date-header ${match.type}-day` + (isPractice ? ' practice-day' : '');
                     th.setAttribute('data-date', match.date);
                     const dateObj = new Date(match.date);
                     let timeLabel = match.time;
-                    if (match.type === 'practice' || (match.type === 'Practice')) {
-                        timeLabel = 'Practice';
-                        th.style.background = '#f3f3f3';
-                        th.style.color = '#333';
-                    }
                     th.innerHTML = `
                         <div class="date">${dateObj.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</div>
                         <div class="details">
                             <div>${timeLabel}</div>
-                            <div>${match.location || ''}</div>
+                            <div>${locationOrPractice}</div>
                         </div>
                     `;
                     thead.appendChild(th);
@@ -2638,7 +2680,7 @@ Court 4: Player7/Player8</textarea>
                         const savedAvailability = availabilityData[player.name]?.[match.date];
                         if (savedAvailability !== undefined) {
                             button.className = savedAvailability ? 'availability-btn available' : 'availability-btn unavailable';
-                            button.textContent = savedAvailability ? 'Available' : 'Not Available';
+                            button.textContent = savedAvailability ? "I can play" : "Sorry can't";
                             button.setAttribute('data-state', savedAvailability ? 'available' : 'unavailable');
                         } else {
                             button.className = 'availability-btn unknown';
@@ -2677,11 +2719,11 @@ Court 4: Player7/Player8</textarea>
             if (currentState === 'unknown' || currentState === 'unavailable') {
                 newState = 'available';
                 button.className = 'availability-btn available';
-                button.textContent = 'Available';
+                button.textContent = 'I can play';
             } else {
                 newState = 'unavailable';
                 button.className = 'availability-btn unavailable';
-                button.textContent = 'Not Available';
+                button.textContent = "Sorry can't";
             }
             
             button.setAttribute('data-state', newState);
@@ -2729,7 +2771,7 @@ Court 4: Player7/Player8</textarea>
                 const newState = currentState === 'available' ? 'unavailable' : 'available';
                 button.setAttribute('data-state', newState);
                 button.className = `availability-btn ${newState}`;
-                button.textContent = newState === 'available' ? 'Available' : 'Not Available';
+                button.textContent = newState === 'available' ? 'I can play' : "Sorry can't";
                 
                 alert('Error saving availability. Please try again.');
             } finally {
