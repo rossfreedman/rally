@@ -1637,17 +1637,7 @@
                             </div>
                         </div>
                     </div>
-                    <!-- Court Analysis Card for selected player -->
-                    <div id="playerCourtAnalysisCard" class="mt-4" style="display:none;">
-                        <div class="card">
-                            <div class="card-header">
-                                <h5 class="mb-0">Court Analysis</h5>
-                            </div>
-                            <div class="card-body">
-                                <div id="playerCourtAnalysisBody" class="row g-3"></div>
-                            </div>
-                        </div>
-                    </div>
+                    <!-- Removed duplicate Court Analysis Card for selected player -->
                     <div id="courtBreakdownCards" class="row g-3" style="display:none;"></div>
                     <div id="playerHistoryCard" class="card mt-4 player-history-card" style="display:none;">
                         <div class="card-header bg-primary text-white">
@@ -2365,6 +2355,54 @@ Court 4: Player7/Player8</textarea>
             findSubs();
         }
 
+        // Store subs globally for sorting
+        window.subsList = [];
+
+        function renderSubsTable(list) {
+            const tableBody = document.getElementById('subsTableBody');
+            tableBody.innerHTML = '';
+            if (list.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="text-center">
+                            No subs found in higher series
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            // Insert label row above the top 3
+            if (list.length > 0) {
+                const labelRow = document.createElement('tr');
+                labelRow.innerHTML = '<td colspan="8" id="top-player-label-row" class="top-player-label text-center" style="background:#145a32;color:#fff;font-weight:bold;">' +
+                    '<strong>Top recommended subs based upon Rally\'s algorithm</strong></td>';
+                tableBody.appendChild(labelRow);
+            }
+            list.forEach((player, index) => {
+                const row = document.createElement('tr');
+                if (index < 3 && document.getElementById('sortSelect').value === 'composite') {
+                    row.classList.add('top-player');
+                }
+                // Split player.name into first and last name (now in correct order from server)
+                const [firstName, lastName] = player.name.split(' ');
+                row.innerHTML = `
+                    <td style="font-weight:bold">${player.series}</td>
+                    <td style="font-weight:bold">${player.name}</td>
+                    <td class="text-end" style="font-weight:bold">${player.rating}</td>
+                    <td class="text-end" style="font-weight:bold">${parseInt(player.wins) || 0}</td>
+                    <td class="text-end" style="font-weight:bold">${parseInt(player.losses) || 0}</td>
+                    <td class="text-end" style="font-weight:bold">${player.winRate}</td>
+                    <td class="text-center" style="font-weight:bold"><span class="composite-score">${(player.compositeScore * 100).toFixed(1)}</span></td>
+                    <td class="text-center" style="font-weight:bold">
+                        <button class="btn btn-sm btn-primary" onclick="contactSub('${lastName}', '${firstName}')">
+                            Contact
+                        </button>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
         function findSubs() {
             // Show loading state
             const tableBody = document.getElementById('subsTableBody');
@@ -2397,8 +2435,6 @@ Court 4: Player7/Player8</textarea>
             // Wait for all promises to resolve
             Promise.all(promises)
                 .then(results => {
-                    tableBody.innerHTML = '';
-
                     // Combine all players from higher series
                     const allPlayers = results.flatMap(result => 
                         result.players.map(player => ({
@@ -2406,17 +2442,6 @@ Court 4: Player7/Player8</textarea>
                             series: `Chicago ${result.series}`
                         }))
                     );
-
-                    if (allPlayers.length === 0) {
-                        tableBody.innerHTML = `
-                            <tr>
-                                <td colspan="8" class="text-center">
-                                    No subs found in higher series
-                                </td>
-                            </tr>
-                        `;
-                        return;
-                    }
 
                     // Calculate composite scores and sort
                     const playersWithScores = allPlayers.map(player => ({
@@ -2428,40 +2453,13 @@ Court 4: Player7/Player8</textarea>
                         )
                     }));
 
-                    // Sort by composite score (highest to lowest)
-                    playersWithScores.sort((a, b) => b.compositeScore - a.compositeScore);
+                    // Store globally for sorting
+                    window.subsList = playersWithScores;
 
-                    // Add rows in sorted order
-                    if (playersWithScores.length > 0) {
-                        // Insert label row above the top 3
-                        const labelRow = document.createElement('tr');
-                        labelRow.innerHTML = '<td colspan="8" id="top-player-label-row" class="top-player-label text-center" style="background:#145a32;color:#fff;font-weight:bold;">' +
-                            '<strong>Top recommended subs based upon Rally\'s algorithm</strong></td>';
-                        tableBody.appendChild(labelRow);
-                    }
-                    playersWithScores.forEach((player, index) => {
-                        const row = document.createElement('tr');
-                        if (index < 3) {
-                            row.classList.add('top-player');
-                        }
-                        // Split player.name into first and last name (now in correct order from server)
-                        const [firstName, lastName] = player.name.split(' ');
-                        row.innerHTML = `
-                            <td style="font-weight:bold">${player.series}</td>
-                            <td style="font-weight:bold">${player.name}</td>
-                            <td class="text-end" style="font-weight:bold">${player.rating}</td>
-                            <td class="text-end" style="font-weight:bold">${parseInt(player.wins) || 0}</td>
-                            <td class="text-end" style="font-weight:bold">${parseInt(player.losses) || 0}</td>
-                            <td class="text-end" style="font-weight:bold">${player.winRate}</td>
-                            <td class="text-center" style="font-weight:bold"><span class="composite-score">${(player.compositeScore * 100).toFixed(1)}</span></td>
-                            <td class="text-center" style="font-weight:bold">
-                                <button class="btn btn-sm btn-primary" onclick="contactSub('${lastName}', '${firstName}')">
-                                    Contact
-                                </button>
-                            </td>
-                        `;
-                        tableBody.appendChild(row);
-                    });
+                    // Sort by composite score (highest to lowest)
+                    window.subsList.sort((a, b) => b.compositeScore - a.compositeScore);
+
+                    renderSubsTable(window.subsList);
 
                     // Set the initial sort option
                     document.getElementById('sortSelect').value = 'composite';
@@ -2990,54 +2988,27 @@ Court 4: Player7/Player8</textarea>
         // Add this new function for sorting
         function sortSubs() {
             const sortBy = document.getElementById('sortSelect').value;
-            const tableBody = document.getElementById('subsTableBody');
-            const rows = Array.from(tableBody.querySelectorAll('tr'));
-            
-            // Skip if no rows or if the first row is a message
-            if (rows.length === 0 || rows[0].querySelector('td').colSpan === 8) {
-                return;
+            let sortedList = [...(window.subsList || [])];
+            switch (sortBy) {
+                case 'pti':
+                    sortedList.sort((a, b) => a.rating - b.rating); // Lower PTI is better
+                    break;
+                case 'winRate':
+                    sortedList.sort((a, b) => parseFloat(b.winRate) - parseFloat(a.winRate)); // Higher win rate is better
+                    break;
+                case 'series':
+                    sortedList.sort((a, b) => {
+                        const aSeries = parseInt(a.series.split(' ')[1]);
+                        const bSeries = parseInt(b.series.split(' ')[1]);
+                        return aSeries - bSeries; // Lower series first
+                    });
+                    break;
+                case 'composite':
+                default:
+                    sortedList.sort((a, b) => b.compositeScore - a.compositeScore); // Higher composite is better
+                    break;
             }
-            
-            // Sort the rows based on the selected criteria
-            rows.sort((a, b) => {
-                const aData = {
-                    series: parseInt(a.cells[0].textContent.split(' ')[1]),
-                    pti: parseFloat(a.cells[2].textContent),
-                    winRate: parseFloat(a.cells[5].textContent),
-                    composite: parseFloat(a.cells[6].querySelector('.composite-score').textContent)
-                };
-                
-                const bData = {
-                    series: parseInt(b.cells[0].textContent.split(' ')[1]),
-                    pti: parseFloat(b.cells[2].textContent),
-                    winRate: parseFloat(b.cells[5].textContent),
-                    composite: parseFloat(b.cells[6].querySelector('.composite-score').textContent)
-                };
-                
-                switch (sortBy) {
-                    case 'pti':
-                        return aData.pti - bData.pti; // Lower PTI is better
-                    case 'winRate':
-                        return bData.winRate - aData.winRate; // Higher win rate is better
-                    case 'series':
-                        return aData.series - bData.series; // Lower series first
-                    case 'composite':
-                    default:
-                        return bData.composite - aData.composite; // Higher composite is better
-                }
-            });
-            
-            // Clear and re-add the sorted rows
-            tableBody.innerHTML = '';
-            rows.forEach((row, index) => {
-                // Update top-player class based on composite score
-                if (sortBy === 'composite' && index < 3) {
-                    row.classList.add('top-player');
-                } else {
-                    row.classList.remove('top-player');
-                }
-                tableBody.appendChild(row);
-            });
+            renderSubsTable(sortedList);
         }
 
         // Add this to your existing JavaScript
@@ -4113,8 +4084,8 @@ async function showPlayerStats(playerName) {
         
         //playerCourtBreakdown.innerHTML = courtHtml;
         //playerCourtBreakdown.style.display = '';
-        courtBreakdownCards.innerHTML = courtHtml;
-        courtBreakdownCards.style.display = '';
+        //courtBreakdownCards.innerHTML = courtHtml;
+        //courtBreakdownCards.style.display = '';
 
         // Render player details as before
         const totalMatches = player.matches ? player.matches.length : (player.wins + player.losses);
@@ -4123,18 +4094,18 @@ async function showPlayerStats(playerName) {
         const winRate = totalMatches > 0 ? ((wins / totalMatches) * 100).toFixed(1) : '0.0';
         const pti = player.pti ?? player.rating ?? 'N/A';
         let html = `<div class='player-analysis'>
-            <div class='overall-stats mb-4'>
-                <h6>Player Details</h6>
-                <p><span class='stat-label'>Name</span><span class='stat-value'>${player.name}</span></p>
-                <p><span class='stat-label'>Total Matches</span><span class='stat-value'>${totalMatches}</span></p>
-                <p><span class='stat-label'>Record</span><span class='stat-value'>${wins}-${losses}</span></p>
-                <p><span class='stat-label'>Win Rate</span><span class='stat-value'>${winRate}%</span></p>
-                <p><span class='stat-label'>PTI</span><span class='stat-value'>${pti}</span></p>
-            </div>
-        </div>`;
-        statsDiv.innerHTML = html;
-        detailsBody.innerHTML = html;
-        detailsCard.style.display = '';
+    <div class='overall-stats mb-4'>
+        <h6>Player Details</h6>
+        <p><span class='stat-label'>Name</span><span class='stat-value'>${player.name}</span></p>
+        <p><span class='stat-label'>Total Matches</span><span class='stat-value'>${totalMatches}</span></p>
+        <p><span class='stat-label'>Record</span><span class='stat-value'>${wins}-${losses}</span></p>
+        <p><span class='stat-label'>Win Rate</span><span class='stat-value'>${winRate}%</span></p>
+        <p><span class='stat-label'>PTI</span><span class='stat-value'>${pti}</span></p>
+    </div>
+</div>`;
+statsDiv.innerHTML = html;
+detailsBody.innerHTML = html;
+detailsCard.style.display = '';
         console.log('[DEBUG] Player details card should now be visible.');
         renderCourtAnalysisCard(player);
     } catch (err) {
@@ -4356,39 +4327,7 @@ async function showPlayerStats(playerName) {
            </div>
        </div>
    </div>
-                    <!-- Static example court breakdown -->
-                    <div class="row g-3"><div class="col-md-6">
-                        <div class="court-card card h-100">
-                            <div class="card-body">
-                                <h6>Court 1</h6>
-                                <p><span class="stat-label">Matches</span><span class="stat-value">2</span></p>
-                                <p><span class="stat-label">Record</span><span class="stat-value">0-2</span></p>
-                                <p><span class="stat-label">Win Rate</span><span class="stat-value win-rate-low">0%</span></p><div class="partner-info mt-2">
-                                    <strong>Most Common Partners:</strong>
-                                    <ul class="partner-list"><li>Mike Lieberman (0-2, 0%)</li></ul></div></div></div></div><div class="col-md-6">
-                        <div class="court-card card h-100">
-                            <div class="card-body">
-                                <h6>Court 2</h6>
-                                <p><span class="stat-label">Matches</span><span class="stat-value">6</span></p>
-                                <p><span class="stat-label">Record</span><span class="stat-value">5-1</span></p>
-                                <p><span class="stat-label">Win Rate</span><span class="stat-value win-rate-high">83.3%</span></p><div class="partner-info mt-2">
-                                    <strong>Most Common Partners:</strong>
-                                    <ul class="partner-list"><li>Jonathan Blume (1-1, 50%)</li><li>Stephen Statkus (1-0, 100%)</li><li>Andrew Franger (1-0, 100%)</li></ul></div></div></div></div><div class="col-md-6">
-                        <div class="court-card card h-100">
-                            <div class="card-body">
-                                <h6>Court 3</h6>
-                                <p><span class="stat-label">Matches</span><span class="stat-value">4</span></p>
-                                <p><span class="stat-label">Record</span><span class="stat-value">2-2</span></p>
-                                <p><span class="stat-label">Win Rate</span><span class="stat-value win-rate-medium">50%</span></p><div class="partner-info mt-2">
-                                    <strong>Most Common Partners:</strong>
-                                    <ul class="partner-list"><li>Victor Forman (2-1, 66.7%)</li><li>Brian Stutland (0-1, 0%)</li></ul></div></div></div></div><div class="col-md-6">
-                        <div class="court-card card h-100">
-                            <div class="card-body">
-                                <h6>Court 4</h6>
-                                <p><span class="stat-label">Matches</span><span class="stat-value">0</span></p>
-                                <p><span class="stat-label">Record</span><span class="stat-value">0-0</span></p>
-                                <p><span class="stat-label">Win Rate</span><span class="stat-value win-rate-low">0%</span></p></div></div></div></div>
-                    <!-- End static example -->
+                    
                     <div class='row g-3'>`;
                 if (player.courts) {
                     Object.entries(player.courts).forEach(([court, stats]) => {
@@ -4398,11 +4337,11 @@ async function showPlayerStats(playerName) {
                         const courtWinRate = stats.matches > 0 ? ((stats.wins / stats.matches) * 100).toFixed(1) : '0.0';
                         html += `<div class='col-md-6'>
                             <div class='court-card card h-100'>
-                                <div class='card-body'>
-                                    <h6>${courtNum}</h6>
-                                    <p><span class='stat-label'>Matches</span><span class='stat-value'>${stats.matches}</span></p>
-                                    <p><span class='stat-label'>Record</span><span class='stat-value'>${stats.wins}-${courtLosses}</span></p>
-                                    <p><span class='stat-label'>Win Rate</span><span class='stat-value ${winRateClass(courtWinRate)}'>${courtWinRate}%</span></p>`;
+                            <div class='card-body'>
+                            <h6>${courtNum}</h6>
+                             <p><span class='stat-label'>Matches</span><span class='stat-value'>${stats.matches}</span></p>
+                             <p><span class='stat-label'>Record</span><span class='stat-value'>${stats.wins}-${courtLosses}</span></p>
+                            <p><span class='stat-label'>Win Rate</span><span class='stat-value ${winRateClass(courtWinRate)}'>${courtWinRate}%</span></p>`;
                         if (stats.partners && stats.partners.length > 0) {
                             html += `<div class='partner-info mt-2'>
                                 <strong>Most Common Partners:</strong>
@@ -4587,50 +4526,50 @@ async function showPlayerStats(playerName) {
 
                 // 3. PATCH: Build courts from matches if missing (like Me page)
                 if (!player.courts && Array.isArray(player.matches)) {
-    const courts = {};
-    player.matches.forEach(match => {
-        // Add a debug log to inspect the match object
-        if (!window._loggedMatch) { console.log('[DEBUG] Example match object:', match); window._loggedMatch = true; }
-        // Try to extract a number from the court property, fallback to 'Unknown'
-        let courtLabel = 'Unknown';
-        let raw = match.court || match.court_num || match.court_number || match.courtName;
-        if (raw) {
-            let num = typeof raw === 'string' ? raw.match(/\d+/) : raw;
-            if (num) {
-                courtLabel = `Court ${typeof num === 'object' ? num[0] : num}`;
-            } else {
-                courtLabel = `Court ${raw}`;
-            }
-        }
-        if (!courts[courtLabel]) {
-            courts[courtLabel] = { matches: 0, wins: 0, partners: [] };
-        }
-        courts[courtLabel].matches += 1;
-        if (match.result && match.result.toLowerCase().includes('win')) {
-            courts[courtLabel].wins += 1;
-        }
-        // Aggregate partners
-        if (match.partner) {
-            let partner = courts[courtLabel].partners.find(p => p.name === match.partner);
-            if (!partner) {
-                partner = { name: match.partner, matches: 0, wins: 0 };
-                courts[courtLabel].partners.push(partner);
-            }
-            partner.matches += 1;
-            if (match.result && match.result.toLowerCase().includes('win')) {
-                partner.wins += 1;
-            }
-        }
-    });
-    // Calculate winRate for each court and partner
-    Object.values(courts).forEach(stats => {
-        stats.winRate = stats.matches > 0 ? ((stats.wins / stats.matches) * 100).toFixed(1) : '0.0';
-        stats.partners.forEach(ptn => {
-            ptn.winRate = ptn.matches > 0 ? ((ptn.wins / ptn.matches) * 100).toFixed(1) : '0.0';
-        });
-    });
-    player.courts = courts;
-}
+                    const courts = {};
+                    player.matches.forEach(match => {
+                        // Add a debug log to inspect the match object
+                        if (!window._loggedMatch) { console.log('[DEBUG] Example match object:', match); window._loggedMatch = true; }
+                        // Try to extract a number from the court property, fallback to 'Unknown'
+                        let courtLabel = 'Unknown';
+                        let raw = match.court || match.court_num || match.court_number || match.courtName;
+                        if (raw) {
+                            let num = typeof raw === 'string' ? raw.match(/\d+/) : raw;
+                            if (num) {
+                                courtLabel = `Court ${typeof num === 'object' ? num[0] : num}`;
+                            } else {
+                                courtLabel = `Court ${raw}`;
+                            }
+                        }
+                        if (!courts[courtLabel]) {
+                            courts[courtLabel] = { matches: 0, wins: 0, partners: [] };
+                        }
+                        courts[courtLabel].matches += 1;
+                        if (match.result && match.result.toLowerCase().includes('win')) {
+                            courts[courtLabel].wins += 1;
+                        }
+                        // Aggregate partners
+                        if (match.partner) {
+                            let partner = courts[courtLabel].partners.find(p => p.name === match.partner);
+                            if (!partner) {
+                                partner = { name: match.partner, matches: 0, wins: 0 };
+                                courts[courtLabel].partners.push(partner);
+                            }
+                            partner.matches += 1;
+                            if (match.result && match.result.toLowerCase().includes('win')) {
+                                partner.wins += 1;
+                            }
+                        }
+                    });
+                    // Calculate winRate for each court and partner
+                    Object.values(courts).forEach(stats => {
+                        stats.winRate = stats.matches > 0 ? ((stats.wins / stats.matches) * 100).toFixed(1) : '0.0';
+                        stats.partners.forEach(ptn => {
+                            ptn.winRate = ptn.matches > 0 ? ((ptn.wins / ptn.matches) * 100).toFixed(1) : '0.0';
+                        });
+                    });
+                    player.courts = courts;
+                }
                 // --- END PATCH ---
 
                 // Debug logs
@@ -4656,21 +4595,20 @@ async function showPlayerStats(playerName) {
             const winRate = totalMatches > 0 ? ((wins / totalMatches) * 100).toFixed(1) : '0.0';
             const pti = player.pti ?? player.rating ?? 'N/A';
             let html = `<div class='player-analysis'>
-                <div class='overall-stats mb-4'>
-                    <h6>Player Details</h6>
-                    <p><span class='stat-label'>Name</span><span class='stat-value'>${player.name}</span></p>
-                    <p><span class='stat-label'>Total Matches</span><span class='stat-value'>${totalMatches}</span></p>
-                    <p><span class='stat-label'>Record</span><span class='stat-value'>${wins}-${losses}</span></p>
-                    <p><span class='stat-label'>Win Rate</span><span class='stat-value'>${winRate}%</span></p>
-                    <p><span class='stat-label'>PTI</span><span class='stat-value'>${pti}</span></p>
-                </div>
-            </div>`;
-            statsDiv.innerHTML = html;
+            <div class='overall-stats mb-4'>
+                <h6>Player Details</h6>
+                <p><span class='stat-label'>Name</span><span class='stat-value'>${player.name}</span></p>
+                <p><span class='stat-label'>Total Matches</span><span class='stat-value'>${totalMatches}</span></p>
+                <p><span class='stat-label'>Record</span><span class='stat-value'>${wins}-${losses}</span></p>
+                <p><span class='stat-label'>Win Rate</span><span class='stat-value'>${winRate}%</span></p>
+                <p><span class='stat-label'>PTI</span><span class='stat-value'>${pti}</span></p>
+            </div>
+        </div>`;
+        statsDiv.innerHTML = html;
+        detailsBody.innerHTML = html;
+        detailsCard.style.display = '';
 
-            // Details card
-                detailsBody.innerHTML = html;
-            detailsCard.style.display = '';
-                console.log('[DEBUG] Player details card should now be visible.');
+            console.log('[DEBUG] Player details card should now be visible.');
 
                 
         } catch (e) {

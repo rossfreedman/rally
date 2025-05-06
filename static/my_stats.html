@@ -119,21 +119,58 @@
             const totalMatches = (player.wins || 0) + (player.losses || 0);
             const winRate = totalMatches > 0 ? ((player.wins / totalMatches) * 100).toFixed(1) : '0.0';
             summaryDiv.innerHTML = `
+                <div class="row mb-4">
+                    <div class="col-md-6 col-lg-3 mb-4">
+                        <div class="card h-100 text-center">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="fas fa-list-ol me-2"></i>Total Matches</h5>
+                            </div>
+                            <div class="card-body d-flex flex-column align-items-center justify-content-center h-100">
+                                <h2 class="display-4 mb-0 fw-bold">${totalMatches}</h2>
+                                <p class="text-muted mb-0">Matches Played</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-3 mb-4">
+                        <div class="card h-100 text-center">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="fas fa-medal me-2"></i>Overall Record</h5>
+                            </div>
+                            <div class="card-body d-flex flex-column align-items-center justify-content-center h-100">
+                                <h2 class="display-4 mb-0 fw-bold">${player.wins ?? 0}-${player.losses ?? 0}</h2>
+                                <p class="text-muted mb-0">Wins - Losses</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-3 mb-4">
+                        <div class="card h-100 text-center">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="fas fa-percentage me-2"></i>Win Rate</h5>
+                            </div>
+                            <div class="card-body d-flex flex-column align-items-center justify-content-center h-100">
+                                <h2 class="display-4 mb-0 fw-bold ${winRateClass(winRate)}">${winRate}%</h2>
+                                <p class="text-muted mb-0">Win Percentage</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6 col-lg-3 mb-4">
+                        <div class="card h-100 text-center">
+                            <div class="card-header">
+                                <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>PTI</h5>
+                            </div>
+                            <div class="card-body d-flex flex-column align-items-center justify-content-center h-100">
+                                <h2 class="display-4 mb-0 fw-bold">${player.rating ?? '-'}</h2>
+                                <p class="text-muted mb-0">Player PTI</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <div class="row mb-2">
                     <div class="col-md-6"><span class="stat-label">Name:</span> <span class="stat-value">${player.name}</span></div>
                     <div class="col-md-6"><span class="stat-label">Club:</span> <span class="stat-value">${user.club || '-'}</span></div>
                 </div>
                 <div class="row mb-2">
                     <div class="col-md-6"><span class="stat-label">Series:</span> <span class="stat-value">${user.series || '-'}</span></div>
-                    <div class="col-md-6"><span class="stat-label">PTI:</span> <span class="stat-value">${player.rating ?? '-'}</span></div>
-                </div>
-                <div class="row mb-2">
-                    <div class="col-md-6"><span class="stat-label">Wins:</span> <span class="stat-value">${player.wins ?? 0}</span></div>
-                    <div class="col-md-6"><span class="stat-label">Losses:</span> <span class="stat-value">${player.losses ?? 0}</span></div>
-                </div>
-                <div class="row mb-2">
-                    <div class="col-md-6"><span class="stat-label">Total Matches:</span> <span class="stat-value">${totalMatches}</span></div>
-                    <div class="col-md-6"><span class="stat-label">Win Rate:</span> <span class="stat-value ${winRateClass(winRate)}">${winRate}%</span></div>
                 </div>
             `;
             // PTI Trend Chart
