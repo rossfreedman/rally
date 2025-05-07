@@ -7,6 +7,7 @@ let lastTeamPlayers = [];
 
 // === Dual-Column My Team Dashboard Logic (No Team Picklist) ===
 async function runMyTeamDualColumnDashboard() {
+    resetMyTeamRightColumn();
     console.log('[MyTeam] runMyTeamDualColumnDashboard called');
     // Fetch user info to get team
     let userTeam = null;
@@ -459,7 +460,7 @@ async function populatePlayerPicklist(teamId) {
             data.players.forEach(player => {
                 const option = document.createElement('option');
                 option.value = player.name;
-                option.textContent = `${player.name} (${player.winRate}%)`;
+                option.textContent = player.name;
                 playerSelect.appendChild(option);
             });
             playerSelect.disabled = false;
@@ -477,11 +478,17 @@ async function showPlayerStats(playerName) {
     const statsDiv = document.getElementById('playerStats');
     const detailsCard = document.getElementById('playerDetailsCard');
     const detailsBody = document.getElementById('playerDetailsBody');
+    const courtBreakdownCards = document.getElementById('courtBreakdownCards');
+    const playerHistoryCard = document.getElementById('playerHistoryCard');
     statsDiv.innerHTML = '<div class="text-center my-4">Loading player stats...</div>';
     detailsCard.style.display = 'none';
+    if (courtBreakdownCards) courtBreakdownCards.style.display = 'none';
+    if (playerHistoryCard) playerHistoryCard.style.display = 'none';
     if (!playerName) {
         statsDiv.innerHTML = '';
         detailsCard.style.display = 'none';
+        if (courtBreakdownCards) courtBreakdownCards.innerHTML = '';
+        if (playerHistoryCard) document.getElementById('player-history-dynamic').innerHTML = '';
         return;
     }
     // Find the player in lastTeamPlayers (which includes courts)
@@ -490,9 +497,10 @@ async function showPlayerStats(playerName) {
     if (!player) {
         statsDiv.innerHTML = '<div class="alert alert-warning">No stats found for this player.</div>';
         detailsCard.style.display = 'none';
+        if (courtBreakdownCards) courtBreakdownCards.style.display = 'none';
+        if (playerHistoryCard) playerHistoryCard.style.display = 'none';
         return;
     }
-    console.log('Player courts:', player.courts);
     // Show overall stats (use player object from team-players, which has matches, wins, losses, winRate, pti)
     const totalMatches = player.matches ?? 0;
     const wins = player.wins ?? 0;
@@ -501,50 +509,6 @@ async function showPlayerStats(playerName) {
     const pti = player.pti ?? player.rating ?? 'N/A';
     let html = `<div class='player-analysis'>
         <div class='overall-stats mb-4'>
-            <h6>Overall Performance</h6>
-            <p><span class='stat-label'>Total Matches</span><span class='stat-value'>${totalMatches}</span></p>
-            <p><span class='stat-label'>Overall Record</span><span class='stat-value'>${wins}-${losses}</span></p>
-            <p><span class='stat-label'>Win Rate</span><span class='stat-value'>${winRate}%</span></p>
-            <p><span class='stat-label'>PTI</span><span class='stat-value'>${pti}</span></p>
-        </div>
-    </div>`;
-    statsDiv.innerHTML = html;
-    // --- Court breakdown cards ---
-    let courtHtml = `<div class='row g-3'>`;
-    if (player.courts) {
-        Object.entries(player.courts).forEach(([court, stats]) => {
-            const courtNum = court.replace('court', 'Court ');
-            // Skip rendering if courtNum is 'Unknown' or matches the unwanted card
-            if (courtNum === 'Unknown' || (stats.matches === 35 && stats.wins === 0 && stats.winRate === 0)) return;
-            function winRateClass(rate) {
-                if (rate >= 60) return 'win-rate-high';
-                if (rate >= 40) return 'win-rate-medium';
-                return 'win-rate-low';
-            }
-            courtHtml += `<div class='col-md-6'>
-                <div class='court-card card h-100'>
-                    <div class='card-body'>
-                        <h6>${courtNum}</h6>
-                        <p><span class='stat-label'>Matches</span><span class='stat-value'>${stats.matches}</span></p>
-                        <p><span class='stat-label'>Record</span><span class='stat-value'>${stats.wins}-${stats.matches - stats.wins}</span></p>
-                        <p><span class='stat-label'>Win Rate</span><span class='stat-value ${winRateClass(stats.winRate)}'>${stats.winRate}%</span></p>`;
-            if (stats.partners && stats.partners.length > 0) {
-                courtHtml += `<div class='partner-info mt-2'>
-                    <strong>Most Common Partners:</strong>
-                    <ul class='partner-list'>`;
-                stats.partners.forEach(ptn => {
-                    const partnerLosses = ptn.matches - ptn.wins;
-                    courtHtml += `<li>${ptn.name} (${ptn.wins}-${partnerLosses}, ${ptn.winRate}%)</li>`;
-                });
-                courtHtml += `</ul></div>`;
-            }
-            courtHtml += `</div></div></div>`;
-        });
-    }
-    courtHtml += `</div>`;
-    // Insert courtHtml after the overall stats in detailsHtml:
-    let detailsHtml = `<div class='player-analysis'>
-        <div class='overall-stats mb-4'>
             <h6>Player Details</h6>
             <p><span class='stat-label'>Name</span><span class='stat-value'>${player.name}</span></p>
             <p><span class='stat-label'>Total Matches</span><span class='stat-value'>${totalMatches}</span></p>
@@ -552,11 +516,23 @@ async function showPlayerStats(playerName) {
             <p><span class='stat-label'>Win Rate</span><span class='stat-value'>${winRate}%</span></p>
             <p><span class='stat-label'>PTI</span><span class='stat-value'>${pti}</span></p>
         </div>
-        ${courtHtml}
     </div>`;
-    console.log('Inserted details HTML:', detailsHtml);
-    detailsBody.innerHTML = detailsHtml;
+    statsDiv.innerHTML = html;
+    detailsBody.innerHTML = html;
     detailsCard.style.display = '';
+    // Render court breakdown cards in their own div
+    if (courtBreakdownCards) {
+        let courtHtml = renderCourtBreakdownCards(player); // Use the same function as research-team
+        courtBreakdownCards.innerHTML = courtHtml;
+        courtBreakdownCards.style.display = '';
+    }
+    // Show and render the player history card if present
+    if (playerHistoryCard) {
+        playerHistoryCard.style.display = '';
+        if (typeof renderPlayerHistory === 'function') {
+            renderPlayerHistory(player.name);
+        }
+    }
 }
 
 // Set the user's series and club in the My Team header
@@ -1045,4 +1021,11 @@ function generatePlayerRows(playerStats) {
             </tr>
         `;
     }).join('');
+}
+function resetMyTeamRightColumn() {
+    const detailsCard = document.getElementById('myTeamPlayerDetailsCard');
+    const detailsBody = document.getElementById('myTeamPlayerDetailsBody');
+    const courtBreakdownCards = document.getElementById('myTeamCourtBreakdownCards');
+    if (detailsCard) { detailsCard.style.display = 'none'; if (detailsBody) detailsBody.innerHTML = ''; }
+    if (courtBreakdownCards) { courtBreakdownCards.style.display = 'none'; courtBreakdownCards.innerHTML = ''; }
 } 

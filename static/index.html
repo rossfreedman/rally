@@ -1581,32 +1581,22 @@
                                 <h5 class="mb-0">Player Details</h5>
                             </div>
                             <div class="card-body" id="playerDetailsBody">
-                                <!-- Player details will be populated here -->
-                            </div>
-                        </div>
-                    </div>
-                    <!-- Court Analysis Card for selected player -->
-                    <div id="playerCourtAnalysisCard" class="mt-4" style="display:none;">
-                        <div class="card">
-                            <div class="card-header">
-                                <h5 class="mb-0">Court Analysis</h5>
-                            </div>
-                            <div class="card-body">
-                                <div id="playerCourtAnalysisBody" class="row g-3"></div>
+                                <!-- Only player details (overall stats) should be here. Remove court breakdown cards from here. -->
                             </div>
                         </div>
                     </div>
                     <div id="courtBreakdownCards" class="row g-3" style="display:none;"></div>
-                    <div id="playerHistoryCard" class="card mt-4 player-history-card" style="display:none;">
-                        <div class="card-header bg-primary text-white">
-                            <h5 class="mb-0">Player History (Previous Seasons)</h5>
+                        <div id="playerHistoryCard" class="card mt-4 player-history-card" style="display:none;">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0">Player History (Previous Seasons)</h5>
+                            </div>
+                            <div class="card-body" id="player-history-dynamic">
+                                <!-- Player history will be populated here -->
+                            </div>
                         </div>
-                        <div class="card-body" id="player-history-dynamic">
-                            <!-- Player history will be populated here -->
-                        </div>
-                    </div>
                 </div>
             </div>
+            
         </div>
 
         <!-- Analyze Pairing Matchups Content (placeholder) -->
@@ -1966,15 +1956,17 @@ Court 4: Player7/Player8</textarea>
                     playerCheckboxes.innerHTML = '';
                     players.forEach(player => {
                         const nameParts = player.name.split(' ');
-                        const reversedName = nameParts.length > 1 ? 
-                            `${nameParts[1]} ${nameParts[0]}` : 
-                            player.name;
+                        let formattedName = player.name;
+                        if (nameParts.length > 1) {
+                            // Assume name is 'First Last' and reformat to ' First Last' (with leading space)
+                            formattedName = ` ${nameParts[0]} ${nameParts.slice(1).join(' ')}`;
+                        }
                         const checkboxDiv = document.createElement('div');
                         checkboxDiv.className = 'form-check mb-2';
                         checkboxDiv.innerHTML = `
                             <input class="form-check-input" type="checkbox" value="${player.name}" id="player-${player.name.replace(/\s+/g, '-')}" checked>
                             <label class="form-check-label" for="player-${player.name.replace(/\s+/g, '-')}">
-                                ${reversedName} (${player.winRate})
+                                ${formattedName}
                             </label>
                         `;
                         playerCheckboxes.appendChild(checkboxDiv);
@@ -2638,7 +2630,7 @@ Court 4: Player7/Player8</textarea>
                         const savedAvailability = availabilityData[player.name]?.[match.date];
                         if (savedAvailability !== undefined) {
                             button.className = savedAvailability ? 'availability-btn available' : 'availability-btn unavailable';
-                            button.textContent = savedAvailability ? 'Available' : 'Not Available';
+                            button.textContent = savedAvailability ? "I can play" : "Sorry, can't";
                             button.setAttribute('data-state', savedAvailability ? 'available' : 'unavailable');
                         } else {
                             button.className = 'availability-btn unknown';
@@ -2677,11 +2669,11 @@ Court 4: Player7/Player8</textarea>
             if (currentState === 'unknown' || currentState === 'unavailable') {
                 newState = 'available';
                 button.className = 'availability-btn available';
-                button.textContent = 'Available';
+                button.textContent = "I can play";
             } else {
                 newState = 'unavailable';
                 button.className = 'availability-btn unavailable';
-                button.textContent = 'Not Available';
+                button.textContent = "Sorry, can't";
             }
             
             button.setAttribute('data-state', newState);
@@ -2729,7 +2721,7 @@ Court 4: Player7/Player8</textarea>
                 const newState = currentState === 'available' ? 'unavailable' : 'available';
                 button.setAttribute('data-state', newState);
                 button.className = `availability-btn ${newState}`;
-                button.textContent = newState === 'available' ? 'Available' : 'Not Available';
+                button.textContent = newState === 'available' ? "I can play" : "Sorry, can't";
                 
                 alert('Error saving availability. Please try again.');
             } finally {
@@ -4046,86 +4038,6 @@ Court 4: Player7/Player8</textarea>
                 showContent('email-captain');
             }
         });
-
-        // Add logic for Research Player team/player picklists
-        // ... existing code ...
-async function showPlayerStats(playerName) {
-    console.log("showPlayerStats called", playerName);
-    const statsDiv = document.getElementById('playerStats');
-    const detailsCard = document.getElementById('playerDetailsCard');
-    const detailsBody = document.getElementById('playerDetailsBody');
-    const courtBreakdownCards = document.getElementById('courtBreakdownCards');
-    const playerCourtBreakdown = document.getElementById('playerCourtBreakdown');
-    statsDiv.innerHTML = '<div class="text-center my-4">Loading player stats...</div>';
-    detailsCard.style.display = 'none';
-    courtBreakdownCards.style.display = 'none';
-    playerCourtBreakdown.style.display = 'none';
-
-    if (!playerName) {
-        statsDiv.innerHTML = '';
-        detailsBody.innerHTML = '';
-        courtBreakdownCards.innerHTML = '';
-        playerCourtBreakdown.innerHTML = '';
-        hideCourtAnalysisCard();
-        return;
-    }
-
-    try {
-        // Fetch player summary from player-history (for overall stats)
-        const response = await fetch('/api/player-history');
-        const data = await response.json();
-        const player = data.find(p => p.name && p.name.trim().toLowerCase() === playerName.trim().toLowerCase());
-        if (!player) {
-            statsDiv.innerHTML = '<div class="text-danger">Player not found.</div>';
-            detailsBody.innerHTML = '';
-            courtBreakdownCards.innerHTML = '';
-            playerCourtBreakdown.innerHTML = '';
-            hideCourtAnalysisCard();
-            return;
-        }
-
-        // Fetch court breakdown from new endpoint
-        const courtResp = await fetch(`/api/player-court-stats/${encodeURIComponent(playerName)}`);
-        const courtData = await courtResp.json();
-        if (courtData.error) throw new Error(courtData.error);
-
-        
-        //playerCourtBreakdown.innerHTML = courtHtml;
-        //playerCourtBreakdown.style.display = '';
-        courtBreakdownCards.innerHTML = courtHtml;
-        courtBreakdownCards.style.display = '';
-
-        // Render player details as before
-        const totalMatches = player.matches ? player.matches.length : (player.wins + player.losses);
-        const wins = player.wins ?? 0;
-        const losses = player.losses ?? 0;
-        const winRate = totalMatches > 0 ? ((wins / totalMatches) * 100).toFixed(1) : '0.0';
-        const pti = player.pti ?? player.rating ?? 'N/A';
-        let html = `<div class='player-analysis'>
-            <div class='overall-stats mb-4'>
-                <h6>Player Details</h6>
-                <p><span class='stat-label'>Name</span><span class='stat-value'>${player.name}</span></p>
-                <p><span class='stat-label'>Total Matches</span><span class='stat-value'>${totalMatches}</span></p>
-                <p><span class='stat-label'>Record</span><span class='stat-value'>${wins}-${losses}</span></p>
-                <p><span class='stat-label'>Win Rate</span><span class='stat-value'>${winRate}%</span></p>
-                <p><span class='stat-label'>PTI</span><span class='stat-value'>${pti}</span></p>
-            </div>
-        </div>`;
-        statsDiv.innerHTML = html;
-        detailsBody.innerHTML = html;
-        detailsCard.style.display = '';
-        console.log('[DEBUG] Player details card should now be visible.');
-        renderCourtAnalysisCard(player);
-    } catch (err) {
-        console.error('[DEBUG] Error in showPlayerStats:', err);
-        statsDiv.innerHTML = '<div class="text-danger">Error loading player stats.</div>';
-        detailsCard.style.display = 'none';
-        courtBreakdownCards.style.display = 'none';
-        playerCourtBreakdown.style.display = 'none';
-        hideCourtAnalysisCard();
-    }
-}
-
 // ... existing code ...
 
         // When showing research-player, load teams/players
@@ -4527,41 +4439,41 @@ async function showPlayerStats(playerName) {
 
                 // 3. PATCH: Build courts from matches if missing (like Me page)
                 if (!player.courts && Array.isArray(player.matches)) {
-    const courts = {};
-    player.matches.forEach(match => {
-        // Add a debug log to inspect the match object
-        if (!window._loggedMatch) { console.log('[DEBUG] Example match object:', match); window._loggedMatch = true; }
-        // Try to extract a number from the court property, fallback to 'Unknown'
-        let courtLabel = 'Unknown';
-        let raw = match.court || match.court_num || match.court_number || match.courtName;
-        if (raw) {
-            let num = typeof raw === 'string' ? raw.match(/\d+/) : raw;
-            if (num) {
-                courtLabel = `Court ${typeof num === 'object' ? num[0] : num}`;
-            } else {
-                courtLabel = `Court ${raw}`;
-            }
-        }
-        if (!courts[courtLabel]) {
-            courts[courtLabel] = { matches: 0, wins: 0, partners: [] };
-        }
-        courts[courtLabel].matches += 1;
-        if (match.result && match.result.toLowerCase().includes('win')) {
-            courts[courtLabel].wins += 1;
-        }
-        // Aggregate partners
-        if (match.partner) {
-            let partner = courts[courtLabel].partners.find(p => p.name === match.partner);
-            if (!partner) {
-                partner = { name: match.partner, matches: 0, wins: 0 };
-                courts[courtLabel].partners.push(partner);
-            }
-            partner.matches += 1;
-            if (match.result && match.result.toLowerCase().includes('win')) {
-                partner.wins += 1;
-            }
-        }
-    });
+            const courts = {};
+            player.matches.forEach(match => {
+                // Add a debug log to inspect the match object
+                if (!window._loggedMatch) { console.log('[DEBUG] Example match object:', match); window._loggedMatch = true; }
+                // Try to extract a number from the court property, fallback to 'Unknown'
+                let courtLabel = 'Unknown';
+                let raw = match.court || match.court_num || match.court_number || match.courtName;
+                if (raw) {
+                    let num = typeof raw === 'string' ? raw.match(/\d+/) : raw;
+                    if (num) {
+                        courtLabel = `Court ${typeof num === 'object' ? num[0] : num}`;
+                    } else {
+                        courtLabel = `Court ${raw}`;
+                    }
+                }
+                if (!courts[courtLabel]) {
+                    courts[courtLabel] = { matches: 0, wins: 0, partners: [] };
+                }
+                courts[courtLabel].matches += 1;
+                if (match.result && match.result.toLowerCase().includes('win')) {
+                    courts[courtLabel].wins += 1;
+                }
+                // Aggregate partners
+                if (match.partner) {
+                    let partner = courts[courtLabel].partners.find(p => p.name === match.partner);
+                    if (!partner) {
+                        partner = { name: match.partner, matches: 0, wins: 0 };
+                        courts[courtLabel].partners.push(partner);
+                    }
+                    partner.matches += 1;
+                    if (match.result && match.result.toLowerCase().includes('win')) {
+                        partner.wins += 1;
+                    }
+                }
+            });
     // Calculate winRate for each court and partner
     Object.values(courts).forEach(stats => {
         stats.winRate = stats.matches > 0 ? ((stats.wins / stats.matches) * 100).toFixed(1) : '0.0';
@@ -4589,31 +4501,34 @@ async function showPlayerStats(playerName) {
                 courtBreakdownCards.innerHTML = renderCourtBreakdownCards(player);
                 courtBreakdownCards.style.display = '';
 
-            // Show overall stats
-            const totalMatches = Array.isArray(player.matches) ? player.matches.length : (player.wins + player.losses);
-            const wins = player.wins ?? 0;
-            const losses = player.losses ?? 0;
-            const winRate = totalMatches > 0 ? ((wins / totalMatches) * 100).toFixed(1) : '0.0';
-            const pti = player.pti ?? player.rating ?? 'N/A';
-            let html = `<div class='player-analysis'>
-                <div class='overall-stats mb-4'>
-                    <h6>Player Details</h6>
-                    <p><span class='stat-label'>Name</span><span class='stat-value'>${player.name}</span></p>
-                    <p><span class='stat-label'>Total Matches</span><span class='stat-value'>${totalMatches}</span></p>
-                    <p><span class='stat-label'>Record</span><span class='stat-value'>${wins}-${losses}</span></p>
-                    <p><span class='stat-label'>Win Rate</span><span class='stat-value'>${winRate}%</span></p>
-                    <p><span class='stat-label'>PTI</span><span class='stat-value'>${pti}</span></p>
-                </div>
-            </div>`;
-            statsDiv.innerHTML = html;
+                // Show and render the player history card
+                if (playerHistoryCard) {
+                    playerHistoryCard.style.display = '';
+                    renderPlayerHistory(player.name);
+                }
 
-            // Details card
+                // Render player details as before (only overall stats)
+                const totalMatches = player.matches ? player.matches.length : (player.wins + player.losses);
+                const wins = player.wins ?? 0;
+                const losses = player.losses ?? 0;
+                const winRate = totalMatches > 0 ? ((wins / totalMatches) * 100).toFixed(1) : '0.0';
+                const pti = player.pti ?? player.rating ?? 'N/A';
+                let html = `<div class='player-analysis'>
+                    <div class='overall-stats mb-4'>
+                        <h6>Player Details</h6>
+                        <p><span class='stat-label'>Name</span><span class='stat-value'>${player.name}</span></p>
+                        <p><span class='stat-label'>Total Matches</span><span class='stat-value'>${totalMatches}</span></p>
+                        <p><span class='stat-label'>Record</span><span class='stat-value'>${wins}-${losses}</span></p>
+                        <p><span class='stat-label'>Win Rate</span><span class='stat-value'>${winRate}%</span></p>
+                        <p><span class='stat-label'>PTI</span><span class='stat-value'>${pti}</span></p>
+                    </div>
+                </div>`;
+                statsDiv.innerHTML = html;
                 detailsBody.innerHTML = html;
-            detailsCard.style.display = '';
+                detailsCard.style.display = '';
                 console.log('[DEBUG] Player details card should now be visible.');
-
-                
-        } catch (e) {
+                renderCourtAnalysisCard(player);
+            } catch (e) {
                 console.error('[DEBUG] Error in showPlayerStats:', e);
             statsDiv.innerHTML = '<div class="alert alert-danger">Error loading player stats.</div>';
             detailsCard.style.display = 'none';
