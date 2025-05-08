@@ -91,10 +91,11 @@ app.secret_key = os.getenv('FLASK_SECRET_KEY', 'your-secret-key-here')  # Change
 
 # Configure session settings
 app.config.update(
-    SESSION_COOKIE_SECURE=True,  # Set to True for production with HTTPS
-    SESSION_COOKIE_HTTPONLY=True,   
-    SESSION_COOKIE_SAMESITE='Lax',
-    PERMANENT_SESSION_LIFETIME=3600  # 1 hour
+    SESSION_COOKIE_SECURE=os.getenv('DISABLE_SECURE_COOKIES', 'false').lower() != 'true',  # Set to True for production with HTTPS, can be disabled in dev
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE='None',  # Changed from 'Lax' to 'None' for cross-site requests
+    PERMANENT_SESSION_LIFETIME=3600,  # 1 hour
+    SESSION_COOKIE_DOMAIN=os.getenv('SESSION_COOKIE_DOMAIN', None)  # Set dynamically from environment
 )
 
 CORS(app, resources={
@@ -104,7 +105,9 @@ CORS(app, resources={
             "http://127.0.0.1:5002",
             "http://localhost:3000",  # Development port
             "http://127.0.0.1:3000",  # Development port
-            "https://*.up.railway.app"  # Railway domain
+            "https://*.up.railway.app",  # Railway domain
+            "https://www.lovetorally.com",  # Production domain
+            "https://lovetorally.com"  # Production domain without www
         ],
         "methods": ["GET", "POST", "OPTIONS"],
         "allow_headers": ["Content-Type"],
@@ -452,8 +455,9 @@ def handle_login():
             # Log successful login
             log_user_activity(email, 'auth', action='login', details='Successful login')
             
-            # Create response with session cookie settings
+            # Create response with properly configured session cookie
             response = jsonify({'status': 'success'})
+            
             return response
             
         finally:
@@ -601,7 +605,7 @@ def api_route(path):
     print(f"User in session: {'user' in session}")
     
     # List of routes that don't require authentication
-    public_routes = ['check-auth', 'login', 'register']
+    public_routes = ['check-auth', 'login', 'register', 'log-click']
     
     if path not in public_routes:
         if 'user' not in session:
@@ -1565,6 +1569,8 @@ def check_auth():
     """Check if user is authenticated"""
     try:
         print("\n=== CHECK AUTH REQUEST ===")
+        print(f"Origin: {request.headers.get('Origin', 'No origin header')}")
+        print(f"Referer: {request.headers.get('Referer', 'No referer header')}")
         
         if 'user' not in session:
             print("❌ No user in session")
@@ -1626,10 +1632,15 @@ def check_auth():
             
         print(f"✅ User authenticated: {user['email']}")
         print("=== END CHECK AUTH ===")
-        return jsonify({
+        
+        # Create response with appropriate headers
+        response = jsonify({
             'authenticated': True,
             'user': session['user']
         })
+        
+        return response
+        
     except Exception as e:
         print(f"❌ Auth check error: {str(e)}")
         print("Full error:", traceback.format_exc())
@@ -3035,7 +3046,6 @@ def verify_logging():
         }), 500
 
 @app.route('/api/log-click', methods=['POST'])
-@login_required
 def log_click():
     """Log a user's click on the page"""
     try:
@@ -3058,13 +3068,15 @@ def log_click():
         if element_text:
             details += f" containing text '{element_text}'"
         
-        log_user_activity(
-            session['user']['email'],
-            'click',
-            page=page_name,
-            action='click',
-            details=details
-        )
+        # Only log if user is in session
+        if 'user' in session:
+            log_user_activity(
+                session['user']['email'],
+                'click',
+                page=page_name,
+                action='click',
+                details=details
+            )
         
         return jsonify({'success': True})
     except Exception as e:
