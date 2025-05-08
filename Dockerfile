@@ -26,11 +26,14 @@ ENV FLASK_APP=server.py
 ENV WEB_CONCURRENCY=1
 ENV EVENTLET_NO_GREENDNS=yes
 
-# Create data directory if it doesn't exist
-RUN mkdir -p data
+# Create data directory if it doesn't exist and set permissions
+RUN mkdir -p data && chmod 777 data
 
 # Create log directory
 RUN mkdir -p logs && touch logs/server.log && chmod 777 logs/server.log
+
+# Initialize the database during build
+RUN python init_db.py
 
 # Expose port from environment variable
 EXPOSE ${PORT}
