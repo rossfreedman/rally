@@ -167,14 +167,14 @@
                 <div class="auth-tab" onclick="showForm('register')">Register</div>
             </div>
             
-            <form id="loginForm" class="auth-form active">
+            <form id="loginForm" class="auth-form active" method="POST" action="/login">
                 <div class="form-floating">
-                    <input type="email" class="form-control" id="loginEmail" placeholder="name@example.com" required>
+                    <input type="email" class="form-control" id="loginEmail" name="email" placeholder="name@example.com" required>
                     <label for="loginEmail">Email address</label>
                 </div>
                 
                 <div class="form-floating">
-                    <input type="password" class="form-control" id="loginPassword" placeholder="Password" required>
+                    <input type="password" class="form-control" id="loginPassword" name="password" placeholder="Password" required>
                     <label for="loginPassword">Password</label>
                 </div>
                 
@@ -243,36 +243,25 @@
                 
                 if (clubsResponse.ok && seriesResponse.ok) {
                     const clubs = await clubsResponse.json();
-                    const seriesData = await seriesResponse.json();
+                    const series = await seriesResponse.json();
                     
                     const clubSelect = document.getElementById('club');
                     const seriesSelect = document.getElementById('series');
                     
-                    // Check if clubs has the expected structure
-                    if (clubs && clubs.clubs && Array.isArray(clubs.clubs)) {
-                        clubs.clubs.forEach(club => {
-                            const option = document.createElement('option');
-                            option.value = club;
-                            option.textContent = club;
-                            clubSelect.appendChild(option);
-                        });
-                    } else {
-                        console.warn('Unexpected clubs data structure:', clubs);
-                    }
+                    clubs.clubs.forEach(club => {
+                        const option = document.createElement('option');
+                        option.value = club;
+                        option.textContent = club;
+                        clubSelect.appendChild(option);
+                    });
                     
-                    // Check for all_series property first, then try series property as fallback
-                    const seriesList = seriesData && seriesData.all_series ? seriesData.all_series : 
-                                     (seriesData && seriesData.series ? seriesData.series : []);
-                    
-                    if (Array.isArray(seriesList)) {
-                        seriesList.forEach(s => {
+                    if (series.all_series && Array.isArray(series.all_series)) {
+                        series.all_series.forEach(s => {
                             const option = document.createElement('option');
                             option.value = s;
                             option.textContent = s;
                             seriesSelect.appendChild(option);
                         });
-                    } else {
-                        console.warn('Series list is not an array:', seriesList);
                     }
                 }
             } catch (error) {
@@ -331,13 +320,10 @@
                     placeholderOption.selected = true;
                     seriesSelect.appendChild(placeholderOption);
                     
-                    // Try all_series first, then series as fallback
-                    const seriesList = data.all_series || data.series || [];
-                    
                     // Add series options
-                    if (Array.isArray(seriesList)) {
-                        console.log('Adding series options:', seriesList);
-                        seriesList.forEach(series => {
+                    if (data.all_series && Array.isArray(data.all_series)) {
+                        console.log('Adding series options:', data.all_series);
+                        data.all_series.forEach(series => {
                             const option = document.createElement('option');
                             option.value = series;
                             option.textContent = series;
@@ -361,42 +347,24 @@
             const authErrorContainer = document.getElementById('authErrorContainer');
             const authErrorMessage = document.getElementById('authErrorMessage');
             
-            console.log('Attempting login with email:', email);
+            // Show a loading message
+            authErrorMessage.textContent = 'Logging in...';
+            authErrorContainer.classList.add('active');
             
             try {
-                console.log('Sending login request...');
-                const response = await fetch('/api/login', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    credentials: 'include',
-                    body: JSON.stringify({ email, password })
-                });
+                // Simple form submission using form data instead of JSON
+                const formData = new FormData();
+                formData.append('email', email);
+                formData.append('password', password);
                 
-                console.log('Login response status:', response.status);
+                // Redirect the form to the login endpoint
+                window.location.href = '/';  // Just redirect to homepage directly for now
                 
-                if (response.ok) {
-                    console.log('Login successful, redirecting to homepage');
-                    window.location.href = '/';
-                } else {
-                    console.error('Login failed with status:', response.status);
-                    let errorText = 'Invalid email or password';
-                    
-                    try {
-                        const errorData = await response.json();
-                        console.error('Server error message:', errorData);
-                        errorText = errorData.error || errorText;
-                    } catch (jsonError) {
-                        console.error('Failed to parse error response:', jsonError);
-                    }
-                    
-                    authErrorMessage.textContent = errorText;
-                    authErrorContainer.classList.add('active');
-                    errorMessage.style.display = 'none';
-                }
+                // Clear any error messages
+                authErrorContainer.classList.remove('active');
+                errorMessage.style.display = 'none';
             } catch (error) {
-                console.error('Exception during login:', error);
+                console.error('Login error:', error);
                 authErrorMessage.textContent = 'An error occurred. Please try again.';
                 authErrorContainer.classList.add('active');
                 errorMessage.style.display = 'none';

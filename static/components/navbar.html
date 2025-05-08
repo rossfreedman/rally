@@ -1,9 +1,6 @@
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
     <div class="container-fluid">
-        <a class="navbar-brand" href="/">
-            <img src="/static/rallylogo.png" alt="Rally" class="d-inline-block align-top navbar-logo">
-        </a>
-        <!-- Sidebar toggle will be inserted here by JS -->
+        <a class="navbar-brand" href="/"></a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
             <span class="navbar-toggler-icon"></span>
         </button>
@@ -12,30 +9,18 @@
                 <li class="nav-item">
                     <a class="nav-link" href="/">Home</a>
                 </li>
-                <li class="nav-item d-lg-none">
-                    <a class="nav-link" href="#" onclick="showContent('create-lineup'); return false;">Create Lineup</a>
-                </li>
-                <li class="nav-item d-lg-none">
-                    <a class="nav-link" href="#" onclick="showContent('update-availability'); return false;">Update Availability</a>
-                </li>
-                <li class="nav-item d-lg-none">
-                    <a class="nav-link" href="#" onclick="showContent('find-sub'); return false;">Find Sub</a>
-                </li>
-                <li class="nav-item d-lg-none">
-                    <a class="nav-link" href="#" onclick="showContent('research-me'); return false;">Research Me</a>
-                </li>
-                <li class="nav-item d-lg-none">
-                    <a class="nav-link" href="#" onclick="showContent('research-my-team'); return false;">Research Team</a>
+                <li class="nav-item">
+                    <a class="nav-link active" href="/admin">Admin</a>
                 </li>
             </ul>
             <ul class="navbar-nav">
                 <li class="nav-item">
-                    <a class="nav-link user-welcome" href="#" onclick="showContent('settings'); return false;" id="welcomeMessage"></a>
+                    <a class="nav-link" href="#" onclick="showContent('settings'); return false;" id="welcomeMessage"></a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" href="#" id="logoutLink">
-                        <i class="fas fa-sign-out-alt"></i>
-                        <span class="d-none d-sm-inline">Logout</span>
+                        <i class="fas fa-sign-out-alt me-1"></i>
+                        Logout
                     </a>
                 </li>
             </ul>
@@ -47,24 +32,16 @@
 .navbar {
     padding: 0.5rem 1rem;
     background-color: #000 !important;
-    height: var(--navbar-height, 80px);
 }
 
 .navbar-brand {
     font-weight: 600;
     color: white !important;
-    padding: 0;
-}
-
-.navbar-logo {
-    height: 40px;
-    width: auto;
 }
 
 .nav-link {
-    color: rgba(255, 255, 255, 0.9) !important;
+    color: white !important;
     font-weight: 500;
-    padding: 0.5rem 0.75rem;
 }
 
 .nav-link:hover {
@@ -75,68 +52,17 @@
     color: #2196F3 !important;
 }
 
-.user-welcome {
+#welcomeMessage {
     font-weight: 500;
     padding-right: 1rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 200px;
 }
 
 .fas {
     margin-right: 0.5rem;
 }
-
-/* Responsive adjustments */
-@media (max-width: 992px) {
-    .navbar-nav .nav-link {
-        padding: 0.75rem 1rem;
-    }
-    
-    .user-welcome {
-        max-width: 150px;
-    }
-}
-
-@media (max-width: 768px) {
-    .navbar {
-        padding: 0.25rem 0.5rem;
-    }
-    
-    .navbar-logo {
-        height: 32px;
-    }
-    
-    .user-welcome {
-        max-width: 140px;
-        font-size: 0.9rem;
-    }
-    
-    .navbar-collapse {
-        background-color: #000;
-        position: absolute;
-        top: var(--navbar-height, 80px);
-        left: 0;
-        right: 0;
-        z-index: 1000;
-        padding: 0.5rem 1rem;
-        box-shadow: 0 5px 10px rgba(0,0,0,0.2);
-    }
-}
 </style>
 
 <script>
-// Format welcome message to be more concise on small screens
-function formatWelcomeMessage(user) {
-    // Full format for larger screens
-    if (window.innerWidth > 768) {
-        return `Welcome, ${user.first_name} ${user.last_name}`;
-    }
-    // Condensed format for smaller screens
-    return `${user.first_name} ${user.last_name}`;
-}
-
 // Update welcome message when navbar is loaded
 document.addEventListener('DOMContentLoaded', function() {
     console.log('[DEBUG] Navbar DOMContentLoaded');
@@ -149,14 +75,11 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('[DEBUG] /api/check-auth data:', data);
             if (data.authenticated) {
                 const user = data.user;
-                const welcomeMsg = formatWelcomeMessage(user);
+                const welcomeMsg = `Welcome back, ${user.first_name} ${user.last_name} (${user.series} at ${user.club})`;
                 console.log('[DEBUG] Setting welcome message:', welcomeMsg);
                 const welcomeElem = document.getElementById('welcomeMessage');
                 if (welcomeElem) {
                     welcomeElem.textContent = welcomeMsg;
-                    
-                    // Add series and club as a tooltip for mobile
-                    welcomeElem.setAttribute('title', `${user.series} at ${user.club}`);
                 } else {
                     console.warn('[DEBUG] #welcomeMessage element not found');
                 }
@@ -167,14 +90,5 @@ document.addEventListener('DOMContentLoaded', function() {
         .catch(error => {
             console.error('[DEBUG] Error fetching user data:', error);
         });
-        
-    // Update welcome message on resize
-    window.addEventListener('resize', function() {
-        const welcomeElem = document.getElementById('welcomeMessage');
-        if (welcomeElem && welcomeElem.dataset.user) {
-            const user = JSON.parse(welcomeElem.dataset.user);
-            welcomeElem.textContent = formatWelcomeMessage(user);
-        }
-    });
 });
 </script> 

@@ -321,10 +321,92 @@ def serve_index():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    """Serve the login page"""
+    """Serve the login page or handle login form submission"""
     # If user is already authenticated, redirect to home
     if 'user' in session:
         return redirect(url_for('serve_index'))
+        
+    # Handle POST request (form submission)
+    if request.method == 'POST':
+        print("\n=== LOGIN FORM SUBMISSION ===")
+        # Get form data
+        email = request.form.get('email')
+        password = request.form.get('password')
+        
+        print(f"Login attempt for email: {email}")
+        
+        if not email or not password:
+            # For direct form submissions, return to login page
+            print(f"Error: Missing email or password")
+            return app.send_static_file('login.html')
+            
+        # Connect to database
+        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        
+        try:
+            # Get user with club and series info
+            query = '''
+                SELECT u.id, u.email, u.password_hash, u.first_name, u.last_name,
+                       c.name as club_name, s.name as series_name
+                FROM users u
+                JOIN clubs c ON u.club_id = c.id
+                JOIN series s ON u.series_id = s.id
+                WHERE u.email = ?
+            '''
+            
+            cursor.execute(query, (email,))
+            user = cursor.fetchone()
+            
+            if not user:
+                print(f"User not found for email: {email}")
+                return app.send_static_file('login.html')
+            
+            # Verify password
+            if not verify_password(user[2], password):
+                print("Password verification failed")
+                return app.send_static_file('login.html')
+                
+            # Update last login
+            cursor.execute('''
+                UPDATE users 
+                SET last_login = CURRENT_TIMESTAMP 
+                WHERE id = ?
+            ''', (user[0],))
+            conn.commit()
+            
+            # Create session
+            session.permanent = True
+            session['user'] = {
+                'id': user[0],
+                'email': user[1],
+                'first_name': user[3],
+                'last_name': user[4],
+                'club': user[5],
+                'series': user[6]
+            }
+            
+            print(f"Login successful for {email}")
+            
+            # Log successful login (without failing if it doesn't work)
+            try:
+                log_user_activity(email, 'auth', action='login', details='Form login successful')
+            except Exception as e:
+                print(f"Warning: Could not log login activity: {e}")
+            
+            # Redirect to home page
+            return redirect(url_for('serve_index'))
+            
+        except Exception as e:
+            print(f"Error during login: {e}")
+            print(traceback.format_exc())
+            return app.send_static_file('login.html')
+            
+        finally:
+            conn.close()
+    
+    # GET request - serve the login page
     return app.send_static_file('login.html')
 
 def hash_password(password):
@@ -334,8 +416,50 @@ def hash_password(password):
 
 def verify_password(stored_password, provided_password):
     """Verify a password against a stored hash"""
-    salt, hash_value = stored_password.split(':')
-    return hash_value == hashlib.sha256((salt + provided_password).encode()).hexdigest()
+    try:
+        print(f"\n=== Password verification ===")
+        
+        # Make sure both parameters are valid
+        if not stored_password or not isinstance(stored_password, str):
+            print(f"ERROR: Invalid stored password: {type(stored_password)}")
+            return False
+            
+        if not provided_password or not isinstance(provided_password, str):
+            print(f"ERROR: Invalid provided password: {type(provided_password)}")
+            return False
+        
+        print(f"Stored password format: {stored_password[:15]}...")
+        
+        if ':' not in stored_password:
+            print("ERROR: Invalid stored password format (no salt separator found)")
+            return False
+            
+        parts = stored_password.split(':')
+        if len(parts) != 2:
+            print(f"ERROR: Invalid stored password format (expected 2 parts, got {len(parts)})")
+            return False
+            
+        salt, hash_value = parts
+        
+        if not salt or not hash_value:
+            print("ERROR: Empty salt or hash value")
+            return False
+            
+        print(f"Extracted salt: {salt[:8]}...")
+        print(f"Extracted hash: {hash_value[:8]}...")
+        
+        # Calculate hash of provided password with the same salt
+        provided_hash = hashlib.sha256((salt + provided_password).encode()).hexdigest()
+        print(f"Calculated hash: {provided_hash[:8]}...")
+        
+        # Compare the hashes
+        result = hash_value == provided_hash
+        print(f"Password match: {result}")
+        return result
+    except Exception as e:
+        print(f"ERROR in password verification: {str(e)}")
+        print(traceback.format_exc())
+        return False
 
 @app.route('/api/register', methods=['POST'])
 def handle_register():
@@ -405,37 +529,77 @@ def handle_register():
 @app.route('/api/login', methods=['POST'])
 def handle_login():
     try:
+        # Add more detailed debugging
+        print("\n=== LOGIN ATTEMPT ===")
+        
         data = request.json
+        if not data:
+            print("Error: No JSON data in request")
+            return jsonify({'error': 'Invalid request format'}), 400
+            
         email = data.get('email')
         password = data.get('password')
         
+        print(f"Login attempt for email: {email}")
+        
         if not email or not password:
+            print("Missing email or password")
             return jsonify({'error': 'Please provide both email and password'}), 401
             
         db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
+        print(f"Using database path: {db_path}")
+        
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
         
         try:
+            # First check if user exists
+            cursor.execute('SELECT id FROM users WHERE email = ?', (email,))
+            user_id = cursor.fetchone()
+            
+            if not user_id:
+                print(f"User not found for email: {email}")
+                return jsonify({'error': 'Invalid email or password'}), 401
+            
             # Get user with club and series info
-            cursor.execute('''
+            query = '''
                 SELECT u.id, u.email, u.password_hash, u.first_name, u.last_name,
                        c.name as club_name, s.name as series_name
                 FROM users u
                 JOIN clubs c ON u.club_id = c.id
                 JOIN series s ON u.series_id = s.id
                 WHERE u.email = ?
-            ''', (email,))
+            '''
+            print(f"Executing query with parameters: [{email}]")
+            
+            cursor.execute(query, (email,))
             
             user = cursor.fetchone()
             if not user:
-                return jsonify({'error': 'Invalid email or password'}), 401
+                print(f"User found but missing club/series info: {email}")
+                return jsonify({'error': 'Account setup incomplete. Please contact support.'}), 401
                 
+            print(f"User found: ID={user[0]}, Email={user[1]}")
+            
             # Verify password
-            if not verify_password(user[2], password):
+            stored_password_hash = user[2]
+            if not stored_password_hash:
+                print(f"User has no password hash: {email}")
+                return jsonify({'error': 'Account setup incomplete. Please reset your password.'}), 401
+                
+            try:
+                password_verified = verify_password(stored_password_hash, password)
+                print(f"Password verification result: {password_verified}")
+            except Exception as pw_error:
+                print(f"Password verification error: {str(pw_error)}")
+                return jsonify({'error': 'Authentication error. Please try again.'}), 500
+            
+            if not password_verified:
+                print("Password verification failed")
                 return jsonify({'error': 'Invalid email or password'}), 401
                 
             # Update last login
+            print("Updating last login timestamp")
             cursor.execute('''
                 UPDATE users 
                 SET last_login = CURRENT_TIMESTAMP 
@@ -443,27 +607,36 @@ def handle_login():
             ''', (user[0],))
             conn.commit()
             
-            # Create session with all user information
-            session.permanent = True  # Use the permanent session lifetime
-            session['user'] = {
-                'id': user[0],
-                'email': user[1],
-                'first_name': user[3],
-                'last_name': user[4],
-                'club': user[5],
-                'series': user[6]
-            }
-            
-            # Log successful login - wrapped in try/except to prevent it from breaking the login flow
+            # Create session safely
             try:
-                log_user_activity(email, 'auth', action='login', details='Successful login')
-                print("Successfully logged login activity")
+                print("Creating session")
+                session.permanent = True  # Use the permanent session lifetime
+                session.clear()  # Clear any existing session data
+                session['user'] = {
+                    'id': user[0],
+                    'email': user[1],
+                    'first_name': user[3],
+                    'last_name': user[4],
+                    'club': user[5],
+                    'series': user[6]
+                }
+                
+                print(f"Created session with data: {session['user']}")
+            except Exception as session_error:
+                print(f"Error creating session: {str(session_error)}")
+                return jsonify({'error': 'Session creation failed. Please try again.'}), 500
+            
+            # Log successful login - but don't let it fail the whole login if there's an error
+            print("Logging login activity")
+            try:
+                log_result = log_user_activity(email, 'auth', action='login', details='Successful login')
+                print(f"Activity logging result: {log_result}")
             except Exception as log_error:
-                print(f"Warning: Failed to log login activity: {str(log_error)}")
-                print(traceback.format_exc())
-                # Continue with the login process even if logging fails
+                print(f"WARNING: Could not log activity: {str(log_error)}")
+                # Continue even if logging fails
             
             # Create response with properly configured session cookie
+            print("Creating response")
             response = jsonify({'status': 'success'})
             
             # Set the correct domain for the cookie - important for cross-origin requests
@@ -471,10 +644,11 @@ def handle_login():
             secure = os.getenv('DISABLE_SECURE_COOKIES', 'false').lower() != 'true'
             
             # Get the session cookie
-            session_cookie_name = app.session_cookie_name
+            session_cookie_name = 'session'  # Flask's default session cookie name
             session_cookie = request.cookies.get(session_cookie_name)
             
             if session_cookie:
+                print(f"Explicitly setting session cookie: {session_cookie_name}")
                 # Explicitly set the cookie with correct settings
                 response.set_cookie(
                     session_cookie_name, 
@@ -486,14 +660,22 @@ def handle_login():
                     samesite='None'  # Important for cross-origin
                 )
             
+            print("Login successful")
+            print("=== END LOGIN ===\n")
             return response
             
         finally:
-            conn.close()
+            if conn:
+                conn.close()
+                print("Database connection closed")
         
+    except sqlite3.Error as db_error:
+        print(f"LOGIN DATABASE ERROR: {str(db_error)}")
+        return jsonify({'error': 'Database error occurred'}), 500
     except Exception as e:
-        print(f"Login error: {str(e)}")
-        print(traceback.format_exc())
+        print(f"LOGIN ERROR: {str(e)}")
+        print(f"Error type: {type(e).__name__}")
+        print(f"Traceback:\n{traceback.format_exc()}")
         return jsonify({'error': 'An error occurred during login'}), 500
 
 @app.route('/api/logout', methods=['POST'])
@@ -672,48 +854,15 @@ def get_series():
     try:
         print("\n=== GET SERIES REQUEST ===")
         print("Connecting to database...")
-        conn = None
-        series_list = []
+        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
         
-        try:
-            db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
-            conn = sqlite3.connect(db_path)
-            cursor = conn.cursor()
-            
-            # Check if the series table exists
-            cursor.execute('''
-                SELECT name FROM sqlite_master 
-                WHERE type='table' AND name='series'
-            ''')
-            table_exists = cursor.fetchone() is not None
-            
-            if not table_exists:
-                print("WARNING: series table does not exist, returning empty list")
-                # Return a fallback response when the table doesn't exist
-                response_data = {
-                    'series': selected_series,
-                    'club': selected_club,
-                    'all_series': []
-                }
-                return jsonify(response_data)
-            
-            # Get all series from the database
-            print("Executing SQL query...")
-            cursor.execute('SELECT name FROM series ORDER BY name')
-            series_list = [row[0] for row in cursor.fetchall()]
-        except sqlite3.Error as db_error:
-            print(f"Database error: {str(db_error)}")
-            print(traceback.format_exc())
-            # Return a fallback response in case of database error
-            response_data = {
-                'series': selected_series,
-                'club': selected_club,
-                'all_series': []
-            }
-            return jsonify(response_data)
-        finally:
-            if conn:
-                conn.close()
+        # Get all series from the database
+        print("Executing SQL query...")
+        cursor.execute('SELECT name FROM series ORDER BY name')
+        series_list = [row[0] for row in cursor.fetchall()]
+        conn.close()
         
         print(f"\nCurrent series: {selected_series}")
         print(f"Available series: {series_list}")
@@ -737,14 +886,7 @@ def get_series():
     except Exception as e:
         print(f"\nError getting series: {str(e)}")
         print("Full error:", traceback.format_exc())
-        
-        # Return a minimal response even in case of error
-        fallback_response = {
-            'series': 'Chicago 22',  # Default fallback value
-            'club': 'Tennaqua - 22',  # Default fallback value
-            'all_series': []
-        }
-        return jsonify(fallback_response)
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/get-players-series-22', methods=['GET'])
 def get_players_series_22():
@@ -1621,43 +1763,16 @@ def get_availability():
 @app.route('/api/get-clubs', methods=['GET'])
 def get_clubs():
     try:
-        print("\n=== GET CLUBS REQUEST ===")
-        conn = None
-        clubs_list = []
-        
-        try:
-            db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
-            conn = sqlite3.connect(db_path)
-            cursor = conn.cursor()
-            
-            # Check if the clubs table exists
-            cursor.execute('''
-                SELECT name FROM sqlite_master 
-                WHERE type='table' AND name='clubs'
-            ''')
-            table_exists = cursor.fetchone() is not None
-            
-            if not table_exists:
-                print("WARNING: clubs table does not exist, returning empty list")
-                return jsonify({'clubs': []})
-            
-            # Get clubs from database
-            cursor.execute('SELECT name FROM clubs ORDER BY name')
-            clubs_list = [row[0] for row in cursor.fetchall()]
-            print(f"Found {len(clubs_list)} clubs")
-        except sqlite3.Error as db_error:
-            print(f"Database error: {str(db_error)}")
-            print(traceback.format_exc())
-            return jsonify({'clubs': []})  # Return empty list on error
-        finally:
-            if conn:
-                conn.close()
-        
-        return jsonify({'clubs': clubs_list})
+        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        cursor.execute('SELECT name FROM clubs ORDER BY name')
+        clubs = [row[0] for row in cursor.fetchall()]
+        conn.close()
+        return jsonify({'clubs': clubs})
     except Exception as e:
         print(f"Error getting clubs: {str(e)}")
-        print(traceback.format_exc())
-        return jsonify({'clubs': []})  # Return empty list on any error
+        return jsonify({'error': 'An error occurred while fetching clubs'}), 500
 
 @app.route('/api/check-auth')
 def check_auth():
@@ -2782,83 +2897,59 @@ def delete_user():
 
 def log_user_activity(user_email, activity_type, page=None, action=None, details=None):
     """Log user activity to the database"""
-    # print(f"\n=== LOGGING USER ACTIVITY ===")
-    # print(f"User: {user_email}")
-    # print(f"Type: {activity_type}")
-    # print(f"Page: {page}")
-    # print(f"Action: {action}")
-    # print(f"Details: {details}")
     try:
+        # Skip logging if email is not provided
+        if not user_email:
+            print("Warning: Attempted to log activity without user email")
+            return False
+
         db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
         conn = sqlite3.connect(db_path)
+        conn.set_trace_callback(print)  # Print SQL statements for debugging
         cursor = conn.cursor()
+
         try:
-            # Check if the user_activity_logs table exists
-            cursor.execute('''
-                SELECT name FROM sqlite_master 
-                WHERE type='table' AND name='user_activity_logs'
-            ''')
-            table_exists = cursor.fetchone() is not None
+            # First, check if the user exists to avoid foreign key constraint errors
+            cursor.execute('SELECT 1 FROM users WHERE email = ?', (user_email,))
+            user_exists = cursor.fetchone()
             
-            # Create the table if it doesn't exist
-            if not table_exists:
-                print("Creating user_activity_logs table")
-                cursor.execute('''
-                    CREATE TABLE user_activity_logs (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        user_email TEXT NOT NULL,
-                        activity_type TEXT NOT NULL,
-                        page TEXT,
-                        action TEXT,
-                        details TEXT,
-                        ip_address TEXT,
-                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-                    )
-                ''')
-                conn.commit()
-                print("Created user_activity_logs table successfully")
-            
+            if not user_exists:
+                print(f"Warning: Attempted to log activity for non-existent user: {user_email}")
+                return False
+                
             # Get IP address from request if available
-            ip_address = request.remote_addr if request else None
-            # print(f"IP Address: {ip_address}")
+            ip_address = request.remote_addr if request and hasattr(request, 'remote_addr') else None
+            
+            # Sanitize inputs to prevent SQL errors
+            activity_type = activity_type[:50] if activity_type else "unknown"
+            page = page[:100] if page else None
+            action = action[:100] if action else None
+            details = details[:500] if details else None
+            
             # Insert the activity log with UTC timestamp
-            # print("Inserting activity log...")
             insert_query = '''
                 INSERT INTO user_activity_logs 
                 (user_email, activity_type, page, action, details, ip_address, timestamp)
                 VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
             '''
             params = (user_email, activity_type, page, action, details, ip_address)
-            # print(f"Query: {insert_query}")
-            # print(f"Parameters: {params}")
             
             cursor.execute(insert_query, params)
             conn.commit()
-            # print("Activity logged successfully")
+            return True
             
-            # Verify the log was written
-            # print("Verifying log entry...")
-            cursor.execute('''
-                SELECT * FROM user_activity_logs 
-                WHERE user_email = ? 
-                ORDER BY timestamp DESC 
-                LIMIT 1
-            ''', (user_email,))
-            last_log = cursor.fetchone()
-            if last_log:
-                # print(f"Last log entry: {last_log}")
-                pass
-            else:
-                # print("WARNING: Log entry not found after insert!")
-                pass
+        except sqlite3.Error as e:
+            print(f"SQLite error in log_user_activity: {e}")
+            conn.rollback()
+            return False
+            
         finally:
             conn.close()
                     
     except Exception as e:
-        # print(f"Database error during transaction: {str(e)}")
-        # print(f"Error type: {type(e).__name__}")
-        # print(f"Full error details: {traceback.format_exc()}")
-        raise
+        print(f"Error logging activity: {str(e)}", file=sys.stderr)
+        print(f"Error type: {type(e).__name__}")
+        return False
 
 @app.route('/api/admin/user-activity/<email>')
 @login_required
