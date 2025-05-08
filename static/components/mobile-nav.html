@@ -1,0 +1,77 @@
+<!-- Mobile Bottom Navigation -->
+<div class="mobile-bottom-nav mobile-only">
+    <a href="#" onclick="showContent('home'); return false;" class="active" id="bottom-nav-home">
+        <i class="fas fa-home"></i>
+        <span>Home</span>
+    </a>
+    <a href="#" onclick="showContent('create-lineup'); return false;" id="bottom-nav-lineup">
+        <i class="fas fa-clipboard-list"></i>
+        <span>Lineup</span>
+    </a>
+    <a href="#" onclick="showContent('research-me'); return false;" id="bottom-nav-me">
+        <i class="fas fa-user"></i>
+        <span>Me</span>
+    </a>
+    <a href="#" onclick="showContent('research-my-team'); return false;" id="bottom-nav-team">
+        <i class="fas fa-users"></i>
+        <span>Team</span>
+    </a>
+    <a href="#" onclick="showContent('update-availability'); return false;" id="bottom-nav-avail">
+        <i class="fas fa-calendar-check"></i>
+        <span>Availability</span>
+    </a>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Set up bottom navigation
+    const updateMobileNavActive = (contentId) => {
+        const allLinks = document.querySelectorAll('.mobile-bottom-nav a');
+        allLinks.forEach(link => link.classList.remove('active'));
+        
+        // Determine which nav item should be active based on content
+        let activeNavId = 'bottom-nav-home';
+        
+        switch(contentId) {
+            case 'home':
+                activeNavId = 'bottom-nav-home';
+                break;
+            case 'create-lineup':
+                activeNavId = 'bottom-nav-lineup';
+                break;
+            case 'research-me':
+                activeNavId = 'bottom-nav-me';
+                break;
+            case 'research-my-team':
+                activeNavId = 'bottom-nav-team';
+                break;
+            case 'update-availability':
+                activeNavId = 'bottom-nav-avail';
+                break;
+        }
+        
+        const activeLink = document.getElementById(activeNavId);
+        if (activeLink) {
+            activeLink.classList.add('active');
+        }
+    };
+    
+    // Function to update mobile nav when content changes
+    window.updateMobileNav = function(contentId) {
+        updateMobileNavActive(contentId);
+        
+        // Close the sidebar when navigating on mobile
+        document.body.classList.remove('sidebar-open');
+    };
+    
+    // Initialize with the active content
+    const contentSections = document.querySelectorAll('.content-section');
+    for (let section of contentSections) {
+        if (section.classList.contains('active')) {
+            const contentId = section.id.replace('-content', '');
+            updateMobileNavActive(contentId);
+            break;
+        }
+    }
+});
+</script> 

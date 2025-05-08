@@ -1,0 +1,455 @@
+:root {
+  /* Define responsive breakpoints as CSS variables */
+  --breakpoint-xs: 0;
+  --breakpoint-sm: 576px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 992px;
+  --breakpoint-xl: 1200px;
+  
+  /* Mobile-specific spacing variables */
+  --mobile-spacing-sm: 0.5rem;
+  --mobile-spacing-md: 1rem;
+  --mobile-spacing-lg: 1.5rem;
+  
+  /* Safe areas for notches and gestures */
+  --safe-area-inset-top: env(safe-area-inset-top, 0px);
+  --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+  
+  /* Add fix for iOS Safari 100vh issue */
+  --vh: 1vh;
+}
+
+/* Base mobile styles - apply to all devices first */
+@media (max-width: 991.98px) {
+  body {
+    display: block !important; /* Override flex display */
+    padding-top: 56px; /* Account for fixed navbar */
+    overflow-x: hidden;
+    font-size: 16px;
+  }
+
+  /* Main content full width on mobile */
+  .main-content {
+    width: 100% !important;
+    margin-left: 0 !important;
+    padding: var(--mobile-spacing-md);
+    padding-top: calc(56px + var(--mobile-spacing-md));
+    transition: transform 0.3s ease;
+    padding-bottom: 70px; /* Account for bottom nav */
+  }
+
+  /* Mobile navbar styles */
+  .navbar {
+    padding: 0.5rem 1rem !important;
+    height: 56px;
+  }
+
+  .navbar-brand img {
+    height: 28px;
+    width: auto;
+  }
+
+  /* Mobile hamburger menu button */
+  .navbar-toggler, 
+  .sidebar-toggler {
+    display: block !important;
+    padding: 0.25rem 0.5rem;
+    font-size: 1.25rem;
+    line-height: 1;
+    background-color: transparent;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 0.25rem;
+    cursor: pointer;
+  }
+
+  /* Sidebar transforms to off-canvas menu */
+  .sidebar {
+    width: 280px !important;
+    height: calc(100 * var(--vh)) !important;
+    position: fixed;
+    top: 56px !important; /* Below navbar */
+    left: -280px; /* Start off-canvas */
+    z-index: 1040;
+    transition: transform 0.3s ease;
+    overflow-y: auto;
+    padding-bottom: calc(var(--mobile-spacing-lg) + var(--safe-area-inset-bottom));
+  }
+
+  /* When sidebar is active */
+  body.sidebar-open .sidebar {
+    transform: translateX(280px);
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.2);
+  }
+
+  /* Add overlay when sidebar is open */
+  .sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1030;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  body.sidebar-open .sidebar-overlay {
+    display: block;
+    opacity: 1;
+  }
+
+  /* Responsive card layout */
+  .dashboard-cards {
+    grid-template-columns: 1fr !important;
+    gap: var(--mobile-spacing-md) !important;
+    padding: var(--mobile-spacing-md) !important;
+  }
+
+  .card {
+    grid-column: 1 / -1 !important;
+    margin-bottom: var(--mobile-spacing-md);
+    border-radius: 8px;
+  }
+
+  /* Improved touch targets */
+  .nav-item {
+    padding: 12px 15px !important; /* Larger touch target for sidebar items */
+    font-size: 16px !important; /* Larger text size */
+  }
+
+  .nav-item i {
+    width: 24px !important; /* Wider space for icons */
+    font-size: 16px !important;
+  }
+
+  /* Better form controls on mobile */
+  input, 
+  select, 
+  textarea,
+  button {
+    font-size: 16px !important; /* Prevent iOS zoom on focus */
+    min-height: 44px; /* Minimum Apple-recommended touch target size */
+  }
+
+  /* Content headers */
+  .content-header {
+    padding: var(--mobile-spacing-md) !important;
+    margin-bottom: var(--mobile-spacing-md) !important;
+    border-radius: 8px !important;
+  }
+
+  .content-header h1 {
+    font-size: 1.5rem !important;
+  }
+
+  /* Bottom navigation for mobile */
+  .mobile-bottom-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background-color: white;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+    z-index: 1020;
+    height: 56px;
+    padding-bottom: var(--safe-area-inset-bottom);
+  }
+
+  .mobile-bottom-nav a {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #666;
+    font-size: 10px;
+    text-decoration: none;
+    padding: 8px 0;
+  }
+
+  .mobile-bottom-nav a i {
+    font-size: 18px;
+    margin-bottom: 4px;
+  }
+
+  .mobile-bottom-nav a.active {
+    color: var(--primary-color);
+  }
+  
+  /* Responsive tables */
+  .table-responsive {
+    margin-bottom: var(--mobile-spacing-md);
+  }
+  
+  /* Scrollable areas */
+  .scrollable-area {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 10px; /* Add padding to show shadow */
+  }
+  
+  /* Special handling for availability table */
+  .availability-table {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin: var(--mobile-spacing-md) 0;
+  }
+  
+  /* Make chat interface more mobile-friendly */
+  .chat-card {
+    height: calc(80 * var(--vh)) !important;
+  }
+  
+  .chat-input input {
+    padding: 12px !important;
+    height: 44px;
+  }
+  
+  /* Fix padding issues with Bootstrap columns on mobile */
+  .row {
+    margin-right: -10px;
+    margin-left: -10px;
+  }
+  
+  [class*="col-"] {
+    padding-right: 10px;
+    padding-left: 10px;
+  }
+  
+  /* Fix for iOS Safari 100vh issue - run this in JS: document.documentElement.style.setProperty('--vh', `${window.innerHeight * 0.01}px`); */
+  .chat-card, 
+  .card-with-vh {
+    height: calc(80 * var(--vh)) !important;
+  }
+  
+  /* Ensure all images are responsive */
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+  
+  /* Fix modal dialogs on mobile */
+  .modal-dialog {
+    margin: 0.5rem;
+  }
+  
+  /* Improve tap targets for buttons and links */
+  button, 
+  .btn,
+  .nav-link {
+    min-height: 44px;
+    min-width: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  /* Fix for iOS zoom on focus for inputs */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+  
+  /* Fix for fixed positioning */
+  .fixed-top, 
+  .fixed-bottom {
+    position: fixed;
+    z-index: 1030;
+  }
+  
+  /* Make forms more touch-friendly */
+  .form-check {
+    padding-left: 2rem;
+  }
+  
+  .form-check-input {
+    width: 1.5em;
+    height: 1.5em;
+    margin-left: -2rem;
+  }
+  
+  /* Add padding to account for device notches and UI elements */
+  .safe-bottom {
+    padding-bottom: calc(var(--safe-area-inset-bottom) + 1rem);
+  }
+  
+  .safe-top {
+    padding-top: calc(var(--safe-area-inset-top) + 1rem);
+  }
+}
+
+/* Portrait Mobile Phones (small) */
+@media (max-width: 575.98px) {
+  .content-header h1 {
+    font-size: 1.25rem !important;
+  }
+  
+  .content-header p {
+    font-size: 0.9rem !important;
+  }
+  
+  .card-title {
+    font-size: 1.1rem !important;
+  }
+  
+  /* Even smaller padding for small screens */
+  .main-content {
+    padding: var(--mobile-spacing-sm);
+    padding-top: calc(56px + var(--mobile-spacing-sm));
+  }
+  
+  /* More compact cards for very small screens */
+  .card-header, .card-body {
+    padding: 0.75rem !important;
+  }
+}
+
+/* Landscape mode adjustments */
+@media (max-width: 991.98px) and (orientation: landscape) {
+  body {
+    padding-top: 50px; /* Slightly smaller navbar in landscape */
+  }
+  
+  .navbar {
+    height: 50px;
+  }
+  
+  .sidebar {
+    top: 50px !important;
+  }
+  
+  /* Optimize content layout for landscape */
+  .dashboard-cards {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+/* Tablet-specific styles */
+@media (min-width: 768px) and (max-width: 991.98px) {
+  .main-content {
+    padding: 1.5rem;
+    padding-top: calc(56px + 1.5rem);
+  }
+  
+  /* Better use of tablet screen space */
+  .dashboard-cards {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 1.5rem !important;
+  }
+}
+
+/* Hidden elements on mobile */
+@media (max-width: 991.98px) {
+  .desktop-only {
+    display: none !important;
+  }
+}
+
+/* Hidden elements on desktop */
+@media (min-width: 992px) {
+  .mobile-only {
+    display: none !important;
+  }
+  
+  .mobile-bottom-nav {
+    display: none !important;
+  }
+  
+  .sidebar-overlay {
+    display: none !important;
+  }
+  
+  .sidebar-toggler {
+    display: none !important;
+  }
+}
+
+/* Ensure proper vh calculation on mobile devices */
+@media (max-width: 991.98px) {
+  /* Fix for iOS Safari 100vh issue - run this in JS: document.documentElement.style.setProperty('--vh', `${window.innerHeight * 0.01}px`); */
+  .sidebar {
+    height: calc(100 * var(--vh)) !important;
+  }
+  
+  /* Fix specific UI elements that might overflow */
+  .chat-card, 
+  .card-with-vh {
+    height: calc(80 * var(--vh)) !important;
+  }
+  
+  /* Font size adjustments for small viewport */
+  body {
+    font-size: 16px;
+  }
+  
+  /* Ensure all images are responsive */
+  img {
+    max-width: 100%;
+    height: auto;
+  }
+  
+  /* Prevent content from being hidden under fixed elements */
+  .main-content {
+    padding-bottom: 70px; /* Account for bottom nav */
+  }
+  
+  /* Fix modal dialogs on mobile */
+  .modal-dialog {
+    margin: 0.5rem;
+  }
+  
+  /* Improve tap targets for buttons and links */
+  button, 
+  .btn,
+  .nav-link {
+    min-height: 44px;
+    min-width: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  /* Fix for iOS zoom on focus for inputs */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+  
+  /* Fix for fixed positioning */
+  .fixed-top, 
+  .fixed-bottom {
+    position: fixed;
+    z-index: 1030;
+  }
+  
+  /* Make forms more touch-friendly */
+  .form-check {
+    padding-left: 2rem;
+  }
+  
+  .form-check-input {
+    width: 1.5em;
+    height: 1.5em;
+    margin-left: -2rem;
+  }
+  
+  /* Add padding to account for device notches and UI elements */
+  .safe-bottom {
+    padding-bottom: calc(var(--safe-area-inset-bottom) + 1rem);
+  }
+  
+  .safe-top {
+    padding-top: calc(var(--safe-area-inset-top) + 1rem);
+  }
+} 

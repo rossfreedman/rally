@@ -2,14 +2,18 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Rally</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
     <link href="/static/css/styles.css" rel="stylesheet">
+    <!-- Add responsive CSS -->
+    <link href="/static/css/responsive.css" rel="stylesheet">
     <!-- Activity tracking -->
     <script src="/static/js/activity-tracker.js"></script>
+    <!-- Mobile utilities script -->
+    <script src="/static/js/mobile-utils.js"></script>
     <!-- Other scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -1103,66 +1107,11 @@
 <body>
     <!-- Include the navigation bar -->
     <div id="navbar-container"></div>
-
-    <script>
-        // Load the navigation bar
-        document.addEventListener('DOMContentLoaded', function() {
-            fetch('/static/components/navbar.html')
-                .then(response => response.text())
-                .then(html => {
-                    const container = document.getElementById('navbar-container');
-                    container.innerHTML = html;
-                    // Update welcome message after navbar is loaded
-                    if (typeof updateWelcomeMessage === 'function') {
-                        updateWelcomeMessage();
-                    } else {
-                        console.warn('[DEBUG] updateWelcomeMessage function not found');
-                    }
-                    
-                    // Update welcome message
-                    fetch('/api/check-auth')
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.authenticated) {
-                                const user = data.user;
-                                const welcomeMessage = container.querySelector('#welcomeMessage');
-                                if (welcomeMessage) {
-                                    welcomeMessage.innerHTML = `
-                                        <a href="#" onclick="showContent('settings'); return false;" style="text-decoration: none; color: inherit;">
-                                            Welcome back, ${user.first_name} ${user.last_name} (${user.series})
-                                        </a>
-                                    `;
-                                }
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Error fetching user data:', error);
-                        });
-                    
-                    // Load and execute the logout script
-                    const script = document.createElement('script');
-                    script.src = '/static/js/logout.js';
-                    document.head.appendChild(script);
-                    
-                    // Add click handler to logout link
-                    script.onload = function() {
-                        const logoutLink = container.querySelector('#logoutLink');
-                        if (logoutLink) {
-                            logoutLink.addEventListener('click', function(e) {
-                                console.log('Logout link clicked');
-                                e.preventDefault();
-                                logout();
-                            });
-                        }
-                    };
-                })
-                .catch(error => {
-                    console.error('Error loading navbar:', error);
-                });
-        });
-    </script>
-
-    <!-- Sidebar Navigation -->
+    
+    <!-- Include mobile bottom navigation -->
+    <div id="mobile-nav-container"></div>
+    
+    <!-- Existing sidebar and content sections -->
     <div class="sidebar">
         <div class="sidebar-header">
             <a href="#" onclick="showContent('home'); return false;">
@@ -1995,6 +1944,11 @@ Court 4: Player7/Player8</textarea>
             console.log('contentId:', contentId);
             console.log('current selectedSeries:', selectedSeries);
             
+            // Update mobile navigation (new mobile functionality)
+            if (window.updateMobileNav) {
+                window.updateMobileNav(contentId);
+            }
+            
             // Hide all content sections
             document.querySelectorAll('.content-section').forEach(section => {
                 section.classList.remove('active');
@@ -2089,25 +2043,104 @@ Court 4: Player7/Player8</textarea>
                 }
                 
                 // If switching to research-my-team, load the my team data
-                //if (contentId === 'research-my-team') {
-                //    if (typeof loadMyTeamData === 'function') loadMyTeamData();
-                //}
+                if (contentId === 'research-my-team') {
+                    if (typeof loadMyTeamData === 'function') loadMyTeamData();
+                }
                 
                 // If switching to club-stats, load club stats
-                //if (contentId === 'club-stats') {
-                //    loadClubStats();
-                //}
+                if (contentId === 'club-stats') {
+                    loadClubStats();
+                }
             }
             
-            // Update active navigation item
-            document.querySelectorAll('.nav-item').forEach(item => {
+            // Update active navigation item in sidebar
+            document.querySelectorAll('.sidebar-nav .nav-item').forEach(item => {
                 item.classList.remove('active');
             });
+            
             const navItem = document.getElementById('nav-' + contentId);
             if (navItem) {
                 navItem.classList.add('active');
             }
+            
+            // Save the last viewed content in session storage (new functionality)
+            sessionStorage.setItem('lastContent', contentId);
         }
+
+        // Load the navigation bar
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load the navbar component
+            fetch('/static/components/navbar.html')
+                .then(response => response.text())
+                .then(html => {
+                    const container = document.getElementById('navbar-container');
+                    container.innerHTML = html;
+                    
+                    // Update welcome message after navbar is loaded
+                    if (typeof updateWelcomeMessage === 'function') {
+                        updateWelcomeMessage();
+                    } else {
+                        console.warn('[DEBUG] updateWelcomeMessage function not found');
+                    }
+                    
+                    // Update welcome message
+                    fetch('/api/check-auth')
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.authenticated) {
+                                const user = data.user;
+                                const welcomeMessage = container.querySelector('#welcomeMessage');
+                                if (welcomeMessage) {
+                                    welcomeMessage.innerHTML = `
+                                        <a href="#" onclick="showContent('settings'); return false;" style="text-decoration: none; color: inherit;">
+                                            Welcome back, ${user.first_name} ${user.last_name} (${user.series})
+                                        </a>
+                                    `;
+                                }
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error fetching user data:', error);
+                        });
+                    
+                    // Load and execute the logout script
+                    const script = document.createElement('script');
+                    script.src = '/static/js/logout.js';
+                    document.head.appendChild(script);
+                    
+                    // Add click handler to logout link
+                    script.onload = function() {
+                        const logoutLink = container.querySelector('#logoutLink');
+                        if (logoutLink) {
+                            logoutLink.addEventListener('click', function(e) {
+                                console.log('Logout link clicked');
+                                e.preventDefault();
+                                logout();
+                            });
+                        }
+                    };
+                })
+                .catch(error => {
+                    console.error('Error loading navbar:', error);
+                });
+            
+            // Load the mobile navigation component (new)
+            fetch('/static/components/mobile-nav.html')
+                .then(response => response.text())
+                .then(html => {
+                    const container = document.getElementById('mobile-nav-container');
+                    container.innerHTML = html;
+                })
+                .catch(error => {
+                    console.error('Error loading mobile navigation:', error);
+                });
+            
+            // Initialize any content from session storage if available (new)
+            const lastContent = sessionStorage.getItem('lastContent');
+            if (lastContent) {
+                showContent(lastContent);
+            }
+        });
 
         // Function to load teams into the select element
         async function loadTeams() {

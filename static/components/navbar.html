@@ -1,16 +1,29 @@
+<!-- Mobile-optimized navbar -->
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
     <div class="container-fluid">
-        <a class="navbar-brand" href="/"></a>
+        <!-- Mobile sidebar toggle button -->
+        <button id="sidebar-toggler" class="sidebar-toggler me-2 mobile-only">
+            <i class="fas fa-bars"></i>
+        </button>
+        
+        <!-- Logo -->
+        <a class="navbar-brand" href="/">
+            <img src="/static/rallylogo.png" alt="Rally Logo" height="30">
+        </a>
+        
+        <!-- Regular navbar toggle (for navbar content) -->
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
             <span class="navbar-toggler-icon"></span>
         </button>
+        
+        <!-- Navbar content -->
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav me-auto">
                 <li class="nav-item">
                     <a class="nav-link" href="/">Home</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link active" href="/admin">Admin</a>
+                    <a class="nav-link" href="/admin">Admin</a>
                 </li>
             </ul>
             <ul class="navbar-nav">
@@ -28,6 +41,9 @@
     </div>
 </nav>
 
+<!-- Sidebar overlay for mobile -->
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+
 <style>
 .navbar {
     padding: 0.5rem 1rem;
@@ -37,6 +53,11 @@
 .navbar-brand {
     font-weight: 600;
     color: white !important;
+}
+
+.navbar-brand img {
+    height: 30px;
+    width: auto;
 }
 
 .nav-link {
@@ -60,12 +81,54 @@
 .fas {
     margin-right: 0.5rem;
 }
+
+.sidebar-toggler {
+    color: white;
+    background: transparent;
+    border: none;
+    font-size: 1.25rem;
+    cursor: pointer;
+    display: none;
+}
+
+/* Hide welcomeMessage text on smaller screens but keep link active */
+@media (max-width: 767.98px) {
+    #welcomeMessage {
+        font-size: 0;
+        padding-right: 0;
+    }
+    
+    #welcomeMessage::before {
+        content: '\f007'; /* User icon */
+        font-family: 'Font Awesome 5 Free';
+        font-weight: 900;
+        font-size: 1rem;
+    }
+}
 </style>
 
 <script>
 // Update welcome message when navbar is loaded
 document.addEventListener('DOMContentLoaded', function() {
     console.log('[DEBUG] Navbar DOMContentLoaded');
+    
+    // Add sidebar toggle functionality
+    const sidebarToggler = document.getElementById('sidebar-toggler');
+    const sidebarOverlay = document.getElementById('sidebar-overlay');
+    
+    if (sidebarToggler) {
+        sidebarToggler.addEventListener('click', function() {
+            document.body.classList.toggle('sidebar-open');
+        });
+    }
+    
+    if (sidebarOverlay) {
+        sidebarOverlay.addEventListener('click', function() {
+            document.body.classList.remove('sidebar-open');
+        });
+    }
+    
+    // Check authentication and update welcome message
     fetch('/api/check-auth')
         .then(response => {
             console.log('[DEBUG] /api/check-auth response:', response);
@@ -79,6 +142,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log('[DEBUG] Setting welcome message:', welcomeMsg);
                 const welcomeElem = document.getElementById('welcomeMessage');
                 if (welcomeElem) {
+                    welcomeElem.setAttribute('title', welcomeMsg); // Add title for mobile tooltip
                     welcomeElem.textContent = welcomeMsg;
                 } else {
                     console.warn('[DEBUG] #welcomeMessage element not found');
@@ -90,5 +154,26 @@ document.addEventListener('DOMContentLoaded', function() {
         .catch(error => {
             console.error('[DEBUG] Error fetching user data:', error);
         });
+        
+    // Set up logout functionality
+    const logoutLink = document.getElementById('logoutLink');
+    if (logoutLink) {
+        logoutLink.addEventListener('click', function(e) {
+            e.preventDefault();
+            fetch('/api/logout', {
+                method: 'POST',
+                credentials: 'same-origin'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.redirect) {
+                    window.location.href = data.redirect;
+                }
+            })
+            .catch(error => {
+                console.error('Logout error:', error);
+            });
+        });
+    }
 });
 </script> 
