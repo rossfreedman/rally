@@ -29,6 +29,25 @@ body {
   display: block; /* Override flex display initially for mobile */
 }
 
+/* Override default sidebar display for mobile */
+body.mobile-view .sidebar {
+  display: none !important;
+  left: -100% !important;
+  visibility: hidden;
+}
+
+body.mobile-view .sidebar.active {
+  display: block !important;
+  left: 0 !important;
+  visibility: visible;
+}
+
+body.mobile-view .main-content {
+  width: 100% !important;
+  margin-left: 0 !important;
+  padding: 10px !important;
+}
+
 /* Navbar Mobile Styling */
 .navbar {
   position: fixed;
@@ -70,10 +89,13 @@ body {
   transition: left 0.3s ease;
   z-index: 1020;
   box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+  display: none; /* Initially hidden on mobile */
 }
 
+/* Only show sidebar when it has the active class */
 .sidebar.active {
   left: 0;
+  display: block;
 }
 
 /* Sidebar overlay for mobile */
@@ -193,10 +215,19 @@ body {
 
 /* Tablet styles (768px and up) */
 @media (min-width: 768px) {
+  body {
+    display: flex;
+  }
+  
+  body.mobile-view {
+    display: block;
+  }
+  
   .sidebar {
     width: var(--sidebar-width-tablet);
     left: 0;
     box-shadow: none;
+    display: block; /* Always show sidebar on tablet and up */
   }
   
   .sidebar-toggle {
@@ -223,10 +254,6 @@ body {
   
   .content-header h1 {
     font-size: 1.85rem;
-  }
-  
-  body {
-    display: flex;
   }
   
   .sidebar-overlay {
@@ -283,6 +310,29 @@ body {
 
 /* Fix for lineup in mobile view */
 @media (max-width: 767px) {
+  /* Force mobile layout */
+  body {
+    display: block !important;
+  }
+  
+  .sidebar {
+    display: none !important;
+    left: -100% !important;
+    visibility: hidden;
+  }
+  
+  .sidebar.active {
+    display: block !important;
+    left: 0 !important;
+    visibility: visible;
+  }
+  
+  .main-content {
+    width: 100% !important;
+    margin-left: 0 !important;
+    padding: 10px !important;
+  }
+  
   .lineup-container .col-md-6 {
     margin-bottom: 15px;
   }
@@ -343,6 +393,25 @@ body {
   /* Ensure inputs are large enough to tap */
   input, select, textarea {
     font-size: 16px !important; /* Prevents iOS zoom on focus */
+  }
+  
+  /* Fix mobile nav issue */
+  body.sidebar-open {
+    overflow: hidden;
+  }
+  
+  /* Ensure sidebar doesn't appear by default on mobile */
+  .sidebar {
+    display: none !important;
+    left: -100% !important;
+    visibility: hidden;
+  }
+  
+  /* Only show the sidebar when specifically activated via JS */
+  .sidebar.active {
+    display: block !important;
+    left: 0 !important;
+    visibility: visible;
   }
 }
 
