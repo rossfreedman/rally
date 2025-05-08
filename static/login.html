@@ -352,22 +352,35 @@
             authErrorContainer.classList.add('active');
             
             try {
-                // Simple form submission using form data instead of JSON
-                const formData = new FormData();
-                formData.append('email', email);
-                formData.append('password', password);
-                
-                // Redirect the form to the login endpoint
-                window.location.href = '/';  // Just redirect to homepage directly for now
-                
-                // Clear any error messages
-                authErrorContainer.classList.remove('active');
-                errorMessage.style.display = 'none';
+                // Make a proper API call to the login endpoint
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        email: email,
+                        password: password
+                    })
+                });
+
+                // Process the API response
+                if (response.ok) {
+                    // Successful login - redirect to home page
+                    console.log('Login successful, redirecting to home page');
+                    window.location.href = '/';
+                } else {
+                    // Show error from API
+                    const errorData = await response.json();
+                    console.error('Login failed:', errorData);
+                    authErrorMessage.textContent = errorData.error || 'Invalid email or password';
+                    authErrorContainer.classList.add('active');
+                }
             } catch (error) {
                 console.error('Login error:', error);
-                authErrorMessage.textContent = 'An error occurred. Please try again.';
+                authErrorMessage.textContent = 'An error occurred during login. Please try again.';
                 authErrorContainer.classList.add('active');
-                errorMessage.style.display = 'none';
             }
         });
 
