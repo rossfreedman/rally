@@ -107,11 +107,13 @@ CORS(app, resources={
             "http://127.0.0.1:3000",  # Development port
             "https://*.up.railway.app",  # Railway domain
             "https://www.lovetorally.com",  # Production domain
-            "https://lovetorally.com"  # Production domain without www
+            "https://lovetorally.com",  # Production domain without www
+            "*"  # Allow all origins in development/testing
         ],
         "methods": ["GET", "POST", "OPTIONS"],
-        "allow_headers": ["Content-Type"],
-        "supports_credentials": True   # Important for session cookies
+        "allow_headers": ["Content-Type", "Authorization"],
+        "supports_credentials": True,   # Important for session cookies
+        "max_age": 86400
     }
 })
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
@@ -457,6 +459,26 @@ def handle_login():
             
             # Create response with properly configured session cookie
             response = jsonify({'status': 'success'})
+            
+            # Set the correct domain for the cookie - important for cross-origin requests
+            domain = os.getenv('SESSION_COOKIE_DOMAIN', None)
+            secure = os.getenv('DISABLE_SECURE_COOKIES', 'false').lower() != 'true'
+            
+            # Get the session cookie
+            session_cookie_name = app.session_cookie_name
+            session_cookie = request.cookies.get(session_cookie_name)
+            
+            if session_cookie:
+                # Explicitly set the cookie with correct settings
+                response.set_cookie(
+                    session_cookie_name, 
+                    session_cookie,
+                    max_age=3600,  # 1 hour
+                    domain=domain,
+                    secure=secure,
+                    httponly=True,
+                    samesite='None'  # Important for cross-origin
+                )
             
             return response
             

@@ -20,6 +20,7 @@ function logClick(event) {
         headers: {
             'Content-Type': 'application/json'
         },
+        credentials: 'include',
         body: JSON.stringify(data)
     }).catch(error => {
         console.error('Error logging click:', error);

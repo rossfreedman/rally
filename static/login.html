@@ -237,8 +237,8 @@
         document.addEventListener('DOMContentLoaded', async () => {
             try {
                 const [clubsResponse, seriesResponse] = await Promise.all([
-                    fetch('/api/get-clubs'),
-                    fetch('/api/get-series')
+                    fetch('/api/get-clubs', { credentials: 'include' }),
+                    fetch('/api/get-series', { credentials: 'include' })
                 ]);
                 
                 if (clubsResponse.ok && seriesResponse.ok) {
@@ -291,7 +291,7 @@
 
         function loadSeries() {
             console.log('Loading series...');
-            fetch('/api/get-series')
+            fetch('/api/get-series', { credentials: 'include' })
                 .then(response => {
                     console.log('Response status:', response.status);
                     if (!response.ok) {
@@ -351,6 +351,7 @@
                     headers: {
                         'Content-Type': 'application/json'
                     },
+                    credentials: 'include',
                     body: JSON.stringify({ email, password })
                 });
                 
@@ -388,6 +389,7 @@
                     headers: {
                         'Content-Type': 'application/json'
                     },
+                    credentials: 'include',
                     body: JSON.stringify({
                         email,
                         password,
