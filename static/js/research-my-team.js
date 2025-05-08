@@ -119,21 +119,20 @@ async function showMyTeamPlayerStats(playerName, players) {
         playerHistory = data.find(p => p.name && p.name.trim().toLowerCase() === playerName.trim().toLowerCase());
     } catch (e) {}
     // Render player stats
-    const totalMatches = playerHistory && Array.isArray(playerHistory.matches) ? playerHistory.matches.length : (player.wins + player.losses);
+    const totalMatches = player.matches ?? (player.wins + player.losses);
     const wins = player.wins ?? 0;
-    const losses = player.losses ?? 0;
+    const losses = totalMatches - wins;
     const winRate = totalMatches > 0 ? ((wins / totalMatches) * 100).toFixed(1) : '0.0';
     const pti = player.pti ?? player.rating ?? 'N/A';
-    let html = `<div class='player-analysis'>
-        <div class='overall-stats mb-4'>
-            <h6>Player Details</h6>
-            <p><span class='stat-label'>Name</span><span class='stat-value'>${player.name}</span></p>
-            <p><span class='stat-label'>Total Matches</span><span class='stat-value'>${totalMatches}</span></p>
-            <p><span class='stat-label'>Record</span><span class='stat-value'>${wins}-${losses}</span></p>
-            <p><span class='stat-label'>Win Rate</span><span class='stat-value'>${winRate}%</span></p>
-            <p><span class='stat-label'>PTI</span><span class='stat-value'>${pti}</span></p>
-        </div>
-    </div>`;
+    const html = generateOverallCards({
+        totalMatches,
+        wins,
+        losses,
+        winRate,
+        pti,
+        heading: 'Player Details',
+        name: player.name
+    });
     statsDiv.innerHTML = html;
     detailsBody.innerHTML = html;
     detailsCard.style.display = '';
@@ -502,21 +501,20 @@ async function showPlayerStats(playerName) {
         return;
     }
     // Show overall stats (use player object from team-players, which has matches, wins, losses, winRate, pti)
-    const totalMatches = player.matches ?? 0;
+    const totalMatches = player.matches ?? (player.wins + player.losses);
     const wins = player.wins ?? 0;
     const losses = totalMatches - wins;
-    const winRate = player.winRate ?? 0;
+    const winRate = totalMatches > 0 ? ((wins / totalMatches) * 100).toFixed(1) : '0.0';
     const pti = player.pti ?? player.rating ?? 'N/A';
-    let html = `<div class='player-analysis'>
-        <div class='overall-stats mb-4'>
-            <h6>Player Details</h6>
-            <p><span class='stat-label'>Name</span><span class='stat-value'>${player.name}</span></p>
-            <p><span class='stat-label'>Total Matches</span><span class='stat-value'>${totalMatches}</span></p>
-            <p><span class='stat-label'>Record</span><span class='stat-value'>${wins}-${losses}</span></p>
-            <p><span class='stat-label'>Win Rate</span><span class='stat-value'>${winRate}%</span></p>
-            <p><span class='stat-label'>PTI</span><span class='stat-value'>${pti}</span></p>
-        </div>
-    </div>`;
+    const html = generateOverallCards({
+        totalMatches,
+        wins,
+        losses,
+        winRate,
+        pti,
+        heading: 'Player Details',
+        name: player.name
+    });
     statsDiv.innerHTML = html;
     detailsBody.innerHTML = html;
     detailsCard.style.display = '';
@@ -695,13 +693,37 @@ function renderMyTeamPlayerStats(player) {
     const losses = totalMatches - wins;
     const winRate = player.winRate ?? 0;
     const pti = player.pti ?? player.rating ?? 'N/A';
+    // Determine win-rate color class
+    const winRateClass = winRate >= 60 ? 'win-rate-high' : (winRate >= 40 ? 'win-rate-medium' : 'win-rate-low');
     return `<div class='player-analysis'>
         <div class='overall-stats mb-4'>
             <h6>Overall Performance</h6>
-            <p><span class='stat-label'>Total Matches</span><span class='stat-value'>${totalMatches}</span></p>
-            <p><span class='stat-label'>Overall Record</span><span class='stat-value'>${wins}-${losses}</span></p>
-            <p><span class='stat-label'>Win Rate</span><span class='stat-value'>${winRate}%</span></p>
-            <p><span class='stat-label'>PTI</span><span class='stat-value'>${pti}</span></p>
+            <div class='row row-cols-2 row-cols-md-4 g-2'>
+                <div class='col'>
+                    <div class='card text-center h-100 py-2'>
+                        <p class='small text-muted mb-1'>Total Matches</p>
+                        <h6 class='mb-0'>${totalMatches}</h6>
+                    </div>
+                </div>
+                <div class='col'>
+                    <div class='card text-center h-100 py-2'>
+                        <p class='small text-muted mb-1'>Overall Record</p>
+                        <h6 class='mb-0'>${wins}-${losses}</h6>
+                    </div>
+                </div>
+                <div class='col'>
+                    <div class='card text-center h-100 py-2'>
+                        <p class='small text-muted mb-1'>Win Rate</p>
+                        <h6 class='mb-0 ${winRateClass}'>${winRate}%</h6>
+                    </div>
+                </div>
+                <div class='col'>
+                    <div class='card text-center h-100 py-2'>
+                        <p class='small text-muted mb-1'>PTI</p>
+                        <h6 class='mb-0'>${pti}</h6>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>`;
 }
@@ -860,7 +882,7 @@ async function renderTeamAnalysisCards(container) {
                     </div>
                     <div class="card-body">
                         <div class="d-flex flex-column align-items-center justify-content-center h-100">
-                            <h2 class="display-4 mb-0 fw-bold">${pointsBehind}</h2>
+                            <h2 class="display-4 mb-0 fw-bold" ${pointsBehind < 5 ? 'style="color: green;"' : pointsBehind <= 10 ? 'style="color: #f0ad4e;"' : 'style="color: red;"'}>${pointsBehind}</h2>
                             <p class="text-muted mb-2">Behind First Place</p>
                             <h4>${points} pts</h4>
                             <p>Your Points</p>
@@ -1028,4 +1050,41 @@ function resetMyTeamRightColumn() {
     const courtBreakdownCards = document.getElementById('myTeamCourtBreakdownCards');
     if (detailsCard) { detailsCard.style.display = 'none'; if (detailsBody) detailsBody.innerHTML = ''; }
     if (courtBreakdownCards) { courtBreakdownCards.style.display = 'none'; courtBreakdownCards.innerHTML = ''; }
+}
+// Helper: generate horizontal mini-cards for overall metrics
+function generateOverallCards({totalMatches, wins, losses, winRate, pti, heading = 'Overall Performance', name = null}) {
+    const winRateClass = winRate >= 60 ? 'win-rate-high' : (winRate >= 40 ? 'win-rate-medium' : 'win-rate-low');
+    return `
+        <div class='player-analysis'>
+            <div class='overall-stats mb-4'>
+                <h6>${heading}</h6>
+                ${name ? `<p class='mb-2'><span class='stat-label'>Name</span><span class='stat-value'>${name}</span></p>` : ''}
+                <div class='row row-cols-2 row-cols-md-4 g-2'>
+                    <div class='col'>
+                        <div class='card text-center h-100 py-2'>
+                            <p class='small text-muted mb-1'>Total Matches</p>
+                            <h6 class='mb-0'>${totalMatches}</h6>
+                        </div>
+                    </div>
+                    <div class='col'>
+                        <div class='card text-center h-100 py-2'>
+                            <p class='small text-muted mb-1'>Overall Record</p>
+                            <h6 class='mb-0'>${wins}-${losses}</h6>
+                        </div>
+                    </div>
+                    <div class='col'>
+                        <div class='card text-center h-100 py-2'>
+                            <p class='small text-muted mb-1'>Win Rate</p>
+                            <h6 class='mb-0 ${winRateClass}'>${winRate}%</h6>
+                        </div>
+                    </div>
+                    <div class='col'>
+                        <div class='card text-center h-100 py-2'>
+                            <p class='small text-muted mb-1'>PTI</p>
+                            <h6 class='mb-0'>${pti}</h6>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>`;
 } 
