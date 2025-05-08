@@ -15,7 +15,71 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Force hide sidebar on mobile when page loads
     forceMobileLayout();
+    
+    // Patch the showContent function if it exists
+    patchShowContentFunction();
+    
+    // Directly modify sidebar link behavior
+    modifySidebarLinkBehavior();
 });
+
+// Modify all sidebar links to explicitly close the sidebar on click
+function modifySidebarLinkBehavior() {
+    // Get all links in the sidebar
+    const sidebarLinks = document.querySelectorAll('.sidebar a, .sidebar .nav-item');
+    
+    sidebarLinks.forEach(link => {
+        // Store the original onclick handler if it exists
+        const originalOnClick = link.onclick;
+        
+        // Replace with our own handler that calls the original and then closes the sidebar
+        link.onclick = function(e) {
+            // Call the original handler if it exists
+            if (typeof originalOnClick === 'function') {
+                // If original handler returns false, we should respect that
+                const result = originalOnClick.call(this, e);
+                if (result === false) return false;
+            }
+            
+            // Only close the sidebar on mobile
+            if (window.innerWidth < 768) {
+                // Close the sidebar
+                closeSidebar();
+                console.log('Sidebar closed by modified link onclick handler');
+            }
+        };
+    });
+    
+    console.log('Modified all sidebar links to close sidebar on click');
+}
+
+// Patch the showContent function to ensure it closes the sidebar
+function patchShowContentFunction() {
+    // Wait a short time to ensure the original function is defined
+    setTimeout(function() {
+        if (typeof window.showContent === 'function') {
+            // Store the original function
+            const originalShowContent = window.showContent;
+            
+            // Replace it with our patched version
+            window.showContent = function(contentId) {
+                // Call the original function
+                originalShowContent(contentId);
+                
+                // Close the sidebar if in mobile view
+                if (window.innerWidth < 768) {
+                    closeSidebar();
+                    console.log('Sidebar closed by patched showContent function');
+                }
+            };
+            console.log('Successfully patched showContent function');
+        } else {
+            console.log('showContent function not found, will try again');
+            // Try again a bit later
+            setTimeout(patchShowContentFunction, 500);
+        }
+    }, 100);
+}
 
 // Force mobile layout if screen size is mobile
 function forceMobileLayout() {
@@ -63,6 +127,24 @@ function initializeMobileNavigation() {
     }
 }
 
+// Helper function to close the sidebar
+function closeSidebar() {
+    const sidebar = document.querySelector('.sidebar');
+    const sidebarOverlay = document.querySelector('.sidebar-overlay');
+    
+    if (sidebar && sidebarOverlay) {
+        sidebar.classList.remove('active');
+        sidebarOverlay.classList.remove('active');
+        document.body.classList.remove('sidebar-open');
+        
+        // Hide after transition
+        setTimeout(function() {
+            sidebar.style.display = 'none';
+            sidebar.setAttribute('aria-hidden', 'true');
+        }, 300);
+    }
+}
+
 // Add event listeners for responsive behavior
 function addResponsiveEventListeners() {
     // Toggle sidebar on mobile devices
@@ -90,36 +172,44 @@ function addResponsiveEventListeners() {
         });
         
         // Close sidebar when overlay is clicked
-        sidebarOverlay.addEventListener('click', function() {
-            sidebar.classList.remove('active');
-            sidebarOverlay.classList.remove('active');
-            document.body.classList.remove('sidebar-open');
-            
-            // Hide after transition
-            setTimeout(function() {
-                sidebar.style.display = 'none';
-                sidebar.setAttribute('aria-hidden', 'true');
-            }, 300);
-        });
+        sidebarOverlay.addEventListener('click', closeSidebar);
         
-        // Close sidebar when a navigation link is clicked
-        const navLinks = sidebar.querySelectorAll('.nav-item');
-        navLinks.forEach(link => {
-            link.addEventListener('click', function() {
+        // Close sidebar when ANY navigation link is clicked
+        // Target all clickable links in the sidebar, including section links
+        const allSidebarLinks = sidebar.querySelectorAll('a[href], .nav-item, .sidebar-nav a');
+        
+        allSidebarLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
                 if (window.innerWidth < 768) {
-                    sidebar.classList.remove('active');
-                    sidebarOverlay.classList.remove('active');
-                    document.body.classList.remove('sidebar-open');
-                    
-                    // Hide after transition
-                    setTimeout(function() {
-                        sidebar.style.display = 'none';
-                        sidebar.setAttribute('aria-hidden', 'true');
-                    }, 300);
+                    // Close the sidebar
+                    closeSidebar();
+                    console.log('Sidebar closed by link click');
                 }
             });
         });
     }
+    
+    // Add global document click handler for navigation links that might be dynamically added
+    document.addEventListener('click', function(e) {
+        // Check if we're in mobile view
+        if (window.innerWidth >= 768) return;
+        
+        // Check if the clicked element is a navigation link or inside the sidebar
+        const sidebar = document.querySelector('.sidebar');
+        if (!sidebar) return;
+        
+        // If click target is a link inside the sidebar or has class nav-item
+        const isNavLink = e.target.closest('.sidebar a') || 
+                          e.target.closest('.sidebar .nav-item') ||
+                          e.target.matches('.sidebar a') || 
+                          e.target.matches('.sidebar .nav-item');
+        
+        if (isNavLink) {
+            // Close the sidebar
+            closeSidebar();
+            console.log('Sidebar closed by global click handler');
+        }
+    });
     
     // Make tables responsive
     const tables = document.querySelectorAll('table:not(.table-responsive)');
@@ -241,5 +331,6 @@ function isMobileDevice() {
 window.responsiveUtils = {
     isMobileDevice: isMobileDevice,
     adjustContentHeights: adjustContentHeights,
-    forceMobileLayout: forceMobileLayout
+    forceMobileLayout: forceMobileLayout,
+    closeSidebar: closeSidebar
 }; 
