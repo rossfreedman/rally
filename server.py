@@ -26,7 +26,17 @@ from selenium import webdriver
 # Initialize database
 print("\n=== Initializing Database ===")
 try:
-    #init_db()
+    # Import the init_db function
+    from init_db import init_db
+    
+    # Check if database exists
+    db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
+    if not os.path.exists(db_path):
+        print(f"Database file not found at {db_path}, initializing now...")
+        init_db()
+    else:
+        print(f"Database file already exists at {db_path}")
+    
     print("Database initialized successfully!")
 except Exception as e:
     print(f"Error initializing database: {str(e)}")
@@ -3065,8 +3075,40 @@ def log_click():
 # Add a basic healthcheck endpoint
 @app.route('/health')
 def healthcheck():
-    """Basic healthcheck endpoint"""
-    return jsonify({'status': 'ok'}), 200
+    """Basic healthcheck endpoint that also verifies database connection"""
+    try:
+        # Test database connection
+        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        
+        # Try to execute a simple query
+        cursor.execute('SELECT 1')
+        result = cursor.fetchone()
+        conn.close()
+        
+        if result and result[0] == 1:
+            # Database connection successful
+            return jsonify({
+                'status': 'ok',
+                'database': 'connected',
+                'timestamp': datetime.now().isoformat()
+            }), 200
+        else:
+            return jsonify({
+                'status': 'error',
+                'message': 'Database query failed',
+                'timestamp': datetime.now().isoformat()
+            }), 500
+            
+    except Exception as e:
+        print(f"Healthcheck error: {str(e)}")
+        print(traceback.format_exc())
+        return jsonify({
+            'status': 'error',
+            'message': str(e),
+            'timestamp': datetime.now().isoformat()
+        }), 500
 
 @app.route('/api/team-matches')
 @login_required
