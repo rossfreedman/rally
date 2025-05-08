@@ -568,9 +568,18 @@ def serve_static(path):
 @app.route('/api/player-history')
 def get_player_history():
     import json
-    with open('data/series_22_player_history.json', 'r') as f:
-        data = json.load(f)
-    return jsonify(data)
+    import os
+    
+    # Use absolute path instead of relative path
+    file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'series_22_player_history.json')
+    
+    try:
+        with open(file_path, 'r') as f:
+            data = json.load(f)
+        return jsonify(data)
+    except Exception as e:
+        print(f"Error loading player history: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 # Protect all API routes except check-auth and login
 @app.route('/api/<path:path>', methods=['GET', 'POST'])
@@ -3093,9 +3102,27 @@ def get_team_matches():
 @app.route('/data/<path:filename>')
 def serve_data_file(filename):
     """Serve files from the data directory"""
+    print(f"=== /data/{filename} requested ===")
+    
     # Restrict to only serving .json files for security
     if not filename.endswith('.json'):
+        print(f"Request rejected - not a JSON file: {filename}")
         return "Not found", 404
+    
+    # Create the full path
+    data_path = os.path.join(app.root_path, 'data')
+    full_path = os.path.join(data_path, filename)
+    
+    # Check if the file exists
+    if not os.path.exists(full_path):
+        print(f"ERROR: File does not exist: {full_path}")
+        # List available files for debugging
+        try:
+            available_files = [f for f in os.listdir(data_path) if f.endswith('.json')]
+            print(f"Available JSON files in data directory: {available_files}")
+        except Exception as e:
+            print(f"Error listing data directory: {e}")
+        return "File not found", 404
     
     # Log the access
     if 'user' in session:
@@ -3106,6 +3133,7 @@ def serve_data_file(filename):
             details=f"File: {filename}"
         )
     
+    print(f"Serving data file: {filename}")
     # Return the file from the data directory
     return send_from_directory(os.path.join(app.root_path, 'data'), filename)
 
@@ -3173,27 +3201,41 @@ def player_court_stats(player_name):
     import os
     import json
     from collections import defaultdict, Counter
-
+    
+    print(f"=== /api/player-court-stats called for player: {player_name} ===")
+    
     json_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'tennis_matches_20250416.json')
+    print(f"Loading match data from: {json_path}")
+    
     try:
         with open(json_path, 'r') as f:
             matches = json.load(f)
+        print(f"Successfully loaded {len(matches)} matches")
     except Exception as e:
+        print(f"ERROR: Failed to load match data: {e}")
         return jsonify({"error": f"Failed to load match data: {e}"}), 500
 
     # Group matches by date
     matches_by_date = defaultdict(list)
     for match in matches:
         matches_by_date[match['Date']].append(match)
+    
+    print(f"Grouped matches for {len(matches_by_date)} different dates")
 
     # For each date, assign court number by order
     court_matches = defaultdict(list)  # court_num (1-based) -> list of matches for this player
+    player_match_count = 0
+    
     for date, day_matches in matches_by_date.items():
         for i, match in enumerate(day_matches):
             court_num = i + 1
             # Check if player is in this match
             if player_name in [match['Home Player 1'], match['Home Player 2'], match['Away Player 1'], match['Away Player 2']]:
                 court_matches[court_num].append(match)
+                player_match_count += 1
+    
+    print(f"Found {player_match_count} matches for player {player_name}")
+    print(f"Matches by court: {', '.join([f'Court {k}: {len(v)}' for k, v in court_matches.items()])}")
 
     # For each court, calculate stats
     result = {}
@@ -3229,7 +3271,7 @@ def player_court_stats(player_name):
                 partner_results[partner]['wins'] += 1
             else:
                 losses += 1
-
+                
         # Win rate
         win_rate = (wins / num_matches * 100) if num_matches > 0 else 0.0
         # Most common partners
@@ -3251,6 +3293,8 @@ def player_court_stats(player_name):
             'winRate': round(win_rate, 1),
             'partners': partner_list
         }
+    
+    print(f"Returning court stats for {player_name}: {len(result)} courts")
     return jsonify(result)
 
 @app.route('/api/research-my-team')

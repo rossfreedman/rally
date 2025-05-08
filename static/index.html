@@ -15,6 +15,9 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="/static/js/session.js"></script>
     <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+    <!-- Research Me Page specific script -->
+    <script src="/static/js/research-me.js?v=20250503"></script>
+    <script src="/static/js/fixed-research-me.js?v=20250503"></script>
     <style>
         :root {
             --primary-color: #2196F3;
@@ -2069,7 +2072,14 @@ Court 4: Player7/Player8</textarea>
 
                 // If switching to research-me, call a placeholder for future logic
                 if (contentId === 'research-me') {
-                    if (typeof loadResearchMe === 'function') loadResearchMe();
+                    // Use the fixed implementation instead of the original
+                    if (typeof window.fixedResearchMe !== 'undefined' && typeof window.fixedResearchMe.load === 'function') {
+                        window.fixedResearchMe.load();
+                    } else if (typeof loadResearchMe === 'function') {
+                        // Fallback to original implementation if fixed one is not available
+                        loadResearchMe();
+                    }
+                    
                     // Set the player name in the header
                     fetch('/api/check-auth').then(r=>r.json()).then(data=>{
                         if(data.authenticated && data.user) {
@@ -4164,126 +4174,28 @@ Court 4: Player7/Player8</textarea>
 
         // Optionally, add a placeholder function for future logic
         function loadResearchMe() {
-            // Placeholder for future 'Me' research logic
-        }
-
-        // Update loadResearchMe to show player analysis for the logged-in user
-        async function loadResearchMe() {
-            const statsContainer = document.getElementById('playerStats');
-            statsContainer.innerHTML = '<div class="text-center my-4">Loading player analysis...</div>';
-            try {
-                // Get logged in user
-                const authResp = await fetch('/api/check-auth');
-                const authData = await authResp.json();
-                if (!authData.authenticated) {
-                    statsContainer.innerHTML = '<div class="alert alert-danger">Not logged in.</div>';
-                    return;
+            // Use our fixed implementation that guarantees the court breakdown section appears
+            console.log("Main loadResearchMe called - using fixed implementation");
+            if (window.fixedResearchMe && typeof window.fixedResearchMe.load === 'function') {
+                window.fixedResearchMe.load();
+            } else {
+                console.error("Fixed implementation not available - falling back to original");
+                // Fall back to the original implementation if needed
+                if (window.researchMe && typeof window.researchMe.loadResearchMe === 'function') {
+                    window.researchMe.loadResearchMe();
                 }
-                const user = authData.user;
-                // Get all players
-                const resp = await fetch('/api/player-history');
-                const data = await resp.json();
-                // Find the player for the logged in user
-                const player = data.find(p => p.name.toLowerCase() === (`${user.first_name} ${user.last_name}`).toLowerCase());
-                if (!player) {
-                    statsContainer.innerHTML = '<div class="alert alert-warning">No player analysis available.</div>';
-                    return;
-                }
-                // Calculate total matches, wins, losses, win rate, PTI
-                const totalMatches = Array.isArray(player.matches) ? player.matches.length : (player.wins + player.losses);
-                const wins = player.wins ?? 0;
-                const losses = player.losses ?? 0;
-                const winRate = totalMatches > 0 ? ((wins / totalMatches) * 100).toFixed(1) : '0.0';
-                const pti = player.pti ?? player.rating ?? 'N/A';
-                function winRateClass(rate) {
-                    if (rate >= 60) return 'win-rate-high';
-                    if (rate >= 40) return 'win-rate-medium';
-                    return 'win-rate-low';
-                }
-                let html = `<div class='player-analysis'>
-                    <div class='overall-stats mb-4'>
-                        <h6>Overall Performance</h6>
-                        <p><span class='stat-label'>Total Matches</span><span class='stat-value'>${totalMatches}</span></p>
-                        <p><span class='stat-label'>Overall Record</span><span class='stat-value'>${wins}-${losses}</span></p>
-                        <p><span class='stat-label'>Win Rate</span><span class='stat-value ${winRateClass(winRate)}'>${winRate}%</span></p>
-                        <p><span class='stat-label'>PTI</span><span class='stat-value'>${pti}</span></p>
-                    </div>
-                    <!-- Static example court breakdown -->
-                    <div class="row g-3"><div class="col-md-6">
-                        <div class="court-card card h-100">
-                            <div class="card-body">
-                                <h6>Court 1</h6>
-                                <p><span class="stat-label">Matches</span><span class="stat-value">2</span></p>
-                                <p><span class="stat-label">Record</span><span class="stat-value">0-2</span></p>
-                                <p><span class="stat-label">Win Rate</span><span class="stat-value win-rate-low">0%</span></p><div class="partner-info mt-2">
-                                    <strong>Most Common Partners:</strong>
-                                    <ul class="partner-list"><li>Mike Lieberman (0-2, 0%)</li></ul></div></div></div></div><div class="col-md-6">
-                        <div class="court-card card h-100">
-                            <div class="card-body">
-                                <h6>Court 2</h6>
-                                <p><span class="stat-label">Matches</span><span class="stat-value">6</span></p>
-                                <p><span class="stat-label">Record</span><span class="stat-value">5-1</span></p>
-                                <p><span class="stat-label">Win Rate</span><span class="stat-value win-rate-high">83.3%</span></p><div class="partner-info mt-2">
-                                    <strong>Most Common Partners:</strong>
-                                    <ul class="partner-list"><li>Jonathan Blume (1-1, 50%)</li><li>Stephen Statkus (1-0, 100%)</li><li>Andrew Franger (1-0, 100%)</li></ul></div></div></div></div><div class="col-md-6">
-                        <div class="court-card card h-100">
-                            <div class="card-body">
-                                <h6>Court 3</h6>
-                                <p><span class="stat-label">Matches</span><span class="stat-value">4</span></p>
-                                <p><span class="stat-label">Record</span><span class="stat-value">2-2</span></p>
-                                <p><span class="stat-label">Win Rate</span><span class="stat-value win-rate-medium">50%</span></p><div class="partner-info mt-2">
-                                    <strong>Most Common Partners:</strong>
-                                    <ul class="partner-list"><li>Victor Forman (2-1, 66.7%)</li><li>Brian Stutland (0-1, 0%)</li></ul></div></div></div></div><div class="col-md-6">
-                        <div class="court-card card h-100">
-                            <div class="card-body">
-                                <h6>Court 4</h6>
-                                <p><span class="stat-label">Matches</span><span class="stat-value">0</span></p>
-                                <p><span class="stat-label">Record</span><span class="stat-value">0-0</span></p>
-                                <p><span class="stat-label">Win Rate</span><span class="stat-value win-rate-low">0%</span></p></div></div></div></div>
-                    <!-- End static example -->
-                    <div class='row g-3'>`;
-                if (player.courts) {
-                    Object.entries(player.courts).forEach(([court, stats]) => {
-                        const courtNum = court.replace('court', 'Court ');
-                        if (courtNum.trim().toLowerCase() === 'unknown') return;
-                        const courtLosses = stats.matches - stats.wins;
-                        const courtWinRate = stats.matches > 0 ? ((stats.wins / stats.matches) * 100).toFixed(1) : '0.0';
-                        html += `<div class='col-md-6'>
-                            <div class='court-card card h-100'>
-                                <div class='card-body'>
-                                    <h6>${courtNum}</h6>
-                                    <p><span class='stat-label'>Matches</span><span class='stat-value'>${stats.matches}</span></p>
-                                    <p><span class='stat-label'>Record</span><span class='stat-value'>${stats.wins}-${courtLosses}</span></p>
-                                    <p><span class='stat-label'>Win Rate</span><span class='stat-value ${winRateClass(courtWinRate)}'>${courtWinRate}%</span></p>`;
-                        if (stats.partners && stats.partners.length > 0) {
-                            html += `<div class='partner-info mt-2'>
-                                <strong>Most Common Partners:</strong>
-                                <ul class='partner-list'>`;
-                            stats.partners.forEach(ptn => {
-                                const partnerLosses = ptn.matches - ptn.wins;
-                                const partnerWinRate = ptn.matches > 0 ? ((ptn.wins / ptn.matches) * 100).toFixed(1) : '0.0';
-                                html += `<li>${ptn.name} (${ptn.wins}-${partnerLosses}, ${partnerWinRate}%)</li>`;
-                            });
-                            html += `</ul></div>`;
-                        }
-                        html += `</div></div></div>`;
-                    });
-                }
-                html += `</div></div>`;
-                // Add player history card
-                html += `<div class='card mt-4 player-history-card'>
-                    <div class='card-header bg-primary text-white'>
-                        <h5 class='mb-0'>Player History (Previous Seasons)</h5>
-                    </div>
-                    <div class='card-body' id='player-history-dynamic'></div>
-                </div>`;
-                statsContainer.innerHTML = html;
-                // After rendering, fetch and render player history
-                renderPlayerHistory(player.name);
-            } catch (error) {
-                statsContainer.innerHTML = '<div class="alert alert-danger">Error loading player analysis.</div>';
             }
         }
+
+        // Function has been moved to research-me.js
+        // Update loadResearchMe to show player analysis for the logged-in user
+        // REMOVED to avoid circular reference
+        /* 
+        async function loadResearchMe() {
+            window.researchMe.loadResearchMe();
+        }
+        */
+// ... existing code ...
 
         // Add function to load club dashboard data
         function loadClubDashboard() {
@@ -4392,7 +4304,8 @@ Court 4: Player7/Player8</textarea>
                         <ul class='partner-list'>`;
                     stats.partners.forEach(ptn => {
                         const partnerLosses = ptn.matches - ptn.wins;
-                        html += `<li>${ptn.name} (${ptn.wins}-${partnerLosses}, ${ptn.winRate}%)</li>`;
+                        const partnerWinRate = ptn.matches > 0 ? ((ptn.wins / ptn.matches) * 100).toFixed(1) : '0.0';
+                        html += `<li>${ptn.name} (${ptn.wins}-${partnerLosses}, ${partnerWinRate}%)</li>`;
                     });
                     html += `</ul></div>`;
                 }

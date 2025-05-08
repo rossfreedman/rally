@@ -1,0 +1,35 @@
+# General AI Behavior
+- Think step-by-step before proposing changes.
+- Always explain your thought process clearly and briefly before editing or suggesting code.
+- Confirm the goal of the task or user intent if ambiguous.
+- Minimize disruption to surrounding logic — avoid breaking existing functionality.
+- Always back up or checkpoint modified code (e.g., via comments or git commit suggestions).
+- Proactively suggest improvements to performance, readability, or structure if they are high-impact.
+
+# Code Style
+- Write modular, reusable code with a component-based mindset.
+- Follow PEP8 for Python, and Airbnb/Prettier style guides for JavaScript and React.
+- Use modern ES6+ syntax in JavaScript unless otherwise specified.
+- Prefer functional React components with hooks over class-based components.
+- Use clear naming conventions: avoid abbreviations, use snake_case in Python, camelCase in JS/React.
+
+# Documentation & Comments
+- Verbosely document all new functions, components, and complex logic.
+- In Python, use docstrings (Google-style or reStructuredText) for all functions and classes.
+- In JavaScript/React, use inline comments for complex logic and JSDoc for utility functions when appropriate.
+- Comment any refactors or non-obvious changes with rationale.
+
+# Project-Specific Practices
+- When working with Flask, maintain a clear separation of concerns between routes, logic, and templates.
+- When working with React, prioritize composability and avoid deeply nested components.
+- When suggesting backend changes, consider compatibility with Railway deployment (e.g., environment variables, file structure).
+- Use `.env` for sensitive configuration and remind me if hardcoding is detected.
+
+# Communication Style
+- Ask clarifying questions when unsure about instructions.
+- Use markdown formatting for code blocks, bullet points, and clear visual structure in explanations.
+- If you detect repeated patterns in the project, suggest refactoring opportunities proactively.
+
+# Safeguards
+- Remind me periodically to test my changes in a dev/staging environment.
+- If a change could introduce bugs or technical debt, flag it with a warning and suggest mitigation.
