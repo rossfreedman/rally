@@ -243,24 +243,37 @@
                 
                 if (clubsResponse.ok && seriesResponse.ok) {
                     const clubs = await clubsResponse.json();
-                    const series = await seriesResponse.json();
+                    const seriesData = await seriesResponse.json();
                     
                     const clubSelect = document.getElementById('club');
                     const seriesSelect = document.getElementById('series');
                     
-                    clubs.clubs.forEach(club => {
-                        const option = document.createElement('option');
-                        option.value = club;
-                        option.textContent = club;
-                        clubSelect.appendChild(option);
-                    });
+                    // Check if clubs has the expected structure
+                    if (clubs && clubs.clubs && Array.isArray(clubs.clubs)) {
+                        clubs.clubs.forEach(club => {
+                            const option = document.createElement('option');
+                            option.value = club;
+                            option.textContent = club;
+                            clubSelect.appendChild(option);
+                        });
+                    } else {
+                        console.warn('Unexpected clubs data structure:', clubs);
+                    }
                     
-                    series.series.forEach(s => {
-                        const option = document.createElement('option');
-                        option.value = s;
-                        option.textContent = s;
-                        seriesSelect.appendChild(option);
-                    });
+                    // Check for all_series property first, then try series property as fallback
+                    const seriesList = seriesData && seriesData.all_series ? seriesData.all_series : 
+                                     (seriesData && seriesData.series ? seriesData.series : []);
+                    
+                    if (Array.isArray(seriesList)) {
+                        seriesList.forEach(s => {
+                            const option = document.createElement('option');
+                            option.value = s;
+                            option.textContent = s;
+                            seriesSelect.appendChild(option);
+                        });
+                    } else {
+                        console.warn('Series list is not an array:', seriesList);
+                    }
                 }
             } catch (error) {
                 console.error('Error loading clubs and series:', error);
@@ -318,10 +331,13 @@
                     placeholderOption.selected = true;
                     seriesSelect.appendChild(placeholderOption);
                     
+                    // Try all_series first, then series as fallback
+                    const seriesList = data.all_series || data.series || [];
+                    
                     // Add series options
-                    if (data.all_series && Array.isArray(data.all_series)) {
-                        console.log('Adding series options:', data.all_series);
-                        data.all_series.forEach(series => {
+                    if (Array.isArray(seriesList)) {
+                        console.log('Adding series options:', seriesList);
+                        seriesList.forEach(series => {
                             const option = document.createElement('option');
                             option.value = series;
                             option.textContent = series;
@@ -345,7 +361,10 @@
             const authErrorContainer = document.getElementById('authErrorContainer');
             const authErrorMessage = document.getElementById('authErrorMessage');
             
+            console.log('Attempting login with email:', email);
+            
             try {
+                console.log('Sending login request...');
                 const response = await fetch('/api/login', {
                     method: 'POST',
                     headers: {
@@ -355,15 +374,29 @@
                     body: JSON.stringify({ email, password })
                 });
                 
+                console.log('Login response status:', response.status);
+                
                 if (response.ok) {
+                    console.log('Login successful, redirecting to homepage');
                     window.location.href = '/';
                 } else {
-                    const data = await response.json();
-                    authErrorMessage.textContent = data.error || 'Invalid email or password';
+                    console.error('Login failed with status:', response.status);
+                    let errorText = 'Invalid email or password';
+                    
+                    try {
+                        const errorData = await response.json();
+                        console.error('Server error message:', errorData);
+                        errorText = errorData.error || errorText;
+                    } catch (jsonError) {
+                        console.error('Failed to parse error response:', jsonError);
+                    }
+                    
+                    authErrorMessage.textContent = errorText;
                     authErrorContainer.classList.add('active');
                     errorMessage.style.display = 'none';
                 }
             } catch (error) {
+                console.error('Exception during login:', error);
                 authErrorMessage.textContent = 'An error occurred. Please try again.';
                 authErrorContainer.classList.add('active');
                 errorMessage.style.display = 'none';

@@ -454,8 +454,14 @@ def handle_login():
                 'series': user[6]
             }
             
-            # Log successful login
-            log_user_activity(email, 'auth', action='login', details='Successful login')
+            # Log successful login - wrapped in try/except to prevent it from breaking the login flow
+            try:
+                log_user_activity(email, 'auth', action='login', details='Successful login')
+                print("Successfully logged login activity")
+            except Exception as log_error:
+                print(f"Warning: Failed to log login activity: {str(log_error)}")
+                print(traceback.format_exc())
+                # Continue with the login process even if logging fails
             
             # Create response with properly configured session cookie
             response = jsonify({'status': 'success'})
@@ -666,15 +672,48 @@ def get_series():
     try:
         print("\n=== GET SERIES REQUEST ===")
         print("Connecting to database...")
-        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
+        conn = None
+        series_list = []
         
-        # Get all series from the database
-        print("Executing SQL query...")
-        cursor.execute('SELECT name FROM series ORDER BY name')
-        series_list = [row[0] for row in cursor.fetchall()]
-        conn.close()
+        try:
+            db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
+            conn = sqlite3.connect(db_path)
+            cursor = conn.cursor()
+            
+            # Check if the series table exists
+            cursor.execute('''
+                SELECT name FROM sqlite_master 
+                WHERE type='table' AND name='series'
+            ''')
+            table_exists = cursor.fetchone() is not None
+            
+            if not table_exists:
+                print("WARNING: series table does not exist, returning empty list")
+                # Return a fallback response when the table doesn't exist
+                response_data = {
+                    'series': selected_series,
+                    'club': selected_club,
+                    'all_series': []
+                }
+                return jsonify(response_data)
+            
+            # Get all series from the database
+            print("Executing SQL query...")
+            cursor.execute('SELECT name FROM series ORDER BY name')
+            series_list = [row[0] for row in cursor.fetchall()]
+        except sqlite3.Error as db_error:
+            print(f"Database error: {str(db_error)}")
+            print(traceback.format_exc())
+            # Return a fallback response in case of database error
+            response_data = {
+                'series': selected_series,
+                'club': selected_club,
+                'all_series': []
+            }
+            return jsonify(response_data)
+        finally:
+            if conn:
+                conn.close()
         
         print(f"\nCurrent series: {selected_series}")
         print(f"Available series: {series_list}")
@@ -698,7 +737,14 @@ def get_series():
     except Exception as e:
         print(f"\nError getting series: {str(e)}")
         print("Full error:", traceback.format_exc())
-        return jsonify({'error': str(e)}), 500
+        
+        # Return a minimal response even in case of error
+        fallback_response = {
+            'series': 'Chicago 22',  # Default fallback value
+            'club': 'Tennaqua - 22',  # Default fallback value
+            'all_series': []
+        }
+        return jsonify(fallback_response)
 
 @app.route('/get-players-series-22', methods=['GET'])
 def get_players_series_22():
@@ -1575,16 +1621,43 @@ def get_availability():
 @app.route('/api/get-clubs', methods=['GET'])
 def get_clubs():
     try:
-        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
-        cursor.execute('SELECT name FROM clubs ORDER BY name')
-        clubs = [row[0] for row in cursor.fetchall()]
-        conn.close()
-        return jsonify({'clubs': clubs})
+        print("\n=== GET CLUBS REQUEST ===")
+        conn = None
+        clubs_list = []
+        
+        try:
+            db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
+            conn = sqlite3.connect(db_path)
+            cursor = conn.cursor()
+            
+            # Check if the clubs table exists
+            cursor.execute('''
+                SELECT name FROM sqlite_master 
+                WHERE type='table' AND name='clubs'
+            ''')
+            table_exists = cursor.fetchone() is not None
+            
+            if not table_exists:
+                print("WARNING: clubs table does not exist, returning empty list")
+                return jsonify({'clubs': []})
+            
+            # Get clubs from database
+            cursor.execute('SELECT name FROM clubs ORDER BY name')
+            clubs_list = [row[0] for row in cursor.fetchall()]
+            print(f"Found {len(clubs_list)} clubs")
+        except sqlite3.Error as db_error:
+            print(f"Database error: {str(db_error)}")
+            print(traceback.format_exc())
+            return jsonify({'clubs': []})  # Return empty list on error
+        finally:
+            if conn:
+                conn.close()
+        
+        return jsonify({'clubs': clubs_list})
     except Exception as e:
         print(f"Error getting clubs: {str(e)}")
-        return jsonify({'error': 'An error occurred while fetching clubs'}), 500
+        print(traceback.format_exc())
+        return jsonify({'clubs': []})  # Return empty list on any error
 
 @app.route('/api/check-auth')
 def check_auth():
@@ -2720,6 +2793,31 @@ def log_user_activity(user_email, activity_type, page=None, action=None, details
         conn = sqlite3.connect(db_path)
         cursor = conn.cursor()
         try:
+            # Check if the user_activity_logs table exists
+            cursor.execute('''
+                SELECT name FROM sqlite_master 
+                WHERE type='table' AND name='user_activity_logs'
+            ''')
+            table_exists = cursor.fetchone() is not None
+            
+            # Create the table if it doesn't exist
+            if not table_exists:
+                print("Creating user_activity_logs table")
+                cursor.execute('''
+                    CREATE TABLE user_activity_logs (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        user_email TEXT NOT NULL,
+                        activity_type TEXT NOT NULL,
+                        page TEXT,
+                        action TEXT,
+                        details TEXT,
+                        ip_address TEXT,
+                        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+                    )
+                ''')
+                conn.commit()
+                print("Created user_activity_logs table successfully")
+            
             # Get IP address from request if available
             ip_address = request.remote_addr if request else None
             # print(f"IP Address: {ip_address}")
