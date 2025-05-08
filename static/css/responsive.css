@@ -1,0 +1,354 @@
+/* Rally - Responsive Design Stylesheet */
+
+/* Base Mobile-First Responsive Framework */
+:root {
+  --primary-color: #2196F3;
+  --sidebar-bg: #f8f9fa;
+  --border-color: #dee2e6;
+  --text-color: #333;
+  --hover-color: #e9ecef;
+  --background-glass: rgba(255,255,255,0.15);
+  --glass-blur: blur(16px);
+  --card-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.18);
+  --card-border: 1.5px solid rgba(255,255,255,0.25);
+  --modern-font: 'Inter', 'Segoe UI', 'Roboto', Arial, sans-serif;
+  --icon-color: #00E1D3;
+  --sidebar-width-desktop: 260px;
+  --sidebar-width-tablet: 240px;
+  --navbar-height: 80px; 
+  --mobile-breakpoint: 768px;
+  --tablet-breakpoint: 992px;
+}
+
+/* Mobile first design - these are base styles for all devices */
+body {
+  padding-top: var(--navbar-height);
+  margin: 0;
+  overflow-x: hidden;
+  font-size: 16px;
+  display: block; /* Override flex display initially for mobile */
+}
+
+/* Navbar Mobile Styling */
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1030;
+  padding: 0.5rem 1rem;
+  height: var(--navbar-height);
+}
+
+.navbar-brand img {
+  max-height: 50px;
+  width: auto;
+}
+
+/* Mobile Sidebar Toggle Button */
+.sidebar-toggle {
+  display: block;
+  cursor: pointer;
+  font-size: 1.5rem;
+  background: none;
+  border: none;
+  color: var(--text-color);
+  padding: 0.25rem 0.5rem;
+  margin-right: 0.5rem;
+}
+
+/* Mobile Sidebar (initially hidden) */
+.sidebar {
+  position: fixed;
+  top: var(--navbar-height);
+  left: -100%;
+  width: 80%;
+  max-width: 300px;
+  height: calc(100vh - var(--navbar-height));
+  background-color: var(--sidebar-bg);
+  overflow-y: auto;
+  transition: left 0.3s ease;
+  z-index: 1020;
+  box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+}
+
+.sidebar.active {
+  left: 0;
+}
+
+/* Sidebar overlay for mobile */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  top: var(--navbar-height);
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0,0,0,0.5);
+  z-index: 1010;
+}
+
+.sidebar-overlay.active {
+  display: block;
+}
+
+/* Adjust main content for mobile */
+.main-content {
+  width: 100%;
+  margin-left: 0;
+  padding: 15px;
+  transition: margin-left 0.3s ease;
+}
+
+/* Make cards full width on mobile */
+.dashboard-cards {
+  display: block; /* Override grid display for mobile */
+  padding: 15px;
+}
+
+.card {
+  margin-bottom: 20px;
+  width: 100%;
+}
+
+/* Responsive tables for mobile */
+.table-responsive {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.availability-table {
+  overflow-x: auto;
+}
+
+.availability-table table {
+  min-width: 800px; /* Ensure the table can scroll horizontally on mobile */
+}
+
+/* Form Elements Responsiveness */
+.form-control, .form-select, .btn {
+  font-size: 1rem;
+  padding: 0.375rem 0.75rem;
+}
+
+/* Responsive content headers */
+.content-header {
+  padding: 15px;
+  margin-bottom: 20px;
+}
+
+.content-header h1 {
+  font-size: 1.75rem;
+}
+
+.content-header p {
+  font-size: 1rem;
+}
+
+/* Adjust chat interface for mobile */
+.chat-card {
+  height: calc(100vh - 130px);
+}
+
+.chat-messages {
+  padding: 15px;
+}
+
+.chat-input {
+  padding: 10px;
+}
+
+.message {
+  max-width: 90%;
+  padding: 10px;
+  margin-bottom: 5px;
+}
+
+/* Responsive lineup card */
+.lineup-container .row {
+  margin-left: 0;
+  margin-right: 0;
+}
+
+/* Improve scrolling in mobile tables */
+.table-responsive::-webkit-scrollbar {
+  height: 6px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 3px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Tablet styles (768px and up) */
+@media (min-width: 768px) {
+  .sidebar {
+    width: var(--sidebar-width-tablet);
+    left: 0;
+    box-shadow: none;
+  }
+  
+  .sidebar-toggle {
+    display: none;
+  }
+  
+  .main-content {
+    margin-left: var(--sidebar-width-tablet);
+    width: calc(100% - var(--sidebar-width-tablet));
+    padding: 20px;
+  }
+  
+  .dashboard-cards {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+    padding: 15px;
+  }
+  
+  .content-header {
+    padding: 20px;
+    margin-bottom: 25px;
+  }
+  
+  .content-header h1 {
+    font-size: 1.85rem;
+  }
+  
+  body {
+    display: flex;
+  }
+  
+  .sidebar-overlay {
+    display: none !important;
+  }
+}
+
+/* Desktop styles (992px and up) */
+@media (min-width: 992px) {
+  .sidebar {
+    width: var(--sidebar-width-desktop);
+  }
+  
+  .main-content {
+    margin-left: var(--sidebar-width-desktop);
+    width: calc(100% - var(--sidebar-width-desktop));
+    padding: 20px;
+  }
+  
+  .dashboard-cards {
+    grid-template-columns: 1fr 1fr;
+  }
+  
+  .content-header {
+    padding: 25px;
+    margin-bottom: 30px;
+  }
+  
+  .content-header h1 {
+    font-size: 2rem;
+  }
+}
+
+/* Large Desktop styles (1200px and up) */
+@media (min-width: 1200px) {
+  .main-content {
+    padding: 30px;
+  }
+  
+  .content-header {
+    padding: 30px;
+  }
+  
+  .dashboard-cards {
+    gap: 30px;
+  }
+}
+
+/* Fix for dashboard cards on all screen sizes */
+.dashboard-cards .card {
+  width: 100%;
+  height: calc(90vh - 130px);
+}
+
+/* Fix for lineup in mobile view */
+@media (max-width: 767px) {
+  .lineup-container .col-md-6 {
+    margin-bottom: 15px;
+  }
+  
+  .chat-card, 
+  .schedule-list {
+    max-height: 500px;
+    overflow-y: auto;
+  }
+}
+
+/* Specific Mobile Fixes */
+@media (max-width: 767px) {
+  /* Fix for navbar components */
+  .navbar .navbar-collapse {
+    max-height: calc(100vh - var(--navbar-height));
+    overflow-y: auto;
+  }
+  
+  /* Improve readability of tables */
+  .table {
+    font-size: 0.875rem;
+  }
+  
+  /* Make buttons easier to tap */
+  .btn {
+    padding: 0.5rem 0.75rem;
+    font-size: 1rem;
+  }
+  
+  /* Smaller headings on mobile */
+  .card-header h5 {
+    font-size: 1.1rem;
+  }
+  
+  /* Remove or reduce unnecessary padding and margins */
+  .card-body {
+    padding: 1rem;
+  }
+  
+  /* Ensure dropdowns appear above other elements */
+  .dropdown-menu {
+    position: fixed !important;
+    max-height: 50vh;
+    overflow-y: auto;
+  }
+  
+  /* Make modals more mobile-friendly */
+  .modal-dialog {
+    margin: 0.5rem;
+  }
+  
+  /* Improve spacing in forms */
+  .form-group {
+    margin-bottom: 0.75rem;
+  }
+  
+  /* Ensure inputs are large enough to tap */
+  input, select, textarea {
+    font-size: 16px !important; /* Prevents iOS zoom on focus */
+  }
+}
+
+/* Safari specific fix */
+@supports (-webkit-touch-callout: none) {
+  .chat-card, .schedule-list {
+    height: -webkit-fill-available;
+  }
+} 
