@@ -89,13 +89,12 @@ active_threads = {}
 app = Flask(__name__, static_folder='static', static_url_path='/static')
 app.secret_key = os.getenv('FLASK_SECRET_KEY', 'your-secret-key-here')  # Change this in production
 
-# Configure session settings
+# Restore session config to match last known working backup
 app.config.update(
-    SESSION_COOKIE_SECURE=os.getenv('DISABLE_SECURE_COOKIES', 'false').lower() != 'true',  # Set to True for production with HTTPS, can be disabled in dev
+    SESSION_COOKIE_SECURE=True,  # Set to True for production with HTTPS (was working for you before)
     SESSION_COOKIE_HTTPONLY=True,
-    SESSION_COOKIE_SAMESITE='None',  # Changed from 'Lax' to 'None' for cross-site requests
-    PERMANENT_SESSION_LIFETIME=3600,  # 1 hour
-    SESSION_COOKIE_DOMAIN=os.getenv('SESSION_COOKIE_DOMAIN', None)  # Set dynamically from environment
+    SESSION_COOKIE_SAMESITE='Lax',
+    PERMANENT_SESSION_LIFETIME=3600  # 1 hour
 )
 
 CORS(app, resources={
@@ -457,29 +456,8 @@ def handle_login():
             # Log successful login
             log_user_activity(email, 'auth', action='login', details='Successful login')
             
-            # Create response with properly configured session cookie
+            # Create response with session cookie settings
             response = jsonify({'status': 'success'})
-            
-            # Set the correct domain for the cookie - important for cross-origin requests
-            domain = os.getenv('SESSION_COOKIE_DOMAIN', None)
-            secure = os.getenv('DISABLE_SECURE_COOKIES', 'false').lower() != 'true'
-            
-            # Get the session cookie
-            session_cookie_name = app.session_cookie_name
-            session_cookie = request.cookies.get(session_cookie_name)
-            
-            if session_cookie:
-                # Explicitly set the cookie with correct settings
-                response.set_cookie(
-                    session_cookie_name, 
-                    session_cookie,
-                    max_age=3600,  # 1 hour
-                    domain=domain,
-                    secure=secure,
-                    httponly=True,
-                    samesite='None'  # Important for cross-origin
-                )
-            
             return response
             
         finally:
