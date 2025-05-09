@@ -480,4 +480,9 @@
 .date-header.practice-day {
     background: #f3f3f3 !important;
     color: #333 !important;
+}
+
+/* Force all sidebar links to white */
+.sidebar a, .sidebar a:visited, .sidebar a:active, .sidebar a:hover {
+    color: white !important;
 } 

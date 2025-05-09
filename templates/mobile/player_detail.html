@@ -1,0 +1,324 @@
+{% extends "mobile/layout.html" %}
+
+{% block content %}
+<div class="flex items-center mb-4">
+    <a href="/mobile/rankings" class="btn btn-circle btn-ghost mr-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+        </svg>
+    </a>
+    <h1 class="text-2xl font-bold">Player Details</h1>
+</div>
+
+<div class="card bg-base-100 shadow-xl mb-6">
+    <div class="card-body">
+        <div id="player-profile-loading">
+            <div class="skeleton h-8 w-48 mb-2"></div>
+            <div class="skeleton h-4 w-32 mb-1"></div>
+            <div class="skeleton h-4 w-24"></div>
+        </div>
+        
+        <div id="player-profile" class="hidden">
+            <h2 class="card-title text-xl font-bold" id="player-name"></h2>
+            <p class="text-sm mb-1" id="player-club"></p>
+            <p class="text-sm" id="player-team"></p>
+            
+            <div class="stats stats-vertical lg:stats-horizontal shadow mt-4 w-full">
+                <div class="stat">
+                    <div class="stat-title">Rating</div>
+                    <div class="stat-value text-primary" id="player-rating">-</div>
+                </div>
+                
+                <div class="stat">
+                    <div class="stat-title">Win Rate</div>
+                    <div class="stat-value text-accent" id="player-win-rate">-</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="tabs tabs-boxed mb-4">
+    <a class="tab tab-active" id="tab-stats" onclick="switchTab('stats')">Stats</a>
+    <a class="tab" id="tab-history" onclick="switchTab('history')">Match History</a>
+    <a class="tab" id="tab-partners" onclick="switchTab('partners')">Partners</a>
+</div>
+
+<div id="stats-content">
+    <div class="card bg-base-100 shadow-xl mb-6">
+        <div class="card-body">
+            <h3 class="card-title text-lg">Performance by Court</h3>
+            <div class="overflow-x-auto">
+                <table class="table w-full">
+                    <thead>
+                        <tr>
+                            <th>Court</th>
+                            <th class="text-center">Matches</th>
+                            <th class="text-center">Win Rate</th>
+                        </tr>
+                    </thead>
+                    <tbody id="court-stats-table">
+                        <tr class="court-loading">
+                            <td><div class="skeleton h-4 w-16"></div></td>
+                            <td class="text-center"><div class="skeleton h-4 w-8 mx-auto"></div></td>
+                            <td class="text-center"><div class="skeleton h-4 w-16 mx-auto"></div></td>
+                        </tr>
+                        <tr class="court-loading">
+                            <td><div class="skeleton h-4 w-16"></div></td>
+                            <td class="text-center"><div class="skeleton h-4 w-8 mx-auto"></div></td>
+                            <td class="text-center"><div class="skeleton h-4 w-16 mx-auto"></div></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="history-content" class="hidden">
+    <div class="card bg-base-100 shadow-xl mb-6">
+        <div class="card-body">
+            <h3 class="card-title text-lg">Recent Matches</h3>
+            <div id="match-history-list">
+                <div class="skeleton h-20 w-full mb-2"></div>
+                <div class="skeleton h-20 w-full mb-2"></div>
+                <div class="skeleton h-20 w-full"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="partners-content" class="hidden">
+    <div class="card bg-base-100 shadow-xl mb-6">
+        <div class="card-body">
+            <h3 class="card-title text-lg">Frequent Partners</h3>
+            <div class="overflow-x-auto">
+                <table class="table w-full">
+                    <thead>
+                        <tr>
+                            <th>Partner</th>
+                            <th class="text-center">Matches</th>
+                            <th class="text-center">Win Rate</th>
+                        </tr>
+                    </thead>
+                    <tbody id="partners-table">
+                        <tr class="partner-loading">
+                            <td><div class="skeleton h-4 w-32"></div></td>
+                            <td class="text-center"><div class="skeleton h-4 w-8 mx-auto"></div></td>
+                            <td class="text-center"><div class="skeleton h-4 w-16 mx-auto"></div></td>
+                        </tr>
+                        <tr class="partner-loading">
+                            <td><div class="skeleton h-4 w-32"></div></td>
+                            <td class="text-center"><div class="skeleton h-4 w-8 mx-auto"></div></td>
+                            <td class="text-center"><div class="skeleton h-4 w-16 mx-auto"></div></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const playerId = "{{ player_id }}";
+        loadPlayerData(playerId);
+    });
+    
+    function switchTab(tab) {
+        // Update tab active states
+        document.getElementById('tab-stats').classList.remove('tab-active');
+        document.getElementById('tab-history').classList.remove('tab-active');
+        document.getElementById('tab-partners').classList.remove('tab-active');
+        document.getElementById('tab-' + tab).classList.add('tab-active');
+        
+        // Show/hide content
+        document.getElementById('stats-content').classList.add('hidden');
+        document.getElementById('history-content').classList.add('hidden');
+        document.getElementById('partners-content').classList.add('hidden');
+        document.getElementById(tab + '-content').classList.remove('hidden');
+    }
+    
+    function loadPlayerData(playerId) {
+        // Fetch player data
+        fetch(`/api/player/${playerId}`)
+            .then(response => response.json())
+            .then(player => {
+                // Update player profile
+                document.getElementById('player-name').textContent = player.name;
+                document.getElementById('player-club').textContent = `Club: ${player.club || 'N/A'}`;
+                document.getElementById('player-team').textContent = `Team: ${player.team || 'N/A'}`;
+                document.getElementById('player-rating').textContent = player.rating ? player.rating.toFixed(1) : '-';
+                document.getElementById('player-win-rate').textContent = player.winRate ? `${player.winRate}%` : '-';
+                
+                // Show profile
+                document.getElementById('player-profile-loading').classList.add('hidden');
+                document.getElementById('player-profile').classList.remove('hidden');
+                
+                // Load court stats
+                loadCourtStats(player.name);
+                
+                // Load match history
+                loadMatchHistory(player.name);
+                
+                // Load partners
+                loadPartners(player.name);
+            })
+            .catch(error => {
+                console.error('Error loading player data:', error);
+            });
+    }
+    
+    function loadCourtStats(playerName) {
+        fetch(`/api/player-court-stats/${encodeURIComponent(playerName)}`)
+            .then(response => response.json())
+            .then(data => {
+                const tableBody = document.getElementById('court-stats-table');
+                
+                // Remove loading rows
+                document.querySelectorAll('.court-loading').forEach(row => row.remove());
+                
+                // Add data rows
+                for (let i = 1; i <= 4; i++) {
+                    const courtData = data[`court${i}`] || { matches: 0, winRate: 0 };
+                    
+                    if (courtData.matches > 0) {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>Court ${i}</td>
+                            <td class="text-center">${courtData.matches}</td>
+                            <td class="text-center">${courtData.winRate}%</td>
+                        `;
+                        tableBody.appendChild(row);
+                    }
+                }
+                
+                // If no court data
+                if (tableBody.children.length === 0) {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td colspan="3" class="text-center">No court data available</td>
+                    `;
+                    tableBody.appendChild(row);
+                }
+            })
+            .catch(error => {
+                console.error('Error loading court stats:', error);
+            });
+    }
+    
+    function loadMatchHistory(playerName) {
+        fetch(`/api/player-history/${encodeURIComponent(playerName)}`)
+            .then(response => response.json())
+            .then(matches => {
+                const historyList = document.getElementById('match-history-list');
+                historyList.innerHTML = '';
+                
+                if (matches.length === 0) {
+                    historyList.innerHTML = '<div class="text-center py-4">No match history available</div>';
+                    return;
+                }
+                
+                // Show most recent 5 matches
+                const recentMatches = matches.slice(0, 5);
+                
+                recentMatches.forEach(match => {
+                    const matchDate = new Date(match.date);
+                    const formattedDate = matchDate.toLocaleDateString('en-US', { 
+                        month: 'short', 
+                        day: 'numeric' 
+                    });
+                    
+                    const isHome = match.home_player1 === playerName || match.home_player2 === playerName;
+                    const didWin = (isHome && match.winner === 'home') || (!isHome && match.winner === 'away');
+                    
+                    const matchCard = document.createElement('div');
+                    matchCard.className = `card bg-base-200 mb-2 ${didWin ? 'border-l-4 border-success' : 'border-l-4 border-error'}`;
+                    
+                    matchCard.innerHTML = `
+                        <div class="card-body p-3">
+                            <div class="flex justify-between items-center">
+                                <span class="text-sm font-semibold">${formattedDate}</span>
+                                <span class="badge ${didWin ? 'badge-success' : 'badge-error'}">${didWin ? 'Win' : 'Loss'}</span>
+                            </div>
+                            <div class="text-sm mt-1">
+                                <span class="font-medium">${match.home_player1} / ${match.home_player2}</span> vs 
+                                <span class="font-medium">${match.away_player1} / ${match.away_player2}</span>
+                            </div>
+                            <div class="text-xs opacity-60 mt-1">${match.location || 'Unknown location'}</div>
+                        </div>
+                    `;
+                    
+                    historyList.appendChild(matchCard);
+                });
+            })
+            .catch(error => {
+                console.error('Error loading match history:', error);
+            });
+    }
+    
+    function loadPartners(playerName) {
+        // This could use a new API endpoint or re-use the court stats endpoint
+        fetch(`/api/player-court-stats/${encodeURIComponent(playerName)}`)
+            .then(response => response.json())
+            .then(data => {
+                const tableBody = document.getElementById('partners-table');
+                
+                // Remove loading rows
+                document.querySelectorAll('.partner-loading').forEach(row => row.remove());
+                
+                // Collect all partners across courts
+                const allPartners = {};
+                
+                for (let i = 1; i <= 4; i++) {
+                    const courtData = data[`court${i}`] || { partners: [] };
+                    
+                    courtData.partners?.forEach(partner => {
+                        if (!allPartners[partner.name]) {
+                            allPartners[partner.name] = {
+                                matches: 0,
+                                wins: 0
+                            };
+                        }
+                        
+                        allPartners[partner.name].matches += partner.matches;
+                        allPartners[partner.name].wins += partner.wins;
+                    });
+                }
+                
+                // Convert to array and sort
+                const sortedPartners = Object.entries(allPartners)
+                    .map(([name, stats]) => ({
+                        name,
+                        matches: stats.matches,
+                        wins: stats.wins,
+                        winRate: Math.round((stats.wins / stats.matches) * 100)
+                    }))
+                    .sort((a, b) => b.matches - a.matches);
+                
+                // Add data rows
+                sortedPartners.forEach(partner => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${partner.name}</td>
+                        <td class="text-center">${partner.matches}</td>
+                        <td class="text-center">${partner.winRate}%</td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+                
+                // If no partners
+                if (sortedPartners.length === 0) {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td colspan="3" class="text-center">No partner data available</td>
+                    `;
+                    tableBody.appendChild(row);
+                }
+            })
+            .catch(error => {
+                console.error('Error loading partners:', error);
+            });
+    }
+</script>
+{% endblock %} 

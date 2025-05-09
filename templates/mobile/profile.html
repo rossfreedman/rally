@@ -1,0 +1,101 @@
+{% extends "mobile/layout.html" %}
+
+{% block content %}
+<h1 class="text-2xl font-bold mb-4">My Profile</h1>
+
+<div class="card bg-base-100 shadow-xl mb-6">
+    <div class="card-body">
+        <div class="skeleton h-8 w-32 mb-2" id="profile-name-skeleton"></div>
+        <div class="skeleton h-4 w-64 mb-1" id="profile-email-skeleton"></div>
+        <div class="skeleton h-4 w-48 mb-1" id="profile-club-skeleton"></div>
+        <div class="skeleton h-4 w-40" id="profile-team-skeleton"></div>
+        
+        <div id="profile-info" class="hidden">
+            <h2 class="card-title text-xl font-bold" id="profile-name"></h2>
+            <p class="text-sm mb-1" id="profile-email"></p>
+            <p class="text-sm mb-1" id="profile-club"></p>
+            <p class="text-sm" id="profile-team"></p>
+        </div>
+    </div>
+</div>
+
+<div class="divider">Statistics</div>
+
+<div class="grid grid-cols-2 gap-4 mb-6">
+    <div class="stat bg-base-100 shadow rounded-box">
+        <div class="stat-title">Win Rate</div>
+        <div class="stat-value text-primary" id="win-rate">-</div>
+        <div class="stat-desc" id="win-rate-desc">-</div>
+    </div>
+    <div class="stat bg-base-100 shadow rounded-box">
+        <div class="stat-title">Matches</div>
+        <div class="stat-value text-secondary" id="match-count">-</div>
+        <div class="stat-desc" id="match-count-desc">-</div>
+    </div>
+</div>
+
+<div class="divider">Actions</div>
+
+<div class="grid grid-cols-1 gap-4">
+    <a href="/mobile/lineup" class="btn btn-primary">Create Lineup</a>
+    <a href="/mobile/availability" class="btn btn-secondary">Update Availability</a>
+    <a href="/mobile/settings" class="btn btn-accent">Settings</a>
+    <button class="btn btn-outline btn-error" onclick="logout()">Logout</button>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        if (window.sessionData && window.sessionData.user) {
+            const user = window.sessionData.user;
+            
+            // Update profile info
+            document.getElementById('profile-name').textContent = user.name || 'Unknown Name';
+            document.getElementById('profile-email').textContent = user.email || 'Unknown Email';
+            document.getElementById('profile-club').textContent = `Club: ${user.club || 'Unknown'}`;
+            document.getElementById('profile-team').textContent = `Team: ${user.team || 'Not assigned'}`;
+            
+            // Hide skeletons and show profile
+            document.getElementById('profile-name-skeleton').classList.add('hidden');
+            document.getElementById('profile-email-skeleton').classList.add('hidden');
+            document.getElementById('profile-club-skeleton').classList.add('hidden');
+            document.getElementById('profile-team-skeleton').classList.add('hidden');
+            document.getElementById('profile-info').classList.remove('hidden');
+            
+            // Fetch player statistics
+            fetchPlayerStats(user.id || user.email);
+        }
+    });
+    
+    function fetchPlayerStats(playerId) {
+        // Fetch player statistics from the API
+        fetch(`/api/player-stats/${playerId}`)
+            .then(response => response.json())
+            .then(data => {
+                // Update stats
+                document.getElementById('win-rate').textContent = data.winRate ? `${data.winRate}%` : '0%';
+                document.getElementById('win-rate-desc').textContent = `${data.wins || 0} wins, ${data.losses || 0} losses`;
+                
+                document.getElementById('match-count').textContent = data.matches || '0';
+                document.getElementById('match-count-desc').textContent = `${data.matchesThisMonth || 0} this month`;
+            })
+            .catch(error => {
+                console.error('Error fetching player stats:', error);
+            });
+    }
+    
+    function logout() {
+        fetch('/api/logout', {
+            method: 'POST',
+            credentials: 'same-origin'
+        })
+        .then(response => {
+            if (response.ok) {
+                window.location.href = '/login';
+            }
+        })
+        .catch(error => {
+            console.error('Error during logout:', error);
+        });
+    }
+</script>
+{% endblock %} 

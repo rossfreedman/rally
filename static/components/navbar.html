@@ -1,32 +1,17 @@
-<!-- Mobile-optimized navbar -->
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
     <div class="container-fluid">
-        <!-- Mobile sidebar toggle button - THE ONLY VISIBLE HAMBURGER -->
-        <button id="sidebar-toggler" class="sidebar-toggler me-2" 
-            style="display: block !important; color: white; background: transparent; 
-                   border: none; font-size: 1.5rem; cursor: pointer; padding: 12px; min-width: 50px; min-height: 50px;
-                   position: relative; z-index: 9999; touch-action: manipulation; outline: none;"
-            aria-label="Toggle navigation menu">
-            <i class="fas fa-bars" style="margin-right: 0; display: block; font-size: 24px;"></i>
+        <a class="navbar-brand" href="/"></a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
         </button>
-        
-        <!-- Extra touch target overlay for hamburger menu - simplified -->
-        <div id="hamburger-touch-target" 
-             style="position: absolute; left: 0; top: 0; width: 70px; height: 60px; 
-                    z-index: 9997; background-color: transparent; cursor: pointer;">
-        </div>
-        
-        <!-- Logo - Centered on mobile, left-aligned on desktop -->
-        <a class="navbar-brand mx-auto mx-lg-0" href="#" onclick="showContent('create-lineup'); return false;">
-            <img src="/static/rallylogo.png" alt="Rally Logo" height="30">
-        </a>
-        
-        <!-- NO ADDITIONAL HAMBURGER MENU NEEDED -->
-        
-        <!-- Navbar content - auto expanded on desktop -->
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav me-auto">
-                <!-- Home and Admin links removed -->
+                <li class="nav-item">
+                    <a class="nav-link" href="/">Home</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" href="/admin">Admin</a>
+                </li>
             </ul>
             <ul class="navbar-nav">
                 <li class="nav-item">
@@ -43,11 +28,7 @@
     </div>
 </nav>
 
-<!-- Sidebar overlay for mobile -->
-<div class="sidebar-overlay" id="sidebar-overlay"></div>
-
 <style>
-/* Custom styles for nav */
 .navbar {
     padding: 0.5rem 1rem;
     background-color: #000 !important;
@@ -56,11 +37,6 @@
 .navbar-brand {
     font-weight: 600;
     color: white !important;
-}
-
-.navbar-brand img {
-    height: 30px;
-    width: auto;
 }
 
 .nav-link {
@@ -84,72 +60,12 @@
 .fas {
     margin-right: 0.5rem;
 }
-
-/* Better visual feedback for hamburger menu */
-#sidebar-toggler:active, 
-#sidebar-toggler.toggler-active {
-    background-color: rgba(255,255,255,0.2) !important;
-    transform: scale(0.95);
-}
-
-/* Hide the bootstrap hamburger menu */
-.navbar-toggler {
-    display: none !important;
-    visibility: hidden !important;
-    opacity: 0 !important;
-    position: absolute !important;
-    left: -9999px !important;
-}
-
-/* Hide welcomeMessage text on smaller screens but keep link active */
-@media (max-width: 767.98px) {
-    #welcomeMessage {
-        font-size: 0;
-        padding-right: 0;
-    }
-    
-    #welcomeMessage::before {
-        content: '\f007'; /* User icon */
-        font-family: 'Font Awesome 5 Free';
-        font-weight: 900;
-        font-size: 1rem;
-    }
-    
-    /* Center logo on mobile */
-    .navbar-brand {
-        position: absolute;
-        left: 50%;
-        transform: translateX(-50%);
-    }
-}
-
-/* Make sidebar toggler visible on mobile */
-@media (max-width: 991.98px) {
-    .sidebar-toggler {
-        display: block !important;
-    }
-}
-
-/* Hide sidebar toggle on desktop */
-@media (min-width: 992px) {
-    .sidebar-toggler {
-        display: none !important;
-    }
-}
-
-/* Fix for the overlay */
-.sidebar-overlay {
-    z-index: 1025 !important;
-    transition: opacity 0.3s ease !important;
-}
 </style>
 
 <script>
 // Update welcome message when navbar is loaded
 document.addEventListener('DOMContentLoaded', function() {
     console.log('[DEBUG] Navbar DOMContentLoaded');
-    
-    // Check authentication and update welcome message
     fetch('/api/check-auth')
         .then(response => {
             console.log('[DEBUG] /api/check-auth response:', response);
@@ -163,7 +79,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log('[DEBUG] Setting welcome message:', welcomeMsg);
                 const welcomeElem = document.getElementById('welcomeMessage');
                 if (welcomeElem) {
-                    welcomeElem.setAttribute('title', welcomeMsg); // Add title for mobile tooltip
                     welcomeElem.textContent = welcomeMsg;
                 } else {
                     console.warn('[DEBUG] #welcomeMessage element not found');
@@ -175,26 +90,5 @@ document.addEventListener('DOMContentLoaded', function() {
         .catch(error => {
             console.error('[DEBUG] Error fetching user data:', error);
         });
-        
-    // Set up logout functionality
-    const logoutLink = document.getElementById('logoutLink');
-    if (logoutLink) {
-        logoutLink.addEventListener('click', function(e) {
-            e.preventDefault();
-            fetch('/api/logout', {
-                method: 'POST',
-                credentials: 'same-origin'
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.redirect) {
-                    window.location.href = data.redirect;
-                }
-            })
-            .catch(error => {
-                console.error('Logout error:', error);
-            });
-        });
-    }
 });
 </script> 

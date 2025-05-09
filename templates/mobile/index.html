@@ -1,0 +1,38 @@
+{% extends "mobile/layout.html" %}
+
+{% block content %}
+<div class="card w-full bg-base-100 shadow-xl">
+    <div class="card-body">
+        <h2 class="card-title text-2xl font-bold mb-4">Welcome to Rally</h2>
+        <p class="mb-6">Your paddle tennis assistant on the go!</p>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <a href="/mobile/matches" class="btn btn-primary btn-lg h-20 text-lg">
+                <i class="fas fa-calendar-alt mr-2"></i> View Matches
+            </a>
+            <a href="/mobile/rankings" class="btn btn-secondary btn-lg h-20 text-lg">
+                <i class="fas fa-trophy mr-2"></i> Player Rankings
+            </a>
+            <a href="/mobile/profile" class="btn btn-accent btn-lg h-20 text-lg">
+                <i class="fas fa-user mr-2"></i> My Profile
+            </a>
+            <a href="/mobile/lineup" class="btn btn-info btn-lg h-20 text-lg">
+                <i class="fas fa-users mr-2"></i> Lineup Assistant
+            </a>
+        </div>
+    </div>
+</div>
+
+{% if sessionData and sessionData.user %}
+<div class="mt-8 card w-full bg-base-100 shadow-xl">
+    <div class="card-body">
+        <h3 class="card-title text-xl font-bold mb-2">Upcoming Matches</h3>
+        <div class="upcoming-matches">
+            <div class="skeleton h-12 w-full mb-2"></div>
+            <div class="skeleton h-12 w-full mb-2"></div>
+            <div class="skeleton h-12 w-full"></div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %} 

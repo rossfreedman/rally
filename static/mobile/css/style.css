@@ -1,0 +1,190 @@
+/* Mobile-specific styles */
+
+/* Font awesome icons */
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css');
+
+/* Custom colors for daisy UI */
+:root {
+  --p: 207 90% 54%;  /* primary color: blue */
+  --s: 326 100% 74%; /* secondary color: pink */
+  --a: 141 50% 60%;  /* accent color: green */
+  --n: 218 18% 12%;  /* neutral color: dark blue-gray */
+}
+
+/* Card shadow enhancement */
+.card {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  transition: all 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* Skeleton loading animation */
+.skeleton {
+  animation: skeleton-loading 1s linear infinite alternate;
+  border-radius: 4px;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-color: hsl(200, 20%, 80%);
+  }
+  100% {
+    background-color: hsl(200, 20%, 95%);
+  }
+}
+
+/* Make buttons more tappable on mobile */
+.btn {
+  min-height: 3rem;
+}
+
+/* Enhance table readability on mobile */
+@media (max-width: 640px) {
+  .table th {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+    font-size: 0.875rem;
+  }
+  
+  .table td {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+  }
+}
+
+/* Bottom navigation for very small screens */
+@media (max-width: 380px) {
+  .navbar {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+  
+  .navbar-logo {
+    height: 1.75rem;
+  }
+}
+
+/* Custom fade transitions */
+.fade-enter {
+  opacity: 0;
+}
+.fade-enter-active {
+  opacity: 1;
+  transition: opacity 200ms;
+}
+.fade-exit {
+  opacity: 1;
+}
+.fade-exit-active {
+  opacity: 0;
+  transition: opacity 200ms;
+}
+
+/* Mobile styles */
+
+/* Base styles */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background-color: #f0f2f5;
+    color: #333;
+    font-size: 1rem;
+}
+
+/* Card animations */
+.card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+/* Buttons */
+.btn {
+    transition: all 0.3s ease;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+}
+
+/* Link styling */
+a {
+    color: #2196F3;
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+a:hover {
+    color: #0d47a1;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Utility classes */
+.text-primary {
+    color: #2196F3;
+}
+
+.text-success {
+    color: #4CAF50;
+}
+
+.text-warning {
+    color: #FF9800;
+}
+
+.text-danger {
+    color: #F44336;
+}
+
+/* Loading animations */
+@keyframes pulse {
+    0% { opacity: 0.6; }
+    50% { opacity: 1; }
+    100% { opacity: 0.6; }
+}
+
+.skeleton {
+    animation: pulse 1.5s infinite ease-in-out;
+    background: #eee;
+    border-radius: 4px;
+}
+
+/* Mobile-specific adjustments */
+@media (max-width: 768px) {
+    .card {
+        padding: 15px;
+    }
+    
+    .card-title {
+        font-size: 1.25rem;
+    }
+    
+    .btn {
+        padding: 0.5rem 1rem;
+    }
+} 

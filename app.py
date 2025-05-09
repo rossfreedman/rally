@@ -261,6 +261,10 @@ def chat():
         print(f"Unexpected error: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/white-text-fix.html')
+def serve_white_text_fix():
+    return send_from_directory('.', 'white-text-fix.html')
+
 if __name__ == '__main__':
     print("\n=== Starting Flask Server ===")
     app.run(debug=True, port=8081, host='0.0.0.0') 

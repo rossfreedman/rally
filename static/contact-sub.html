@@ -2,131 +2,78 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Contact Sub - Rally</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/styles.css">
-    <link rel="stylesheet" href="/static/css/responsive.css">
-    <link rel="stylesheet" href="/static/css/touch-fix.css">
     <style>
         body {
             background-color: #f0f2f5;
-            padding-top: 60px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         }
-        
-        .header {
+        .contact-card {
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.18);
+            border: 1.5px solid rgba(255,255,255,0.25);
+            margin-top: 60px;
+            padding: 0;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .contact-card .card-header {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+            border-radius: 16px 16px 0 0;
+            border-bottom: 1px solid #e9ecef;
+            padding: 32px 32px 16px 32px;
             text-align: center;
-            margin-bottom: 20px;
         }
-        
-        .logo-img {
-            height: 40px;
-            width: auto;
+        .contact-card .card-header h3 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 0;
         }
-        
-        .card {
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        .contact-card .card-body {
+            padding: 32px;
+        }
+        .contact-details {
+            margin-top: 24px;
+            font-size: 1.1rem;
+        }
+        .contact-details p {
+            margin-bottom: 12px;
+        }
+        .btn-secondary {
+            background: #6c757d;
             border: none;
         }
-        
-        .card-header {
-            background-color: #f8f9fa;
-            border-bottom: 1px solid #e9ecef;
-            padding: 1rem;
-            border-radius: 12px 12px 0 0;
+        .btn-secondary:hover {
+            background: #495057;
         }
-        
-        .card-body {
-            padding: 1.5rem;
-        }
-        
-        .contact-details {
-            margin-top: 1.5rem;
-        }
-        
-        .contact-details p {
-            margin-bottom: 0.75rem;
-            padding: 0.75rem;
-            background-color: #f8f9fa;
-            border-radius: 8px;
-        }
-        
-        .contact-details a {
-            color: #007bff;
-            text-decoration: none;
-        }
-        
-        .btn {
-            padding: 0.75rem 1.5rem;
-            border-radius: 8px;
-        }
-        
-        .back-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-        }
-        
-        /* Mobile optimizations */
-        @media (max-width: 576px) {
-            .card {
-                margin: 0 10px;
-            }
-            
-            .contact-details p {
-                display: flex;
-                flex-direction: column;
-            }
-            
-            .contact-details p a {
-                margin-top: 5px;
-                font-size: 16px;
-                padding: 8px;
-                display: inline-block;
-                background-color: #fff;
-                border-radius: 6px;
-                width: 100%;
-                text-align: center;
-            }
-        }
-
-        @supports (-webkit-touch-callout: none) {
-            /* Fix iOS padding */
-            body {
-                padding-top: max(60px, env(safe-area-inset-top) + 60px);
+        @media (max-width: 600px) {
+            .contact-card .card-header,
+            .contact-card .card-body {
+                padding: 18px;
             }
         }
     </style>
 </head>
 <body>
-    <!-- Logo header -->
-    <div class="header">
-        <img src="/static/rallylogo.png" alt="Rally Logo" class="logo-img">
-    </div>
-    
     <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-md-8 col-lg-6">
-                <div class="card">
-                    <div class="card-header">
-                        <h3 class="text-center mb-0">Player Contact Information</h3>
+        <div class="contact-card card shadow">
+            <div class="card-header">
+                <h3 class="mb-0">Player Contact Information</h3>
+            </div>
+            <div class="card-body">
+                <div id="contactInfo" class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
                     </div>
-                    <div class="card-body">
-                        <div id="contactInfo" class="text-center">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="visually-hidden">Loading...</span>
-                            </div>
-                        </div>
-                        <div class="text-center mt-4">
-                            <button class="btn btn-secondary back-btn" onclick="window.history.back()">
-                                <i class="fas fa-arrow-left"></i>
-                                <span>Back</span>
-                            </button>
-                        </div>
-                    </div>
+                </div>
+                <div class="text-center mt-4">
+                    <button class="btn btn-secondary" onclick="window.history.back()">Close</button>
                 </div>
             </div>
         </div>
@@ -143,38 +90,37 @@
         }
 
         document.addEventListener('DOMContentLoaded', function() {
-            // Get player first and last name from URL parameters
+            // Get firstName and lastName from URL parameters
             const urlParams = new URLSearchParams(window.location.search);
             const firstName = urlParams.get('firstName');
             const lastName = urlParams.get('lastName');
 
             if (!firstName || !lastName) {
-                showError('No player name provided');
+                showError('Error: Missing player name parameters');
                 return;
             }
 
-            // Fetch player contact info
-            fetch(`/api/player-contact?first=${encodeURIComponent(firstName)}&last=${encodeURIComponent(lastName)}`)
+            // Display the player's name
+            const contactDiv = document.getElementById('contactInfo');
+            contactDiv.innerHTML = `<h4>${firstName} ${lastName}</h4><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>`;
+
+            // Fetch player contact information
+            fetch(`/api/player-contact?firstName=${firstName}&lastName=${lastName}`)
                 .then(response => response.json())
                 .then(data => {
                     if (data.error) {
-                        showError(data.error);
-                        return;
+                        throw new Error(data.error);
                     }
-
-                    // Display contact info
-                    const contactDiv = document.getElementById('contactInfo');
                     contactDiv.innerHTML = `
-                        <h4 class="mb-3">${firstName} ${lastName}</h4>
+                        <h4>${firstName} ${lastName}</h4>
                         <div class="contact-details">
-                            <p><strong>Email:</strong> <a href="mailto:${data.email}">${data.email}</a></p>
-                            <p><strong>Phone:</strong> <a href="tel:${data.phone}">${data.phone}</a></p>
+                            <p><strong>Email:</strong> ${data.email || 'Not available'}</p>
+                            <p><strong>Phone:</strong> ${data.phone || 'Not available'}</p>
                         </div>
                     `;
                 })
                 .catch(error => {
-                    showError('Failed to load contact information');
-                    console.error('Error:', error);
+                    showError(`Error: ${error.message}`);
                 });
         });
     </script>

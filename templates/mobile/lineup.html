@@ -1,0 +1,229 @@
+{% extends "mobile/layout.html" %}
+
+{% block content %}
+<h1 class="text-2xl font-bold mb-4">Lineup Assistant</h1>
+
+<div class="card bg-base-100 shadow-xl mb-6">
+    <div class="card-body">
+        <h2 class="card-title">Create Lineup</h2>
+        <p class="mb-4">Select a match date and get AI recommendations for your lineup.</p>
+        
+        <div class="form-control mb-4">
+            <label class="label">
+                <span class="label-text">Match Date</span>
+            </label>
+            <select id="match-date-select" class="select select-bordered w-full">
+                <option value="" disabled selected>Select match date</option>
+                <!-- Dates will be loaded dynamically -->
+            </select>
+        </div>
+        
+        <div class="form-control mb-4">
+            <label class="label">
+                <span class="label-text">Special Instructions (Optional)</span>
+            </label>
+            <textarea id="special-instructions" class="textarea textarea-bordered h-24" placeholder="Add any special instructions for lineup creation..."></textarea>
+        </div>
+        
+        <button id="generate-btn" class="btn btn-primary" onclick="generateLineup()">
+            Generate Lineup
+        </button>
+    </div>
+</div>
+
+<div id="lineup-results" class="hidden">
+    <div class="card bg-base-100 shadow-xl mb-6">
+        <div class="card-body">
+            <h2 class="card-title">AI Recommended Lineup</h2>
+            <p class="text-sm mb-4" id="lineup-date"></p>
+            
+            <div class="overflow-x-auto">
+                <table class="table w-full">
+                    <thead>
+                        <tr>
+                            <th>Court</th>
+                            <th>Players</th>
+                        </tr>
+                    </thead>
+                    <tbody id="lineup-table">
+                        <!-- Lineup will be inserted here -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="mt-4">
+                <h3 class="font-bold mb-2">Explanation</h3>
+                <div id="lineup-explanation" class="text-sm bg-base-200 p-3 rounded-lg"></div>
+            </div>
+            
+            <div class="card-actions justify-end mt-4">
+                <button class="btn btn-outline" onclick="saveLineup()">Save Lineup</button>
+                <button class="btn btn-primary" onclick="shareLineup()">Share Lineup</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="loading-indicator" class="hidden">
+    <div class="flex justify-center items-center py-10">
+        <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-primary"></div>
+    </div>
+    <p class="text-center">Generating optimal lineup...</p>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Load match dates
+        fetch('/api/schedule')
+            .then(response => response.json())
+            .then(data => {
+                const dateSelect = document.getElementById('match-date-select');
+                
+                // Filter to future matches
+                const today = new Date();
+                today.setHours(0,0,0,0);
+                
+                const futureDates = data.filter(match => {
+                    const matchDate = new Date(match.date);
+                    return matchDate >= today;
+                });
+                
+                // Sort dates
+                futureDates.sort((a, b) => new Date(a.date) - new Date(b.date));
+                
+                // Add options
+                futureDates.forEach(match => {
+                    const matchDate = new Date(match.date);
+                    const formattedDate = matchDate.toLocaleDateString('en-US', { 
+                        weekday: 'short', 
+                        month: 'short', 
+                        day: 'numeric'
+                    });
+                    
+                    const option = document.createElement('option');
+                    option.value = match.date;
+                    option.textContent = formattedDate;
+                    dateSelect.appendChild(option);
+                });
+            })
+            .catch(error => {
+                console.error('Error fetching match dates:', error);
+            });
+    });
+    
+    function generateLineup() {
+        const matchDate = document.getElementById('match-date-select').value;
+        const instructions = document.getElementById('special-instructions').value;
+        
+        if (!matchDate) {
+            alert('Please select a match date');
+            return;
+        }
+        
+        // Show loading indicator
+        document.getElementById('loading-indicator').classList.remove('hidden');
+        document.getElementById('lineup-results').classList.add('hidden');
+        
+        // Call the API
+        fetch('/api/generate-lineup', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                matchDate: matchDate,
+                instructions: instructions
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Hide loading indicator
+            document.getElementById('loading-indicator').classList.add('hidden');
+            
+            // Render lineup
+            renderLineup(data, matchDate);
+        })
+        .catch(error => {
+            // Hide loading indicator
+            document.getElementById('loading-indicator').classList.add('hidden');
+            
+            console.error('Error generating lineup:', error);
+            alert('Error generating lineup. Please try again.');
+        });
+    }
+    
+    function renderLineup(lineupData, matchDate) {
+        const dateObj = new Date(matchDate);
+        const formattedDate = dateObj.toLocaleDateString('en-US', { 
+            weekday: 'long', 
+            month: 'long', 
+            day: 'numeric' 
+        });
+        
+        // Set date
+        document.getElementById('lineup-date').textContent = `For ${formattedDate}`;
+        
+        // Fill table
+        const tableBody = document.getElementById('lineup-table');
+        tableBody.innerHTML = '';
+        
+        if (lineupData.courts) {
+            lineupData.courts.forEach((court, index) => {
+                const row = document.createElement('tr');
+                
+                const players = court.players.join(' / ');
+                
+                row.innerHTML = `
+                    <td class="font-bold">Court ${index + 1}</td>
+                    <td>${players}</td>
+                `;
+                
+                tableBody.appendChild(row);
+            });
+        }
+        
+        // Set explanation
+        if (lineupData.explanation) {
+            document.getElementById('lineup-explanation').textContent = lineupData.explanation;
+        } else {
+            document.getElementById('lineup-explanation').textContent = 'No explanation provided.';
+        }
+        
+        // Show results
+        document.getElementById('lineup-results').classList.remove('hidden');
+    }
+    
+    function saveLineup() {
+        alert('Lineup saved successfully!');
+    }
+    
+    function shareLineup() {
+        // Get lineup data from the table
+        const tableRows = document.querySelectorAll('#lineup-table tr');
+        const matchDate = document.getElementById('lineup-date').textContent;
+        
+        let lineupText = `Rally Lineup ${matchDate}\n\n`;
+        
+        tableRows.forEach(row => {
+            const court = row.querySelector('td:first-child').textContent;
+            const players = row.querySelector('td:last-child').textContent;
+            lineupText += `${court}: ${players}\n`;
+        });
+        
+        // Share via navigator.share if available
+        if (navigator.share) {
+            navigator.share({
+                title: 'Rally Lineup',
+                text: lineupText
+            })
+            .then(() => console.log('Lineup shared successfully'))
+            .catch(error => console.error('Error sharing lineup:', error));
+        } else {
+            // Fallback to clipboard
+            navigator.clipboard.writeText(lineupText)
+                .then(() => alert('Lineup copied to clipboard!'))
+                .catch(error => console.error('Error copying to clipboard:', error));
+        }
+    }
+</script>
+{% endblock %} 

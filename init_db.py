@@ -103,7 +103,8 @@ def init_db():
         action TEXT,
         details TEXT,
         ip_address TEXT,
-        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_email) REFERENCES users(email)
     )
     ''')
     

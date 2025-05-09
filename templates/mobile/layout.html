@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rally</title>
+    
+    <!-- Tailwind CSS & DaisyUI -->
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@3.9.3/dist/full.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- App CSS and JS -->
+    <link href="/static/mobile/css/style.css" rel="stylesheet">
+    <script src="/static/mobile/js/main.js" defer></script>
+
+    <style>
+        /* Custom styles */
+        .nav-drawer {
+            transform: translateX(-100%);
+            transition: transform 0.3s ease-in-out;
+        }
+        .nav-drawer.open {
+            transform: translateX(0);
+        }
+    </style>
+    
+    <!-- Session data will be injected here -->
+    {% if session_data %}
+    <script>
+        window.sessionData = {{ session_data|tojson }};
+    </script>
+    {% endif %}
+</head>
+<body class="min-h-screen bg-base-100">
+
+    <!-- Top Navigation Bar -->
+    <nav class="navbar bg-base-100 shadow-lg px-4">
+        <div class="flex-1">
+            <a href="/mobile" class="btn btn-ghost normal-case text-xl">
+                <img src="/static/images/rallylogo.png" alt="Rally" class="h-8">
+            </a>
+        </div>
+        <div class="flex-none">
+            <button class="btn btn-square btn-ghost lg:hidden" onclick="toggleDrawer()">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block w-6 h-6 stroke-current">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                </svg>
+            </button>
+            <!-- Desktop Menu -->
+            <ul class="menu menu-horizontal px-1 hidden lg:flex">
+                <li><a href="/mobile/matches" class="text-lg">Matches</a></li>
+                <li><a href="/mobile/rankings" class="text-lg">Rankings</a></li>
+                <li><a href="/mobile/profile" class="text-lg">Profile</a></li>
+                <li><a href="/api/logout" class="text-lg">Logout</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Mobile Navigation Drawer -->
+    <div id="navDrawer" class="nav-drawer fixed top-0 left-0 h-full w-64 bg-base-100 shadow-xl z-50 lg:hidden">
+        <div class="p-4">
+            <button class="btn btn-ghost btn-circle absolute right-2 top-2" onclick="toggleDrawer()">✕</button>
+            <ul class="menu menu-vertical w-full mt-12">
+                <li><a href="/mobile/matches" class="text-lg py-4">Matches</a></li>
+                <li><a href="/mobile/rankings" class="text-lg py-4">Rankings</a></li>
+                <li><a href="/mobile/profile" class="text-lg py-4">Profile</a></li>
+                <li><a href="/api/logout" class="text-lg py-4">Logout</a></li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <main class="container mx-auto px-4 py-8">
+        {% block content %}{% endblock %}
+    </main>
+
+    <script>
+        function toggleDrawer() {
+            const drawer = document.getElementById('navDrawer');
+            drawer.classList.toggle('open');
+        }
+    </script>
+
+</body>
+</html> 
