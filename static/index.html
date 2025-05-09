@@ -49,11 +49,11 @@
 
         .sidebar {
             width: 260px;
-            height: calc(100vh - 80px);
+            /* Make sidebar always extend to the bottom of the page, below the navbar */
+            height: calc(100vh - 56px);
             background-color: var(--sidebar-bg);
             position: fixed;
             left: 0;
-            /* Set top to 56px to match the navbar height so sidebar starts directly under the navbar */
             top: 56px;
             padding: 0 10px 10px 10px;
             color: #ffffff;
@@ -1250,14 +1250,15 @@
                     <i class="fas fa-chart-line"></i>
                     My Series
                 </a>
+                <a href="#" onclick="showContent('club-stats'); return false;" class="nav-item" id="nav-club-stats">
+                    <i class="fas fa-building"></i>
+                    My Club
+                </a>
                 <a href="#" onclick="showContent('research-team'); return false;" class="nav-item" id="nav-research-team">
                     <i class="fas fa-search"></i>
                     Teams & Players
                 </a>
-                <a href="#" onclick="showContent('club-stats'); return false;" class="nav-item" id="nav-club-stats">
-                    <i class="fas fa-building"></i>
-                    Club Stats
-                </a>
+               
                
         
               
