@@ -7,7 +7,15 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
         </svg>
     </a>
-    <h1 class="text-2xl font-bold">Player Details</h1>
+    <div class="flex items-center gap-3">
+      <div class="bg-white rounded-md flex items-center justify-center h-12 w-12">
+        <i class="fas fa-user text-green-700 text-3xl"></i>
+      </div>
+      <div>
+        <div class="text-2xl font-bold leading-tight">Player Details</div>
+        <div class="text-base text-gray-500 mt-1">Stats, history, and partners for this player.</div>
+      </div>
+    </div>
 </div>
 
 <div class="card bg-base-100 shadow-xl mb-6">
@@ -271,54 +279,42 @@
                 const allPartners = {};
                 
                 for (let i = 1; i <= 4; i++) {
-                    const courtData = data[`court${i}`] || { partners: [] };
+                    const courtData = data[`court${i}`] || { matches: 0, winRate: 0 };
                     
-                    courtData.partners?.forEach(partner => {
-                        if (!allPartners[partner.name]) {
-                            allPartners[partner.name] = {
-                                matches: 0,
-                                wins: 0
-                            };
-                        }
-                        
-                        allPartners[partner.name].matches += partner.matches;
-                        allPartners[partner.name].wins += partner.wins;
-                    });
+                    if (courtData.matches > 0) {
+                        const partners = courtData.partners || [];
+                        partners.forEach(partner => {
+                            if (!allPartners[partner]) {
+                                allPartners[partner] = { matches: 0, winRate: 0 };
+                            }
+                            allPartners[partner].matches += courtData.matches;
+                            allPartners[partner].winRate += courtData.winRate;
+                        });
+                    }
                 }
                 
-                // Convert to array and sort
-                const sortedPartners = Object.entries(allPartners)
-                    .map(([name, stats]) => ({
-                        name,
-                        matches: stats.matches,
-                        wins: stats.wins,
-                        winRate: Math.round((stats.wins / stats.matches) * 100)
-                    }))
-                    .sort((a, b) => b.matches - a.matches);
+                // Calculate win rates
+                for (const partner in allPartners) {
+                    allPartners[partner].winRate = (allPartners[partner].winRate / allPartners[partner].matches) * 100;
+                }
+                
+                // Sort partners by win rate
+                const sortedPartners = Object.entries(allPartners).sort((a, b) => b[1].winRate - a[1].winRate);
                 
                 // Add data rows
-                sortedPartners.forEach(partner => {
+                sortedPartners.forEach(([partner, data]) => {
                     const row = document.createElement('tr');
                     row.innerHTML = `
-                        <td>${partner.name}</td>
-                        <td class="text-center">${partner.matches}</td>
-                        <td class="text-center">${partner.winRate}%</td>
+                        <td>${partner}</td>
+                        <td class="text-center">${data.matches}</td>
+                        <td class="text-center">${data.winRate.toFixed(1)}%</td>
                     `;
                     tableBody.appendChild(row);
                 });
-                
-                // If no partners
-                if (sortedPartners.length === 0) {
-                    const row = document.createElement('tr');
-                    row.innerHTML = `
-                        <td colspan="3" class="text-center">No partner data available</td>
-                    `;
-                    tableBody.appendChild(row);
-                }
             })
             .catch(error => {
                 console.error('Error loading partners:', error);
             });
     }
 </script>
-{% endblock %} 
+{% endblock %}

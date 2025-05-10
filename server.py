@@ -95,7 +95,7 @@ app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE='Lax',
     PERMANENT_SESSION_LIFETIME=3600  # 1 hour
-)
+)   
 
 CORS(app, resources={
     r"/*": {  # Allow all routes
@@ -3504,6 +3504,22 @@ def serve_mobile_lineup():
     log_user_activity(session['user']['email'], 'page_visit', page='mobile_lineup')
     return render_template('mobile/lineup.html', session_data=session_data)
 
+@app.route('/mobile/lineup-escrow')
+@login_required
+def serve_mobile_lineup_escrow():
+    """Serve the mobile Lineup Escrow page"""
+    session_data = {
+        'user': session['user'],
+        'authenticated': True
+    }
+    log_user_activity(
+        session['user']['email'],
+        'page_visit',
+        page='mobile_lineup_escrow',
+        details='Accessed mobile lineup escrow page'
+    )
+    return render_template('mobile/lineup_escrow.html', session_data=session_data)
+
 @app.route('/mobile/player-detail/<player_id>')
 @login_required
 def serve_mobile_player_detail(player_id):
@@ -3528,6 +3544,131 @@ def serve_mobile_player_detail(player_id):
 @app.route('/white-text-fix.html')
 def serve_white_text_fix():
     return send_from_directory('.', 'white-text-fix.html')
+
+def get_matches_for_user_club(user):
+    club = user['club']
+    series = user['series']
+    club_name = f"{club} - {series.split()[-1]}"
+    schedule_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'Series_22_schedule.json')
+    with open(schedule_path, 'r') as f:
+        schedule_data = json.load(f)
+    matches = []
+    for match in schedule_data:
+        if 'Practice' in match:
+            matches.append(match)
+        elif match.get('home_team') == club_name or match.get('away_team') == club_name:
+            matches.append(match)
+    return matches
+
+def get_user_availability(player_name, matches, series):
+    availability = []
+    for match in matches:
+        match_date = match.get('date', '')
+        is_available = get_player_availability(player_name, match_date, series)
+        if is_available is None:
+            status = 'unknown'
+        elif is_available:
+            status = 'available'
+        else:
+            status = 'unavailable'
+        availability.append({'status': status})
+    return availability
+
+@app.route('/mobile/availability', methods=['GET', 'POST'])
+@login_required
+def mobile_availability():
+    user = session.get('user')
+    player_name = f"{user['first_name']} {user['last_name']}"
+    series = user['series']
+
+    # 1. Get matches for the user's club/series
+    matches = get_matches_for_user_club(user)
+
+    # 2. Get this user's availability for each match
+    player_availability = get_user_availability(player_name, matches, series)
+
+    # 3. Prepare data for the template
+    players = [{
+        'name': player_name,
+        'availability': player_availability
+    }]
+    match_objs = [
+        {
+            'date': m.get('date', ''),
+            'time': m.get('time', ''),
+            'location': m.get('location', m.get('home_team', ''))
+        }
+        for m in matches
+    ]
+    # Zip matches and availability for template
+    match_avail_pairs = list(zip(match_objs, player_availability))
+
+    return render_template(
+        'mobile/availability.html',
+        players=players,
+        matches=match_objs,
+        match_avail_pairs=match_avail_pairs,
+        session_data={'user': user},
+        zip=zip
+    )
+
+@app.route('/mobile/find-subs')
+@login_required
+def serve_mobile_find_subs():
+    """Serve the mobile Find Sub page"""
+    session_data = {
+        'user': session['user'],
+        'authenticated': True
+    }
+    log_user_activity(session['user']['email'], 'page_visit', page='mobile_find_subs')
+    return render_template('mobile/find_subs.html', session_data=session_data)
+
+@app.route('/mobile/view-schedule')
+@login_required
+def mobile_view_schedule():
+    """Serve the mobile View Schedule page with the user's schedule."""
+    from datetime import datetime
+    user = session['user']
+    matches = get_matches_for_user_club(user)
+    # Add formatted_date to each match
+    for match in matches:
+        date_str = match.get('date')
+        if date_str:
+            try:
+                dt = datetime.strptime(date_str, "%Y-%m-%d")
+                match['formatted_date'] = f"{dt.strftime('%A')} {dt.month}/{dt.day}/{dt.strftime('%y')}"
+            except Exception:
+                match['formatted_date'] = date_str
+        else:
+            match['formatted_date'] = None
+    return render_template(
+        'mobile/view_schedule.html',
+        matches=matches,
+        user=user,
+        session_data={'user': user}
+    )
+
+@app.route('/mobile/ask-ai')
+@login_required
+def mobile_ask_ai():
+    user = session['user']
+    return render_template('mobile/ask_ai.html', user=user, session_data={'user': user})
+
+@app.template_filter('pretty_date')
+def pretty_date(value):
+    """
+    Jinja2 filter to format a date string (YYYY-MM-DD or MM/DD/YYYY) as 'Tuesday 9/24/24'.
+    """
+    from datetime import datetime
+    if not value:
+        return ''
+    for fmt in ("%Y-%m-%d", "%m/%d/%Y", "%m/%d/%y"):
+        try:
+            dt = datetime.strptime(value, fmt)
+            return f"{dt.strftime('%A')} {dt.month}/{dt.day}/{dt.strftime('%y')}"
+        except Exception:
+            continue
+    return value  # fallback if parsing fails
 
 if __name__ == '__main__':
     # Get port from environment variable or use default

@@ -1,0 +1,58 @@
+{% extends "mobile/layout.html" %}
+{% block content %}
+<div class="max-w-lg mx-auto">
+    <div class="bg-white rounded-xl shadow p-4 mt-4 mb-6">
+        <h2 class="text-xl font-bold mb-2 flex items-center gap-2">
+            <i class="fas fa-robot text-[#007417]"></i> Rally AI Assistant
+        </h2>
+        <div class="bg-green-50 rounded p-3 mb-3 text-green-900 font-medium">
+            👋 Hello! I'm your Rally Assistant. I can help you with:
+        </div>
+        <ul class="space-y-2 mb-3">
+            <li class="bg-gray-100 rounded px-3 py-2">• Creating optimal lineups for your matches</li>
+            <li class="bg-gray-100 rounded px-3 py-2">• Analyze player statistics and performance</li>
+            <li class="bg-gray-100 rounded px-3 py-2">• Look up a specific player's contact info</li>
+        </ul>
+        <div class="bg-green-50 rounded p-2 text-green-800 text-center font-semibold mb-2">
+            How can I assist you today?
+        </div>
+        <div id="ai-chat-messages" class="mb-3 space-y-2"></div>
+        <form id="ai-chat-form" class="flex gap-2">
+            <input type="text" id="ai-chat-input" class="flex-1 border rounded px-3 py-2" placeholder="Ask me anything about paddle tennis..." autocomplete="off" required>
+            <button type="submit" class="bg-[#007417] hover:bg-[#005c13] text-white px-4 py-2 rounded">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </form>
+    </div>
+</div>
+<script>
+document.getElementById('ai-chat-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const input = document.getElementById('ai-chat-input');
+    const messages = document.getElementById('ai-chat-messages');
+    const userMsg = input.value.trim();
+    if (!userMsg) return;
+    messages.innerHTML += `<div class="text-right text-sm text-gray-700 mb-1"><b>You:</b> ${userMsg}</div>`;
+    input.value = '';
+    messages.innerHTML += `<div class="text-left text-sm text-gray-500 mb-1" id="ai-typing">Rally AI is typing...</div>`;
+    try {
+        const resp = await fetch('/api/chat', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({message: userMsg})
+        });
+        const data = await resp.json();
+        document.getElementById('ai-typing').remove();
+        if (data.message) {
+            messages.innerHTML += `<div class="text-left text-sm text-gray-800 mb-2"><b>Rally AI:</b> ${data.message}</div>`;
+        } else {
+            messages.innerHTML += `<div class="text-left text-sm text-red-600 mb-2"><b>Rally AI:</b> Sorry, something went wrong.</div>`;
+        }
+    } catch {
+        document.getElementById('ai-typing').remove();
+        messages.innerHTML += `<div class="text-left text-sm text-red-600 mb-2"><b>Rally AI:</b> Sorry, something went wrong.</div>`;
+    }
+    messages.scrollTop = messages.scrollHeight;
+});
+</script>
+{% endblock %} 

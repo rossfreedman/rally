@@ -187,4 +187,23 @@ a:hover {
     .btn {
         padding: 0.5rem 1rem;
     }
+}
+
+/* Rally green for mobile top nav */
+.navbar {
+  background-color: #007417 !important; /* Rally green */
+}
+
+/* Rally green for 'I can play' button */
+.btn-success {
+  background-color: #007417 !important;
+  border-color: #007417 !important;
+  color: #fff !important;
+}
+
+/* Rally red for 'Sorry can\'t' button */
+.btn-error {
+  background-color: #de1414 !important;
+  border-color: #de1414 !important;
+  color: #fff !important;
 } 

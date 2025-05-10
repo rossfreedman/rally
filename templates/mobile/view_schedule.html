@@ -1,0 +1,76 @@
+{% extends "mobile/layout.html" %}
+{% block content %}
+<div class="max-w-lg mx-auto">
+    <!-- Consistent Header -->
+    <div class="flex items-center gap-3 mt-4 mb-2 px-4">
+        <div class="bg-white rounded-md flex items-center justify-center h-12 w-12">
+            <i class="fas fa-calendar text-green-700 text-3xl"></i>
+        </div>
+        <div>
+            <div class="text-2xl font-bold leading-tight">Schedule</div>
+            <div class="text-base text-gray-500 mt-1">See all your upcoming matches and practices.</div>
+        </div>
+    </div>
+    <div class="space-y-6">
+        {% set last_date = None %}
+        {% for match in matches %}
+            {% if match.date != last_date %}
+                <div class="text-lg font-semibold text-gray-700 mt-6 mb-2 pl-1">
+                    {{ match.date | pretty_date }}
+                </div>
+                {% set last_date = match.date %}
+            {% endif %}
+            <div class="
+                rounded-xl shadow 
+                px-4 py-3 mb-2
+                flex flex-col gap-1
+                {% if 'Practice' in match %}
+                    bg-[#f6faf7] border border-[#e0e7e3]
+                {% elif match.get('home_team') == user.club ~ ' - ' ~ user.series.split()[-1] %}
+                    bg-white border-l-4 border-[#007417]
+                {% else %}
+                    bg-white border-l-4 border-[#FFD600]
+                {% endif %}
+            ">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <span class="text-base font-semibold text-gray-800">
+                            {{ match.time }}
+                        </span>
+                        {% if 'Practice' in match %}
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[#e0e7e3] text-[#007417] ml-2">
+                                <i class="fas fa-table-tennis mr-1"></i> Practice
+                            </span>
+                        {% endif %}
+                    </div>
+                    {% if 'Practice' not in match and match.get('home_team') != user.club ~ ' - ' ~ user.series.split()[-1] %}
+                        <!-- Away match: Directions icon -->
+                        <a href="#" class="text-[#007417] hover:text-[#005c13]" title="Get Directions">
+                            <i class="fas fa-location-arrow text-lg"></i>
+                        </a>
+                    {% endif %}
+                </div>
+                <div class="flex items-center gap-2">
+                    {% if 'Practice' in match %}
+                        <span class="text-gray-600 font-medium">Team Practice</span>
+                    {% else %}
+                        <span class="font-bold {% if match.get('home_team') == user.club ~ ' - ' ~ user.series.split()[-1] %}text-[#007417]{% else %}text-gray-700{% endif %}">
+                            {{ match.home_team }}
+                        </span>
+                        <span class="mx-1 text-gray-500">vs</span>
+                        <span class="font-bold {% if match.get('away_team') == user.club ~ ' - ' ~ user.series.split()[-1] %}text-[#007417]{% else %}text-gray-700{% endif %}">
+                            {{ match.away_team }}
+                        </span>
+                    {% endif %}
+                </div>
+                <div class="flex items-center gap-2 text-sm text-gray-500 mt-1">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <span>
+                        {{ match.location or match.home_team }}
+                    </span>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %} 

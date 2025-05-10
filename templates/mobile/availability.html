@@ -1,0 +1,115 @@
+{% extends 'mobile/layout.html' %}
+{% block title %}Update Availability | Rally{% endblock %}
+{% block content %}
+<div class="flex items-center gap-3 mt-4 mb-2 px-4">
+  <div class="bg-white rounded-md flex items-center justify-center h-12 w-12">
+    <i class="fas fa-calendar-check text-green-700 text-3xl"></i>
+  </div>
+  <div>
+    <div class="text-2xl font-bold leading-tight">Update Availability</div>
+    <div class="text-base text-gray-500 mt-1">Manage player availability for upcoming matches by marking them as available or unavailable.</div>
+  </div>
+</div>
+
+<div class="max-w-3xl mx-auto bg-white rounded-xl shadow-lg p-4 mt-4">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
+        <div>
+            <!-- Removed duplicate icon, title, and subtitle here -->
+        </div>
+        <!-- Table/Card view toggle buttons removed -->
+    </div>
+
+    {# Table View removed. Only Card View remains. #}
+
+    <!-- Card View (single user) -->
+    <div id="cardView" class="space-y-6">
+        <div class="card bg-base-100 shadow-md rounded-lg p-4">
+            <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fas fa-user"></i> {{ players[0].name }}</h2>
+            <div class="space-y-2">
+                {% for match, avail in match_avail_pairs %}
+                {# Determine if this is a practice (no location) #}
+                {% set is_practice = not match.location %}
+                <div class="flex items-center justify-between gap-2 
+                    {% if is_practice %}bg-yellow-50{% endif %} 
+                    {% if not loop.last %}border-b border-gray-200{% endif %} py-3">
+                    <div>
+                        <div class="font-semibold">{{ match.date }}</div>
+                        <div class="text-xs text-gray-500">
+                            {{ match.time }} |
+                            {% if is_practice %}
+                                <span class="font-bold text-yellow-700">Practice</span>
+                            {% else %}
+                                {{ match.location }}
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div>
+                        <button
+                            class="btn btn-lg h-12 w-44 whitespace-nowrap {% if avail.status == 'available' %}btn-success{% elif avail.status == 'unavailable' %}btn-error{% else %}btn-neutral{% endif %}"
+                            data-state="{{ avail.status }}"
+                            onclick="toggleAvailability(this, '{{ players[0].name }}', '{{ match.date }}')"
+                        >
+                            {% if avail.status == 'available' %}I can play
+                            {% elif avail.status == 'unavailable' %}Sorry, can't
+                            {% else %}UPDATE{% endif %}
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    // setView function and related logic removed. Card view is always visible.
+
+    function toggleAvailability(button, playerName, date) {
+        const currentState = button.getAttribute('data-state');
+        let newState;
+        if (currentState === 'unknown' || currentState === 'unavailable') {
+            newState = 'available';
+            button.className = 'btn btn-success btn-lg w-full h-12 my-1';
+            button.textContent = "I can play";
+        } else {
+            newState = 'unavailable';
+            button.className = 'btn btn-error btn-lg w-full h-12 my-1';
+            button.textContent = "Sorry, can't";
+        }
+        button.setAttribute('data-state', newState);
+        saveAvailabilityChange(button, playerName, date);
+    }
+
+    async function saveAvailabilityChange(button, playerName, date) {
+        try {
+            const isAvailable = button.getAttribute('data-state') === 'available';
+            const user = window.sessionData && window.sessionData.user;
+            const series = user ? user.series : '';
+            const response = await fetch('/api/availability', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    player_name: playerName,
+                    match_date: date,
+                    is_available: isAvailable,
+                    series: series
+                })
+            });
+            if (!response.ok) {
+                throw new Error('Failed to save availability');
+            }
+            // Show success indicator
+            const successIndicator = document.createElement('span');
+            successIndicator.className = 'ml-2 text-green-600 font-bold';
+            successIndicator.textContent = '✓';
+            button.appendChild(successIndicator);
+            setTimeout(() => {
+                successIndicator.remove();
+            }, 1000);
+        } catch (error) {
+            alert('Error saving availability. Please try again.');
+        }
+    }
+</script>
+{% endblock %} 

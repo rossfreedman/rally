@@ -1,29 +1,139 @@
 {% extends "mobile/layout.html" %}
 
 {% block content %}
-<div class="card w-full bg-base-100 shadow-xl">
+<div class="card w-full bg-base-100 shadow-xl" style="margin-top: -14px;">
     <div class="card-body">
-        <h2 class="card-title text-2xl font-bold mb-4">Welcome to Rally</h2>
-        <p class="mb-6">Your paddle tennis assistant on the go!</p>
-        
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <a href="/mobile/matches" class="btn btn-primary btn-lg h-20 text-lg">
-                <i class="fas fa-calendar-alt mr-2"></i> View Matches
-            </a>
-            <a href="/mobile/rankings" class="btn btn-secondary btn-lg h-20 text-lg">
-                <i class="fas fa-trophy mr-2"></i> Player Rankings
-            </a>
-            <a href="/mobile/profile" class="btn btn-accent btn-lg h-20 text-lg">
-                <i class="fas fa-user mr-2"></i> My Profile
-            </a>
-            <a href="/mobile/lineup" class="btn btn-info btn-lg h-20 text-lg">
-                <i class="fas fa-users mr-2"></i> Lineup Assistant
-            </a>
+        <h2 class="card-title text-2xl font-bold mb-4">
+            {% if session_data and session_data.user and session_data.user.first_name %}
+                Welcome back, {{ session_data.user.first_name }}!
+            {% else %}
+                Welcome back!
+            {% endif %}
+        </h2>
+        <p class="mb-6">
+            {% set series = session_data.user.series if session_data and session_data.user and session_data.user.series else 'Unknown Series' %}
+            {% set club = session_data.user.club if session_data and session_data.user and session_data.user.club else 'Unknown Club' %}
+            You are currently on {{ series }} at {{ club }}.
+        </p>
+        <div class="captain-message-card" style="background: #fffbe6; border-left: 5px solid #FFD600; padding: 1rem 1.2rem; margin-bottom: 1.5rem; margin-top: 0; border-radius: 0.7rem; box-shadow: 0 2px 8px 0 rgba(0,0,0,0.04);">
+          <div style="font-weight: bold; color: #b88600; margin-bottom: 0.3rem;">
+            <i class="fas fa-bullhorn" style="margin-right: 0.5em;"></i>
+            Message from your captain:
+          </div>
+          <div style="font-size: 1.08em; color: #7a5c00;">
+            Please update your availability before Sunday night.
+          </div>
+        </div>
+        <!-- Navigation Buttons: Grouped by section -->
+        <div class="flex flex-col gap-6 items-center">
+            <!-- Act Section -->
+            <div class="nav-section-group">
+                <h2 class="nav-section-header flex items-center text-[1.35rem] font-bold text-[#007417] border-b-4 border-[#FFD600] pb-1 mb-3"><i class="fas fa-bolt mr-2 text-[1.5em]"></i> Act</h2>
+                <a href="/mobile/view-schedule" class="nav-btn-lg">
+                    <i class="fas fa-calendar mr-3"></i> View Schedule
+                </a>
+                <a href="/mobile/availability" class="nav-btn-lg">
+                    <i class="fas fa-calendar-check mr-3"></i> Update Availability
+                </a>
+                <a href="/mobile/find-subs" class="nav-btn-lg">
+                    <i class="fas fa-user-plus mr-3"></i> Find Sub
+                </a>
+                <a href="/mobile/ask-ai" class="nav-btn-lg">
+                    <i class="fas fa-robot mr-3"></i> Ask Rally AI
+                </a>
+                <a href="/mobile/lineup" class="nav-btn-lg">
+                    <i class="fas fa-clipboard-list mr-3"></i> Create Lineup
+                </a>
+                <a href="/mobile/lineup-escrow" class="nav-btn-lg">
+                    <i class="fas fa-lock mr-3"></i> Lineup Escrow
+                </a>
+            </div>
+            <!-- Analyze Section -->
+            <div class="nav-section-group">
+                <h2 class="nav-section-header flex items-center text-[1.35rem] font-bold text-[#007417] border-b-4 border-[#FFD600] pb-1 mb-3"><i class="fas fa-chart-bar mr-2 text-[1.5em]"></i> Analyze</h2>
+                <a href="/mobile/profile" class="nav-btn-lg">
+                    <i class="fas fa-user mr-3"></i> Me
+                </a>
+                <a href="/mobile/myteam" class="nav-btn-lg">
+                    <i class="fas fa-users mr-3"></i> My Team
+                </a>
+                <a href="/mobile/myseries" class="nav-btn-lg">
+                    <i class="fas fa-chart-line mr-3"></i> My Series
+                </a>
+                <a href="/mobile/myclub" class="nav-btn-lg">
+                    <i class="fas fa-building mr-3"></i> My Club
+                </a>
+                <a href="/mobile/teamsplayers" class="nav-btn-lg">
+                    <i class="fas fa-search mr-3"></i> Teams & Players
+                </a>
+            </div>
+            <!-- Settings Section -->
+            <div class="nav-section-group">
+                <h2 class="nav-section-header flex items-center text-[1.35rem] font-bold text-[#007417] border-b-4 border-[#FFD600] pb-1 mb-3"><i class="fas fa-cog mr-2 text-[1.5em]"></i> Settings</h2>
+                <a href="/mobile/settings" class="nav-btn-lg">
+                    <i class="fas fa-user-cog mr-3"></i> User Settings
+                </a>
+            </div>
         </div>
     </div>
 </div>
 
-{% if sessionData and sessionData.user %}
+<style>
+.nav-section-group {
+    background: #f6faf7;
+    border-radius: 1.2rem;
+    box-shadow: 0 2px 10px 0 rgba(0,0,0,0.06);
+    padding: 1.2rem 0.5rem 1.2rem 0.5rem;
+    width: 100%;
+    max-width: 440px;
+    margin: 0 auto;
+    border: 1.5px solid #e0e7e3;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+.nav-section-header {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #007417;
+    margin-bottom: 0.7rem;
+    margin-top: 0.1rem;
+    letter-spacing: 0.01em;
+    padding-left: 0.2rem;
+}
+.nav-btn-lg {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    width: 100%;
+    max-width: 420px;
+    padding: 1.5rem 1.5rem;
+    font-size: 1.35rem;
+    font-weight: 700;
+    background-color: #007417;
+    color: #fff;
+    border-radius: 1rem;
+    box-shadow: 0 4px 18px 0 rgba(0,0,0,0.10), 0 1.5px 4px 0 rgba(0,0,0,0.08);
+    border: 2.5px solid transparent;
+    margin: 0 auto 1rem auto;
+    transition: background 0.18s, box-shadow 0.18s, border-color 0.18s;
+    text-decoration: none;
+}
+.nav-btn-lg:hover, .nav-btn-lg:focus, .nav-btn-lg.active {
+    border-color: #FFD600;
+    box-shadow: 0 0 0 4px #FFD60044, 0 4px 18px 0 rgba(0,0,0,0.10);
+    background-color: #005c13;
+    color: #fff;
+    text-decoration: none;
+}
+.nav-btn-lg i {
+    font-size: 1.5em;
+    min-width: 1.7em;
+    text-align: center;
+}
+</style>
+
+{% if session_data and session_data.user %}
 <div class="mt-8 card w-full bg-base-100 shadow-xl">
     <div class="card-body">
         <h3 class="card-title text-xl font-bold mb-2">Upcoming Matches</h3>
