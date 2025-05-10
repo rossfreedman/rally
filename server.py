@@ -3670,16 +3670,262 @@ def pretty_date(value):
             continue
     return value  # fallback if parsing fails
 
+def get_player_analysis(user):
+    """
+    Returns the player analysis data for the given user, as a dict.
+    Uses tennis_matches_20250416.json for current season stats and court analysis,
+    and series_22_player_history.json for career stats and player history.
+    Always returns all expected keys, even if some are None or empty.
+    """
+    import os, json
+    from collections import defaultdict, Counter
+    player_name = f"{user['first_name']} {user['last_name']}"
+    player_history_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'series_22_player_history.json')
+    matches_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'tennis_matches_20250416.json')
+
+    # --- 1. Load player history for career stats and previous seasons ---
+    try:
+        with open(player_history_path, 'r') as f:
+            all_players = json.load(f)
+    except Exception as e:
+        return {
+            'current_season': None,
+            'court_analysis': {},
+            'career_stats': None,
+            'player_history': None,
+            'videos': {'match': [], 'practice': []},
+            'trends': {},
+            'career_pti_change': 'N/A',
+            'error': f'Could not load player history: {e}'
+        }
+    def normalize(name):
+        return name.replace(',', '').replace('  ', ' ').strip().lower()
+    player_name_normal = normalize(player_name)
+    player_last_first = normalize(f"{user['last_name']}, {user['first_name']}")
+    player = None
+    for p in all_players:
+        n = normalize(p.get('name', ''))
+        if n == player_name_normal or n == player_last_first:
+            player = p
+            break
+    # --- 2. Load all matches for this player ---
+    try:
+        with open(matches_path, 'r') as f:
+            all_matches = json.load(f)
+    except Exception as e:
+        all_matches = []
+    # --- 3. Determine current season (latest in player history) ---
+    current_season_info = None
+    if player and player.get('seasons') and player['seasons']:
+        current_season_info = player['seasons'][-1]
+        current_series = str(current_season_info.get('series', ''))
+    else:
+        matches_with_series = [m for m in player.get('matches', []) if 'series' in m and 'date' in m] if player else []
+        if matches_with_series:
+            import datetime
+            def parse_date(d):
+                for fmt in ("%m/%d/%Y", "%Y-%m-%d"):
+                    try:
+                        return datetime.datetime.strptime(d, fmt)
+                    except Exception:
+                        continue
+                return None
+            matches_with_series_sorted = sorted(matches_with_series, key=lambda m: parse_date(m['date']) or m['date'], reverse=True)
+            current_series = matches_with_series_sorted[0]['series']
+        else:
+            current_series = None
+    # --- 4. Filter matches for current season/series ---
+    player_matches = []
+    if player:
+        for m in all_matches:
+            if player_name in [m.get('Home Player 1'), m.get('Home Player 2'), m.get('Away Player 1'), m.get('Away Player 2')]:
+                if current_series:
+                    match_series = str(m.get('Series', ''))
+                    if match_series and match_series != current_series:
+                        continue
+                player_matches.append(m)
+    # --- 5. Assign matches to courts 1-4 by date and order ---
+    matches_by_date = defaultdict(list)
+    for match in player_matches:
+        date = match.get('Date') or match.get('date')
+        matches_by_date[date].append(match)
+    court_stats = {f'court{i}': {'matches': 0, 'wins': 0, 'losses': 0, 'partners': Counter()} for i in range(1, 5)}
+    total_matches = 0
+    wins = 0
+    losses = 0
+    pti_start = None
+    pti_end = None
+    for date in sorted(matches_by_date.keys()):
+        day_matches = matches_by_date[date]
+        day_matches_sorted = sorted(day_matches, key=lambda m: (m.get('Home Team', ''), m.get('Away Team', '')))
+        for i, match in enumerate(day_matches_sorted):
+            court_num = i + 1
+            if court_num > 4:
+                continue
+            if player_name not in [match.get('Home Player 1'), match.get('Home Player 2'), match.get('Away Player 1'), match.get('Away Player 2')]:
+                continue
+            total_matches += 1
+            is_home = player_name in [match.get('Home Player 1'), match.get('Home Player 2')]
+            won = (is_home and match.get('Winner') == 'home') or (not is_home and match.get('Winner') == 'away')
+            if won:
+                wins += 1
+                court_stats[f'court{court_num}']['wins'] += 1
+            else:
+                losses += 1
+                court_stats[f'court{court_num}']['losses'] += 1
+            court_stats[f'court{court_num}']['matches'] += 1
+            if player_name == match.get('Home Player 1'):
+                partner = match.get('Home Player 2')
+            elif player_name == match.get('Home Player 2'):
+                partner = match.get('Home Player 1')
+            elif player_name == match.get('Away Player 1'):
+                partner = match.get('Away Player 2')
+            elif player_name == match.get('Away Player 2'):
+                partner = match.get('Away Player 1')
+            else:
+                partner = None
+            if partner:
+                court_stats[f'court{court_num}']['partners'][partner] += 1
+            if 'Rating' in match:
+                if pti_start is None:
+                    pti_start = match['Rating']
+                pti_end = match['Rating']
+    # --- 6. Build current season stats ---
+    pti_change = 'N/A'
+    if player and 'matches' in player:
+        import datetime
+        import re
+        def parse_date(d):
+            for fmt in ("%m/%d/%Y", "%Y-%m-%d"):
+                try:
+                    return datetime.datetime.strptime(d, fmt)
+                except Exception:
+                    continue
+            return None
+        def normalize_series(x):
+            return ''.join(re.findall(r'\d+', x or ''))
+        cs = normalize_series(current_series) if 'current_series' in locals() and current_series else ''
+        season_matches = [m for m in player['matches'] if 'series' in m and normalize_series(m['series']) == cs and 'end_pti' in m and 'date' in m]
+        season_window_matches = []
+        if season_matches:
+            season_matches_sorted = sorted(season_matches, key=lambda m: parse_date(m['date']) or m['date'])
+            latest_match_date = parse_date(season_matches_sorted[-1]['date'])
+            if latest_match_date:
+                if latest_match_date.month < 8:
+                    season_start_year = latest_match_date.year - 1
+                else:
+                    season_start_year = latest_match_date.year
+                season_start = datetime.datetime(season_start_year, 8, 1)
+                season_end = datetime.datetime(season_start_year + 1, 3, 31)
+                for m in season_matches:
+                    pd = parse_date(m['date'])
+                season_window_matches = [m for m in season_matches if parse_date(m['date']) and season_start <= parse_date(m['date']) <= season_end]
+        if len(season_window_matches) >= 2:
+            matches_for_pti_sorted = sorted(season_window_matches, key=lambda m: parse_date(m['date']))
+            earliest_pti = matches_for_pti_sorted[0]['end_pti']
+            latest_pti = matches_for_pti_sorted[-1]['end_pti']
+            pti_change = round(latest_pti - earliest_pti, 1)
+    win_rate = round((wins / total_matches) * 100, 1) if total_matches > 0 else 0
+    current_season = {
+        'winRate': win_rate,
+        'matches': total_matches,
+        'ptiChange': pti_change
+    }
+    # --- 7. Build court analysis ---
+    court_analysis = {}
+    for court, stats in court_stats.items():
+        matches = stats['matches']
+        win_rate = round((stats['wins'] / matches) * 100, 1) if matches > 0 else 0
+        record = f"{stats['wins']}-{stats['losses']}"
+        top_partners = [
+            {'name': p, 'winRate': '', 'record': f"{c} matches"} for p, c in stats['partners'].most_common(3)
+        ]
+        court_analysis[court] = {
+            'winRate': win_rate,
+            'record': record,
+            'topPartners': top_partners
+        }
+    # --- 8. Career stats and player history from player history file ---
+    career_stats = None
+    player_history = None
+    if player:
+        matches_val = player.get('matches', 0)
+        wins_val = player.get('wins', 0)
+        if isinstance(matches_val, list):
+            total_career_matches = len(matches_val)
+        else:
+            total_career_matches = matches_val
+        if isinstance(wins_val, list):
+            total_career_wins = len(wins_val)
+        else:
+            total_career_wins = wins_val
+        win_rate_career = round((total_career_wins / total_career_matches) * 100, 1) if total_career_matches > 0 else 0
+        current_pti = player.get('pti', 'N/A')
+        career_stats = {
+            'winRate': win_rate_career,
+            'matches': total_career_matches,
+            'pti': current_pti
+        }
+        progression = []
+        seasons = []
+        for s in player.get('seasons', []):
+            trend = s.get('ptiEnd', 0) - s.get('ptiStart', 0)
+            progression.append(f"{s.get('season', '')}: PTI {s.get('ptiStart', '')}→{s.get('ptiEnd', '')} ({'+' if trend >= 0 else ''}{trend})")
+            seasons.append({
+                'season': s.get('season', ''),
+                'series': s.get('series', ''),
+                'ptiStart': s.get('ptiStart', ''),
+                'ptiEnd': s.get('ptiEnd', ''),
+                'trend': ('+' if trend >= 0 else '') + str(trend)
+            })
+        player_history = {
+            'progression': ' | '.join(progression),
+            'seasons': seasons
+        }
+    # --- 9. Compose response ---
+    career_pti_change = 'N/A'
+    if player and 'matches' in player:
+        import datetime
+        def parse_date(d):
+            for fmt in ("%m/%d/%Y", "%Y-%m-%d"):
+                try:
+                    return datetime.datetime.strptime(d, fmt)
+                except Exception:
+                    continue
+            return None
+        matches_with_pti = [m for m in player['matches'] if 'end_pti' in m and 'date' in m]
+        if len(matches_with_pti) >= 2:
+            matches_with_pti_sorted = sorted(matches_with_pti, key=lambda m: parse_date(m['date']))
+            earliest_pti = matches_with_pti_sorted[0]['end_pti']
+            latest_pti = matches_with_pti_sorted[-1]['end_pti']
+            career_pti_change = round(latest_pti - earliest_pti, 1)
+    # --- Defensive: always return all keys, even if player not found ---
+    response = {
+        'current_season': current_season if player else None,
+        'court_analysis': court_analysis if player else {},
+        'career_stats': career_stats if player else None,
+        'player_history': player_history if player else None,
+        'videos': {'match': [], 'practice': []},
+        'trends': {},
+        'career_pti_change': career_pti_change if player else 'N/A',
+        'error': None if player else 'No analysis data available for this player.'
+    }
+    return response
+
 @app.route('/mobile/analyze-me')
 @login_required
 def serve_mobile_analyze_me():
-    """Serve the AnalyzeMe (player analysis) mobile page"""
+    """Serve the AnalyzeMe (player analysis) mobile page with server-side rendering"""
     session_data = {
         'user': session['user'],
         'authenticated': True
     }
     log_user_activity(session['user']['email'], 'page_visit', page='mobile_analyze_me')
-    return render_template('mobile/analyze_me.html', session_data=session_data)
+    analyze_data = get_player_analysis(session['user'])
+
+    print("DEBUG: analyze_data =", analyze_data)  # <-- Add this line
+
+    return render_template('mobile/analyze_me.html', session_data=session_data, analyze_data=analyze_data)
 
 @app.route('/api/research-me')
 @login_required
@@ -3689,7 +3935,7 @@ def research_me():
     """
     import os, json
     from collections import defaultdict, Counter
-    user = session['user']
+    user = session['user']      # <-- Add this line
     player_name = f"{user['first_name']} {user['last_name']}"
     # Load player history
     player_history_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'series_22_player_history.json')
@@ -3697,10 +3943,73 @@ def research_me():
         with open(player_history_path, 'r') as f:
             all_players = json.load(f)
     except Exception as e:
-        return jsonify({'error': f'Could not load player history: {e}'})
-    player = next((p for p in all_players if p.get('name', '').strip().lower() == player_name.strip().lower()), None)
+        # Always return all keys, even if error
+        return jsonify({
+            'current_season': None,
+            'court_analysis': {},
+            'career_stats': None,
+            'player_history': None,
+            'videos': {'match': [], 'practice': []},
+            'trends': {},
+            'error': f'Could not load player history: {e}'
+        })
+    player = None
+    # Try to match both 'First Last' and 'Last, First' formats, ignoring case and extra spaces
+    def normalize(name):
+        return name.replace(',', '').replace('  ', ' ').strip().lower()
+    player_name_normal = normalize(player_name)
+    player_last_first = normalize(f"{user['last_name']}, {user['first_name']}")
+    for p in all_players:
+        n = normalize(p.get('name', ''))
+        if n == player_name_normal or n == player_last_first:
+            player = p
+            break
+    # Fallback: try to build player from matches file if not found in player history
     if not player:
-        return jsonify({'error': 'No analysis data available for this player.'})
+        matches_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'tennis_matches_20250416.json')
+        try:
+            with open(matches_path, 'r') as f:
+                all_matches = json.load(f)
+        except Exception as e:
+            all_matches = []
+        def match_player_name(name):
+            name = name.lower()
+            return name == player_name_normal or name == player_last_first or player_name_normal in name or player_last_first in name
+        player_matches = [m for m in all_matches if any(
+            match_player_name((m.get(f'{side} Player {num}') or '').replace(',', '').replace('  ', ' ').strip().lower())
+            for side in ['Home', 'Away'] for num in [1,2])]
+        if player_matches:
+            # Calculate wins/losses
+            wins = 0
+            for match in player_matches:
+                is_home = (match.get('Home Player 1','').lower() == player_name_normal or match.get('Home Player 2','').lower() == player_name_normal or match.get('Home Player 1','').lower() == player_last_first or match.get('Home Player 2','').lower() == player_last_first)
+                winner = match.get('Winner','').lower()
+                if (is_home and winner == 'home') or (not is_home and winner == 'away'):
+                    wins += 1
+            total_matches = len(player_matches)
+            losses = total_matches - wins
+            # Get most recent PTI if available
+            sorted_matches = sorted(player_matches, key=lambda m: m.get('Date','') or m.get('date',''))
+            pti = sorted_matches[-1].get('Rating') if sorted_matches and 'Rating' in sorted_matches[-1] else 50
+            # Build fallback player object
+            player = {
+                'name': player_name,
+                'matches': player_matches,
+                'wins': wins,
+                'losses': losses,
+                'pti': pti
+            }
+        else:
+            # Always return all keys, even if player not found
+            return jsonify({
+                'current_season': None,
+                'court_analysis': {},
+                'career_stats': None,
+                'player_history': None,
+                'videos': {'match': [], 'practice': []},
+                'trends': {},
+                'error': 'No analysis data available for this player.'
+            })
     # Load match data for advanced trends and court breakdown
     matches_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'tennis_matches_20250416.json')
     try:
@@ -3801,14 +4110,31 @@ def research_me():
             last_result = 'L'
     trends['max_win_streak'] = max_win_streak
     trends['max_loss_streak'] = max_loss_streak
+    # --- Career PTI Change (all-time) ---
+    career_pti_change = 'N/A'
+    if player and 'matches' in player:
+        import datetime
+        def parse_date(d):
+            for fmt in ("%m/%d/%Y", "%Y-%m-%d"):
+                try:
+                    return datetime.datetime.strptime(d, fmt)
+                except Exception:
+                    continue
+            return None
+        matches_with_pti = [m for m in player['matches'] if 'end_pti' in m and 'date' in m]
+        if len(matches_with_pti) >= 2:
+            matches_with_pti_sorted = sorted(matches_with_pti, key=lambda m: parse_date(m['date']))
+            career_pti_change = round(matches_with_pti_sorted[-1]['end_pti'] - matches_with_pti_sorted[0]['end_pti'], 1)
+            print(f"DEBUG: Career PTI change calculation: start={matches_with_pti_sorted[0]['end_pti']} → end={matches_with_pti_sorted[-1]['end_pti']}, career_pti_change={career_pti_change}")
     # --- Compose response ---
     response = {
-        'current_season': current_season,
-        'court_analysis': court_analysis,
-        'career_stats': career_stats,
-        'player_history': player_history,
-        'videos': video_data,
-        'trends': trends
+        'current_season': current_season if current_season is not None else {'winRate': 'N/A', 'matches': 'N/A', 'ptiChange': 'N/A'},
+        'court_analysis': court_analysis if court_analysis else {},
+        'career_stats': career_stats if career_stats is not None else {'winRate': 'N/A', 'matches': 'N/A', 'pti': 'N/A'},
+        'career_pti_change': career_pti_change,
+        'player_history': player_history if player_history is not None else {'progression': '', 'seasons': []},
+        'videos': video_data if video_data else {'match': [], 'practice': []},
+        'trends': trends if trends else {'max_win_streak': 0, 'max_loss_streak': 0}
     }
     return jsonify(response)
 
