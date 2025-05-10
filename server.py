@@ -4288,50 +4288,194 @@ def build_season_history(player):
     seasons.sort(key=lambda s: s['season'], reverse=True)
     return seasons
 
-if __name__ == '__main__':
-    # Get port from environment variable or use default
-    port = int(os.environ.get("PORT", os.environ.get("RAILWAY_PORT", 8080)))
-    host = os.environ.get("HOST", "0.0.0.0")
-    
-    logger.info("=== SERVER STARTING ===")
-    logger.info(f"Environment: {os.environ.get('FLASK_ENV', 'production')}")
-    logger.info(f"Port: {port}")
-    logger.info(f"Host: {host}")
-    
+@app.route('/mobile/my-team')
+@login_required
+def serve_mobile_my_team():
+    """
+    Serve the mobile My Team analysis page.
+    """
+    user = session['user']
+    # Determine the user's team (same logic as /api/research-my-team)
+    club = user.get('club')
+    series = user.get('series')
+    import re
+    m = re.search(r'(\d+)', series)
+    series_num = m.group(1) if m else ''
+    team = f"{club} - {series_num}"
+    stats_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'Chicago_22_stats_20250425.json')
     try:
-        # Configure SocketIO
-        socketio = SocketIO(
-            app,
-            cors_allowed_origins="*",
-            async_mode='threading',  # Change to threading mode
-            logger=True,
-            engineio_logger=True,
-            ping_timeout=30,
-            ping_interval=15,
-            max_http_buffer_size=1024 * 1024,  # 1MB buffer size
-            async_handlers=True,
-            manage_session=False  # Let Flask handle sessions
-        )
-        
-        # Add error handlers
-        @app.errorhandler(500)
-        def internal_error(error):
-            logger.error(f"Internal Server Error: {error}")
-            return jsonify({'error': 'Internal Server Error'}), 500
-
-        @app.errorhandler(502)
-        def bad_gateway_error(error):
-            logger.error(f"Bad Gateway Error: {error}")
-            return jsonify({'error': 'Bad Gateway'}), 502
-
-        # Run the server
-        app.run(
-            host=host,
-            port=port,
-            debug=False
-        )
-        logger.info("Server started successfully")
+        with open(stats_path, 'r') as f:
+            all_stats = json.load(f)
+        team_stats = next((stats for stats in all_stats if stats.get('team') == team), None)
+        # Defensive: always pass a dict, even if not found
+        return render_template('mobile/my_team.html', team_data=team_stats or {}, session_data={'user': user})
     except Exception as e:
-        logger.error(f"Failed to start server: {str(e)}")
-        logger.error(traceback.format_exc())
-        sys.exit(1)
+        print(f"Error fetching team stats: {str(e)}")
+        return render_template('mobile/my_team.html', team_data={}, session_data={'user': user}, error=str(e))
+
+@app.route('/mobile/myteam')
+@login_required
+def serve_mobile_myteam():
+    """
+    Serve the mobile My Team analysis page.
+    """
+    user = session['user']
+    club = user.get('club')
+    series = user.get('series')
+    import re
+    m = re.search(r'(\d+)', series)
+    series_num = m.group(1) if m else ''
+    team = f"{club} - {series_num}"
+    stats_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'Chicago_22_stats_20250425.json')
+    matches_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'tennis_matches_20250416.json')
+    try:
+        with open(stats_path, 'r') as f:
+            all_stats = json.load(f)
+        print("DEBUG: club =", club)
+        print("DEBUG: series =", series)
+        print("DEBUG: series_num =", series_num)
+        print("DEBUG: team =", team)
+        print("DEBUG: Available teams:", [t.get('team') for t in all_stats])
+        team_stats = next((stats for stats in all_stats if stats.get('team') == team), None)
+        # Compute court analysis and top players
+        court_analysis = {}
+        top_players = []
+        if os.path.exists(matches_path):
+            with open(matches_path, 'r') as f:
+                matches = json.load(f)
+            # Group matches by date for court assignment
+            from collections import defaultdict, Counter
+            matches_by_date = defaultdict(list)
+            for match in matches:
+                if match.get('Home Team') == team or match.get('Away Team') == team:
+                    matches_by_date[match['Date']].append(match)
+            # Court stats and player stats
+            court_stats = {f'court{i}': {'matches': 0, 'wins': 0, 'losses': 0, 'players': Counter()} for i in range(1, 5)}
+            player_stats = {}
+            for date, day_matches in matches_by_date.items():
+                # Sort matches for deterministic court assignment
+                day_matches_sorted = sorted(day_matches, key=lambda m: (m.get('Home Team', ''), m.get('Away Team', '')))
+                for i, match in enumerate(day_matches_sorted):
+                    court_num = i + 1
+                    court_key = f'court{court_num}'
+                    is_home = match.get('Home Team') == team
+                    # Get players for this team
+                    if is_home:
+                        players = [match.get('Home Player 1'), match.get('Home Player 2')]
+                        opp_players = [match.get('Away Player 1'), match.get('Away Player 2')]
+                    else:
+                        players = [match.get('Away Player 1'), match.get('Away Player 2')]
+                        opp_players = [match.get('Home Player 1'), match.get('Home Player 2')]
+                    # Determine win/loss
+                    won = (is_home and match.get('Winner') == 'home') or (not is_home and match.get('Winner') == 'away')
+                    court_stats[court_key]['matches'] += 1
+                    if won:
+                        court_stats[court_key]['wins'] += 1
+                    else:
+                        court_stats[court_key]['losses'] += 1
+                    for p in players:
+                        court_stats[court_key]['players'][p] += 1
+                        if p not in player_stats:
+                            player_stats[p] = {'matches': 0, 'wins': 0, 'courts': Counter(), 'partners': Counter()}
+                        player_stats[p]['matches'] += 1
+                        if won:
+                            player_stats[p]['wins'] += 1
+                        player_stats[p]['courts'][court_key] += 1
+                    # Partner tracking
+                    if len(players) == 2:
+                        player_stats[players[0]]['partners'][players[1]] += 1
+                        player_stats[players[1]]['partners'][players[0]] += 1
+            # Build court_analysis
+            for i in range(1, 5):
+                court_key = f'court{i}'
+                stat = court_stats[court_key]
+                matches = stat['matches']
+                wins = stat['wins']
+                losses = stat['losses']
+                win_rate = round((wins / matches) * 100, 1) if matches > 0 else 0
+                # Top players by matches played on this court
+                top_players_court = stat['players'].most_common(2)
+                court_analysis[court_key] = {
+                    'matches': matches,
+                    'wins': wins,
+                    'losses': losses,
+                    'win_rate': win_rate,
+                    'top_players': [{'name': p, 'matches': c} for p, c in top_players_court]
+                }
+            # Build top_players list
+            for p, stat in player_stats.items():
+                matches = stat['matches']
+                wins = stat['wins']
+                win_rate = round((wins / matches) * 100, 1) if matches > 0 else 0
+                # Best court
+                best_court = max(stat['courts'].items(), key=lambda x: x[1])[0] if stat['courts'] else ''
+                # Best partner
+                best_partner = max(stat['partners'].items(), key=lambda x: x[1])[0] if stat['partners'] else ''
+                top_players.append({
+                    'name': p,
+                    'matches': matches,
+                    'win_rate': win_rate,
+                    'best_court': best_court,
+                    'best_partner': best_partner
+                })
+            # Sort top_players by matches played, then win rate
+            top_players.sort(key=lambda x: (-x['matches'], -x['win_rate'], x['name']))
+        return render_template('mobile/my_team.html', team_data=team_stats or {}, session_data={'user': user}, court_analysis=court_analysis, top_players=top_players)
+    except Exception as e:
+        print(f"Error fetching team stats: {str(e)}")
+        return render_template('mobile/my_team.html', team_data={}, session_data={'user': user}, error=str(e))
+    
+
+# Backward-compatible alias (redirect)
+@app.route('/mobile/my-team')
+def redirect_my_team():
+    from flask import redirect, url_for
+    return redirect(url_for('serve_mobile_myteam'))
+
+if __name__ == '__main__':
+        # Get port from environment variable or use default
+        port = int(os.environ.get("PORT", os.environ.get("RAILWAY_PORT", 8080)))
+        host = os.environ.get("HOST", "0.0.0.0")
+        
+        logger.info("=== SERVER STARTING ===")
+        logger.info(f"Environment: {os.environ.get('FLASK_ENV', 'production')}")
+        logger.info(f"Port: {port}")
+        logger.info(f"Host: {host}")
+        
+        try:
+            # Configure SocketIO
+            socketio = SocketIO(
+                app,
+                cors_allowed_origins="*",
+                async_mode='threading',  # Change to threading mode
+                logger=True,
+                engineio_logger=True,
+                ping_timeout=30,
+                ping_interval=15,
+                max_http_buffer_size=1024 * 1024,  # 1MB buffer size
+                async_handlers=True,
+                manage_session=False  # Let Flask handle sessions
+            )
+            
+            # Add error handlers
+            @app.errorhandler(500)
+            def internal_error(error):
+                logger.error(f"Internal Server Error: {error}")
+                return jsonify({'error': 'Internal Server Error'}), 500
+
+            @app.errorhandler(502)
+            def bad_gateway_error(error):
+                logger.error(f"Bad Gateway Error: {error}")
+                return jsonify({'error': 'Bad Gateway'}), 502
+
+            # Run the server
+            app.run(
+                host=host,
+                port=port,
+                debug=False
+            )
+            logger.info("Server started successfully")
+        except Exception as e:
+            logger.error(f"Failed to start server: {str(e)}")
+            logger.error(traceback.format_exc())
+            sys.exit(1)

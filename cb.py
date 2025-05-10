@@ -22,6 +22,35 @@ import sys
 import argparse
 import time
 
+# === Rally Project Code Backup Script ===
+# This script copies all code files (excluding .venv, __pycache__, and data) to a timestamped backup folder.
+# Usage: python cb.py
+
+BACKUP_ROOT = 'backups'
+EXCLUDE_DIRS = {'.venv', '__pycache__', 'data', 'logs', 'backups'}
+PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+
+# Create backup directory with timestamp
+now = datetime.now().strftime('%Y%m%d_%H%M%S')
+backup_dir = os.path.join(PROJECT_ROOT, BACKUP_ROOT, f'code_backup_{now}')
+os.makedirs(backup_dir, exist_ok=True)
+
+# Helper: should we skip this directory?
+def should_exclude(dir_name):
+    return dir_name in EXCLUDE_DIRS
+
+# Copy all files and folders except excluded ones
+def copy_code(src, dst):
+    for item in os.listdir(src):
+        if should_exclude(item):
+            continue
+        s = os.path.join(src, item)
+        d = os.path.join(dst, item)
+        if os.path.isdir(s):
+            shutil.copytree(s, d, ignore=shutil.ignore_patterns('*.pyc', '__pycache__'))
+        else:
+            shutil.copy2(s, d)
+
 def list_backups():
     """List all existing backups without creating a new one"""
     try:
@@ -253,4 +282,6 @@ def main():
         create_backup(max_backups=args.max_backups, exclude_patterns=args.exclude, no_confirm=args.no_confirm)
 
 if __name__ == "__main__":
-    main()
+    print(f"Backing up code from {PROJECT_ROOT} to {backup_dir}")
+    copy_code(PROJECT_ROOT, backup_dir)
+    print("Backup complete.")

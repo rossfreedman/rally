@@ -61,27 +61,27 @@
                         <td class='stat-value text-black'>{{ analyze_data.career_stats.winRate|round(1, 'common') if analyze_data.career_stats.winRate is not string else analyze_data.career_stats.winRate }}%</td>
                     </tr>
                     <tr>
-                        <td class='stat-label'><i class='fas fa-arrow-down text-green-700'></i> PTI Change</td>
-                        <td class='stat-value'>
+                        <td class='stat-label text-center'><i class='fas fa-arrow-down text-green-700'></i> PTI Change</td>
+                        <td class='stat-value text-center'>
                             {% set pti = analyze_data.current_season.ptiChange %}
                             {% if pti is string or pti == 'N/A' %}
                                 <span class="text-black">{{ pti }}</span>
                             {% elif pti|float > 0 %}
-                                <span class="text-red-600 font-bold flex items-center">{{ pti|round(1, 'common') }} <span aria-label="PTI Up" class="ml-1">▲</span></span>
+                                <span class="text-red-600 font-bold flex items-center justify-center">{{ pti|round(1, 'common') }} <span aria-label="PTI Up" class="ml-1">▲</span></span>
                             {% elif pti|float < 0 %}
-                                <span class="text-green-700 font-bold flex items-center">{{ pti|round(1, 'common') }} <span aria-label="PTI Down" class="ml-1">▼</span></span>
+                                <span class="text-green-700 font-bold flex items-center justify-center">{{ pti|round(1, 'common') }} <span aria-label="PTI Down" class="ml-1">▼</span></span>
                             {% else %}
                                 <span class="text-black">0.0</span>
                             {% endif %}
                         </td>
-                        <td class='stat-value'>
+                        <td class='stat-value text-center'>
                             {% set pti = analyze_data.career_pti_change %}
                             {% if pti is string or pti == 'N/A' %}
                                 <span class="text-black">{{ pti }}</span>
                             {% elif pti|float > 0 %}
-                                <span class="text-red-600 font-bold flex items-center">{{ pti|round(1, 'common') }} <span aria-label="PTI Up" class="ml-1">▲</span></span>
+                                <span class="text-red-600 font-bold flex items-center justify-center">{{ pti|round(1, 'common') }} <span aria-label="PTI Up" class="ml-1">▲</span></span>
                             {% elif pti|float < 0 %}
-                                <span class="text-green-700 font-bold flex items-center">{{ pti|round(1, 'common') }} <span aria-label="PTI Down" class="ml-1">▼</span></span>
+                                <span class="text-green-700 font-bold flex items-center justify-center">{{ pti|round(1, 'common') }} <span aria-label="PTI Down" class="ml-1">▼</span></span>
                             {% else %}
                                 <span class="text-black">0.0</span>
                             {% endif %}
