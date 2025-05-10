@@ -57,13 +57,35 @@
                     </tr>
                     <tr>
                         <td class='stat-label'><span class='text-blue-700'><i class='fas fa-percent'></i></span> Wins</td>
-                        <td class='stat-value text-black'>{{ analyze_data.current_season.winRate }}%</td>
-                        <td class='stat-value text-black'>{{ analyze_data.career_stats.winRate }}%</td>
+                        <td class='stat-value text-black'>{{ analyze_data.current_season.winRate|round(1, 'common') if analyze_data.current_season.winRate is not string else analyze_data.current_season.winRate }}%</td>
+                        <td class='stat-value text-black'>{{ analyze_data.career_stats.winRate|round(1, 'common') if analyze_data.career_stats.winRate is not string else analyze_data.career_stats.winRate }}%</td>
                     </tr>
                     <tr>
                         <td class='stat-label'><i class='fas fa-arrow-down text-green-700'></i> PTI Change</td>
-                        <td class='stat-value {% if analyze_data.current_season.ptiChange is string %}text-black{% elif analyze_data.current_season.ptiChange > 0 %}text-red-600{% elif analyze_data.current_season.ptiChange < 0 %}text-green-700{% else %}text-black{% endif %}'>{{ analyze_data.current_season.ptiChange }}</td>
-                        <td class='stat-value {% if analyze_data.career_pti_change is string %}text-black{% elif analyze_data.career_pti_change > 0 %}text-red-600{% elif analyze_data.career_pti_change < 0 %}text-green-700{% else %}text-black{% endif %}'>{{ analyze_data.career_pti_change }}</td>
+                        <td class='stat-value'>
+                            {% set pti = analyze_data.current_season.ptiChange %}
+                            {% if pti is string or pti == 'N/A' %}
+                                <span class="text-black">{{ pti }}</span>
+                            {% elif pti|float > 0 %}
+                                <span class="text-red-600 font-bold flex items-center">{{ pti|round(1, 'common') }} <span aria-label="PTI Up" class="ml-1">▲</span></span>
+                            {% elif pti|float < 0 %}
+                                <span class="text-green-700 font-bold flex items-center">{{ pti|round(1, 'common') }} <span aria-label="PTI Down" class="ml-1">▼</span></span>
+                            {% else %}
+                                <span class="text-black">0.0</span>
+                            {% endif %}
+                        </td>
+                        <td class='stat-value'>
+                            {% set pti = analyze_data.career_pti_change %}
+                            {% if pti is string or pti == 'N/A' %}
+                                <span class="text-black">{{ pti }}</span>
+                            {% elif pti|float > 0 %}
+                                <span class="text-red-600 font-bold flex items-center">{{ pti|round(1, 'common') }} <span aria-label="PTI Up" class="ml-1">▲</span></span>
+                            {% elif pti|float < 0 %}
+                                <span class="text-green-700 font-bold flex items-center">{{ pti|round(1, 'common') }} <span aria-label="PTI Down" class="ml-1">▼</span></span>
+                            {% else %}
+                                <span class="text-black">0.0</span>
+                            {% endif %}
+                        </td>
                     </tr>
                 </tbody>
             </table>
@@ -76,21 +98,36 @@
             {% set court_order = ['court1', 'court2', 'court3', 'court4'] %}
             {% for court in court_order %}
                 {% set stats = analyze_data.court_analysis.get(court) %}
-                <div class='analyze-card flex flex-col stat-card mb-3'>
-                    <div class='analyze-card-header'><i class="fas fa-table-tennis"></i> {{ court|capitalize }}</div>
-                    <div class='text-xl font-bold mb-1'>{{ stats.winRate if stats else 'N/A' }}%</div>
-                    <div class='text-xs text-gray-500 mb-1'>Win Rate</div>
-                    <div class='text-sm mb-1'>Record: {{ stats.record if stats else 'N/A' }}</div>
-                    <div class='text-xs text-gray-500 mb-1'>Top Partners:</div>
-                    <ul class='pl-3 text-sm'>
-                        {% if stats and stats.topPartners %}
-                            {% for p in stats.topPartners %}
-                                <li>{{ p.name }} <span class='analyze-badge'>{{ p.winRate }} {{ p.record }}</span></li>
-                            {% endfor %}
-                        {% else %}
-                            <li class="text-gray-400">None</li>
-                        {% endif %}
+                <div class="court-analysis-card flex flex-col items-start p-4 mb-3">
+                  <div class="flex items-center gap-2 mb-2 w-full">
+                    <i class="fas fa-table-tennis text-green-700"></i>
+                    <span class="font-bold text-lg text-green-900">{{ court|capitalize }}</span>
+                  </div>
+                  <div class="w-full mb-2">
+                    <div class="flex justify-between items-center mb-1">
+                      <span class="font-semibold text-gray-700">Win Rate</span>
+                      <span class="font-bold text-xl text-gray-900 analyze-badge">{{ stats.winRate|round(1, 'common') if stats and stats.winRate is not string else stats.winRate if stats else 'N/A' }}%</span>
+                    </div>
+                    <div class="flex justify-between items-center mb-1">
+                      <span class="font-semibold text-gray-700">Record</span>
+                      <span class="text-gray-900">{{ stats.record if stats else 'N/A' }}</span>
+                    </div>
+                  </div>
+                  <div class="w-full mt-2">
+                    <span class="font-semibold text-gray-700 block mb-1">Top Partners</span>
+                    <ul class="partner-list space-y-1">
+                      {% if stats and stats.topPartners %}
+                        {% for p in stats.topPartners %}
+                          <li class="flex flex-col items-start">
+                            <span class="partner-name">{{ p.name }}</span>
+                            <span class="analyze-badge mt-1">{{ p.winRate|round(1, 'common') if p.winRate is not string else p.winRate }} {{ p.record }}</span>
+                          </li>
+                        {% endfor %}
+                      {% else %}
+                        <li class="text-gray-400">None</li>
+                      {% endif %}
                     </ul>
+                  </div>
                 </div>
             {% endfor %}
         </div>
@@ -98,7 +135,6 @@
     <!-- Player History -->
     <div class='analyze-card'>
         <div class='analyze-card-header'><i class='fas fa-history'></i> Player History (Previous Seasons)</div>
-        <div class='text-xs text-gray-700 mb-2'>{{ analyze_data.player_history.progression or 'No progression data.' }}</div>
         {% if analyze_data.player_history.seasons %}
             <div class='overflow-x-auto'><table class='min-w-full text-xs border mt-2'>
                 <thead><tr class='bg-gray-50'>
@@ -111,7 +147,16 @@
                             <td class='py-1 px-2 text-center'>{{ row.series }}</td>
                             <td class='py-1 px-2 text-center'>{{ row.ptiStart }}</td>
                             <td class='py-1 px-2 text-center'>{{ row.ptiEnd }}</td>
-                            <td class='py-1 px-2 text-center'>{{ row.trend }}</td>
+                            <td class='py-1 px-2 text-center'>
+                                {% set trend = row.trend %}
+                                {% if trend is string and trend.startswith('+') %}
+                                    <span class="text-red-600 font-bold flex items-center">{{ trend }} <span aria-label="PTI Up" class="ml-1">▲</span></span>
+                                {% elif trend is string and trend.startswith('-') %}
+                                    <span class="text-green-700 font-bold flex items-center">{{ trend }} <span aria-label="PTI Down" class="ml-1">▼</span></span>
+                                {% else %}
+                                    <span class="text-black">{{ trend }}</span>
+                                {% endif %}
+                            </td>
                         </tr>
                     {% endfor %}
                 </tbody>
@@ -290,6 +335,45 @@
   .player-stats-table .stat-value {
     font-size: 1.2em;
   }
+}
+.court-analysis-card {
+  background: #fff;
+  border-radius: 1.1rem;
+  box-shadow: 0 2px 10px 0 rgba(0,0,0,0.06);
+  border: 1.5px solid #e0e7e3;
+  margin-bottom: 1.5rem;
+  padding: 1.1rem 1rem 1.2rem 1rem;
+}
+.court-stat-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.court-stat-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 0.5em;
+}
+.court-stat-label {
+  font-weight: 700;
+  color: #444;
+  font-size: 1em;
+}
+.court-stat-value {
+  font-size: 15px !important;
+  font-weight: 400;
+}
+.partner-list {
+  list-style: none;
+  padding-left: 0;
+}
+.partner-name {
+  font-weight: 700;
+  color: #444;
+  font-size: 1em;
 }
 </style>
 {% endblock %} 

@@ -3680,6 +3680,7 @@ def get_player_analysis(user):
     import os, json
     from collections import defaultdict, Counter
     player_name = f"{user['first_name']} {user['last_name']}"
+    print(f"[DEBUG] Looking for player: '{player_name}'")  # Debug print
     player_history_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'series_22_player_history.json')
     matches_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'tennis_matches_20250416.json')
 
@@ -3702,10 +3703,13 @@ def get_player_analysis(user):
         return name.replace(',', '').replace('  ', ' ').strip().lower()
     player_name_normal = normalize(player_name)
     player_last_first = normalize(f"{user['last_name']}, {user['first_name']}")
+    print(f"[DEBUG] Normalized search names: '{player_name_normal}', '{player_last_first}'")  # Debug print
     player = None
     for p in all_players:
         n = normalize(p.get('name', ''))
+        print(f"[DEBUG] Player in file: '{n}' (original: '{p.get('name', '')}')")  # Debug print
         if n == player_name_normal or n == player_last_first:
+            print(f"[DEBUG] Match found for player: '{n}'")  # Debug print
             player = p
             break
     # --- 2. Load all matches for this player ---
@@ -3744,24 +3748,31 @@ def get_player_analysis(user):
                     if match_series and match_series != current_series:
                         continue
                 player_matches.append(m)
-    # --- 5. Assign matches to courts 1-4 by date and order ---
-    matches_by_date = defaultdict(list)
-    for match in player_matches:
+    # --- 5. Assign matches to courts 1-4 by date and team pairing (CORRECTED LOGIC) ---
+    matches_by_group = defaultdict(list)
+    for match in all_matches:
         date = match.get('Date') or match.get('date')
-        matches_by_date[date].append(match)
+        home_team = match.get('Home Team', '')
+        away_team = match.get('Away Team', '')
+        group_key = (date, home_team, away_team)
+        matches_by_group[group_key].append(match)
+
     court_stats = {f'court{i}': {'matches': 0, 'wins': 0, 'losses': 0, 'partners': Counter()} for i in range(1, 5)}
     total_matches = 0
     wins = 0
     losses = 0
     pti_start = None
     pti_end = None
-    for date in sorted(matches_by_date.keys()):
-        day_matches = matches_by_date[date]
+
+    for group_key in sorted(matches_by_group.keys()):
+        day_matches = matches_by_group[group_key]
+        # Sort all matches for this group for deterministic court assignment
         day_matches_sorted = sorted(day_matches, key=lambda m: (m.get('Home Team', ''), m.get('Away Team', '')))
         for i, match in enumerate(day_matches_sorted):
             court_num = i + 1
             if court_num > 4:
                 continue
+            # Check if player is in this match
             if player_name not in [match.get('Home Player 1'), match.get('Home Player 2'), match.get('Away Player 1'), match.get('Away Player 2')]:
                 continue
             total_matches += 1
@@ -3774,6 +3785,7 @@ def get_player_analysis(user):
                 losses += 1
                 court_stats[f'court{court_num}']['losses'] += 1
             court_stats[f'court{court_num}']['matches'] += 1
+            # Identify partner
             if player_name == match.get('Home Player 1'):
                 partner = match.get('Home Player 2')
             elif player_name == match.get('Home Player 2'):
@@ -3829,6 +3841,8 @@ def get_player_analysis(user):
     current_season = {
         'winRate': win_rate,
         'matches': total_matches,
+        'wins': wins,  # Added: number of wins in current season
+        'losses': losses,  # Added: number of losses in current season
         'ptiChange': pti_change
     }
     # --- 7. Build court analysis ---
@@ -3867,17 +3881,13 @@ def get_player_analysis(user):
             'pti': current_pti
         }
         progression = []
-        seasons = []
-        for s in player.get('seasons', []):
-            trend = s.get('ptiEnd', 0) - s.get('ptiStart', 0)
-            progression.append(f"{s.get('season', '')}: PTI {s.get('ptiStart', '')}→{s.get('ptiEnd', '')} ({'+' if trend >= 0 else ''}{trend})")
-            seasons.append({
-                'season': s.get('season', ''),
-                'series': s.get('series', ''),
-                'ptiStart': s.get('ptiStart', ''),
-                'ptiEnd': s.get('ptiEnd', ''),
-                'trend': ('+' if trend >= 0 else '') + str(trend)
-            })
+        # --- NEW: Compute seasons from matches if missing or empty ---
+        seasons = player.get('seasons', [])
+        if not seasons:
+            seasons = build_season_history(player)
+        for s in seasons:
+            trend_val = s.get('trend', '')
+            progression.append(f"{s.get('season', '')}: PTI {s.get('ptiStart', '')}→{s.get('ptiEnd', '')} ({trend_val})")
         player_history = {
             'progression': ' | '.join(progression),
             'seasons': seasons
@@ -4039,18 +4049,93 @@ def research_me():
             'matches': last_season.get('matches', 0),
             'ptiChange': last_season.get('ptiEnd', 0) - last_season.get('ptiStart', 0)
         }
-    # --- Compute court analysis ---
-    court_analysis = {}
-    if 'courts' in player and player['courts']:
-        for court, stats in player['courts'].items():
-            partners = stats.get('partners', [])
-            # Top 3 partners by matches played
-            top_partners = sorted(partners, key=lambda x: -x.get('matches', 0))[:3]
-            court_analysis[court] = {
-                'winRate': stats.get('winRate', 0),
-                'record': f"{stats.get('wins', 0)}-{stats.get('matches', 0) - stats.get('wins', 0)}",
-                'topPartners': top_partners
-            }
+    # --- Compute court analysis (NEW LOGIC) ---
+    from collections import defaultdict, Counter
+    court_analysis = {str(i): {'winRate': 0, 'record': '0-0', 'topPartners': []} for i in range(1, 5)}
+    # Step 1: Group matches by (date, series)
+    matches_by_date_series = defaultdict(list)
+    for match in all_matches:
+        date = match.get('Date')
+        home_team = match.get('Home Team', '')
+        away_team = match.get('Away Team', '')
+        series = ''
+        if ' - ' in home_team:
+            series = home_team.split(' - ')[-1]
+        elif ' - ' in away_team:
+            series = away_team.split(' - ')[-1]
+        key = (date, series)
+        matches_by_date_series[key].append(match)
+    print("\n[DEBUG] Grouped matches by (date, series):")
+    for key, matches in matches_by_date_series.items():
+        print(f"  {key}: {len(matches)} matches")
+        for idx, m in enumerate(matches):
+            print(f"    Court {idx+1}: {m.get('Home Team')} vs {m.get('Away Team')} | Players: {m.get('Home Player 1')}, {m.get('Home Player 2')} vs {m.get('Away Player 1')}, {m.get('Away Player 2')}")
+    # Step 2: Assign courts and collect player's matches by court
+    player_court_matches = defaultdict(list)
+    print(f"\n[DEBUG] Checking matches for player: {player_name}")
+    for (date, series), matches in matches_by_date_series.items():
+        # Sort matches for deterministic court assignment
+        matches_sorted = sorted(matches, key=lambda m: (m.get('Home Team', ''), m.get('Away Team', '')))
+        for idx, match in enumerate(matches_sorted):
+            court_num = str(idx + 1)
+            match['court_num'] = court_num  # Assign court number to all matches
+            players = [
+                match.get('Home Player 1', ''),
+                match.get('Home Player 2', ''),
+                match.get('Away Player 1', ''),
+                match.get('Away Player 2', '')
+            ]
+            if any(p and p.strip().lower() == player_name.lower() for p in players):
+                player_court_matches[court_num].append(match)
+                print(f"  [DEBUG] Player found on {date} series {series} court {court_num}: {players}")
+    # Step 3: For each court, calculate stats
+    for court_num in ['1', '2', '3', '4']:
+        matches = player_court_matches.get(court_num, [])
+        if not matches:
+            continue
+        print(f"\n[DEBUG] Court {court_num} - {len(matches)} matches for player {player_name}")
+        wins = 0
+        losses = 0
+        partner_stats = defaultdict(lambda: {'wins': 0, 'losses': 0, 'matches': 0})
+        for match in matches:
+            is_home = player_name in [match.get('Home Player 1'), match.get('Home Player 2')]
+            won = (is_home and match.get('Winner') == 'home') or (not is_home and match.get('Winner') == 'away')
+            if won:
+                wins += 1
+            else:
+                losses += 1
+            # Identify partner
+            if is_home:
+                partner = match.get('Home Player 2') if match.get('Home Player 1') == player_name else match.get('Home Player 1')
+            else:
+                partner = match.get('Away Player 2') if match.get('Away Player 1') == player_name else match.get('Away Player 1')
+            if partner:
+                partner_stats[partner]['matches'] += 1
+                if won:
+                    partner_stats[partner]['wins'] += 1
+                else:
+                    partner_stats[partner]['losses'] += 1
+            print(f"    [DEBUG] Match: {match.get('Date')} {match.get('Home Team')} vs {match.get('Away Team')} | Partner: {partner} | Win: {won}")
+        total_matches = wins + losses
+        win_rate = round((wins / total_matches) * 100, 1) if total_matches > 0 else 0
+        record = f"{wins}-{losses}"
+        # Top partners by matches played
+        sorted_partners = sorted(partner_stats.items(), key=lambda x: -x[1]['matches'])[:3]
+        top_partners = []
+        for partner, stats in sorted_partners:
+            p_win_rate = round((stats['wins'] / stats['matches']) * 100, 1) if stats['matches'] > 0 else 0
+            p_record = f"{stats['wins']}-{stats['losses']}"
+            top_partners.append({
+                'name': partner,
+                'winRate': p_win_rate,
+                'record': p_record,
+                'matches': stats['matches']
+            })
+        court_analysis[court_num] = {
+            'winRate': win_rate,
+            'record': record,
+            'topPartners': top_partners
+        }
     # --- Compute career stats ---
     career_stats = None
     if player.get('matches') is not None and player.get('wins') is not None:
@@ -4137,6 +4222,71 @@ def research_me():
         'trends': trends if trends else {'max_win_streak': 0, 'max_loss_streak': 0}
     }
     return jsonify(response)
+
+def get_season_from_date(date_str):
+    """
+    Given a date string in MM/DD/YYYY or YYYY-MM-DD, return the season string 'YYYY-YYYY+1'.
+    """
+    from datetime import datetime
+    for fmt in ("%m/%d/%Y", "%Y-%m-%d"):
+        try:
+            dt = datetime.strptime(date_str, fmt)
+            break
+        except ValueError:
+            continue
+    else:
+        return None  # Invalid date format
+    if dt.month >= 8:
+        start_year = dt.year
+        end_year = dt.year + 1
+    else:
+        start_year = dt.year - 1
+        end_year = dt.year
+    return f"{start_year}-{end_year}"
+
+def build_season_history(player):
+    from collections import defaultdict
+    from datetime import datetime
+    matches = player.get('matches', [])
+    if not matches:
+        return []
+    # Helper to parse date robustly
+    def parse_date(d):
+        for fmt in ("%m/%d/%Y", "%Y-%m-%d"):
+            try:
+                return datetime.strptime(d, fmt)
+            except Exception:
+                continue
+        return d  # fallback to string if parsing fails
+    # Group matches by season
+    season_matches = defaultdict(list)
+    for m in matches:
+        season = get_season_from_date(m.get('date', ''))
+        if season:
+            season_matches[season].append(m)
+    seasons = []
+    for season, ms in season_matches.items():
+        ms_sorted = sorted(ms, key=lambda x: parse_date(x.get('date', '')))
+        pti_start = ms_sorted[0].get('end_pti', None)
+        pti_end = ms_sorted[-1].get('end_pti', None)
+        series = ms_sorted[0].get('series', '')
+        trend = (pti_end - pti_start) if pti_start is not None and pti_end is not None else None
+        # --- ROUND trend to 1 decimal ---
+        if trend is not None:
+            trend_rounded = round(trend, 1)
+            trend_str = f"+{trend_rounded}" if trend_rounded >= 0 else str(trend_rounded)
+        else:
+            trend_str = ''
+        seasons.append({
+            'season': season,
+            'series': series,
+            'ptiStart': pti_start,
+            'ptiEnd': pti_end,
+            'trend': trend_str
+        })
+    # Sort by season (descending)
+    seasons.sort(key=lambda s: s['season'], reverse=True)
+    return seasons
 
 if __name__ == '__main__':
     # Get port from environment variable or use default

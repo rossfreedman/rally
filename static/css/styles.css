@@ -42,6 +42,9 @@
     border: 1px solid #e9ecef;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
 }
 
 .court-card:hover {
@@ -142,6 +145,11 @@
     color: #34495e;
     margin-bottom: 4px;
     padding: 4px 0;
+}
+
+.court-card .partner-list li {
+    white-space: nowrap;
+    display: block;
 }
 
 .overall-stats {
