@@ -1,0 +1,169 @@
+{% extends "mobile/layout.html" %}
+
+{% block content %}
+<div class="max-w-lg mx-auto">
+    <!-- Consistent Header (matches Schedule page) -->
+    <div class="flex items-center gap-3 mt-4 mb-2 px-4">
+        <div class="bg-white rounded-md flex items-center justify-center h-12 w-12">
+            <i class="fas fa-chart-bar text-green-700 text-3xl"></i>
+        </div>
+        <div>
+            <div class="text-2xl font-bold leading-tight">Player Analysis</div>
+            <div class="text-base text-gray-500 mt-1">{{ session_data.user.first_name }} {{ session_data.user.last_name }}</div>
+        </div>
+    </div>
+    <div id="analyzeMe-content">
+        <div id="analyzeMe-loading" class="text-center my-8">
+            <i class="fas fa-spinner fa-spin fa-2x"></i><br>Loading your analysis...
+        </div>
+        <div id="analyzeMe-error" style="display:none; color:#b00020; text-align:center; margin:2em 0;"></div>
+        <div id="analyzeMe-data" style="display:none;"></div>
+    </div>
+</div>
+
+<script>
+function statCard(title, value, subtitle, colorClass, icon) {
+    return `<div class='flex-1 min-w-[120px] bg-white rounded-xl shadow p-4 flex flex-col items-center justify-center border border-gray-100'>
+        <div class='text-gray-500 mb-1 flex items-center gap-2'>${icon ? `<i class='fas fa-${icon} ${colorClass}'></i>` : ''}${title}</div>
+        <div class='text-2xl font-bold mb-1 ${colorClass}'>${value}</div>
+        <div class='text-xs text-gray-500 mb-1'>${subtitle||''}</div>
+    </div>`;
+}
+function courtCard(court, stats) {
+    let color = stats.winRate >= 75 ? 'text-green-600' : stats.winRate >= 50 ? 'text-blue-600' : stats.winRate > 0 ? 'text-yellow-600' : 'text-red-600';
+    let partners = (stats.topPartners||[]).map(p => `<li>${p.name} <span class='ml-2 bg-gray-200 rounded px-2 py-0.5 text-xs'>${p.winRate}% (${p.record})</span></li>`).join('');
+    return `<div class='bg-white rounded-xl shadow p-4 flex-1 min-w-[180px] border border-gray-100 mb-3'>
+        <div class='text-gray-500 mb-1 font-semibold'>${court}</div>
+        <div class='text-xl font-bold mb-1 ${color}'>${stats.winRate}%</div>
+        <div class='text-xs text-gray-500 mb-1'>Win Rate</div>
+        <div class='text-sm mb-1'>Record: ${stats.record}</div>
+        <div class='text-xs text-gray-500 mb-1'>Top Partners:</div>
+        <ul class='pl-3 text-sm'>${partners||'<li class="text-gray-400">None</li>'}</ul>
+    </div>`;
+}
+function historyTable(history) {
+    let rows = history.map(row => `<tr>
+        <td class='py-1 px-2 text-center'>${row.season}</td>
+        <td class='py-1 px-2 text-center'>${row.series}</td>
+        <td class='py-1 px-2 text-center'>${row.ptiStart}</td>
+        <td class='py-1 px-2 text-center'>${row.ptiEnd}</td>
+        <td class='py-1 px-2 text-center'>${row.trend||''}</td>
+    </tr>`).join('');
+    return `<div class='overflow-x-auto'><table class='min-w-full text-xs border mt-2'>
+        <thead><tr class='bg-gray-50'>
+            <th class='py-1 px-2'>Season</th><th class='py-1 px-2'>Series</th><th class='py-1 px-2'>PTI Start</th><th class='py-1 px-2'>PTI End</th><th class='py-1 px-2'>Trend</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+    </table></div>`;
+}
+function videoCard(video) {
+    return `<div class='w-44 flex-shrink-0 mr-3 mb-2'>
+        <div class='rounded-lg overflow-hidden relative mb-2'>
+            <img src='${video.thumbnail||"/static/images/video_thumbnail.png"}' class='w-full h-28 object-cover' alt='${video.title}'>
+            <div class='absolute bottom-2 right-2 bg-black bg-opacity-80 text-white text-xs px-2 py-0.5 rounded'>${video.duration}</div>
+        </div>
+        <div class='font-semibold text-xs mb-1'>${video.title}</div>
+        <div class='text-xs text-gray-500'>${video.date} • ${video.views} views</div>
+    </div>`;
+}
+function renderAnalyzeMe(data) {
+    let html = '';
+    // --- Current Season Stats ---
+    if (data.current_season) {
+        let s = data.current_season;
+        html += `<div class='mb-5'>
+            <div class='flex items-center gap-2 mb-2 px-1'>
+                <i class='fas fa-calendar-alt text-green-700'></i>
+                <span class='font-bold text-lg'>Current Season Stats</span>
+            </div>
+            <div class='flex flex-wrap gap-3 justify-between'>
+                ${statCard('Season Match Record', s.winRate+'%', 'Season Win Rate', 'text-blue-700', 'percent')}
+                ${statCard('Season Matches', s.matches, 'Total Season Matches', 'text-green-700', 'table-tennis-paddle-ball')}
+                ${statCard('PTI Change', s.ptiChange, 'PTI improved this season', 'text-green-700', 'arrow-down')}
+            </div>
+        </div>`;
+    }
+    // --- Court Analysis ---
+    if (data.court_analysis) {
+        html += `<div class='mb-5'>
+            <div class='flex items-center gap-2 mb-2 px-1'>
+                <i class='fas fa-table-tennis text-green-700'></i>
+                <span class='font-bold text-lg'>Court Analysis</span>
+            </div>
+            <div class='flex flex-nowrap gap-3 overflow-x-auto pb-2'>
+                ${Object.entries(data.court_analysis).map(([court, stats]) => courtCard(court, stats)).join('')}
+            </div>
+        </div>`;
+    }
+    // --- Career Stats ---
+    if (data.career_stats) {
+        let c = data.career_stats;
+        html += `<div class='mb-5'>
+            <div class='flex items-center gap-2 mb-2 px-1'>
+                <i class='fas fa-chart-line text-green-700'></i>
+                <span class='font-bold text-lg'>Career Stats</span>
+            </div>
+            <div class='flex flex-wrap gap-3 justify-between'>
+                ${statCard('Match Record', c.winRate+'%', 'Win Rate', 'text-blue-700', 'percent')}
+                ${statCard('Player Stats', c.matches, 'Total Matches', 'text-green-700', 'user')}
+                ${statCard('Player Rating', c.pti, 'Current PTI', 'text-green-700', 'star')}
+            </div>
+        </div>`;
+    }
+    // --- Player History ---
+    if (data.player_history) {
+        html += `<div class='mb-5'>
+            <div class='flex items-center gap-2 mb-2 px-1'>
+                <i class='fas fa-history text-green-700'></i>
+                <span class='font-bold text-lg'>Player History (Previous Seasons)</span>
+            </div>
+            <div class='text-xs text-gray-700 mb-2'>${data.player_history.progression||''}</div>
+            ${historyTable(data.player_history.seasons||[])}
+        </div>`;
+    }
+    // --- Review Video Footage ---
+    if (data.videos && (data.videos.match && data.videos.match.length || data.videos.practice && data.videos.practice.length)) {
+        html += `<div class='mb-5'>
+            <div class='flex items-center gap-2 mb-2 px-1'>
+                <i class='fas fa-video text-green-700'></i>
+                <span class='font-bold text-lg'>Review Video Footage</span>
+            </div>
+            <div class='mb-2'><span class='font-semibold text-sm'>Match Videos</span></div>
+            <div class='flex flex-nowrap gap-3 overflow-x-auto pb-2 mb-4'>
+                ${(data.videos.match||[]).map(videoCard).join('')||'<div class="text-gray-400">No match videos</div>'}
+            </div>
+            <div class='mb-2'><span class='font-semibold text-sm'>Practice Videos</span></div>
+            <div class='flex flex-nowrap gap-3 overflow-x-auto pb-2'>
+                ${(data.videos.practice||[]).map(videoCard).join('')||'<div class="text-gray-400">No practice videos</div>'}
+            </div>
+            <div class='mt-4 text-center'>
+                <a href="#" class="btn btn-outline btn-sm btn-primary">View All Videos <i class="fas fa-arrow-right ms-1"></i></a>
+            </div>
+        </div>`;
+    }
+    if (!html) {
+        html = '<div class="text-center">No analysis data available.</div>';
+    }
+    document.getElementById('analyzeMe-data').innerHTML = html;
+}
+document.addEventListener('DOMContentLoaded', function() {
+    fetch('/api/research-me')
+        .then(resp => resp.json())
+        .then(data => {
+            document.getElementById('analyzeMe-loading').style.display = 'none';
+            if (data.error) {
+                document.getElementById('analyzeMe-error').innerText = data.error;
+                document.getElementById('analyzeMe-error').style.display = 'block';
+            } else {
+                renderAnalyzeMe(data);
+                document.getElementById('analyzeMe-data').style.display = 'block';
+            }
+        })
+        .catch(err => {
+            document.getElementById('analyzeMe-loading').style.display = 'none';
+            document.getElementById('analyzeMe-error').innerText = 'Failed to load analysis.';
+            document.getElementById('analyzeMe-error').style.display = 'block';
+        });
+});
+</script>
+{% endblock %} 

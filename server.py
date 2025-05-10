@@ -3670,6 +3670,148 @@ def pretty_date(value):
             continue
     return value  # fallback if parsing fails
 
+@app.route('/mobile/analyze-me')
+@login_required
+def serve_mobile_analyze_me():
+    """Serve the AnalyzeMe (player analysis) mobile page"""
+    session_data = {
+        'user': session['user'],
+        'authenticated': True
+    }
+    log_user_activity(session['user']['email'], 'page_visit', page='mobile_analyze_me')
+    return render_template('mobile/analyze_me.html', session_data=session_data)
+
+@app.route('/api/research-me')
+@login_required
+def research_me():
+    """
+    Unified player analysis endpoint for the logged-in user. Returns all data needed for the mobile and desktop 'Me' (player analysis) page.
+    """
+    import os, json
+    from collections import defaultdict, Counter
+    user = session['user']
+    player_name = f"{user['first_name']} {user['last_name']}"
+    # Load player history
+    player_history_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'series_22_player_history.json')
+    try:
+        with open(player_history_path, 'r') as f:
+            all_players = json.load(f)
+    except Exception as e:
+        return jsonify({'error': f'Could not load player history: {e}'})
+    player = next((p for p in all_players if p.get('name', '').strip().lower() == player_name.strip().lower()), None)
+    if not player:
+        return jsonify({'error': 'No analysis data available for this player.'})
+    # Load match data for advanced trends and court breakdown
+    matches_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'tennis_matches_20250416.json')
+    try:
+        with open(matches_path, 'r') as f:
+            all_matches = json.load(f)
+    except Exception as e:
+        all_matches = []
+    # Optionally, load video data if available
+    video_data = {'match': [], 'practice': []}
+    video_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'player_videos.json')
+    if os.path.exists(video_path):
+        try:
+            with open(video_path, 'r') as f:
+                all_videos = json.load(f)
+                v = all_videos.get(player_name, {})
+                video_data['match'] = v.get('match', [])
+                video_data['practice'] = v.get('practice', [])
+        except Exception:
+            video_data = {'match': [], 'practice': []}
+    # --- Compute current season stats ---
+    current_season = None
+    if 'seasons' in player and player['seasons']:
+        # Assume last season is current
+        last_season = player['seasons'][-1]
+        current_season = {
+            'winRate': last_season.get('winRate', 0),
+            'matches': last_season.get('matches', 0),
+            'ptiChange': last_season.get('ptiEnd', 0) - last_season.get('ptiStart', 0)
+        }
+    # --- Compute court analysis ---
+    court_analysis = {}
+    if 'courts' in player and player['courts']:
+        for court, stats in player['courts'].items():
+            partners = stats.get('partners', [])
+            # Top 3 partners by matches played
+            top_partners = sorted(partners, key=lambda x: -x.get('matches', 0))[:3]
+            court_analysis[court] = {
+                'winRate': stats.get('winRate', 0),
+                'record': f"{stats.get('wins', 0)}-{stats.get('matches', 0) - stats.get('wins', 0)}",
+                'topPartners': top_partners
+            }
+    # --- Compute career stats ---
+    career_stats = None
+    if player.get('matches') is not None and player.get('wins') is not None:
+        # Fix: handle if matches/wins are lists
+        matches_val = player['matches']
+        wins_val = player['wins']
+        total_matches = len(matches_val) if isinstance(matches_val, list) else matches_val
+        wins = len(wins_val) if isinstance(wins_val, list) else wins_val
+        win_rate = round((wins / total_matches) * 100, 1) if total_matches > 0 else 0
+        career_stats = {
+            'winRate': win_rate,
+            'matches': total_matches,
+            'pti': player.get('pti', 'N/A')
+        }
+    # --- Player history ---
+    player_history = None
+    if 'seasons' in player and player['seasons']:
+        progression = []
+        for s in player['seasons']:
+            trend = s.get('ptiEnd', 0) - s.get('ptiStart', 0)
+            progression.append(f"{s.get('season', '')}: PTI {s.get('ptiStart', '')}→{s.get('ptiEnd', '')} ({'+' if trend >= 0 else ''}{trend})")
+        player_history = {
+            'progression': ' | '.join(progression),
+            'seasons': [
+                {
+                    'season': s.get('season', ''),
+                    'series': s.get('series', ''),
+                    'ptiStart': s.get('ptiStart', ''),
+                    'ptiEnd': s.get('ptiEnd', ''),
+                    'trend': ('+' if (s.get('ptiEnd', 0) - s.get('ptiStart', 0)) >= 0 else '') + str(s.get('ptiEnd', 0) - s.get('ptiStart', 0))
+                } for s in player['seasons']
+            ]
+        }
+    # --- Trends (win/loss streaks, etc.) ---
+    trends = {}
+    player_matches = [m for m in all_matches if player_name in [m.get('Home Player 1'), m.get('Home Player 2'), m.get('Away Player 1'), m.get('Away Player 2')]]
+    streak = 0
+    max_win_streak = 0
+    max_loss_streak = 0
+    last_result = None
+    for match in sorted(player_matches, key=lambda x: x.get('Date', '')):
+        is_home = player_name in [match.get('Home Player 1'), match.get('Home Player 2')]
+        won = (is_home and match.get('Winner') == 'home') or (not is_home and match.get('Winner') == 'away')
+        if won:
+            if last_result == 'W':
+                streak += 1
+            else:
+                streak = 1
+            max_win_streak = max(max_win_streak, streak)
+            last_result = 'W'
+        else:
+            if last_result == 'L':
+                streak += 1
+            else:
+                streak = 1
+            max_loss_streak = max(max_loss_streak, streak)
+            last_result = 'L'
+    trends['max_win_streak'] = max_win_streak
+    trends['max_loss_streak'] = max_loss_streak
+    # --- Compose response ---
+    response = {
+        'current_season': current_season,
+        'court_analysis': court_analysis,
+        'career_stats': career_stats,
+        'player_history': player_history,
+        'videos': video_data,
+        'trends': trends
+    }
+    return jsonify(response)
+
 if __name__ == '__main__':
     # Get port from environment variable or use default
     port = int(os.environ.get("PORT", os.environ.get("RAILWAY_PORT", 8080)))

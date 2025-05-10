@@ -51,7 +51,7 @@
             <!-- Analyze Section -->
             <div class="nav-section-group">
                 <h2 class="nav-section-header flex items-center text-[1.35rem] font-bold text-[#007417] border-b-4 border-[#FFD600] pb-1 mb-3"><i class="fas fa-chart-bar mr-2 text-[1.5em]"></i> Analyze</h2>
-                <a href="/mobile/profile" class="nav-btn-lg">
+                <a href="/mobile/analyze-me" class="nav-btn-lg">
                     <i class="fas fa-user mr-3"></i> Me
                 </a>
                 <a href="/mobile/myteam" class="nav-btn-lg">
@@ -133,16 +133,4 @@
 }
 </style>
 
-{% if session_data and session_data.user %}
-<div class="mt-8 card w-full bg-base-100 shadow-xl">
-    <div class="card-body">
-        <h3 class="card-title text-xl font-bold mb-2">Upcoming Matches</h3>
-        <div class="upcoming-matches">
-            <div class="skeleton h-12 w-full mb-2"></div>
-            <div class="skeleton h-12 w-full mb-2"></div>
-            <div class="skeleton h-12 w-full"></div>
-        </div>
-    </div>
-</div>
-{% endif %}
 {% endblock %} 
