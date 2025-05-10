@@ -206,4 +206,17 @@ a:hover {
   background-color: #de1414 !important;
   border-color: #de1414 !important;
   color: #fff !important;
+}
+
+/* Prevent text wrapping and reduce font size for nav-btn-lg buttons on mobile */
+.nav-btn-lg {
+  white-space: nowrap;
+  font-size: 1.05rem;
+}
+
+@media (max-width: 400px) {
+  .nav-btn-lg {
+    font-size: 0.95rem;
+    padding: 1.2rem 0.8rem;
+  }
 } 
