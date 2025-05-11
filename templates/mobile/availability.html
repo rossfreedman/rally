@@ -33,12 +33,24 @@
                 {# Determine if this is a practice (no location) #}
                 {% set is_practice = not match.location %}
                 <div class="flex items-center justify-between gap-2 
-                    {% if is_practice %}bg-yellow-50{% endif %} 
+                    {% if is_practice %}practice-card{% else %}match-card{% endif %} 
                     {% if not loop.last %}border-b border-gray-200{% endif %} py-3">
-                    <div>
+                    {% if is_practice %}
+                        <div class="practice-accent"></div>
+                    {% else %}
+                        <div class="match-accent"></div>
+                    {% endif %}
+                    <div class="flex-1 flex flex-col gap-1">
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="time-pill">{{ match.time }}</span>
+                            {% if is_practice %}
+                                <span class="practice-chip"><i class="fas fa-table-tennis mr-1"></i>Practice</span>
+                            {% else %}
+                                <span class="match-chip"><i class="fas fa-trophy mr-1"></i>Match</span>
+                            {% endif %}
+                        </div>
                         <div class="font-semibold">{{ match.date | pretty_date }}</div>
                         <div class="text-xs text-gray-500">
-                            {{ match.time }} |
                             {% if is_practice %}
                                 <span class="font-bold text-yellow-700">Practice</span>
                             {% else %}
@@ -57,17 +69,9 @@
                             >
                             <span class="ml-2 text-sm font-medium"
                                 style="color: {% if avail.status == 'available' %}#22c55e{% elif avail.status == 'unavailable' %}#ef4444{% else %}#6b7280{% endif %};">
-                                {% if avail.status == 'available' %}✓ Available{% elif avail.status == 'unavailable' %}✗ Unavailable{% else %}? Not set{% endif %}
+                                {% if avail.status == 'available' %}✓ Count me in{% elif avail.status == 'unavailable' %}✗ Sorry, can't{% else %}? Not selected{% endif %}
                             </span>
                         </label>
-                        <button type="button"
-                            class="ml-1 p-1 rounded-full border border-gray-300 text-gray-400 hover:text-gray-700 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400"
-                            title="Clear availability"
-                            onclick="clearAvailability(this, '{{ players[0].name }}', '{{ match.date }}')"
-                            style="height: 2.2rem; width: 2.2rem; display: flex; align-items: center; justify-content: center;"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
-                        </button>
                     </div>
                 </div>
                 {% endfor %}
@@ -79,45 +83,35 @@
     // setView function and related logic removed. Card view is always visible.
 
     function toggleSwitch(checkbox, playerName, date) {
-        // Determine new state
+        // Determine current state
+        let currentState = checkbox.getAttribute('data-state');
         let newState;
-        if (checkbox.checked) {
-            newState = 'available';
+        if (currentState === 'unknown' || !currentState) {
+            // First toggle from not selected: checked = available, unchecked = unavailable
+            if (checkbox.checked) {
+                newState = 'available';
+            } else {
+                newState = 'unavailable';
+            }
         } else {
-            newState = 'unavailable';
+            // After first toggle, just switch between available/unavailable
+            newState = checkbox.checked ? 'available' : 'unavailable';
         }
         // Update label color and text
         const label = checkbox.parentElement.querySelector('span');
-        // Remove previous state classes
         checkbox.classList.remove('avail-available', 'avail-unavailable', 'avail-unknown');
         if (newState === 'available') {
-            label.textContent = '✓ Available';
+            label.textContent = '✓ Count me in';
             label.style.color = '#22c55e';
             checkbox.classList.add('avail-available');
-        } else {
-            label.textContent = '✗ Unavailable';
+        } else if (newState === 'unavailable') {
+            label.textContent = '✗ Sorry, can\'t';
             label.style.color = '#ef4444';
             checkbox.classList.add('avail-unavailable');
         }
+        checkbox.setAttribute('data-state', newState);
         // Save to backend
         saveAvailabilityChange(checkbox, playerName, date, newState);
-    }
-
-    function clearAvailability(button, playerName, date) {
-        // Find the checkbox in the same row
-        const row = button.closest('.flex.items-center.justify-between');
-        const checkbox = row.querySelector('input[type="checkbox"]');
-        const label = row.querySelector('span');
-        // Set to not set
-        checkbox.checked = false;
-        checkbox.setAttribute('data-state', 'unknown');
-        checkbox.setAttribute('aria-checked', 'false');
-        label.textContent = '? Not set';
-        label.style.color = '#6b7280';
-        checkbox.classList.remove('avail-available', 'avail-unavailable');
-        checkbox.classList.add('avail-unknown');
-        // Save to backend as unknown
-        saveAvailabilityChange(checkbox, playerName, date, 'unknown');
     }
 
     async function saveAvailabilityChange(element, playerName, date, newState) {
@@ -125,7 +119,6 @@
             let isAvailable = null;
             if (newState === 'available') isAvailable = true;
             else if (newState === 'unavailable') isAvailable = false;
-            // For 'unknown', isAvailable stays null
             const user = window.sessionData && window.sessionData.user;
             const series = user ? user.series : '';
             const response = await fetch('/api/availability', {
@@ -160,7 +153,50 @@
 </script>
 {% endblock %}
 <style>
-.avail-toggle.avail-available { accent-color: #22c55e; }
-.avail-toggle.avail-unavailable { accent-color: #ef4444; }
-.avail-toggle.avail-unknown { accent-color: #d1d5db; }
+/* Custom toggle slider styles */
+.avail-toggle {
+  position: relative;
+  width: 48px;
+  height: 28px;
+  appearance: none;
+  background: #e5e7eb; /* neutral background */
+  outline: none;
+  border-radius: 14px;
+  transition: background 0.2s;
+  cursor: pointer;
+}
+
+/* The slider knob */
+.avail-toggle::before {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 4px;
+  width: 22px;
+  height: 22px;
+  background: #bdbdbd; /* default gray for unknown */
+  border-radius: 50%;
+  transition: left 0.2s, background 0.2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* Move knob when checked */
+.avail-toggle:checked::before {
+  left: 22px;
+}
+
+/* Green knob for available */
+input[type="checkbox"].avail-toggle:checked.avail-available::before {
+  background: #22c55e;
+}
+
+/* Red knob for unavailable */
+input[type="checkbox"].avail-toggle:not(:checked).avail-unavailable::before {
+  background: #ef4444;
+}
+
+/* Gray knob for unknown */
+input[type="checkbox"].avail-toggle.avail-unknown::before {
+  background: #bdbdbd;
+}
 </style> 
