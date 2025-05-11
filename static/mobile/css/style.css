@@ -199,8 +199,8 @@ a:hover {
 
 /* Rally green for 'I can play' button */
 .btn-success {
-  background-color: #000000 !important; /* Changed from Rally green (#007417) to black */
-  border-color: #000000 !important; /* Changed from Rally green (#007417) to black */
+  background-color: #007417 !important; /* Rally green */
+  border-color: #007417 !important; /* Rally green */
   color: #fff !important;
 }
 
