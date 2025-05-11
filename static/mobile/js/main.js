@@ -320,4 +320,22 @@ function logUserActivity(element) {
     } catch (error) {
         console.error('Error in logUserActivity:', error);
     }
+}
+
+function toggleDrawer() {
+    const drawer = document.getElementById('navDrawer');
+    const overlay = document.getElementById('drawerOverlay');
+    const hamburger = document.getElementById('hamburgerToggle');
+    const isOpen = drawer.classList.contains('translate-x-0');
+    if (isOpen) {
+        drawer.classList.remove('translate-x-0');
+        drawer.classList.add('translate-x-full');
+        overlay.classList.add('hidden');
+        if (hamburger) hamburger.classList.remove('open');
+    } else {
+        drawer.classList.remove('translate-x-full');
+        drawer.classList.add('translate-x-0');
+        overlay.classList.remove('hidden');
+        if (hamburger) hamburger.classList.add('open');
+    }
 } 

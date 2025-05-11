@@ -4,7 +4,7 @@
     <!-- Consistent Header -->
     <div class="flex items-center gap-3 mt-4 mb-2 px-4">
         <div class="bg-white rounded-md flex items-center justify-center h-12 w-12">
-            <i class="fas fa-calendar text-green-700 text-3xl"></i>
+            <i class="fas fa-calendar text-black text-3xl"></i>
         </div>
         <div>
             <div class="text-2xl font-bold leading-tight">Schedule</div>
@@ -27,7 +27,7 @@
                 {% if 'Practice' in match %}
                     bg-[#f6faf7] border border-[#e0e7e3]
                 {% elif match.get('home_team') == user.club ~ ' - ' ~ user.series.split()[-1] %}
-                    bg-white border-l-4 border-[#007417]
+                    bg-white border-l-4 border-[#000000]
                 {% else %}
                     bg-white border-l-4 border-[#FFD600]
                 {% endif %}
@@ -38,14 +38,14 @@
                             {{ match.time }}
                         </span>
                         {% if 'Practice' in match %}
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[#e0e7e3] text-[#007417] ml-2">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[#e0e7e3] text-[#000000] ml-2">
                                 <i class="fas fa-table-tennis mr-1"></i> Practice
                             </span>
                         {% endif %}
                     </div>
                     {% if 'Practice' not in match and match.get('home_team') != user.club ~ ' - ' ~ user.series.split()[-1] %}
                         <!-- Away match: Directions icon -->
-                        <a href="#" class="text-[#007417] hover:text-[#005c13]" title="Get Directions">
+                        <a href="#" class="text-[#000000] hover:text-[#222222]" title="Get Directions">
                             <i class="fas fa-location-arrow text-lg"></i>
                         </a>
                     {% endif %}
@@ -54,11 +54,11 @@
                     {% if 'Practice' in match %}
                         <span class="text-gray-600 font-medium">Team Practice</span>
                     {% else %}
-                        <span class="font-bold {% if match.get('home_team') == user.club ~ ' - ' ~ user.series.split()[-1] %}text-[#007417]{% else %}text-gray-700{% endif %}">
+                        <span class="font-bold {% if match.get('home_team') == user.club ~ ' - ' ~ user.series.split()[-1] %}text-[#000000]{% else %}text-gray-700{% endif %}">
                             {{ match.home_team }}
                         </span>
                         <span class="mx-1 text-gray-500">vs</span>
-                        <span class="font-bold {% if match.get('away_team') == user.club ~ ' - ' ~ user.series.split()[-1] %}text-[#007417]{% else %}text-gray-700{% endif %}">
+                        <span class="font-bold {% if match.get('away_team') == user.club ~ ' - ' ~ user.series.split()[-1] %}text-[#000000]{% else %}text-gray-700{% endif %}">
                             {{ match.away_team }}
                         </span>
                     {% endif %}

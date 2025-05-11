@@ -35,13 +35,15 @@
 <body class="min-h-screen bg-base-100 text-base-content">
 
     <!-- Top Bar -->
-    <nav class="navbar bg-white shadow-md px-4 py-2 flex items-center justify-between"
+    <nav class="navbar bg-white shadow-md px-4 py-2 flex items-center justify-center relative"
          style="position: fixed; top: 0; left: 0; width: 100%; z-index: 1000; height: 56px; box-shadow: 0 2px 8px rgba(0,0,0,0.08)">
-        <a href="/mobile" class="flex items-center">
-            <img src="/static/images/rallylogo.png" alt="Rally Logo" class="h-10 w-auto mr-2">
+        <a href="/mobile" class="flex items-center justify-center w-full">
+            <img src="/static/images/rallylogo.png" alt="Rally Logo" class="h-10 w-auto">
         </a>
-        <button class="btn btn-ghost btn-circle text-2xl" onclick="toggleDrawer()">
-            <i class="fas fa-bars text-white"></i>
+        <button class="hamburger-btn" id="hamburgerToggle" onclick="toggleDrawer()">
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
         </button>
     </nav>
 

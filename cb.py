@@ -24,15 +24,18 @@ import time
 
 # === Rally Project Code Backup Script ===
 # This script copies all code files (excluding .venv, __pycache__, and data) to a timestamped backup folder.
+# Backups are always stored in a sibling directory named 'rally_backups'.
 # Usage: python cb.py
 
-BACKUP_ROOT = 'backups'
-EXCLUDE_DIRS = {'.venv', '__pycache__', 'data', 'logs', 'backups'}
+# Always backup to sibling directory 'rally_backups'
 PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+PARENT_DIR = os.path.dirname(PROJECT_ROOT)
+BACKUP_ROOT = os.path.join(PARENT_DIR, 'rally_backups')
+EXCLUDE_DIRS = {'.venv', '__pycache__', 'data', 'logs', 'backups'}
 
 # Create backup directory with timestamp
 now = datetime.now().strftime('%Y%m%d_%H%M%S')
-backup_dir = os.path.join(PROJECT_ROOT, BACKUP_ROOT, f'code_backup_{now}')
+backup_dir = os.path.join(BACKUP_ROOT, f'code_backup_{now}')
 os.makedirs(backup_dir, exist_ok=True)
 
 # Helper: should we skip this directory?
@@ -40,6 +43,7 @@ def should_exclude(dir_name):
     return dir_name in EXCLUDE_DIRS
 
 # Copy all files and folders except excluded ones
+# (This function is only used in the direct execution block)
 def copy_code(src, dst):
     for item in os.listdir(src):
         if should_exclude(item):
@@ -282,6 +286,10 @@ def main():
         create_backup(max_backups=args.max_backups, exclude_patterns=args.exclude, no_confirm=args.no_confirm)
 
 if __name__ == "__main__":
+    # Always backup to sibling directory 'rally_backups'
+    now = datetime.now().strftime('%Y%m%d_%H%M%S')
+    backup_dir = os.path.join(BACKUP_ROOT, f'code_backup_{now}')
+    os.makedirs(backup_dir, exist_ok=True)
     print(f"Backing up code from {PROJECT_ROOT} to {backup_dir}")
     copy_code(PROJECT_ROOT, backup_dir)
     print("Backup complete.")

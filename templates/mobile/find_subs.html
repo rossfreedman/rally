@@ -3,7 +3,7 @@
 {% block content %}
 <div class="flex items-center gap-3 mt-4 mb-2 px-4">
   <div class="bg-white rounded-md flex items-center justify-center h-12 w-12">
-    <i class="fas fa-user-plus text-green-700 text-3xl"></i>
+    <i class="fas fa-user-plus text-black text-3xl"></i>
   </div>
   <div>
     <div class="text-2xl font-bold leading-tight">Find Sub</div>
@@ -83,13 +83,13 @@ async function fetchAndRenderSubsMobile() {
             const label = document.createElement('div');
             label.className = 'text-center font-bold rounded px-2 py-2 mb-2';
             label.style.background = '#ffde5a';
-            label.style.color = '#007417';
+            label.style.color = '#000000';
             label.innerHTML = "Top recommended subs based upon Rally's algorithm";
             subsList.appendChild(label);
         }
         playersWithScores.forEach((player, idx) => {
             const card = document.createElement('div');
-            card.className = 'bg-white rounded-lg shadow p-4 flex flex-col gap-2' + (idx < 3 ? ' border-2 border-green-900' : '');
+            card.className = 'bg-white rounded-lg shadow p-4 flex flex-col gap-2' + (idx < 3 ? ' border-2 border-gray-700' : '');
             card.innerHTML = `
                 <div class="flex items-center justify-between">
                     <div>

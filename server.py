@@ -4432,6 +4432,43 @@ def redirect_my_team():
     from flask import redirect, url_for
     return redirect(url_for('serve_mobile_myteam'))
 
+@app.route('/mobile/settings')
+@login_required
+def serve_mobile_settings():
+    """Serve the mobile user settings page"""
+    session_data = {
+        'user': session['user'],
+        'authenticated': True
+    }
+    return render_template('mobile/user_settings.html', session_data=session_data)
+
+@app.route('/mobile/my-series')
+@login_required
+def serve_mobile_my_series():
+    """Serve the mobile My Series (series stats) page"""
+    user = session['user']
+    session_data = {
+        'user': user,
+        'authenticated': True
+    }
+    # Log mobile access
+    try:
+        log_user_activity(
+            user['email'],
+            'page_visit',
+            page='mobile_my_series',
+            details='Accessed mobile my series page'
+        )
+    except Exception as e:
+        print(f"Error logging my series mobile page visit: {str(e)}")
+    return render_template('mobile/my_series.html', session_data=session_data)
+
+@app.route('/mobile/myseries')
+@login_required
+def redirect_myseries():
+    from flask import redirect, url_for
+    return redirect(url_for('serve_mobile_my_series'))
+
 if __name__ == '__main__':
         # Get port from environment variable or use default
         port = int(os.environ.get("PORT", os.environ.get("RAILWAY_PORT", 8080)))

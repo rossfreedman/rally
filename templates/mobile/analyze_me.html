@@ -6,7 +6,7 @@
     <!-- Consistent Header (matches Schedule page) -->
     <div class="flex items-center gap-3 mt-4 mb-2 px-4">
         <div class="bg-white rounded-md flex items-center justify-center h-12 w-12">
-            <i class="fas fa-chart-bar text-green-700 text-3xl"></i>
+            <i class="fas fa-chart-bar text-black text-3xl"></i>
         </div>
         <div>
             <div class="text-2xl font-bold leading-tight">Player Analysis</div>
@@ -24,18 +24,18 @@
                 <thead>
                     <tr>
                         <th class='w-1/3'></th>
-                        <th class='w-1/3 text-green-800 text-lg font-bold pb-2'>Current Season</th>
-                        <th class='w-1/3 text-green-800 text-lg font-bold pb-2'>Career</th>
+                        <th class='w-1/3 text-black text-lg font-bold pb-2'>Current Season</th>
+                        <th class='w-1/3 text-black text-lg font-bold pb-2'>Career</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
-                        <td class='stat-label'><i class='fas fa-table-tennis-paddle-ball text-green-700'></i> Matches</td>
+                        <td class='stat-label'><i class='fas fa-table-tennis-paddle-ball text-black'></i> Matches</td>
                         <td class='stat-value text-black'>{{ analyze_data.current_season.matches }}</td>
                         <td class='stat-value text-black'>{{ analyze_data.career_stats.matches }}</td>
                     </tr>
                     <tr class="row-divider">
-                        <td class='stat-label'><i class="fas fa-list-ol text-green-700"></i> Record</td>
+                        <td class='stat-label'><i class="fas fa-list-ol text-black"></i> Record</td>
                         <td class='stat-value text-black'>
                             {% set wins = analyze_data.current_season.wins if analyze_data.current_season.wins is defined else (analyze_data.current_season.winRate * analyze_data.current_season.matches // 100 if analyze_data.current_season.matches != 'N/A' and analyze_data.current_season.winRate != 'N/A' else 'N/A') %}
                             {% set losses = analyze_data.current_season.matches - wins if wins != 'N/A' and analyze_data.current_season.matches != 'N/A' else 'N/A' %}
@@ -61,7 +61,7 @@
                         <td class='stat-value text-black'>{{ analyze_data.career_stats.winRate|round(1, 'common') if analyze_data.career_stats.winRate is not string else analyze_data.career_stats.winRate }}%</td>
                     </tr>
                     <tr>
-                        <td class='stat-label text-center'><i class='fas fa-arrow-down text-green-700'></i> PTI Change</td>
+                        <td class='stat-label text-center'><i class='fas fa-arrow-down text-black'></i> PTI Change</td>
                         <td class='stat-value text-center'>
                             {% set pti = analyze_data.current_season.ptiChange %}
                             {% if pti is string or pti == 'N/A' %}
@@ -69,7 +69,7 @@
                             {% elif pti|float > 0 %}
                                 <span class="text-red-600 font-bold flex items-center justify-center">{{ pti|round(1, 'common') }} <span aria-label="PTI Up" class="ml-1">▲</span></span>
                             {% elif pti|float < 0 %}
-                                <span class="text-green-700 font-bold flex items-center justify-center">{{ pti|round(1, 'common') }} <span aria-label="PTI Down" class="ml-1">▼</span></span>
+                                <span class="text-gray-700 font-bold flex items-center justify-center">{{ pti|round(1, 'common') }} <span aria-label="PTI Down" class="ml-1">▼</span></span>
                             {% else %}
                                 <span class="text-black">0.0</span>
                             {% endif %}
@@ -81,7 +81,7 @@
                             {% elif pti|float > 0 %}
                                 <span class="text-red-600 font-bold flex items-center justify-center">{{ pti|round(1, 'common') }} <span aria-label="PTI Up" class="ml-1">▲</span></span>
                             {% elif pti|float < 0 %}
-                                <span class="text-green-700 font-bold flex items-center justify-center">{{ pti|round(1, 'common') }} <span aria-label="PTI Down" class="ml-1">▼</span></span>
+                                <span class="text-gray-700 font-bold flex items-center justify-center">{{ pti|round(1, 'common') }} <span aria-label="PTI Down" class="ml-1">▼</span></span>
                             {% else %}
                                 <span class="text-black">0.0</span>
                             {% endif %}
@@ -100,8 +100,8 @@
                 {% set stats = analyze_data.court_analysis.get(court) %}
                 <div class="court-analysis-card flex flex-col items-start p-4 mb-3">
                   <div class="flex items-center gap-2 mb-2 w-full">
-                    <i class="fas fa-table-tennis text-green-700"></i>
-                    <span class="font-bold text-lg text-green-900">{{ court|capitalize }}</span>
+                    <i class="fas fa-table-tennis text-black"></i>
+                    <span class="font-bold text-lg text-black">{{ court|capitalize }}</span>
                   </div>
                   <div class="w-full mb-2">
                     <div class="flex justify-between items-center mb-1">
@@ -152,7 +152,7 @@
                                 {% if trend is string and trend.startswith('+') %}
                                     <span class="text-red-600 font-bold flex items-center">{{ trend }} <span aria-label="PTI Up" class="ml-1">▲</span></span>
                                 {% elif trend is string and trend.startswith('-') %}
-                                    <span class="text-green-700 font-bold flex items-center">{{ trend }} <span aria-label="PTI Down" class="ml-1">▼</span></span>
+                                    <span class="text-gray-700 font-bold flex items-center">{{ trend }} <span aria-label="PTI Down" class="ml-1">▼</span></span>
                                 {% else %}
                                     <span class="text-black">{{ trend }}</span>
                                 {% endif %}
@@ -226,7 +226,7 @@
   gap: 0.6em;
   font-size: 1.1rem;
   font-weight: 700;
-  color: #007417;
+  color: #000000;
   border-bottom: 2px solid #f3f3f3;
   margin-bottom: 0.7em;
   padding-bottom: 0.3em;
@@ -252,7 +252,7 @@
   font-size: 1.05rem;
   font-weight: 600;
   margin-bottom: 0.7em;
-  color: #007417;
+  color: #000000;
 }
 .video-card {
   background: #f9fafb;
