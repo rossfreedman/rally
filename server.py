@@ -321,9 +321,9 @@ def serve_index():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     """Serve the login page"""
-    # If user is already authenticated, redirect to home
+    # If user is already authenticated, redirect to mobile interface
     if 'user' in session:
-        return redirect(url_for('serve_index'))
+        return redirect(url_for('serve_mobile'))
     return app.send_static_file('login.html')
 
 def hash_password(password):
@@ -389,7 +389,8 @@ def handle_register():
                 'series': series
             }
             
-            return jsonify({'status': 'success'})
+            # Redirect to mobile interface after registration
+            return jsonify({'status': 'success', 'redirect': url_for('serve_mobile')})
             
         except sqlite3.IntegrityError:
             return jsonify({'error': 'Email already registered'}), 400
@@ -456,8 +457,8 @@ def handle_login():
             # Log successful login
             log_user_activity(email, 'auth', action='login', details='Successful login')
             
-            # Create response with session cookie settings
-            response = jsonify({'status': 'success'})
+            # Create response with session cookie settings and redirect to mobile
+            response = jsonify({'status': 'success', 'redirect': url_for('serve_mobile')})
             return response
             
         finally:
@@ -4772,6 +4773,14 @@ def serve_mobile_my_club():
     except Exception:
         directory_df = pd.DataFrame()
 
+    # --- 1b. Build set of Tennaqua player names ---
+    tennaqua_players = set()
+    if not players_df.empty:
+        tennaqua_players = set(
+            (row['First Name'].strip() + ' ' + row['Last Name'].strip()).strip()
+            for _, row in players_df.iterrows() if str(row.get('Club', '')).strip().lower() == 'tennaqua'
+        )
+
     # --- 2. Compute player win/loss streaks ---
     player_streaks = {}
     # Build a mapping of player name to their matches (sorted by date)
@@ -4784,6 +4793,9 @@ def serve_mobile_my_club():
                     player_matches[player].append(match)
     # For each player, compute current streak (W/L and count)
     for player, matches in player_matches.items():
+        # Only include Tennaqua players
+        if player not in tennaqua_players:
+            continue
         # Sort matches by date
         def parse_date(d):
             for fmt in ("%Y-%m-%d", "%m/%d/%Y"):

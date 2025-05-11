@@ -395,10 +395,14 @@
                     body: JSON.stringify({ email, password })
                 });
                 
-                if (response.ok) {
-                    window.location.href = '/';
+                const data = await response.json();
+                if (response.ok && data.status === 'success') {
+                    if (data.redirect) {
+                        window.location.href = data.redirect;
+                    } else {
+                        window.location.href = '/';
+                    }
                 } else {
-                    const data = await response.json();
                     authErrorMessage.textContent = data.error || 'Invalid email or password';
                     authErrorContainer.classList.add('active');
                     errorMessage.style.display = 'none';
@@ -440,12 +444,16 @@
                     })
                 });
                 
-                if (response.ok) {
-                    window.location.href = '/';
+                const data = await response.json();
+                if (response.ok && data.status === 'success') {
+                    if (data.redirect) {
+                        window.location.href = data.redirect;
+                    } else {
+                        window.location.href = '/';
+                    }
                     authErrorContainer.classList.remove('active');
                     errorMessage.style.display = 'none';
                 } else {
-                    const data = await response.json();
                     authErrorMessage.textContent = data.error || 'Registration failed';
                     authErrorContainer.classList.add('active');
                     errorMessage.style.display = 'none';
