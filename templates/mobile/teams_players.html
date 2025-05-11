@@ -2,192 +2,178 @@
 
 {# Converted from static/mobile/teams-players.html to Jinja template for consistent mobile header/navigation #}
 {% block content %}
-<!-- Main content copied from static/mobile/teams-players.html, minus custom header -->
-<div class="flex items-center gap-3 mt-4 mb-2 px-4">
-  <div class="bg-white rounded-md flex items-center justify-center h-12 w-12">
-    <i class="fas fa-search text-black text-3xl"></i>
-  </div>
-  <div>
-    <div class="text-2xl font-bold leading-tight">Teams & Players</div>
-    <div class="text-gray-500 text-base">Research teams and player stats across the league.</div>
-  </div>
-</div>
-<div class="mt-4 px-4">
-  <div class="bg-white rounded-2xl shadow p-5 mb-6">
-    <div class="flex items-center gap-2 mb-3">
-      <i class="fas fa-users text-xl text-gray-700"></i>
-      <span class="font-bold text-lg">Select Team & Player</span>
-    </div>
-    <div class="mb-4">
-      <label for="teamSelect" class="block font-semibold mb-1">Team</label>
-      <select id="teamSelect" class="form-select w-full" style="font-size:1.1rem;">
-        <option value="">Choose a team...</option>
-      </select>
+<div class="max-w-lg mx-auto px-2 bg-gray-50 min-h-screen pb-8">
+  <!-- Consistent Header -->
+  <div class="flex items-center gap-3 mt-4 mb-6 px-2">
+    <div class="bg-white rounded-md flex items-center justify-center h-12 w-12 shadow border border-primary">
+      <i class="fas fa-users text-rally-green text-3xl"></i>
     </div>
     <div>
-      <label for="playerSelect" class="block font-semibold mb-1">Player</label>
-      <select id="playerSelect" class="form-select w-full bg-gray-100" style="font-size:1.1rem;">
-        <option value="">Choose a player...</option>
-      </select>
+      <div class="text-2xl font-bold leading-tight text-rally-green">Teams & Players</div>
+      <div class="text-base text-gray-500 mt-1">View stats, match patterns, and top players for each team</div>
     </div>
   </div>
-  <!-- Team stats and player stats sections (populated by JS) -->
-  <div id="teamAnalysisCard" class="bg-white rounded-2xl shadow p-5 mb-6" style="display:none;">
-    <div class="font-bold text-lg mb-2">Team Stats</div>
-    <div id="teamStats"></div>
-  </div>
-  <div id="playerDetailsCard" class="bg-white rounded-2xl shadow p-5 mb-6" style="display:none;">
-    <div class="font-bold text-lg mb-2">Player Stats</div>
-    <div id="playerDetailsBody"></div>
-  </div>
-  <div id="courtBreakdownCards" class="mb-6" style="display:none;"></div>
-  <div id="playerHistoryCard" class="bg-white rounded-2xl shadow p-5 mb-6 player-history-card" style="display:none;">
-    <div class="font-bold text-lg mb-2">Player History (Previous Seasons)</div>
-    <div id="player-history-dynamic"></div>
-  </div>
+    <form method="get" class="mb-4">
+      <label for="team" class="block font-bold mb-2 text-lg text-primary">Select Team</label>
+      <div class="relative">
+        <select name="team" id="team"
+          class="form-select w-full py-2 px-4 text-base font-medium border-2 border-primary text-gray-900 bg-white rounded-lg shadow-sm focus:ring-2 focus:ring-primary focus:border-primary transition"
+          onchange="this.form.submit()">
+          <option value="" {% if not selected_team %}selected{% endif %} disabled hidden>Select a team...</option>
+          {% for t in all_teams %}
+            <option value="{{ t }}" {% if t == selected_team %}selected{% endif %}>{{ t }}</option>
+          {% endfor %}
+        </select>
+        <i class="fas fa-chevron-down absolute right-4 top-1/2 transform -translate-y-1/2 text-primary pointer-events-none"></i>
+      </div>
+    </form>
+    {% if not team_analysis_data %}
+        <div class="flex flex-col items-center justify-center h-64 text-center text-gray-500">
+            <svg class="w-12 h-12 mb-4 text-primary" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 12h8M12 8v8"/></svg>
+            <div class="text-lg font-semibold mb-2">Select a team to view analysis</div>
+            <div class="text-sm">Choose a team from the dropdown above to see stats, match patterns, court analysis, and top players.</div>
+        </div>
+    {% else %}
+    <!-- Analysis Summary Card -->
+    <div class="analyze-card mb-6 shadow-lg rounded-xl p-5 bg-white border-l-4 border-blue-400">
+      <div class="analyze-card-header text-xl font-bold mb-2 flex items-center gap-2"><i class="fas fa-lightbulb text-blue-400"></i> Analysis</div>
+      <div class="text-base text-gray-700">
+        {{ team_analysis_data.summary | default('No summary available.') }}
+      </div>
+    </div>
+    <!-- Team Stats Card -->
+    <div class="analyze-card mb-6 shadow-lg rounded-xl p-5 bg-white border-l-4 border-green-400">
+        <div class="analyze-card-header text-xl font-bold mb-2 flex items-center gap-2"><i class="fas fa-chart-bar text-green-400"></i> Team Stats</div>
+        <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-base">
+            <div class="font-semibold text-gray-600">Points</div>
+            <div class="font-bold text-primary">{{ team_analysis_data.overview.points }}</div>
+            <div class="font-semibold text-gray-600">Match Record</div>
+            <div class="font-bold">{{ team_analysis_data.overview.match_record }}</div>
+            <div class="font-semibold text-gray-600">Match Win Rate</div>
+            <div class="font-bold">{{ team_analysis_data.overview.match_win_rate }}%</div>
+            <div class="font-semibold text-gray-600">Line Win Rate</div>
+            <div class="font-bold">{{ team_analysis_data.overview.line_win_rate }}%</div>
+            <div class="font-semibold text-gray-600">Set Win Rate</div>
+            <div class="font-bold">{{ team_analysis_data.overview.set_win_rate }}%</div>
+            <div class="font-semibold text-gray-600">Game Win Rate</div>
+            <div class="font-bold">{{ team_analysis_data.overview.game_win_rate }}%</div>
+        </div>
+    </div>
+    <!-- Match Patterns + Court Analysis Card (Desktop Style) -->
+    <div class="card mb-6 shadow-lg rounded-xl p-5 bg-white border-l-4 border-yellow-400">
+      <div class="card-header mb-2 flex items-center gap-2">
+        <i class="fas fa-random text-yellow-400"></i>
+        <h5 class="mb-0 text-lg font-bold">Match Patterns</h5>
+      </div>
+      <div class="card-body">
+        <div class="overall-stats mb-4">
+          <h6 class="mb-3">Overall Performance</h6>
+          <div class="stat-item">
+            <strong>Total Matches:</strong> {{ team_analysis_data.match_patterns.total_matches }}
+          </div>
+          <div class="stat-item">
+            <strong>Set Win Rate:</strong> {{ team_analysis_data.match_patterns.set_win_rate }}%
+          </div>
+          <div class="stat-item">
+            <strong>Three-Set Record:</strong> {{ team_analysis_data.match_patterns.three_set_record }}
+          </div>
+          <div class="stat-item">
+            <strong>Straight Set Wins:</strong> {{ team_analysis_data.match_patterns.straight_set_wins }}
+          </div>
+          <div class="stat-item">
+            <strong>Comeback Wins:</strong> {{ team_analysis_data.match_patterns.comeback_wins }}
+          </div>
+        </div>
+        <div class="court-analysis">
+          <h6 class="mb-3">Court Analysis</h6>
+          {# --- BEGIN: Rally AI - analyze_me style court analysis block (with correct data loop, enhanced visuals) --- #}
+          <div class='grid grid-cols-2 gap-3'>
+            {% set court_colors = ['border-blue-400', 'border-green-400', 'border-yellow-400', 'border-red-400'] %}
+            {% for court, stats in team_analysis_data.court_analysis.items() %}
+                {% set court_idx = loop.index0 %}
+                {# Color-code win rate #}
+                {% set win_rate = stats.win_rate|default(stats.winRate) %}
+                {% if win_rate is not string and win_rate >= 60 %}
+                  {% set win_color = 'text-green-600' %}
+                  {% set badge_bg = 'bg-green-100' %}
+                {% elif win_rate is not string and win_rate >= 45 %}
+                  {% set win_color = 'text-yellow-600' %}
+                  {% set badge_bg = 'bg-yellow-100' %}
+                {% else %}
+                  {% set win_color = 'text-red-600' %}
+                  {% set badge_bg = 'bg-red-100' %}
+                {% endif %}
+                <div class="court-analysis-card flex flex-col items-start p-4 mb-3 bg-gray-50 rounded-xl shadow border-l-4 {{ court_colors[court_idx % 4] }}">
+                  <div class="flex items-center gap-2 mb-2 w-full">
+                    <i class="fas fa-table-tennis text-xl {{ court_colors[court_idx % 4] }}"></i>
+                    <span class="font-bold text-lg text-black">{{ court|capitalize }}</span>
+                  </div>
+                  <div class="w-full mb-2">
+                    <div class="flex justify-between items-center mb-1">
+                      <span class="font-semibold text-gray-700">Win Rate</span>
+                      <span class="font-bold text-xl analyze-badge px-2 py-1 rounded {{ win_color }} {{ badge_bg }}">{{ win_rate|round(1, 'common') if win_rate is not string else win_rate }}%</span>
+                    </div>
+                    <div class="flex justify-between items-center mb-1">
+                      <span class="font-semibold text-gray-700">Record</span>
+                      <span class="text-gray-900">{{ stats.record if stats and stats.record is defined else 'N/A' }}</span>
+                    </div>
+                  </div>
+                  <div class="w-full mt-2">
+                    <span class="font-semibold text-gray-700 block mb-1">Key Players</span>
+                    <ul class="partner-list space-y-1">
+                      {% if stats and stats.key_players %}
+                        {% for p in stats.key_players %}
+                          <li class="flex flex-col items-start">
+                            <a href="/mobile/player-detail/{{ p.name | urlencode }}" class="partner-name font-medium text-gray-800 flex items-center gap-1 hover:underline">
+                              <i class="fas fa-user-circle text-primary"></i> {{ p.name }}
+                            </a>
+                            <span class="analyze-badge mt-1 text-xs px-2 py-0.5 rounded bg-blue-50 text-blue-700">{{ p.win_rate|default(p.winRate)|round(1, 'common') if p.win_rate is defined or p.winRate is defined else '' }}% in {{ p.matches }} matches</span>
+                          </li>
+                        {% endfor %}
+                      {% else %}
+                        <li class="text-gray-400">None</li>
+                      {% endif %}
+                    </ul>
+                  </div>
+                </div>
+            {% endfor %}
+          </div>
+          {# --- END: Rally AI - analyze_me style court analysis block (with correct data loop, enhanced visuals) --- #}
+        </div>
+      </div>
+    </div>
+    <!-- Top Players Card -->
+    <div class="analyze-card mb-4 shadow-lg rounded-xl p-5 bg-white border-l-4 border-red-400">
+        <div class="analyze-card-header text-xl font-bold mb-2 flex items-center gap-2"><i class="fas fa-users text-red-400"></i> Top Players</div>
+        <div class='table-responsive'>
+        <table class='table table-sm w-full text-sm rounded-lg overflow-hidden'>
+            <thead>
+                <tr class="bg-gray-100">
+                    <th class="py-1 px-2 font-semibold text-left">Name</th>
+                    <th class="py-1 px-2 font-semibold text-left">Matches</th>
+                    <th class="py-1 px-2 font-semibold text-left">Win Rate</th>
+                    <th class="py-1 px-2 font-semibold text-left">Best Court</th>
+                    <th class="py-1 px-2 font-semibold text-left">Best Partner</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for player in team_analysis_data.top_players %}
+                    <tr class="border-b last:border-b-0 hover:bg-yellow-50 {% if loop.index0 % 2 == 0 %}bg-gray-50{% endif %}">
+                        <td class="py-1 px-2 flex items-center gap-1">
+                          <a href="/mobile/player-detail/{{ player.name | urlencode }}" class="font-medium text-primary hover:underline flex items-center gap-1">
+                            <i class="fas fa-user text-primary"></i> {{ player.name }}
+                          </a>
+                        </td>
+                        <td class="py-1 px-2">{{ player.matches }}</td>
+                        <td class="py-1 px-2 font-bold {% if player.win_rate >= 60 %}text-green-600{% elif player.win_rate >= 45 %}text-yellow-600{% else %}text-red-600{% endif %}">{{ player.win_rate }}%</td>
+                        <td class="py-1 px-2">{{ player.best_court }}</td>
+                        <td class="py-1 px-2">{{ player.best_partner }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </div>
+    {% endif %}
 </div>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const teamSelect = document.getElementById('teamSelect');
-    const playerSelect = document.getElementById('playerSelect');
-    const teamAnalysisCard = document.getElementById('teamAnalysisCard');
-    const teamStatsDiv = document.getElementById('teamStats');
-    const playerDetailsCard = document.getElementById('playerDetailsCard');
-    const playerDetailsBody = document.getElementById('playerDetailsBody');
-    const courtBreakdownCards = document.getElementById('courtBreakdownCards');
-    const playerHistoryCard = document.getElementById('playerHistoryCard');
-    const playerHistoryDynamic = document.getElementById('player-history-dynamic');
-
-    // Load teams on page load
-    fetch('/api/teams')
-        .then(r => r.json())
-        .then(data => {
-            teamSelect.innerHTML = '<option value="">Choose a team...</option>';
-            data.teams.forEach(team => {
-                const opt = document.createElement('option');
-                opt.value = team;
-                opt.textContent = team;
-                teamSelect.appendChild(opt);
-            });
-        });
-
-    // When a team is selected, load players and team stats
-    teamSelect.addEventListener('change', function() {
-        const team = this.value;
-        // Reset player picklist and stats
-        playerSelect.innerHTML = '<option value="">Choose a player...</option>';
-        playerSelect.disabled = true;
-        playerDetailsCard.style.display = 'none';
-        courtBreakdownCards.style.display = 'none';
-        playerHistoryCard.style.display = 'none';
-        // Hide team stats if no team
-        if (!team) {
-            teamAnalysisCard.style.display = 'none';
-            teamStatsDiv.innerHTML = '';
-            return;
-        }
-        // Load team stats
-        teamAnalysisCard.style.display = '';
-        teamStatsDiv.innerHTML = '<div class="text-center">Loading team stats...</div>';
-        fetch(`/api/series-stats?team=${encodeURIComponent(team)}`)
-            .then(r => r.json())
-            .then(data => {
-                if (!data.team_analysis) {
-                    teamStatsDiv.innerHTML = '<div class="text-muted">No stats available for this team.</div>';
-                    return;
-                }
-                const a = data.team_analysis;
-                teamStatsDiv.innerHTML = `
-                    <div><span class='stat-label'>Points:</span><span class='stat-value'>${a.overview.points}</span></div>
-                    <div><span class='stat-label'>Match Record:</span><span class='stat-value'>${a.overview.match_record}</span></div>
-                    <div><span class='stat-label'>Match Win Rate:</span><span class='stat-value'>${a.overview.match_win_rate}%</span></div>
-                    <div><span class='stat-label'>Line Win Rate:</span><span class='stat-value'>${a.overview.line_win_rate}%</span></div>
-                    <div><span class='stat-label'>Set Win Rate:</span><span class='stat-value'>${a.overview.set_win_rate}%</span></div>
-                    <div><span class='stat-label'>Game Win Rate:</span><span class='stat-value'>${a.overview.game_win_rate}%</span></div>
-                `;
-            });
-        // Load players for this team
-        fetch(`/api/team-players/${encodeURIComponent(team)}`)
-            .then(r => r.json())
-            .then(data => {
-                playerSelect.innerHTML = '<option value="">Choose a player...</option>';
-                if (data.players && data.players.length > 0) {
-                    data.players.forEach(player => {
-                        const opt = document.createElement('option');
-                        opt.value = player.name;
-                        opt.textContent = player.name;
-                        playerSelect.appendChild(opt);
-                    });
-                    playerSelect.disabled = false;
-                } else {
-                    playerSelect.disabled = true;
-                }
-            });
-    });
-
-    // When a player is selected, load player stats
-    playerSelect.addEventListener('change', function() {
-        const playerName = this.value;
-        playerDetailsCard.style.display = 'none';
-        courtBreakdownCards.style.display = 'none';
-        playerHistoryCard.style.display = 'none';
-        playerDetailsBody.innerHTML = '';
-        if (!playerName) return;
-        playerDetailsCard.style.display = '';
-        playerDetailsBody.innerHTML = '<div class="text-center">Loading player stats...</div>';
-        fetch('/api/player-history')
-            .then(r => r.json())
-            .then(data => {
-                const player = data.find(p => p.name && p.name.trim().toLowerCase() === playerName.trim().toLowerCase());
-                if (!player) {
-                    playerDetailsBody.innerHTML = '<div class="text-muted">No stats found for this player.</div>';
-                    return;
-                }
-                const totalMatches = player.matches ? player.matches.length : (player.wins + player.losses);
-                const wins = player.wins ?? 0;
-                const losses = player.losses ?? 0;
-                const winRate = totalMatches > 0 ? ((wins / totalMatches) * 100).toFixed(1) : '0.0';
-                const pti = player.pti ?? player.rating ?? 'N/A';
-                playerDetailsBody.innerHTML = `
-                    <div><span class='stat-label'>Name:</span><span class='stat-value'>${player.name}</span></div>
-                    <div><span class='stat-label'>Total Matches:</span><span class='stat-value'>${totalMatches}</span></div>
-                    <div><span class='stat-label'>Record:</span><span class='stat-value'>${wins}-${losses}</span></div>
-                    <div><span class='stat-label'>Win Rate:</span><span class='stat-value'>${winRate}%</span></div>
-                    <div><span class='stat-label'>PTI:</span><span class='stat-value'>${pti}</span></div>
-                `;
-                // Court breakdown
-                if (player.courts && Object.keys(player.courts).length > 0) {
-                    let html = '<div class="font-semibold text-lg mb-2 flex items-center"><i class="fas fa-table-tennis-paddle-ball text-gray-400 mr-2"></i>Court Breakdown</div>';
-                    Object.entries(player.courts).forEach(([court, stats]) => {
-                        const courtLosses = stats.matches - stats.wins;
-                        let winRateClass = 'win-rate-low';
-                        if (stats.winRate >= 60) winRateClass = 'win-rate-high';
-                        else if (stats.winRate >= 40) winRateClass = 'win-rate-medium';
-                        html += `<div class='court-card mb-3'><div class='font-semibold mb-1'>${court}</div><div><span class='stat-label'>Matches:</span><span class='stat-value'>${stats.matches}</span></div><div><span class='stat-label'>Record:</span><span class='stat-value'>${stats.wins}-${courtLosses}</span></div><div><span class='stat-label'>Win Rate:</span><span class='stat-value ${winRateClass}'>${stats.winRate}%</span></div>`;
-                        if (stats.partners && stats.partners.length > 0) {
-                            html += `<div class='partner-info mt-2'><strong>Most Common Partners:</strong><ul class='partner-list'>`;
-                            stats.partners.forEach(ptn => {
-                                const partnerLosses = ptn.matches - ptn.wins;
-                                const partnerWinRate = ptn.matches > 0 ? ((ptn.wins / ptn.matches) * 100).toFixed(1) : '0.0';
-                                html += `<li>${ptn.name} (${ptn.wins}-${partnerLosses}, ${partnerWinRate}%)</li>`;
-                            });
-                            html += `</ul></div>`;
-                        }
-                        html += `</div>`;
-                    });
-                    courtBreakdownCards.innerHTML = html;
-                    courtBreakdownCards.style.display = '';
-                } else {
-                    courtBreakdownCards.innerHTML = '';
-                    courtBreakdownCards.style.display = 'none';
-                }
-                // Optionally, load player history (if available)
-                if (playerHistoryCard && playerHistoryDynamic) {
-                    // You can add logic here to fetch and display player history if desired
-                    playerHistoryCard.style.display = 'none';
-                }
-            });
-    });
-});
-</script>
 {% endblock %} 

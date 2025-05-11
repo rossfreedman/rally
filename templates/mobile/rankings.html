@@ -151,10 +151,11 @@
             row.innerHTML = `
                 <td>${index + 1}</td>
                 <td>
-                    <a href="/mobile/player-detail/${player.id}" class="link-hover font-medium">
+                    <a href="/mobile/player-detail/${encodeURIComponent(player.name)}" class="link-hover font-medium">
                         ${player.name}
                     </a>
                     <div class="text-xs opacity-60">${player.club || ''}</div>
+                    <div class="text-xs"><a href="/player-detail/${encodeURIComponent(player.name)}" class="underline text-blue-600">[Desktop View]</a></div>
                 </td>
                 <td class="text-center font-mono font-bold">${player.rating.toFixed(1)}</td>
             `;
