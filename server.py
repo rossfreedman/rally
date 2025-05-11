@@ -4730,6 +4730,155 @@ def serve_player_detail(player_name):
     )
     return render_template('player_detail.html', session_data=session_data, analyze_data=analyze_data, player_name=player_name)
 
+@app.route('/mobile/my-club')
+@login_required
+def serve_mobile_my_club():
+    """
+    Serve the mobile My Club page with sample/mock data and advanced stats:
+    - Player win/loss streaks
+    - Team performance trends over time
+    - Head-to-head records vs. other clubs
+    Uses data from all_tennaqua_players.csv, Chicago_22_stats_20250425.json, tennis_matches_20250416.json, and directory_tennaqua.csv.
+    """
+    import os
+    import json
+    import pandas as pd
+    from collections import defaultdict, Counter
+    from datetime import datetime
+
+    # --- 1. Load sample data ---
+    players_csv = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'all_tennaqua_players.csv')
+    stats_json = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'Chicago_22_stats_20250425.json')
+    matches_json = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'tennis_matches_20250416.json')
+    directory_csv = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'club_directories', 'directory_tennaqua.csv')
+
+    # Defensive: load files with fallback
+    try:
+        players_df = pd.read_csv(players_csv)
+    except Exception:
+        players_df = pd.DataFrame()
+    try:
+        with open(stats_json) as f:
+            stats_data = json.load(f)
+    except Exception:
+        stats_data = []
+    try:
+        with open(matches_json) as f:
+            matches_data = json.load(f)
+    except Exception:
+        matches_data = []
+    try:
+        directory_df = pd.read_csv(directory_csv)
+    except Exception:
+        directory_df = pd.DataFrame()
+
+    # --- 2. Compute player win/loss streaks ---
+    player_streaks = {}
+    # Build a mapping of player name to their matches (sorted by date)
+    player_matches = defaultdict(list)
+    for match in matches_data:
+        for side in ['Home', 'Away']:
+            for num in [1, 2]:
+                player = match.get(f'{side} Player {num}')
+                if player:
+                    player_matches[player].append(match)
+    # For each player, compute current streak (W/L and count)
+    for player, matches in player_matches.items():
+        # Sort matches by date
+        def parse_date(d):
+            for fmt in ("%Y-%m-%d", "%m/%d/%Y"):
+                try:
+                    return datetime.strptime(d, fmt)
+                except Exception:
+                    continue
+            return None
+        matches_sorted = sorted(matches, key=lambda m: parse_date(m.get('Date', m.get('date', ''))) or datetime.min)
+        streak_type = None
+        streak_count = 0
+        last_result = None
+        for match in reversed(matches_sorted):  # Most recent first
+            is_home = player in [match.get('Home Player 1'), match.get('Home Player 2')]
+            won = (is_home and match.get('Winner') == 'home') or (not is_home and match.get('Winner') == 'away')
+            result = 'W' if won else 'L'
+            if last_result is None:
+                last_result = result
+                streak_type = result
+                streak_count = 1
+            elif result == last_result:
+                streak_count += 1
+            else:
+                break
+        player_streaks[player] = {'type': streak_type, 'count': streak_count}
+
+    # --- 3. Team performance trends over time ---
+    # For the user's club, aggregate match results by date
+    user = session['user']
+    club = user.get('club')
+    series = user.get('series')
+    import re
+    m = re.search(r'(\d+)', series)
+    series_num = m.group(1) if m else ''
+    team_name = f"{club} - {series_num}"
+    # Find matches for this team
+    team_matches = [m for m in matches_data if m.get('Home Team') == team_name or m.get('Away Team') == team_name]
+    # Aggregate by date
+    trends_by_date = defaultdict(lambda: {'wins': 0, 'losses': 0, 'total': 0})
+    for match in team_matches:
+        date = match.get('Date', match.get('date', ''))
+        is_home = match.get('Home Team') == team_name
+        won = (is_home and match.get('Winner') == 'home') or (not is_home and match.get('Winner') == 'away')
+        if date:
+            if won:
+                trends_by_date[date]['wins'] += 1
+            else:
+                trends_by_date[date]['losses'] += 1
+            trends_by_date[date]['total'] += 1
+    # Sort trends by date
+    trends_over_time = [
+        {'date': d, 'wins': v['wins'], 'losses': v['losses'], 'total': v['total']}
+        for d, v in sorted(trends_by_date.items(), key=lambda x: x[0])
+    ]
+
+    # --- 4. Head-to-head records vs. other clubs ---
+    # For each opponent club, count wins/losses
+    head_to_head = defaultdict(lambda: {'wins': 0, 'losses': 0, 'total': 0})
+    for match in team_matches:
+        is_home = match.get('Home Team') == team_name
+        opponent = match.get('Away Team') if is_home else match.get('Home Team')
+        won = (is_home and match.get('Winner') == 'home') or (not is_home and match.get('Winner') == 'away')
+        if opponent:
+            if won:
+                head_to_head[opponent]['wins'] += 1
+            else:
+                head_to_head[opponent]['losses'] += 1
+            head_to_head[opponent]['total'] += 1
+    # Convert to sorted list
+    head_to_head_list = [
+        {'opponent': k, 'wins': v['wins'], 'losses': v['losses'], 'total': v['total']}
+        for k, v in sorted(head_to_head.items(), key=lambda x: -x[1]['total'])
+    ]
+
+    # --- 5. Prepare context for template ---
+    session_data = {'user': user, 'authenticated': True}
+    # Sort and slice top 10 streaks for template (fixes Jinja2 slicing error)
+    top_streaks = sorted(player_streaks.items(), key=lambda x: x[1]['count'], reverse=True)[:10]
+    return render_template(
+        'mobile/my_club.html',
+        session_data=session_data,
+        player_streaks=player_streaks,
+        trends_over_time=trends_over_time,
+        head_to_head=head_to_head_list,
+        team_name=team_name,
+        top_streaks=top_streaks  # For top 10 streaks in template
+    )
+
+# Alias: /mobile/myclub redirects to /mobile/my-club for user convenience
+@app.route('/mobile/myclub')
+@login_required
+def redirect_myclub():
+    from flask import redirect, url_for
+    return redirect(url_for('serve_mobile_my_club'))
+
 if __name__ == '__main__':
         # Get port from environment variable or use default
         port = int(os.environ.get("PORT", os.environ.get("RAILWAY_PORT", 8080)))

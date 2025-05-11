@@ -1,0 +1,94 @@
+{% extends "mobile/layout.html" %}
+{% block content %}
+<div class="container mx-auto px-2 py-2">
+  <!-- Header with icon and subtitle -->
+  <div class="flex items-center mt-4 mb-2">
+    <i class="fas fa-building text-rally-green text-3xl mr-3"></i>
+    <div>
+      <div class="text-2xl font-bold text-rally-green leading-tight">My Club Analysis</div>
+      <div class="text-gray-500 text-base font-medium">{{ team_name }}</div>
+    </div>
+  </div>
+
+  <!-- Player Win/Loss Streaks Card -->
+  <div class="bg-white rounded-xl shadow p-4 mb-6 border border-gray-200">
+    <div class="flex items-center mb-3">
+      <i class="fas fa-bolt text-yellow-500 text-xl mr-2"></i>
+      <span class="text-lg font-bold text-rally-green">Player Win/Loss Streaks</span>
+    </div>
+    <ul class="divide-y divide-gray-200">
+      {% for player, streak in top_streaks %}
+        <li class="flex justify-between items-center py-2">
+          <span class="font-medium text-gray-800">{{ player }}</span>
+          <span class="font-bold {% if streak.type == 'W' %}text-green-600{% else %}text-red-500{% endif %}">
+            {{ streak.type }}{{ streak.count }}
+          </span>
+        </li>
+      {% endfor %}
+    </ul>
+    <div class="text-xs text-gray-400 mt-2">(W = win streak, L = loss streak)</div>
+  </div>
+
+  <!-- Team Performance Trends Over Time Card -->
+  <div class="bg-white rounded-xl shadow p-4 mb-6 border border-gray-200">
+    <div class="flex items-center mb-3">
+      <i class="fas fa-chart-line text-blue-500 text-xl mr-2"></i>
+      <span class="text-lg font-bold text-blue-700">Team Performance Trends</span>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-sm">
+        <thead>
+          <tr class="bg-gray-100 text-gray-700">
+            <th class="py-2 px-2">Date</th>
+            <th class="py-2 px-2">Wins</th>
+            <th class="py-2 px-2">Losses</th>
+            <th class="py-2 px-2">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for trend in trends_over_time %}
+          <tr class="{% if loop.index0 % 2 == 0 %}bg-white{% else %}bg-gray-50{% endif %}">
+            <td class="py-2 px-2">{{ trend.date }}</td>
+            <td class="py-2 px-2 text-green-700 font-bold">{{ trend.wins }}</td>
+            <td class="py-2 px-2 text-red-500 font-bold">{{ trend.losses }}</td>
+            <td class="py-2 px-2">{{ trend.total }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="text-xs text-gray-400 mt-2">(Each row = one match day)</div>
+  </div>
+
+  <!-- Head-to-Head Records Card -->
+  <div class="bg-white rounded-xl shadow p-4 mb-6 border border-gray-200">
+    <div class="flex items-center mb-3">
+      <i class="fas fa-handshake text-purple-500 text-xl mr-2"></i>
+      <span class="text-lg font-bold text-purple-700">Head-to-Head vs. Other Clubs</span>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-sm">
+        <thead>
+          <tr class="bg-gray-100 text-gray-700">
+            <th class="py-2 px-2">Opponent</th>
+            <th class="py-2 px-2">Wins</th>
+            <th class="py-2 px-2">Losses</th>
+            <th class="py-2 px-2">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for h2h in head_to_head %}
+          <tr class="{% if loop.index0 % 2 == 0 %}bg-white{% else %}bg-gray-50{% endif %}">
+            <td class="py-2 px-2 font-medium text-gray-800">{{ h2h.opponent }}</td>
+            <td class="py-2 px-2 text-green-700 font-bold">{{ h2h.wins }}</td>
+            <td class="py-2 px-2 text-red-500 font-bold">{{ h2h.losses }}</td>
+            <td class="py-2 px-2">{{ h2h.total }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="text-xs text-gray-400 mt-2">(All-time record vs. each opponent)</div>
+  </div>
+</div>
+{% endblock %} 
