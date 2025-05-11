@@ -40,25 +40,21 @@
                     {% else %}
                         <div class="match-accent"></div>
                     {% endif %}
-                    <div class="flex-1 flex flex-col gap-1">
-                        <div class="flex items-center gap-2 mb-1">
-                            <span class="time-pill">{{ match.time }}</span>
-                            {% if is_practice %}
-                                <span class="practice-chip"><i class="fas fa-table-tennis mr-1"></i>Practice</span>
-                            {% else %}
-                                <span class="match-chip"><i class="fas fa-trophy mr-1"></i>Match</span>
-                            {% endif %}
-                        </div>
-                        <div class="font-semibold">{{ match.date | pretty_date }}</div>
+                    <div class="flex-1 flex flex-col gap-1 mb-1 items-start w-full">
+                        <div class="font-semibold text-left w-full" style="white-space: nowrap;">{{ match.date | pretty_date }}</div>
+                        {% if is_practice %}
+                            <span class="practice-chip" style="margin-left:0;"> <i class="fas fa-table-tennis mr-1"></i>Practice</span>
+                        {% else %}
+                            <span class="match-chip" style="margin-left:0;"> <i class="fas fa-trophy mr-1"></i>Match</span>
+                        {% endif %}
+                        <span class="time-pill" style="font-weight: 400; white-space: nowrap; margin-left:0;">{% if is_practice %}9:30 am{% else %}{{ match.time.lstrip('0') }}{% endif %}</span>
                         <div class="text-xs text-gray-500">
-                            {% if is_practice %}
-                                <span class="font-bold text-yellow-700">Practice</span>
-                            {% else %}
-                                {{ match.location }}
+                            {% if not is_practice and match.location and match.location|lower != 'practice' %}
+                                <span class="font-bold text-base text-gray-800">{{ match.location }}</span>
                             {% endif %}
                         </div>
                     </div>
-                    <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-2 pr-4">
                         <label class="flex items-center cursor-pointer select-none">
                             <input type="checkbox"
                                 class="toggle toggle-lg avail-toggle {% if avail.status == 'available' %}avail-available{% elif avail.status == 'unavailable' %}avail-unavailable{% else %}avail-unknown{% endif %}"
