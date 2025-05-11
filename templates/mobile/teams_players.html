@@ -1,0 +1,193 @@
+{% extends "mobile/layout.html" %}
+
+{# Converted from static/mobile/teams-players.html to Jinja template for consistent mobile header/navigation #}
+{% block content %}
+<!-- Main content copied from static/mobile/teams-players.html, minus custom header -->
+<div class="flex items-center gap-3 mt-4 mb-2 px-4">
+  <div class="bg-white rounded-md flex items-center justify-center h-12 w-12">
+    <i class="fas fa-search text-black text-3xl"></i>
+  </div>
+  <div>
+    <div class="text-2xl font-bold leading-tight">Teams & Players</div>
+    <div class="text-gray-500 text-base">Research teams and player stats across the league.</div>
+  </div>
+</div>
+<div class="mt-4 px-4">
+  <div class="bg-white rounded-2xl shadow p-5 mb-6">
+    <div class="flex items-center gap-2 mb-3">
+      <i class="fas fa-users text-xl text-gray-700"></i>
+      <span class="font-bold text-lg">Select Team & Player</span>
+    </div>
+    <div class="mb-4">
+      <label for="teamSelect" class="block font-semibold mb-1">Team</label>
+      <select id="teamSelect" class="form-select w-full" style="font-size:1.1rem;">
+        <option value="">Choose a team...</option>
+      </select>
+    </div>
+    <div>
+      <label for="playerSelect" class="block font-semibold mb-1">Player</label>
+      <select id="playerSelect" class="form-select w-full bg-gray-100" style="font-size:1.1rem;">
+        <option value="">Choose a player...</option>
+      </select>
+    </div>
+  </div>
+  <!-- Team stats and player stats sections (populated by JS) -->
+  <div id="teamAnalysisCard" class="bg-white rounded-2xl shadow p-5 mb-6" style="display:none;">
+    <div class="font-bold text-lg mb-2">Team Stats</div>
+    <div id="teamStats"></div>
+  </div>
+  <div id="playerDetailsCard" class="bg-white rounded-2xl shadow p-5 mb-6" style="display:none;">
+    <div class="font-bold text-lg mb-2">Player Stats</div>
+    <div id="playerDetailsBody"></div>
+  </div>
+  <div id="courtBreakdownCards" class="mb-6" style="display:none;"></div>
+  <div id="playerHistoryCard" class="bg-white rounded-2xl shadow p-5 mb-6 player-history-card" style="display:none;">
+    <div class="font-bold text-lg mb-2">Player History (Previous Seasons)</div>
+    <div id="player-history-dynamic"></div>
+  </div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const teamSelect = document.getElementById('teamSelect');
+    const playerSelect = document.getElementById('playerSelect');
+    const teamAnalysisCard = document.getElementById('teamAnalysisCard');
+    const teamStatsDiv = document.getElementById('teamStats');
+    const playerDetailsCard = document.getElementById('playerDetailsCard');
+    const playerDetailsBody = document.getElementById('playerDetailsBody');
+    const courtBreakdownCards = document.getElementById('courtBreakdownCards');
+    const playerHistoryCard = document.getElementById('playerHistoryCard');
+    const playerHistoryDynamic = document.getElementById('player-history-dynamic');
+
+    // Load teams on page load
+    fetch('/api/teams')
+        .then(r => r.json())
+        .then(data => {
+            teamSelect.innerHTML = '<option value="">Choose a team...</option>';
+            data.teams.forEach(team => {
+                const opt = document.createElement('option');
+                opt.value = team;
+                opt.textContent = team;
+                teamSelect.appendChild(opt);
+            });
+        });
+
+    // When a team is selected, load players and team stats
+    teamSelect.addEventListener('change', function() {
+        const team = this.value;
+        // Reset player picklist and stats
+        playerSelect.innerHTML = '<option value="">Choose a player...</option>';
+        playerSelect.disabled = true;
+        playerDetailsCard.style.display = 'none';
+        courtBreakdownCards.style.display = 'none';
+        playerHistoryCard.style.display = 'none';
+        // Hide team stats if no team
+        if (!team) {
+            teamAnalysisCard.style.display = 'none';
+            teamStatsDiv.innerHTML = '';
+            return;
+        }
+        // Load team stats
+        teamAnalysisCard.style.display = '';
+        teamStatsDiv.innerHTML = '<div class="text-center">Loading team stats...</div>';
+        fetch(`/api/series-stats?team=${encodeURIComponent(team)}`)
+            .then(r => r.json())
+            .then(data => {
+                if (!data.team_analysis) {
+                    teamStatsDiv.innerHTML = '<div class="text-muted">No stats available for this team.</div>';
+                    return;
+                }
+                const a = data.team_analysis;
+                teamStatsDiv.innerHTML = `
+                    <div><span class='stat-label'>Points:</span><span class='stat-value'>${a.overview.points}</span></div>
+                    <div><span class='stat-label'>Match Record:</span><span class='stat-value'>${a.overview.match_record}</span></div>
+                    <div><span class='stat-label'>Match Win Rate:</span><span class='stat-value'>${a.overview.match_win_rate}%</span></div>
+                    <div><span class='stat-label'>Line Win Rate:</span><span class='stat-value'>${a.overview.line_win_rate}%</span></div>
+                    <div><span class='stat-label'>Set Win Rate:</span><span class='stat-value'>${a.overview.set_win_rate}%</span></div>
+                    <div><span class='stat-label'>Game Win Rate:</span><span class='stat-value'>${a.overview.game_win_rate}%</span></div>
+                `;
+            });
+        // Load players for this team
+        fetch(`/api/team-players/${encodeURIComponent(team)}`)
+            .then(r => r.json())
+            .then(data => {
+                playerSelect.innerHTML = '<option value="">Choose a player...</option>';
+                if (data.players && data.players.length > 0) {
+                    data.players.forEach(player => {
+                        const opt = document.createElement('option');
+                        opt.value = player.name;
+                        opt.textContent = player.name;
+                        playerSelect.appendChild(opt);
+                    });
+                    playerSelect.disabled = false;
+                } else {
+                    playerSelect.disabled = true;
+                }
+            });
+    });
+
+    // When a player is selected, load player stats
+    playerSelect.addEventListener('change', function() {
+        const playerName = this.value;
+        playerDetailsCard.style.display = 'none';
+        courtBreakdownCards.style.display = 'none';
+        playerHistoryCard.style.display = 'none';
+        playerDetailsBody.innerHTML = '';
+        if (!playerName) return;
+        playerDetailsCard.style.display = '';
+        playerDetailsBody.innerHTML = '<div class="text-center">Loading player stats...</div>';
+        fetch('/api/player-history')
+            .then(r => r.json())
+            .then(data => {
+                const player = data.find(p => p.name && p.name.trim().toLowerCase() === playerName.trim().toLowerCase());
+                if (!player) {
+                    playerDetailsBody.innerHTML = '<div class="text-muted">No stats found for this player.</div>';
+                    return;
+                }
+                const totalMatches = player.matches ? player.matches.length : (player.wins + player.losses);
+                const wins = player.wins ?? 0;
+                const losses = player.losses ?? 0;
+                const winRate = totalMatches > 0 ? ((wins / totalMatches) * 100).toFixed(1) : '0.0';
+                const pti = player.pti ?? player.rating ?? 'N/A';
+                playerDetailsBody.innerHTML = `
+                    <div><span class='stat-label'>Name:</span><span class='stat-value'>${player.name}</span></div>
+                    <div><span class='stat-label'>Total Matches:</span><span class='stat-value'>${totalMatches}</span></div>
+                    <div><span class='stat-label'>Record:</span><span class='stat-value'>${wins}-${losses}</span></div>
+                    <div><span class='stat-label'>Win Rate:</span><span class='stat-value'>${winRate}%</span></div>
+                    <div><span class='stat-label'>PTI:</span><span class='stat-value'>${pti}</span></div>
+                `;
+                // Court breakdown
+                if (player.courts && Object.keys(player.courts).length > 0) {
+                    let html = '<div class="font-semibold text-lg mb-2 flex items-center"><i class="fas fa-table-tennis-paddle-ball text-gray-400 mr-2"></i>Court Breakdown</div>';
+                    Object.entries(player.courts).forEach(([court, stats]) => {
+                        const courtLosses = stats.matches - stats.wins;
+                        let winRateClass = 'win-rate-low';
+                        if (stats.winRate >= 60) winRateClass = 'win-rate-high';
+                        else if (stats.winRate >= 40) winRateClass = 'win-rate-medium';
+                        html += `<div class='court-card mb-3'><div class='font-semibold mb-1'>${court}</div><div><span class='stat-label'>Matches:</span><span class='stat-value'>${stats.matches}</span></div><div><span class='stat-label'>Record:</span><span class='stat-value'>${stats.wins}-${courtLosses}</span></div><div><span class='stat-label'>Win Rate:</span><span class='stat-value ${winRateClass}'>${stats.winRate}%</span></div>`;
+                        if (stats.partners && stats.partners.length > 0) {
+                            html += `<div class='partner-info mt-2'><strong>Most Common Partners:</strong><ul class='partner-list'>`;
+                            stats.partners.forEach(ptn => {
+                                const partnerLosses = ptn.matches - ptn.wins;
+                                const partnerWinRate = ptn.matches > 0 ? ((ptn.wins / ptn.matches) * 100).toFixed(1) : '0.0';
+                                html += `<li>${ptn.name} (${ptn.wins}-${partnerLosses}, ${partnerWinRate}%)</li>`;
+                            });
+                            html += `</ul></div>`;
+                        }
+                        html += `</div>`;
+                    });
+                    courtBreakdownCards.innerHTML = html;
+                    courtBreakdownCards.style.display = '';
+                } else {
+                    courtBreakdownCards.innerHTML = '';
+                    courtBreakdownCards.style.display = 'none';
+                }
+                // Optionally, load player history (if available)
+                if (playerHistoryCard && playerHistoryDynamic) {
+                    // You can add logic here to fetch and display player history if desired
+                    playerHistoryCard.style.display = 'none';
+                }
+            });
+    });
+});
+</script>
+{% endblock %} 

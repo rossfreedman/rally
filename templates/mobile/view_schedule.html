@@ -3,74 +3,117 @@
 <div class="max-w-lg mx-auto">
     <!-- Consistent Header -->
     <div class="flex items-center gap-3 mt-4 mb-2 px-4">
-        <div class="bg-white rounded-md flex items-center justify-center h-12 w-12">
-            <i class="fas fa-calendar text-black text-3xl"></i>
+        <div class="bg-white rounded-md flex items-center justify-center h-10 w-10">
+            <i class="fas fa-calendar text-black text-2xl"></i>
         </div>
         <div>
-            <div class="text-2xl font-bold leading-tight">Schedule</div>
-            <div class="text-base text-gray-500 mt-1">See all your upcoming matches and practices.</div>
+            <div class="text-xl font-bold leading-tight">Schedule</div>
+            <div class="text-sm text-gray-500 mt-1">See all your upcoming matches and practices.</div>
         </div>
     </div>
-    <div class="space-y-6">
+    <!-- Filter Bar -->
+    <div class="schedule-filter-bar flex justify-center gap-2 mb-3 px-4 mt-6">
+        <button class="schedule-filter-btn active" data-filter="all" type="button">All</button>
+        <button class="schedule-filter-btn" data-filter="matches" type="button">Matches</button>
+        <button class="schedule-filter-btn" data-filter="practices" type="button">Practices</button>
+    </div>
+    <div class="space-y-1" id="schedule-list">
         {% set last_date = None %}
         {% for match in matches %}
             {% if match.date != last_date %}
-                <div class="text-lg font-semibold text-gray-700 mt-6 mb-2 pl-1">
-                    {{ match.date | pretty_date }}
-                </div>
+                {% if not loop.first %}</div>{% endif %}
+                <div class="schedule-date-group" data-date="{{ match.date }}">
+                  <div class="schedule-date-header-wrapper">
+                    <div class="schedule-date-header">
+                      {{ match.date | pretty_date }}
+                    </div>
+                  </div>
                 {% set last_date = match.date %}
             {% endif %}
-            <div class="
-                rounded-xl shadow 
-                px-4 py-3 mb-2
-                flex flex-col gap-1
-                {% if 'Practice' in match %}
-                    bg-[#f6faf7] border border-[#e0e7e3]
-                {% elif match.get('home_team') == user.club ~ ' - ' ~ user.series.split()[-1] %}
-                    bg-white border-l-4 border-[#000000]
-                {% else %}
-                    bg-white border-l-4 border-[#FFD600]
+            {# Time formatting logic #}
+            {% set show_time = match.time.lstrip('0') if match.time else '' %}
+            {% if 'Practice' in match and match.date %}
+                {% set dt = match.date | pretty_date %}
+                {% if dt.startswith('Sunday') %}
+                    {% set show_time = '9:30 am' %}
                 {% endif %}
-            ">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                        <span class="text-base font-semibold text-gray-800">
-                            {{ match.time }}
-                        </span>
+            {% endif %}
+            <div class="schedule-card group relative overflow-hidden mb-1 px-0 py-0
+                {% if 'Practice' in match %}practice-card{% else %}match-card{% endif %}"
+                tabindex="0"
+                data-type="{% if 'Practice' in match %}practice{% else %}match{% endif %}"
+                >
+                {% if 'Practice' in match %}
+                    <div class="practice-accent"></div>
+                {% else %}
+                    <div class="match-accent"></div>
+                {% endif %}
+                <div class="card-content flex flex-col gap-1 w-full">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="time-pill">{{ show_time }}</span>
                         {% if 'Practice' in match %}
-                            <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-[#e0e7e3] text-[#000000] ml-2">
-                                <i class="fas fa-table-tennis mr-1"></i> Practice
-                            </span>
+                            <span class="practice-chip"><i class="fas fa-table-tennis mr-1"></i>Practice</span>
+                        {% else %}
+                            <span class="match-chip"><i class="fas fa-trophy mr-1"></i>Match</span>
                         {% endif %}
                     </div>
-                    {% if 'Practice' not in match and match.get('home_team') != user.club ~ ' - ' ~ user.series.split()[-1] %}
-                        <!-- Away match: Directions icon -->
-                        <a href="#" class="text-[#000000] hover:text-[#222222]" title="Get Directions">
-                            <i class="fas fa-location-arrow text-lg"></i>
-                        </a>
-                    {% endif %}
-                </div>
-                <div class="flex items-center gap-2">
                     {% if 'Practice' in match %}
-                        <span class="text-gray-600 font-medium">Team Practice</span>
+                        <div class="font-medium text-gray-700 text-sm">Team Practice</div>
                     {% else %}
-                        <span class="font-bold {% if match.get('home_team') == user.club ~ ' - ' ~ user.series.split()[-1] %}text-[#000000]{% else %}text-gray-700{% endif %}">
-                            {{ match.home_team }}
-                        </span>
-                        <span class="mx-1 text-gray-500">vs</span>
-                        <span class="font-bold {% if match.get('away_team') == user.club ~ ' - ' ~ user.series.split()[-1] %}text-[#000000]{% else %}text-gray-700{% endif %}">
-                            {{ match.away_team }}
-                        </span>
+                        <div class="flex items-center gap-1 text-base font-semibold">
+                            <span class="team-name {% if match.get('home_team') == user.club ~ ' - ' ~ user.series.split()[-1] %}text-[#000]{% else %}text-gray-700{% endif %}">{{ match.home_team }}</span>
+                            <span class="vs-divider">vs</span>
+                            <span class="team-name {% if match.get('away_team') == user.club ~ ' - ' ~ user.series.split()[-1] %}text-[#000]{% else %}text-gray-700{% endif %}">{{ match.away_team }}</span>
+                        </div>
                     {% endif %}
-                </div>
-                <div class="flex items-center gap-2 text-sm text-gray-500 mt-1">
-                    <i class="fas fa-map-marker-alt"></i>
-                    <span>
-                        {{ match.location or match.home_team }}
-                    </span>
+                    <div class="flex items-center gap-1 mt-2">
+                        <i class="fas fa-map-marker-alt text-lg text-[#FFD600]"></i>
+                        {% set loc = match.location or match.home_team %}
+                        <span class="schedule-location-text-normal">{{ loc }}</span>
+                        {% if 'Practice' not in match %}
+                        <a class="directions-small-btn" href="https://maps.google.com/?q={{ loc | urlencode }}" target="_blank" rel="noopener noreferrer">
+                            Get Directions
+                        </a>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
+            {% if loop.last %}</div>{% endif %}
         {% endfor %}
     </div>
 </div>
+<!-- Schedule Filter Script -->
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const filterBtns = document.querySelectorAll('.schedule-filter-btn');
+    const cards = document.querySelectorAll('.schedule-card');
+    const dateGroups = document.querySelectorAll('.schedule-date-group');
+    filterBtns.forEach(btn => {
+      btn.addEventListener('click', function() {
+        filterBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const filter = btn.getAttribute('data-filter');
+        cards.forEach(card => {
+          if (filter === 'all') {
+            card.style.display = '';
+          } else if (filter === 'matches') {
+            card.style.display = card.getAttribute('data-type') === 'match' ? '' : 'none';
+          } else if (filter === 'practices') {
+            card.style.display = card.getAttribute('data-type') === 'practice' ? '' : 'none';
+          }
+        });
+        // Hide date groups with no visible cards
+        document.querySelectorAll('.schedule-date-group').forEach(group => {
+          const visible = Array.from(group.querySelectorAll('.schedule-card')).some(card => card.style.display !== 'none');
+          group.style.display = visible ? '' : 'none';
+        });
+      });
+    });
+    // Initial group visibility
+    document.querySelectorAll('.schedule-date-group').forEach(group => {
+      const visible = Array.from(group.querySelectorAll('.schedule-card')).some(card => card.style.display !== 'none');
+      group.style.display = visible ? '' : 'none';
+    });
+  });
+</script>
 {% endblock %} 

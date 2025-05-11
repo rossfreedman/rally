@@ -2,9 +2,9 @@
 
 {% block content %}
 <!-- Consistent Page Header (matches Update Availability/Find Sub) -->
-<div class="flex items-center gap-3 mt-4 mb-2 px-4">
+<div class="flex items-center gap-3 mt-4 mb-1 px-4">
   <div class="bg-white rounded-md flex items-center justify-center h-12 w-12">
-    <i class="fas fa-clipboard-list text-green-700 text-3xl"></i>
+    <i class="fas fa-clipboard-list text-black text-3xl"></i>
   </div>
   <div>
     <div class="text-2xl font-bold leading-tight">Create Lineup</div>
@@ -13,7 +13,7 @@
 </div>
 
 <!-- Card 1: Select Available Players -->
-<div class="card bg-base-100 shadow-xl mb-6">
+<div class="card bg-base-100 shadow-xl mb-2">
   <div class="card-body">
     <h2 class="card-title">Select Available Players</h2>
     <div id="players-list" class="flex flex-col gap-2 mt-2">
@@ -23,7 +23,7 @@
 </div>
 
 <!-- Card 2: Lineup Instructions -->
-<div class="card bg-base-100 shadow-xl mb-6">
+<div class="card bg-base-100 shadow-xl mb-2">
   <div class="card-body">
     <h2 class="card-title">Lineup Instructions</h2>
     <ul id="instructions-list" class="mb-4 flex flex-col gap-2">
@@ -37,7 +37,7 @@
 </div>
 
 <!-- Card 3: Generated Lineup -->
-<div class="card bg-base-100 shadow-xl mb-6" id="generated-lineup-card" style="display:none;">
+<div class="card bg-base-100 shadow-xl mb-2" id="generated-lineup-card" style="display:none;">
   <div class="card-body">
     <h2 class="card-title">Generated Lineup</h2>
     <pre id="generated-lineup" class="bg-base-200 p-3 rounded-lg whitespace-pre-wrap text-sm"></pre>
@@ -46,7 +46,7 @@
 
 <!-- Generate Button & Loading -->
 <div class="flex flex-col items-center">
-  <button id="generate-lineup-btn" class="btn btn-primary w-full mb-4">Generate Lineup</button>
+  <button id="generate-lineup-btn" class="btn btn-primary w-full mb-2">Generate Lineup</button>
   <div id="loading-indicator" class="hidden flex flex-col items-center">
     <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mb-2"></div>
     <span>Generating lineup...</span>

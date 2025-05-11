@@ -34,7 +34,8 @@
             width: 100%;
             max-width: 800px;
             text-align: center;
-            margin-top: -100px;
+            position: static;
+            align-self: center;
         }
 
         .auth-content {
@@ -54,7 +55,7 @@
         }
 
         .logo-img {
-            width: 216px;
+            width: 194px;
             height: auto;
             margin-bottom: 0;
             filter: none;
@@ -175,27 +176,25 @@
             z-index: 100;
         }
 
-        .login-vertical-center {
+        .login-stack {
             display: flex;
             flex-direction: column;
+            align-items: center;
+            width: 100vw;
             min-height: 100vh;
         }
-        .logo-header {
-            background: none;
-            border-radius: 0;
-            min-height: 0;
-            display: block;
-            padding: 0;
+        .auth-container {
+            position: static;
         }
     </style>
 </head>
 <body>
-    <div class="login-vertical-center">
-        <div style="flex:1;"></div>
+    <div class="login-stack">
+        <div style="height:100px;"></div>
         <div style="display:flex; justify-content:center; align-items:center;">
             <img src="/static/rallylogo.png" alt="Rally" class="logo-img">
         </div>
-        <div style="flex:1;"></div>
+        <div style="height:100px;"></div>
         <div class="auth-container">
             <div class="auth-content">
                 <div class="auth-error-container" id="authErrorContainer">

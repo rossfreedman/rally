@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teams & Players | Rally Mobile</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/mobile/css/style.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background: #f6faf7; }
+        .header-row {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-top: 1.5rem;
+            margin-bottom: 1.2rem;
+            padding-left: 1rem;
+        }
+        .icon-box {
+            background: #fff;
+            border-radius: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 3rem;
+            width: 3rem;
+            box-shadow: 0 2px 8px 0 rgba(0,0,0,0.06);
+        }
+        .icon-box i {
+            color: #007417;
+            font-size: 2rem;
+        }
+        .header-title {
+            font-size: 2rem;
+            font-weight: bold;
+            line-height: 1.1;
+        }
+        .header-subtitle {
+            font-size: 1rem;
+            color: #6b7280;
+            margin-top: 0.2rem;
+        }
+        .card-section {
+            background: #fff;
+            border-radius: 1rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            padding: 1.2rem 1rem 1.2rem 1rem;
+            margin-bottom: 1.2rem;
+            border: none;
+        }
+        .section-label {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #222;
+            margin-bottom: 0.7rem;
+        }
+        .form-label {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 0.3rem;
+        }
+        .form-select, .form-control {
+            font-size: 1.08rem;
+            border-radius: 0.7rem;
+            margin-bottom: 1rem;
+        }
+        .stat-label { font-weight: 500; color: #555; }
+        .stat-value { font-weight: 600; margin-left: 8px; }
+        .court-card {
+            background: #fff;
+            border-radius: 1rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            padding: 1rem 1rem 0.7rem 1rem;
+            margin-bottom: 1rem;
+            border: none;
+        }
+        .partner-list { padding-left: 18px; margin-bottom: 0; }
+        .partner-list li { margin-bottom: 3px; }
+        .win-rate-high { color: #28a745; }
+        .win-rate-medium { color: #ffc107; }
+        .win-rate-low { color: #dc3545; }
+        @media (max-width: 600px) {
+            .header-title { font-size: 1.3rem; }
+            .card-section { padding: 0.7rem 0.5rem; }
+            .court-card { padding: 0.7rem 0.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header Section -->
+    <div class="header-row">
+        <div class="icon-box">
+            <i class="fas fa-search"></i>
+        </div>
+        <div>
+            <div class="header-title">Teams & Players</div>
+            <div class="header-subtitle">Research teams and player stats across the league.</div>
+        </div>
+    </div>
+    <!-- Main Content Section -->
+    <div class="container" style="max-width: 480px; margin: 0 auto;">
+        <!-- Picklists Card -->
+        <div class="card-section">
+            <div class="section-label"><i class="fas fa-users text-secondary me-2"></i>Select Team & Player</div>
+            <label for="teamSelect" class="form-label">Team</label>
+            <select class="form-select" id="teamSelect">
+                <option value="">Choose a team...</option>
+            </select>
+            <label for="playerSelect" class="form-label">Player</label>
+            <select class="form-select" id="playerSelect" disabled>
+                <option value="">Choose a player...</option>
+            </select>
+        </div>
+        <!-- Team Stats Card -->
+        <div id="teamStatsCard" class="card-section d-none">
+            <div class="section-label"><i class="fas fa-building text-secondary me-2"></i>Team Stats</div>
+            <div id="teamStats"></div>
+        </div>
+        <!-- Player Stats Card -->
+        <div id="playerStatsCard" class="card-section d-none">
+            <div class="section-label"><i class="fas fa-user text-secondary me-2"></i>Player Stats</div>
+            <div id="playerStats"></div>
+        </div>
+        <!-- Court Breakdown Cards -->
+        <div id="courtBreakdown" class="mt-2"></div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    /**
+     * Mobile Teams & Players page logic
+     * - Loads teams and players from API
+     * - Shows team and player stats
+     * - Responsive for mobile
+     */
+    document.addEventListener('DOMContentLoaded', function() {
+        const teamSelect = document.getElementById('teamSelect');
+        const playerSelect = document.getElementById('playerSelect');
+        const teamStatsCard = document.getElementById('teamStatsCard');
+        const teamStatsDiv = document.getElementById('teamStats');
+        const playerStatsCard = document.getElementById('playerStatsCard');
+        const playerStatsDiv = document.getElementById('playerStats');
+        const courtBreakdownDiv = document.getElementById('courtBreakdown');
+
+        // Load teams on page load
+        fetch('/api/teams')
+            .then(r => r.json())
+            .then(data => {
+                teamSelect.innerHTML = '<option value="">Choose a team...</option>';
+                data.teams.forEach(team => {
+                    const opt = document.createElement('option');
+                    opt.value = team;
+                    opt.textContent = team;
+                    teamSelect.appendChild(opt);
+                });
+            });
+
+        // When a team is selected, load players and team stats
+        teamSelect.addEventListener('change', function() {
+            const team = this.value;
+            // Reset player picklist and stats
+            playerSelect.innerHTML = '<option value="">Choose a player...</option>';
+            playerSelect.disabled = true;
+            playerStatsCard.classList.add('d-none');
+            courtBreakdownDiv.innerHTML = '';
+            // Hide team stats if no team
+            if (!team) {
+                teamStatsCard.classList.add('d-none');
+                return;
+            }
+            // Load team stats
+            teamStatsCard.classList.remove('d-none');
+            teamStatsDiv.innerHTML = '<div class="text-center">Loading team stats...</div>';
+            fetch(`/api/series-stats?team=${encodeURIComponent(team)}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (!data.team_analysis) {
+                        teamStatsDiv.innerHTML = '<div class="text-muted">No stats available for this team.</div>';
+                        return;
+                    }
+                    const a = data.team_analysis;
+                    teamStatsDiv.innerHTML = `
+                        <div><span class='stat-label'>Points:</span><span class='stat-value'>${a.overview.points}</span></div>
+                        <div><span class='stat-label'>Match Record:</span><span class='stat-value'>${a.overview.match_record}</span></div>
+                        <div><span class='stat-label'>Match Win Rate:</span><span class='stat-value'>${a.overview.match_win_rate}%</span></div>
+                        <div><span class='stat-label'>Line Win Rate:</span><span class='stat-value'>${a.overview.line_win_rate}%</span></div>
+                        <div><span class='stat-label'>Set Win Rate:</span><span class='stat-value'>${a.overview.set_win_rate}%</span></div>
+                        <div><span class='stat-label'>Game Win Rate:</span><span class='stat-value'>${a.overview.game_win_rate}%</span></div>
+                    `;
+                });
+            // Load players for this team
+            fetch(`/api/team-players/${encodeURIComponent(team)}`)
+                .then(r => r.json())
+                .then(data => {
+                    playerSelect.innerHTML = '<option value="">Choose a player...</option>';
+                    if (data.players && data.players.length > 0) {
+                        data.players.forEach(player => {
+                            const opt = document.createElement('option');
+                            opt.value = player.name;
+                            opt.textContent = player.name;
+                            playerSelect.appendChild(opt);
+                        });
+                        playerSelect.disabled = false;
+                    } else {
+                        playerSelect.disabled = true;
+                    }
+                });
+        });
+
+        // When a player is selected, load player stats
+        playerSelect.addEventListener('change', function() {
+            const playerName = this.value;
+            playerStatsCard.classList.add('d-none');
+            courtBreakdownDiv.innerHTML = '';
+            if (!playerName) return;
+            playerStatsCard.classList.remove('d-none');
+            playerStatsDiv.innerHTML = '<div class="text-center">Loading player stats...</div>';
+            fetch('/api/player-history')
+                .then(r => r.json())
+                .then(data => {
+                    const player = data.find(p => p.name && p.name.trim().toLowerCase() === playerName.trim().toLowerCase());
+                    if (!player) {
+                        playerStatsDiv.innerHTML = '<div class="text-muted">No stats found for this player.</div>';
+                        return;
+                    }
+                    const totalMatches = player.matches ? player.matches.length : (player.wins + player.losses);
+                    const wins = player.wins ?? 0;
+                    const losses = player.losses ?? 0;
+                    const winRate = totalMatches > 0 ? ((wins / totalMatches) * 100).toFixed(1) : '0.0';
+                    const pti = player.pti ?? player.rating ?? 'N/A';
+                    playerStatsDiv.innerHTML = `
+                        <div><span class='stat-label'>Name:</span><span class='stat-value'>${player.name}</span></div>
+                        <div><span class='stat-label'>Total Matches:</span><span class='stat-value'>${totalMatches}</span></div>
+                        <div><span class='stat-label'>Record:</span><span class='stat-value'>${wins}-${losses}</span></div>
+                        <div><span class='stat-label'>Win Rate:</span><span class='stat-value'>${winRate}%</span></div>
+                        <div><span class='stat-label'>PTI:</span><span class='stat-value'>${pti}</span></div>
+                    `;
+                    // Court breakdown
+                    if (player.courts && Object.keys(player.courts).length > 0) {
+                        let html = '<div class="section-label">Court Breakdown</div>';
+                        Object.entries(player.courts).forEach(([court, stats]) => {
+                            const courtLosses = stats.matches - stats.wins;
+                            let winRateClass = 'win-rate-low';
+                            if (stats.winRate >= 60) winRateClass = 'win-rate-high';
+                            else if (stats.winRate >= 40) winRateClass = 'win-rate-medium';
+                            html += `<div class='court-card'><div><strong>${court}</strong></div><div><span class='stat-label'>Matches:</span><span class='stat-value'>${stats.matches}</span></div><div><span class='stat-label'>Record:</span><span class='stat-value'>${stats.wins}-${courtLosses}</span></div><div><span class='stat-label'>Win Rate:</span><span class='stat-value ${winRateClass}'>${stats.winRate}%</span></div>`;
+                            if (stats.partners && stats.partners.length > 0) {
+                                html += `<div class='partner-info mt-2'><strong>Most Common Partners:</strong><ul class='partner-list'>`;
+                                stats.partners.forEach(ptn => {
+                                    const partnerLosses = ptn.matches - ptn.wins;
+                                    const partnerWinRate = ptn.matches > 0 ? ((ptn.wins / ptn.matches) * 100).toFixed(1) : '0.0';
+                                    html += `<li>${ptn.name} (${ptn.wins}-${partnerLosses}, ${partnerWinRate}%)</li>`;
+                                });
+                                html += `</ul></div>`;
+                            }
+                            html += `</div>`;
+                        });
+                        courtBreakdownDiv.innerHTML = html;
+                    } else {
+                        courtBreakdownDiv.innerHTML = '';
+                    }
+                });
+        });
+    });
+    </script>
+</body>
+</html> 

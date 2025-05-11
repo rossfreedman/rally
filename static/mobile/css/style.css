@@ -9,6 +9,9 @@
   --s: 326 100% 74%; /* secondary color: pink */
   --a: 141 50% 60%;  /* accent color: green */
   --n: 218 18% 12%;  /* neutral color: dark blue-gray */
+  --rally-yellow: #FFD600;
+  --rally-black: #000000;
+  --rally-gray: #f6faf7;
 }
 
 /* Card shadow enhancement */
@@ -279,4 +282,259 @@ a:hover {
 .hamburger-btn.open .bar:nth-child(3) {
     top: 23px;
     transform: translateX(-50%) rotate(-45deg);
+}
+
+/* --- Modern & Compact Schedule Card Styles --- */
+.match-card {
+  background: #fff;
+  border-radius: 1rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+  display: flex;
+  align-items: stretch;
+  min-height: 56px;
+  padding: 0.5rem 0.5rem 0.5rem 0;
+  border-left: 5px solid var(--rally-yellow);
+  transition: box-shadow 0.18s, transform 0.15s;
+}
+.practice-card {
+  background: #fffbe6;
+  border-radius: 1rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  display: flex;
+  align-items: stretch;
+  min-height: 56px;
+  padding: 0.5rem 0.5rem 0.5rem 0;
+  border-left: 5px solid #ffe066;
+  transition: box-shadow 0.18s, transform 0.15s;
+}
+.match-card:active, .practice-card:active, .match-card:focus, .practice-card:focus {
+  transform: scale(0.98);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.13);
+}
+.match-card:hover, .practice-card:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.13);
+}
+.match-accent {
+  width: 0.5rem;
+  border-radius: 1rem 0 0 1rem;
+  background: var(--rally-yellow);
+  margin-right: 0.7rem;
+  flex-shrink: 0;
+}
+.practice-accent {
+  width: 0.5rem;
+  border-shadow: 1rem 0 0 1rem;
+  background: #ffe066;
+  margin-right: 0.7rem;
+  flex-shrink: 0;
+}
+.card-content {
+  padding: 1.1rem 1.2rem 1.1rem 0.2rem;
+  width: 100%;
+}
+.time-pill {
+  background: var(--rally-black);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.95rem;
+  border-radius: 999px;
+  padding: 0.18rem 0.9rem;
+  display: inline-block;
+  letter-spacing: 0.01em;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+.practice-chip {
+  background: var(--rally-yellow);
+  color: var(--rally-black);
+  font-weight: 600;
+  font-size: 0.85rem;
+  border-radius: 999px;
+  padding: 0.13rem 0.8rem;
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0.5rem;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+.vs-divider {
+  color: #bdbdbd;
+  font-size: 0.95em;
+  font-weight: 500;
+  margin: 0 0.2em;
+}
+.team-name {
+  font-weight: 700;
+  font-size: 1em;
+  line-height: 1.1;
+}
+.directions-btn {
+  color: var(--rally-yellow);
+  background: #fff;
+  border-radius: 50%;
+  padding: 0.25rem 0.35rem;
+  font-size: 1.1em;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  transition: background 0.15s;
+  margin-left: 0.5rem;
+}
+.directions-btn:hover, .directions-btn:focus {
+  background: #fffbe6;
+  color: #000;
+}
+.schedule-date-header {
+  font-size: 1.05rem;
+  font-weight: 700;
+  background: none;
+  border-bottom: none;
+  color: #222;
+  margin-bottom: 0.2rem;
+  margin-top: 1.2rem;
+  padding-left: 0.2rem;
+  display: inline-block;
+}
+@media (max-width: 480px) {
+  .match-card, .practice-card {
+    min-height: 48px;
+    padding: 0.35rem 0.2rem 0.35rem 0;
+  }
+  .time-pill, .practice-chip {
+    font-size: 0.9rem;
+    padding: 0.12rem 0.7rem;
+  }
+  .card-content {
+    padding: 0.05rem 0.1rem 0.05rem 0;
+  }
+}
+
+/* --- Schedule Filter Bar Styles --- */
+.schedule-filter-bar {
+  margin-top: 0.5rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+}
+.schedule-filter-btn {
+  background: #fff;
+  color: var(--rally-black);
+  border: 2px solid var(--rally-yellow);
+  border-radius: 999px;
+  padding: 0.5rem 1.2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  transition: background 0.18s, color 0.18s, box-shadow 0.18s;
+  outline: none;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  cursor: pointer;
+}
+.schedule-filter-btn.active, .schedule-filter-btn:focus {
+  background: var(--rally-yellow);
+  color: var(--rally-black);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  border-color: var(--rally-yellow);
+}
+.schedule-filter-btn:hover {
+  background: #fffbe6;
+  color: var(--rally-black);
+}
+@media (max-width: 480px) {
+  .schedule-filter-btn {
+    font-size: 0.95rem;
+    padding: 0.45rem 0.8rem;
+  }
+}
+
+/* --- Prominent location link --- */
+.schedule-location-link {
+  text-decoration: none;
+  font-size: 1.02rem;
+  font-weight: 600;
+  color: var(--rally-yellow);
+  margin-left: 0.1em;
+  transition: color 0.15s;
+  display: inline-block;
+}
+.schedule-location-link:hover, .schedule-location-link:focus {
+  color: #000;
+  text-decoration: underline;
+}
+.schedule-location-text {
+  font-size: 1.08rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+/* --- Normal location text (not bold) --- */
+.schedule-location-text-normal {
+  font-size: 1.08rem;
+  font-weight: 400;
+  color: #222;
+  letter-spacing: 0.01em;
+  margin-right: 0.3em;
+}
+
+/* --- Date header section separation --- */
+.schedule-date-header-wrapper {
+  margin-top: 2.2rem;
+  margin-bottom: 0.7rem;
+  display: flex;
+  justify-content: flex-start;
+}
+.schedule-date-header {
+  background: #f3f4f6;
+  color: #222;
+  font-size: 1.08rem;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 0.38em 1.2em 0.38em 1.2em;
+  box-shadow: 0 2px 8px rgba(180,180,180,0.08);
+  display: inline-block;
+  letter-spacing: 0.01em;
+  border: 1.5px solid #e5e7eb;
+}
+
+/* --- Small Get Directions button --- */
+.directions-small-btn {
+  display: inline-block;
+  background: var(--rally-yellow);
+  color: #222;
+  font-size: 0.93rem;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 0.18em 0.95em;
+  margin-left: 0.4em;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  text-decoration: none;
+  border: none;
+  outline: none;
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+  vertical-align: middle;
+  cursor: pointer;
+}
+.directions-small-btn:hover, .directions-small-btn:focus {
+  background: #ffe066;
+  color: #000;
+  text-decoration: underline;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+}
+
+/* --- Match chip badge --- */
+.match-chip {
+  background: var(--rally-yellow);
+  color: #222;
+  font-weight: 600;
+  font-size: 0.85rem;
+  border-radius: 999px;
+  padding: 0.13rem 0.8rem;
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0.5rem;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+
+/* --- More padding inside event cards --- */
+.match-card, .practice-card {
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  padding-left: 0;
+  padding-right: 0;
 } 
