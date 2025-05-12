@@ -47,7 +47,8 @@
                 {% endif %}
             {% endif %}
             <div class="schedule-card group relative overflow-hidden mb-1 px-0 py-0
-                {% if 'Practice' in match %}practice-card{% else %}match-card{% endif %}"
+                {% if 'Practice' in match %}practice-card{% else %}match-card{% endif %}
+                {% if match.date != last_date %} first-in-group{% endif %}"
                 tabindex="0"
                 data-type="{% if 'Practice' in match %}practice{% else %}match{% endif %}"
                 >

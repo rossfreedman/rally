@@ -284,7 +284,8 @@ a:hover {
 }
 
 /* --- Modern & Compact Schedule Card Styles --- */
-.match-card {
+.match-card,
+.practice-card {
   background: #fff;
   border-radius: 1rem;
   box-shadow: 0 2px 8px rgba(0,0,0,0.07);
@@ -294,17 +295,10 @@ a:hover {
   padding: 0.5rem 0.5rem 0.5rem 0;
   border-left: 5px solid var(--rally-yellow);
   transition: box-shadow 0.18s, transform 0.15s;
-}
-.practice-card {
-  background: #fffbe6;
-  border-radius: 1rem;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-  display: flex;
-  align-items: stretch;
-  min-height: 56px;
-  padding: 0.5rem 0.5rem 0.5rem 0;
-  border-left: 5px solid #ffe066;
-  transition: box-shadow 0.18s, transform 0.15s;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  border-bottom-left-radius: 1rem;
+  border-bottom-right-radius: 1rem;
 }
 .match-card:active, .practice-card:active, .match-card:focus, .practice-card:focus {
   transform: scale(0.98);
@@ -313,17 +307,11 @@ a:hover {
 .match-card:hover, .practice-card:hover {
   box-shadow: 0 4px 16px rgba(0,0,0,0.13);
 }
-.match-accent {
-  width: 0.5rem;
-  border-radius: 1rem 0 0 1rem;
-  background: var(--rally-yellow);
-  margin-right: 0.7rem;
-  flex-shrink: 0;
-}
+.match-accent,
 .practice-accent {
   width: 0.5rem;
-  border-shadow: 1rem 0 0 1rem;
-  background: #ffe066;
+  border-radius: 0;
+  background: var(--rally-yellow);
   margin-right: 0.7rem;
   flex-shrink: 0;
 }
@@ -386,13 +374,21 @@ a:hover {
   font-weight: 700;
   background: #000;
   color: #fff;
-  border-radius: 0;
+  border-radius: 8px; /* Rectangle with slight rounding */
   margin: 0;
   padding: 0.7em 1em;
   border-bottom: 1.5px solid #e5e7eb;
   box-shadow: none;
   letter-spacing: 0.01em;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  margin-bottom: 0;
 }
+
+.schedule-date-group {
+  margin-bottom: 5px;
+}
+
 @media (max-width: 480px) {
   .match-card, .practice-card {
     min-height: 48px;
@@ -480,18 +476,6 @@ a:hover {
   margin-bottom: 0.7rem;
   display: flex;
   justify-content: flex-start;
-}
-.schedule-date-header {
-  background: #222;
-  color: white;
-  font-size: 1.08rem;
-  font-weight: 700;
-  border-radius: 999px;
-  padding: 0.38em 1.2em 0.38em 1.2em;
-  box-shadow: 0 2px 8px rgba(180,180,180,0.08);
-  display: inline-block;
-  letter-spacing: 0.01em;
-  border: 1.5px solid #e5e7eb;
 }
 
 /* --- Small Get Directions button --- */
@@ -598,4 +582,10 @@ a:hover {
 .back-arrow:active, .back-arrow:focus {
   background: rgba(255,255,255,0.1);
   outline: none;
+}
+
+.schedule-card.first-in-group {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  margin-top: 0;
 } 

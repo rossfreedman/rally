@@ -3854,9 +3854,14 @@ def get_player_analysis(user):
         matches = stats['matches']
         win_rate = round((stats['wins'] / matches) * 100, 1) if matches > 0 else 0
         record = f"{stats['wins']}-{stats['losses']}"
-        top_partners = [
-            {'name': p, 'winRate': '', 'record': f"{c} matches"} for p, c in stats['partners'].most_common(3)
-        ]
+        # Only include winRate if partner has at least one match; otherwise, omit or set to None
+        top_partners = []
+        for p, c in stats['partners'].most_common(3):
+            partner_entry = {'name': p, 'record': f"{c} matches"}
+            if c > 0:
+                # If you want to show win rate for partners, you can add it here in the future
+                pass  # Not adding winRate if not available
+            top_partners.append(partner_entry)
         court_analysis[court] = {
             'winRate': win_rate,
             'record': record,

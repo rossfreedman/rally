@@ -117,7 +117,12 @@
                             <a href="/player-detail/{{ p.name | urlencode }}" class="partner-name font-medium text-gray-800 flex items-center gap-1 hover:underline">
                               <i class="fas fa-user-circle text-primary"></i> {{ p.name }}
                             </a>
-                            <span class="analyze-badge mt-1">{{ p.winRate|round(1, 'common') if p.winRate is not string else p.winRate }} {{ p.record }}</span>
+                            <span class="analyze-badge mt-1">
+                              {%- if p.winRate is defined and p.winRate not in (None, '', 'N/A') -%}
+                                {{ p.winRate|round(1, 'common') }} 
+                              {%- endif -%}
+                              {{ p.record }}
+                            </span>
                           </li>
                         {% endfor %}
                       {% else %}

@@ -1,6 +1,14 @@
 {% extends "mobile/layout.html" %}
 {% set show_back_arrow = True %}
 
+{% macro format_season(season) %}
+  {%- if season and '-' in season and season|length == 9 -%}
+    {{ season[:4] ~ '-' ~ season[7:] }}
+  {%- else -%}
+    {{ season }}
+  {%- endif -%}
+{% endmacro %}
+
 {% block content %}
 <div class="max-w-lg mx-auto">
     <!-- Consistent Header (matches Analyze Me page) -->
@@ -157,7 +165,9 @@
                           {% endif %}
                           <li class="flex flex-col items-start">
                             <a href="/mobile/player-detail/{{ p.name | urlencode }}" class="partner-name {{ p_color }} hover:underline">{{ p.name }}</a>
-                            <span class="analyze-badge mt-1 {{ p_color }}">{% if pwr is number %}{{ pwr|round(1, 'common') }}{% else %}N/A{% endif %} {{ p.record if p.record is defined else '' }}</span>
+                            <span class="analyze-badge mt-1 {{ p_color }}">
+                              {%- if pwr is number -%}{{ pwr|round(1, 'common') }} {% endif -%}{{ p.record if p.record is defined else '' }}
+                            </span>
                           </li>
                         {% endfor %}
                       {% else %}
@@ -180,7 +190,7 @@
                 <tbody>
                     {% for row in analyze_data.player_history.seasons %}
                         <tr>
-                            <td class='py-1 px-2 text-center'>{{ row.season }}</td>
+                            <td class='py-1 px-2 text-center'>{{ format_season(row.season) }}</td>
                             <td class='py-1 px-2 text-center'>{{ row.series }}</td>
                             <td class='py-1 px-2 text-center'>{{ row.ptiStart }}</td>
                             <td class='py-1 px-2 text-center'>{{ row.ptiEnd }}</td>
@@ -201,38 +211,6 @@
         {% else %}
             <div class="text-gray-400 p-2">No season history available.</div>
         {% endif %}
-    </div>
-    <!-- Review Video Footage -->
-    <div class='analyze-card'>
-        <div class='analyze-card-header'><i class='fas fa-video'></i> Review Video Footage</div>
-        <div class='analyze-video-section-header'>Match Videos</div>
-        <div class='grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4'>
-            {% set match_videos = analyze_data.videos.match if analyze_data.videos.match else [] %}
-            {% for video in match_videos %}
-                <div class='video-card'>
-                    <div class='rounded-lg overflow-hidden relative mb-2'>
-                        <img src='{{ video.thumbnail or "/static/images/video_thumbnail.png" }}' class='w-full h-36 object-cover' alt='{{ video.title }}'>
-                        <div class='absolute bottom-2 right-2 bg-black bg-opacity-80 text-white text-xs px-2 py-0.5 rounded'>{{ video.duration }}</div>
-                    </div>
-                    <div class='font-semibold text-xs mb-1'>{{ video.title }}</div>
-                    <div class='text-xs text-gray-500'>{{ video.date }} • {{ video.views }} views</div>
-                </div>
-            {% endfor %}
-        </div>
-        <div class='analyze-video-section-header'>Practice Videos</div>
-        <div class='grid grid-cols-1 sm:grid-cols-2 gap-4'>
-            {% set practice_videos = analyze_data.videos.practice if analyze_data.videos.practice else [] %}
-            {% for video in practice_videos %}
-                <div class='video-card'>
-                    <div class='rounded-lg overflow-hidden relative mb-2'>
-                        <img src='{{ video.thumbnail or "/static/images/video_thumbnail.png" }}' class='w-full h-36 object-cover' alt='{{ video.title }}'>
-                        <div class='absolute bottom-2 right-2 bg-black bg-opacity-80 text-white text-xs px-2 py-0.5 rounded'>{{ video.duration }}</div>
-                    </div>
-                    <div class='font-semibold text-xs mb-1'>{{ video.title }}</div>
-                    <div class='text-xs text-gray-500'>{{ video.date }} • {{ video.views }} views</div>
-                </div>
-            {% endfor %}
-        </div>
     </div>
 </div>
 
