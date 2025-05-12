@@ -2,49 +2,75 @@
 {% set show_back_arrow = True %}
 {% block title %}Update Availability | Rally{% endblock %}
 {% block content %}
-<div class="flex items-center gap-3 mt-4 mb-2 px-4">
-  <div class="bg-white rounded-md flex items-center justify-center h-12 w-12">
-    <i class="fas fa-calendar-check text-black text-3xl"></i>
-  </div>
-  <div>
-    <div class="text-2xl font-bold leading-tight">Update Availability</div>
-    <div class="text-base text-gray-500 mt-1">Manage player availability for upcoming matches by marking them as available or unavailable.</div>
-  </div>
-</div>
-
-<div class="max-w-3xl mx-auto bg-white rounded-xl shadow-lg p-4 mt-4">
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 gap-2">
-        <div>
-            <!-- Removed duplicate icon, title, and subtitle here -->
+<div class="max-w-lg mx-auto">
+    <!-- Consistent Header (matches view_schedule.html) -->
+    <div class="flex items-center gap-3 mt-4 mb-2 px-4">
+        <div class="bg-white rounded-md flex items-center justify-center h-10 w-10">
+            <i class="fas fa-calendar-check text-black text-2xl"></i>
         </div>
-        <!-- Table/Card view toggle buttons removed -->
+        <div>
+            <div class="text-xl font-bold leading-tight">Update Availability</div>
+            <div class="text-sm text-gray-500 mt-1">Manage your availability for upcoming matches and practices.</div>
+        </div>
     </div>
-
-    {# Table View removed. Only Card View remains. #}
-
-    <!-- Card View (single user) -->
-    <div id="cardView" class="space-y-6">
-        <div class="card bg-base-100 shadow-md rounded-lg p-4">
-            <h2 class="text-lg font-bold mb-2 flex items-center gap-2"><i class="fas fa-user"></i> {{ players[0].name }}</h2>
-            <div class="space-y-2">
-                {% for match, avail in match_avail_pairs %}
-                {# Determine if this is a practice (no location) #}
-                {% set is_practice = not match.location %}
-                <div class="flex items-center justify-between gap-2 
-                    {% if is_practice %}bg-yellow-50{% endif %} 
-                    {% if not loop.last %}border-b border-gray-200{% endif %} py-3">
-                    <div>
-                        <div class="font-semibold">{{ match.date|pretty_date }}</div>
-                        <div class="text-xs text-gray-500">
-                            {{ match.time|strip_leading_zero }} |
-                            {% if is_practice %}
-                                <span class="practice-label">Practice</span>
-                            {% else %}
-                                <span class="match-label">Match</span> at {{ match.location }} against {{ match.away_team }}
-                            {% endif %}
+    <!-- (Optional) Filter Bar: Uncomment if you want filtering like schedule -->
+    {#
+    <div class="schedule-filter-bar flex justify-center gap-2 mb-3 px-4 mt-6">
+        <button class="schedule-filter-btn active" data-filter="all" type="button">All</button>
+        <button class="schedule-filter-btn" data-filter="matches" type="button">Matches</button>
+        <button class="schedule-filter-btn" data-filter="practices" type="button">Practices</button>
+    </div>
+    #}
+    <!-- Group matches by date, similar to view_schedule.html -->
+    <div class="space-y-1" id="availability-list">
+        {% set last_date = None %}
+        {% for match, avail in match_avail_pairs %}
+            {% if match.date != last_date %}
+                {% if not loop.first %}</div>{% endif %}
+                {# Compute show_time for the header #}
+                {% set show_time = match.time|strip_leading_zero if match.time else '' %}
+                <div class="schedule-date-group" data-date="{{ match.date }}">
+                  <div class="schedule-date-header">
+                    {{ match.date | pretty_date }}{% if show_time %} at {{ show_time }}{% endif %}
+                  </div>
+                {% set last_date = match.date %}
+            {% endif %}
+            {% set is_practice = not match.location %}
+            <div class="schedule-card group relative overflow-hidden mb-1 px-0 py-0
+                {% if is_practice %}practice-card{% else %}match-card{% endif %}
+                {% if match.date != last_date %} first-in-group{% endif %}"
+                tabindex="0"
+                data-type="{% if is_practice %}practice{% else %}match{% endif %}"
+                >
+                {% if is_practice %}
+                    <div class="practice-accent"></div>
+                {% else %}
+                    <div class="match-accent"></div>
+                {% endif %}
+                <!-- Card content as flex row: info left, button right -->
+                <div class="card-content flex flex-row gap-2 w-full items-center justify-between">
+                    <div class="flex flex-col gap-1 flex-1 min-w-0">
+                        <!-- Left-justified chip -->
+                        {% if is_practice %}
+                            <span class="practice-chip"><i class="fas fa-table-tennis mr-1"></i>Practice</span>
+                        {% else %}
+                            <span class="match-chip"><i class="fas fa-trophy mr-1"></i>Match</span>
+                        {% endif %}
+                        {% if is_practice %}
+                            <div class="font-medium text-gray-700 text-sm">Team Practice</div>
+                        {% else %}
+                            <div class="flex items-center gap-1 text-base font-semibold">
+                                <span class="team-name text-gray-700">vs {{ match.away_team }}</span>
+                            </div>
+                        {% endif %}
+                        <div class="flex items-center gap-1 mt-2">
+                            <i class="fas fa-map-marker-alt text-lg text-[#FFD600]"></i>
+                            {% set loc = match.location or match.home_team %}
+                            <span class="schedule-location-text-normal truncate">{{ loc }}</span>
                         </div>
                     </div>
-                    <div>
+                    <!-- Availability Button (now right-aligned and vertically centered) -->
+                    <div class="flex-shrink-0 ml-2">
                         <button
                             class="btn btn-lg availability-btn h-12 w-44 whitespace-nowrap {% if avail.status == 'available' %}btn-success{% elif avail.status == 'unavailable' %}btn-error{% else %}btn-neutral{% endif %}"
                             data-state="{{ avail.status }}"
@@ -56,9 +82,9 @@
                         </button>
                     </div>
                 </div>
-                {% endfor %}
             </div>
-        </div>
+            {% if loop.last %}</div>{% endif %}
+        {% endfor %}
     </div>
 </div>
 <script>
