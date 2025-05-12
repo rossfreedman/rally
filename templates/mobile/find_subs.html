@@ -1,4 +1,5 @@
 {% extends "mobile/layout.html" %}
+{% set show_back_arrow = True %}
 
 {% block content %}
 <div class="flex items-center gap-3 mt-4 mb-2 px-4">
@@ -84,7 +85,7 @@ async function fetchAndRenderSubsMobile() {
             label.className = 'text-center font-bold rounded px-2 py-2 mb-2';
             label.style.background = '#ffde5a';
             label.style.color = '#000000';
-            label.innerHTML = "Top recommended subs based upon Rally's algorithm";
+            label.innerHTML = "Recommended subs based upon Rally's algorithm";
             subsList.appendChild(label);
         }
         playersWithScores.forEach((player, idx) => {
