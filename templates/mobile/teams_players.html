@@ -1,15 +1,16 @@
 {% extends "mobile/layout.html" %}
+{% set show_back_arrow = True %}
 
 {# Converted from static/mobile/teams-players.html to Jinja template for consistent mobile header/navigation #}
 {% block content %}
 <div class="max-w-lg mx-auto px-2 bg-gray-50 min-h-screen pb-8">
   <!-- Consistent Header -->
-  <div class="flex items-center gap-3 mt-4 mb-6 px-2">
-    <div class="bg-white rounded-md flex items-center justify-center h-12 w-12 shadow border border-primary">
-      <i class="fas fa-users text-rally-green text-3xl"></i>
+  <div class="flex items-center gap-3 mt-4 mb-2 px-4">
+    <div class="bg-white rounded-md flex items-center justify-center h-12 w-12 mr-3">
+      <i class="fas fa-users text-black text-3xl"></i>
     </div>
     <div>
-      <div class="text-2xl font-bold leading-tight text-rally-green">Teams & Players</div>
+      <div class="text-2xl font-bold leading-tight">My Competition</div>
       <div class="text-base text-gray-500 mt-1">View stats, match patterns, and top players for each team</div>
     </div>
   </div>
@@ -28,11 +29,6 @@
       </div>
     </form>
     {% if not team_analysis_data %}
-        <div class="flex flex-col items-center justify-center h-64 text-center text-gray-500">
-            <svg class="w-12 h-12 mb-4 text-primary" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M8 12h8M12 8v8"/></svg>
-            <div class="text-lg font-semibold mb-2">Select a team to view analysis</div>
-            <div class="text-sm">Choose a team from the dropdown above to see stats, match patterns, court analysis, and top players.</div>
-        </div>
     {% else %}
     <!-- Analysis Summary Card -->
     <div class="analyze-card mb-6 shadow-lg rounded-xl p-5 bg-white border-l-4 border-blue-400">
@@ -142,9 +138,16 @@
         </div>
       </div>
     </div>
+    <!-- Instruction Card -->
+    <div class="mb-4 p-4 rounded-xl shadow-lg bg-yellow-200 border-l-4 border-yellow-500 flex items-center">
+      <i class="fas fa-info-circle text-black text-2xl mr-3"></i>
+      <span class="font-bold text-black text-lg">Click on a player below to view details.</span>
+    </div>
     <!-- Top Players Card -->
     <div class="analyze-card mb-4 shadow-lg rounded-xl p-5 bg-white border-l-4 border-red-400">
-        <div class="analyze-card-header text-xl font-bold mb-2 flex items-center gap-2"><i class="fas fa-users text-red-400"></i> Top Players</div>
+        <div class="analyze-card-header text-xl font-bold mb-2 flex items-center gap-2">
+          <i class="fas fa-users text-red-400"></i> {{ club_name }} Players
+        </div>
         <div class='table-responsive'>
         <table class='table table-sm w-full text-sm rounded-lg overflow-hidden'>
             <thead>

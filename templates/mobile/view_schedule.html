@@ -1,4 +1,6 @@
 {% extends "mobile/layout.html" %}
+{% set show_back_arrow = True %}
+
 {% block content %}
 <div class="max-w-lg mx-auto">
     <!-- Consistent Header -->
@@ -22,11 +24,17 @@
         {% for match in matches %}
             {% if match.date != last_date %}
                 {% if not loop.first %}</div>{% endif %}
+                {# Compute show_time for the header #}
+                {% set show_time = match.time.lstrip('0') if match.time else '' %}
+                {% if 'Practice' in match and match.date %}
+                    {% set dt = match.date | pretty_date %}
+                    {% if dt.startswith('Sunday') %}
+                        {% set show_time = '9:30 am' %}
+                    {% endif %}
+                {% endif %}
                 <div class="schedule-date-group" data-date="{{ match.date }}">
-                  <div class="schedule-date-header-wrapper">
-                    <div class="schedule-date-header">
-                      {{ match.date | pretty_date }}
-                    </div>
+                  <div class="schedule-date-header">
+                    {{ match.date | pretty_date }}{% if show_time %} at {{ show_time }}{% endif %}
                   </div>
                 {% set last_date = match.date %}
             {% endif %}
@@ -50,7 +58,6 @@
                 {% endif %}
                 <div class="card-content flex flex-col gap-1 w-full">
                     <div class="flex items-center justify-between mb-1">
-                        <span class="time-pill">{{ show_time }}</span>
                         {% if 'Practice' in match %}
                             <span class="practice-chip"><i class="fas fa-table-tennis mr-1"></i>Practice</span>
                         {% else %}

@@ -35,15 +35,15 @@
 <body class="min-h-screen bg-base-100 text-base-content">
 
     <!-- Top Bar -->
-    <nav class="navbar bg-white shadow-md px-4 py-2 flex items-center justify-center relative"
-         style="position: fixed; top: 0; left: 0; width: 100%; z-index: 1000; height: 56px; box-shadow: 0 2px 8px rgba(0,0,0,0.08)">
-        <a href="/mobile" class="flex items-center justify-center w-full">
+    <nav class="navbar bg-black shadow-md px-4 py-2 relative" style="position: fixed; top: 0; left: 0; width: 100%; z-index: 1000; height: 56px; box-shadow: 0 2px 8px rgba(0,0,0,0.08)">
+        {% if show_back_arrow %}
+            {% include "mobile/_back_arrow.html" %}
+        {% endif %}
+        <a href="/mobile" class="navbar-logo absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2">
             <img src="/static/images/rallylogo.png" alt="Rally Logo" class="h-10 w-auto">
         </a>
-        <button class="hamburger-btn" id="hamburgerToggle" onclick="toggleDrawer()">
-            <span class="bar"></span>
-            <span class="bar"></span>
-            <span class="bar"></span>
+        <button class="hamburger-btn absolute right-4 top-1/2 transform -translate-y-1/2" id="hamburgerToggle" onclick="toggleDrawer()" aria-label="Open menu">
+            <i class="fas fa-bars text-white text-2xl"></i>
         </button>
     </nav>
 
@@ -78,7 +78,7 @@
                         <li><a href="/mobile/myteam" class="flex items-center gap-2 text-lg text-black"><span class="inline-block w-7 text-center"><i class="fas fa-users text-black"></i></span> My Team</a></li>
                         <li><a href="/mobile/myseries" class="flex items-center gap-2 text-lg text-black"><span class="inline-block w-7 text-center"><i class="fas fa-chart-line text-black"></i></span> My Series</a></li>
                         <li><a href="/mobile/myclub" class="flex items-center gap-2 text-lg text-black"><span class="inline-block w-7 text-center"><i class="fas fa-building text-black"></i></span> My Club</a></li>
-                        <li><a href="/mobile/teams-players" class="flex items-center gap-2 text-lg text-black"><span class="inline-block w-7 text-center"><i class="fas fa-search text-black"></i></span> Teams & Players</a></li>
+                        <li><a href="/mobile/teams-players" class="flex items-center gap-2 text-lg text-black"><span class="inline-block w-7 text-center"><i class="fas fa-search text-black"></i></span> My Competition</a></li>
                     </ul>
                 </div>
                 <!-- Settings Section -->

@@ -229,7 +229,6 @@ a:hover {
 .hamburger-btn:hover,
 .hamburger-btn:focus,
 .hamburger-btn:active {
-    position: relative !important;
     width: 48px !important;
     height: 48px !important;
     padding: 0 !important;
@@ -333,8 +332,8 @@ a:hover {
   width: 100%;
 }
 .time-pill {
-  background: var(--rally-black);
-  color: #fff;
+  background: #f3f4f6;
+  color: #222;
   font-weight: 700;
   font-size: 0.95rem;
   border-radius: 999px;
@@ -381,15 +380,18 @@ a:hover {
   color: #000;
 }
 .schedule-date-header {
-  font-size: 1.05rem;
+  display: block;
+  width: 100%;
+  font-size: 1.15rem;
   font-weight: 700;
-  background: none;
-  border-bottom: none;
-  color: #222;
-  margin-bottom: 0.2rem;
-  margin-top: 1.2rem;
-  padding-left: 0.2rem;
-  display: inline-block;
+  background: #000;
+  color: #fff;
+  border-radius: 0;
+  margin: 0;
+  padding: 0.7em 1em;
+  border-bottom: 1.5px solid #e5e7eb;
+  box-shadow: none;
+  letter-spacing: 0.01em;
 }
 @media (max-width: 480px) {
   .match-card, .practice-card {
@@ -480,8 +482,8 @@ a:hover {
   justify-content: flex-start;
 }
 .schedule-date-header {
-  background: #f3f4f6;
-  color: #222;
+  background: #222;
+  color: white;
   font-size: 1.08rem;
   font-weight: 700;
   border-radius: 999px;
@@ -541,4 +543,59 @@ a:hover {
   padding-bottom: 0.5rem;
   padding-left: 0;
   padding-right: 0;
+}
+
+/* Availability button custom styles */
+.availability-btn {
+  width: 11rem !important; /* consistent width */
+  height: 2.5rem !important; /* consistent height */
+  font-size: 0.95rem !important; /* slightly smaller font */
+  text-transform: capitalize !important; /* Proper Case */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  border-radius: 0.5rem;
+  padding: 0 1rem;
+  box-sizing: border-box;
+}
+
+.practice-label {
+  background: #fffbe6;
+  color: #b59b00;
+  font-weight: 700;
+  border-radius: 6px;
+  padding: 0.1em 0.5em;
+  margin-left: 0.2em;
+  font-size: 0.95em;
+}
+.match-label {
+  background: #e3f2fd;
+  color: #1565c0;
+  font-weight: 700;
+  border-radius: 6px;
+  padding: 0.1em 0.5em;
+  margin-left: 0.2em;
+  font-size: 0.95em;
+}
+
+.back-arrow {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  background: none;
+  border: none;
+  padding: 8px;
+  border-radius: 50%;
+  transition: background 0.2s;
+}
+.back-arrow:active, .back-arrow:focus {
+  background: rgba(255,255,255,0.1);
+  outline: none;
 } 

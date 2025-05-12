@@ -3598,7 +3598,8 @@ def mobile_availability():
         {
             'date': m.get('date', ''),
             'time': m.get('time', ''),
-            'location': m.get('location', m.get('home_team', ''))
+            'location': m.get('location', m.get('home_team', '')),
+            'away_team': m.get('away_team', '')
         }
         for m in matches
     ]
@@ -4671,18 +4672,12 @@ def calculate_team_analysis(team_stats, team_matches, team):
 def get_player_analysis_by_name(player_name):
     """
     Returns the player analysis data for the given player name, as a dict.
-    Reuses the logic from get_player_analysis but takes a player name string.
+    This function parses the player_name string into first and last name (if possible),
+    then calls get_player_analysis with a constructed user dict.
+    Handles single-word names gracefully.
     """
-    import os, json
-    from collections import defaultdict, Counter
-    def normalize(name):
-        return name.replace(',', '').replace('  ', ' ').strip().lower()
-    player_history_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'series_22_player_history.json')
-    matches_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'tennis_matches_20250416.json')
-    try:
-        with open(player_history_path, 'r') as f:
-            all_players = json.load(f)
-    except Exception as e:
+    # Defensive: handle empty or None
+    if not player_name or not isinstance(player_name, str):
         return {
             'current_season': None,
             'court_analysis': {},
@@ -4691,26 +4686,20 @@ def get_player_analysis_by_name(player_name):
             'videos': {'match': [], 'practice': []},
             'trends': {},
             'career_pti_change': 'N/A',
-            'error': f'Could not load player history: {e}'
+            'error': 'Invalid player name.'
         }
-    player_name_normal = normalize(player_name)
-    # Try both 'First Last' and 'Last, First'
-    if ' ' in player_name:
-        parts = player_name.split()
-        player_last_first = normalize(f"{parts[-1]}, {' '.join(parts[:-1])}")
+    # Try to split into first and last name
+    parts = player_name.strip().split()
+    if len(parts) >= 2:
+        first_name = parts[0]
+        last_name = ' '.join(parts[1:])
     else:
-        player_last_first = player_name_normal
-    player = None
-    for p in all_players:
-        n = normalize(p.get('name', ''))
-        if n == player_name_normal or n == player_last_first:
-            player = p
-            break
-    # ... (copy the rest of get_player_analysis logic, replacing user['first_name'] etc. with player_name) ...
-    # For brevity, call get_player_analysis({'first_name': player_name.split()[0], 'last_name': ' '.join(player_name.split()[1:])}) if needed
-    # But for now, just duplicate the logic as above, replacing user with player_name
-    # (Omitted for brevity, but will be implemented in the actual edit)
-    # ... existing code ...
+        # If only one part, use as both first and last name
+        first_name = parts[0]
+        last_name = parts[0]
+    # Call get_player_analysis with constructed user dict
+    user_dict = {'first_name': first_name, 'last_name': last_name}
+    return get_player_analysis(user_dict)
 
 @app.route('/player-detail/<player_name>')
 @login_required
@@ -4874,6 +4863,30 @@ def serve_mobile_my_club():
     session_data = {'user': user, 'authenticated': True}
     # Sort and slice top 10 streaks for template (fixes Jinja2 slicing error)
     top_streaks = sorted(player_streaks.items(), key=lambda x: x[1]['count'], reverse=True)[:10]
+    # --- Tennaqua Club Standings (static content, filtered and sorted) ---
+    raw_tennaqua_standings = [
+        {'Series': '9', 'Place': '2', 'Teams': '2', 'Points For': '7', 'Points Against': '69', 'Matches Played': '40', 'Points Avg': '8', '1st Place': '8.63'},
+        {'Series': '11', 'Place': '5/2', 'Teams': '11', 'Points For': '56', 'Points Against': '54', 'Matches Played': '8', 'Points Avg': '7.00', '1st Place': '22'},
+        {'Series': '15', 'Place': '2/2', 'Teams': '9', 'Points For': '49', 'Points Against': '44', 'Matches Played': '7', 'Points Avg': '7.00', '1st Place': '29'},
+        {'Series': '17', 'Place': '13/8', 'Teams': '12', 'Points For': '29', 'Points Against': '90', 'Matches Played': '9', 'Points Avg': '3.22', '1st Place': '63'},
+        {'Series': '19', 'Place': '21/4', 'Teams': '10', 'Points For': '45', 'Points Against': '75', 'Matches Played': '9', 'Points Avg': '5.00', '1st Place': '46'},
+        {'Series': '22', 'Place': '5', 'Teams': '2', 'Points For': '1', 'Points Against': '67', 'Matches Played': '41', 'Points Avg': '8', '1st Place': '8.38'},
+        {'Series': '29', 'Place': '12/2', 'Teams': '10', 'Points For': '65', 'Points Against': '49', 'Matches Played': '9', 'Points Avg': '7.22', '1st Place': '43'},
+        {'Series': '37', 'Place': '7/7', 'Teams': '10', 'Points For': '37', 'Points Against': '80', 'Matches Played': '9', 'Points Avg': '4.11', '1st Place': '56'},
+    ]
+    # Filter to only Series, Place, Points Avg
+    filtered_standings = [
+        {'Series': row['Series'], 'Place': row['Place'], 'Points Avg': row['Points Avg']} for row in raw_tennaqua_standings
+    ]
+    # Sort by Place (try to convert to float, fallback to original order)
+    def place_sort_key(row):
+        try:
+            # Handle cases like '5/2' by taking the first number
+            return float(str(row['Place']).split('/')[0])
+        except Exception:
+            return float('inf')
+    tennaqua_standings = sorted(filtered_standings, key=place_sort_key)
+
     return render_template(
         'mobile/my_club.html',
         session_data=session_data,
@@ -4881,7 +4894,8 @@ def serve_mobile_my_club():
         trends_over_time=trends_over_time,
         head_to_head=head_to_head_list,
         team_name=team_name,
-        top_streaks=top_streaks  # For top 10 streaks in template
+        top_streaks=top_streaks,  # For top 10 streaks in template
+        tennaqua_standings=tennaqua_standings  # Static standings for the new card
     )
 
 # Alias: /mobile/myclub redirects to /mobile/my-club for user convenience
@@ -4890,6 +4904,14 @@ def serve_mobile_my_club():
 def redirect_myclub():
     from flask import redirect, url_for
     return redirect(url_for('serve_mobile_my_club'))
+
+@app.template_filter('strip_leading_zero')
+def strip_leading_zero(value):
+    """
+    Removes leading zero from hour in a time string like '06:30 pm' -> '6:30 pm'
+    """
+    import re
+    return re.sub(r'^0', '', value) if isinstance(value, str) else value
 
 if __name__ == '__main__':
         # Get port from environment variable or use default
