@@ -1,9 +1,7 @@
 {% extends "mobile/layout.html" %}
-{% block content %}
-<div class="relative w-full" style="height: 56px; background: #000;">
-  {% include "mobile/_back_arrow.html" %}
-</div>
+{% set show_back_arrow = True %}
 
+{% block content %}
 <div class="max-w-lg mx-auto">
     
     <!-- Consistent Header (matches Schedule page) -->
@@ -60,8 +58,18 @@
                     </tr>
                     <tr>
                         <td class='stat-label'><span class='text-blue-700'><i class='fas fa-percent'></i></span> Wins</td>
-                        <td class='stat-value text-black'>{{ analyze_data.current_season.winRate|round(1, 'common') if analyze_data.current_season.winRate is not string else analyze_data.current_season.winRate }}%</td>
-                        <td class='stat-value text-black'>{{ analyze_data.career_stats.winRate|round(1, 'common') if analyze_data.career_stats.winRate is not string else analyze_data.career_stats.winRate }}%</td>
+                        <td class='stat-value text-black'>
+                          {% set winrate = analyze_data.current_season.winRate %}
+                          <span class="{% if winrate is defined and winrate is not none and winrate|float >= 60 %}text-green-600 font-bold{% elif winrate is defined and winrate is not none and winrate|float >= 45 %}text-yellow-600 font-bold{% elif winrate is defined and winrate is not none %}text-red-600 font-bold{% endif %}">
+                            {{ winrate|round(1, 'common') if winrate is not string else winrate }}%
+                          </span>
+                        </td>
+                        <td class='stat-value text-black'>
+                          {% set winrate = analyze_data.career_stats.winRate %}
+                          <span class="{% if winrate is defined and winrate is not none and winrate|float >= 60 %}text-green-600 font-bold{% elif winrate is defined and winrate is not none and winrate|float >= 45 %}text-yellow-600 font-bold{% elif winrate is defined and winrate is not none %}text-red-600 font-bold{% endif %}">
+                            {{ winrate|round(1, 'common') if winrate is not string else winrate }}%
+                          </span>
+                        </td>
                     </tr>
                     <tr>
                         <td class='stat-label text-center'><i class='fas fa-arrow-down text-black'></i> PTI Change</td>
@@ -109,7 +117,14 @@
                   <div class="w-full mb-2">
                     <div class="flex justify-between items-center mb-1">
                       <span class="font-semibold text-gray-700">Win Rate</span>
-                      <span class="font-bold text-xl text-gray-900 analyze-badge">{{ stats.winRate|round(1, 'common') if stats and stats.winRate is not string else stats.winRate if stats else 'N/A' }}%</span>
+                      <span class="font-bold text-xl analyze-badge
+                        {% if stats and stats.winRate is defined and stats.winRate is not none and stats.winRate|float >= 60 %}bg-green-100 text-green-700
+                        {% elif stats and stats.winRate is defined and stats.winRate is not none and stats.winRate|float >= 45 %}bg-yellow-100 text-yellow-700
+                        {% elif stats and stats.winRate is defined and stats.winRate is not none and stats.winRate|float > 0 %}bg-red-100 text-red-700
+                        {% else %}bg-gray-200 text-gray-500
+                        {% endif %}">
+                        {{ stats.winRate|round(1, 'common') if stats and stats.winRate is not string else stats.winRate if stats else 'N/A' }}%
+                      </span>
                     </div>
                     <div class="flex justify-between items-center mb-1">
                       <span class="font-semibold text-gray-700">Record</span>
@@ -123,7 +138,17 @@
                         {% for p in stats.topPartners %}
                           <li class="flex flex-col items-start">
                             <span class="partner-name">{{ p.name }}</span>
-                            <span class="analyze-badge mt-1">{{ p.winRate|round(1, 'common') if p.winRate is not string else p.winRate }} {{ p.record }}</span>
+                            {% if p.winRate is defined and p.winRate is not none and p.winRate is number %}
+                              <span class="analyze-badge mt-1
+                                {% if p.winRate >= 60 %}bg-green-100 text-green-700 font-bold
+                                {% elif p.winRate >= 45 %}bg-yellow-100 text-yellow-700 font-bold
+                                {% else %}bg-red-100 text-red-700 font-bold
+                                {% endif %}">
+                                {{ p.winRate|round(1, 'common') }} {{ p.record }}
+                              </span>
+                            {% else %}
+                              <span class="analyze-badge mt-1">{{ p.winRate }} {{ p.record }}</span>
+                            {% endif %}
                           </li>
                         {% endfor %}
                       {% else %}
@@ -155,7 +180,7 @@
                                 {% if trend is string and trend.startswith('+') %}
                                     <span class="text-red-600 font-bold flex items-center">{{ trend }} <span aria-label="PTI Up" class="ml-1">▲</span></span>
                                 {% elif trend is string and trend.startswith('-') %}
-                                    <span class="text-gray-700 font-bold flex items-center">{{ trend }} <span aria-label="PTI Down" class="ml-1">▼</span></span>
+                                    <span class="text-green-600 font-bold flex items-center">{{ trend }} <span aria-label="PTI Down" class="ml-1">▼</span></span>
                                 {% else %}
                                     <span class="text-black">{{ trend }}</span>
                                 {% endif %}

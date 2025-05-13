@@ -255,68 +255,23 @@ def log_request_info():
 
 @app.route('/')
 def serve_index():
-    """Serve the index page with session data"""
+    """Redirect all desktop index requests to the mobile version."""
     print("\n=== Serving Index Page ===")
-    
     # If user is not authenticated, redirect to login
     if 'user' not in session:
         print("User not authenticated, redirecting to login")
         return redirect(url_for('login'))
-    
-    # Robust: Check if user exists in the database, clear session if not
-    user_email = session['user'].get('email')
-    db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
-    conn = sqlite3.connect(db_path)
-    cursor = conn.cursor()
-    try:
-        cursor.execute('''
-            SELECT u.id FROM users u WHERE u.email = ?
-        ''', (user_email,))
-        db_user = cursor.fetchone()
-        if not db_user:
-            print("User in session not found in database, clearing session and redirecting to login")
-            session.clear()
-            return redirect(url_for('login'))
-    finally:
-        conn.close()
-    
+    # Always redirect authenticated users to mobile
     print(f"User in session: {session['user']['email']}")
-    
-    # Log page visit
-    try:
-        log_user_activity(
-            session['user']['email'], 
-            'page_visit', 
-            page='home',
-            details='Accessed home page'
-        )
-        print("Successfully logged home page visit")
-    except Exception as e:
-        print(f"Error logging home page visit: {str(e)}")
-        print(traceback.format_exc())
-    
-    # Read the index.html file
-    try:
-        static_dir = os.path.join(app.root_path, 'static')
-        with open(os.path.join(static_dir, 'index.html'), 'r') as f:
-            html_content = f.read()
-            
-        # Create session data script
-        session_data = {
-            'user': session['user'],
-            'authenticated': True
-        }
-        session_script = f'<script>window.sessionData = {json.dumps(session_data)};</script>'
-        
-        # Insert the session data script before the closing </head> tag
-        html_with_session = html_content.replace('</head>', f'{session_script}</head>')
-        
-        return html_with_session
-        
-    except Exception as e:
-        print(f"Error serving index page: {str(e)}")
-        print(traceback.format_exc())
-        return "Error: Could not serve index page", 500
+    print("Redirecting to /mobile")
+    return redirect(url_for('serve_mobile'))
+
+@app.route('/index.html')
+def redirect_index_html():
+    """Redirect /index.html to the mobile version."""
+    if 'user' not in session:
+        return redirect(url_for('login'))
+    return redirect(url_for('serve_mobile'))
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -390,7 +345,7 @@ def handle_register():
             }
             
             # Redirect to mobile interface after registration
-            return jsonify({'status': 'success', 'redirect': url_for('serve_mobile')})
+            return jsonify({'status': 'success', 'redirect': '/mobile'})
             
         except sqlite3.IntegrityError:
             return jsonify({'error': 'Email already registered'}), 400
@@ -458,7 +413,7 @@ def handle_login():
             log_user_activity(email, 'auth', action='login', details='Successful login')
             
             # Create response with session cookie settings and redirect to mobile
-            response = jsonify({'status': 'success', 'redirect': url_for('serve_mobile')})
+            response = jsonify({'status': 'success', 'redirect': '/mobile'})
             return response
             
         finally:

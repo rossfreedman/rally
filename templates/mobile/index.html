@@ -1,136 +1,86 @@
 {% extends "mobile/layout.html" %}
 
 {% block content %}
-<div class="card w-full bg-base-100 shadow-xl" style="margin-top: -14px;">
-    <div class="card-body">
-        <h2 class="card-title text-2xl font-bold mb-4">
-            {% if session_data and session_data.user and session_data.user.first_name %}
-                Welcome back, {{ session_data.user.first_name }}!
-            {% else %}
-                Welcome back!
-            {% endif %}
-        </h2>
-        <p class="mb-6">
-            {% set series = session_data.user.series if session_data and session_data.user and session_data.user.series else 'Unknown Series' %}
-            {% set club = session_data.user.club if session_data and session_data.user and session_data.user.club else 'Unknown Club' %}
-            You are currently on {{ series }} at {{ club }}.
-        </p>
-        <div class="captain-message-card" style="background: #fffbe6; border-left: 5px solid #FFD600; padding: 1rem 1.2rem; margin-bottom: 1.5rem; margin-top: 0; border-radius: 0.7rem; box-shadow: 0 2px 8px 0 rgba(0,0,0,0.04);">
-          <div style="font-weight: bold; color: #b88600; margin-bottom: 0.3rem;">
-            <i class="fas fa-bullhorn" style="margin-right: 0.5em;"></i>
-            Message from your captain:
-          </div>
-          <div style="font-size: 1.08em; color: #7a5c00;">
-            Please update your availability before Sunday night.
-          </div>
-        </div>
-        <!-- Navigation Buttons: Grouped by section -->
-        <div class="flex flex-col gap-6 items-center">
-            <!-- Act Section -->
-            <div class="nav-section-group">
-                <h2 class="nav-section-header flex items-center text-[1.35rem] font-bold text-[#000000] border-b-4 border-[#FFD600] pb-1 mb-3"><i class="fas fa-bolt mr-2 text-[1.5em] text-black"></i> Act</h2>
-                <a href="/mobile/view-schedule" class="nav-btn-lg">
-                    <i class="fas fa-calendar mr-3"></i> View Schedule
-                </a>
-                <a href="/mobile/availability" class="nav-btn-lg">
-                    <i class="fas fa-calendar-check mr-3"></i> Update Availability
-                </a>
-                <a href="/mobile/find-subs" class="nav-btn-lg">
-                    <i class="fas fa-user-plus mr-3"></i> Find Sub
-                </a>
-                <a href="/mobile/ask-ai" class="nav-btn-lg">
-                    <i class="fas fa-robot mr-3"></i> Ask Rally AI
-                </a>
-                <a href="/mobile/lineup" class="nav-btn-lg">
-                    <i class="fas fa-clipboard-list mr-3"></i> Create Lineup
-                </a>
-                <a href="/mobile/lineup-escrow" class="nav-btn-lg">
-                    <i class="fas fa-lock mr-3"></i> Lineup Escrow
-                </a>
-            </div>
-            <!-- Analyze Section -->
-            <div class="nav-section-group">
-                <h2 class="nav-section-header flex items-center text-[1.35rem] font-bold text-[#000000] border-b-4 border-[#FFD600] pb-1 mb-3"><i class="fas fa-chart-bar mr-2 text-[1.5em] text-black"></i> Analyze</h2>
-                <a href="/mobile/analyze-me" class="nav-btn-lg">
-                    <i class="fas fa-user mr-3"></i> Me
-                </a>
-                <a href="/mobile/myteam" class="nav-btn-lg">
-                    <i class="fas fa-users mr-3"></i> My Team
-                </a>
-                <a href="/mobile/myseries" class="nav-btn-lg">
-                    <i class="fas fa-chart-line mr-3"></i> My Series
-                </a>
-                <a href="/mobile/my-club" class="nav-btn-lg">
-                    <i class="fas fa-building mr-3"></i> My Club
-                </a>
-                <a href="/mobile/teams-players" class="nav-btn-lg">
-                    <i class="fas fa-search mr-3"></i> My Competition
-                </a>
-            </div>
-            <!-- Settings Section -->
-            <div class="nav-section-group">
-                <h2 class="nav-section-header flex items-center text-[1.35rem] font-bold text-[#000000] border-b-4 border-[#FFD600] pb-1 mb-3"><i class="fas fa-cog mr-2 text-[1.5em] text-black"></i> Settings</h2>
-                <a href="/mobile/settings" class="nav-btn-lg">
-                    <i class="fas fa-user-cog mr-3"></i> User Settings
-                </a>
-            </div>
-        </div>
+<link rel="stylesheet" href="/static/mobile/css/home_modern.css">
+<div style="max-width: 480px; margin: 0 auto;">
+  <div class="home-header">
+    {% if session_data and session_data.user and session_data.user.first_name %}
+      Welcome back, {{ session_data.user.first_name }}!
+    {% else %}
+      Welcome back!
+    {% endif %}
+  </div>
+  <div class="home-subheader">
+    {% set series = session_data.user.series if session_data and session_data.user and session_data.user.series else 'Unknown Series' %}
+    {% set club = session_data.user.club if session_data and session_data.user and session_data.user.club else 'Unknown Club' %}
+    You are currently on {{ series }} at {{ club }}.
+  </div>
+  <div class="captain-message-card">
+    <div style="font-weight: bold; color: #b88600; margin-bottom: 0.3rem;">
+      <i class="fas fa-bullhorn" style="margin-right: 0.5em;"></i>
+      Message from your captain:
     </div>
+    <div style="font-size: 1.08em; color: #7a5c00;">
+      Please update your availability before Sunday night.
+    </div>
+  </div>
+
+  <!-- Act Section -->
+  <div class="icon-section">
+    <div class="section-header"><i class="fas fa-bolt"></i> Act</div>
+    <div class="icon-grid" aria-label="Act">
+      <a href="/mobile/view-schedule" class="icon-btn" aria-label="View Schedule">
+        <span class="icon-circle"><i class="fas fa-calendar"></i></span>
+        <span class="icon-label">Schedule</span>
+      </a>
+      <a href="/mobile/availability" class="icon-btn" aria-label="Update Availability">
+        <span class="icon-circle"><i class="fas fa-calendar-check"></i></span>
+        <span class="icon-label">Availability</span>
+      </a>
+      <a href="/mobile/find-subs" class="icon-btn" aria-label="Find Sub">
+        <span class="icon-circle"><i class="fas fa-user-plus"></i></span>
+        <span class="icon-label">Find Sub</span>
+      </a>
+      <a href="/mobile/ask-ai" class="icon-btn" aria-label="Ask Rally AI">
+        <span class="icon-circle"><i class="fas fa-robot"></i></span>
+        <span class="icon-label">Rally AI</span>
+      </a>
+      <a href="/mobile/lineup" class="icon-btn" aria-label="Create Lineup">
+        <span class="icon-circle"><i class="fas fa-clipboard-list"></i></span>
+        <span class="icon-label">Lineup</span>
+      </a>
+      <a href="/mobile/lineup-escrow" class="icon-btn" aria-label="Lineup Escrow">
+        <span class="icon-circle"><i class="fas fa-lock"></i></span>
+        <span class="icon-label">Escrow</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- Analyze Section -->
+  <div class="icon-section">
+    <div class="section-header"><i class="fas fa-chart-bar"></i> Analyze</div>
+    <div class="icon-grid" aria-label="Analyze">
+      <a href="/mobile/analyze-me" class="icon-btn" aria-label="Me">
+        <span class="icon-circle"><i class="fas fa-user"></i></span>
+        <span class="icon-label">Me</span>
+      </a>
+      <a href="/mobile/myteam" class="icon-btn" aria-label="My Team">
+        <span class="icon-circle"><i class="fas fa-users"></i></span>
+        <span class="icon-label">My Team</span>
+      </a>
+      <a href="/mobile/myseries" class="icon-btn" aria-label="My Series">
+        <span class="icon-circle"><i class="fas fa-chart-line"></i></span>
+        <span class="icon-label">My Series</span>
+      </a>
+      <a href="/mobile/my-club" class="icon-btn" aria-label="My Club">
+        <span class="icon-circle"><i class="fas fa-building"></i></span>
+        <span class="icon-label">My Club</span>
+      </a>
+      <a href="/mobile/teams-players" class="icon-btn" aria-label="My Competition">
+        <span class="icon-circle"><i class="fas fa-search"></i></span>
+        <span class="icon-label">Competition</span>
+      </a>
+    </div>
+  </div>
 </div>
-
-<style>
-.nav-section-group {
-    background: #f6faf7;
-    border-radius: 1.2rem;
-    box-shadow: 0 2px 10px 0 rgba(0,0,0,0.06);
-    padding: 1.2rem 0.5rem 1.2rem 0.5rem;
-    width: 100%;
-    max-width: 440px;
-    margin: 0 auto;
-    border: 1.5px solid #e0e7e3;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-.nav-section-header {
-    font-size: 1.25rem;
-    font-weight: 800;
-    color: #000000;
-    margin-bottom: 0.7rem;
-    margin-top: 0.1rem;
-    letter-spacing: 0.01em;
-    padding-left: 0.2rem;
-}
-.nav-btn-lg {
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    width: 100%;
-    max-width: 420px;
-    padding: 1.5rem 1.5rem;
-    font-size: 1.15rem;
-    font-weight: 700;
-    background-color: #000000;
-    color: #fff;
-    border-radius: 1rem;
-    box-shadow: 0 4px 18px 0 rgba(0,0,0,0.10), 0 1.5px 4px 0 rgba(0,0,0,0.08);
-    border: 2.5px solid transparent;
-    margin: 0 auto 1rem auto;
-    transition: background 0.18s, box-shadow 0.18s, border-color 0.18s;
-    text-decoration: none;
-}
-.nav-btn-lg:hover, .nav-btn-lg:focus, .nav-btn-lg.active {
-    border-color: #FFD600;
-    box-shadow: 0 0 0 4px #FFD60044, 0 4px 18px 0 rgba(0,0,0,0.10);
-    background-color: #444;
-    color: #fff;
-    text-decoration: none;
-}
-.nav-btn-lg i {
-    font-size: 1.5em;
-    min-width: 1.7em;
-    text-align: center;
-}
-</style>
-
 {% endblock %} 
