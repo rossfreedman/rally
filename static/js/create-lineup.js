@@ -1,75 +1,154 @@
-// Populate series dropdown when page loads
+// Global variables
+let selectedPlayers = [];
+let currentSeries = '';
+
+// Load players when page loads
 document.addEventListener('DOMContentLoaded', async () => {
-    console.log('Loading series...');  // Debug log
-    
-    // Get series from server
     try {
-        const response = await fetch('/get-series');
-        const data = await response.json();
+        // Get user's series from session
+        const authResponse = await fetch('/api/check-auth');
+        if (!authResponse.ok) {
+            throw new Error('Failed to authenticate. Please try logging in again.');
+        }
+        const authData = await authResponse.json();
         
-        if (data.error) {
-            console.error('Server error:', data.error);
+        if (!authData.authenticated) {
+            window.location.href = '/login';
             return;
         }
         
-        // Populate series dropdown
-        const seriesSelect = document.getElementById('series-select');
-        data.series.forEach(series => {
-            const option = document.createElement('option');
-            option.value = series;
-            option.textContent = series;  // Use exact series name from CSV
-            seriesSelect.appendChild(option);
-        });
+        if (!authData.user || !authData.user.series) {
+            throw new Error('No series assigned. Please contact your administrator.');
+        }
         
-        console.log('Series loaded:', data.series);  // Debug log
+        // Store the user's series
+        currentSeries = authData.user.series;
+        
+        // Load players for the current series
+        const response = await fetch(`/api/players?series=${encodeURIComponent(currentSeries)}`);
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || `Failed to load players (Status: ${response.status})`);
+        }
+        
+        const players = await response.json();
+        if (!players || players.length === 0) {
+            throw new Error(`No players found for series ${currentSeries}`);
+        }
+        
+        const playerList = document.getElementById('playerList');
+        
+        playerList.innerHTML = '';
+        players.forEach(player => {
+            const div = document.createElement('div');
+            div.className = 'form-check mb-2';
+            div.innerHTML = `
+                <input class="form-check-input" type="checkbox" value="${player.name}" id="player-${player.name.replace(/\s+/g, '-')}">
+                <label class="form-check-label" for="player-${player.name.replace(/\s+/g, '-')}">
+                    ${player.name} (${player.rating})
+                </label>
+            `;
+            playerList.appendChild(div);
+        });
+
+        // Set up event listeners
+        document.getElementById('generateBtn').addEventListener('click', generateLineup);
     } catch (error) {
-        console.error('Error loading series:', error);
+        console.error('Error loading players:', error);
+        document.getElementById('playerList').innerHTML = `
+            <div class="alert alert-danger">
+                <strong>Error loading players:</strong><br>
+                ${error.message}<br><br>
+                <small>If this error persists, please try:
+                    <ul>
+                        <li>Refreshing the page</li>
+                        <li>Logging out and back in</li>
+                        <li>Contacting support if the issue continues</li>
+                    </ul>
+                </small>
+            </div>
+        `;
     }
 });
 
-document.getElementById('lineup-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
+// Generate lineup function
+async function generateLineup() {
+    const loading = document.getElementById('loading');
+    const error = document.getElementById('error');
+    const result = document.getElementById('lineupResult');
+    const debug = document.getElementById('debugInfo');
     
-    const selectedPlayers = Array.from(document.querySelectorAll('.player-checkbox:checked'))
+    // Get selected players
+    selectedPlayers = Array.from(document.querySelectorAll('#playerList input[type="checkbox"]:checked'))
         .map(checkbox => checkbox.value);
     
-    const series = document.getElementById('series-select').value;
-    const matchType = document.getElementById('match-type').value;
-    
+    if (selectedPlayers.length === 0) {
+        error.textContent = 'Please select at least one player';
+        error.style.display = 'block';
+        return;
+    }
+
     // Show loading state
-    document.querySelector('.submit-btn').disabled = true;
-    document.querySelector('.submit-btn').textContent = 'Generating...';
-    
+    loading.style.display = 'block';
+    error.style.display = 'none';
+    result.innerHTML = '';
+    debug.style.display = 'none';
+
     try {
-        const response = await fetch('/generate-lineup', {
+        console.log('=== LINEUP REQUEST ===');
+        console.log('Selected players:', selectedPlayers);
+        console.log('Current series:', currentSeries);
+        
+        const response = await fetch('/api/generate-lineup', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
+                'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
+            body: JSON.stringify({ 
                 players: selectedPlayers,
-                series: series,
-                matchType: matchType
+                series: currentSeries
             })
         });
-        
-        const data = await response.json();
-        
-        if (data.error) {
-            throw new Error(data.error);
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
         }
-        
-        // Display the raw response in a text box
-        resultsDiv.innerHTML = `
-            <textarea class="form-control" rows="10" readonly>${data.suggestion}</textarea>
+
+        const data = await response.json();
+        console.log('=== LINEUP RESPONSE ===');
+        console.log('Prompt:', data.prompt);
+        console.log('Response:', data.suggestion);
+        console.log('=== END RESPONSE ===');
+
+        // Display the formatted response
+        const lines = data.suggestion.split('\n');
+        result.innerHTML = `
+            <div class="strategy mb-4">
+                <h6>Strategy</h6>
+                <p>${lines[0]}</p>
+            </div>
+            <div class="courts">
+                ${lines.slice(1).map(line => `
+                    <div class="court-row">
+                        <div class="court-players">${line}</div>
+                    </div>
+                `).join('')}
+            </div>
         `;
-        
+
+        // Show debug info
+        debug.innerHTML = `
+            <h6>Debug Information</h6>
+            <pre>Prompt: ${data.prompt}\n\nResponse: ${data.suggestion}</pre>
+        `;
+        debug.style.display = 'block';
+
     } catch (error) {
-        console.error('Error:', error);
-        alert('Error generating lineup. Please try again.');
+        console.error('Error generating lineup:', error);
+        error.textContent = error.message;
+        error.style.display = 'block';
     } finally {
-        // Reset button state
-        document.querySelector('.submit-btn').disabled = false;
-        document.querySelector('.submit-btn').textContent = 'Generate Lineup';
+        loading.style.display = 'none';
     }
-}); 
+} 

@@ -52,11 +52,6 @@
                 tabindex="0"
                 data-type="{% if 'Practice' in match %}practice{% else %}match{% endif %}"
                 >
-                {% if 'Practice' in match %}
-                    <div class="practice-accent"></div>
-                {% else %}
-                    <div class="match-accent"></div>
-                {% endif %}
                 <div class="card-content flex flex-col gap-1 w-full">
                     <div class="flex items-center justify-between mb-1">
                         {% if 'Practice' in match %}
@@ -69,9 +64,23 @@
                         <div class="font-medium text-gray-700 text-sm">Team Practice</div>
                     {% else %}
                         <div class="flex items-center gap-1 text-base font-semibold">
-                            <span class="team-name {% if match.get('home_team') == user.club ~ ' - ' ~ user.series.split()[-1] %}text-[#000]{% else %}text-gray-700{% endif %}">{{ match.home_team }}</span>
+                            {% set home_team = match.home_team.split(' - ') %}
+                            {% set away_team = match.away_team.split(' - ') %}
+                            <span class="team-name {% if match.get('home_team') == user.club ~ ' - ' ~ user.series.split()[-1] %}text-[#000]{% else %}text-gray-700{% endif %}">
+                                {% if home_team|length >= 2 %}
+                                    {{ home_team[0] }} - {{ home_team[1] }}
+                                {% else %}
+                                    {{ match.home_team }}
+                                {% endif %}
+                            </span>
                             <span class="vs-divider">vs</span>
-                            <span class="team-name {% if match.get('away_team') == user.club ~ ' - ' ~ user.series.split()[-1] %}text-[#000]{% else %}text-gray-700{% endif %}">{{ match.away_team }}</span>
+                            <span class="team-name {% if match.get('away_team') == user.club ~ ' - ' ~ user.series.split()[-1] %}text-[#000]{% else %}text-gray-700{% endif %}">
+                                {% if away_team|length >= 2 %}
+                                    {{ away_team[0] }} - {{ away_team[1] }}
+                                {% else %}
+                                    {{ match.away_team }}
+                                {% endif %}
+                            </span>
                         </div>
                     {% endif %}
                     <div class="flex items-center gap-1 mt-2">

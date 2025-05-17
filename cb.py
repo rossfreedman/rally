@@ -22,39 +22,6 @@ import sys
 import argparse
 import time
 
-# === Rally Project Code Backup Script ===
-# This script copies all code files (excluding .venv, __pycache__, and data) to a timestamped backup folder.
-# Backups are always stored in a sibling directory named 'rally_backups'.
-# Usage: python cb.py
-
-# Always backup to sibling directory 'rally_backups'
-PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
-PARENT_DIR = os.path.dirname(PROJECT_ROOT)
-BACKUP_ROOT = os.path.join(PARENT_DIR, 'rally_backups')
-EXCLUDE_DIRS = {'.venv', '__pycache__', 'data', 'logs', 'backups'}
-
-# Create backup directory with timestamp
-now = datetime.now().strftime('%Y%m%d_%H%M%S')
-backup_dir = os.path.join(BACKUP_ROOT, f'code_backup_{now}')
-os.makedirs(backup_dir, exist_ok=True)
-
-# Helper: should we skip this directory?
-def should_exclude(dir_name):
-    return dir_name in EXCLUDE_DIRS
-
-# Copy all files and folders except excluded ones
-# (This function is only used in the direct execution block)
-def copy_code(src, dst):
-    for item in os.listdir(src):
-        if should_exclude(item):
-            continue
-        s = os.path.join(src, item)
-        d = os.path.join(dst, item)
-        if os.path.isdir(s):
-            shutil.copytree(s, d, ignore=shutil.ignore_patterns('*.pyc', '__pycache__'))
-        else:
-            shutil.copy2(s, d)
-
 def list_backups():
     """List all existing backups without creating a new one"""
     try:
@@ -131,7 +98,7 @@ def create_backup(max_backups=10, exclude_patterns=None, no_confirm=False):
         timestamp = datetime.now().strftime('%Y_%m_%d_%H%M')
         
         # Create backup folder name
-        backup_name = f'rally_{timestamp}'
+        backup_name = f'rally_backup_{timestamp}'
         backup_path = os.path.join(backup_dir, backup_name)
         
         # Default exclude patterns if none provided
@@ -152,7 +119,31 @@ def create_backup(max_backups=10, exclude_patterns=None, no_confirm=False):
         print(f"Backup destination: {backup_path}")
         print(f"Excluding patterns: {exclude_patterns}")
         
-        # Custom copy function to ignore specified directories
+        # Custom copy function to show progress
+        def copy_with_progress(src, dst, ignore=None):
+            if os.path.isdir(src):
+                if not os.path.exists(dst):
+                    os.makedirs(dst)
+                    print(f"📁 Created directory: {os.path.relpath(dst, backup_path)}")
+                files = os.listdir(src)
+                if ignore is not None:
+                    ignored_names = ignore(src, files)
+                    files = [f for f in files if f not in ignored_names]
+                for f in files:
+                    s = os.path.join(src, f)
+                    d = os.path.join(dst, f)
+                    if os.path.isdir(s):
+                        copy_with_progress(s, d, ignore)
+                    else:
+                        shutil.copy2(s, d)
+                        rel_path = os.path.relpath(d, backup_path)
+                        print(f"📄 Copied: {rel_path}")
+            else:
+                shutil.copy2(src, dst)
+                rel_path = os.path.relpath(dst, backup_path)
+                print(f"📄 Copied: {rel_path}")
+
+        # Custom ignore function to ignore specified directories
         def ignore_patterns(path, names):
             ignored = set()
             for name in names:
@@ -167,8 +158,8 @@ def create_backup(max_backups=10, exclude_patterns=None, no_confirm=False):
                         ignored.add(name)
             return ignored
         
-        # Copy the entire directory with ignores
-        shutil.copytree(current_dir, backup_path, ignore=ignore_patterns, dirs_exist_ok=True)
+        # Copy the entire directory with progress
+        copy_with_progress(current_dir, backup_path, ignore=ignore_patterns)
         
         # Calculate the backup size
         backup_size = get_dir_size(backup_path)
@@ -286,10 +277,4 @@ def main():
         create_backup(max_backups=args.max_backups, exclude_patterns=args.exclude, no_confirm=args.no_confirm)
 
 if __name__ == "__main__":
-    # Always backup to sibling directory 'rally_backups'
-    now = datetime.now().strftime('%Y%m%d_%H%M%S')
-    backup_dir = os.path.join(BACKUP_ROOT, f'code_backup_{now}')
-    os.makedirs(backup_dir, exist_ok=True)
-    print(f"Backing up code from {PROJECT_ROOT} to {backup_dir}")
-    copy_code(PROJECT_ROOT, backup_dir)
-    print("Backup complete.")
+    main()

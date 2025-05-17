@@ -57,7 +57,7 @@
         let allPlayers = [];
 
         // Load the JSON data once
-        fetch('/data/tennis_matches_20250416.json')
+        fetch('/data/match_history.json')
             .then(resp => resp.json())
             .then(data => {
                 allMatches = data;

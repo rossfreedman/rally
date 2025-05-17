@@ -788,8 +788,8 @@ async function renderTeamAnalysisCards(container) {
     const teamName = 'Tennaqua - 22';
     // Load match and stats data
     const [matches, stats] = await Promise.all([
-        fetch('/data/tennis_matches_20250416.json').then(r => r.json()),
-        fetch('/data/Chicago_22_stats_20250425.json').then(r => r.json())
+        fetch('/data/match_history.json').then(r => r.json()),
+        fetch('/data/series_stats.json').then(r => r.json())
     ]);
     console.log('[DEBUG] matches:', matches);
     console.log('[DEBUG] stats:', stats);

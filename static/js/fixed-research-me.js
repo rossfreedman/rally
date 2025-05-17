@@ -35,9 +35,9 @@ async function loadResearchMePage() {
         // Get match data directly (fallback if player-specific data doesn't work)
         let matchesData = [];
         try {
-            const matchesResp = await fetch('/data/tennis_matches_20250416.json');
+            const matchesResp = await fetch('/data/match_history.json');
             matchesData = await matchesResp.json();
-            console.log(`Loaded ${matchesData.length} matches from global dataset`);
+            console.log(`Loaded ${matchesData.length} matches from match_history.json`);
         } catch (err) {
             console.warn("Failed to load global matches data:", err);
         }
@@ -837,8 +837,8 @@ function renderCurrentSeasonStats(player, matchesData) {
     let endPTI = null;
     let ptiDataPromise = null;
     
-    // Fetch player history data from series_22_player_history.json for PTI calculations
-    ptiDataPromise = fetch('/data/series_22_player_history.json')
+    // Fetch player history data from player_history.json for PTI calculations
+    ptiDataPromise = fetch('/data/player_history.json')
         .then(response => response.json())
         .then(data => {
             console.log(`Loaded player history data for ${data.length} players`);
@@ -895,10 +895,10 @@ function renderCurrentSeasonStats(player, matchesData) {
     if (!matchesData || matchesData.length === 0) {
         console.log("No matches data provided, attempting to fetch it");
         // This is an async operation but we'll handle it in a simplified way for this fix
-        fetch('/data/tennis_matches_20250416.json')
+        fetch('/data/match_history.json')
             .then(response => response.json())
             .then(data => {
-                console.log(`Loaded ${data.length} matches from tennis_matches_20250416.json`);
+                console.log(`Loaded ${data.length} matches from match_history.json`);
                 matchesData = data;
             })
             .catch(err => {

@@ -3,9 +3,9 @@ from flask_socketio import SocketIO, emit
 import pandas as pd
 from flask_cors import CORS
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 import traceback
-import openai
+from openai import OpenAI
 from dotenv import load_dotenv
 import time
 from functools import wraps
@@ -21,7 +21,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium import webdriver
-#from init_db import init_db
+from utils.series_matcher import series_match, normalize_series_for_storage, normalize_series_for_display
+from collections import defaultdict
 
 # Initialize database
 print("\n=== Initializing Database ===")
@@ -68,20 +69,10 @@ if not openai_api_key:
     logger.error("Please set your OpenAI API key in the environment variables.")
     sys.exit(1)
 
-# Initialize OpenAI client with organization if provided
-client_kwargs = {
-    'api_key': openai_api_key,
-    'base_url': os.getenv('OPENAI_API_BASE', 'https://api.openai.com/v1'),  # Use default base URL if not set
-}
-if openai_org_id:
-    client_kwargs['organization'] = openai_org_id
-    logger.info(f"Using OpenAI organization: {openai_org_id}")
-
-try:
-    client = openai.OpenAI(**client_kwargs)
-except Exception as e:
-    logger.error(f"ERROR: Failed to initialize OpenAI client: {str(e)}")
-    sys.exit(1)
+# Initialize OpenAI client
+client = OpenAI(
+    api_key=openai_api_key
+)
 
 # Store active threads
 active_threads = {}
@@ -89,13 +80,13 @@ active_threads = {}
 app = Flask(__name__, static_folder='static', static_url_path='/static')
 app.secret_key = os.getenv('FLASK_SECRET_KEY', 'your-secret-key-here')  # Change this in production
 
-# Restore session config to match last known working backup
+# Session config for development
 app.config.update(
-    SESSION_COOKIE_SECURE=True,  # Set to True for production with HTTPS (was working for you before)
+    SESSION_COOKIE_SECURE=False,  # Set to False for development without HTTPS
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE='Lax',
     PERMANENT_SESSION_LIFETIME=3600  # 1 hour
-)   
+)
 
 CORS(app, resources={
     r"/*": {  # Allow all routes
@@ -116,9 +107,6 @@ CORS(app, resources={
     }
 })
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
-
-# Initialize OpenAI client
-client = openai.OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
 
 # Store active threads
 active_threads = {}
@@ -154,11 +142,10 @@ def get_or_create_assistant():
             assistant = client.beta.assistants.retrieve(assistant_id)
             print(f"Successfully retrieved existing assistant with ID: {assistant.id}")
             return assistant
-        except openai.NotFoundError:
-            print(f"Assistant {assistant_id} not found, creating new one...")
         except Exception as e:
-            if "No access to organization" in str(e):
-                print(f"ERROR: No access to organization. Please check OPENAI_ORG_ID if using a shared assistant.")
+            if "No assistant found" in str(e):
+                print(f"Assistant {assistant_id} not found, creating new one...")
+            else:
                 raise
             print(f"Error retrieving assistant: {str(e)}")
             print("Attempting to create new assistant...")
@@ -213,34 +200,20 @@ selected_club = f"Tennaqua - {selected_series.split()[-1]}"
 
 # Configure logging
 def setup_logging():
+    # Create logs directory if it doesn't exist
+    if not os.path.exists('logs'):
+        os.makedirs('logs')
+    
     # Set up logging to both console and file
-    log_file = 'server.log'
-    
-    # File handler
-    file_handler = logging.FileHandler(log_file)
-    file_handler.setFormatter(logging.Formatter('%(asctime)s - %(message)s'))
-    file_handler.setLevel(logging.DEBUG)
-    
-    # Console handler
-    console_handler = logging.StreamHandler()
-    console_handler.setFormatter(logging.Formatter('%(message)s'))
-    console_handler.setLevel(logging.DEBUG)
-    
-    # Get the root logger
-    logger = logging.getLogger()
-    logger.setLevel(logging.DEBUG)
-    logger.addHandler(file_handler)
-    logger.addHandler(console_handler)
-    
-    # Suppress OpenAI client logging
-    logging.getLogger('openai').setLevel(logging.WARNING)
-    logging.getLogger('httpx').setLevel(logging.WARNING)
-    logging.getLogger('httpcore').setLevel(logging.WARNING)
-    
-    return logger
-
-# Initialize logging
-logger = setup_logging()
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s [%(levelname)s] %(message)s',
+        handlers=[
+            logging.FileHandler('logs/app.log'),
+            logging.StreamHandler()
+        ]
+    )
+    app.logger.setLevel(logging.INFO)
 
 @app.before_request
 def log_request_info():
@@ -537,19 +510,15 @@ def serve_static(path):
 
 @app.route('/api/player-history')
 def get_player_history():
-    import json
-    import os
-    
-    # Use absolute path instead of relative path
-    file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'series_22_player_history.json')
-    
+    """Get player history data"""
     try:
+        file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'player_history.json')
         with open(file_path, 'r') as f:
             data = json.load(f)
         return jsonify(data)
     except Exception as e:
         print(f"Error loading player history: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({'error': str(e)}), 500
 
 # Protect all API routes except check-auth and login
 @app.route('/api/<path:path>', methods=['GET', 'POST'])
@@ -588,15 +557,21 @@ def api_route(path):
 
 @app.route('/api/set-series', methods=['POST'])
 def set_series():
-    global selected_series, selected_club
-    data = request.get_json()
-    selected_series = data.get('series', "Chicago 22")
-    selected_club = f"Tennaqua - {selected_series.split()[-1]}"
-    return jsonify({'status': 'success', 'series': selected_series})
+    """Set the series for the current session"""
+    try:
+        data = request.get_json()
+        series = data.get('series')
+        if not series:
+            return jsonify({'error': 'Series is required'}), 400
+        session['series'] = series
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/get-series')
 @app.route('/get-series')
 def get_series():
+    """Get the current series and all available series"""
     try:
         print("\n=== GET SERIES REQUEST ===")
         print("Connecting to database...")
@@ -607,24 +582,24 @@ def get_series():
         # Get all series from the database
         print("Executing SQL query...")
         cursor.execute('SELECT name FROM series ORDER BY name')
-        series_list = [row[0] for row in cursor.fetchall()]
+        all_series = [row[0] for row in cursor.fetchall()]
         conn.close()
         
-        print(f"\nCurrent series: {selected_series}")
-        print(f"Available series: {series_list}")
-        print(f"Number of series: {len(series_list)}")
+        # Get the user's current series from their session
+        user_series = session.get('user', {}).get('series', '')
+        print(f"\nUser series from session: {user_series}")
+        print(f"Available series: {all_series}")
+        print(f"Number of series: {len(all_series)}")
         
         # Log each series with its extracted number
         print("\nSeries with extracted numbers:")
-        for series in series_list:
+        for series in all_series:
             num = ''.join(filter(str.isdigit, series))
             print(f"Series: {series}, Number: {num}")
         
-        # Always return the current series and all available series
         response_data = {
-            'series': selected_series,
-            'club': selected_club,
-            'all_series': series_list
+            'series': user_series,
+            'all_series': all_series
         }
         
         print(f"\nReturning response: {response_data}")
@@ -636,13 +611,11 @@ def get_series():
 
 @app.route('/get-players-series-22', methods=['GET'])
 def get_players_series_22():
-    """Get all players in Series 22"""
-    print("\n=== Getting Players for Series 22 ===")
+    """Get all players for series 22"""
     try:
-        import os
         csv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'all_tennaqua_players.csv')
         df = pd.read_csv(csv_path)
-        
+
         # Filter for Series 22
         series_22_df = df[df['Series'] == 'Chicago 22']  # Changed from 'Series 22' to 'Chicago 22'
         print(f"Found {len(series_22_df)} players in Series 22")
@@ -678,59 +651,41 @@ def get_players_series_22():
 @login_required
 def generate_lineup():
     try:
-        data = request.get_json()
-        players = data.get('players', [])
-        instructions = data.get('instructions', [])
+        data = request.json
+        selected_players = data.get('players', [])
         
-        if not players:
-            logger.error("No players selected for lineup generation")
-            return jsonify({'error': 'No players selected'}), 400
-            
-        # Log lineup generation with more details
-        log_user_activity(
-            session['user']['email'], 
-            'feature_use', 
-            action='generate_lineup',
-            details=f"Players: {', '.join(players)}. Instructions: {len(instructions)} provided."
-        )
-
-        # Create a new thread
-        thread = client.beta.threads.create()
-        logger.debug(f"Created new thread with ID: {thread.id}")
+        # Get the user's current series and normalize it for display
+        user_series = session['user'].get('series', '')
+        display_series = normalize_series_for_display(user_series)
         
-        # Format the instructions for the prompt
-        instructions_text = ""
-        if instructions:
-            instructions_text = "\n".join([f"- {instruction}" for instruction in instructions])
-        
-        # Create a clean prompt
-        prompt_text = f"""Generate an optimal lineup for the following AVAILABLE players: {', '.join(players)}
+        # Stricter prompt to enforce exact format
+        prompt = f"""Create an optimal lineup for these players from {display_series}: {', '.join([f"{p}" for p in selected_players])}
 
-Additional Instructions to be followed as secondary. Only include the specific AVAILABLE players above.
-{instructions_text}
+Provide detailed lineup recommendations based on player stats, match history, and team dynamics. Each recommendation should include:
 
-Above all else, only include AVAILABLE players, even if a player is mentioned in the additional instructions.
+Player Pairings: List the players paired for each court as follows:
 
-Format the lineup exactly like this example:
 Court 1: Player1/Player2
 Court 2: Player3/Player4
 Court 3: Player5/Player6
 Court 4: Player7/Player8
 
-Add a 3-5 sentence explanation after you list the lineup: [Your explanation here]"""
+Strategic Explanation: For each court, provide a brief explanation of the strategic reasoning behind the player pairings, highlighting player strengths, intended roles within the pairing, and any specific matchup considerations.
+"""
+
+        logger.debug(f"\n=== PROMPT ===\n{prompt}\n")
         
-        # Add a message to the thread
+        # Create a new thread
+        thread = client.beta.threads.create()
+        
+        # Add the message to the thread
         message = client.beta.threads.messages.create(
             thread_id=thread.id,
             role="user",
-            content=prompt_text
+            content=prompt
         )
         
-        # Print the prompt to terminal
-        print("\n=== PROMPT ===")
-        print(prompt_text)
-        
-        # Run the assistant
+        # Create and run the assistant
         run = client.beta.threads.runs.create(
             thread_id=thread.id,
             assistant_id=assistant.id
@@ -738,44 +693,32 @@ Add a 3-5 sentence explanation after you list the lineup: [Your explanation here
         
         # Wait for the run to complete
         while True:
-            run = client.beta.threads.runs.retrieve(
+            run_status = client.beta.threads.runs.retrieve(
                 thread_id=thread.id,
                 run_id=run.id
             )
-            if run.status == 'completed':
+            if run_status.status == 'completed':
                 break
-            elif run.status in ['failed', 'cancelled', 'expired']:
-                error_msg = f'Run failed with status: {run.status}'
-                logger.error(error_msg)
-                return jsonify({'error': error_msg}), 500
+            elif run_status.status == 'failed':
+                raise Exception(f"Run failed: {run_status.last_error}")
             time.sleep(1)
         
         # Get the assistant's response
         messages = client.beta.threads.messages.list(
-            thread_id=thread.id
+            thread_id=thread.id,
+            order="desc",
+            limit=1
         )
         
-        # Get the most recent message from the assistant
-        assistant_message = next((msg for msg in messages.data if msg.role == 'assistant'), None)
-        if not assistant_message:
-            error_msg = 'No response from assistant'
-            logger.error(error_msg)
-            return jsonify({'error': error_msg}), 500
-            
-        # Clean up the response by removing asterisks
-        response_text = assistant_message.content[0].text.value.replace('**', '')
-            
-        # Print the response to terminal
-        print("\n=== RESPONSE ===")
-        print(response_text)
-        
-        return jsonify({'suggestion': response_text})
+        # Return the response
+        return jsonify({
+            'prompt': prompt,
+            'suggestion': messages.data[0].content[0].text.value
+        })
         
     except Exception as e:
-        error_msg = f"Error in generate_lineup: {str(e)}"
-        logger.error(error_msg)
-        logger.error(traceback.format_exc())  # Log full traceback
-        print(error_msg)  # Also print to terminal
+        print(f"Error generating lineup: {str(e)}")
+        print(traceback.format_exc())
         return jsonify({'error': str(e)}), 500
 
 @app.route('/create-lineup')
@@ -940,7 +883,7 @@ def get_teams():
     """Return a list of all teams from the schedule"""
     try:
         # Read the schedule file
-        schedule_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'Series_22_schedule.json')
+        schedule_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'schedules.json')
         if not os.path.exists(schedule_path):
             return jsonify({'error': 'Schedule file not found'}), 404
             
@@ -973,8 +916,8 @@ def get_team_stats(team_id):
     """Return detailed statistics for a specific team"""
     try:
         # Read the series stats file
-        stats_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'Chicago_22_stats_20250425.json')
-        matches_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'tennis_matches_20250416.json')
+        stats_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'series_stats.json')
+        matches_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'match_history.json')
         
         if not os.path.exists(stats_path):
             return jsonify({'error': 'Stats file not found'}), 404
@@ -1287,7 +1230,7 @@ def serve_schedule():
         )
         
         # Read the schedule file
-        schedule_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'Series_22_schedule.json')
+        schedule_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'schedules.json')
         with open(schedule_path, 'r') as f:
             schedule_data = json.load(f)
 
@@ -1304,8 +1247,10 @@ def serve_schedule():
         print(f"User club from session: {user_club}")
         
         # Format the club name to match the schedule format
-        # The schedule uses format "Club Name - 22" while we store it as "Club Name"
-        club_name = f"{user_club} - 22"
+        # The schedule uses format "Club Name - Series - Series"
+        series = session['user'].get('series', '')
+        series_num = series.split()[-1] if series else ''
+        club_name = f"{user_club} - {series_num} - {series_num}"
         print(f"Formatted club name for filtering: {club_name}")
         
         # Filter matches based on the club
@@ -2032,22 +1977,23 @@ def navigate_with_retry(driver, url, max_retries=3):
 
 @app.route('/api/series-stats')
 def get_series_stats():
-    """Return the series stats JSON file for Chicago 22"""
+    """Return the series stats for the user's series"""
     try:
         # Read the stats file
-        stats_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'Chicago_22_stats_20250425.json')
-        matches_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'tennis_matches_20250416.json')
+        stats_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'series_stats.json')
+        matches_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'match_history.json')
         
         if not os.path.exists(stats_path):
             return jsonify({'error': 'Stats file not found'}), 404
+            
         with open(stats_path, 'r') as f:
-            stats = json.load(f)
+            all_stats = json.load(f)
             
         # Get the requested team from query params
         requested_team = request.args.get('team')
         
         if requested_team:
-            team_stats = next((team for team in stats if team['team'] == requested_team), None)
+            team_stats = next((team for team in all_stats if team['team'] == requested_team), None)
             if not team_stats:
                 return jsonify({'error': 'Team not found'}), 404
 
@@ -2230,8 +2176,14 @@ def get_series_stats():
             
             return jsonify(stats_data)
             
-        # If no team requested, return all stats
-        return jsonify({'teams': stats})
+        # If no team requested, filter stats by user's series
+        user = session.get('user')
+        if not user or not user.get('series'):
+            return jsonify({'error': 'User series not found'}), 400
+            
+        # Filter stats for the user's series
+        series_stats = [team for team in all_stats if team.get('series') == user['series']]
+        return jsonify({'teams': series_stats})
         
     except Exception as e:
         print(f"Error reading series stats: {str(e)}")
@@ -2277,64 +2229,104 @@ def get_player_contact():
         print(traceback.format_exc())
         return jsonify({'error': 'Internal server error'}), 500
 
+# Initialize paths
+app_dir = os.path.dirname(os.path.abspath(__file__))
+matches_path = os.path.join(app_dir, 'data', 'match_history.json')
+players_path = os.path.join(app_dir, 'data', 'players.json')
+
 @app.route('/api/players')
 @login_required
 def get_players_by_series():
-    """Get players for a specific series"""
+    """Get all players for a specific series, optionally filtered by team and club"""
     try:
+        # Get series and optional team from query parameters
         series = request.args.get('series')
+        team_id = request.args.get('team_id')
+        
         if not series:
             return jsonify({'error': 'Series parameter is required'}), 400
             
-        print(f"\n=== Getting Players for {series} ===")
-        import os
-        csv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'all_tennaqua_players.csv')
-        df = pd.read_csv(csv_path)
-        
-        # Filter for the requested series
-        series_df = df[df['Series'] == series]
-        print(f"Found {len(series_df)} players in {series}")
-        
-        players = []
-        for _, row in series_df.iterrows():
-            player = {
-                'name': f"{row['First Name']} {row['Last Name']}",  # Already in First Name Last Name format
-                'series': row['Series'],
-                'rating': str(row['PTI']),
-                'wins': str(row['Wins']),
-                'losses': str(row['Losses']),
-                'winRate': row['Win %']
-            }
-            players.append(player)
+        print(f"\n=== DEBUG: get_players_by_series ===")
+        print(f"Requested series: {series}")
+        print(f"Requested team: {team_id}")
+        print(f"User series: {session['user'].get('series')}")
+        print(f"User club: {session['user'].get('club')}")
             
+        # Load player data
+        with open(players_path, 'r') as f:
+            all_players = json.load(f)
+            
+        # Load matches data if team filtering is needed
+        team_players = set()
+        if team_id and os.path.exists(matches_path):
+            try:
+                with open(matches_path, 'r') as f:
+                    matches = json.load(f)
+                # Get all players who have played for this team
+                for match in matches:
+                    if match['Home Team'] == team_id:
+                        team_players.add(match['Home Player 1'])
+                        team_players.add(match['Home Player 2'])
+                    elif match['Away Team'] == team_id:
+                        team_players.add(match['Away Player 1'])
+                        team_players.add(match['Away Player 2'])
+            except Exception as e:
+                print(f"Warning: Error loading matches data: {str(e)}")
+                # Continue without team filtering if matches data can't be loaded
+                team_id = None
+        
+        # Get user's club from session
+        user_club = session['user'].get('club')
+        
+        # Filter players by series, team if specified, and club
+        players = []
+        for player in all_players:
+            # Use our new series matching functionality
+            if series_match(player['Series'], series):
+                # Create player name in the same format as match data
+                player_name = f"{player['First Name']} {player['Last Name']}"
+                
+                # If team_id is specified, only include players from that team
+                if not team_id or player_name in team_players:
+                    # Only include players from the same club as the user
+                    if player['Club'] == user_club:
+                        players.append({
+                            'name': player_name,
+                            'series': normalize_series_for_storage(player['Series']),  # Normalize series format
+                            'rating': str(player['PTI']),
+                            'wins': str(player['Wins']),
+                            'losses': str(player['Losses']),
+                            'winRate': player['Win %']
+                        })
+            
+        print(f"Found {len(players)} players in {series}{' for team ' + team_id if team_id else ''} and club {user_club}")
+        print("=== END DEBUG ===\n")
         return jsonify(players)
         
     except Exception as e:
-        print(f"\nERROR getting players for {series}: {str(e)}")
+        print(f"\nERROR getting players for series {series}: {str(e)}")
         print(traceback.format_exc())
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/team-players/<team_id>')
 @login_required
 def get_team_players(team_id):
-    """Get all players who have played for a specific team"""
+    """Get all players for a specific team"""
     try:
-        matches_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'tennis_matches_20250416.json')
-        players_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'all_tennaqua_players.csv')  # Changed from 'Data' to 'data'
+        # Load player PTI data from JSON
+        players_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'players.json')
+        with open(players_path, 'r') as f:
+            all_players = json.load(f)
         
-        if not os.path.exists(matches_path):
-            return jsonify({'error': 'Match data not found'}), 404
-            
-        # Read the players CSV file to get PTI ratings
-        df = pd.read_csv(players_path)
         pti_dict = {}
-        for _, row in df.iterrows():
-            player_name = f"{row['Last Name']} {row['First Name']}"
-            pti_dict[player_name] = float(row['PTI'])
+        for player in all_players:
+            player_name = f"{player['Last Name']} {player['First Name']}"
+            pti_dict[player_name] = float(player['PTI'])
             
         with open(matches_path, 'r') as f:
             matches = json.load(f)
             
+        # Rest of the function remains the same...
         # Track unique players and their stats
         players = {}
         
@@ -3097,7 +3089,7 @@ def get_team_matches():
         )
         
         # Read the matches file
-        matches_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'tennis_matches_20250416.json')
+        matches_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'match_history.json')
         with open(matches_path, 'r') as f:
             all_matches = json.load(f)
         
@@ -3180,7 +3172,7 @@ def research_team():
             details=f"Team: {team}"
         )
         # Read the stats file
-        stats_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'Chicago_22_stats_20250425.json')
+        stats_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'series_stats.json')
         with open(stats_path, 'r') as f:
             all_stats = json.load(f)
         # Find stats for the specific team
@@ -3201,12 +3193,7 @@ def research_team():
 @app.route('/api/player-court-stats/<player_name>')
 def player_court_stats(player_name):
     """
-    Returns court breakdown stats for a player using data/tennis_matches_20250416.json.
-    Output format:
-    {
-        "court1": {"matches": int, "wins": int, "losses": int, "winRate": float, "partners": [{"name": str, "matches": int, "wins": int, "winRate": float}]},
-        ...
-    }
+    Returns court breakdown stats for a player using data/match_history.json.
     """
     import os
     import json
@@ -3214,7 +3201,7 @@ def player_court_stats(player_name):
     
     print(f"=== /api/player-court-stats called for player: {player_name} ===")
     
-    json_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'tennis_matches_20250416.json')
+    json_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'match_history.json')
     print(f"Loading match data from: {json_path}")
     
     try:
@@ -3349,7 +3336,7 @@ def research_my_team():
     print("Final team:", team)
     # Fetch stats for this team (same as /api/research-team)
     try:
-        stats_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'Chicago_22_stats_20250425.json')
+        stats_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'series_stats.json')
         with open(stats_path, 'r') as f:
             all_stats = json.load(f)
         team_stats = next((stats for stats in all_stats if stats.get('team') == team), None)
@@ -3502,20 +3489,7 @@ def serve_mobile_player_detail(player_id):
 def serve_white_text_fix():
     return send_from_directory('.', 'white-text-fix.html')
 
-def get_matches_for_user_club(user):
-    club = user['club']
-    series = user['series']
-    club_name = f"{club} - {series.split()[-1]}"
-    schedule_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'Series_22_schedule.json')
-    with open(schedule_path, 'r') as f:
-        schedule_data = json.load(f)
-    matches = []
-    for match in schedule_data:
-        if 'Practice' in match:
-            matches.append(match)
-        elif match.get('home_team') == club_name or match.get('away_team') == club_name:
-            matches.append(match)
-    return matches
+
 
 def get_user_availability(player_name, matches, series):
     availability = []
@@ -3554,6 +3528,7 @@ def mobile_availability():
             'date': m.get('date', ''),
             'time': m.get('time', ''),
             'location': m.get('location', m.get('home_team', '')),
+            'home_team': m.get('home_team', ''),
             'away_team': m.get('away_team', '')
         }
         for m in matches
@@ -3567,6 +3542,7 @@ def mobile_availability():
         matches=match_objs,
         match_avail_pairs=match_avail_pairs,
         session_data={'user': user},
+        user=user,  # Add user to the template context
         zip=zip
     )
 
@@ -3588,17 +3564,34 @@ def mobile_view_schedule():
     from datetime import datetime
     user = session['user']
     matches = get_matches_for_user_club(user)
+    
+    # Sort matches by date
+    try:
+        matches = sorted(matches, key=lambda x: datetime.strptime(x['date'], '%d-%b-%y'))
+    except Exception as e:
+        print(f"Error sorting matches: {e}")
+        matches = sorted(matches, key=lambda x: x['date'])
+    
     # Add formatted_date to each match
     for match in matches:
-        date_str = match.get('date')
-        if date_str:
-            try:
-                dt = datetime.strptime(date_str, "%Y-%m-%d")
-                match['formatted_date'] = f"{dt.strftime('%A')} {dt.month}/{dt.day}/{dt.strftime('%y')}"
-            except Exception:
-                match['formatted_date'] = date_str
-        else:
-            match['formatted_date'] = None
+        try:
+            # Convert date to datetime object
+            dt = datetime.strptime(match['date'], '%d-%b-%y')
+            # Format for display
+            match['formatted_date'] = f"{dt.strftime('%A')} {dt.month}/{dt.day}/{dt.strftime('%y')}"
+        except Exception as e:
+            print(f"Error formatting date {match.get('date')}: {e}")
+            match['formatted_date'] = match.get('date', '')
+            
+        # Ensure all required fields exist
+        match.setdefault('time', '')
+        match.setdefault('location', '')
+        match.setdefault('home_team', '')
+        match.setdefault('away_team', '')
+        
+        # Add practice flag if needed
+        match['is_practice'] = 'Practice' in match.get('type', '')
+    
     return render_template(
         'mobile/view_schedule.html',
         matches=matches,
@@ -3631,7 +3624,7 @@ def pretty_date(value):
 def get_player_analysis(user):
     """
     Returns the player analysis data for the given user, as a dict.
-    Uses tennis_matches_20250416.json for current season stats and court analysis,
+    Uses match_history.json for current season stats and court analysis,
     and series_22_player_history.json for career stats and player history.
     Always returns all expected keys, even if some are None or empty.
     """
@@ -3639,8 +3632,8 @@ def get_player_analysis(user):
     from collections import defaultdict, Counter
     player_name = f"{user['first_name']} {user['last_name']}"
     print(f"[DEBUG] Looking for player: '{player_name}'")  # Debug print
-    player_history_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'series_22_player_history.json')
-    matches_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'tennis_matches_20250416.json')
+    player_history_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'player_history.json')
+    matches_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'match_history.json')
 
     # --- 1. Load player history for career stats and previous seasons ---
     try:
@@ -3888,17 +3881,30 @@ def get_player_analysis(user):
 @app.route('/mobile/analyze-me')
 @login_required
 def serve_mobile_analyze_me():
-    """Serve the AnalyzeMe (player analysis) mobile page with server-side rendering"""
-    session_data = {
-        'user': session['user'],
-        'authenticated': True
-    }
-    log_user_activity(session['user']['email'], 'page_visit', page='mobile_analyze_me')
-    analyze_data = get_player_analysis(session['user'])
-
-    print("DEBUG: analyze_data =", analyze_data)  # <-- Add this line
-
-    return render_template('mobile/analyze_me.html', session_data=session_data, analyze_data=analyze_data)
+    try:
+        # Get user info from session
+        user = session.get('user')
+        if not user:
+            return jsonify({'error': 'Not authenticated'}), 401
+        
+        # Get analysis data for the user
+        analyze_data = get_player_analysis(user)
+        
+        # Prepare session data
+        session_data = {
+            'user': user,
+            'authenticated': True
+        }
+        
+        # Log the page visit
+        log_user_activity(user['email'], 'page_visit', page='mobile_analyze_me')
+        
+        # Return the rendered template
+        return render_template('mobile/analyze_me.html', session_data=session_data, analyze_data=analyze_data)
+        
+    except Exception as e:
+        print(f"Error in serve_mobile_analyze_me: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/research-me')
 @login_required
@@ -3911,7 +3917,7 @@ def research_me():
     user = session['user']      # <-- Add this line
     player_name = f"{user['first_name']} {user['last_name']}"
     # Load player history
-    player_history_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'series_22_player_history.json')
+    player_history_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'player_history.json')
     try:
         with open(player_history_path, 'r') as f:
             all_players = json.load(f)
@@ -3939,7 +3945,7 @@ def research_me():
             break
     # Fallback: try to build player from matches file if not found in player history
     if not player:
-        matches_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'tennis_matches_20250416.json')
+        matches_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'match_history.json')
         try:
             with open(matches_path, 'r') as f:
                 all_matches = json.load(f)
@@ -3984,7 +3990,7 @@ def research_me():
                 'error': 'No analysis data available for this player.'
             })
     # Load match data for advanced trends and court breakdown
-    matches_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'tennis_matches_20250416.json')
+    matches_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'match_history.json')
     try:
         with open(matches_path, 'r') as f:
             all_matches = json.load(f)
@@ -4265,7 +4271,7 @@ def serve_mobile_my_team():
     m = re.search(r'(\d+)', series)
     series_num = m.group(1) if m else ''
     team = f"{club} - {series_num}"
-    stats_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'Chicago_22_stats_20250425.json')
+    stats_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'series_stats.json')
     try:
         with open(stats_path, 'r') as f:
             all_stats = json.load(f)
@@ -4289,8 +4295,8 @@ def serve_mobile_myteam():
     m = re.search(r'(\d+)', series)
     series_num = m.group(1) if m else ''
     team = f"{club} - {series_num}"
-    stats_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'Chicago_22_stats_20250425.json')
-    matches_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'tennis_matches_20250416.json')
+    stats_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'series_stats.json')
+    matches_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'match_history.json')
     try:
         with open(stats_path, 'r') as f:
             all_stats = json.load(f)
@@ -4438,8 +4444,8 @@ def redirect_myseries():
 @login_required
 def mobile_teams_players():
     team = request.args.get('team')
-    stats_path = 'data/Chicago_22_stats_20250425.json'
-    matches_path = 'data/tennis_matches_20250416.json'
+    stats_path = 'data/series_stats.json'
+    matches_path = 'data/match_history.json'
     import json
     with open(stats_path) as f:
         all_stats = json.load(f)
@@ -4680,190 +4686,299 @@ def serve_player_detail(player_name):
     )
     return render_template('player_detail.html', session_data=session_data, analyze_data=analyze_data, player_name=player_name)
 
+def parse_date(date_str):
+    """Parse a date string into a datetime object."""
+    if not date_str:
+        return None
+    try:
+        # Try DD-Mon-YY format first (e.g. '25-Sep-24')
+        return datetime.strptime(date_str, '%d-%b-%y')
+    except ValueError:
+        try:
+            # Try standard format (e.g. '2024-01-15')
+            return datetime.strptime(date_str, '%Y-%m-%d')
+        except ValueError:
+            try:
+                # Try alternative format (e.g. '1/15/24')
+                return datetime.strptime(date_str, '%m/%d/%y')
+            except ValueError:
+                return None
+
+def calculate_player_streaks(matches, club_name):
+    player_stats = {}
+    
+    # Sort matches by date, handling None values
+    def sort_key(x):
+        date = parse_date(x.get('Date', ''))
+        # Return a far future date for None to put them at the end
+        return date or datetime(9999, 12, 31)
+    
+    sorted_matches = sorted(matches, key=sort_key)
+    
+    for match in sorted_matches:
+        if match.get('Home Team', '').startswith(club_name) or match.get('Away Team', '').startswith(club_name):
+            # Process each player in the match
+            for court in ['Court 1', 'Court 2', 'Court 3', 'Court 4']:
+                for team in ['Home', 'Away']:
+                    players = match.get(f'{team} {court}', '').split('/')
+                    for player in players:
+                        player = player.strip()
+                        if not player or player.lower() == 'bye':
+                            continue
+                            
+                        if player not in player_stats:
+                            player_stats[player] = {
+                                'current_streak': 0,
+                                'best_streak': 0,
+                                'last_match_date': None,
+                                'series': match.get(f'{team} Series', ''),
+                            }
+                        
+                        # Determine if player won
+                        court_result = match.get(f'{court} Result', '')
+                        won = (team == 'Home' and court_result == 'Home') or (team == 'Away' and court_result == 'Away')
+                        
+                        # Update streaks
+                        if won:
+                            if player_stats[player]['current_streak'] >= 0:
+                                player_stats[player]['current_streak'] += 1
+                            else:
+                                player_stats[player]['current_streak'] = 1
+                        else:
+                            if player_stats[player]['current_streak'] <= 0:
+                                player_stats[player]['current_streak'] -= 1
+                            else:
+                                player_stats[player]['current_streak'] = -1
+                        
+                        # Update best streak
+                        player_stats[player]['best_streak'] = max(
+                            player_stats[player]['best_streak'],
+                            player_stats[player]['current_streak']
+                        )
+                        
+                        # Update last match date
+                        player_stats[player]['last_match_date'] = match.get('Date', '')
+    
+    # Convert to list and format for template
+    streaks_list = [
+        {
+            'player_name': player,
+            'current_streak': stats['current_streak'],
+            'best_streak': stats['best_streak'],
+            'last_match_date': stats['last_match_date'],
+            'series': stats['series']
+        }
+        for player, stats in player_stats.items()
+    ]
+    
+    # Sort by current streak (absolute value) descending, then best streak
+    return sorted(
+        streaks_list,
+        key=lambda x: (abs(x['current_streak']), x['best_streak']),
+        reverse=True
+    )
+
 @app.route('/mobile/my-club')
 @login_required
-def serve_mobile_my_club():
-    """
-    Serve the mobile My Club page with sample/mock data and advanced stats:
-    - Player win/loss streaks
-    - Team performance trends over time
-    - Head-to-head records vs. other clubs
-    Uses data from all_tennaqua_players.csv, Chicago_22_stats_20250425.json, tennis_matches_20250416.json, and directory_tennaqua.csv.
-    """
-    import os
-    import json
-    import pandas as pd
-    from collections import defaultdict, Counter
-    from datetime import datetime
-
-    # --- 1. Load sample data ---
-    players_csv = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'all_tennaqua_players.csv')
-    stats_json = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'Chicago_22_stats_20250425.json')
-    matches_json = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'tennis_matches_20250416.json')
-    directory_csv = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'club_directories', 'directory_tennaqua.csv')
-
-    # Defensive: load files with fallback
+def my_club():
     try:
-        players_df = pd.read_csv(players_csv)
-    except Exception:
-        players_df = pd.DataFrame()
-    try:
-        with open(stats_json) as f:
+        user = session.get('user')
+        if not user:
+            return jsonify({'error': 'Not authenticated'}), 401
+
+        club = user.get('club')
+        matches_data = get_recent_matches_for_user_club(user)
+        
+        if not matches_data:
+            return render_template(
+                'mobile/my_club.html',
+                team_name=club,
+                this_week_results=[],
+                tennaqua_standings=[],
+                head_to_head=[],
+                player_streaks=[]
+            )
+            
+        # Group matches by team
+        team_matches = {}
+        for match in matches_data:
+            home_team = match['home_team']
+            away_team = match['away_team']
+            
+            if club in home_team:
+                team = home_team
+                opponent = away_team.split(' - ')[0]
+                is_home = True
+            elif club in away_team:
+                team = away_team
+                opponent = home_team.split(' - ')[0]
+                is_home = False
+            else:
+                continue
+                
+            if team not in team_matches:
+                team_matches[team] = {
+                    'opponent': opponent,
+                    'matches': [],
+                    'team_points': 0,
+                    'opponent_points': 0,
+                    'series': team.split(' - ')[1] if ' - ' in team else team
+                }
+            
+            # Calculate points for this match
+            scores = match['scores'].split(', ')
+            match_team_points = 0
+            match_opponent_points = 0
+            
+            # Points for each set
+            for set_score in scores:
+                our_score, their_score = map(int, set_score.split('-'))
+                if not is_home:
+                    our_score, their_score = their_score, our_score
+                    
+                if our_score > their_score:
+                    match_team_points += 1
+                else:
+                    match_opponent_points += 1
+                    
+            # Bonus point for match win
+            if (is_home and match['winner'] == 'home') or (not is_home and match['winner'] == 'away'):
+                match_team_points += 1
+            else:
+                match_opponent_points += 1
+                
+            # Update total points
+            team_matches[team]['team_points'] += match_team_points
+            team_matches[team]['opponent_points'] += match_opponent_points
+            
+            # Add match details
+            court = match.get('court', '')
+            try:
+                court_num = int(court) if court and court.strip() else len(team_matches[team]['matches']) + 1
+            except (ValueError, TypeError):
+                court_num = len(team_matches[team]['matches']) + 1
+                
+            team_matches[team]['matches'].append({
+                'court': court_num,
+                'home_players': f"{match['home_player_1']}/{match['home_player_2']}" if is_home else f"{match['away_player_1']}/{match['away_player_2']}",
+                'away_players': f"{match['away_player_1']}/{match['away_player_2']}" if is_home else f"{match['home_player_1']}/{match['home_player_2']}",
+                'scores': match['scores'],
+                'won': (is_home and match['winner'] == 'home') or (not is_home and match['winner'] == 'away')
+            })
+            
+        # Convert to list format for template
+        this_week_results = []
+        for team_data in team_matches.values():
+            this_week_results.append({
+                'series': f"Series {team_data['series']}" if team_data['series'].isdigit() else team_data['series'],
+                'opponent': team_data['opponent'],
+                'score': f"{team_data['team_points']}-{team_data['opponent_points']}",
+                'won': team_data['team_points'] > team_data['opponent_points'],
+                'match_details': sorted(team_data['matches'], key=lambda x: x['court']),
+                'date': matches_data[0]['date']  # All matches are from the same date
+            })
+            
+        # Sort results by opponent name
+        this_week_results.sort(key=lambda x: x['opponent'])
+        
+        # Calculate Tennaqua standings
+        stats_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'series_stats.json')
+        with open(stats_path, 'r') as f:
             stats_data = json.load(f)
-    except Exception:
-        stats_data = []
-    try:
-        with open(matches_json) as f:
-            matches_data = json.load(f)
-    except Exception:
-        matches_data = []
-    try:
-        directory_df = pd.read_csv(directory_csv)
-    except Exception:
-        directory_df = pd.DataFrame()
-
-    # --- 1b. Build set of Tennaqua player names ---
-    tennaqua_players = set()
-    if not players_df.empty:
-        tennaqua_players = set(
-            (row['First Name'].strip() + ' ' + row['Last Name'].strip()).strip()
-            for _, row in players_df.iterrows() if str(row.get('Club', '')).strip().lower() == 'tennaqua'
-        )
-
-    # --- 2. Compute player win/loss streaks ---
-    player_streaks = {}
-    # Build a mapping of player name to their matches (sorted by date)
-    player_matches = defaultdict(list)
-    for match in matches_data:
-        for side in ['Home', 'Away']:
-            for num in [1, 2]:
-                player = match.get(f'{side} Player {num}')
-                if player:
-                    player_matches[player].append(match)
-    # For each player, compute current streak (W/L and count)
-    for player, matches in player_matches.items():
-        # Only include Tennaqua players
-        if player not in tennaqua_players:
-            continue
-        # Sort matches by date
-        def parse_date(d):
-            for fmt in ("%Y-%m-%d", "%m/%d/%Y"):
-                try:
-                    return datetime.strptime(d, fmt)
-                except Exception:
-                    continue
-            return None
-        matches_sorted = sorted(matches, key=lambda m: parse_date(m.get('Date', m.get('date', ''))) or datetime.min)
-        streak_type = None
-        streak_count = 0
-        last_result = None
-        for match in reversed(matches_sorted):  # Most recent first
-            is_home = player in [match.get('Home Player 1'), match.get('Home Player 2')]
-            won = (is_home and match.get('Winner') == 'home') or (not is_home and match.get('Winner') == 'away')
-            result = 'W' if won else 'L'
-            if last_result is None:
-                last_result = result
-                streak_type = result
-                streak_count = 1
-            elif result == last_result:
-                streak_count += 1
+            
+        tennaqua_standings = []
+        for team_stats in stats_data:
+            if not team_stats.get('team', '').startswith('Tennaqua'):
+                continue
+                
+            series = team_stats.get('series')
+            if not series:
+                continue
+                
+            # Get all teams in this series
+            series_teams = [team for team in stats_data if team.get('series') == series]
+            
+            # Calculate average points
+            for team in series_teams:
+                total_matches = sum(team.get('matches', {}).get(k, 0) for k in ['won', 'lost', 'tied'])
+                total_points = float(team.get('points', 0))
+                team['avg_points'] = round(total_points / total_matches, 1) if total_matches > 0 else 0
+            
+            # Sort by average points
+            series_teams.sort(key=lambda x: x.get('avg_points', 0), reverse=True)
+            
+            # Find Tennaqua's position
+            for i, team in enumerate(series_teams, 1):
+                if team.get('team', '').startswith('Tennaqua'):
+                    tennaqua_standings.append({
+                        'series': series,
+                        'place': i,
+                        'total_points': team.get('points', 0),
+                        'avg_points': team.get('avg_points', 0),
+                        'playoff_contention': i <= 8
+                    })
+                    break
+                    
+        # Sort standings by series
+        tennaqua_standings.sort(key=lambda x: x['series'])
+        
+        # Calculate head-to-head records
+        head_to_head = {}
+        for match in matches_data:
+            home_team = match.get('home_team', '')
+            away_team = match.get('away_team', '')
+            winner = match.get('winner', '')
+            
+            if not all([home_team, away_team, winner]):
+                continue
+                
+            if club in home_team:
+                opponent = away_team.split(' - ')[0]
+                won = winner == 'home'
+            elif club in away_team:
+                opponent = home_team.split(' - ')[0]
+                won = winner == 'away'
             else:
-                break
-        player_streaks[player] = {'type': streak_type, 'count': streak_count}
-
-    # --- 3. Team performance trends over time ---
-    # For the user's club, aggregate match results by date
-    user = session['user']
-    club = user.get('club')
-    series = user.get('series')
-    import re
-    m = re.search(r'(\d+)', series)
-    series_num = m.group(1) if m else ''
-    team_name = f"{club} - {series_num}"
-    # Find matches for this team
-    team_matches = [m for m in matches_data if m.get('Home Team') == team_name or m.get('Away Team') == team_name]
-    # Aggregate by date
-    trends_by_date = defaultdict(lambda: {'wins': 0, 'losses': 0, 'total': 0})
-    for match in team_matches:
-        date = match.get('Date', match.get('date', ''))
-        is_home = match.get('Home Team') == team_name
-        won = (is_home and match.get('Winner') == 'home') or (not is_home and match.get('Winner') == 'away')
-        if date:
-            if won:
-                trends_by_date[date]['wins'] += 1
-            else:
-                trends_by_date[date]['losses'] += 1
-            trends_by_date[date]['total'] += 1
-    # Sort trends by date
-    trends_over_time = [
-        {'date': d, 'wins': v['wins'], 'losses': v['losses'], 'total': v['total']}
-        for d, v in sorted(trends_by_date.items(), key=lambda x: x[0])
-    ]
-
-    # --- 4. Head-to-head records vs. other clubs ---
-    # For each opponent club, count wins/losses
-    head_to_head = defaultdict(lambda: {'wins': 0, 'losses': 0, 'total': 0})
-    for match in team_matches:
-        is_home = match.get('Home Team') == team_name
-        opponent = match.get('Away Team') if is_home else match.get('Home Team')
-        won = (is_home and match.get('Winner') == 'home') or (not is_home and match.get('Winner') == 'away')
-        if opponent:
+                continue
+                
+            if opponent not in head_to_head:
+                head_to_head[opponent] = {'wins': 0, 'losses': 0, 'total': 0}
+                
+            head_to_head[opponent]['total'] += 1
             if won:
                 head_to_head[opponent]['wins'] += 1
             else:
                 head_to_head[opponent]['losses'] += 1
-            head_to_head[opponent]['total'] += 1
-    # Convert to sorted list
-    head_to_head_list = [
-        {'opponent': k, 'wins': v['wins'], 'losses': v['losses'], 'total': v['total']}
-        for k, v in sorted(head_to_head.items(), key=lambda x: -x[1]['total'])
-    ]
-
-    # --- 5. Prepare context for template ---
-    session_data = {'user': user, 'authenticated': True}
-    # Sort and slice top 10 streaks for template (fixes Jinja2 slicing error)
-    top_streaks = sorted(player_streaks.items(), key=lambda x: x[1]['count'], reverse=True)[:10]
-    # --- Tennaqua Club Standings (static content, filtered and sorted) ---
-    raw_tennaqua_standings = [
-        {'Series': '9', 'Place': '2', 'Teams': '2', 'Points For': '7', 'Points Against': '69', 'Matches Played': '40', 'Points Avg': '8', '1st Place': '8.63'},
-        {'Series': '11', 'Place': '5/2', 'Teams': '11', 'Points For': '56', 'Points Against': '54', 'Matches Played': '8', 'Points Avg': '7.00', '1st Place': '22'},
-        {'Series': '15', 'Place': '2/2', 'Teams': '9', 'Points For': '49', 'Points Against': '44', 'Matches Played': '7', 'Points Avg': '7.00', '1st Place': '29'},
-        {'Series': '17', 'Place': '13/8', 'Teams': '12', 'Points For': '29', 'Points Against': '90', 'Matches Played': '9', 'Points Avg': '3.22', '1st Place': '63'},
-        {'Series': '19', 'Place': '21/4', 'Teams': '10', 'Points For': '45', 'Points Against': '75', 'Matches Played': '9', 'Points Avg': '5.00', '1st Place': '46'},
-        {'Series': '22', 'Place': '5', 'Teams': '2', 'Points For': '1', 'Points Against': '67', 'Matches Played': '41', 'Points Avg': '8', '1st Place': '8.38'},
-        {'Series': '29', 'Place': '12/2', 'Teams': '10', 'Points For': '65', 'Points Against': '49', 'Matches Played': '9', 'Points Avg': '7.22', '1st Place': '43'},
-        {'Series': '37', 'Place': '7/7', 'Teams': '10', 'Points For': '37', 'Points Against': '80', 'Matches Played': '9', 'Points Avg': '4.11', '1st Place': '56'},
-    ]
-    # Filter to only Series, Place, Points Avg
-    filtered_standings = [
-        {'Series': row['Series'], 'Place': row['Place'], 'Points Avg': row['Points Avg']} for row in raw_tennaqua_standings
-    ]
-    # Sort by Place (try to convert to float, fallback to original order)
-    def place_sort_key(row):
-        try:
-            # Handle cases like '5/2' by taking the first number
-            return float(str(row['Place']).split('/')[0])
-        except Exception:
-            return float('inf')
-    tennaqua_standings = sorted(filtered_standings, key=place_sort_key)
-
-    return render_template(
-        'mobile/my_club.html',
-        session_data=session_data,
-        player_streaks=player_streaks,
-        trends_over_time=trends_over_time,
-        head_to_head=head_to_head_list,
-        team_name=team_name,
-        top_streaks=top_streaks,  # For top 10 streaks in template
-        tennaqua_standings=tennaqua_standings  # Static standings for the new card
-    )
-
-# Alias: /mobile/myclub redirects to /mobile/my-club for user convenience
-@app.route('/mobile/myclub')
-@login_required
-def redirect_myclub():
-    from flask import redirect, url_for
-    return redirect(url_for('serve_mobile_my_club'))
+                
+        # Convert head-to-head to list
+        head_to_head = [
+            {
+                'opponent': opponent,
+                'wins': stats['wins'],
+                'losses': stats['losses'],
+                'total': stats['total']
+            }
+            for opponent, stats in head_to_head.items()
+        ]
+        
+        # Sort by total matches
+        head_to_head.sort(key=lambda x: x['total'], reverse=True)
+        
+        # Calculate player streaks
+        player_streaks = calculate_player_streaks(matches_data, club)
+        
+        return render_template(
+            'mobile/my_club.html',
+            team_name=club,
+            this_week_results=this_week_results,
+            tennaqua_standings=tennaqua_standings,
+            head_to_head=head_to_head,
+            player_streaks=player_streaks
+        )
+        
+    except Exception as e:
+        print(f"Error in my_club: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 @app.template_filter('strip_leading_zero')
 def strip_leading_zero(value):
@@ -4872,6 +4987,583 @@ def strip_leading_zero(value):
     """
     import re
     return re.sub(r'^0', '', value) if isinstance(value, str) else value
+
+@app.route('/api/win-streaks')
+@login_required
+def get_win_streaks():
+    try:
+        print("Starting win streaks calculation...")  # Debug print
+        app.logger.info("Starting win streaks calculation...")
+        
+        # Read match history
+        with open('data/match_history.json', 'r') as f:
+            matches = json.load(f)
+        
+        print(f"Loaded {len(matches)} matches")  # Debug print
+        app.logger.info(f"Loaded {len(matches)} matches")
+        
+        # Sort matches by date
+        matches.sort(key=lambda x: datetime.strptime(x['Date'], '%d-%b-%y'))
+        
+        # Track streaks for each player
+        player_streaks = {}
+        current_streaks = {}
+        
+        for match in matches:
+            # Get all players from the match
+            home_players = [match['Home Player 1'], match['Home Player 2']]
+            away_players = [match['Away Player 1'], match['Away Player 2']]
+            
+            # Determine winning and losing players
+            winning_players = home_players if match['Winner'] == 'home' else away_players
+            losing_players = away_players if match['Winner'] == 'home' else home_players
+            
+            # Update streaks for winning players
+            for player in winning_players:
+                if player not in current_streaks:
+                    current_streaks[player] = 0
+                current_streaks[player] += 1
+                
+                # Update max streak if current streak is longer
+                if player not in player_streaks or current_streaks[player] > player_streaks[player]['count']:
+                    player_streaks[player] = {
+                        'count': current_streaks[player],
+                        'end_date': match['Date']
+                    }
+            
+            # Reset streaks for losing players
+            for player in losing_players:
+                if player in current_streaks:
+                    current_streaks[player] = 0
+        
+        # Convert to sorted list
+        streak_list = [
+            {
+                'player': player,
+                'streak': data['count'],
+                'end_date': data['end_date']
+            }
+            for player, data in player_streaks.items()
+        ]
+        
+        # Sort by streak length (descending) and take top 20
+        streak_list.sort(key=lambda x: (-x['streak'], x['end_date']))
+        top_streaks = streak_list[:20]
+        
+        print(f"Found {len(top_streaks)} top streaks")  # Debug print
+        app.logger.info(f"Found {len(top_streaks)} top streaks")
+        
+        return jsonify({
+            'success': True,
+            'streaks': top_streaks
+        })
+        
+    except Exception as e:
+        print(f"Error calculating win streaks: {str(e)}")  # Debug print
+        app.logger.error(f"Error calculating win streaks: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/player-streaks')
+def get_player_streaks():
+    try:
+        # Read match history and player data
+        with open('data/match_history.json', 'r') as f:
+            matches_data = json.load(f)
+        with open('data/players.json', 'r') as f:
+            players_data = json.load(f)
+        
+        # Build player info lookup
+        player_info = {}
+        for player in players_data:
+            name = f"{player['First Name']} {player['Last Name']}".strip()
+            if name not in player_info:
+                player_info[name] = {
+                    'club': player.get('Club', ''),
+                    'series': player.get('Series', ''),
+                    'wins': int(player.get('Wins', 0)),
+                    'losses': int(player.get('Losses', 0))
+                }
+        
+        # Build a mapping of player name to their matches
+        player_matches = defaultdict(list)
+        for match in matches_data:
+            for side in ['Home', 'Away']:
+                for num in [1, 2]:
+                    player = match.get(f'{side} Player {num}')
+                    if player:
+                        player_matches[player].append(match)
+        
+        # Calculate streaks for each player
+        player_streaks = {}
+        for player, matches in player_matches.items():
+            # Sort matches by date
+            def parse_date(d):
+                for fmt in ("%d-%b-%y", "%Y-%m-%d", "%m/%d/%Y"):
+                    try:
+                        return datetime.strptime(d, fmt)
+                    except Exception:
+                        continue
+                return None
+            
+            # Sort matches by date
+            matches_sorted = sorted(matches, key=lambda m: parse_date(m.get('Date', '')) or datetime.min)
+            
+            # Calculate current and best streaks
+            current_streak = 0
+            current_streak_type = None
+            max_win_streak = 0
+            max_streak_end_date = None
+            current_streak_start_date = None
+            
+            # Calculate overall stats
+            total_matches = len(matches)
+            total_wins = 0
+            
+            for match in matches_sorted:
+                # Determine if player won
+                player_side = None
+                if player in [match['Home Player 1'], match['Home Player 2']]:
+                    player_side = 'home'
+                else:
+                    player_side = 'away'
+                
+                won = (player_side == match['Winner'])
+                if won:
+                    total_wins += 1
+                    
+                    if current_streak_type == 'W' or current_streak_type is None:
+                        current_streak += 1
+                        current_streak_type = 'W'
+                        if current_streak_start_date is None:
+                            current_streak_start_date = match['Date']
+                        if current_streak > max_win_streak:
+                            max_win_streak = current_streak
+                            max_streak_end_date = match['Date']
+                    else:
+                        current_streak = 1
+                        current_streak_type = 'W'
+                        current_streak_start_date = match['Date']
+                else:
+                    if current_streak_type == 'W' and current_streak > max_win_streak:
+                        max_win_streak = current_streak
+                        max_streak_end_date = matches_sorted[matches_sorted.index(match) - 1]['Date']
+                    current_streak = 0
+                    current_streak_type = None
+                    current_streak_start_date = None
+            
+            # Check if final streak is the best
+            if current_streak_type == 'W' and current_streak > max_win_streak:
+                max_win_streak = current_streak
+                max_streak_end_date = matches_sorted[-1]['Date'] if matches_sorted else None
+            
+            # Only include players with streaks
+            if max_win_streak > 0:
+                # Get player info
+                info = player_info.get(player, {})
+                win_percentage = (total_wins / total_matches * 100) if total_matches > 0 else 0
+                
+                player_streaks[player] = {
+                    'player': player,
+                    'club': info.get('club', 'Unknown'),
+                    'series': info.get('series', '').replace('Chicago ', 'Series '),
+                    'streak': max_win_streak,
+                    'end_date': max_streak_end_date,
+                    'total_matches': total_matches,
+                    'total_wins': total_wins,
+                    'win_percentage': round(win_percentage, 1),
+                    'current_streak': current_streak if current_streak_type == 'W' else 0,
+                    'current_streak_start': current_streak_start_date
+                }
+        
+        # Convert to sorted list
+        streak_list = list(player_streaks.values())
+        
+        # Sort by streak length (descending) and take top 20
+        streak_list.sort(key=lambda x: (-x['streak'], -x['win_percentage'], x['end_date']))
+        top_streaks = streak_list[:20]
+        
+        app.logger.info(f"Found {len(top_streaks)} top win streaks")
+        
+        return jsonify({
+            'success': True,
+            'streaks': top_streaks
+        })
+        
+    except Exception as e:
+        app.logger.error(f"Error calculating win streaks: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/api/enhanced-streaks')
+@login_required
+def get_enhanced_streaks():
+    try:
+        # Read match history and player data
+        with open('data/match_history.json', 'r') as f:
+            matches_data = json.load(f)
+        with open('data/players.json', 'r') as f:
+            players_data = json.load(f)
+        
+        # Build player info lookup
+        player_info = {}
+        for player in players_data:
+            name = f"{player['First Name']} {player['Last Name']}".strip()
+            if name not in player_info:
+                player_info[name] = {
+                    'club': player.get('Club', ''),
+                    'series': player.get('Series', ''),
+                    'wins': int(player.get('Wins', 0)),
+                    'losses': int(player.get('Losses', 0))
+                }
+        
+        # Build a mapping of player name to their matches
+        player_matches = defaultdict(list)
+        for match in matches_data:
+            for side in ['Home', 'Away']:
+                for num in [1, 2]:
+                    player = match.get(f'{side} Player {num}')
+                    if player:
+                        player_matches[player].append(match)
+        
+        # Calculate comprehensive stats for each player
+        player_stats = {}
+        for player, matches in player_matches.items():
+            # Sort matches by date
+            def parse_date(d):
+                for fmt in ("%d-%b-%y", "%Y-%m-%d", "%m/%d/%Y"):
+                    try:
+                        return datetime.strptime(d, fmt)
+                    except Exception:
+                        continue
+                return None
+            
+            matches_sorted = sorted(matches, key=lambda m: parse_date(m.get('Date', '')) or datetime.min)
+            
+            # Initialize stats
+            current_streak = {'type': None, 'count': 0, 'start_date': None}
+            best_win_streak = {'count': 0, 'start_date': None, 'end_date': None}
+            best_loss_streak = {'count': 0, 'start_date': None, 'end_date': None}
+            total_matches = len(matches)
+            total_wins = 0
+            total_losses = 0
+            court_stats = defaultdict(lambda: {'wins': 0, 'losses': 0, 'matches': 0})
+            partner_stats = defaultdict(lambda: {'wins': 0, 'losses': 0, 'matches': 0})
+            
+            # Track streaks and stats
+            temp_streak = {'type': None, 'count': 0, 'start_date': None}
+            
+            for match in matches_sorted:
+                # Determine if player won
+                is_home = player in [match['Home Player 1'], match['Home Player 2']]
+                won = (is_home and match['Winner'] == 'home') or (not is_home and match['Winner'] == 'away')
+                
+                # Update total stats
+                if won:
+                    total_wins += 1
+                else:
+                    total_losses += 1
+                
+                # Update court stats
+                court_num = matches_sorted.index(match) % 4 + 1
+                court_key = f'Court {court_num}'
+                court_stats[court_key]['matches'] += 1
+                if won:
+                    court_stats[court_key]['wins'] += 1
+                else:
+                    court_stats[court_key]['losses'] += 1
+                
+                # Update partner stats
+                partner = None
+                if is_home:
+                    partner = match['Home Player 1'] if player == match['Home Player 2'] else match['Home Player 2']
+                else:
+                    partner = match['Away Player 1'] if player == match['Away Player 2'] else match['Away Player 2']
+                
+                if partner:
+                    partner_stats[partner]['matches'] += 1
+                    if won:
+                        partner_stats[partner]['wins'] += 1
+                    else:
+                        partner_stats[partner]['losses'] += 1
+                
+                # Update streak tracking
+                if temp_streak['type'] is None:
+                    temp_streak = {
+                        'type': 'W' if won else 'L',
+                        'count': 1,
+                        'start_date': match['Date']
+                    }
+                elif (won and temp_streak['type'] == 'W') or (not won and temp_streak['type'] == 'L'):
+                    temp_streak['count'] += 1
+                else:
+                    # Streak ended, check if it was a best streak
+                    if temp_streak['type'] == 'W' and temp_streak['count'] > best_win_streak['count']:
+                        best_win_streak = {
+                            'count': temp_streak['count'],
+                            'start_date': temp_streak['start_date'],
+                            'end_date': matches_sorted[matches_sorted.index(match) - 1]['Date']
+                        }
+                    elif temp_streak['type'] == 'L' and temp_streak['count'] > best_loss_streak['count']:
+                        best_loss_streak = {
+                            'count': temp_streak['count'],
+                            'start_date': temp_streak['start_date'],
+                            'end_date': matches_sorted[matches_sorted.index(match) - 1]['Date']
+                        }
+                    # Start new streak
+                    temp_streak = {
+                        'type': 'W' if won else 'L',
+                        'count': 1,
+                        'start_date': match['Date']
+                    }
+            
+            # Check final streak
+            current_streak = temp_streak
+            if temp_streak['type'] == 'W' and temp_streak['count'] > best_win_streak['count']:
+                best_win_streak = {
+                    'count': temp_streak['count'],
+                    'start_date': temp_streak['start_date'],
+                    'end_date': matches_sorted[-1]['Date']
+                }
+            elif temp_streak['type'] == 'L' and temp_streak['count'] > best_loss_streak['count']:
+                best_loss_streak = {
+                    'count': temp_streak['count'],
+                    'start_date': temp_streak['start_date'],
+                    'end_date': matches_sorted[-1]['Date']
+                }
+            
+            # Calculate win rates and best courts/partners
+            win_rate = (total_wins / total_matches * 100) if total_matches > 0 else 0
+            
+            # Process court stats
+            for court, stats in court_stats.items():
+                stats['win_rate'] = (stats['wins'] / stats['matches'] * 100) if stats['matches'] > 0 else 0
+            
+            # Find best court
+            best_court = max(court_stats.items(), key=lambda x: (x[1]['win_rate'], x[1]['matches']))
+            
+            # Process partner stats
+            for partner, stats in partner_stats.items():
+                stats['win_rate'] = (stats['wins'] / stats['matches'] * 100) if stats['matches'] > 0 else 0
+            
+            # Find best partner
+            best_partner = max(partner_stats.items(), key=lambda x: (x[1]['win_rate'], x[1]['matches']))
+            
+            # Get player info
+            info = player_info.get(player, {})
+            
+            # Store comprehensive player stats
+            player_stats[player] = {
+                'player': player,
+                'club': info.get('club', 'Unknown'),
+                'series': info.get('series', '').replace('Chicago ', 'Series '),
+                'current_streak': {
+                    'type': current_streak['type'],
+                    'count': current_streak['count'],
+                    'start_date': current_streak['start_date']
+                },
+                'best_win_streak': best_win_streak,
+                'best_loss_streak': best_loss_streak,
+                'total_matches': total_matches,
+                'total_wins': total_wins,
+                'total_losses': total_losses,
+                'win_rate': round(win_rate, 1),
+                'court_stats': court_stats,
+                'best_court': {
+                    'name': best_court[0],
+                    'stats': best_court[1]
+                },
+                'partner_stats': partner_stats,
+                'best_partner': {
+                    'name': best_partner[0],
+                    'stats': best_partner[1]
+                }
+            }
+        
+        # Convert to sorted list for different rankings
+        players_list = list(player_stats.values())
+        
+        # Different sorting criteria
+        best_current_streaks = sorted(
+            [p for p in players_list if p['current_streak']['type'] == 'W'],
+            key=lambda x: (-x['current_streak']['count'], -x['win_rate'])
+        )[:10]
+        
+        best_all_time_streaks = sorted(
+            players_list,
+            key=lambda x: (-x['best_win_streak']['count'], -x['win_rate'])
+        )[:10]
+        
+        highest_win_rates = sorted(
+            [p for p in players_list if p['total_matches'] >= 5],  # Minimum 5 matches
+            key=lambda x: (-x['win_rate'], -x['total_matches'])
+        )[:10]
+        
+        return jsonify({
+            'success': True,
+            'current_streaks': best_current_streaks,
+            'all_time_streaks': best_all_time_streaks,
+            'win_rates': highest_win_rates
+        })
+        
+    except Exception as e:
+        app.logger.error(f"Error calculating enhanced streaks: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+@app.route('/mobile/player-stats')
+@login_required
+def serve_mobile_player_stats():
+    try:
+        # Get user info from session
+        user = session.get('user')
+        if not user:
+            return jsonify({'error': 'Not authenticated'}), 401
+        
+        # Get player stats data
+        current_streaks = get_current_streaks()
+        all_time_streaks = get_all_time_streaks()
+        win_rates = get_player_win_rates()
+        
+        # Log the page visit
+        log_user_activity(user['email'], 'page_visit', page='mobile_player_stats')
+        
+        # Return the rendered template with all the data
+        return render_template(
+            'mobile/player-stats.html',
+            player_name=f"{user['first_name']} {user['last_name']}",
+            current_streaks=current_streaks,
+            all_time_streaks=all_time_streaks,
+            win_rates=win_rates
+        )
+        
+    except Exception as e:
+        print(f"Error in serve_mobile_player_stats: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+def get_recent_matches_for_user_club(user):
+    """
+    Get the most recent matches for a user's club, including all courts.
+    
+    Args:
+        user: User object containing club information
+        
+    Returns:
+        List of match dictionaries from match_history.json filtered for the user's club,
+        only including matches from the most recent date
+    """
+    try:
+        with open('data/match_history.json', 'r') as f:
+            all_matches = json.load(f)
+            
+        if not user or not user.get('club'):
+            return []
+            
+        user_club = user['club']
+        # Filter matches where user's club is either home or away team
+        club_matches = []
+        for match in all_matches:
+            if user_club in match.get('Home Team', '') or user_club in match.get('Away Team', ''):
+                # Normalize keys to snake_case
+                normalized_match = {
+                    'date': match.get('Date', ''),
+                    'time': match.get('Time', ''),
+                    'location': match.get('Location', ''),
+                    'home_team': match.get('Home Team', ''),
+                    'away_team': match.get('Away Team', ''),
+                    'winner': match.get('Winner', ''),
+                    'scores': match.get('Scores', ''),
+                    'home_player_1': match.get('Home Player 1', ''),
+                    'home_player_2': match.get('Home Player 2', ''),
+                    'away_player_1': match.get('Away Player 1', ''),
+                    'away_player_2': match.get('Away Player 2', ''),
+                    'court': match.get('Court', '')
+                }
+                club_matches.append(normalized_match)
+        
+        # Sort matches by date to find the most recent
+        from datetime import datetime
+        sorted_matches = sorted(club_matches, key=lambda x: datetime.strptime(x['date'], '%d-%b-%y'), reverse=True)
+        
+        if not sorted_matches:
+            return []
+            
+        # Get only matches from the most recent date
+        most_recent_date = sorted_matches[0]['date']
+        recent_matches = [m for m in sorted_matches if m['date'] == most_recent_date]
+        
+        # Sort by court number if available, handling empty strings and non-numeric values
+        def court_sort_key(match):
+            court = match.get('court', '')
+            if not court or not str(court).strip():
+                return float('inf')  # Put empty courts at the end
+            try:
+                return int(court)
+            except (ValueError, TypeError):
+                return float('inf')  # Put non-numeric courts at the end
+        
+        recent_matches.sort(key=court_sort_key)
+        return recent_matches
+        
+    except Exception as e:
+        print(f"Error getting recent matches for user club: {e}")
+        return []
+
+def get_matches_for_user_club(user):
+    """
+    Get all matches for a user's club and series.
+    
+    Args:
+        user: User object containing club and series information
+        
+    Returns:
+        List of match dictionaries from match_history.json filtered for the user's club and series
+    """
+    try:
+        with open('data/match_history.json', 'r') as f:
+            all_matches = json.load(f)
+            
+        if not user or not user.get('club') or not user.get('series'):
+            return []
+            
+        user_club = user['club']
+        user_series = user['series'].split()[-1]  # Get the series number (e.g., "22" from "Series 22")
+        user_team = f"{user_club} - {user_series}"  # Full team name (e.g., "Tennaqua - 22")
+        
+        # Filter matches where user's team is either home or away team
+        club_matches = []
+        for match in all_matches:
+            home_team = match.get('Home Team', '')
+            away_team = match.get('Away Team', '')
+            
+            # Only include matches where the exact team name matches
+            if user_team == home_team or user_team == away_team:
+                # Normalize keys to snake_case
+                normalized_match = {
+                    'date': match.get('Date', ''),
+                    'time': match.get('Time', ''),
+                    'location': match.get('Location', ''),
+                    'home_team': home_team,
+                    'away_team': away_team,
+                    'winner': match.get('Winner', ''),
+                    'scores': match.get('Scores', ''),
+                    'home_player_1': match.get('Home Player 1', ''),
+                    'home_player_2': match.get('Home Player 2', ''),
+                    'away_player_1': match.get('Away Player 1', ''),
+                    'away_player_2': match.get('Away Player 2', '')
+                }
+                club_matches.append(normalized_match)
+        
+        return club_matches
+    except Exception as e:
+        print(f"Error getting matches for user club: {e}")
+        return []
 
 if __name__ == '__main__':
         # Get port from environment variable or use default

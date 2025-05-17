@@ -66,7 +66,7 @@ let instructions = [];
 
 // --- 1. Load Players ---
 function loadPlayers() {
-  fetch(`/api/players?series=${encodeURIComponent(series)}`)
+  fetch(`/api/players?series=${encodeURIComponent(series)}&team_id=${encodeURIComponent(teamId)}`)
     .then(res => res.json())
     .then(data => {
       players = data;

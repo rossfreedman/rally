@@ -2390,17 +2390,49 @@ Court 4: Player7/Player8</textarea>
                 </tr>
             `;
 
+            // First, ensure we have the user's current series
+            if (!selectedSeries) {
+                // Fetch the user's series from the session
+                fetch('/api/check-auth')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.authenticated && data.user && data.user.series) {
+                            selectedSeries = data.user.series;
+                            // Now that we have the series, proceed with finding subs
+                            findSubsForSeries(selectedSeries);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching user series:', error);
+                        tableBody.innerHTML = `
+                            <tr>
+                                <td colspan="8" class="text-center text-danger">
+                                    Error: Could not determine your series. Please try refreshing the page.
+                                </td>
+                            </tr>
+                        `;
+                    });
+            } else {
+                // We already have the series, proceed directly
+                findSubsForSeries(selectedSeries);
+            }
+        }
+
+        function findSubsForSeries(userSeries) {
+            const tableBody = document.getElementById('subsTableBody');
+            
             // Get current series number
-            const currentSeriesNum = parseInt(selectedSeries.split(' ')[1]);
+            const currentSeriesNum = parseInt(userSeries.split(' ')[1]);
             
             // Create an array of promises for each higher series
             const promises = [];
             for (let i = currentSeriesNum + 1; i <= 40; i++) {
+                const series = `Chicago ${i}`;
                 promises.push(
-                    fetch(`/api/players?series=Chicago ${i}`)
-                .then(response => response.json())
+                    fetch(`/api/players?series=${encodeURIComponent(series)}`)
+                        .then(response => response.json())
                         .then(players => ({
-                            series: i,
+                            series: series,
                             players: players
                         }))
                 );
@@ -2415,7 +2447,7 @@ Court 4: Player7/Player8</textarea>
                     const allPlayers = results.flatMap(result => 
                         result.players.map(player => ({
                             ...player,
-                            series: `Chicago ${result.series}`
+                            series: result.series
                         }))
                     );
 
@@ -4558,7 +4590,7 @@ Court 4: Player7/Player8</textarea>
     (function() {
         // Utility: fetch all matches from static JSON (as in working HTML)
         async function fetchAllMatches() {
-            const resp = await fetch('/data/tennis_matches_20250416.json');
+            const resp = await fetch('/data/match_history.json');
             return await resp.json();
         }
         // Utility: fetch player data from API

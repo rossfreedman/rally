@@ -20422,7 +20422,7 @@ async function showPlayerStats(playerName) {
     (function() {
         // Utility: fetch all matches from static JSON (as in working HTML)
         async function fetchAllMatches() {
-            const resp = await fetch('/data/tennis_matches_20250416.json');
+            const resp = await fetch('/data/match_history.json');
             return await resp.json();
         }
         // Utility: fetch player data from API

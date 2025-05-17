@@ -42,6 +42,14 @@ document.addEventListener('DOMContentLoaded', async function() {
   const response = await fetch('/api/series-stats');
   const statsData = await response.json();
   const stats = statsData.teams || statsData;
+  
+  if (!Array.isArray(stats) || stats.length === 0) {
+    document.getElementById('seriesTable').innerHTML = '<div class="text-center text-gray-500 p-4">No series data available.</div>';
+    return;
+  }
+
+  // Sort teams by points
+  stats.sort((a, b) => b.points - a.points);
 
   // --- Points Bar Chart ---
   const teams = stats.map(t => t.team);

@@ -8,7 +8,7 @@
   </div>
   <div>
     <div class="text-2xl font-bold leading-tight">Find Sub</div>
-    <div class="text-base text-gray-500 mt-1">Find available players from higher series to substitute for your team.</div>
+    <div class="text-base text-gray-500 mt-1">Find available players from higher series at {{ session_data.user.club }} to substitute for your team.</div>
   </div>
 </div>
 
@@ -40,7 +40,7 @@ async function fetchAndRenderSubsMobile() {
         });
         if (higherSeries.length === 0) {
             loadingDiv.style.display = 'none';
-            subsList.innerHTML = '<div class="text-center text-gray-500">No higher series found.</div>';
+            subsList.innerHTML = '<div class="text-center text-gray-500">No higher series found at {{ session_data.user.club }}.</div>';
             return;
         }
         // 3. Fetch players for each higher series
@@ -59,7 +59,7 @@ async function fetchAndRenderSubsMobile() {
         );
         if (allPlayers.length === 0) {
             loadingDiv.style.display = 'none';
-            subsList.innerHTML = '<div class="text-center text-gray-500">No subs found in higher series.</div>';
+            subsList.innerHTML = '<div class="text-center text-gray-500">No subs found in higher series at {{ session_data.user.club }}.</div>';
             return;
         }
         // 5. Calculate composite score (match desktop)
@@ -85,7 +85,7 @@ async function fetchAndRenderSubsMobile() {
             label.className = 'text-center font-bold rounded px-2 py-2 mb-2';
             label.style.background = '#ffde5a';
             label.style.color = '#000000';
-            label.innerHTML = "Recommended subs based upon Rally's algorithm";
+            label.innerHTML = `Recommended subs at {{ session_data.user.club }} based upon Rally's algorithm`;
             subsList.appendChild(label);
         }
         playersWithScores.forEach((player, idx) => {
@@ -105,7 +105,7 @@ async function fetchAndRenderSubsMobile() {
                     <div><span class="font-semibold">PTI:</span> ${player.pti || player.rating}</div>
                     <div><span class="font-semibold">Wins:</span> ${player.wins}</div>
                     <div><span class="font-semibold">Losses:</span> ${player.losses}</div>
-                    <div><span class="font-semibold">Win Rate:</span> ${player.winRate}%</div>
+                    <div><span class="font-semibold">Win Rate:</span> ${player.winRate}</div>
                     <div><span class="font-semibold">Score:</span> <span class="composite-score">${(player.compositeScore * 100).toFixed(1)}</span></div>
                 </div>
             `;
