@@ -70,10 +70,7 @@ if not openai_api_key:
     sys.exit(1)
 
 # Initialize OpenAI client
-client = OpenAI(
-    api_key=openai_api_key,
-    base_url="https://api.openai.com/v1"  # Explicitly set the base URL
-)
+client = OpenAI(api_key=openai_api_key)
 
 # Store active threads
 active_threads = {}
