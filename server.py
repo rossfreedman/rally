@@ -140,43 +140,24 @@ def read_all_player_data():
 def get_or_create_assistant():
     """Get or create the paddle tennis assistant"""
     try:
-        # First try to retrieve the existing assistant
-        try:
-            assistant = client.beta.assistants.retrieve(assistant_id)
-            print(f"Successfully retrieved existing assistant with ID: {assistant.id}")
-            return assistant
-        except Exception as e:
-            if "No assistant found" in str(e):
-                print(f"Assistant {assistant_id} not found, creating new one...")
-            else:
-                raise
-            print(f"Error retrieving assistant: {str(e)}")
-            print("Attempting to create new assistant...")
-
-        # Create new assistant if retrieval failed
-        assistant = client.beta.assistants.create(
-            name="PaddlePro Assistant",
-            instructions="""You are a paddle tennis assistant. Help users with:
-            1. Generating optimal lineups based on player statistics
-            2. Analyzing match patterns and team performance
-            3. Providing strategic advice for upcoming matches
-            4. Answering questions about paddle tennis rules and strategy""",
-            model="gpt-4-turbo-preview"
+        # In the older API version, we'll use chat completions instead of assistants
+        # Test the API key with a simple completion
+        response = client.ChatCompletion.create(
+            model="gpt-4-turbo-preview",
+            messages=[{"role": "system", "content": "You are a paddle tennis assistant."}],
+            max_tokens=5
         )
-        print(f"Successfully created new assistant with ID: {assistant.id}")
-        print("\nIMPORTANT: Save this assistant ID in your environment variables:")
-        print(f"OPENAI_ASSISTANT_ID={assistant.id}")
-        return assistant
+        print("Successfully connected to OpenAI API")
+        return True
     except Exception as e:
         error_msg = str(e)
-        print(f"Error with assistant: {error_msg}")
+        print(f"Error with OpenAI API: {error_msg}")
         print("Full error details:", traceback.format_exc())
         
         if "No access to organization" in error_msg:
             print("\nTROUBLESHOOTING STEPS:")
             print("1. Verify your OPENAI_ORG_ID is correct")
             print("2. Ensure your API key has access to the organization")
-            print("3. Check if the assistant ID belongs to the correct organization")
         elif "Rate limit" in error_msg:
             print("\nTROUBLESHOOTING STEPS:")
             print("1. Check your API usage and limits")
@@ -186,7 +167,7 @@ def get_or_create_assistant():
             print("1. Verify your OPENAI_API_KEY is correct and active")
             print("2. Check if your API key has the necessary permissions")
         
-        raise Exception("Failed to initialize assistant. Please check the error messages above.")
+        raise Exception("Failed to initialize OpenAI API. Please check the error messages above.")
 
 try:
     # Initialize the assistant
@@ -796,61 +777,20 @@ def handle_chat():
         print(f"Current series: {selected_series}")
         print("=== END REQUEST ===\n")
         
-        # Create a new thread for this request
-        thread = client.beta.threads.create()
-        
-        # Add context message first
-        client.beta.threads.messages.create(
-            thread_id=thread.id,
-            role="user",
-            content=f"""You are a paddle tennis assistant. The current series is {selected_series}.
-            Base your responses on player statistics and paddle tennis knowledge.
-            Be specific and data-driven in your responses."""
+        # Create chat completion with context
+        response = client.ChatCompletion.create(
+            model="gpt-4-turbo-preview",
+            messages=[
+                {"role": "system", "content": f"""You are a paddle tennis assistant. The current series is {selected_series}.
+                Base your responses on player statistics and paddle tennis knowledge.
+                Be specific and data-driven in your responses."""},
+                {"role": "user", "content": message}
+            ],
+            max_tokens=1000,
+            temperature=0.7
         )
         
-        # Add the user's message
-        client.beta.threads.messages.create(
-            thread_id=thread.id,
-            role="user",
-            content=message
-        )
-        
-        # Run the assistant
-        run = client.beta.threads.runs.create(
-            thread_id=thread.id,
-            assistant_id=assistant.id
-        )
-        
-        # Wait for completion with timeout
-        timeout = 30  # seconds
-        start_time = time.time()
-        while True:
-            if time.time() - start_time > timeout:
-                raise TimeoutError("Assistant response timed out")
-                
-            run_status = client.beta.threads.runs.retrieve(
-                thread_id=thread.id,
-                run_id=run.id
-            )
-            
-            if run_status.status == 'failed':
-                print("\n=== CHAT ERROR ===")
-                print(f"Run failed: {run_status.last_error}")
-                print("=== END ERROR ===\n")
-                if 'rate_limit_exceeded' in str(run_status.last_error):
-                    return jsonify({'error': 'The AI service is currently experiencing high demand. Please try again in a few minutes.'}), 429
-                raise Exception(f"Assistant run failed: {run_status.last_error}")
-            elif run_status.status == 'completed':
-                break
-                
-            time.sleep(1)
-        
-        # Get the messages
-        messages = client.beta.threads.messages.list(thread_id=thread.id)
-        if not messages.data:
-            raise Exception("No response received from assistant")
-            
-        assistant_message = messages.data[0].content[0].text.value
+        assistant_message = response.choices[0].message.content
         
         print("\n=== CHAT RESPONSE ===")
         print(f"Response: {assistant_message}")
