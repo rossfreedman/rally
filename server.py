@@ -71,7 +71,8 @@ if not openai_api_key:
 
 # Initialize OpenAI client
 client = OpenAI(
-    api_key=openai_api_key
+    api_key=openai_api_key,
+    base_url="https://api.openai.com/v1"  # Explicitly set the base URL
 )
 
 # Store active threads
