@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request, send_from_directory, render_template, session, redirect, url_for, make_response, g
+from flask import Flask, jsonify, request, send_from_directory, render_template, session, redirect, url_for, make_response, g, flash
 from flask_socketio import SocketIO, emit
 import pandas as pd
 from flask_cors import CORS
@@ -286,6 +286,11 @@ def handle_register():
         cursor = conn.cursor()
         
         try:
+            # Check if email already exists (case-insensitive)
+            cursor.execute('SELECT id FROM users WHERE LOWER(email) = LOWER(?)', (email,))
+            if cursor.fetchone():
+                return jsonify({'error': 'Email already registered'}), 400
+
             # Get club_id
             cursor.execute('SELECT id FROM clubs WHERE name = ?', (club,))
             club_result = cursor.fetchone()
@@ -317,17 +322,17 @@ def handle_register():
                 'series': series
             }
             
-            # Redirect to mobile interface after registration
-            return jsonify({'status': 'success', 'redirect': '/mobile'})
+            # Log successful registration
+            log_user_activity(email, 'auth', action='register', details='New user registration')
             
-        except sqlite3.IntegrityError:
-            return jsonify({'error': 'Email already registered'}), 400
+            return jsonify({'status': 'success'})
             
         finally:
             conn.close()
             
     except Exception as e:
         print(f"Registration error: {str(e)}")
+        print(traceback.format_exc())
         return jsonify({'error': 'An error occurred during registration'}), 500
 
 @app.route('/api/login', methods=['POST'])
@@ -345,14 +350,14 @@ def handle_login():
         cursor = conn.cursor()
         
         try:
-            # Get user with club and series info
+            # Get user with club and series info - using case-insensitive email comparison
             cursor.execute('''
                 SELECT u.id, u.email, u.password_hash, u.first_name, u.last_name,
                        c.name as club_name, s.name as series_name
                 FROM users u
                 JOIN clubs c ON u.club_id = c.id
                 JOIN series s ON u.series_id = s.id
-                WHERE u.email = ?
+                WHERE LOWER(u.email) = LOWER(?)
             ''', (email,))
             
             user = cursor.fetchone()
@@ -411,6 +416,15 @@ def handle_logout():
     except Exception as e:
         print(f"Logout error: {str(e)}")
         return jsonify({'error': 'Logout failed'}), 500
+
+@app.route('/logout')
+def logout_page():
+    # Clear all session data
+    session.clear()
+    # Flash a message to inform the user
+    flash('You have been successfully logged out.')
+    # Redirect to login page
+    return redirect(url_for('login'))
 
 # Admin routes
 @app.route('/admin')
