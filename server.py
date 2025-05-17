@@ -20,12 +20,22 @@ import re
 from bs4 import BeautifulSoup
 import requests
 from dotenv import load_dotenv
+from openai import OpenAI
 
 # Load environment variables
 load_dotenv()
 
 # Get OpenAI API key from environment variables
 openai_api_key = os.getenv('OPENAI_API_KEY')
+assistant_id = os.getenv('OPENAI_ASSISTANT_ID', 'asst_Q6GQOccbb0ymf9IpLMG1lFHe')  # Default to known ID
+
+if not openai_api_key:
+    logger.error("ERROR: OPENAI_API_KEY environment variable is not set!")
+    logger.error("Please set your OpenAI API key in the environment variables.")
+    sys.exit(1)
+
+# Initialize OpenAI client
+client = OpenAI(api_key=openai_api_key)
 
 # Initialize database
 print("\n=== Initializing Database ===")
@@ -65,7 +75,6 @@ load_dotenv()
 # Check for required environment variables
 openai_api_key = os.getenv('OPENAI_API_KEY')
 openai_org_id = os.getenv('OPENAI_ORG_ID')  # Optional organization ID
-assistant_id = os.getenv('OPENAI_ASSISTANT_ID', 'asst_Q6GQOccbb0ymf9IpLMG1lFHe')  # Default to known ID
 
 if not openai_api_key:
     logger.error("ERROR: OPENAI_API_KEY environment variable is not set!")
@@ -140,1089 +149,38 @@ def read_all_player_data():
 def get_or_create_assistant():
     """Get or create the paddle tennis assistant"""
     try:
-        # In the older API version, we'll use chat completions instead of assistants
-        # Test the API key with a simple completion
-        response = client.ChatCompletion.create(
-            model="gpt-4-turbo-preview",
-            messages=[{"role": "system", "content": "You are a paddle tennis assistant."}],
-            max_tokens=5
+        # First try to retrieve the existing assistant
+        try:
+            assistant = client.beta.assistants.retrieve(assistant_id)
+            print(f"Successfully retrieved existing assistant with ID: {assistant.id}")
+            return assistant
+        except Exception as e:
+            if "No assistant found" in str(e):
+                print(f"Assistant {assistant_id} not found, creating new one...")
+            else:
+                raise
+            print(f"Error retrieving assistant: {str(e)}")
+            print("Attempting to create new assistant...")
+
+        # Create new assistant if retrieval failed
+        assistant = client.beta.assistants.create(
+            name="PaddlePro Assistant",
+            instructions="""You are a paddle tennis assistant. Help users with:
+            1. Generating optimal lineups based on player statistics
+            2. Analyzing match patterns and team performance
+            3. Providing strategic advice for upcoming matches
+            4. Answering questions about paddle tennis rules and strategy""",
+            model="gpt-4-turbo-preview"
         )
-        print("Successfully connected to OpenAI API")
-        return True
+        print(f"Successfully created new assistant with ID: {assistant.id}")
+        print("\nIMPORTANT: Save this assistant ID in your environment variables:")
+        print(f"OPENAI_ASSISTANT_ID={assistant.id}")
+        return assistant
     except Exception as e:
         error_msg = str(e)
-        print(f"Error with OpenAI API: {error_msg}")
+        print(f"Error with assistant: {error_msg}")
         print("Full error details:", traceback.format_exc())
         
-        if "No access to organization" in error_msg:
-            print("\nTROUBLESHOOTING STEPS:")
-            print("1. Verify your OPENAI_ORG_ID is correct")
-            print("2. Ensure your API key has access to the organization")
-        elif "Rate limit" in error_msg:
-            print("\nTROUBLESHOOTING STEPS:")
-            print("1. Check your API usage and limits")
-            print("2. Implement rate limiting or retry logic if needed")
-        elif "Invalid authentication" in error_msg:
-            print("\nTROUBLESHOOTING STEPS:")
-            print("1. Verify your OPENAI_API_KEY is correct and active")
-            print("2. Check if your API key has the necessary permissions")
-        
-        raise Exception("Failed to initialize OpenAI API. Please check the error messages above.")
-
-try:
-    # Initialize the assistant
-    print("\nInitializing OpenAI Assistant...")
-    assistant = get_or_create_assistant()
-    print("Assistant initialization complete.")
-except Exception as e:
-    print(f"Failed to initialize assistant: {str(e)}")
-    sys.exit(1)
-
-# Add this near the top with other global variables
-selected_series = "Chicago 22"
-selected_club = f"Tennaqua - {selected_series.split()[-1]}"
-
-# Configure logging
-def setup_logging():
-    # Create logs directory if it doesn't exist
-    if not os.path.exists('logs'):
-        os.makedirs('logs')
-    
-    # Set up logging to both console and file
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s [%(levelname)s] %(message)s',
-        handlers=[
-            logging.FileHandler('logs/app.log'),
-            logging.StreamHandler()
-        ]
-    )
-    app.logger.setLevel(logging.INFO)
-
-@app.before_request
-def log_request_info():
-    """Log information about each request"""
-    print(f"\n=== Request Info ===")
-    print(f"Path: {request.path}")
-    print(f"Method: {request.method}")
-    print(f"User in session: {'user' in session}")
-    if 'user' in session:
-        print(f"User email: {session['user']['email']}")
-    print("===================\n")
-
-@app.route('/')
-def serve_index():
-    """Redirect all desktop index requests to the mobile version."""
-    print("\n=== Serving Index Page ===")
-    # If user is not authenticated, redirect to login
-    if 'user' not in session:
-        print("User not authenticated, redirecting to login")
-        return redirect(url_for('login'))
-    # Always redirect authenticated users to mobile
-    print(f"User in session: {session['user']['email']}")
-    print("Redirecting to /mobile")
-    return redirect(url_for('serve_mobile'))
-
-@app.route('/index.html')
-def redirect_index_html():
-    """Redirect /index.html to the mobile version."""
-    if 'user' not in session:
-        return redirect(url_for('login'))
-    return redirect(url_for('serve_mobile'))
-
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    """Serve the login page"""
-    # If user is already authenticated, redirect to mobile interface
-    if 'user' in session:
-        return redirect(url_for('serve_mobile'))
-    return app.send_static_file('login.html')
-
-def hash_password(password):
-    """Hash a password using SHA-256 and a random salt"""
-    salt = secrets.token_hex(16)
-    return salt + ':' + hashlib.sha256((salt + password).encode()).hexdigest()
-
-def verify_password(stored_password, provided_password):
-    """Verify a password against a stored hash"""
-    salt, hash_value = stored_password.split(':')
-    return hash_value == hashlib.sha256((salt + provided_password).encode()).hexdigest()
-
-@app.route('/api/register', methods=['POST'])
-def handle_register():
-    try:
-        data = request.json
-        email = data.get('email')
-        password = data.get('password')
-        first_name = data.get('firstName')
-        last_name = data.get('lastName')
-        club = data.get('club')
-        series = data.get('series')
-        
-        if not all([email, password, first_name, last_name, club, series]):
-            return jsonify({'error': 'All fields are required'}), 400
-            
-        # Hash the password
-        password_hash = hash_password(password)
-        
-        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
-        
-        try:
-            # Get club_id
-            cursor.execute('SELECT id FROM clubs WHERE name = ?', (club,))
-            club_result = cursor.fetchone()
-            if not club_result:
-                return jsonify({'error': 'Invalid club'}), 400
-            club_id = club_result[0]
-            
-            # Get series_id
-            cursor.execute('SELECT id FROM series WHERE name = ?', (series,))
-            series_result = cursor.fetchone()
-            if not series_result:
-                return jsonify({'error': 'Invalid series'}), 400
-            series_id = series_result[0]
-            
-            # Insert new user
-            cursor.execute('''
-                INSERT INTO users (email, password_hash, first_name, last_name, club_id, series_id)
-                VALUES (?, ?, ?, ?, ?, ?)
-            ''', (email, password_hash, first_name, last_name, club_id, series_id))
-            
-            conn.commit()
-            
-            # Create session for the new user
-            session['user'] = {
-                'email': email,
-                'first_name': first_name,
-                'last_name': last_name,
-                'club': club,
-                'series': series
-            }
-            
-            # Redirect to mobile interface after registration
-            return jsonify({'status': 'success', 'redirect': '/mobile'})
-            
-        except sqlite3.IntegrityError:
-            return jsonify({'error': 'Email already registered'}), 400
-            
-        finally:
-            conn.close()
-            
-    except Exception as e:
-        print(f"Registration error: {str(e)}")
-        return jsonify({'error': 'An error occurred during registration'}), 500
-
-@app.route('/api/login', methods=['POST'])
-def handle_login():
-    try:
-        data = request.json
-        email = data.get('email')
-        password = data.get('password')
-        
-        if not email or not password:
-            return jsonify({'error': 'Please provide both email and password'}), 401
-            
-        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
-        
-        try:
-            # Get user with club and series info
-            cursor.execute('''
-                SELECT u.id, u.email, u.password_hash, u.first_name, u.last_name,
-                       c.name as club_name, s.name as series_name
-                FROM users u
-                JOIN clubs c ON u.club_id = c.id
-                JOIN series s ON u.series_id = s.id
-                WHERE u.email = ?
-            ''', (email,))
-            
-            user = cursor.fetchone()
-            if not user:
-                return jsonify({'error': 'Invalid email or password'}), 401
-                
-            # Verify password
-            if not verify_password(user[2], password):
-                return jsonify({'error': 'Invalid email or password'}), 401
-                
-            # Update last login
-            cursor.execute('''
-                UPDATE users 
-                SET last_login = CURRENT_TIMESTAMP 
-                WHERE id = ?
-            ''', (user[0],))
-            conn.commit()
-            
-            # Create session with all user information
-            session.permanent = True  # Use the permanent session lifetime
-            session['user'] = {
-                'id': user[0],
-                'email': user[1],
-                'first_name': user[3],
-                'last_name': user[4],
-                'club': user[5],
-                'series': user[6]
-            }
-            
-            # Log successful login
-            log_user_activity(email, 'auth', action='login', details='Successful login')
-            
-            # Create response with session cookie settings and redirect to mobile
-            response = jsonify({'status': 'success', 'redirect': '/mobile'})
-            return response
-            
-        finally:
-            conn.close()
-        
-    except Exception as e:
-        print(f"Login error: {str(e)}")
-        print(traceback.format_exc())
-        return jsonify({'error': 'An error occurred during login'}), 500
-
-@app.route('/api/logout', methods=['POST'])
-def handle_logout():
-    """Handle user logout"""
-    try:
-        if 'user' in session:
-            # Log logout
-            log_user_activity(session['user']['email'], 'auth', action='logout')
-            
-        # Clear the session
-        session.clear()
-        return jsonify({'status': 'success', 'redirect': '/login'})
-    except Exception as e:
-        print(f"Logout error: {str(e)}")
-        return jsonify({'error': 'Logout failed'}), 500
-
-# Admin routes
-@app.route('/admin')
-@login_required
-def serve_admin():
-    """Serve the admin dashboard page"""
-    try:
-        # Log admin page visit
-        log_user_activity(session['user']['email'], 'page_visit', page='admin')
-        
-        admin_path = os.path.join(app.static_folder, 'admin.html')
-        if not os.path.exists(admin_path):
-            print(f"Admin file not found at: {admin_path}")
-            return "Error: Admin page not found", 404
-        return send_from_directory(app.static_folder, 'admin.html')
-    except Exception as e:
-        print(f"Error serving admin page: {str(e)}")
-        return "Error: Admin page not found", 404
-
-@app.route('/api/admin/users')
-@login_required
-def get_admin_users():
-    """Get all registered users with their club and series information"""
-    try:
-        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
-        
-        cursor.execute('''
-            SELECT u.first_name, u.last_name, u.email, u.last_login,
-                   c.name as club_name, s.name as series_name
-            FROM users u
-            JOIN clubs c ON u.club_id = c.id
-            JOIN series s ON u.series_id = s.id
-            ORDER BY u.last_login DESC
-        ''')
-        
-        users = []
-        for row in cursor.fetchall():
-            users.append({
-                'first_name': row[0],
-                'last_name': row[1],
-                'email': row[2],
-                'last_login': row[3],
-                'club_name': row[4],
-                'series_name': row[5]
-            })
-        
-        conn.close()
-        return jsonify(users)
-    except Exception as e:
-        print(f"Error getting admin users: {str(e)}")
-        return jsonify({'error': str(e)}), 500
-
-# Protect all other routes
-@app.route('/<path:path>')
-@login_required
-def serve_static(path):
-    """Serve static files and log page visits"""
-    print(f"\n=== Serving Static File ===")
-    print(f"Path: {path}")
-    print(f"User: {session.get('user', {}).get('email')}")
-    print(f"Path ends with .html: {path.endswith('.html')}")
-    print(f"User in session: {'user' in session}")
-    print(f"Session contents: {session}")
-    
-    if 'user' in session:
-        try:
-            # Extract page name without extension and any directory path
-            page_name = os.path.splitext(os.path.basename(path))[0]
-            
-            # Determine activity type and details based on path
-            if path.endswith('.html'):
-                activity_type = 'page_visit'
-                details = f"Accessed page: {path}"
-            elif path.startswith('components/'):
-                activity_type = 'component_load'
-                details = f"Loaded component: {path}"
-            else:
-                # For other static assets (css, js, images)
-                activity_type = 'static_asset'
-                details = f"Accessed static asset: {path}"
-            
-            print(f"About to log activity for: {path}")
-            log_user_activity(
-                session['user']['email'], 
-                activity_type, 
-                page=page_name,
-                details=details
-            )
-            print("Successfully logged access")
-        except Exception as e:
-            print(f"Error logging access: {str(e)}")
-            print(traceback.format_exc())
-    
-    return send_from_directory('static', path)
-
-@app.route('/api/player-history')
-def get_player_history():
-    """Get player history data"""
-    try:
-        file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'player_history.json')
-        with open(file_path, 'r') as f:
-            data = json.load(f)
-        return jsonify(data)
-    except Exception as e:
-        print(f"Error loading player history: {str(e)}")
-        return jsonify({'error': str(e)}), 500
-
-# Protect all API routes except check-auth and login
-@app.route('/api/<path:path>', methods=['GET', 'POST'])
-def api_route(path):
-    """Handle API routes and log access"""
-    print(f"\n=== API Route Access ===")
-    print(f"Path: {path}")
-    print(f"Method: {request.method}")
-    print(f"User in session: {'user' in session}")
-    
-    # List of routes that don't require authentication
-    public_routes = ['check-auth', 'login', 'register', 'log-click']
-    
-    if path not in public_routes:
-        if 'user' not in session:
-            print("Authentication required but user not in session")
-            return jsonify({'error': 'Not authenticated'}), 401
-        print(f"Authenticated user: {session['user']['email']}")
-        
-        # Log API access for authenticated routes
-        try:
-            log_user_activity(
-                session['user']['email'],
-                'api_access',
-                action=f'api_{path}',
-                details=f"Method: {request.method}"
-            )
-            print("Successfully logged API access")
-        except Exception as e:
-            print(f"Error logging API access: {str(e)}")
-            print(traceback.format_exc())
-    
-    # Let the route continue to the specific handler
-    # If no specific handler matched, return a 404 error
-    return jsonify({'error': 'API endpoint not found'}), 404
-
-@app.route('/api/set-series', methods=['POST'])
-def set_series():
-    """Set the series for the current session"""
-    try:
-        data = request.get_json()
-        series = data.get('series')
-        if not series:
-            return jsonify({'error': 'Series is required'}), 400
-        session['series'] = series
-        return jsonify({'success': True})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/get-series')
-@app.route('/get-series')
-def get_series():
-    """Get the current series and all available series"""
-    try:
-        print("\n=== GET SERIES REQUEST ===")
-        print("Connecting to database...")
-        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
-        
-        # Get all series from the database
-        print("Executing SQL query...")
-        cursor.execute('SELECT name FROM series ORDER BY name')
-        all_series = [row[0] for row in cursor.fetchall()]
-        conn.close()
-        
-        # Get the user's current series from their session
-        user_series = session.get('user', {}).get('series', '')
-        print(f"\nUser series from session: {user_series}")
-        print(f"Available series: {all_series}")
-        print(f"Number of series: {len(all_series)}")
-        
-        # Log each series with its extracted number
-        print("\nSeries with extracted numbers:")
-        for series in all_series:
-            num = ''.join(filter(str.isdigit, series))
-            print(f"Series: {series}, Number: {num}")
-        
-        response_data = {
-            'series': user_series,
-            'all_series': all_series
-        }
-        
-        print(f"\nReturning response: {response_data}")
-        return jsonify(response_data)
-    except Exception as e:
-        print(f"\nError getting series: {str(e)}")
-        print("Full error:", traceback.format_exc())
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/get-players-series-22', methods=['GET'])
-def get_players_series_22():
-    """Get all players for series 22"""
-    try:
-        csv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'all_tennaqua_players.csv')
-        df = pd.read_csv(csv_path)
-
-        # Filter for Series 22
-        series_22_df = df[df['Series'] == 'Chicago 22']  # Changed from 'Series 22' to 'Chicago 22'
-        print(f"Found {len(series_22_df)} players in Series 22")
-        
-        # Track unique players
-        unique_players = set()
-        players = []
-        
-        for _, row in series_22_df.iterrows():
-            player_name = f"{row['First Name']} {row['Last Name']}"  # Format as First Name Last Name
-            
-            if player_name not in unique_players:
-                unique_players.add(player_name)
-                player = {
-                    'name': player_name,
-                    'series': row['Series'],
-                    'rating': str(row['PTI']),
-                    'wins': str(row['Wins']),
-                    'losses': str(row['Losses']),
-                    'winRate': row['Win %']
-                }
-                players.append(player)
-        
-        print(f"Returning {len(players)} unique players")
-        return jsonify({'players': players})  # Wrap players array in an object with 'players' key
-        
-    except Exception as e:
-        print(f"\nERROR getting Series 22 players: {str(e)}")
-        print(traceback.format_exc())
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/generate-lineup', methods=['POST'])
-@login_required
-def generate_lineup():
-    try:
-        data = request.json
-        selected_players = data.get('players', [])
-        
-        # Get the user's current series and normalize it for display
-        user_series = session['user'].get('series', '')
-        display_series = normalize_series_for_display(user_series)
-        
-        # Stricter prompt to enforce exact format
-        prompt = f"""Create an optimal lineup for these players from {display_series}: {', '.join([f"{p}" for p in selected_players])}
-
-Provide detailed lineup recommendations based on player stats, match history, and team dynamics. Each recommendation should include:
-
-Player Pairings: List the players paired for each court as follows:
-
-Court 1: Player1/Player2
-Court 2: Player3/Player4
-Court 3: Player5/Player6
-Court 4: Player7/Player8
-
-Strategic Explanation: For each court, provide a brief explanation of the strategic reasoning behind the player pairings, highlighting player strengths, intended roles within the pairing, and any specific matchup considerations.
-"""
-
-        logger.debug(f"\n=== PROMPT ===\n{prompt}\n")
-        
-        # Create a new thread
-        thread = client.beta.threads.create()
-        
-        # Add the message to the thread
-        message = client.beta.threads.messages.create(
-            thread_id=thread.id,
-            role="user",
-            content=prompt
-        )
-        
-        # Create and run the assistant
-        run = client.beta.threads.runs.create(
-            thread_id=thread.id,
-            assistant_id=assistant.id
-        )
-        
-        # Wait for the run to complete
-        while True:
-            run_status = client.beta.threads.runs.retrieve(
-                thread_id=thread.id,
-                run_id=run.id
-            )
-            if run_status.status == 'completed':
-                break
-            elif run_status.status == 'failed':
-                raise Exception(f"Run failed: {run_status.last_error}")
-            time.sleep(1)
-        
-        # Get the assistant's response
-        messages = client.beta.threads.messages.list(
-            thread_id=thread.id,
-            order="desc",
-            limit=1
-        )
-        
-        # Return the response
-        return jsonify({
-            'prompt': prompt,
-            'suggestion': messages.data[0].content[0].text.value
-        })
-        
-    except Exception as e:
-        print(f"Error generating lineup: {str(e)}")
-        print(traceback.format_exc())
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/create-lineup')
-@app.route('/create-lineup.html')
-def create_lineup():
-    print("\n=== Serving Create Lineup Page ===")
-    return send_from_directory('static', 'create-lineup.html')
-
-@socketio.on('connect')
-def handle_connect():
-    # Create a new thread for this session
-    thread = client.beta.threads.create()
-    active_threads[request.sid] = thread.id
-    print(f"New client connected. Thread ID: {thread.id}")
-
-@socketio.on('disconnect')
-def handle_disconnect():
-    # Clean up the thread
-    thread_id = active_threads.pop(request.sid, None)
-    if thread_id:
-        print(f"Client disconnected. Thread ID: {thread_id}")
-
-@socketio.on('send_message')
-def handle_message(data):
-    thread_id = active_threads.get(request.sid)
-    if not thread_id:
-        return
-    
-    try:
-        # Add the user message to the thread
-        client.beta.threads.messages.create(
-            thread_id=thread_id,
-            role="user",
-            content=data['message']
-        )
-
-        # Run the assistant
-        run = client.beta.threads.runs.create(
-            thread_id=thread_id,
-            assistant_id=assistant.id
-        )
-
-        # Wait for the response
-        while True:
-            run_status = client.beta.threads.runs.retrieve(
-                thread_id=thread_id,
-                run_id=run.id
-            )
-            if run_status.status == 'completed':
-                break
-            socketio.sleep(1)
-
-        # Get the assistant's response
-        messages = client.beta.threads.messages.list(thread_id=thread_id)
-        assistant_message = messages.data[0].content[0].text.value
-
-        # Send the response back to the client
-        emit('receive_message', {'message': assistant_message})
-
-    except Exception as e:
-        print(f"Error: {str(e)}")
-        emit('receive_message', {'message': f"Error: {str(e)}"})
-
-@app.route('/api/chat', methods=['POST'])
-def handle_chat():
-    try:
-        data = request.json
-        message = data.get('message', '')
-        
-        print("\n=== CHAT REQUEST ===")
-        print(f"Message: {message}")
-        print(f"Current series: {selected_series}")
-        print("=== END REQUEST ===\n")
-        
-        # Create chat completion with context
-        response = client.ChatCompletion.create(
-            model="gpt-4-turbo-preview",
-            messages=[
-                {"role": "system", "content": f"""You are a paddle tennis assistant. The current series is {selected_series}.
-                Base your responses on player statistics and paddle tennis knowledge.
-                Be specific and data-driven in your responses."""},
-                {"role": "user", "content": message}
-            ],
-            max_tokens=1000,
-            temperature=0.7
-        )
-        
-        assistant_message = response.choices[0].message.content
-        
-        print("\n=== CHAT RESPONSE ===")
-        print(f"Response: {assistant_message}")
-        print("=== END RESPONSE ===\n")
-        
-        return jsonify({'message': assistant_message})
-        
-    except Exception as e:
-        print(f"\n=== CHAT ERROR ===")
-        print(f"Error type: {type(e)}")
-        print(f"Error message: {str(e)}")
-        print("=== END ERROR ===\n")
-        
-        if 'rate_limit_exceeded' in str(e):
-            return jsonify({'error': 'The AI service is currently experiencing high demand. Please try again in a few minutes.'}), 429
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/contact-sub')
-@login_required
-def contact_sub():
-    """Serve the contact sub page"""
-    return send_from_directory('static', 'contact-sub.html')
-
-@app.route('/find-subs')
-@login_required
-def find_subs():
-    """Serve the find subs page"""
-    return send_from_directory('static', 'find-subs.html')
-
-@app.route('/api/teams')
-@login_required
-def get_teams():
-    """Return a list of all teams from the schedule"""
-    try:
-        # Read the schedule file
-        schedule_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'schedules.json')
-        if not os.path.exists(schedule_path):
-            return jsonify({'error': 'Schedule file not found'}), 404
-            
-        with open(schedule_path, 'r') as f:
-            schedule = json.load(f)
-            
-        # Extract unique team names from home_team and away_team fields
-        teams = set()
-        for match in schedule:
-            # Skip practice records
-            if 'Practice' in match:
-                continue
-            if 'home_team' in match:
-                teams.add(match['home_team'])
-            if 'away_team' in match:
-                teams.add(match['away_team'])
-                
-        # Convert to sorted list
-        teams_list = sorted(list(teams))
-        
-        return jsonify({'teams': teams_list})
-        
-    except Exception as e:
-        print(f"Error getting teams: {str(e)}")
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/team-stats/<team_id>')
-@login_required
-def get_team_stats(team_id):
-    """Return detailed statistics for a specific team"""
-    try:
-        # Read the series stats file
-        stats_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'series_stats.json')
-        matches_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'match_history.json')
-        
-        if not os.path.exists(stats_path):
-            return jsonify({'error': 'Stats file not found'}), 404
-            
-        with open(stats_path, 'r') as f:
-            stats = json.load(f)
-            
-        # Find the team's stats
-        team_stats = next((team for team in stats if team['team'] == team_id), None)
-        if not team_stats:
-            return jsonify({'error': 'Team not found'}), 404
-            
-        # Read match data for court analysis
-        court_stats = {
-            'court1': {'wins': 0, 'losses': 0, 'key_players': set()},
-            'court2': {'wins': 0, 'losses': 0, 'key_players': set()},
-            'court3': {'wins': 0, 'losses': 0, 'key_players': set()},
-            'court4': {'wins': 0, 'losses': 0, 'key_players': set()}
-        }
-        
-        player_performance = {}  # Track individual player performance by court
-        
-        if os.path.exists(matches_path):
-            with open(matches_path, 'r') as f:
-                matches = json.load(f)
-                
-            # Analyze matches for court performance
-            for match in matches:
-                if match['Home Team'] == team_id or match['Away Team'] == team_id:
-                    is_home = match['Home Team'] == team_id
-                    
-                    # Process each court's results
-                    for court_num in range(1, 5):
-                        court_key = f'court{court_num}'
-                        court_result = match.get(f'Court {court_num}', {})
-                        
-                        if court_result:
-                            # Determine if this court was won
-                            won_court = (is_home and court_result.get('winner') == 'home') or \
-                                      (not is_home and court_result.get('winner') == 'away')
-                            
-                            # Update court stats
-                            if won_court:
-                                court_stats[court_key]['wins'] += 1
-                            else:
-                                court_stats[court_key]['losses'] += 1
-                                
-                            # Track players for this court
-                            players = court_result.get('players', [])
-                            for player in players:
-                                if (is_home and player['team'] == 'home') or \
-                                   (not is_home and player['team'] == 'away'):
-                                    # Initialize player stats if needed
-                                    if player['name'] not in player_performance:
-                                        player_performance[player['name']] = {
-                                            'courts': {},
-                                            'total_wins': 0,
-                                            'total_matches': 0
-                                        }
-                                    
-                                    # Update player's court performance
-                                    if court_key not in player_performance[player['name']]['courts']:
-                                        player_performance[player['name']]['courts'][court_key] = {
-                                            'wins': 0, 'matches': 0
-                                        }
-                                    
-                                    player_performance[player['name']]['courts'][court_key]['matches'] += 1
-                                    if won_court:
-                                        player_performance[player['name']]['courts'][court_key]['wins'] += 1
-                                        player_performance[player['name']]['total_wins'] += 1
-                                    player_performance[player['name']]['total_matches'] += 1
-        
-        # Identify key players for each court
-        for court_key in court_stats:
-            # Find players with best win rate on this court (minimum 3 matches)
-            court_players = []
-            for player, stats in player_performance.items():
-                if court_key in stats['courts'] and stats['courts'][court_key]['matches'] >= 3:
-                    win_rate = stats['courts'][court_key]['wins'] / stats['courts'][court_key]['matches']
-                    court_players.append({
-                        'name': player,
-                        'win_rate': win_rate,
-                        'matches': stats['courts'][court_key]['matches'],
-                        'wins': stats['courts'][court_key]['wins']
-                    })
-            
-            # Sort by win rate and take top 2
-            court_players.sort(key=lambda x: x['win_rate'], reverse=True)
-            court_stats[court_key]['key_players'] = court_players[:2]
-        
-        # Calculate basic team stats
-        total_matches = team_stats['matches']['won'] + team_stats['matches']['lost']
-        win_rate = team_stats['matches']['won'] / total_matches if total_matches > 0 else 0
-        
-        # Calculate average points
-        total_games = team_stats['games']['won'] + team_stats['games']['lost']
-        avg_points_for = team_stats['games']['won'] / total_matches if total_matches > 0 else 0
-        avg_points_against = team_stats['games']['lost'] / total_matches if total_matches > 0 else 0
-        
-        # Calculate consistency rating (based on standard deviation of scores)
-        consistency_rating = 8.5  # Placeholder - would calculate from actual score variance
-        
-        # Calculate strength index (composite of win rate and point differential)
-        point_differential = avg_points_for - avg_points_against
-        strength_index = (win_rate * 7 + (point_differential / 10) * 3)  # Scale to 0-10
-        
-        # Get recent form (last 5 matches)
-        recent_form = ['W', 'L', 'W', 'W', 'L']  # Placeholder - would get from actual match history
-        
-        # Format response
-        response = {
-            'teamName': team_id,
-            'wins': team_stats['matches']['won'],
-            'losses': team_stats['matches']['lost'],
-            'winRate': win_rate,
-            'avgPointsFor': avg_points_for,
-            'avgPointsAgainst': avg_points_against,
-            'consistencyRating': consistency_rating,
-            'strengthIndex': strength_index,
-            'recentForm': recent_form,
-            'dates': ['2025-01-01', '2025-01-15', '2025-02-01', '2025-02-15', '2025-03-01'],  # Placeholder dates
-            'scores': [6, 8, 7, 9, 6],  # Placeholder scores
-            'courtAnalysis': court_stats
-        }
-        
-        return jsonify(response)
-        
-    except Exception as e:
-        print(f"Error getting team stats: {str(e)}")
-        print(traceback.format_exc())  # Print full traceback for debugging
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/lineup-instructions', methods=['GET', 'POST', 'DELETE'])
-@login_required
-def lineup_instructions():
-    if request.method == 'GET':
-        try:
-            user_email = session['user']['email']
-            team_id = request.args.get('team_id')
-            
-            if not team_id:
-                return jsonify({'error': 'Team ID is required'}), 400
-                
-            instructions = get_user_instructions(user_email, team_id=team_id)
-            return jsonify({'instructions': [i['instruction'] for i in instructions]})
-        except Exception as e:
-            print(f"Error getting lineup instructions: {str(e)}")
-            return jsonify({'error': str(e)}), 500
-            
-    elif request.method == 'POST':
-        try:
-            user_email = session['user']['email']
-            data = request.get_json()
-            instruction = data.get('instruction')
-            team_id = data.get('team_id')
-            
-            if not instruction:
-                return jsonify({'error': 'Instruction is required'}), 400
-            if not team_id:
-                return jsonify({'error': 'Team ID is required'}), 400
-                
-            success = add_user_instruction(user_email, instruction, team_id=team_id)
-            if not success:
-                return jsonify({'error': 'Failed to add instruction'}), 500
-                
-            return jsonify({'status': 'success'})
-        except Exception as e:
-            print(f"Error adding lineup instruction: {str(e)}")
-            return jsonify({'error': str(e)}), 500
-            
-    elif request.method == 'DELETE':
-        try:
-            user_email = session['user']['email']
-            data = request.get_json()
-            instruction = data.get('instruction')
-            team_id = data.get('team_id')
-            
-            if not instruction:
-                return jsonify({'error': 'Instruction is required'}), 400
-            if not team_id:
-                return jsonify({'error': 'Team ID is required'}), 400
-                
-            db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
-            conn = sqlite3.connect(db_path)
-            cursor = conn.cursor()
-            
-            cursor.execute('''
-            UPDATE user_instructions
-            SET is_active = 0
-            WHERE instruction = ? AND user_email = ? AND team_id = ?
-            ''', (instruction, user_email, team_id))
-            
-            conn.commit()
-            conn.close()
-            return jsonify({'status': 'success'})
-        except Exception as e:
-            print(f"Error deleting lineup instruction: {str(e)}")
-            return jsonify({'error': str(e)}), 500
-        finally:
-            if 'conn' in locals():
-                conn.close()
-
-def get_user_instructions(user_email, team_id=None):
-    """Get all active instructions for a user, optionally filtered by team"""
-    logger.info(f"Getting instructions for user: {user_email}, team_id: {team_id}")
-    try:
-        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
-        
-        query = '''
-        SELECT id, instruction, team_id, created_at
-        FROM user_instructions
-        WHERE user_email = ? AND is_active = 1
-        '''
-        params = [user_email]
-        
-        if team_id:
-            query += ' AND team_id = ?'
-            params.append(team_id)
-            
-        query += ' ORDER BY created_at DESC'
-        
-        logger.debug(f"Executing query: {query} with params: {params}")
-        cursor.execute(query, params)
-        instructions = cursor.fetchall()
-        logger.debug(f"Found {len(instructions)} instructions")
-        
-        # Convert to list of dictionaries
-        result = []
-        for row in instructions:
-            result.append({
-                'id': row[0],
-                'instruction': row[1],
-                'team_id': row[2],
-                'created_at': row[3]
-            })
-        
-        cursor.close()
-        conn.close()
-        return result
-    except Exception as e:
-        logger.error(f"Error getting user instructions: {str(e)}")
-        logger.error(traceback.format_exc())
-        if 'conn' in locals():
-            conn.close()
-        return []
-
-def add_user_instruction(user_email, instruction, team_id=None):
-    """Add a new instruction for a user, optionally associated with a team"""
-    logger.info(f"Adding instruction for user: {user_email}, team_id: {team_id}")
-    logger.debug(f"Instruction text: {instruction}")
-    try:
-        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
-        
-        query = '''
-        INSERT INTO user_instructions (user_email, instruction, team_id)
-        VALUES (?, ?, ?)
-        '''
-        params = (user_email, instruction, team_id)
-        logger.debug(f"Executing query: {query} with params: {params}")
-        cursor.execute(query, params)
-        conn.commit()
-        logger.info("Successfully added instruction")
-        cursor.close()
-        conn.close()
-        return True
-    except Exception as e:
-        logger.error(f"Error adding user instruction: {str(e)}")
-        logger.error(traceback.format_exc())
-        if 'conn' in locals():
-            conn.close()
-        return False
-
-def deactivate_instruction(user_email, instruction_id):
-    """Deactivate an instruction for a user"""
-    try:
-        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
-        cursor.execute('''
-            UPDATE user_instructions 
-            SET is_active = 0 
-            WHERE id = ? AND user_email = ?
-        ''', (instruction_id, user_email))
-        conn.commit()
-        cursor.close()
-        conn.close()
-    except Exception as e:
-        logger.error(f"Error deactivating instruction: {str(e)}")
-        logger.error(traceback.format_exc())
-        if 'conn' in locals():
-            conn.close()
-        raise
-
-@app.route('/api/schedule')
-@login_required
-def serve_schedule():
-    try:
-        print("\n=== SCHEDULE REQUEST ===")
-        print(f"Session data: {session.get('user')}")
-        
-        # Log schedule access
-        log_user_activity(
-            session['user']['email'], 
-            'feature_use', 
-            action='view_schedule'
-        )
-        
-        # Read the schedule file
-        schedule_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'schedules.json')
-        with open(schedule_path, 'r') as f:
-            schedule_data = json.load(f)
-
-        # Get the current series and club from the session
-        if 'user' not in session:
-            print("❌ No user in session")
-            return jsonify({'error': 'Not authenticated'}), 401
-            
-        user_club = session['user'].get('club')
-        if not user_club:
-            print("❌ No club found in user session")
-            return jsonify({'error': 'Club information not found'}), 400
-            
-        print(f"User club from session: {user_club}")
-        
-        # Format the club name to match the schedule format
-        # The schedule uses format "Club Name - Series - Series"
-        series = session['user'].get('series', '')
-        series_num = series.split()[-1] if series else ''
-        club_name = f"{user_club} - {series_num} - {series_num}"
-        print(f"Formatted club name for filtering: {club_name}")
-        
-        # Filter matches based on the club
-        filtered_matches = []
-        for match in schedule_data:
-            try:
-                # Check if it's a practice record
-                if 'Practice' in match:
-                    # For practices, add them all since they're at the user's club
-                    filtered_matches.append(match)
-                    continue
-                    
-                # For regular matches, check if the club is either home or away team
-                if match.get('home_team') == club_name or match.get('away_team') == club_name:
-                    filtered_matches.append(match)
-            except KeyError as e:
-                print(f"Warning: Skipping invalid match record: {e}")
-                continue
-        
-        print(f"Found {len(filtered_matches)} matches for club {club_name}")
-        print("=== END SCHEDULE REQUEST ===\n")
-        return jsonify(filtered_matches)
-    except FileNotFoundError:
-        print(f"❌ Schedule file not found at {schedule_path}")
-        return jsonify({'error': 'Schedule file not found'}), 404
-    except json.JSONDecodeError:
-        print(f"❌ Error parsing schedule file: Invalid JSON format")
-        return jsonify({'error': 'Invalid schedule file format'}), 500
-    except Exception as e:
         print(f"❌ Error serving schedule file: {str(e)}")
         print(traceback.format_exc())  # Print full traceback for debugging
         return jsonify({'error': 'Internal server error'}), 500
@@ -5507,6 +4465,89 @@ def get_matches_for_user_club(user):
     except Exception as e:
         print(f"Error getting matches for user club: {e}")
         return []
+
+@app.route('/api/chat', methods=['POST'])
+def handle_chat():
+    try:
+        data = request.json
+        message = data.get('message', '')
+        
+        print("\n=== CHAT REQUEST ===")
+        print(f"Message: {message}")
+        print(f"Current series: {selected_series}")
+        print("=== END REQUEST ===\n")
+        
+        # Create a new thread for this request
+        thread = client.beta.threads.create()
+        
+        # Add context message first
+        client.beta.threads.messages.create(
+            thread_id=thread.id,
+            role="user",
+            content=f"""You are a paddle tennis assistant. The current series is {selected_series}.
+            Base your responses on player statistics and paddle tennis knowledge.
+            Be specific and data-driven in your responses."""
+        )
+        
+        # Add the user's message
+        client.beta.threads.messages.create(
+            thread_id=thread.id,
+            role="user",
+            content=message
+        )
+        
+        # Run the assistant
+        run = client.beta.threads.runs.create(
+            thread_id=thread.id,
+            assistant_id=assistant.id
+        )
+        
+        # Wait for completion with timeout
+        timeout = 30  # seconds
+        start_time = time.time()
+        while True:
+            if time.time() - start_time > timeout:
+                raise TimeoutError("Assistant response timed out")
+                
+            run_status = client.beta.threads.runs.retrieve(
+                thread_id=thread.id,
+                run_id=run.id
+            )
+            
+            if run_status.status == 'failed':
+                print("\n=== CHAT ERROR ===")
+                print(f"Run failed: {run_status.last_error}")
+                print("=== END ERROR ===\n")
+                if 'rate_limit_exceeded' in str(run_status.last_error):
+                    return jsonify({'error': 'The AI service is currently experiencing high demand. Please try again in a few minutes.'}), 429
+                raise Exception(f"Assistant run failed: {run_status.last_error}")
+            elif run_status.status == 'completed':
+                break
+                
+            time.sleep(1)
+        
+        # Get the messages
+        messages = client.beta.threads.messages.list(thread_id=thread.id)
+        if not messages.data:
+            raise Exception("No response received from assistant")
+            
+        assistant_message = messages.data[0].content[0].text.value
+        
+        print("\n=== CHAT RESPONSE ===")
+        print(f"Response: {assistant_message}")
+        print("=== END RESPONSE ===\n")
+        
+        return jsonify({'message': assistant_message})
+        
+    except Exception as e:
+        print(f"\n=== CHAT ERROR ===")
+        print(f"Error type: {type(e)}")
+        print(f"Error message: {str(e)}")
+        print("=== END ERROR ===\n")
+        
+        if 'rate_limit_exceeded' in str(e):
+            return jsonify({'error': 'The AI service is currently experiencing high demand. Please try again in a few minutes.'}), 429
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
         # Get port from environment variable or use default
