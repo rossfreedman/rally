@@ -70,7 +70,9 @@ if not openai_api_key:
     sys.exit(1)
 
 # Initialize OpenAI client
-client = OpenAI(api_key=openai_api_key)
+import openai
+openai.api_key = openai_api_key
+client = openai
 
 # Store active threads
 active_threads = {}
