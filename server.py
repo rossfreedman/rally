@@ -1,28 +1,31 @@
-from flask import Flask, jsonify, request, send_from_directory, render_template, session, redirect, url_for, make_response, g
-from flask_socketio import SocketIO, emit
-import pandas as pd
-from flask_cors import CORS
 import os
-from datetime import datetime, timedelta
-import traceback
-from openai import OpenAI
-from dotenv import load_dotenv
-import time
-from functools import wraps
 import sys
-import re
-import sqlite3
-import logging
-from logging.handlers import RotatingFileHandler
 import json
-import hashlib
+import logging
 import secrets
+import hashlib
+import traceback
+import pandas as pd
+from flask import Flask, request, jsonify, session, redirect, url_for, send_from_directory
+from flask_socketio import SocketIO
+from flask_cors import CORS
+from functools import wraps
+from datetime import datetime, timedelta
+from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.by import By
-from selenium import webdriver
-from utils.series_matcher import series_match, normalize_series_for_storage, normalize_series_for_display
-from collections import defaultdict
+from selenium.common.exceptions import TimeoutException, ElementClickInterceptedException
+import time
+import re
+from bs4 import BeautifulSoup
+import requests
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+# Get OpenAI API key from environment variables
+openai_api_key = os.getenv('OPENAI_API_KEY')
 
 # Initialize database
 print("\n=== Initializing Database ===")
