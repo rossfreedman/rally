@@ -29,7 +29,7 @@
     <!-- Session data will be injected here -->
     {% if session_data %}
     <script>
-        window.sessionData = {{ session_data|tojson }};
+        window.sessionData = JSON.parse('{{ session_data|tojson|safe }}');
     </script>
     {% endif %}
 </head>
@@ -64,11 +64,9 @@
                     <div class="font-bold text-lg mb-2 flex items-center gap-2 text-black"><i class="fas fa-bolt text-black"></i> Act</div>
                     <ul class="space-y-2 ml-6">
                         <li><a href="/mobile/view-schedule" class="flex items-center gap-2 text-lg text-black"><span class="inline-block w-7 text-center"><i class="fas fa-calendar text-black"></i></span> View Schedule</a></li>
-                        <li><a href="/mobile/availability" class="flex items-center gap-2 text-lg text-black"><span class="inline-block w-7 text-center"><i class="fas fa-calendar-check text-black"></i></span> Update Availability</a></li>
-                        <li><a href="/mobile/find-subs" class="flex items-center gap-2 text-lg text-black"><span class="inline-block w-7 text-center"><i class="fas fa-user-plus text-black"></i></span> Find Sub</a></li>
+                        <li><a href="/mobile/availability" class="flex items-center gap-2 text-lg text-black"><span class="inline-block w-7 text-center"><i class="fas fa-calendar-check text-black"></i></span> Manage Availability</a></li>
+                        <li><a href="/mobile/improve" class="flex items-center gap-2 text-lg text-black"><span class="inline-block w-7 text-center"><i class="fas fa-chart-line text-black"></i></span> Improve my game</a></li>
                         <li><a href="/mobile/ask-ai" class="flex items-center gap-2 text-lg text-black"><span class="inline-block w-7 text-center"><i class="fas fa-robot text-black"></i></span> Ask Rally AI</a></li>
-                        <li><a href="/mobile/lineup" class="flex items-center gap-2 text-lg text-black"><span class="inline-block w-7 text-center"><i class="fas fa-clipboard-list text-black"></i></span> Create Lineup</a></li>
-                        <li><a href="/mobile/lineup-escrow" class="flex items-center gap-2 text-lg text-black"><span class="inline-block w-7 text-center"><i class="fas fa-lock text-black"></i></span> Lineup Escrow</a></li>
                     </ul>
                 </div>
                 <!-- Analyze Section -->
@@ -77,9 +75,21 @@
                     <ul class="space-y-2 ml-6">
                         <li><a href="/mobile/analyze-me" class="flex items-center gap-2 text-lg text-black"><span class="inline-block w-7 text-center"><i class="fas fa-user text-black"></i></span> Me</a></li>
                         <li><a href="/mobile/myteam" class="flex items-center gap-2 text-lg text-black"><span class="inline-block w-7 text-center"><i class="fas fa-users text-black"></i></span> My Team</a></li>
-                        <li><a href="/mobile/myseries" class="flex items-center gap-2 text-lg text-black"><span class="inline-block w-7 text-center"><i class="fas fa-chart-line text-black"></i></span> My Series</a></li>
+                        <li><a href="/mobile/myseries" class="flex items-center gap-2 text-lg text-black"><span class="inline-block w-7 text-center"><i class="fas fa-trophy text-black"></i></span> My Series</a></li>
                         <li><a href="/mobile/my-club" class="flex items-center gap-2 text-lg text-black"><span class="inline-block w-7 text-center"><i class="fas fa-building text-black"></i></span> My Club</a></li>
                         <li><a href="/mobile/teams-players" class="flex items-center gap-2 text-lg text-black"><span class="inline-block w-7 text-center"><i class="fas fa-search text-black"></i></span> My Competition</a></li>
+                    </ul>
+                </div>
+                <!-- Captain Stuff Section -->
+                <div>
+                    <div class="font-bold text-lg mb-2 flex items-center gap-2 text-black"><i class="fas fa-star text-black"></i> Captain Stuff</div>
+                    <ul class="space-y-2 ml-6">
+                        <li><a href="/mobile/view-schedule" class="flex items-center gap-2 text-lg text-black"><span class="inline-block w-7 text-center"><i class="fas fa-calendar text-black"></i></span> View Schedule</a></li>
+                        <li><a href="/mobile/find-subs" class="flex items-center gap-2 text-lg text-black"><span class="inline-block w-7 text-center"><i class="fas fa-user-plus text-black"></i></span> Find Sub</a></li>
+                        <li><a href="/mobile/lineup" class="flex items-center gap-2 text-lg text-black"><span class="inline-block w-7 text-center"><i class="fas fa-clipboard-list text-black"></i></span> Create Lineup</a></li>
+                        <li><a href="/mobile/lineup-escrow" class="flex items-center gap-2 text-lg text-black"><span class="inline-block w-7 text-center"><i class="fas fa-lock text-black"></i></span> Lineup Escrow</a></li>
+                        <li><a href="/mobile/reserve-court" class="flex items-center gap-2 text-lg text-black"><span class="inline-block w-7 text-center"><i class="fas fa-table-tennis text-black"></i></span> Reserve court</a></li>
+                        <li><a href="/mobile/email-team" class="flex items-center gap-2 text-lg text-black"><span class="inline-block w-7 text-center"><i class="fas fa-envelope text-black"></i></span> Email team</a></li>
                     </ul>
                 </div>
                 <!-- Settings Section -->
@@ -87,6 +97,7 @@
                     <div class="font-bold text-lg mb-2 flex items-center gap-2 text-black"><i class="fas fa-cog text-black"></i> Settings</div>
                     <ul class="space-y-2 ml-6">
                         <li><a href="/mobile/settings" class="flex items-center gap-2 text-lg text-black"><span class="inline-block w-7 text-center"><i class="fas fa-user-cog text-black"></i></span> User Settings</a></li>
+                        <li><a href="/api/logout" class="flex items-center gap-2 text-lg text-black"><span class="inline-block w-7 text-center"><i class="fas fa-sign-out-alt text-black"></i></span> Logout</a></li>
                     </ul>
                 </div>
             </nav>

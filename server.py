@@ -228,28 +228,15 @@ def log_request_info():
 
 @app.route('/')
 def serve_index():
-    """Redirect all desktop index requests to the mobile version."""
-    print("\n=== Serving Index Page ===")
-    # If user is not authenticated, redirect to login
-    if 'user' not in session:
-        print("User not authenticated, redirecting to login")
-        return redirect(url_for('login'))
-    # Always redirect authenticated users to mobile
-    print(f"User in session: {session['user']['email']}")
-    print("Redirecting to /mobile")
-    return redirect(url_for('serve_mobile'))
+    return redirect('/mobile')
 
 @app.route('/index.html')
 def redirect_index_html():
-    """Redirect /index.html to the mobile version."""
-    if 'user' not in session:
-        return redirect(url_for('login'))
-    return redirect(url_for('serve_mobile'))
+    return redirect('/mobile')
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     """Serve the login page"""
-    # If user is already authenticated, redirect to mobile interface
     if 'user' in session:
         return redirect(url_for('serve_mobile'))
     return app.send_static_file('login.html')
@@ -419,11 +406,8 @@ def handle_logout():
 
 @app.route('/logout')
 def logout_page():
-    # Clear all session data
     session.clear()
-    # Flash a message to inform the user
     flash('You have been successfully logged out.')
-    # Redirect to login page
     return redirect(url_for('login'))
 
 # Admin routes
@@ -5578,6 +5562,18 @@ def get_matches_for_user_club(user):
     except Exception as e:
         print(f"Error getting matches for user club: {e}")
         return []
+
+@app.route('/mobile/improve')
+@login_required
+def serve_mobile_improve():
+    """Serve the improve my game page"""
+    return render_template('mobile/improve.html', show_back_arrow=True)
+
+@app.route('/mobile/email-team')
+@login_required
+def serve_mobile_email_team():
+    """Serve the email team page"""
+    return render_template('mobile/email_team.html', show_back_arrow=True)
 
 if __name__ == '__main__':
         # Get port from environment variable or use default

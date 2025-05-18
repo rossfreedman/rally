@@ -1,0 +1,407 @@
+{% extends "mobile/layout.html" %}
+{% set show_back_arrow = True %}
+
+{% block content %}
+<div class="max-w-lg mx-auto">
+    
+    <!-- Consistent Header (matches Schedule page) -->
+    <div class="flex items-center gap-3 mt-4 mb-2 px-4">
+        <div class="bg-white rounded-md flex items-center justify-center h-12 w-12">
+            <i class="fas fa-chart-bar text-black text-3xl"></i>
+        </div>
+        <div>
+            <div class="text-2xl font-bold leading-tight">Player Analysis</div>
+            <div class="text-base text-gray-500 mt-1">{{ session_data.user.first_name }} {{ session_data.user.last_name }}</div>
+        </div>
+    </div>
+    {% if analyze_data.error %}
+        <div class="text-red-600 text-center my-8">{{ analyze_data.error }}</div>
+    {% endif %}
+    <!-- Player Stats (tabular, two columns) -->
+    <div class='analyze-card'>
+        <div class='analyze-card-header'><i class='fas fa-user'></i> Player Stats</div>
+        <div class='w-full'>
+            <table class='player-stats-table w-full'>
+                <thead>
+                    <tr>
+                        <th class='w-1/3'></th>
+                        <th class='w-1/3 text-black text-lg font-bold pb-2'>Current Season</th>
+                        <th class='w-1/3 text-black text-lg font-bold pb-2'>Career</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class='stat-label'><i class='fas fa-table-tennis-paddle-ball text-black'></i> Matches</td>
+                        <td class='stat-value text-black'>{{ analyze_data.current_season.matches }}</td>
+                        <td class='stat-value text-black'>{{ analyze_data.career_stats.matches }}</td>
+                    </tr>
+                    <tr class="row-divider">
+                        <td class='stat-label'><i class="fas fa-list-ol text-black"></i> Record</td>
+                        <td class='stat-value text-black'>
+                            {% set wins = analyze_data.current_season.wins if analyze_data.current_season.wins is defined else (analyze_data.current_season.winRate * analyze_data.current_season.matches // 100 if analyze_data.current_season.matches != 'N/A' and analyze_data.current_season.winRate != 'N/A' else 'N/A') %}
+                            {% set losses = analyze_data.current_season.matches - wins if wins != 'N/A' and analyze_data.current_season.matches != 'N/A' else 'N/A' %}
+                            {% if wins != 'N/A' and losses != 'N/A' %}
+                              {{ wins|int }} wins / {{ losses|int }} losses
+                            {% else %}
+                              N/A
+                            {% endif %}
+                        </td>
+                        <td class='stat-value text-black'>
+                            {% set wins = analyze_data.career_stats.wins if analyze_data.career_stats.wins is defined else (analyze_data.career_stats.winRate * analyze_data.career_stats.matches // 100 if analyze_data.career_stats.matches != 'N/A' and analyze_data.career_stats.winRate != 'N/A' else 'N/A') %}
+                            {% set losses = analyze_data.career_stats.matches - wins if wins != 'N/A' and analyze_data.career_stats.matches != 'N/A' else 'N/A' %}
+                            {% if wins != 'N/A' and losses != 'N/A' %}
+                              {{ wins|int }} wins / {{ losses|int }} losses
+                            {% else %}
+                              N/A
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class='stat-label'><span class='text-blue-700'><i class='fas fa-percent'></i></span> Wins</td>
+                        <td class='stat-value text-black'>
+                          {% set winrate = analyze_data.current_season.winRate %}
+                          <span class="{% if winrate is defined and winrate is not none and winrate|float >= 60 %}text-green-600 font-bold{% elif winrate is defined and winrate is not none and winrate|float >= 45 %}text-yellow-600 font-bold{% elif winrate is defined and winrate is not none %}text-red-600 font-bold{% endif %}">
+                            {{ winrate|round(1, 'common') if winrate is not string else winrate }}%
+                          </span>
+                        </td>
+                        <td class='stat-value text-black'>
+                          {% set winrate = analyze_data.career_stats.winRate %}
+                          <span class="{% if winrate is defined and winrate is not none and winrate|float >= 60 %}text-green-600 font-bold{% elif winrate is defined and winrate is not none and winrate|float >= 45 %}text-yellow-600 font-bold{% elif winrate is defined and winrate is not none %}text-red-600 font-bold{% endif %}">
+                            {{ winrate|round(1, 'common') if winrate is not string else winrate }}%
+                          </span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class='stat-label text-center'><i class='fas fa-arrow-down text-black'></i> PTI Change</td>
+                        <td class='stat-value text-center'>
+                            {% set pti = analyze_data.current_season.ptiChange %}
+                            {% if pti is string or pti == 'N/A' %}
+                                <span class="text-black">{{ pti }}</span>
+                            {% elif pti|float > 0 %}
+                                <span class="text-red-600 font-bold flex items-center justify-center">{{ pti|round(1, 'common') }} <span aria-label="PTI Up" class="ml-1">▲</span></span>
+                            {% elif pti|float < 0 %}
+                                <span class="text-gray-700 font-bold flex items-center justify-center">{{ pti|round(1, 'common') }} <span aria-label="PTI Down" class="ml-1">▼</span></span>
+                            {% else %}
+                                <span class="text-black">0.0</span>
+                            {% endif %}
+                        </td>
+                        <td class='stat-value text-center'>
+                            {% set pti = analyze_data.career_pti_change %}
+                            {% if pti is string or pti == 'N/A' %}
+                                <span class="text-black">{{ pti }}</span>
+                            {% elif pti|float > 0 %}
+                                <span class="text-red-600 font-bold flex items-center justify-center">{{ pti|round(1, 'common') }} <span aria-label="PTI Up" class="ml-1">▲</span></span>
+                            {% elif pti|float < 0 %}
+                                <span class="text-gray-700 font-bold flex items-center justify-center">{{ pti|round(1, 'common') }} <span aria-label="PTI Down" class="ml-1">▼</span></span>
+                            {% else %}
+                                <span class="text-black">0.0</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <!-- Court Analysis (2x2 grid) -->
+    <div class='analyze-card'>
+        <div class='analyze-card-header'><i class='fas fa-table-tennis'></i> Court Analysis</div>
+        <div class='grid grid-cols-2 gap-3'>
+            {% set court_order = ['court1', 'court2', 'court3', 'court4'] %}
+            {% for court in court_order %}
+                {% set stats = analyze_data.court_analysis.get(court) %}
+                <div class="court-analysis-card flex flex-col items-start p-4 mb-3">
+                  <div class="flex items-center gap-2 mb-2 w-full">
+                    <i class="fas fa-table-tennis text-black"></i>
+                    <span class="font-bold text-lg text-black">{{ court|capitalize }}</span>
+                  </div>
+                  <div class="w-full mb-2">
+                    <div class="flex justify-between items-center mb-1">
+                      <span class="font-semibold text-gray-700">Win Rate</span>
+                      <span class="font-bold text-xl analyze-badge
+                        {% if stats and stats.winRate is defined and stats.winRate is not none and stats.winRate|float >= 60 %}bg-green-100 text-green-700
+                        {% elif stats and stats.winRate is defined and stats.winRate is not none and stats.winRate|float >= 45 %}bg-yellow-100 text-yellow-700
+                        {% elif stats and stats.winRate is defined and stats.winRate is not none and stats.winRate|float > 0 %}bg-red-100 text-red-700
+                        {% else %}bg-gray-200 text-gray-500
+                        {% endif %}">
+                        {{ stats.winRate|round(1, 'common') if stats and stats.winRate is not string else stats.winRate if stats else 'N/A' }}%
+                      </span>
+                    </div>
+                    <div class="flex justify-between items-center mb-1">
+                      <span class="font-semibold text-gray-700">Record</span>
+                      <span class="text-gray-900">{{ stats.record if stats else 'N/A' }}</span>
+                    </div>
+                  </div>
+                  <div class="w-full mt-2">
+                    <span class="font-semibold text-gray-700 block mb-1">Top Partners</span>
+                    <ul class="partner-list space-y-1">
+                      {% if stats and stats.topPartners %}
+                        {% for p in stats.topPartners %}
+                          <li class="flex flex-col items-start">
+                            <span class="partner-name">{{ p.name }}</span>
+                            {% if p.winRate is defined and p.winRate is not none and p.winRate is number %}
+                              <span class="analyze-badge mt-1
+                                {% if p.winRate >= 60 %}bg-green-100 text-green-700 font-bold
+                                {% elif p.winRate >= 45 %}bg-yellow-100 text-yellow-700 font-bold
+                                {% else %}bg-red-100 text-red-700 font-bold
+                                {% endif %}">
+                                {{ p.winRate|round(1, 'common') }} {{ p.record }}
+                              </span>
+                            {% else %}
+                              <span class="analyze-badge mt-1">{{ p.winRate }} {{ p.record }}</span>
+                            {% endif %}
+                          </li>
+                        {% endfor %}
+                      {% else %}
+                        <li class="text-gray-400">None</li>
+                      {% endif %}
+                    </ul>
+                  </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    <!-- Player History -->
+    <div class='analyze-card'>
+        <div class='analyze-card-header'><i class='fas fa-history'></i> Player History (Previous Seasons)</div>
+        {% if analyze_data.player_history.seasons %}
+            <div class='overflow-x-auto'><table class='min-w-full text-xs border mt-2'>
+                <thead><tr class='bg-gray-50'>
+                    <th class='py-1 px-2'>Season</th><th class='py-1 px-2'>Series</th><th class='py-1 px-2'>PTI Start</th><th class='py-1 px-2'>PTI End</th><th class='py-1 px-2'>Trend</th>
+                </tr></thead>
+                <tbody>
+                    {% for row in analyze_data.player_history.seasons %}
+                        <tr>
+                            <td class='py-1 px-2 text-center'>{{ row.season }}</td>
+                            <td class='py-1 px-2 text-center'>{{ row.series }}</td>
+                            <td class='py-1 px-2 text-center'>{{ row.ptiStart }}</td>
+                            <td class='py-1 px-2 text-center'>{{ row.ptiEnd }}</td>
+                            <td class='py-1 px-2 text-center'>
+                                {% set trend = row.trend %}
+                                {% if trend is string and trend.startswith('+') %}
+                                    <span class="text-red-600 font-bold flex items-center">{{ trend }} <span aria-label="PTI Up" class="ml-1">▲</span></span>
+                                {% elif trend is string and trend.startswith('-') %}
+                                    <span class="text-green-600 font-bold flex items-center">{{ trend }} <span aria-label="PTI Down" class="ml-1">▼</span></span>
+                                {% else %}
+                                    <span class="text-black">{{ trend }}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table></div>
+        {% else %}
+            <div class="text-gray-400 p-2">No season history available.</div>
+        {% endif %}
+    </div>
+    <!-- Review Video Footage -->
+    <div class='analyze-card'>
+        <div class='analyze-card-header'><i class='fas fa-video'></i> Review Video Footage</div>
+        <div class='analyze-video-section-header'>Match Videos</div>
+        <div class='grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4'>
+            {% set match_videos = analyze_data.videos.match if analyze_data.videos.match else [
+                {'thumbnail': '/static/images/video_thumbnail.png', 'title': 'You/Jonathan Blume vs. Victor Forman/Stephen Statkus - Court 3', 'duration': '12:43', 'date': 'Apr 12, 2025', 'views': 243},
+                {'thumbnail': '/static/images/video_thumbnail.png', 'title': 'You/Mike Lieberman vs. Brian Stutland/David Schwartz - Court 1', 'duration': '15:21', 'date': 'Mar 24, 2025', 'views': 127},
+                {'thumbnail': '/static/images/video_thumbnail.png', 'title': 'You/Andrew Franger vs. Mike Lieberman/Josh Cohen - Court 2', 'duration': '9:58', 'date': 'Feb 18, 2025', 'views': 85},
+                {'thumbnail': '/static/images/video_thumbnail.png', 'title': 'You/Victor Forman vs. David Schwartz/Alex Johnson - Court 4', 'duration': '11:16', 'date': 'Jan 30, 2025', 'views': 204}
+            ] %}
+            {% for video in match_videos %}
+                <div class='video-card'>
+                    <div class='rounded-lg overflow-hidden relative mb-2'>
+                        <img src='{{ video.thumbnail or "/static/images/video_thumbnail.png" }}' class='w-full h-36 object-cover' alt='{{ video.title }}'>
+                        <div class='absolute bottom-2 right-2 bg-black bg-opacity-80 text-white text-xs px-2 py-0.5 rounded'>{{ video.duration }}</div>
+                    </div>
+                    <div class='font-semibold text-xs mb-1'>{{ video.title }}</div>
+                    <div class='text-xs text-gray-500'>{{ video.date }} • {{ video.views }} views</div>
+                </div>
+            {% endfor %}
+        </div>
+        <div class='analyze-video-section-header'>Practice Videos</div>
+        <div class='grid grid-cols-1 sm:grid-cols-2 gap-4'>
+            {% set practice_videos = analyze_data.videos.practice if analyze_data.videos.practice else [
+                {'thumbnail': '/static/images/video_thumbnail.png', 'title': 'Practice Session 1', 'duration': '8:12', 'date': 'Mar 10, 2025', 'views': 99},
+                {'thumbnail': '/static/images/video_thumbnail.png', 'title': 'Practice Session 2', 'duration': '17:45', 'date': 'Feb 28, 2025', 'views': 56},
+                {'thumbnail': '/static/images/video_thumbnail.png', 'title': 'Practice Session 3', 'duration': '10:27', 'date': 'Jan 15, 2025', 'views': 77}
+            ] %}
+            {% for video in practice_videos %}
+                <div class='video-card'>
+                    <div class='rounded-lg overflow-hidden relative mb-2'>
+                        <img src='{{ video.thumbnail or "/static/images/video_thumbnail.png" }}' class='w-full h-36 object-cover' alt='{{ video.title }}'>
+                        <div class='absolute bottom-2 right-2 bg-black bg-opacity-80 text-white text-xs px-2 py-0.5 rounded'>{{ video.duration }}</div>
+                    </div>
+                    <div class='font-semibold text-xs mb-1'>{{ video.title }}</div>
+                    <div class='text-xs text-gray-500'>{{ video.date }} • {{ video.views }} views</div>
+                </div>
+            {% endfor %}
+        </div>
+        <div class='mt-4 text-center'>
+            <a href="#" class="btn btn-outline btn-sm btn-primary">View All Videos <i class="fas fa-arrow-right ms-1"></i></a>
+        </div>
+    </div>
+</div>
+
+<style>
+.analyze-card {
+  background: #fff;
+  border-radius: 1.1rem;
+  box-shadow: 0 2px 10px 0 rgba(0,0,0,0.06);
+  border: 1.5px solid #e0e7e3;
+  margin-bottom: 1.5rem;
+  padding: 1.1rem 1rem 1.2rem 1rem;
+}
+.analyze-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #000000;
+  border-bottom: 2px solid #f3f3f3;
+  margin-bottom: 0.7em;
+  padding-bottom: 0.3em;
+}
+.analyze-badge {
+  background: #e5e7eb;
+  color: #333;
+  border-radius: 0.5em;
+  padding: 0.1em 0.6em;
+  font-size: 0.93em;
+  margin-left: 0.4em;
+  font-weight: 500;
+}
+.stat-card {
+  min-width: 110px;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.analyze-video-section-header {
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin-bottom: 0.7em;
+  color: #000000;
+}
+.video-card {
+  background: #f9fafb;
+  border-radius: 0.7em;
+  box-shadow: 0 1px 4px 0 rgba(0,0,0,0.04);
+  padding: 0.7em 0.7em 0.9em 0.7em;
+  margin-bottom: 0.5em;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+@media (max-width: 640px) {
+  .grid-cols-2, .sm\:grid-cols-2 { grid-template-columns: 1fr 1fr !important; }
+  .mini-stat-card { min-width: 0; width: 100%; }
+}
+.player-stats-section {
+  background: #f8fafc;
+  border: 2px solid #e0e7e3;
+  border-radius: 1rem;
+  padding: 1.1rem 0.7rem 1.2rem 0.7rem;
+  margin-bottom: 0.5rem;
+  box-shadow: 0 1px 4px 0 rgba(0,0,0,0.04);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.mini-stat-card {
+  background: #fff;
+  border: 1.5px solid #e0e7e3;
+  border-radius: 0.8rem;
+  box-shadow: 0 1px 4px 0 rgba(0,0,0,0.04);
+  padding: 1rem 1.1rem 1rem 1.1rem;
+  margin-bottom: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 90px;
+  flex: 1 1 0;
+}
+.player-stats-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+  background: #fff;
+  border: 2px solid #e0e7e3;
+  border-radius: 1em;
+  overflow: hidden;
+}
+.player-stats-table th, .player-stats-table td {
+  text-align: center;
+  padding: 0.7em 0.3em;
+  font-size: 1.1em;
+  border-bottom: 1.5px solid #e0e7e3;
+}
+.player-stats-table th {
+  font-weight: 700;
+}
+.player-stats-table .stat-label {
+  text-align: left;
+  font-weight: 700;
+  color: #444;
+  font-size: 1em;
+  white-space: nowrap;
+}
+.player-stats-table .stat-label i {
+  padding-left: 12px;
+}
+.player-stats-table .stat-value {
+  font-size: 15px !important;
+  font-weight: 400;
+}
+.player-stats-table .row-divider {
+  border-top: 2px solid #b6c2b7;
+}
+@media (max-width: 640px) {
+  .player-stats-table th, .player-stats-table td {
+    font-size: 1em;
+    padding: 0.5em 0.2em;
+  }
+  .player-stats-table .stat-value {
+    font-size: 1.2em;
+  }
+}
+.court-analysis-card {
+  background: #fff;
+  border-radius: 1.1rem;
+  box-shadow: 0 2px 10px 0 rgba(0,0,0,0.06);
+  border: 1.5px solid #e0e7e3;
+  margin-bottom: 1.5rem;
+  padding: 1.1rem 1rem 1.2rem 1rem;
+}
+.court-stat-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.court-stat-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 0.5em;
+}
+.court-stat-label {
+  font-weight: 700;
+  color: #444;
+  font-size: 1em;
+}
+.court-stat-value {
+  font-size: 15px !important;
+  font-weight: 400;
+}
+.partner-list {
+  list-style: none;
+  padding-left: 0;
+}
+.partner-name {
+  font-weight: 700;
+  color: #444;
+  font-size: 1em;
+}
+</style>
+{% endblock %} 

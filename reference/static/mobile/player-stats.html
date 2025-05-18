@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Player Stats - Rally</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/antd@4.24.12/dist/antd.min.css" rel="stylesheet">
+    <link href="/static/css/enhanced-player-stats.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/react@17.0.2/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@17.0.2/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/antd@4.24.12/dist/antd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@babel/standalone/babel.min.js"></script>
+</head>
+<body class="bg-gray-100">
+    <div id="app" class="min-h-screen"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+        const { Layout, Menu, Typography, Spin, Alert } = antd;
+        const { Header, Content } = Layout;
+        const { Title } = Typography;
+
+        // Import the EnhancedPlayerStats component
+        const EnhancedPlayerStats = React.lazy(() => import('/static/components/EnhancedPlayerStats.jsx'));
+
+        const App = () => {
+            const [loading, setLoading] = useState(true);
+            const [error, setError] = useState(null);
+
+            useEffect(() => {
+                // Check authentication
+                const checkAuth = async () => {
+                    try {
+                        const response = await axios.get('/api/check-auth');
+                        if (!response.data.authenticated) {
+                            window.location.href = '/login';
+                        }
+                        setLoading(false);
+                    } catch (err) {
+                        setError('Error checking authentication');
+                        setLoading(false);
+                    }
+                };
+
+                checkAuth();
+            }, []);
+
+            if (loading) {
+                return (
+                    <div className="flex justify-center items-center min-h-screen">
+                        <Spin size="large" />
+                    </div>
+                );
+            }
+
+            if (error) {
+                return <Alert type="error" message={error} />;
+            }
+
+            return (
+                <Layout className="min-h-screen">
+                    <Header className="bg-white shadow-sm">
+                        <div className="flex items-center justify-between px-4">
+                            <Title level={4} className="mb-0 text-gray-800">Player Stats</Title>
+                            <Menu mode="horizontal" selectedKeys={['stats']}>
+                                <Menu.Item key="stats">Stats</Menu.Item>
+                                <Menu.Item key="history">History</Menu.Item>
+                            </Menu>
+                        </div>
+                    </Header>
+                    <Content className="p-4">
+                        <React.Suspense fallback={<Spin size="large" />}>
+                            <EnhancedPlayerStats />
+                        </React.Suspense>
+                    </Content>
+                </Layout>
+            );
+        };
+
+        ReactDOM.render(<App />, document.getElementById('app'));
+    </script>
+</body>
+</html> 
