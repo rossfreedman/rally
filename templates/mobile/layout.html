@@ -97,7 +97,7 @@
                     <div class="font-bold text-lg mb-2 flex items-center gap-2 text-black"><i class="fas fa-cog text-black"></i> Settings</div>
                     <ul class="space-y-2 ml-6">
                         <li><a href="/mobile/settings" class="flex items-center gap-2 text-lg text-black"><span class="inline-block w-7 text-center"><i class="fas fa-user-cog text-black"></i></span> User Settings</a></li>
-                        <li><a href="/api/logout" class="flex items-center gap-2 text-lg text-black"><span class="inline-block w-7 text-center"><i class="fas fa-sign-out-alt text-black"></i></span> Logout</a></li>
+                        <li><a href="#" onclick="handleLogout(event)" class="flex items-center gap-2 text-lg text-black"><span class="inline-block w-7 text-center"><i class="fas fa-sign-out-alt text-black"></i></span> Logout</a></li>
                     </ul>
                 </div>
             </nav>
@@ -126,6 +126,27 @@
                 drawer.classList.add('translate-x-0');
                 overlay.classList.remove('hidden');
             }
+        }
+
+        function handleLogout(event) {
+            event.preventDefault();
+            fetch('/api/logout', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.redirect) {
+                    window.location.href = data.redirect;
+                }
+            })
+            .catch(error => {
+                console.error('Logout error:', error);
+                // Fallback to regular logout page if API fails
+                window.location.href = '/logout';
+            });
         }
     </script>
 
