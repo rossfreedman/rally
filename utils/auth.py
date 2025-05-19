@@ -1,5 +1,5 @@
 from functools import wraps
-from flask import session, redirect, url_for, jsonify, request
+from flask import session, jsonify, redirect, url_for, request
 
 def login_required(f):
     """Decorator to check if user is logged in"""
