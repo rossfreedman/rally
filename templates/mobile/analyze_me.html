@@ -80,7 +80,7 @@
                             {% elif pti|float > 0 %}
                                 <span class="text-red-600 font-bold flex items-center justify-center">{{ pti|round(1, 'common') }} <span aria-label="PTI Up" class="ml-1">▲</span></span>
                             {% elif pti|float < 0 %}
-                                <span class="text-gray-700 font-bold flex items-center justify-center">{{ pti|round(1, 'common') }} <span aria-label="PTI Down" class="ml-1">▼</span></span>
+                                <span class="text-green-600 font-bold flex items-center justify-center">{{ pti|round(1, 'common') }} <span aria-label="PTI Down" class="ml-1">▼</span></span>
                             {% else %}
                                 <span class="text-black">0.0</span>
                             {% endif %}
@@ -92,7 +92,7 @@
                             {% elif pti|float > 0 %}
                                 <span class="text-red-600 font-bold flex items-center justify-center">{{ pti|round(1, 'common') }} <span aria-label="PTI Up" class="ml-1">▲</span></span>
                             {% elif pti|float < 0 %}
-                                <span class="text-gray-700 font-bold flex items-center justify-center">{{ pti|round(1, 'common') }} <span aria-label="PTI Down" class="ml-1">▼</span></span>
+                                <span class="text-green-600 font-bold flex items-center justify-center">{{ pti|round(1, 'common') }} <span aria-label="PTI Down" class="ml-1">▼</span></span>
                             {% else %}
                                 <span class="text-black">0.0</span>
                             {% endif %}

@@ -1,6 +1,6 @@
 function contactSub(lastName, firstName) {
-    // Navigate to the contact sub page with explicit params
-    window.location.href = `/contact-sub?firstName=${encodeURIComponent(firstName)}&lastName=${encodeURIComponent(lastName)}`;
+    // Navigate to the contact sub page with params matching the HTML expectations
+    window.location.href = `/contact-sub?first=${encodeURIComponent(firstName)}&last=${encodeURIComponent(lastName)}`;
 }
 
 // Function to load and display team statistics

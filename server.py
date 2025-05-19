@@ -1113,8 +1113,16 @@ def handle_chat():
 @app.route('/contact-sub')
 @login_required
 def contact_sub():
-    """Serve the contact sub page"""
-    return send_from_directory('static', 'contact-sub.html')
+    """Serve the contact sub page with player info"""
+    first = request.args.get('first')
+    last = request.args.get('last')
+    session_data = {
+        'user': session['user'],
+        'authenticated': True,
+        'first_name': first,
+        'last_name': last
+    }
+    return render_template('mobile/contact_sub.html', session_data=session_data)
 
 @app.route('/find-subs')
 @login_required
@@ -5188,8 +5196,8 @@ def my_club():
                     })
                     break
                     
-        # Sort standings by series
-        tennaqua_standings.sort(key=lambda x: x['series'])
+        # Sort standings by place (ascending)
+        tennaqua_standings.sort(key=lambda x: x['place'])
         
         # Calculate head-to-head records
         head_to_head = {}
