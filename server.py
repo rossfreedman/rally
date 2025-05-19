@@ -824,6 +824,8 @@ def set_series():
 def get_series():
     """Get all series for registration"""
     try:
+        print("\n=== Getting Series ===")
+        print("Executing database query...")
         result = execute_query(
             """
             SELECT name 
@@ -831,9 +833,18 @@ def get_series():
             ORDER BY name
             """
         )
-        return jsonify({'series': [row['name'] for row in result]})
+        series = [row['name'] for row in result]
+        print(f"Found {len(series)} series: {series}")
+        print("=== End Getting Series ===\n")
+        response = make_response(jsonify({'series': series}))
+        # Add cache control headers
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        return response
     except Exception as e:
         print(f"Error getting series: {str(e)}")
+        print(f"Error traceback: {traceback.format_exc()}")
         return jsonify({'error': 'Failed to get series'}), 500
 
 @app.route('/get-players-series-22', methods=['GET'])
@@ -1750,6 +1761,8 @@ def get_availability():
 def get_clubs():
     """Get all clubs for registration"""
     try:
+        print("\n=== Getting Clubs ===")
+        print("Executing database query...")
         result = execute_query(
             """
             SELECT name 
@@ -1757,9 +1770,18 @@ def get_clubs():
             ORDER BY name
             """
         )
-        return jsonify({'clubs': [row['name'] for row in result]})
+        clubs = [row['name'] for row in result]
+        print(f"Found {len(clubs)} clubs: {clubs}")
+        print("=== End Getting Clubs ===\n")
+        response = make_response(jsonify({'clubs': clubs}))
+        # Add cache control headers
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        return response
     except Exception as e:
         print(f"Error getting clubs: {str(e)}")
+        print(f"Error traceback: {traceback.format_exc()}")
         return jsonify({'error': 'Failed to get clubs'}), 500
 
 @app.route('/api/check-auth')
