@@ -790,35 +790,19 @@ def set_series():
 
 @app.route('/api/get-series')
 def get_series():
+    """Get all series for registration"""
     try:
-        print("\n=== GET SERIES REQUEST ===")
-        # Get all series from the database
         result = execute_query(
             """
-            SELECT name FROM series
+            SELECT name 
+            FROM series 
             ORDER BY name
             """
         )
-        
-        all_series = [row['name'] for row in result] if result else []
-        
-        # Get the user's current series from their session
-        user_series = session.get('user', {}).get('series', '')
-        print(f"\nUser series from session: {user_series}")
-        print(f"Available series: {all_series}")
-        print(f"Number of series: {len(all_series)}")
-        
-        response_data = {
-            'series': user_series,
-            'all_series': all_series
-        }
-        
-        print(f"\nReturning response: {response_data}")
-        return jsonify(response_data)
+        return jsonify({'series': [row['name'] for row in result]})
     except Exception as e:
-        print(f"\nError getting series: {str(e)}")
-        print("Full error:", traceback.format_exc())
-        return jsonify({'error': str(e)}), 500
+        print(f"Error getting series: {str(e)}")
+        return jsonify({'error': 'Failed to get series'}), 500
 
 @app.route('/get-players-series-22', methods=['GET'])
 def get_players_series_22():
@@ -1732,27 +1716,16 @@ def get_availability():
 
 @app.route('/api/get-clubs')
 def get_clubs():
+    """Get all clubs for registration"""
     try:
-        # Get all clubs from the database
         result = execute_query(
             """
-            SELECT name FROM clubs
+            SELECT name 
+            FROM clubs 
             ORDER BY name
             """
         )
-        
-        all_clubs = [row['name'] for row in result] if result else []
-        
-        # If user is logged in, include their current club
-        current_club = None
-        if 'user' in session and 'club' in session['user']:
-            current_club = session['user']['club']
-        
-        return jsonify({
-            'clubs': all_clubs,
-            'current_club': current_club
-        })
-            
+        return jsonify({'clubs': [row['name'] for row in result]})
     except Exception as e:
         print(f"Error getting clubs: {str(e)}")
         return jsonify({'error': 'Failed to get clubs'}), 500
