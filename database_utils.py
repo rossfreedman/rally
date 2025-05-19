@@ -2,6 +2,9 @@ import psycopg2
 from psycopg2.extras import RealDictCursor
 from contextlib import contextmanager
 from database_config import get_db
+import logging
+
+logger = logging.getLogger(__name__)
 
 @contextmanager
 def get_db_cursor(commit=True):
@@ -22,8 +25,14 @@ def get_db_cursor(commit=True):
             yield cursor
             if commit:
                 conn.commit()
-        except Exception:
+        except psycopg2.Error as e:
             conn.rollback()
+            logger.error(f"Database error: {str(e)}")
+            logger.error(f"Query failed: {getattr(cursor, 'query', 'No query available')}")
+            raise
+        except Exception as e:
+            conn.rollback()
+            logger.error(f"Non-database error: {str(e)}")
             raise
         finally:
             cursor.close()
@@ -40,11 +49,16 @@ def execute_query(query, params=None, commit=True):
     Returns:
         list: Query results as a list of dictionaries
     """
-    with get_db_cursor(commit=commit) as cursor:
-        cursor.execute(query, params)
-        if cursor.description:  # If the query returns results
-            return cursor.fetchall()
-        return None
+    try:
+        with get_db_cursor(commit=commit) as cursor:
+            cursor.execute(query, params)
+            if cursor.description:  # If the query returns results
+                return cursor.fetchall()
+            return None
+    except Exception as e:
+        logger.error(f"Query execution failed: {query}")
+        logger.error(f"Parameters: {params}")
+        raise
 
 def execute_query_one(query, params=None, commit=True):
     """
@@ -58,11 +72,36 @@ def execute_query_one(query, params=None, commit=True):
     Returns:
         dict|None: First row of results as a dictionary, or None if no results
     """
-    with get_db_cursor(commit=commit) as cursor:
-        cursor.execute(query, params)
-        if cursor.description:  # If the query returns results
-            return cursor.fetchone()
-        return None
+    try:
+        with get_db_cursor(commit=commit) as cursor:
+            cursor.execute(query, params)
+            if cursor.description:  # If the query returns results
+                return cursor.fetchone()
+            return None
+    except Exception as e:
+        logger.error(f"Query execution failed: {query}")
+        logger.error(f"Parameters: {params}")
+        raise
+
+def execute_update(query, params=None):
+    """
+    Execute an update/insert/delete query and return success status.
+    
+    Args:
+        query (str): The SQL query to execute
+        params (tuple|dict): Query parameters
+    
+    Returns:
+        bool: True if the update was successful
+    """
+    try:
+        with get_db_cursor(commit=True) as cursor:
+            cursor.execute(query, params)
+            return True
+    except Exception as e:
+        logger.error(f"Update failed: {query}")
+        logger.error(f"Parameters: {params}")
+        raise
 
 def execute_many(query, params_list, commit=True):
     """
@@ -73,5 +112,10 @@ def execute_many(query, params_list, commit=True):
         params_list (list): List of parameter tuples/dicts
         commit (bool): Whether to commit the transaction
     """
-    with get_db_cursor(commit=commit) as cursor:
-        cursor.executemany(query, params_list) 
+    try:
+        with get_db_cursor(commit=commit) as cursor:
+            cursor.executemany(query, params_list)
+    except Exception as e:
+        logger.error(f"Batch execution failed: {query}")
+        logger.error(f"First set of parameters: {params_list[0] if params_list else None}")
+        raise 
