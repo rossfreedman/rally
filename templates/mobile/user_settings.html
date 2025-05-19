@@ -107,6 +107,19 @@ form.addEventListener('submit', function(e) {
   .then(resp => {
     if (resp.success) {
       window.app && window.app.showToast && window.app.showToast('Settings updated!', 'success');
+      // Update session data in UI
+      if (resp.user) {
+        const sessionData = {
+          user: {
+            ...resp.user,
+            authenticated: true
+          }
+        };
+        // Update UI with new session data
+        window.sessionUtils && window.sessionUtils.updateUI(sessionData);
+        // Reload page after a short delay to ensure all components are updated
+        setTimeout(() => window.location.reload(), 1000);
+      }
     } else {
       window.app && window.app.showToast && window.app.showToast(resp.message || 'Update failed', 'error');
     }

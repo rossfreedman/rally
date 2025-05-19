@@ -27,6 +27,7 @@ from database_utils import execute_query, execute_query_one, execute_many
 from utils.logging import log_user_activity
 from routes.analyze import init_analyze_routes
 from routes.act import init_act_routes
+from routes.admin import admin_bp
 
 def is_public_file(path):
     """Check if a file should be publicly accessible without authentication"""
@@ -140,6 +141,24 @@ app = Flask(__name__, static_folder='static', static_url_path='/static')
 # Determine environment
 is_development = os.environ.get('FLASK_ENV') == 'development'
 
+# Register blueprints
+app.register_blueprint(admin_bp, url_prefix='/api/admin')
+
+# Configure CORS for admin routes
+CORS(app, resources={
+    r"/admin/*": {
+        "origins": ["*"] if is_development else [
+            "https://*.up.railway.app",
+            "https://*.railway.app",
+            "https://lovetorally.com",
+            "https://www.lovetorally.com"
+        ],
+        "supports_credentials": True,
+        "allow_headers": ["Content-Type", "X-Requested-With", "Authorization"],
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+    }
+})
+
 # Set secret key
 app.secret_key = os.getenv('FLASK_SECRET_KEY', secrets.token_hex(32))
 
@@ -177,15 +196,7 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 active_threads = {}
 
 # Login required decorator
-def login_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if 'user' not in session:
-            if request.path.startswith('/api/'):
-                return jsonify({'error': 'Not authenticated'}), 401
-            return redirect(url_for('login'))
-        return f(*args, **kwargs)
-    return decorated_function
+from utils.auth import login_required
 
 def read_all_player_data():
     """Read and return all player data from the CSV file"""
@@ -656,14 +667,81 @@ def serve_admin():
         # Log admin page visit
         log_user_activity(session['user']['email'], 'page_visit', page='admin')
         
+        # Check if admin.html exists
         admin_path = os.path.join(app.static_folder, 'admin.html')
         if not os.path.exists(admin_path):
             print(f"Admin file not found at: {admin_path}")
             return "Error: Admin page not found", 404
-        return send_from_directory(app.static_folder, 'admin.html')
+            
+        # Add cache control headers to prevent caching
+        response = send_from_directory(app.static_folder, 'admin.html')
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        response.headers['Content-Type'] = 'text/html'  # Ensure correct content type
+        return response
     except Exception as e:
         print(f"Error serving admin page: {str(e)}")
+        traceback.print_exc()
         return "Error: Admin page not found", 404
+
+# Protect all other routes
+@app.route('/<path:path>')
+@login_required
+def serve_static(path):
+    """Serve static files with proper access control"""
+    print(f"\n=== Serving Static File ===")
+    print(f"Path: {path}")
+    print(f"Is public: {is_public_file(path)}")
+    print(f"User in session: {'user' in session}")
+    
+    # Special handling for admin routes
+    if path == 'admin':
+        return serve_admin()
+    elif path.startswith('admin/'):
+        # Check if user is admin
+        user = execute_query_one(
+            "SELECT id FROM users WHERE email = %(email)s",
+            {'email': session['user']['email']}
+        )
+        if not user or user['id'] != 1:
+            print(f"Non-admin user {session['user']['email']} attempted to access admin resource")
+            return redirect(url_for('serve_mobile'))
+    
+    # Special handling for favicon.ico
+    if path == 'favicon.ico':
+        try:
+            return send_from_directory('static/images', 'rally_favicon.png', mimetype='image/x-icon')
+        except Exception as e:
+            print(f"Error serving favicon: {str(e)}")
+            return '', 404
+    
+    # Allow access to public files without authentication
+    if is_public_file(path):
+        print("Serving public file")
+        try:
+            response = send_from_directory('static', path)
+            print(f"Successfully served {path}")
+            return response
+        except Exception as e:
+            print(f"Error serving {path}: {str(e)}")
+            return str(e), 500
+    
+    # Require authentication for all other files
+    if 'user' not in session:
+        print("Access denied - no user in session")
+        if path.startswith('api/'):
+            return jsonify({'error': 'Not authenticated'}), 401
+        return redirect(url_for('login'))
+        
+    # Serve the file if authenticated
+    try:
+        response = send_from_directory('static', path)
+        print(f"Successfully served {path}")
+        return response
+    except Exception as e:
+        print(f"Error serving {path}: {str(e)}")
+        return str(e), 500
 
 @app.route('/api/admin/users')
 @login_required
@@ -700,65 +778,7 @@ def get_admin_users():
         print(f"Error getting admin users: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-# Protect all other routes
-@app.route('/<path:path>')
-@login_required
-def serve_static(path):
-    """Serve static files with proper access control"""
-    print(f"\n=== Serving Static File ===")
-    print(f"Path: {path}")
-    print(f"Is public: {is_public_file(path)}")
-    print(f"User in session: {'user' in session}")
-    
-    # Allow access to public files without authentication
-    if is_public_file(path):
-        print("Serving public file")
-        try:
-            response = send_from_directory('static', path)
-            print(f"Successfully served {path}")
-            return response
-        except Exception as e:
-            print(f"Error serving {path}: {str(e)}")
-            return str(e), 500
-    
-    # Require authentication for all other files
-    if 'user' not in session:
-        print("Access denied - no user in session")
-        if path.startswith('api/'):
-            return jsonify({'error': 'Not authenticated'}), 401
-        return redirect(url_for('login'))
-    
-    try:
-        # Log access for authenticated users
-        user_email = session['user']['email']
-        print(f"User: {user_email}")
-        
-        # Extract page name without extension and any directory path
-        page_name = os.path.splitext(os.path.basename(path))[0]
-        
-        # Determine activity type and details based on path
-        if path.endswith('.html'):
-            activity_type = 'page_visit'
-            details = f"Accessed page: {path}"
-        elif path.startswith('components/'):
-            activity_type = 'component_load'
-            details = f"Loaded component: {path}"
-        else:
-            activity_type = 'static_asset'
-            details = f"Accessed static asset: {path}"
-        
-        print(f"About to log activity for: {path}")
-        log_user_activity(user_email, activity_type, page=page_name, details=details)
-        print("Successfully logged access")
-        
-        response = send_from_directory('static', path)
-        print(f"Successfully served {path}")
-        return response
-        
-    except Exception as e:
-        print(f"Error serving {path}: {str(e)}")
-        print(traceback.format_exc())
-        return str(e), 500
+
 
 @app.route('/api/player-history')
 def get_player_history():
@@ -1838,8 +1858,8 @@ def get_user_settings():
         user = session['user']
         print(f"User from session: {user}")
         
-        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
-        conn = sqlite3.connect(db_path)
+        from utils.db import get_db_connection
+        conn = get_db_connection()
         cursor = conn.cursor()
         
         try:
@@ -1849,7 +1869,7 @@ def get_user_settings():
                 FROM users u
                 JOIN clubs c ON u.club_id = c.id
                 JOIN series s ON u.series_id = s.id
-                WHERE u.email = ?
+                WHERE u.email = %s
             ''', (user['email'],))
             
             user_data = cursor.fetchone()
@@ -1870,12 +1890,13 @@ def get_user_settings():
                 'club_automation_password': user_data[5] or ''
             })
             
-        except sqlite3.Error as e:
+        except Exception as e:
             print(f"Database error: {str(e)}")
             conn.rollback()
             return jsonify({'error': 'Database error occurred'}), 500
             
         finally:
+            cursor.close()
             conn.close()
             
     except Exception as e:
@@ -2743,65 +2764,50 @@ def get_team_players(team_id):
 def update_settings():
     try:
         data = request.get_json()
-        # print("\n=== UPDATING USER SETTINGS ===")
-        # print("Received data:", data)
-        # print("clubAutomationPassword received:", data.get('clubAutomationPassword', '[not present]'))
         
         if not all(key in data for key in ['firstName', 'lastName', 'email', 'series', 'club']):
-            # print("Missing required fields in request data")
             return jsonify({'success': False, 'message': 'Missing required fields'}), 400
         
         current_email = session['user']['email']
-        # print(f"Updating settings for user: {current_email}")
         
-        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
-        conn = sqlite3.connect(db_path)
+        from utils.db import get_db_connection
+        conn = get_db_connection()
         cursor = conn.cursor()
         
         try:
-            # Get series ID
-            cursor.execute('SELECT id FROM series WHERE name = ?', (data['series'],))
+            # Get series_id and club_id
+            cursor.execute('SELECT id FROM series WHERE name = %s', (data['series'],))
             series_result = cursor.fetchone()
             if not series_result:
-                # print(f"Series not found: {data['series']}")
-                return jsonify({'success': False, 'message': 'Invalid series selected'}), 400
+                return jsonify({'success': False, 'message': 'Invalid series'}), 400
             series_id = series_result[0]
             
-            # Get club ID
-            cursor.execute('SELECT id FROM clubs WHERE name = ?', (data['club'],))
+            cursor.execute('SELECT id FROM clubs WHERE name = %s', (data['club'],))
             club_result = cursor.fetchone()
             if not club_result:
-                # print(f"Club not found: {data['club']}")
-                return jsonify({'success': False, 'message': 'Invalid club selected'}), 400
+                return jsonify({'success': False, 'message': 'Invalid club'}), 400
             club_id = club_result[0]
             
-            # Optionally update club_automation_password if provided
-            if 'clubAutomationPassword' in data and data['clubAutomationPassword'] is not None:
-                # print("Updating club_automation_password to:", data.get('clubAutomationPassword', ''))
-                # print("[DEBUG] SQL UPDATE with club_automation_password:")
-                # print("SQL:", '''UPDATE users SET first_name = ?, last_name = ?, email = ?, series_id = ?, club_id = ?, club_automation_password = ? WHERE email = ?''')
-                # print("Values:", data['firstName'], data['lastName'], data['email'], series_id, club_id, data.get('clubAutomationPassword', ''), current_email)
+            # Update user data
+            if 'clubAutomationPassword' in data and data['clubAutomationPassword']:
                 cursor.execute('''
                     UPDATE users 
-                    SET first_name = ?, last_name = ?, email = ?, series_id = ?, club_id = ?, club_automation_password = ?
-                    WHERE email = ?
+                    SET first_name = %s, last_name = %s, email = %s, series_id = %s, club_id = %s, club_automation_password = %s
+                    WHERE email = %s
                 ''', (
                     data['firstName'],
                     data['lastName'],
                     data['email'],
                     series_id,
                     club_id,
-                    data.get('clubAutomationPassword', ''),
+                    data['clubAutomationPassword'],
                     current_email
                 ))
             else:
-                # print("[DEBUG] SQL UPDATE without club_automation_password:")
-                # print("SQL:", '''UPDATE users SET first_name = ?, last_name = ?, email = ?, series_id = ?, club_id = ? WHERE email = ?''')
-                # print("Values:", data['firstName'], data['lastName'], data['email'], series_id, club_id, current_email)
                 cursor.execute('''
                     UPDATE users 
-                    SET first_name = ?, last_name = ?, email = ?, series_id = ?, club_id = ?
-                    WHERE email = ?
+                    SET first_name = %s, last_name = %s, email = %s, series_id = %s, club_id = %s
+                    WHERE email = %s
                 ''', (
                     data['firstName'],
                     data['lastName'],
@@ -2812,20 +2818,21 @@ def update_settings():
                 ))
             
             if cursor.rowcount == 0:
-                # print("No rows were updated - user not found")
                 return jsonify({'success': False, 'message': 'User not found'}), 404
             
             conn.commit()
-            # print("Settings updated successfully")
             
-            # Update session data
+            # Update session data with all necessary fields
             session['user'] = {
                 'email': data['email'],
                 'first_name': data['firstName'],
                 'last_name': data['lastName'],
                 'club': data['club'],
-                'series': data['series']
+                'series': data['series'],
+                'authenticated': True  # Maintain authentication status
             }
+            # Force session update
+            session.modified = True
             
             # Get updated user data
             cursor.execute('''
@@ -2833,7 +2840,7 @@ def update_settings():
                 FROM users u
                 JOIN clubs c ON u.club_id = c.id
                 JOIN series s ON u.series_id = s.id
-                WHERE u.email = ?
+                WHERE u.email = %s
             ''', (data['email'],))
             
             updated_user = cursor.fetchone()
@@ -2852,18 +2859,15 @@ def update_settings():
             else:
                 return jsonify({'success': True, 'message': 'Settings updated successfully'})
             
-        except sqlite3.Error as e:
-            # print(f"Database error: {str(e)}")
+        except Exception as e:
             conn.rollback()
             return jsonify({'success': False, 'message': 'Database error occurred'}), 500
             
         finally:
+            cursor.close()
             conn.close()
             
     except Exception as e:
-        # print(f"Error updating settings: {str(e)}")
-        # import traceback
-        # print("Full error:", traceback.format_exc())
         return jsonify({'success': False, 'message': 'Failed to update settings'}), 500
 
 @app.route('/test-static')
