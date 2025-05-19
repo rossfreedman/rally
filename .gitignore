@@ -1,9 +1,15 @@
+# SQLite database files
+*.db
+*.db-shm
+*.db-wal
+
 # Python
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
+env/
 build/
 develop-eggs/
 dist/
@@ -21,10 +27,9 @@ wheels/
 *.egg
 
 # Virtual Environment
+venv/
 .env
 .venv
-env/
-venv/
 ENV/
 
 # IDE
@@ -32,6 +37,10 @@ ENV/
 .vscode/
 *.swp
 *.swo
+
+# Logs
+*.log
+logs/
 
 # OS
 .DS_Store
@@ -41,15 +50,6 @@ ENV/
 .Trashes
 ehthumbs.db
 Thumbs.db
-
-# Logs
-*.log
-logs/
-log/
-
-# Database
-# *.db
-*.sqlite3
 
 # Other
 *.bak
