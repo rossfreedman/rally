@@ -32,7 +32,15 @@ async function fetchAndRenderSubsMobile() {
         const currentSeries = seriesData.series;
         const allSeries = seriesData.all_series;
         // Extract the series number (e.g., 22 from 'Chicago 22')
-        const currentNum = parseInt(currentSeries.split(' ').pop());
+        let currentNum = null;
+        if (typeof currentSeries === 'string') {
+            currentNum = parseInt(currentSeries.split(' ').pop());
+        } else {
+            console.error('currentSeries is not a string:', currentSeries);
+            loadingDiv.style.display = 'none';
+            subsList.innerHTML = '<div class="text-center text-red-500">Error: current series is not a string.</div>';
+            return;
+        }
         // 2. Find all higher series
         const higherSeries = allSeries.filter(s => {
             const num = parseInt(s.split(' ').pop());

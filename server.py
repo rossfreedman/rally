@@ -822,7 +822,7 @@ def set_series():
 
 @app.route('/api/get-series')
 def get_series():
-    """Get all series for registration"""
+    """Get all series for registration and the user's current series as a string"""
     try:
         print("\n=== Getting Series ===")
         print("Executing database query...")
@@ -833,10 +833,17 @@ def get_series():
             ORDER BY name
             """
         )
-        series = [row['name'] for row in result]
-        print(f"Found {len(series)} series: {series}")
+        all_series = [row['name'] for row in result]
+        print(f"Found {len(all_series)} series: {all_series}")
+        # Get the user's current series from session, ensure it's a string
+        user_series = ''
+        if 'user' in session and 'series' in session['user']:
+            user_series = session['user']['series']
+            if not isinstance(user_series, str):
+                user_series = str(user_series) if user_series is not None else ''
+        print(f"User series from session: {user_series}")
         print("=== End Getting Series ===\n")
-        response = make_response(jsonify({'series': series}))
+        response = make_response(jsonify({'series': user_series, 'all_series': all_series}))
         # Add cache control headers
         response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
         response.headers['Pragma'] = 'no-cache'
