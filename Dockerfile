@@ -26,17 +26,18 @@ ENV FLASK_APP=server.py
 ENV WEB_CONCURRENCY=1
 ENV EVENTLET_NO_GREENDNS=yes
 
-# Create data directory if it doesn't exist and set permissions
-RUN mkdir -p data && chmod 777 data
+# Create necessary directories with appropriate permissions
+RUN mkdir -p data logs \
+    && touch logs/server.log \
+    && chown -R nobody:nogroup /app \
+    && chmod -R 755 /app \
+    && chmod 777 data logs logs/server.log
 
-# Create log directory
-RUN mkdir -p logs && touch logs/server.log && chmod 777 logs/server.log
-
-# Initialize the database during build
-RUN python init_db.py
+# Switch to non-root user
+USER nobody
 
 # Expose port from environment variable
 EXPOSE ${PORT}
 
-# Command to run the application
-CMD ["python", "server.py"] 
+# Command to run the application using gunicorn
+CMD gunicorn server:app -c gunicorn.conf.py --log-level debug --capture-output --enable-stdio-inheritance --bind 0.0.0.0:${PORT} 
