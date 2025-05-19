@@ -131,9 +131,14 @@ app.config.update(
 CORS(app, 
      resources={
          r"/api/*": {
-             "origins": "*" if is_development else ["https://*.lovetorally.com"],
+             "origins": ["*"] if is_development else [
+                 "https://*.up.railway.app",
+                 "https://*.railway.app",
+                 "https://lovetorally.com",
+                 "https://www.lovetorally.com"
+             ],
              "supports_credentials": True,
-             "allow_headers": ["Content-Type", "X-Requested-With"],
+             "allow_headers": ["Content-Type", "X-Requested-With", "Authorization"],
              "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
          }
      },
