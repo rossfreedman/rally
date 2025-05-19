@@ -14,13 +14,27 @@
         </div>
     </div>
 
+    <!-- Game Improvement Question -->
+    <div class="p-4 bg-white rounded-lg shadow mb-4">
+        <h3 class="text-lg font-semibold mb-3">What part of your game do you want to work on?</h3>
+        <div class="relative">
+            <input type="text" 
+                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                   placeholder="e.g. serve, backhand, volleys..."
+                   id="gameImprovement">
+            <button class="absolute right-2 top-1/2 transform -translate-y-1/2 text-blue-600 hover:text-blue-800">
+                <i class="fas fa-arrow-right"></i>
+            </button>
+        </div>
+    </div>
+
     <!-- Training Resources -->
     <div class="p-4 space-y-4">
         <!-- Video Library Card -->
         <div class="bg-white rounded-lg shadow p-4">
             <div class="flex items-center mb-3">
                 <i class="fas fa-video text-blue-600 text-xl mr-2"></i>
-                <span class="text-lg font-bold">Video Library</span>
+                <span class="text-lg font-bold">Training Video Library</span>
             </div>
             <p class="text-gray-600 mb-4">Access our curated collection of training videos and tutorials.</p>
             <a href="#" class="text-blue-600 hover:text-blue-800 font-semibold flex items-center">
@@ -50,6 +64,105 @@
             <a href="#" class="text-blue-600 hover:text-blue-800 font-semibold flex items-center">
                 View Analysis <i class="fas fa-arrow-right ml-2"></i>
             </a>
+        </div>
+    </div>
+
+    <!-- Review Video Footage Section -->
+    <div class="p-4 space-y-4">
+        <div class="flex items-center gap-2">
+            <i class="fas fa-video text-xl"></i>
+            <h2 class="text-xl font-bold">Review Video Footage</h2>
+        </div>
+        <p class="text-red-500 text-sm">Videos are currently placeholders</p>
+
+        <h3 class="text-lg font-semibold mt-6 mb-4">Match Videos</h3>
+        <div class="grid grid-cols-1 gap-4">
+            <!-- Match Video 1 -->
+            <div class="bg-white rounded-lg shadow overflow-hidden">
+                <img src="/static/images/video_thumbnail.png" class="w-full h-48 object-cover" alt="Match Video">
+                <div class="p-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <h5 class="font-semibold text-sm">You/Jonathan Blume vs. Victor Forman/Stephen Statkus - Court 3</h5>
+                        <span class="bg-gray-800 text-white text-xs px-2 py-1 rounded">12:43</span>
+                    </div>
+                    <p class="text-gray-500 text-sm">Apr 12, 2025 • 243 views</p>
+                </div>
+            </div>
+
+            <!-- Match Video 2 -->
+            <div class="bg-white rounded-lg shadow overflow-hidden">
+                <img src="/static/images/video_thumbnail.png" class="w-full h-48 object-cover" alt="Match Video">
+                <div class="p-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <h5 class="font-semibold text-sm">You/Mike Lieberman vs. Brian Stutland/David Schwartz - Court 1</h5>
+                        <span class="bg-gray-800 text-white text-xs px-2 py-1 rounded">15:21</span>
+                    </div>
+                    <p class="text-gray-500 text-sm">Mar 24, 2025 • 127 views</p>
+                </div>
+            </div>
+
+            <!-- Match Video 3 -->
+            <div class="bg-white rounded-lg shadow overflow-hidden">
+                <img src="/static/images/video_thumbnail.png" class="w-full h-48 object-cover" alt="Match Video">
+                <div class="p-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <h5 class="font-semibold text-sm">You/Andrew Franger vs. Mike Lieberman/Josh Cohen - Court 2</h5>
+                        <span class="bg-gray-800 text-white text-xs px-2 py-1 rounded">9:58</span>
+                    </div>
+                    <p class="text-gray-500 text-sm">Feb 18, 2025 • 85 views</p>
+                </div>
+            </div>
+
+            <!-- Match Video 4 -->
+            <div class="bg-white rounded-lg shadow overflow-hidden">
+                <img src="/static/images/video_thumbnail.png" class="w-full h-48 object-cover" alt="Match Video">
+                <div class="p-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <h5 class="font-semibold text-sm">You/Victor Forman vs. David Schwartz/Alex Johnson - Court 4</h5>
+                        <span class="bg-gray-800 text-white text-xs px-2 py-1 rounded">11:16</span>
+                    </div>
+                    <p class="text-gray-500 text-sm">Jan 30, 2025 • 204 views</p>
+                </div>
+            </div>
+        </div>
+
+        <h3 class="text-lg font-semibold mt-6 mb-4">Practice Videos</h3>
+        <div class="grid grid-cols-1 gap-4">
+            <!-- Practice Video 1 -->
+            <div class="bg-white rounded-lg shadow overflow-hidden">
+                <img src="/static/images/video_thumbnail.png" class="w-full h-48 object-cover" alt="Practice Video">
+                <div class="p-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <h5 class="font-semibold text-sm">Serve Practice with Coach Smith</h5>
+                        <span class="bg-gray-800 text-white text-xs px-2 py-1 rounded">8:32</span>
+                    </div>
+                    <p class="text-gray-500 text-sm">Apr 15, 2025 • 156 views</p>
+                </div>
+            </div>
+
+            <!-- Practice Video 2 -->
+            <div class="bg-white rounded-lg shadow overflow-hidden">
+                <img src="/static/images/video_thumbnail.png" class="w-full h-48 object-cover" alt="Practice Video">
+                <div class="p-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <h5 class="font-semibold text-sm">Backhand Drills Session</h5>
+                        <span class="bg-gray-800 text-white text-xs px-2 py-1 rounded">12:15</span>
+                    </div>
+                    <p class="text-gray-500 text-sm">Apr 8, 2025 • 98 views</p>
+                </div>
+            </div>
+
+            <!-- Practice Video 3 -->
+            <div class="bg-white rounded-lg shadow overflow-hidden">
+                <img src="/static/images/video_thumbnail.png" class="w-full h-48 object-cover" alt="Practice Video">
+                <div class="p-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <h5 class="font-semibold text-sm">Volley Technique Workshop</h5>
+                        <span class="bg-gray-800 text-white text-xs px-2 py-1 rounded">10:45</span>
+                    </div>
+                    <p class="text-gray-500 text-sm">Apr 1, 2025 • 172 views</p>
+                </div>
+            </div>
         </div>
     </div>
 </div>
