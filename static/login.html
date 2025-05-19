@@ -303,14 +303,18 @@
                     }
                     
                     // Add series options
-                    if (series.all_series && Array.isArray(series.all_series)) {
-                        series.all_series.forEach(s => {
+                    if (series.series && Array.isArray(series.series)) {
+                        series.series.forEach(s => {
                             const option = document.createElement('option');
                             option.value = s;
                             option.textContent = s;
                             seriesSelect.appendChild(option);
                         });
                     }
+                } else {
+                    console.error('Failed to load clubs or series');
+                    console.log('Clubs response:', clubsResponse.status);
+                    console.log('Series response:', seriesResponse.status);
                 }
             } catch (error) {
                 console.error('Error loading clubs and series:', error);
@@ -327,63 +331,6 @@
             
             document.querySelector(`.auth-tab:nth-child(${formType === 'login' ? 1 : 2})`).classList.add('active');
             document.getElementById(`${formType}Form`).classList.add('active');
-            
-            // Load series when switching to register form
-            if (formType === 'register') {
-                loadSeries();
-            }
-        }
-
-        // Load series on page load
-        document.addEventListener('DOMContentLoaded', () => {
-            loadSeries();
-        });
-
-        function loadSeries() {
-            console.log('Loading series...');
-            fetch('/api/get-series', { credentials: 'include' })
-                .then(response => {
-                    console.log('Response status:', response.status);
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    console.log('Received data:', data);
-                    const seriesSelect = document.getElementById('series');
-                    if (!seriesSelect) {
-                        console.error('Series select element not found');
-                        return;
-                    }
-                    
-                    // Clear existing options
-                    seriesSelect.innerHTML = '';
-                    
-                    // Add placeholder option
-                    const placeholderOption = document.createElement('option');
-                    placeholderOption.value = '';
-                    placeholderOption.textContent = 'Select Series/Division';
-                    placeholderOption.disabled = true;
-                    placeholderOption.selected = true;
-                    seriesSelect.appendChild(placeholderOption);
-                    
-                    // Add series options
-                    if (data.all_series && Array.isArray(data.all_series)) {
-                        console.log('Adding series options:', data.all_series);
-                        data.all_series.forEach(series => {
-                            const option = document.createElement('option');
-                            option.value = series;
-                            option.textContent = series;
-                            seriesSelect.appendChild(option);
-                        });
-                    } else {
-                        console.error('Invalid series data structure:', data);
-                    }
-                })
-                .catch(error => {
-                    console.error('Error loading series:', error);
-                });
         }
 
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
