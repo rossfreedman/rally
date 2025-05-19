@@ -1,10 +1,11 @@
 from flask import jsonify, request, session, redirect, url_for, render_template
 from functools import wraps
 import hashlib
-import sqlite3
 import logging
 import os
 from werkzeug.security import generate_password_hash, check_password_hash
+from database_utils import execute_query, execute_query_one, execute_update
+from utils.logging import log_user_activity
 
 logger = logging.getLogger(__name__)
 

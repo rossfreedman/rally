@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teams & Players | Rally Mobile</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/mobile/css/style.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { background: #f6faf7; }
+        .header-row {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-top: 1.5rem;
+            margin-bottom: 1.2rem;
+            padding-left: 1rem;
+        }
+        .icon-box {
+            background: #fff;
+            border-radius: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 3rem;
+            width: 3rem;
+            box-shadow: 0 2px 8px 0 rgba(0,0,0,0.06);
+        }
+        .icon-box i {
+            color: #007417;
+            font-size: 2rem;
+        }
+        .header-title {
+            font-size: 2rem;
+            font-weight: bold;
+            line-height: 1.1;
+        }
+        .header-subtitle {
+            font-size: 1rem;
+            color: #6b7280;
+            margin-top: 0.2rem;
+        }
+        .card-section {
+            background: #fff;
+            border-radius: 1rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            padding: 1.2rem 1rem 1.2rem 1rem;
+            margin-bottom: 1.2rem;
+            border: none;
+        }
+        .section-label {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #222;
+            margin-bottom: 0.7rem;
+        }
+        .form-label {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 0.3rem;
+        }
+        .form-select, .form-control {
+            font-size: 1.08rem;
+            border-radius: 0.7rem;
+            margin-bottom: 1rem;
+        }
+        .stat-label { font-weight: 500; color: #555; }
+        .stat-value { font-weight: 600; margin-left: 8px; }
+        .court-card {
+            background: #fff;
+            border-radius: 1rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            padding: 1rem 1rem 0.7rem 1rem;
+            margin-bottom: 1rem;
+            border: none;
+        }
+        .partner-list { padding-left: 18px; margin-bottom: 0; }
+        .partner-list li { margin-bottom: 3px; }
+        .win-rate-high { color: #28a745; }
+        .win-rate-medium { color: #ffc107; }
+        .win-rate-low { color: #dc3545; }
+        @media (max-width: 600px) {
+            .header-title { font-size: 1.3rem; }
+            .card-section { padding: 0.7rem 0.5rem; }
+            .court-card { padding: 0.7rem 0.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header Section -->
+    <div class="header-row">
+        <div class="icon-box">
+            <i class="fas fa-search"></i>
+        </div>
+        <div>
+            <div class="header-title">Teams & Players</div>
+            <div class="header-subtitle">Research teams and player stats across the league.</div>
+        </div>
+    </div>
+    <!-- Main Content Section -->
+    <div class="container" style="max-width: 480px; margin: 0 auto;">
+        <!-- Picklists Card -->
+        <div class="card-section">
+            <div class="section-label"><i class="fas fa-users text-secondary me-2"></i>Select Team & Player</div>
+            <label for="teamSelect" class="form-label">Team</label>
+            <select class="form-select" id="teamSelect">
+                <option value="">Choose a team...</option>
+            </select>
+            <label for="playerSelect" class="form-label">Player</label>
+            <select class="form-select" id="playerSelect" disabled>
+                <option value="">Choose a player...</option>
+            </select>
+        </div>
+        <!-- Team Stats Card -->
+        <div id="teamStatsCard" class="card-section d-none">
+            <div class="section-label"><i class="fas fa-building text-secondary me-2"></i>Team Stats</div>
+            <div id="teamStats"></div>
+        </div>
+        <!-- Player Stats Card -->
+        <div id="playerStatsCard" class="card-section d-none">
+            <div class="section-label"><i class="fas fa-user text-secondary me-2"></i>Player Stats</div>
+            <div id="playerStats"></div>
+        </div>
+        <!-- Court Breakdown Cards -->
+        <div id="courtBreakdown" class="mt-2"></div>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    // --- Desktop analysis functions copied for mobile ---
+    function calculateCourtStats(matches, teamId) {
+        const courts = {
+            "Court 1": { wins: 0, losses: 0, winRate: 0, topPlayers: [] },
+            "Court 2": { wins: 0, losses: 0, winRate: 0, topPlayers: [] },
+            "Court 3": { wins: 0, losses: 0, winRate: 0, topPlayers: [] },
+            "Court 4": { wins: 0, losses: 0, winRate: 0, topPlayers: [] }
+        };
+        const playerCourtPerformance = {};
+        matches.forEach(match => {
+            const isHome = match["Home Team"] === teamId;
+            const teamPlayers = isHome ? [match["Home Player 1"], match["Home Player 2"]] : [match["Away Player 1"], match["Away Player 2"]];
+            const winnerIsHome = match["Winner"] === "home";
+            const teamWon = (isHome && winnerIsHome) || (!isHome && !winnerIsHome);
+            const courtIndex = matches.indexOf(match) % 4;
+            const courtName = `Court ${courtIndex + 1}`;
+            if (teamWon) { courts[courtName].wins++; } else { courts[courtName].losses++; }
+            teamPlayers.forEach(player => {
+                if (!player) return;
+                if (!playerCourtPerformance[player]) playerCourtPerformance[player] = {};
+                if (!playerCourtPerformance[player][courtName]) playerCourtPerformance[player][courtName] = { matches: 0, wins: 0 };
+                playerCourtPerformance[player][courtName].matches++;
+                if (teamWon) playerCourtPerformance[player][courtName].wins++;
+            });
+        });
+        Object.keys(courts).forEach(courtName => {
+            const court = courts[courtName];
+            const totalMatches = court.wins + court.losses;
+            court.winRate = totalMatches > 0 ? Math.round((court.wins / totalMatches) * 100) : 0;
+            const courtPlayers = [];
+            Object.keys(playerCourtPerformance).forEach(player => {
+                const performance = playerCourtPerformance[player][courtName];
+                if (performance && performance.matches >= 2) {
+                    const winRate = Math.round((performance.wins / performance.matches) * 100);
+                    courtPlayers.push({ name: player, matches: performance.matches, wins: performance.wins, winRate });
+                }
+            });
+            courtPlayers.sort((a, b) => b.winRate - a.winRate);
+            court.topPlayers = courtPlayers.slice(0, 2);
+        });
+        return courts;
+    }
+    function calculatePlayerStats(matches, teamId) {
+        const players = {};
+        const partnerships = {};
+        matches.forEach(match => {
+            const isHome = match["Home Team"] === teamId;
+            const player1 = isHome ? match["Home Player 1"] : match["Away Player 1"];
+            const player2 = isHome ? match["Home Player 2"] : match["Away Player 2"];
+            if (!player1 || !player2) return;
+            const winnerIsHome = match["Winner"] === "home";
+            const teamWon = (isHome && winnerIsHome) || (!isHome && !winnerIsHome);
+            const courtIndex = matches.indexOf(match) % 4;
+            const courtName = `Court ${courtIndex + 1}`;
+            [player1, player2].forEach(player => {
+                if (!players[player]) players[player] = { matches: 0, wins: 0, courts: {}, partners: {} };
+                players[player].matches++;
+                if (teamWon) players[player].wins++;
+                if (!players[player].courts[courtName]) players[player].courts[courtName] = { matches: 0, wins: 0 };
+                players[player].courts[courtName].matches++;
+                if (teamWon) players[player].courts[courtName].wins++;
+                const partner = player === player1 ? player2 : player1;
+                if (!players[player].partners[partner]) players[player].partners[partner] = { matches: 0, wins: 0 };
+                players[player].partners[partner].matches++;
+                if (teamWon) players[player].partners[partner].wins++;
+            });
+            const partnershipKey = [player1, player2].sort().join('/');
+            if (!partnerships[partnershipKey]) partnerships[partnershipKey] = { player1, player2, matches: 0, wins: 0, courts: {} };
+            partnerships[partnershipKey].matches++;
+            if (teamWon) partnerships[partnershipKey].wins++;
+            if (!partnerships[partnershipKey].courts[courtName]) partnerships[partnershipKey].courts[courtName] = { matches: 0, wins: 0 };
+            partnerships[partnershipKey].courts[courtName].matches++;
+            if (teamWon) partnerships[partnershipKey].courts[courtName].wins++;
+        });
+        Object.keys(players).forEach(playerName => {
+            const player = players[playerName];
+            player.winRate = player.matches > 0 ? Math.round((player.wins / player.matches) * 100) : 0;
+            let bestCourt = null;
+            let bestCourtWinRate = 0;
+            Object.keys(player.courts).forEach(courtName => {
+                const court = player.courts[courtName];
+                if (court.matches >= 2) {
+                    const courtWinRate = Math.round((court.wins / court.matches) * 100);
+                    if (courtWinRate > bestCourtWinRate) {
+                        bestCourtWinRate = courtWinRate;
+                        bestCourt = { name: courtName, matches: court.matches, wins: court.wins, winRate: courtWinRate };
+                    }
+                }
+            });
+            player.bestCourt = bestCourt;
+            let bestPartner = null;
+            let bestPartnerWinRate = 0;
+            Object.keys(player.partners).forEach(partnerName => {
+                const partner = players[playerName].partners[partnerName];
+                if (partner.matches >= 2) {
+                    const partnerWinRate = Math.round((partner.wins / partner.matches) * 100);
+                    if (partnerWinRate > bestPartnerWinRate) {
+                        bestPartnerWinRate = partnerWinRate;
+                        bestPartner = { name: partnerName, matches: partner.matches, wins: partner.wins, winRate: partnerWinRate };
+                    }
+                }
+            });
+            player.bestPartner = bestPartner;
+        });
+        return players;
+    }
+    // --- End desktop analysis functions ---
+    /**
+     * Mobile Teams & Players page logic
+     * - Loads teams and players from API
+     * - Shows team and player stats
+     * - Responsive for mobile
+     */
+    document.addEventListener('DOMContentLoaded', function() {
+        const teamSelect = document.getElementById('teamSelect');
+        const playerSelect = document.getElementById('playerSelect');
+        const teamStatsCard = document.getElementById('teamStatsCard');
+        const teamStatsDiv = document.getElementById('teamStats');
+        const playerStatsCard = document.getElementById('playerStatsCard');
+        const playerStatsDiv = document.getElementById('playerStats');
+        const courtBreakdownDiv = document.getElementById('courtBreakdown');
+
+        // Load teams on page load
+        fetch('/api/teams')
+            .then(r => r.json())
+            .then(data => {
+                teamSelect.innerHTML = '<option value="">Choose a team...</option>';
+                data.teams.forEach(team => {
+                    const opt = document.createElement('option');
+                    opt.value = team;
+                    opt.textContent = team;
+                    teamSelect.appendChild(opt);
+                });
+            });
+
+        // When a team is selected, load players and team stats
+        teamSelect.addEventListener('change', function() {
+            const team = this.value;
+            // Reset player picklist and stats
+            playerSelect.innerHTML = '<option value="">Choose a player...</option>';
+            playerSelect.disabled = true;
+            playerStatsCard.classList.add('d-none');
+            courtBreakdownDiv.innerHTML = '';
+            // Hide team stats if no team
+            if (!team) {
+                teamStatsCard.classList.add('d-none');
+                return;
+            }
+            // Fetch both stats and matches, then analyze
+            teamStatsCard.classList.remove('d-none');
+            teamStatsDiv.innerHTML = '<div class="text-center">Loading team stats...</div>';
+            Promise.all([
+                fetch(`/api/research-team?team=${encodeURIComponent(team)}`).then(r => r.json()),
+                fetch(`/api/team-matches?team=${encodeURIComponent(team)}`).then(r => r.json())
+            ]).then(([stats, matches]) => {
+                // Use desktop logic to calculate analysis
+                const courtStats = calculateCourtStats(matches, team);
+                const playerStats = calculatePlayerStats(matches, team);
+                // --- Match Patterns ---
+                let totalMatches = matches.length;
+                let straightSetWins = 0, comebackWins = 0, threeSetWins = 0, threeSetLosses = 0;
+                matches.forEach(match => {
+                    const isHome = match["Home Team"] === team;
+                    const winnerIsHome = match["Winner"] === "home";
+                    const teamWon = (isHome && winnerIsHome) || (!isHome && !winnerIsHome);
+                    const sets = match["Sets"] || [];
+                    if (sets.length === 2 && teamWon) straightSetWins++;
+                    if (sets.length === 3) {
+                        if (teamWon) threeSetWins++;
+                        else threeSetLosses++;
+                        // Comeback win: lost first set, won next two
+                        if (!teamWon) return;
+                        if (sets[0] && sets[0][isHome ? 'away' : 'home'] > sets[0][isHome ? 'home' : 'away']) {
+                            comebackWins++;
+                        }
+                    }
+                });
+                let threeSetRecord = `${threeSetWins}-${threeSetLosses}`;
+                // --- Render Overview Card ---
+                let html = `<div class="card-section mb-3">
+                    <div class="section-label">Team Stats</div>
+                    <div><span class='stat-label'>Points:</span><span class='stat-value'>${stats.overview.points}</span></div>
+                    <div><span class='stat-label'>Match Record:</span><span class='stat-value'>${stats.overview.match_record}</span></div>
+                    <div><span class='stat-label'>Match Win Rate:</span><span class='stat-value'>${stats.overview.match_win_rate}%</span></div>
+                    <div><span class='stat-label'>Line Win Rate:</span><span class='stat-value'>${stats.overview.line_win_rate}%</span></div>
+                    <div><span class='stat-label'>Set Win Rate:</span><span class='stat-value'>${stats.overview.set_win_rate}%</span></div>
+                    <div><span class='stat-label'>Game Win Rate:</span><span class='stat-value'>${stats.overview.game_win_rate}%</span></div>
+                </div>`;
+                // --- Match Patterns Card ---
+                html += `<div class="card-section mb-3">
+                    <div class="section-label">Match Patterns</div>
+                    <div class='stat-item'><strong>Total Matches:</strong> ${totalMatches}</div>
+                    <div class='stat-item'><strong>Straight Set Wins:</strong> ${straightSetWins}</div>
+                    <div class='stat-item'><strong>Comeback Wins:</strong> ${comebackWins}</div>
+                    <div class='stat-item'><strong>Three-Set Record:</strong> ${threeSetRecord}</div>
+                </div>`;
+                // --- Court Analysis Card ---
+                html += `<div class="card-section mb-3">
+                    <div class="section-label">Court Analysis</div>`;
+                Object.entries(courtStats).forEach(([court, data]) => {
+                    html += `<div class='court-section mb-2'><strong>${court}:</strong> ${data.wins}-${data.losses} (${data.winRate}% win rate)`;
+                    if (data.topPlayers.length > 0) {
+                        html += `<br>Top Players: ` + data.topPlayers.map(p => `${p.name} (${p.winRate}% in ${p.matches} matches)`).join(', ');
+                    }
+                    html += `</div>`;
+                });
+                html += `</div>`;
+                // --- Top Players Card ---
+                html += `<div class="card-section mb-3">
+                    <div class="section-label">Top Players</div>
+                    <div class='table-responsive'><table class='table table-sm'><thead><tr><th>Name</th><th>Matches</th><th>Win Rate</th><th>Best Court</th><th>Best Partner</th></tr></thead><tbody>`;
+                Object.values(playerStats).filter(p => p.matches >= 3).sort((a, b) => b.winRate - a.winRate).forEach(player => {
+                    html += `<tr><td>${player.name}</td><td>${player.matches}</td><td>${player.winRate}%</td><td>${player.bestCourt ? `${player.bestCourt.name} (${player.bestCourt.winRate}%)` : 'N/A'}</td><td>${player.bestPartner ? `${player.bestPartner.name} (${player.bestPartner.winRate}%)` : 'N/A'}</td></tr>`;
+                });
+                html += `</tbody></table></div></div>`;
+                teamStatsDiv.innerHTML = html;
+            });
+            // Load players for this team
+            fetch(`/api/team-players/${encodeURIComponent(team)}`)
+                .then(r => r.json())
+                .then(data => {
+                    playerSelect.innerHTML = '<option value="">Choose a player...</option>';
+                    if (data.players && data.players.length > 0) {
+                        data.players.forEach(player => {
+                            const opt = document.createElement('option');
+                            opt.value = player.name;
+                            opt.textContent = player.name;
+                            playerSelect.appendChild(opt);
+                        });
+                        playerSelect.disabled = false;
+                    } else {
+                        playerSelect.disabled = true;
+                    }
+                });
+        });
+
+        // When a player is selected, load player stats
+        playerSelect.addEventListener('change', function() {
+            const playerName = this.value;
+            playerStatsCard.classList.add('d-none');
+            courtBreakdownDiv.innerHTML = '';
+            if (!playerName) return;
+            playerStatsCard.classList.remove('d-none');
+            playerStatsDiv.innerHTML = '<div class="text-center">Loading player stats...</div>';
+            fetch('/api/player-history')
+                .then(r => r.json())
+                .then(data => {
+                    const player = data.find(p => p.name && p.name.trim().toLowerCase() === playerName.trim().toLowerCase());
+                    if (!player) {
+                        playerStatsDiv.innerHTML = '<div class="text-muted">No stats found for this player.</div>';
+                        return;
+                    }
+                    const totalMatches = player.matches ? player.matches.length : (player.wins + player.losses);
+                    const wins = player.wins ?? 0;
+                    const losses = player.losses ?? 0;
+                    const winRate = totalMatches > 0 ? ((wins / totalMatches) * 100).toFixed(1) : '0.0';
+                    const pti = player.pti ?? player.rating ?? 'N/A';
+                    playerStatsDiv.innerHTML = `
+                        <div><span class='stat-label'>Name:</span><span class='stat-value'>${player.name}</span></div>
+                        <div><span class='stat-label'>Total Matches:</span><span class='stat-value'>${totalMatches}</span></div>
+                        <div><span class='stat-label'>Record:</span><span class='stat-value'>${wins}-${losses}</span></div>
+                        <div><span class='stat-label'>Win Rate:</span><span class='stat-value'>${winRate}%</span></div>
+                        <div><span class='stat-label'>PTI:</span><span class='stat-value'>${pti}</span></div>
+                    `;
+                    // Court breakdown
+                    if (player.courts && Object.keys(player.courts).length > 0) {
+                        let html = '<div class="section-label">Court Breakdown</div>';
+                        Object.entries(player.courts).forEach(([court, stats]) => {
+                            const courtLosses = stats.matches - stats.wins;
+                            let winRateClass = 'win-rate-low';
+                            if (stats.winRate >= 60) winRateClass = 'win-rate-high';
+                            else if (stats.winRate >= 40) winRateClass = 'win-rate-medium';
+                            html += `<div class='court-card'><div><strong>${court}</strong></div><div><span class='stat-label'>Matches:</span><span class='stat-value'>${stats.matches}</span></div><div><span class='stat-label'>Record:</span><span class='stat-value'>${stats.wins}-${courtLosses}</span></div><div><span class='stat-label'>Win Rate:</span><span class='stat-value ${winRateClass}'>${stats.winRate}%</span></div>`;
+                            if (stats.partners && stats.partners.length > 0) {
+                                html += `<div class='partner-info mt-2'><strong>Most Common Partners:</strong><ul class='partner-list'>`;
+                                stats.partners.forEach(ptn => {
+                                    const partnerLosses = ptn.matches - ptn.wins;
+                                    const partnerWinRate = ptn.matches > 0 ? ((ptn.wins / ptn.matches) * 100).toFixed(1) : '0.0';
+                                    html += `<li>${ptn.name} (${ptn.wins}-${partnerLosses}, ${partnerWinRate}%)</li>`;
+                                });
+                                html += `</ul></div>`;
+                            }
+                            html += `</div>`;
+                        });
+                        courtBreakdownDiv.innerHTML = html;
+                    } else {
+                        courtBreakdownDiv.innerHTML = '';
+                    }
+                });
+        });
+    });
+    </script>
+</body>
+</html> 

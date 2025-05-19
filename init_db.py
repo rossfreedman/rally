@@ -77,20 +77,20 @@ def init_db():
     # Create player_availability table
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS player_availability (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
         player_name TEXT NOT NULL,
-        match_date TEXT NOT NULL,
-        is_available BOOLEAN DEFAULT 1,
+        match_date DATE NOT NULL,
+        is_available BOOLEAN DEFAULT TRUE,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        series TEXT NOT NULL,
-        UNIQUE(player_name, match_date, series)
+        series_id INTEGER NOT NULL REFERENCES series(id),
+        UNIQUE(player_name, match_date, series_id)
     )
     ''')
     
     # Create index on player_name and match_date for faster lookups
     cursor.execute('''
     CREATE INDEX IF NOT EXISTS idx_player_availability 
-    ON player_availability(player_name, match_date, series)
+    ON player_availability(player_name, match_date, series_id)
     ''')
     
     # Create user_activity_logs table

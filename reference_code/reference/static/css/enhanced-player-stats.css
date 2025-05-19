@@ -1,0 +1,151 @@
+.enhanced-player-stats {
+    margin: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    border-radius: 8px;
+}
+
+.enhanced-player-stats .ant-card-body {
+    padding: 0;
+}
+
+.enhanced-player-stats .ant-tabs {
+    margin: 0 -1px;
+}
+
+.enhanced-player-stats .ant-tabs-nav {
+    margin-bottom: 0;
+    padding: 0 24px;
+    background: #fafafa;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+}
+
+.enhanced-player-stats .ant-tabs-content {
+    padding: 24px;
+}
+
+.enhanced-player-stats .ant-table {
+    background: transparent;
+}
+
+.enhanced-player-stats .ant-table-thead > tr > th {
+    background: #f5f5f5;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.enhanced-player-stats .ant-table-tbody > tr > td {
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.enhanced-player-stats .ant-table-tbody > tr:hover > td {
+    background: #fafafa;
+}
+
+/* Streak badges styling */
+.enhanced-player-stats .ant-badge-count {
+    font-weight: 600;
+    min-width: 28px;
+    height: 28px;
+    line-height: 28px;
+    padding: 0 8px;
+    border-radius: 14px;
+}
+
+/* Progress bars styling */
+.enhanced-player-stats .ant-progress-line {
+    margin-bottom: 0;
+}
+
+.enhanced-player-stats .ant-progress-text {
+    font-size: 12px;
+}
+
+/* Tooltips */
+.enhanced-player-stats .ant-tooltip-inner {
+    border-radius: 4px;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .enhanced-player-stats {
+        margin: 10px;
+    }
+
+    .enhanced-player-stats .ant-tabs-content {
+        padding: 12px;
+    }
+
+    .enhanced-player-stats .ant-table {
+        font-size: 14px;
+    }
+
+    .enhanced-player-stats .ant-table-thead > tr > th,
+    .enhanced-player-stats .ant-table-tbody > tr > td {
+        padding: 8px;
+    }
+
+    /* Stack columns on mobile */
+    .enhanced-player-stats .ant-table-tbody > tr > td {
+        display: block;
+        width: 100%;
+        border-bottom: none;
+        padding: 4px 8px;
+    }
+
+    .enhanced-player-stats .ant-table-tbody > tr {
+        border-bottom: 1px solid #f0f0f0;
+        margin-bottom: 8px;
+        display: block;
+    }
+
+    .enhanced-player-stats .ant-table-thead {
+        display: none;
+    }
+
+    /* Add labels for mobile */
+    .enhanced-player-stats .ant-table-tbody > tr > td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        display: inline-block;
+        min-width: 100px;
+        color: #1f2937;
+    }
+}
+
+/* Animations */
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.enhanced-player-stats .ant-badge-count[style*="background-color: #f50"] {
+    animation: pulse 1.5s infinite;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    .enhanced-player-stats {
+        background: #1f2937;
+    }
+
+    .enhanced-player-stats .ant-card-body,
+    .enhanced-player-stats .ant-tabs-nav {
+        background: #1f2937;
+    }
+
+    .enhanced-player-stats .ant-table-thead > tr > th {
+        background: #374151;
+        color: #f3f4f6;
+    }
+
+    .enhanced-player-stats .ant-table-tbody > tr > td {
+        border-bottom-color: #374151;
+        color: #f3f4f6;
+    }
+
+    .enhanced-player-stats .ant-table-tbody > tr:hover > td {
+        background: #374151;
+    }
+} 

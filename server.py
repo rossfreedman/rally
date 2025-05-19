@@ -791,6 +791,7 @@ def set_series():
 @app.route('/api/get-series')
 def get_series():
     try:
+        print("\n=== GET SERIES REQUEST ===")
         # Get all series from the database
         result = execute_query(
             """
@@ -799,21 +800,25 @@ def get_series():
             """
         )
         
-        all_series = [row['name'] for row in result]
+        all_series = [row['name'] for row in result] if result else []
         
-        # If user is logged in, include their current series
-        current_series = None
-        if 'user' in session and 'series' in session['user']:
-            current_series = session['user']['series']
+        # Get the user's current series from their session
+        user_series = session.get('user', {}).get('series', '')
+        print(f"\nUser series from session: {user_series}")
+        print(f"Available series: {all_series}")
+        print(f"Number of series: {len(all_series)}")
         
-        return jsonify({
-            'all_series': all_series,
-            'current_series': current_series
-        })
-            
+        response_data = {
+            'series': user_series,
+            'all_series': all_series
+        }
+        
+        print(f"\nReturning response: {response_data}")
+        return jsonify(response_data)
     except Exception as e:
-        print(f"Error getting series: {str(e)}")
-        return jsonify({'error': 'Failed to get series'}), 500
+        print(f"\nError getting series: {str(e)}")
+        print("Full error:", traceback.format_exc())
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/get-players-series-22', methods=['GET'])
 def get_players_series_22():
@@ -1736,7 +1741,7 @@ def get_clubs():
             """
         )
         
-        all_clubs = [row['name'] for row in result]
+        all_clubs = [row['name'] for row in result] if result else []
         
         # If user is logged in, include their current club
         current_club = None

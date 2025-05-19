@@ -1,0 +1,160 @@
+{% extends "mobile/layout.html" %}
+{% set show_back_arrow = True %}
+{% block content %}
+<!-- iMessage-style chat CSS -->
+<style>
+#ai-chat-messages {
+  min-height: 300px;
+  max-height: 400px;
+  overflow-y: auto;
+  background: #f5f5f7;
+  border-radius: 1.5rem;
+  padding: 1rem 0.5rem;
+  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.imessage-bubble {
+  display: inline-block;
+  padding: 0.6em 1em;
+  border-radius: 1.25em;
+  max-width: 80%;
+  word-break: break-word;
+  font-size: 1rem;
+  margin-bottom: 2px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+.imessage-user {
+  align-self: flex-end;
+  background: #007aff;
+  color: #fff;
+  border-bottom-right-radius: 0.4em;
+  border-bottom-left-radius: 1.25em;
+  border-top-left-radius: 1.25em;
+  border-top-right-radius: 1.25em;
+}
+.imessage-ai {
+  align-self: flex-start;
+  background: #e5e5ea;
+  color: #222;
+  border-bottom-left-radius: 0.4em;
+  border-bottom-right-radius: 1.25em;
+  border-top-left-radius: 1.25em;
+  border-top-right-radius: 1.25em;
+}
+#ai-chat-form {
+  background: #fff;
+  border-radius: 2em;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  padding: 0.5em 0.75em;
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+}
+#ai-chat-input {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 1rem;
+  flex: 1;
+  padding: 0.5em 0.2em;
+}
+#ai-chat-input::placeholder {
+  color: #aaa;
+}
+#ai-chat-form button {
+  background: #007aff;
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 2.5em;
+  height: 2.5em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2em;
+  transition: background 0.2s;
+}
+#ai-chat-form button:hover {
+  background: #005ecb;
+}
+</style>
+
+<!-- Consistent mobile header -->
+<div class="flex items-center gap-3 mt-4 mb-2 px-4">
+  <div class="bg-white rounded-md flex items-center justify-center h-12 w-12">
+    <i class="fas fa-robot text-black text-3xl"></i>
+  </div>
+  <div>
+    <div class="text-2xl font-bold leading-tight">Rally AI Assistant</div>
+    <div class="text-base text-gray-500 mt-1">Ask anything about paddle tennis, lineups, stats, or your team.</div>
+  </div>
+</div>
+
+<div class="max-w-lg mx-auto">
+    <div class="bg-white rounded-xl shadow p-4 mt-2 mb-6">
+        <div id="ai-chat-messages" class="mb-3 space-y-2" style="min-height:180px; background:#f5f5f7; border-radius:1.5rem; padding:1rem 0.5rem; display:flex; flex-direction:column; gap:0.5rem; align-items:stretch;"></div>
+        <form id="ai-chat-form" class="flex gap-2">
+            <input type="text" id="ai-chat-input" class="flex-1 border rounded px-3 py-2" placeholder="Ask me anything about paddle tennis..." autocomplete="off" required>
+            <button type="submit" class="bg-[#007aff] hover:bg-[#005ecb] text-white px-4 py-2 rounded-full">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </form>
+    </div>
+</div>
+<script>
+// iMessage-style chat rendering
+const messages = document.getElementById('ai-chat-messages');
+function appendMessage(text, sender) {
+    const div = document.createElement('div');
+    div.className = 'imessage-bubble ' + (sender === 'user' ? 'imessage-user' : 'imessage-ai');
+    div.innerHTML = text;
+    messages.appendChild(div);
+    messages.scrollTop = messages.scrollHeight;
+}
+// On page load, show the AI intro as conversation bubbles
+window.addEventListener('DOMContentLoaded', function() {
+    appendMessage("👋 Hello! I'm your Rally Assistant.", 'ai');
+    appendMessage("Ask me about a specific player", 'ai');
+    appendMessage("Request stats on a team", 'ai');
+    appendMessage("Ask me anything about league rules", 'ai');
+});
+document.getElementById('ai-chat-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const input = document.getElementById('ai-chat-input');
+    const userMsg = input.value.trim();
+    if (!userMsg) return;
+    appendMessage(`<b>You:</b> ${userMsg}`, 'user');
+    input.value = '';
+    appendMessage('One moment. Rally AI is thinking...', 'ai');
+    try {
+        const resp = await fetch('/api/chat', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({message: userMsg})
+        });
+        const data = await resp.json();
+        // Remove the typing indicator (last AI message)
+        const last = messages.lastChild;
+        if (last && last.classList.contains('imessage-ai') && last.innerText === 'One moment. Rally AI is thinking...') {
+            messages.removeChild(last);
+        }
+        if (data.message) {
+            appendMessage(`<b>Rally AI:</b> ${data.message}`, 'ai');
+        } else {
+            appendMessage('<b>Rally AI:</b> Sorry, something went wrong.', 'ai');
+        }
+    } catch {
+        const last = messages.lastChild;
+        if (last && last.classList.contains('imessage-ai') && last.innerText === 'One moment. Rally AI is thinking...') {
+            messages.removeChild(last);
+        }
+        appendMessage('<b>Rally AI:</b> Sorry, something went wrong.', 'ai');
+    }
+});
+</script>
+{% endblock %} 

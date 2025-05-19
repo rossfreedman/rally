@@ -1,0 +1,144 @@
+/* Modern Light Theme for Mobile Home Page */
+body {
+  background: #f7fafc;
+  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+  color: #222;
+}
+
+.home-header {
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+  font-size: 2rem;
+  font-weight: 700;
+  text-align: center;
+  letter-spacing: 0.01em;
+}
+
+.home-subheader {
+  text-align: center;
+  color: #888;
+  font-size: 1.1rem;
+  margin-bottom: 1.5rem;
+}
+
+.captain-message-card {
+  background: #fffbe6;
+  border-left: 4px solid #FFD600;
+  padding: 1rem 1.2rem;
+  margin: 0 auto 2rem auto;
+  border-radius: 0.7rem;
+  box-shadow: 0 2px 8px 0 rgba(0,0,0,0.04);
+  max-width: 420px;
+  font-size: 1.05em;
+}
+
+.icon-section {
+  background: #f9fafb;
+  border-radius: 1.3rem;
+  box-shadow: 0 2px 10px 0 rgba(0,0,0,0.04);
+  padding: 1.2rem 0.5rem 1.5rem 0.5rem;
+  margin: 0 auto 2.2rem auto;
+  max-width: 460px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #222;
+  margin: 0 0 1.1rem 0.2rem;
+  letter-spacing: 0.01em;
+  gap: 0.5em;
+}
+.section-header i {
+  color: #FFD600;
+  font-size: 1.5em;
+  margin-right: 0.4em;
+}
+
+.icon-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem 1.2rem;
+  justify-items: center;
+  margin: 0 auto;
+  max-width: 440px;
+}
+
+.icon-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-decoration: none;
+  color: #222;
+  width: 110px;
+  margin-bottom: 0.5rem;
+  transition: box-shadow 0.18s, background 0.18s, color 0.18s;
+}
+
+.icon-btn:focus, .icon-btn:hover {
+  color: #FFD600;
+  outline: none;
+}
+
+.icon-btn .icon-circle {
+  background: #fff;
+  border-radius: 50%;
+  width: 84px;
+  height: 84px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 12px 0 rgba(0,0,0,0.10);
+  margin-bottom: 0.7rem;
+  font-size: 2.5rem;
+  transition: box-shadow 0.18s, background 0.18s;
+}
+
+.icon-btn:focus .icon-circle, .icon-btn:hover .icon-circle {
+  background: #fffde7;
+  box-shadow: 0 0 0 4px #FFD60033, 0 2px 12px 0 rgba(0,0,0,0.12);
+}
+
+.icon-label {
+  font-size: 1.18rem;
+  font-weight: 600;
+  margin-top: 0.1rem;
+  text-align: center;
+  letter-spacing: 0.01em;
+}
+
+@media (max-width: 700px) {
+  .icon-section {
+    max-width: 99vw;
+    padding-left: 0.2rem;
+    padding-right: 0.2rem;
+  }
+  .icon-grid {
+    max-width: 99vw;
+    gap: 1.1rem 0.7rem;
+  }
+  .icon-btn {
+    width: 90px;
+  }
+  .icon-btn .icon-circle {
+    width: 64px;
+    height: 64px;
+    font-size: 1.7rem;
+  }
+  .icon-label {
+    font-size: 1.01rem;
+  }
+}
+
+/* Settings section: center and add margin */
+.icon-section.settings-section {
+  display: flex;
+  justify-content: center;
+  background: none;
+  box-shadow: none;
+  margin-top: 2.8rem;
+  margin-bottom: 2.5rem;
+  padding: 0;
+} 
