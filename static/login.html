@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Rally | Paddle Tennis Login</title>
-    <link rel="icon" type="image/png" href="/static/rallylogo.png">
+    <title>Rally</title>
+    <link rel="icon" type="image/png" href="/static/images/rally_favicon.png">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="/static/css/styles.css" rel="stylesheet">
@@ -288,19 +288,29 @@
                     const clubSelect = document.getElementById('club');
                     const seriesSelect = document.getElementById('series');
                     
-                    clubs.clubs.forEach(club => {
-                        const option = document.createElement('option');
-                        option.value = club;
-                        option.textContent = club;
-                        clubSelect.appendChild(option);
-                    });
+                    // Add placeholder options
+                    clubSelect.innerHTML = '<option value="" disabled selected>Select Club</option>';
+                    seriesSelect.innerHTML = '<option value="" disabled selected>Select Series/Division</option>';
                     
-                    series.series.forEach(s => {
-                        const option = document.createElement('option');
-                        option.value = s;
-                        option.textContent = s;
-                        seriesSelect.appendChild(option);
-                    });
+                    // Add club options
+                    if (clubs.clubs && Array.isArray(clubs.clubs)) {
+                        clubs.clubs.forEach(club => {
+                            const option = document.createElement('option');
+                            option.value = club;
+                            option.textContent = club;
+                            clubSelect.appendChild(option);
+                        });
+                    }
+                    
+                    // Add series options
+                    if (series.all_series && Array.isArray(series.all_series)) {
+                        series.all_series.forEach(s => {
+                            const option = document.createElement('option');
+                            option.value = s;
+                            option.textContent = s;
+                            seriesSelect.appendChild(option);
+                        });
+                    }
                 }
             } catch (error) {
                 console.error('Error loading clubs and series:', error);

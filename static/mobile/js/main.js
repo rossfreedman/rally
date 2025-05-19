@@ -1,11 +1,19 @@
 // Rally Mobile JavaScript
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize mobile features
+    console.log('Rally Mobile App Initialized');
+    
+    // Initialize mobile app
     initMobileApp();
     
-    // Track page visit on initial load
-    trackPageVisit();
+    // Set up navigation drawer
+    setupNavDrawer();
+    
+    // Load any dynamic content
+    loadDynamicContent();
+    
+    // Setup event listeners
+    setupEventListeners();
 });
 
 /**
@@ -36,6 +44,7 @@ function checkAuthentication() {
                         authenticated: true,
                         user: data.user
                     };
+                    console.log('User authenticated:', data.user.email);
                 } else {
                     // Redirect to login if not on login page
                     if (!window.location.pathname.includes('/login')) {
@@ -46,6 +55,8 @@ function checkAuthentication() {
             .catch(error => {
                 console.error('Error checking authentication:', error);
             });
+    } else if (window.sessionData.user) {
+        console.log('User authenticated:', window.sessionData.user.email);
     }
 }
 
@@ -85,11 +96,11 @@ function handleOrientationChanges() {
  * Adjust layout based on device orientation
  */
 function adjustLayoutForOrientation() {
-    const isLandscape = window.innerWidth > window.innerHeight;
+    const isPortrait = window.innerHeight > window.innerWidth;
     
     // Add orientation-specific classes
-    document.body.classList.toggle('landscape', isLandscape);
-    document.body.classList.toggle('portrait', !isLandscape);
+    document.body.classList.toggle('portrait', isPortrait);
+    document.body.classList.toggle('landscape', !isPortrait);
     
     // You can add specific layout adjustments for landscape/portrait here
 }
@@ -98,25 +109,24 @@ function adjustLayoutForOrientation() {
  * Track page visit analytics
  */
 function trackPageVisit() {
-    // Get current page
-    const path = window.location.pathname;
-    const page = path.split('/').pop() || 'home';
-    
-    // Only track if authenticated
-    if (window.sessionData && window.sessionData.authenticated) {
-        // Log page visit
+    if (window.sessionData && window.sessionData.user) {
+        const data = {
+            action_type: 'page_visit',
+            action_text: document.title || 'Page Visit',
+            action_href: window.location.pathname,
+            page: window.location.pathname
+        };
+        
+        // Use fetch with proper headers
         fetch('/api/log-click', {
             method: 'POST',
             headers: {
+                'Accept': 'application/json',
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                type: 'page_visit',
-                page: page,
-                details: `Visited mobile ${page} page`
-            })
-        })
-        .catch(error => {
+            body: JSON.stringify(data),
+            credentials: 'same-origin'
+        }).catch(error => {
             console.error('Error logging page visit:', error);
         });
     }
@@ -164,7 +174,9 @@ function showToast(message, type = 'info') {
 // Export functions for use in other scripts
 window.app = {
     showToast,
-    trackPageVisit
+    trackPageVisit,
+    checkAuthentication,
+    loadDynamicContent
 };
 
 // Mobile app JavaScript
@@ -173,8 +185,8 @@ window.app = {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Rally Mobile App Initialized');
     
-    // Initialize Socket.IO if available
-    initializeSocketIO();
+    // Initialize mobile app
+    initMobileApp();
     
     // Set up navigation drawer
     setupNavDrawer();
@@ -216,21 +228,30 @@ function setupNavDrawer() {
     if (drawer && toggleButton) {
         // Add click outside to close
         document.addEventListener('click', function(event) {
-            if (drawer.classList.contains('open') && 
+            if (drawer.classList.contains('translate-x-0') && 
                 !drawer.contains(event.target) && 
                 !toggleButton.contains(event.target)) {
-                drawer.classList.remove('open');
+                toggleDrawer();
             }
+        });
+
+        // Handle navigation links
+        const navLinks = drawer.querySelectorAll('a.nav-link');
+        navLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                // Close the drawer
+                toggleDrawer();
+                
+                // Let the navigation happen
+                return true;
+            });
         });
     }
 }
 
 // Load dynamic content based on the current page
 function loadDynamicContent() {
-    // Check if we have session data
     if (window.sessionData && window.sessionData.user) {
-        console.log('User authenticated:', window.sessionData.user.email);
-        
         // Load upcoming matches if we're on the home page
         if (document.querySelector('.upcoming-matches')) {
             fetchUpcomingMatches();
@@ -288,38 +309,37 @@ function fetchUpcomingMatches() {
 
 // Set up global event listeners
 function setupEventListeners() {
-    // Log activity on important clicks
+    // Log activity on important clicks without preventing navigation
     document.addEventListener('click', function(e) {
         const target = e.target.closest('a, button');
-        if (target && !target.getAttribute('data-no-log')) {
-            logUserActivity(target);
-        }
-    });
-}
-
-// Log user activity to the server
-function logUserActivity(element) {
-    try {
-        const actionType = element.tagName.toLowerCase();
-        const actionText = element.innerText.trim();
-        const actionHref = element.href || '';
+        if (!target) return;
         
+        // Skip tracking for elements with data-no-log attribute
+        if (target.getAttribute('data-no-log')) {
+            return;
+        }
+        
+        // Regular click logging for non-logout elements
+        const data = {
+            action_type: target.tagName.toLowerCase(),
+            action_text: target.innerText.trim(),
+            action_href: target.href || '',
+            page: window.location.pathname
+        };
+        
+        // Use fetch with proper headers
         fetch('/api/log-click', {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                action_type: actionType,
-                action_text: actionText,
-                action_href: actionHref,
-                page: window.location.pathname
-            }),
-            credentials: 'include'
-        }).catch(err => console.error('Error logging activity:', err));
-    } catch (error) {
-        console.error('Error in logUserActivity:', error);
-    }
+            body: JSON.stringify(data),
+            credentials: 'same-origin'
+        }).catch(error => {
+            console.error('Error logging click:', error);
+        });
+    });
 }
 
 function toggleDrawer() {

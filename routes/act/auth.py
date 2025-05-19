@@ -4,6 +4,7 @@ import hashlib
 import sqlite3
 import logging
 import os
+from werkzeug.security import generate_password_hash, check_password_hash
 
 logger = logging.getLogger(__name__)
 
@@ -18,12 +19,17 @@ def login_required(f):
     return decorated_function
 
 def hash_password(password):
-    """Hash a password using SHA-256"""
-    return hashlib.sha256(password.encode()).hexdigest()
+    """Hash a password using Werkzeug's secure method"""
+    return generate_password_hash(password, method='pbkdf2:sha256')
 
 def verify_password(stored_password, provided_password):
     """Verify a password against its hash"""
-    return stored_password == hash_password(provided_password)
+    # Handle old-style hash (format: plain SHA-256)
+    if len(stored_password) == 64:  # SHA-256 hash length
+        old_hash = hashlib.sha256(provided_password.encode()).hexdigest()
+        return stored_password == old_hash
+    # Handle new-style Werkzeug hash
+    return check_password_hash(stored_password, provided_password)
 
 def init_routes(app):
     @app.route('/login', methods=['GET', 'POST'])
@@ -38,39 +44,77 @@ def init_routes(app):
             data = request.get_json()
             email = data.get('email', '').lower()
             password = data.get('password', '')
-            name = data.get('name', '')
-            club = data.get('club', '')
-            series = data.get('series', '')
+            first_name = data.get('firstName', '')
+            last_name = data.get('lastName', '')
+            club_name = data.get('club', '')
+            series_name = data.get('series', '')
 
-            if not all([email, password, name, club, series]):
-                return jsonify({'error': 'Missing required fields'}), 400
+            if not all([email, password, first_name, last_name, club_name, series_name]):
+                missing = []
+                if not email: missing.append('email')
+                if not password: missing.append('password')
+                if not first_name: missing.append('firstName')
+                if not last_name: missing.append('lastName')
+                if not club_name: missing.append('club')
+                if not series_name: missing.append('series')
+                return jsonify({'error': f'Missing required fields: {", ".join(missing)}'}), 400
 
-            # Hash the password
+            # Hash the password using the new secure method
             hashed_password = hash_password(password)
 
-            # Connect to database
-            conn = sqlite3.connect('data/paddlepro.db')
-            cursor = conn.cursor()
+            try:
+                # Get club and series IDs
+                club_id = execute_query_one(
+                    "SELECT id FROM clubs WHERE name = %(club)s",
+                    {'club': club_name}
+                )['id']
+                
+                series_id = execute_query_one(
+                    "SELECT id FROM series WHERE name = %(series)s",
+                    {'series': series_name}
+                )['id']
 
-            # Check if user already exists
-            cursor.execute('SELECT email FROM users WHERE email = ?', (email,))
-            if cursor.fetchone():
-                return jsonify({'error': 'User already exists'}), 409
+                # Check if user already exists
+                existing_user = execute_query_one(
+                    "SELECT id FROM users WHERE LOWER(email) = LOWER(%(email)s)",
+                    {'email': email}
+                )
+                
+                if existing_user:
+                    return jsonify({'error': 'User already exists'}), 409
 
-            # Insert new user
-            cursor.execute('''
-                INSERT INTO users (email, password, name, club, series)
-                VALUES (?, ?, ?, ?, ?)
-            ''', (email, hashed_password, name, club, series))
-            
-            conn.commit()
-            conn.close()
+                # Insert new user
+                success = execute_update(
+                    """
+                    INSERT INTO users (email, password_hash, first_name, last_name, club_id, series_id)
+                    VALUES (%(email)s, %(password_hash)s, %(first_name)s, %(last_name)s, %(club_id)s, %(series_id)s)
+                    """,
+                    {
+                        'email': email,
+                        'password_hash': hashed_password,
+                        'first_name': first_name,
+                        'last_name': last_name,
+                        'club_id': club_id,
+                        'series_id': series_id
+                    }
+                )
 
-            return jsonify({'message': 'Registration successful'}), 201
+                if not success:
+                    logger.error("Failed to insert new user")
+                    return jsonify({'error': 'Registration failed'}), 500
+
+                # Log successful registration
+                log_user_activity(email, 'auth', action='register', details='Registration successful')
+                
+                return jsonify({'message': 'Registration successful'}), 201
+
+            except Exception as db_error:
+                logger.error(f"Database error during registration: {str(db_error)}")
+                return jsonify({'error': 'Registration failed - database error'}), 500
 
         except Exception as e:
             logger.error(f"Registration error: {str(e)}")
-            return jsonify({'error': 'Registration failed'}), 500
+            return jsonify({'error': 'Registration failed - server error'}), 500
 
     @app.route('/api/login', methods=['POST'])
     def handle_login():
@@ -82,46 +126,63 @@ def init_routes(app):
             if not email or not password:
                 return jsonify({'error': 'Missing email or password'}), 400
 
-            # Connect to database
-            conn = sqlite3.connect('data/paddlepro.db')
-            cursor = conn.cursor()
+            try:
+                # Get user with club and series info
+                user = execute_query_one(
+                    """
+                    SELECT u.id, u.email, u.password_hash, u.first_name, u.last_name,
+                           c.name as club_name, s.name as series_name, u.settings
+                    FROM users u
+                    JOIN clubs c ON u.club_id = c.id
+                    JOIN series s ON u.series_id = s.id
+                    WHERE LOWER(u.email) = LOWER(%(email)s)
+                    """,
+                    {'email': email}
+                )
 
-            # Get user
-            cursor.execute('''
-                SELECT email, password, name, club, series, settings
-                FROM users 
-                WHERE email = ?
-            ''', (email,))
-            
-            user = cursor.fetchone()
-            conn.close()
+                if not user:
+                    logger.warning(f"Login attempt failed - user not found: {email}")
+                    return jsonify({'error': 'Invalid email or password'}), 401
 
-            if not user or not verify_password(user[1], password):
-                return jsonify({'error': 'Invalid email or password'}), 401
+                if not verify_password(user['password_hash'], password):
+                    logger.warning(f"Login attempt failed - invalid password: {email}")
+                    return jsonify({'error': 'Invalid email or password'}), 401
 
-            # Set session data
-            session['user'] = {
-                'email': user[0],
-                'name': user[2],
-                'club': user[3],
-                'series': user[4],
-                'settings': user[5] if user[5] else '{}'
-            }
-            session.permanent = True
-
-            return jsonify({
-                'message': 'Login successful',
-                'user': {
-                    'email': user[0],
-                    'name': user[2],
-                    'club': user[3],
-                    'series': user[4]
+                # Set session data
+                session['user'] = {
+                    'id': user['id'],
+                    'email': user['email'],
+                    'first_name': user['first_name'],
+                    'last_name': user['last_name'],
+                    'club': user['club_name'],
+                    'series': user['series_name'],
+                    'settings': user['settings'] if user['settings'] else '{}'
                 }
-            })
+                session.permanent = True
+
+                # Log successful login
+                log_user_activity(email, 'auth', action='login', details='Login successful')
+
+                return jsonify({
+                    'status': 'success',
+                    'message': 'Login successful',
+                    'redirect': '/mobile',
+                    'user': {
+                        'email': user['email'],
+                        'first_name': user['first_name'],
+                        'last_name': user['last_name'],
+                        'club': user['club_name'],
+                        'series': user['series_name']
+                    }
+                })
+
+            except Exception as db_error:
+                logger.error(f"Database error during login: {str(db_error)}")
+                return jsonify({'error': 'Login failed - database error'}), 500
 
         except Exception as e:
             logger.error(f"Login error: {str(e)}")
-            return jsonify({'error': 'Login failed'}), 500
+            return jsonify({'error': 'Login failed - server error'}), 500
 
     @app.route('/api/logout', methods=['POST'])
     def handle_logout():
@@ -136,14 +197,5 @@ def init_routes(app):
     def logout_page():
         session.clear()
         return redirect(url_for('login'))
-
-    @app.route('/api/check-auth')
-    def check_auth():
-        if 'user' in session:
-            return jsonify({
-                'authenticated': True,
-                'user': session['user']
-            })
-        return jsonify({'authenticated': False}), 401
 
     return app 

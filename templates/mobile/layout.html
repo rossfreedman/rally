@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Rally{% endblock %}</title>
-    <link rel="icon" type="image/png" href="/rally_favicon.png">
+    <link rel="icon" type="image/png" href="/static/images/rally_favicon.png">
     
     <!-- Tailwind CSS & DaisyUI -->
     <link href="https://cdn.jsdelivr.net/npm/daisyui@3.9.3/dist/full.css" rel="stylesheet">
@@ -14,6 +14,7 @@
     <link href="/static/mobile/css/style.css" rel="stylesheet">
     <script src="/static/mobile/js/main.js" defer></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="/static/mobile/css/tailwind.css" rel="stylesheet">
 
     <style>
         /* Custom styles */
@@ -38,7 +39,11 @@
     <!-- Top Bar -->
     <nav class="navbar bg-black shadow-md px-4 py-2 relative" style="position: fixed; top: 0; left: 0; width: 100%; z-index: 1000; height: 56px; box-shadow: 0 2px 8px rgba(0,0,0,0.08)">
         {% if show_back_arrow %}
-            {% include "mobile/_back_arrow.html" %}
+            <a href="javascript:history.back()" class="back-arrow" aria-label="Go back">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;">
+                    <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+            </a>
         {% endif %}
         <a href="/mobile" class="navbar-logo absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2">
             <img src="/static/images/rallylogo.png" alt="Rally Logo" class="h-10 w-auto">
@@ -63,10 +68,10 @@
                 <div>
                     <div class="font-bold text-lg mb-2 flex items-center gap-2 text-black"><i class="fas fa-bolt text-black"></i> Act</div>
                     <ul class="space-y-2 ml-6">
-                        <li><a href="/mobile/view-schedule" class="flex items-center gap-2 text-lg text-black"><span class="inline-block w-7 text-center"><i class="fas fa-calendar text-black"></i></span> View Schedule</a></li>
-                        <li><a href="/mobile/availability" class="flex items-center gap-2 text-lg text-black"><span class="inline-block w-7 text-center"><i class="fas fa-calendar-check text-black"></i></span> Manage Availability</a></li>
-                        <li><a href="/mobile/improve" class="flex items-center gap-2 text-lg text-black"><span class="inline-block w-7 text-center"><i class="fas fa-chart-line text-black"></i></span> Improve my game</a></li>
-                        <li><a href="/mobile/ask-ai" class="flex items-center gap-2 text-lg text-black"><span class="inline-block w-7 text-center"><i class="fas fa-robot text-black"></i></span> Ask Rally AI</a></li>
+                        <li><a href="/mobile/view-schedule" class="nav-link flex items-center gap-2 text-lg text-black"><span class="inline-block w-7 text-center"><i class="fas fa-calendar text-black"></i></span> View Schedule</a></li>
+                        <li><a href="/mobile/availability" class="nav-link flex items-center gap-2 text-lg text-black"><span class="inline-block w-7 text-center"><i class="fas fa-calendar-check text-black"></i></span> Manage Availability</a></li>
+                        <li><a href="/mobile/improve" class="nav-link flex items-center gap-2 text-lg text-black"><span class="inline-block w-7 text-center"><i class="fas fa-chart-line text-black"></i></span> Improve my game</a></li>
+                        <li><a href="/mobile/ask-ai" class="nav-link flex items-center gap-2 text-lg text-black"><span class="inline-block w-7 text-center"><i class="fas fa-robot text-black"></i></span> Ask Rally AI</a></li>
                     </ul>
                 </div>
                 <!-- Analyze Section -->
@@ -84,7 +89,7 @@
                 <div>
                     <div class="font-bold text-lg mb-2 flex items-center gap-2 text-black"><i class="fas fa-star text-black"></i> Captain Stuff</div>
                     <ul class="space-y-2 ml-6">
-                        <li><a href="/mobile/view-schedule" class="flex items-center gap-2 text-lg text-black"><span class="inline-block w-7 text-center"><i class="fas fa-calendar text-black"></i></span> Team Schedule</a></li>
+                        <li><a href="/mobile/team-schedule" class="nav-link flex items-center gap-2 text-lg text-black"><span class="inline-block w-7 text-center"><i class="fas fa-calendar text-black"></i></span> Team Schedule</a></li>
                         <li><a href="/mobile/find-subs" class="flex items-center gap-2 text-lg text-black"><span class="inline-block w-7 text-center"><i class="fas fa-user-plus text-black"></i></span> Find Sub</a></li>
                         <li><a href="/mobile/lineup" class="flex items-center gap-2 text-lg text-black"><span class="inline-block w-7 text-center"><i class="fas fa-clipboard-list text-black"></i></span> Create Lineup</a></li>
                         <li><a href="/mobile/lineup-escrow" class="flex items-center gap-2 text-lg text-black"><span class="inline-block w-7 text-center"><i class="fas fa-lock text-black"></i></span> Lineup Escrow</a></li>
@@ -97,7 +102,7 @@
                     <div class="font-bold text-lg mb-2 flex items-center gap-2 text-black"><i class="fas fa-cog text-black"></i> Settings</div>
                     <ul class="space-y-2 ml-6">
                         <li><a href="/mobile/settings" class="flex items-center gap-2 text-lg text-black"><span class="inline-block w-7 text-center"><i class="fas fa-user-cog text-black"></i></span> User Settings</a></li>
-                        <li><a href="#" onclick="handleLogout(event)" class="flex items-center gap-2 text-lg text-black"><span class="inline-block w-7 text-center"><i class="fas fa-sign-out-alt text-black"></i></span> Logout</a></li>
+                        <li><button onclick="logout()" class="flex items-center gap-2 text-lg text-black w-full text-left"><span class="inline-block w-7 text-center"><i class="fas fa-sign-out-alt text-black"></i></span> Logout</button></li>
                     </ul>
                 </div>
             </nav>
@@ -128,26 +133,61 @@
             }
         }
 
-        function handleLogout(event) {
-            event.preventDefault();
-            fetch('/api/logout', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.redirect) {
-                    window.location.href = data.redirect;
-                }
-            })
-            .catch(error => {
-                console.error('Logout error:', error);
-                // Fallback to regular logout page if API fails
-                window.location.href = '/logout';
+        // Handle navigation link clicks
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', function(e) {
+                // Close the drawer
+                toggleDrawer();
+                
+                // Let the click event complete and navigation happen
+                setTimeout(() => {
+                    // Log the click using sendBeacon
+                    const data = {
+                        action_type: 'navigation',
+                        action_text: this.innerText.trim(),
+                        action_href: this.href,
+                        page: window.location.pathname
+                    };
+                    navigator.sendBeacon('/api/log-click', JSON.stringify(data));
+                }, 0);
             });
+        });
+
+        // Logout function
+        async function logout() {
+            console.log('Logout function called');
+            try {
+                const response = await fetch('/api/logout', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    credentials: 'include'
+                });
+                
+                if (response.ok) {
+                    // Clear any client-side state
+                    sessionStorage.clear();
+                    localStorage.clear();
+                    
+                    // Redirect to login page
+                    window.location.href = '/login';
+                } else {
+                    console.error('Logout failed:', response.status);
+                    // Fallback to direct logout
+                    window.location.href = '/logout';
+                }
+            } catch (error) {
+                console.error('Logout error:', error);
+                // Fallback to direct logout
+                window.location.href = '/logout';
+            }
         }
+
+        // Make logout function available globally
+        window.logout = logout;
     </script>
 
 </body>

@@ -6,6 +6,11 @@ function logClick(event) {
     
     if (!target) return; // Not an interactive element
     
+    // Skip if it's a logout link - let the main logout handler work
+    if (target.classList.contains('logout-link')) {
+        return;
+    }
+    
     // Prepare click data
     const data = {
         elementId: target.id,

@@ -64,28 +64,19 @@
                         <div class="font-medium text-gray-700 text-sm">Team Practice</div>
                     {% else %}
                         <div class="flex items-center gap-1 text-base font-semibold">
-                            {% set home_team = match.home_team.split(' - ') %}
-                            {% set away_team = match.away_team.split(' - ') %}
-                            <span class="team-name {% if match.get('home_team') == user.club ~ ' - ' ~ user.series.split()[-1] %}text-[#000]{% else %}text-gray-700{% endif %}">
-                                {% if home_team|length >= 2 %}
-                                    {{ home_team[0] }} - {{ home_team[1] }}
-                                {% else %}
-                                    {{ match.home_team }}
-                                {% endif %}
+                            {% set user_team = user.club ~ ' - ' ~ user.series.split()[-1] ~ ' - ' ~ user.series.split()[-1] %}
+                            <span class="team-name {% if match.home_team == user_team %}text-[#000]{% else %}text-gray-700{% endif %}">
+                                {{ match.home_team.split(' - ')[0] }}
                             </span>
                             <span class="vs-divider">vs</span>
-                            <span class="team-name {% if match.get('away_team') == user.club ~ ' - ' ~ user.series.split()[-1] %}text-[#000]{% else %}text-gray-700{% endif %}">
-                                {% if away_team|length >= 2 %}
-                                    {{ away_team[0] }} - {{ away_team[1] }}
-                                {% else %}
-                                    {{ match.away_team }}
-                                {% endif %}
+                            <span class="team-name {% if match.away_team == user_team %}text-[#000]{% else %}text-gray-700{% endif %}">
+                                {{ match.away_team.split(' - ')[0] }}
                             </span>
                         </div>
                     {% endif %}
                     <div class="flex items-center gap-1 mt-2">
                         <i class="fas fa-map-marker-alt text-lg text-[#FFD600]"></i>
-                        {% set loc = match.location or match.home_team %}
+                        {% set loc = match.location or match.home_team.split(' - ')[0] %}
                         <span class="schedule-location-text-normal">{{ loc }}</span>
                         {% if 'Practice' not in match %}
                         <a class="directions-small-btn" href="https://maps.google.com/?q={{ loc | urlencode }}" target="_blank" rel="noopener noreferrer">

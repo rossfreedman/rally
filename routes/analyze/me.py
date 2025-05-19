@@ -1,9 +1,9 @@
 from flask import jsonify, session
 import pandas as pd
-import sqlite3
 from datetime import datetime
 import logging
 from ..act.auth import login_required
+from database_utils import execute_query
 
 logger = logging.getLogger(__name__)
 
@@ -28,14 +28,12 @@ def get_player_analysis(user):
         df = pd.read_csv('data/all_tennaqua_players.csv')
         
         # Get matches for the player
-        conn = sqlite3.connect('data/paddlepro.db')
-        matches_df = pd.read_sql_query('''
+        matches = execute_query('''
             SELECT * FROM matches 
-            WHERE player1 = ? OR player2 = ? OR player3 = ? OR player4 = ?
-        ''', conn, params=[user['name']] * 4)
-        conn.close()
-
-        if matches_df.empty:
+            WHERE player1 = %(name)s OR player2 = %(name)s OR player3 = %(name)s OR player4 = %(name)s
+        ''', {'name': user['name']})
+        
+        if not matches:
             return {
                 'error': 'No match data found',
                 'matches_played': 0,
@@ -44,13 +42,16 @@ def get_player_analysis(user):
                 'recent_form': []
             }
 
+        # Convert to DataFrame for easier analysis
+        matches_df = pd.DataFrame(matches)
+        
         # Calculate basic stats
         total_matches = len(matches_df)
         wins = len(matches_df[
-            ((matches_df['player1'] == user['name']) & (matches_df['team1_won'] == 1)) |
-            ((matches_df['player2'] == user['name']) & (matches_df['team1_won'] == 1)) |
-            ((matches_df['player3'] == user['name']) & (matches_df['team2_won'] == 1)) |
-            ((matches_df['player4'] == user['name']) & (matches_df['team2_won'] == 1))
+            ((matches_df['player1'] == user['name']) & (matches_df['team1_won'] == True)) |
+            ((matches_df['player2'] == user['name']) & (matches_df['team1_won'] == True)) |
+            ((matches_df['player3'] == user['name']) & (matches_df['team2_won'] == True)) |
+            ((matches_df['player4'] == user['name']) & (matches_df['team2_won'] == True))
         ])
         
         # Calculate position preferences
@@ -73,7 +74,7 @@ def get_player_analysis(user):
             is_team1 = match['player1'] == user['name'] or match['player2'] == user['name']
             won = (is_team1 and match['team1_won']) or (not is_team1 and match['team2_won'])
             recent_form.append({
-                'date': match['date'],
+                'date': match['date'].strftime('%Y-%m-%d') if isinstance(match['date'], datetime) else match['date'],
                 'result': 'W' if won else 'L',
                 'score': f"{match['team1_score']}-{match['team2_score']}"
             })

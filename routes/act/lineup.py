@@ -1,34 +1,27 @@
 from flask import jsonify, request, session, render_template
 from datetime import datetime
-import sqlite3
 import os
 import json
-from utils.db import get_db_path
+from utils.db import execute_query, execute_query_one, execute_update
 from utils.logging import log_user_activity
 from utils.ai import get_or_create_assistant
 
 def get_user_instructions(user_email, team_id=None):
     """Get lineup instructions for a user"""
     try:
-        db_path = get_db_path()
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
-        
-        query = '''
+        query = """
             SELECT id, instruction 
             FROM user_instructions 
-            WHERE user_email = ? AND is_active = 1
-        '''
-        params = [user_email]
+            WHERE user_email = %(user_email)s AND is_active = true
+        """
+        params = {'user_email': user_email}
         
         if team_id:
-            query += ' AND team_id = ?'
-            params.append(team_id)
+            query += ' AND team_id = %(team_id)s'
+            params['team_id'] = team_id
             
-        cursor.execute(query, params)
-        instructions = [{'id': row[0], 'instruction': row[1]} for row in cursor.fetchall()]
-        conn.close()
-        return instructions
+        instructions = execute_query(query, params)
+        return [{'id': instr['id'], 'instruction': instr['instruction']} for instr in instructions]
     except Exception as e:
         print(f"Error getting user instructions: {str(e)}")
         return []
@@ -36,18 +29,18 @@ def get_user_instructions(user_email, team_id=None):
 def add_user_instruction(user_email, instruction, team_id=None):
     """Add a new lineup instruction"""
     try:
-        db_path = get_db_path()
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
-        
-        cursor.execute('''
+        success = execute_update(
+            """
             INSERT INTO user_instructions (user_email, instruction, team_id, is_active)
-            VALUES (?, ?, ?, 1)
-        ''', (user_email, instruction, team_id))
-        
-        conn.commit()
-        conn.close()
-        return True
+            VALUES (%(user_email)s, %(instruction)s, %(team_id)s, true)
+            """,
+            {
+                'user_email': user_email,
+                'instruction': instruction,
+                'team_id': team_id
+            }
+        )
+        return success
     except Exception as e:
         print(f"Error adding instruction: {str(e)}")
         return False

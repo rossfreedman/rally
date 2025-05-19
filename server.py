@@ -11,7 +11,6 @@ import time
 from functools import wraps
 import sys
 import re
-import sqlite3
 import logging
 from logging.handlers import RotatingFileHandler
 import json
@@ -23,24 +22,55 @@ from selenium.webdriver.common.by import By
 from selenium import webdriver
 from utils.series_matcher import series_match, normalize_series_for_storage, normalize_series_for_display
 from collections import defaultdict
+from werkzeug.security import generate_password_hash, check_password_hash
+from database_utils import execute_query, execute_query_one, execute_many
+from utils.logging import log_user_activity
+from routes.analyze import init_analyze_routes
+from routes.act import init_act_routes
 
-# Initialize database
-print("\n=== Initializing Database ===")
+def is_public_file(path):
+    """Check if a file should be publicly accessible without authentication"""
+    # List of files that should be publicly accessible
+    public_files = [
+        'login.html',
+        'register.html',
+        'favicon.ico',
+        'robots.txt',
+        'js/logout.js',  # Make logout.js always accessible
+        'mobile/css/tailwind.css',
+        'mobile/css/style.css',
+        'images/rallylogo.png',
+        'images/rally_favicon.png'
+    ]
+    
+    # List of directories that should be publicly accessible
+    public_dirs = [
+        'css/',
+        'fonts/',
+        'images/'
+    ]
+    
+    # Check if the file is in the public list
+    if any(path.endswith(f) for f in public_files):
+        return True
+        
+    # Check if the file is in a public directory
+    if any(path.startswith(d) for d in public_dirs):
+        return True
+        
+    return False
+
+# Test database connection
+print("\n=== Testing Database Connection ===")
 try:
-    # Import the init_db function
-    from init_db import init_db
-    
-    # Check if database exists
-    db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
-    if not os.path.exists(db_path):
-        print(f"Database file not found at {db_path}, initializing now...")
-        init_db()
+    result = execute_query_one('SELECT 1 as test')
+    if result and result['test'] == 1:
+        print("Database connection successful!")
     else:
-        print(f"Database file already exists at {db_path}")
-    
-    print("Database initialized successfully!")
+        print("Database connection test failed!")
+        sys.exit(1)
 except Exception as e:
-    print(f"Error initializing database: {str(e)}")
+    print(f"Error connecting to database: {str(e)}")
     print(traceback.format_exc())
     sys.exit(1)
 
@@ -77,35 +107,38 @@ client = OpenAI(
 # Store active threads
 active_threads = {}
 
+# Initialize Flask app
 app = Flask(__name__, static_folder='static', static_url_path='/static')
-app.secret_key = os.getenv('FLASK_SECRET_KEY', 'your-secret-key-here')  # Change this in production
 
-# Session config for development
+# Determine environment
+is_development = os.environ.get('FLASK_ENV') == 'development'
+
+# Set secret key
+app.secret_key = os.getenv('FLASK_SECRET_KEY', secrets.token_hex(32))
+
+# Session config
 app.config.update(
-    SESSION_COOKIE_SECURE=False,  # Set to False for development without HTTPS
+    SESSION_COOKIE_SECURE=not is_development,  # True in production, False in development
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE='Lax',
-    PERMANENT_SESSION_LIFETIME=3600  # 1 hour
+    PERMANENT_SESSION_LIFETIME=timedelta(days=1),
+    SESSION_COOKIE_NAME='rally_session',
+    SESSION_COOKIE_PATH='/',
+    SESSION_REFRESH_EACH_REQUEST=True
 )
 
-CORS(app, resources={
-    r"/*": {  # Allow all routes
-        "origins": [
-            "http://localhost:5002",
-            "http://127.0.0.1:5002",
-            "http://localhost:3000",  # Development port
-            "http://127.0.0.1:3000",  # Development port
-            "https://*.up.railway.app",  # Railway domain
-            "https://www.lovetorally.com",  # Production domain
-            "https://lovetorally.com",  # Production domain without www
-            "*"  # Allow all origins in development/testing
-        ],
-        "methods": ["GET", "POST", "OPTIONS"],
-        "allow_headers": ["Content-Type", "Authorization"],
-        "supports_credentials": True,   # Important for session cookies
-        "max_age": 86400
-    }
-})
+# Configure CORS
+CORS(app, 
+     resources={
+         r"/api/*": {
+             "origins": "*" if is_development else ["https://*.lovetorally.com"],
+             "supports_credentials": True,
+             "allow_headers": ["Content-Type", "X-Requested-With"],
+             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+         }
+     },
+     expose_headers=["Set-Cookie"])
+
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
 # Store active threads
@@ -228,6 +261,12 @@ def log_request_info():
 
 @app.route('/')
 def serve_index():
+    """Serve the index page"""
+    print(f"Session at index: {session}")
+    if 'user' not in session:
+        print("No user in session, redirecting to login")
+        return redirect('/login')
+    print("User in session, redirecting to mobile")
     return redirect('/mobile')
 
 @app.route('/index.html')
@@ -242,85 +281,171 @@ def login():
     return app.send_static_file('login.html')
 
 def hash_password(password):
-    """Hash a password using SHA-256 and a random salt"""
-    salt = secrets.token_hex(16)
-    return salt + ':' + hashlib.sha256((salt + password).encode()).hexdigest()
+    """Hash a password for storing."""
+    return generate_password_hash(password, method='pbkdf2:sha256')
 
 def verify_password(stored_password, provided_password):
-    """Verify a password against a stored hash"""
-    salt, hash_value = stored_password.split(':')
-    return hash_value == hashlib.sha256((salt + provided_password).encode()).hexdigest()
+    """Verify a stored password against one provided by user"""
+    # Check if it's a new-style Werkzeug hash (starts with 'pbkdf2:sha256')
+    if stored_password.startswith('pbkdf2:sha256'):
+        return check_password_hash(stored_password, provided_password)
+    
+    # Handle old-style hash (format: salt:hash)
+    try:
+        if ':' in stored_password:
+            salt, hash_value = stored_password.split(':')
+            # Convert provided password to old hash format
+            import hashlib
+            provided_hash = hashlib.sha256((salt + provided_password).encode()).hexdigest()
+            return hash_value == provided_hash
+    except Exception as e:
+        print(f"Error verifying old password format: {str(e)}")
+        return False
+    
+    return False
 
 @app.route('/api/register', methods=['POST'])
 def handle_register():
     try:
-        data = request.json
+        data = request.get_json()
+        print("Registration data received:", data)
+        
         email = data.get('email')
         password = data.get('password')
         first_name = data.get('firstName')
         last_name = data.get('lastName')
-        club = data.get('club')
-        series = data.get('series')
+        club_name = data.get('club')
+        series_name = data.get('series')
         
-        if not all([email, password, first_name, last_name, club, series]):
-            return jsonify({'error': 'All fields are required'}), 400
+        print(f"Registration attempt - Email: {email}, First Name: {first_name}, Last Name: {last_name}, Club: {club_name}, Series: {series_name}")
+        
+        if not all([email, password, first_name, last_name, club_name, series_name]):
+            missing = [field for field, value in {
+                'email': email, 
+                'password': password, 
+                'firstName': first_name, 
+                'lastName': last_name, 
+                'club': club_name, 
+                'series': series_name
+            }.items() if not value]
+            print(f"Missing required fields: {missing}")
+            return jsonify({'error': 'Missing required fields'}), 400
             
-        # Hash the password
-        password_hash = hash_password(password)
+        # Get club_id and series_id from names
+        try:
+            club = execute_query_one(
+                """
+                SELECT id FROM clubs WHERE name = %(name)s
+                """,
+                {'name': club_name}
+            )
+            print("Club query result:", club)
+        except Exception as e:
+            print(f"Error querying club: {str(e)}")
+            return jsonify({'error': 'Database error'}), 500
         
-        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
+        if not club:
+            print(f"Invalid club selected: {club_name}")
+            return jsonify({'error': 'Invalid club selected'}), 400
+            
+        try:
+            series = execute_query_one(
+                """
+                SELECT id FROM series WHERE name = %(name)s
+                """,
+                {'name': series_name}
+            )
+            print("Series query result:", series)
+        except Exception as e:
+            print(f"Error querying series: {str(e)}")
+            return jsonify({'error': 'Database error'}), 500
+        
+        if not series:
+            print(f"Invalid series selected: {series_name}")
+            return jsonify({'error': 'Invalid series selected'}), 400
+            
+        # Check if user already exists
+        try:
+            existing_user = execute_query_one(
+                """
+                SELECT id FROM users WHERE email = %(email)s
+                """,
+                {'email': email}
+            )
+            print("Existing user check result:", existing_user)
+        except Exception as e:
+            print(f"Error checking existing user: {str(e)}")
+            return jsonify({'error': 'Database error'}), 500
+        
+        if existing_user:
+            print(f"User already exists with email: {email}")
+            return jsonify({'error': 'User already exists'}), 409
+            
+        try:
+            password_hash = hash_password(password)
+            print("Password hashed successfully")
+        except Exception as e:
+            print(f"Error hashing password: {str(e)}")
+            return jsonify({'error': 'Error processing password'}), 500
         
         try:
-            # Check if email already exists (case-insensitive)
-            cursor.execute('SELECT id FROM users WHERE LOWER(email) = LOWER(?)', (email,))
-            if cursor.fetchone():
-                return jsonify({'error': 'Email already registered'}), 400
+            result = execute_query(
+                """
+                INSERT INTO users 
+                (email, password_hash, first_name, last_name, club_id, series_id) 
+                VALUES (
+                    %(email)s, 
+                    %(password_hash)s, 
+                    %(first_name)s, 
+                    %(last_name)s, 
+                    %(club_id)s, 
+                    %(series_id)s
+                )
+                RETURNING id
+                """,
+                {
+                    'email': email,
+                    'password_hash': password_hash,
+                    'first_name': first_name,
+                    'last_name': last_name,
+                    'club_id': club['id'],
+                    'series_id': series['id']
+                }
+            )
+            success = bool(result)
+            print("Database insert result:", success)
+        except Exception as e:
+            print(f"Error inserting user: {str(e)}")
+            return jsonify({'error': 'Database error'}), 500
+        
+        if not success:
+            print("Failed to insert new user into database")
+            return jsonify({'error': 'Registration failed'}), 500
+            
+        print(f"Successfully registered user: {email}")
+        
+        # Create session for the new user
+        session.permanent = True
+        session['user'] = {
+            'email': email,
+            'first_name': first_name,
+            'last_name': last_name,
+            'club': club_name,
+            'series': series_name
+        }
+        
+        # Log successful registration
+        log_user_activity(email, 'auth', action='register', details='User registered successfully')
+        
+        return jsonify({
+            'status': 'success',
+            'message': 'Registration successful',
+            'redirect': '/'
+        }), 201
 
-            # Get club_id
-            cursor.execute('SELECT id FROM clubs WHERE name = ?', (club,))
-            club_result = cursor.fetchone()
-            if not club_result:
-                return jsonify({'error': 'Invalid club'}), 400
-            club_id = club_result[0]
-            
-            # Get series_id
-            cursor.execute('SELECT id FROM series WHERE name = ?', (series,))
-            series_result = cursor.fetchone()
-            if not series_result:
-                return jsonify({'error': 'Invalid series'}), 400
-            series_id = series_result[0]
-            
-            # Insert new user
-            cursor.execute('''
-                INSERT INTO users (email, password_hash, first_name, last_name, club_id, series_id)
-                VALUES (?, ?, ?, ?, ?, ?)
-            ''', (email, password_hash, first_name, last_name, club_id, series_id))
-            
-            conn.commit()
-            
-            # Create session for the new user
-            session['user'] = {
-                'email': email,
-                'first_name': first_name,
-                'last_name': last_name,
-                'club': club,
-                'series': series
-            }
-            
-            # Log successful registration
-            log_user_activity(email, 'auth', action='register', details='New user registration')
-            
-            return jsonify({'status': 'success'})
-            
-        finally:
-            conn.close()
-            
     except Exception as e:
-        print(f"Registration error: {str(e)}")
-        print(traceback.format_exc())
-        return jsonify({'error': 'An error occurred during registration'}), 500
+        print(f"Error in registration: {str(e)}")
+        return jsonify({'error': 'Registration failed'}), 500
 
 @app.route('/api/login', methods=['POST'])
 def handle_login():
@@ -329,86 +454,166 @@ def handle_login():
         email = data.get('email')
         password = data.get('password')
         
+        print(f"Login attempt for email: {email}")
+        
         if not email or not password:
+            print("Missing email or password")
             return jsonify({'error': 'Please provide both email and password'}), 401
             
-        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
+        # Get user with club and series info - using case-insensitive email comparison
+        user = execute_query_one(
+            """
+            SELECT u.id, u.email, u.password_hash, u.first_name, u.last_name,
+                   c.name as club_name, s.name as series_name
+            FROM users u
+            JOIN clubs c ON u.club_id = c.id
+            JOIN series s ON u.series_id = s.id
+            WHERE LOWER(u.email) = LOWER(%(email)s)
+            """,
+            {'email': email}
+        )
         
-        try:
-            # Get user with club and series info - using case-insensitive email comparison
-            cursor.execute('''
-                SELECT u.id, u.email, u.password_hash, u.first_name, u.last_name,
-                       c.name as club_name, s.name as series_name
-                FROM users u
-                JOIN clubs c ON u.club_id = c.id
-                JOIN series s ON u.series_id = s.id
-                WHERE LOWER(u.email) = LOWER(?)
-            ''', (email,))
+        print(f"User found: {user is not None}")
+        
+        if not user:
+            print("User not found")
+            return jsonify({'error': 'Invalid email or password'}), 401
             
-            user = cursor.fetchone()
-            if not user:
-                return jsonify({'error': 'Invalid email or password'}), 401
-                
-            # Verify password
-            if not verify_password(user[2], password):
-                return jsonify({'error': 'Invalid email or password'}), 401
-                
-            # Update last login
-            cursor.execute('''
-                UPDATE users 
-                SET last_login = CURRENT_TIMESTAMP 
-                WHERE id = ?
-            ''', (user[0],))
-            conn.commit()
+        # Verify password
+        if not verify_password(user['password_hash'], password):
+            print("Invalid password")
+            return jsonify({'error': 'Invalid email or password'}), 401
             
-            # Create session with all user information
-            session.permanent = True  # Use the permanent session lifetime
-            session['user'] = {
-                'id': user[0],
-                'email': user[1],
-                'first_name': user[3],
-                'last_name': user[4],
-                'club': user[5],
-                'series': user[6]
-            }
-            
-            # Log successful login
-            log_user_activity(email, 'auth', action='login', details='Successful login')
-            
-            # Create response with session cookie settings and redirect to mobile
-            response = jsonify({'status': 'success', 'redirect': '/mobile'})
-            return response
-            
-        finally:
-            conn.close()
+        # Update last login
+        result = execute_query(
+            """
+            UPDATE users 
+            SET last_login = CURRENT_TIMESTAMP 
+            WHERE id = %(user_id)s
+            RETURNING id
+            """,
+            {'user_id': user['id']}
+        )
+        success = bool(result)
+        
+        if not success:
+            print("Warning: Failed to update last login time")
+        
+        # Create session with all user information
+        session.permanent = True  # Use the permanent session lifetime
+        session['user'] = {
+            'id': user['id'],
+            'email': user['email'],
+            'first_name': user['first_name'],
+            'last_name': user['last_name'],
+            'club': user['club_name'],
+            'series': user['series_name']
+        }
+        
+        print(f"Session after login: {session}")
+        
+        # Log successful login
+        log_user_activity(email, 'auth', action='login', details='Successful login')
+        
+        print(f"Login successful for user: {email}")
+        return jsonify({
+            'status': 'success',
+            'message': 'Login successful',
+            'redirect': '/mobile'
+        })
         
     except Exception as e:
-        print(f"Login error: {str(e)}")
-        print(traceback.format_exc())
-        return jsonify({'error': 'An error occurred during login'}), 500
+        print(f"Error in login: {str(e)}")
+        return jsonify({'error': 'Login failed'}), 500
 
 @app.route('/api/logout', methods=['POST'])
 def handle_logout():
-    """Handle user logout"""
+    """Handle the AJAX logout request"""
     try:
+        print("\n=== LOGOUT ATTEMPT ===")
+        print(f"Request method: {request.method}")
+        print(f"Request headers: {dict(request.headers)}")
+        print(f"Request cookies: {request.cookies}")
+        print(f"Session before logout: {dict(session)}")
+        
         if 'user' in session:
-            # Log logout
+            # Log the logout activity
+            print(f"Logging out user: {session['user']['email']}")
             log_user_activity(session['user']['email'], 'auth', action='logout')
-            
-        # Clear the session
+        
+        # Clear all session data
         session.clear()
-        return jsonify({'status': 'success', 'redirect': '/login'})
+        session.modified = True
+        
+        # Create response with cookie clearing
+        response = make_response(jsonify({
+            'status': 'success',
+            'message': 'Successfully logged out',
+            'redirect': '/login'
+        }))
+        
+        # Explicitly expire all cookies
+        for cookie in request.cookies:
+            response.set_cookie(cookie, '', expires=0, path='/', secure=not is_development, httponly=True)
+        
+        # Add cache control headers
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        
+        print("\n=== LOGOUT RESPONSE ===")
+        print(f"Response headers: {dict(response.headers)}")
+        print(f"Session after logout: {dict(session)}")
+        print(f"Response cookies: {response.headers.get('Set-Cookie')}")
+        
+        return response
+        
     except Exception as e:
-        print(f"Logout error: {str(e)}")
-        return jsonify({'error': 'Logout failed'}), 500
+        print(f"Error during logout: {str(e)}")
+        print(f"Error traceback: {traceback.format_exc()}")
+        return jsonify({'error': 'Logout failed', 'details': str(e)}), 500
 
 @app.route('/logout')
 def logout_page():
-    session.clear()
-    flash('You have been successfully logged out.')
-    return redirect(url_for('login'))
+    """Handle direct logout request"""
+    try:
+        print("\n=== LOGOUT PAGE ===")
+        print(f"Request headers: {dict(request.headers)}")
+        print(f"Request cookies: {request.cookies}")
+        print(f"Session before logout: {dict(session)}")
+        
+        if 'user' in session:
+            # Log the logout activity
+            print(f"Logging out user: {session['user']['email']}")
+            log_user_activity(session['user']['email'], 'auth', action='logout')
+        
+        # Clear all session data
+        session.clear()
+        session.modified = True
+        
+        # Create response with redirect
+        response = make_response(redirect(url_for('login')))
+        
+        # Explicitly expire all cookies
+        for cookie in request.cookies:
+            response.set_cookie(cookie, '', expires=0, path='/', secure=not is_development, httponly=True)
+        
+        # Add cache control headers
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        
+        print("\n=== LOGOUT RESPONSE ===")
+        print(f"Response headers: {dict(response.headers)}")
+        print(f"Session after logout: {dict(session)}")
+        print(f"Response cookies: {response.headers.get('Set-Cookie')}")
+        
+        return response
+        
+    except Exception as e:
+        print(f"Error during logout page: {str(e)}")
+        print(f"Error traceback: {traceback.format_exc()}")
+        return redirect(url_for('login'))
 
 # Admin routes
 @app.route('/admin')
@@ -467,44 +672,61 @@ def get_admin_users():
 @app.route('/<path:path>')
 @login_required
 def serve_static(path):
-    """Serve static files and log page visits"""
+    """Serve static files with proper access control"""
     print(f"\n=== Serving Static File ===")
     print(f"Path: {path}")
-    print(f"User: {session.get('user', {}).get('email')}")
-    print(f"Path ends with .html: {path.endswith('.html')}")
+    print(f"Is public: {is_public_file(path)}")
     print(f"User in session: {'user' in session}")
-    print(f"Session contents: {session}")
     
-    if 'user' in session:
+    # Allow access to public files without authentication
+    if is_public_file(path):
+        print("Serving public file")
         try:
-            # Extract page name without extension and any directory path
-            page_name = os.path.splitext(os.path.basename(path))[0]
-            
-            # Determine activity type and details based on path
-            if path.endswith('.html'):
-                activity_type = 'page_visit'
-                details = f"Accessed page: {path}"
-            elif path.startswith('components/'):
-                activity_type = 'component_load'
-                details = f"Loaded component: {path}"
-            else:
-                # For other static assets (css, js, images)
-                activity_type = 'static_asset'
-                details = f"Accessed static asset: {path}"
-            
-            print(f"About to log activity for: {path}")
-            log_user_activity(
-                session['user']['email'], 
-                activity_type, 
-                page=page_name,
-                details=details
-            )
-            print("Successfully logged access")
+            response = send_from_directory('static', path)
+            print(f"Successfully served {path}")
+            return response
         except Exception as e:
-            print(f"Error logging access: {str(e)}")
-            print(traceback.format_exc())
+            print(f"Error serving {path}: {str(e)}")
+            return str(e), 500
     
-    return send_from_directory('static', path)
+    # Require authentication for all other files
+    if 'user' not in session:
+        print("Access denied - no user in session")
+        if path.startswith('api/'):
+            return jsonify({'error': 'Not authenticated'}), 401
+        return redirect(url_for('login'))
+    
+    try:
+        # Log access for authenticated users
+        user_email = session['user']['email']
+        print(f"User: {user_email}")
+        
+        # Extract page name without extension and any directory path
+        page_name = os.path.splitext(os.path.basename(path))[0]
+        
+        # Determine activity type and details based on path
+        if path.endswith('.html'):
+            activity_type = 'page_visit'
+            details = f"Accessed page: {path}"
+        elif path.startswith('components/'):
+            activity_type = 'component_load'
+            details = f"Loaded component: {path}"
+        else:
+            activity_type = 'static_asset'
+            details = f"Accessed static asset: {path}"
+        
+        print(f"About to log activity for: {path}")
+        log_user_activity(user_email, activity_type, page=page_name, details=details)
+        print("Successfully logged access")
+        
+        response = send_from_directory('static', path)
+        print(f"Successfully served {path}")
+        return response
+        
+    except Exception as e:
+        print(f"Error serving {path}: {str(e)}")
+        print(traceback.format_exc())
+        return str(e), 500
 
 @app.route('/api/player-history')
 def get_player_history():
@@ -567,45 +789,31 @@ def set_series():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/get-series')
-@app.route('/get-series')
 def get_series():
-    """Get the current series and all available series"""
     try:
-        print("\n=== GET SERIES REQUEST ===")
-        print("Connecting to database...")
-        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
-        
         # Get all series from the database
-        print("Executing SQL query...")
-        cursor.execute('SELECT name FROM series ORDER BY name')
-        all_series = [row[0] for row in cursor.fetchall()]
-        conn.close()
+        result = execute_query(
+            """
+            SELECT name FROM series
+            ORDER BY name
+            """
+        )
         
-        # Get the user's current series from their session
-        user_series = session.get('user', {}).get('series', '')
-        print(f"\nUser series from session: {user_series}")
-        print(f"Available series: {all_series}")
-        print(f"Number of series: {len(all_series)}")
+        all_series = [row['name'] for row in result]
         
-        # Log each series with its extracted number
-        print("\nSeries with extracted numbers:")
-        for series in all_series:
-            num = ''.join(filter(str.isdigit, series))
-            print(f"Series: {series}, Number: {num}")
+        # If user is logged in, include their current series
+        current_series = None
+        if 'user' in session and 'series' in session['user']:
+            current_series = session['user']['series']
         
-        response_data = {
-            'series': user_series,
-            'all_series': all_series
-        }
-        
-        print(f"\nReturning response: {response_data}")
-        return jsonify(response_data)
+        return jsonify({
+            'all_series': all_series,
+            'current_series': current_series
+        })
+            
     except Exception as e:
-        print(f"\nError getting series: {str(e)}")
-        print("Full error:", traceback.format_exc())
-        return jsonify({'error': str(e)}), 500
+        print(f"Error getting series: {str(e)}")
+        return jsonify({'error': 'Failed to get series'}), 500
 
 @app.route('/get-players-series-22', methods=['GET'])
 def get_players_series_22():
@@ -1282,75 +1490,92 @@ def serve_schedule():
         print(traceback.format_exc())  # Print full traceback for debugging
         return jsonify({'error': 'Internal server error'}), 500
 
-def get_player_availability(player_name, match_date, series):
-    """Get a player's availability for a specific match date and series."""
-    conn = None
-    try:
-        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
-        cursor.execute('''
-            SELECT is_available 
-            FROM player_availability 
-            WHERE player_name = ? AND match_date = ? AND series = ?
-        ''', (player_name, match_date, series))
-        result = cursor.fetchone()
-        return result[0] if result else None  # Returns None if not updated
-    finally:
-        if conn:
-            conn.close()
+def get_player_availability(series_id, date):
+    """Get player availability for a series on a specific date"""
+    availability = execute_query(
+        """
+        SELECT * FROM player_availability 
+        WHERE series_id = %(series_id)s AND match_date = %(date)s
+        """,
+        {'series_id': series_id, 'date': date}
+    )
+    return availability if availability else []
 
-def update_player_availability(player_name, match_date, is_available, series):
-    """Update or insert a player's availability for a specific match date and series."""
+def standardize_date(date_str):
+    """Convert date string to standard format MM/DD/YYYY"""
     try:
-        print(f"\n=== UPDATING AVAILABILITY ===")
-        print(f"Player: {player_name}")
-        print(f"Date: {match_date}")
-        print(f"Available: {is_available}")
-        print(f"Series: {series}")
-        
-        conn = None
-        try:
-            db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
-            conn = sqlite3.connect(db_path)
-            cursor = conn.cursor()
-            
-            # First, check if the record exists
-            cursor.execute('''
-                SELECT is_available 
-                FROM player_availability 
-                WHERE player_name = ? AND match_date = ? AND series = ?
-            ''', (player_name, match_date, series))
-            existing = cursor.fetchone()
-            
-            if existing:
-                print(f"Updating existing record: {existing[0]} -> {is_available}")
-                cursor.execute('''
-                    UPDATE player_availability 
-                    SET is_available = ?, updated_at = CURRENT_TIMESTAMP
-                    WHERE player_name = ? AND match_date = ? AND series = ?
-                ''', (is_available, player_name, match_date, series))
-            else:
-                print("Creating new record")
-                cursor.execute('''
-                    INSERT INTO player_availability 
-                    (player_name, match_date, is_available, series)
-                    VALUES (?, ?, ?, ?)
-                ''', (player_name, match_date, is_available, series))
-            
-            conn.commit()
-            print("Successfully saved to database")
-            
-        finally:
-            if conn:
-                conn.close()
-                
+        # Try parsing with different formats
+        for fmt in ['%m/%d/%Y', '%d-%b-%y', '%Y-%m-%d']:
+            try:
+                return datetime.strptime(date_str, fmt).strftime('%m/%d/%Y')
+            except ValueError:
+                continue
+        raise ValueError(f"Unable to parse date: {date_str}")
     except Exception as e:
-        print(f"Error saving to database: {str(e)}")
-        print("Full error:", traceback.format_exc())
-        raise
+        print(f"Error standardizing date {date_str}: {str(e)}")
+        return date_str
+
+def update_player_availability(series_id, date, player_name, is_available, series_name):
+    """Update player availability for a series on a specific date"""
+    try:
+        print(f"\n=== UPDATE PLAYER AVAILABILITY ===")
+        print(f"Input parameters:")
+        print(f"series_id: {series_id}")
+        print(f"date: {date}")
+        print(f"player_name: {player_name}")
+        print(f"is_available: {is_available}")
+        print(f"series_name: {series_name}")
+        
+        # Standardize the date format
+        standardized_date = standardize_date(date)
+        print(f"Standardized date: {standardized_date}")
+        
+        # First, check if a record already exists
+        existing = execute_query(
+            """
+            SELECT id, is_available, match_date 
+            FROM player_availability 
+            WHERE series_id = %(series_id)s 
+            AND match_date = %(date)s 
+            AND player_name = %(player_name)s
+            """,
+            {
+                'series_id': series_id,
+                'date': standardized_date,
+                'player_name': player_name
+            }
+        )
+        print("Existing record:", existing)
+        
+        # Then perform the update/insert
+        result = execute_query(
+            """
+            INSERT INTO player_availability 
+                (series_id, match_date, player_name, is_available, updated_at)
+            VALUES 
+                (%(series_id)s, %(date)s, %(player_name)s, %(is_available)s, CURRENT_TIMESTAMP)
+            ON CONFLICT (player_name, match_date, series_id) 
+            DO UPDATE SET 
+                is_available = %(is_available)s,
+                updated_at = CURRENT_TIMESTAMP
+            RETURNING id, is_available
+            """,
+            {
+                'series_id': series_id,
+                'date': standardized_date,
+                'player_name': player_name,
+                'is_available': is_available
+            }
+        )
+        print(f"Update result: {result}")
+        
+        return bool(result)
+    except Exception as e:
+        print(f"Error in update_player_availability: {str(e)}")
+        return False
 
 @app.route('/api/availability', methods=['GET', 'POST'])
+@login_required
 def handle_availability():
     if request.method == 'GET':
         player_name = request.args.get('player_name')
@@ -1358,19 +1583,57 @@ def handle_availability():
         series = request.args.get('series')
         if not all([player_name, match_date, series]):
             return jsonify({'error': 'Missing required parameters'}), 400
-        availability = get_player_availability(player_name, match_date, series)
-        return jsonify({'is_available': availability})  # Returns None if not updated
+            
+        # Get series ID
+        series_record = execute_query_one(
+            "SELECT id FROM series WHERE name = %(series)s",
+            {'series': series}
+        )
+        if not series_record:
+            return jsonify({'error': f'Series not found: {series}'}), 404
+            
+        availability = get_player_availability(series_record['id'], match_date)
+        return jsonify({'is_available': availability})
     
     elif request.method == 'POST':
+        if 'user' not in session:
+            return jsonify({'error': 'Not authenticated'}), 401
+            
         data = request.get_json()
         print("\n=== AVAILABILITY UPDATE ===")
-        print("Received data:", data)
+        print(f"Received data: {data}")
         
-        if not all(k in data for k in ['player_name', 'match_date', 'is_available', 'series']):
-            print("Missing required fields:", data)
+        required_fields = ['player_name', 'match_date', 'is_available', 'series']
+        if not all(field in data for field in required_fields):
             return jsonify({'error': 'Missing required fields'}), 400
-        
+            
         try:
+            # Verify the player_name matches the logged-in user
+            user = session['user']
+            if data['player_name'] != f"{user['first_name']} {user['last_name']}":
+                return jsonify({'error': 'Can only update your own availability'}), 403
+                
+            # Get series ID
+            print(f"Looking up series: {data['series']}")
+            series_record = execute_query_one(
+                "SELECT id, name FROM series WHERE name = %(series)s",
+                {'series': data['series']}
+            )
+            print(f"Series lookup result: {series_record}")
+            
+            if not series_record:
+                # Try with "Chicago " prefix
+                series_with_prefix = f"Chicago {data['series'].split()[-1]}"
+                print(f"Trying with prefix: {series_with_prefix}")
+                series_record = execute_query_one(
+                    "SELECT id, name FROM series WHERE name = %(series)s",
+                    {'series': series_with_prefix}
+                )
+                print(f"Series lookup with prefix result: {series_record}")
+                
+                if not series_record:
+                    return jsonify({'error': f'Series not found: {data["series"]}'}), 404
+            
             # Log availability update
             log_user_activity(
                 session['user']['email'], 
@@ -1381,21 +1644,26 @@ def handle_availability():
             
             # The date is already in the correct format from the frontend
             match_date = data['match_date']
-            print("Updating availability for:", data['player_name'], "on", match_date, "in series", data['series'])
+            print(f"Updating availability for: {data['player_name']} on {match_date} in series {data['series']}")
             
             # Update the availability in the database
-            update_player_availability(
-                data['player_name'],
+            success = update_player_availability(
+                series_record['id'],
                 match_date,
+                data['player_name'],
                 data['is_available'],
-                data['series']
+                series_record['name']  # Pass the series name
             )
             
-            print("Successfully updated availability")
-            return jsonify({'status': 'success'})
+            if success:
+                print("Successfully updated availability")
+                return jsonify({'status': 'success'})
+            else:
+                print("Failed to update availability")
+                return jsonify({'error': 'Failed to update availability'}), 500
+                
         except Exception as e:
-            print(f"Error updating availability: {str(e)}")
-            print("Full error:", traceback.format_exc())
+            print(f"Full error: {traceback.format_exc()}")
             return jsonify({'error': str(e)}), 500
 
 @app.route('/api/get-availability', methods=['GET'])
@@ -1418,137 +1686,101 @@ def get_availability():
         print(f"Getting availability for series: {series}")
         
         # Get all availability data for the current series
-        conn = None
-        try:
-            db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
-            conn = sqlite3.connect(db_path)
-            cursor = conn.cursor()
+        # Get series ID first
+        series_record = execute_query_one(
+            "SELECT id FROM series WHERE name = %(series)s",
+            {'series': series}
+        )
+        
+        if not series_record:
+            print("❌ Series not found:", series)
+            return jsonify({'error': f'Series not found: {series}'}), 404
             
-            cursor.execute('''
-                SELECT player_name, match_date, is_available
-                FROM player_availability
-                WHERE series = ?
-            ''', (series,))
+        # Get all availability data for the series
+        availability_records = execute_query(
+            """
+            SELECT player_name, match_date, is_available
+            FROM player_availability
+            WHERE series = %(series)s
+            """,
+            {'series': series}
+        )
+        
+        # Transform into the expected format
+        availability_data = {}
+        for record in availability_records:
+            player_name = record['player_name']
+            match_date = record['match_date']
+            is_available = record['is_available']
             
-            availability_data = {}
-            for row in cursor.fetchall():
-                player_name, match_date, is_available = row
-                if player_name not in availability_data:
-                    availability_data[player_name] = {}
-                availability_data[player_name][match_date] = is_available
-                
-            print(f"Found availability data for {len(availability_data)} players")
-            return jsonify(availability_data)
+            if player_name not in availability_data:
+                availability_data[player_name] = {}
+            availability_data[player_name][match_date] = is_available
             
-        finally:
-            if conn:
-                conn.close()
+        print(f"Found availability data for {len(availability_data)} players")
+        return jsonify(availability_data)
                 
     except Exception as e:
         print(f"Error getting availability: {str(e)}")
         print("Full error:", traceback.format_exc())
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/get-clubs', methods=['GET'])
+@app.route('/api/get-clubs')
 def get_clubs():
     try:
-        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
-        cursor.execute('SELECT name FROM clubs ORDER BY name')
-        clubs = [row[0] for row in cursor.fetchall()]
-        conn.close()
-        return jsonify({'clubs': clubs})
+        # Get all clubs from the database
+        result = execute_query(
+            """
+            SELECT name FROM clubs
+            ORDER BY name
+            """
+        )
+        
+        all_clubs = [row['name'] for row in result]
+        
+        # If user is logged in, include their current club
+        current_club = None
+        if 'user' in session and 'club' in session['user']:
+            current_club = session['user']['club']
+        
+        return jsonify({
+            'clubs': all_clubs,
+            'current_club': current_club
+        })
+            
     except Exception as e:
         print(f"Error getting clubs: {str(e)}")
-        return jsonify({'error': 'An error occurred while fetching clubs'}), 500
+        return jsonify({'error': 'Failed to get clubs'}), 500
 
 @app.route('/api/check-auth')
 def check_auth():
     """Check if user is authenticated"""
     try:
-        print("\n=== CHECK AUTH REQUEST ===")
-        print(f"Origin: {request.headers.get('Origin', 'No origin header')}")
-        print(f"Referer: {request.headers.get('Referer', 'No referer header')}")
+        print("\n=== CHECK AUTH ===")
+        print(f"Request headers: {dict(request.headers)}")
+        print(f"Request cookies: {request.cookies}")
+        print(f"Current session: {dict(session)}")
         
-        if 'user' not in session:
-            print("❌ No user in session")
-            return jsonify({
-                'authenticated': False,
-                'error': 'Not authenticated'
-            })
-            
-        # Get user details from session
-        user = session['user']
-        print(f"User from session: {user}")
+        is_authenticated = 'user' in session
+        print(f"Is authenticated: {is_authenticated}")
         
-        if not all(key in user for key in ['email', 'first_name', 'last_name']):
-            print("❌ Invalid session data")
-            session.clear()
-            return jsonify({
-                'authenticated': False,
-                'error': 'Invalid session data'
-            })
-            
-        # Get additional user info from database
-        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
+        response = make_response(jsonify({
+            'authenticated': is_authenticated,
+            'user': session.get('user', None)
+        }))
         
-        try:
-            print(f"Querying database for user: {user['email']}")
-            cursor.execute('''
-                SELECT u.first_name, u.last_name, u.email, c.name as club_name, 
-                       s.name as series_name, u.club_automation_password
-                FROM users u
-                JOIN clubs c ON u.club_id = c.id
-                JOIN series s ON u.series_id = s.id
-                WHERE u.email = ?
-            ''', (user['email'],))
-            
-            db_user = cursor.fetchone()
-            if db_user:
-                print(f"Found user in database: {db_user}")
-                # Update session with complete user information
-                session['user'] = {
-                    'email': db_user[2],
-                    'first_name': db_user[0],
-                    'last_name': db_user[1],
-                    'club': db_user[3],
-                    'series': db_user[4],
-                    'has_club_automation_password': bool(db_user[5])
-                }
-                print(f"Updated session data: {session['user']}")
-            else:
-                print("❌ User not found in database")
-                return jsonify({
-                    'authenticated': False,
-                    'error': 'User not found in database'
-                })
-            
-        finally:
-            conn.close()
-            
-        print(f"✅ User authenticated: {user['email']}")
-        print("=== END CHECK AUTH ===")
+        # Add cache control headers
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
         
-        # Create response with appropriate headers
-        response = jsonify({
-            'authenticated': True,
-            'user': session['user']
-        })
-        
+        print(f"Response headers: {dict(response.headers)}")
         return response
         
     except Exception as e:
-        print(f"❌ Auth check error: {str(e)}")
-        print("Full error:", traceback.format_exc())
-        # Clear session on error to prevent infinite loops
-        session.clear()
-        return jsonify({
-            'authenticated': False,
-            'error': 'Authentication check failed'
-        }), 401
+        print(f"Error in check_auth: {str(e)}")
+        print(f"Error traceback: {traceback.format_exc()}")
+        return jsonify({'error': 'Authentication check failed'}), 500
 
 @app.route('/api/get-user-settings')
 @login_required
@@ -2631,60 +2863,7 @@ def delete_user():
         print(f"Error deleting user: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-def log_user_activity(user_email, activity_type, page=None, action=None, details=None):
-    """Log user activity to the database"""
-    # print(f"\n=== LOGGING USER ACTIVITY ===")
-    # print(f"User: {user_email}")
-    # print(f"Type: {activity_type}")
-    # print(f"Page: {page}")
-    # print(f"Action: {action}")
-    # print(f"Details: {details}")
-    try:
-        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
-        try:
-            # Get IP address from request if available
-            ip_address = request.remote_addr if request else None
-            # print(f"IP Address: {ip_address}")
-            # Insert the activity log with UTC timestamp
-            # print("Inserting activity log...")
-            insert_query = '''
-                INSERT INTO user_activity_logs 
-                (user_email, activity_type, page, action, details, ip_address, timestamp)
-                VALUES (?, ?, ?, ?, ?, ?, datetime('now'))
-            '''
-            params = (user_email, activity_type, page, action, details, ip_address)
-            # print(f"Query: {insert_query}")
-            # print(f"Parameters: {params}")
-            
-            cursor.execute(insert_query, params)
-            conn.commit()
-            # print("Activity logged successfully")
-            
-            # Verify the log was written
-            # print("Verifying log entry...")
-            cursor.execute('''
-                SELECT * FROM user_activity_logs 
-                WHERE user_email = ? 
-                ORDER BY timestamp DESC 
-                LIMIT 1
-            ''', (user_email,))
-            last_log = cursor.fetchone()
-            if last_log:
-                # print(f"Last log entry: {last_log}")
-                pass
-            else:
-                # print("WARNING: Log entry not found after insert!")
-                pass
-        finally:
-            conn.close()
-                    
-    except Exception as e:
-        # print(f"Database error during transaction: {str(e)}")
-        # print(f"Error type: {type(e).__name__}")
-        # print(f"Full error details: {traceback.format_exc()}")
-        raise
+
 
 @app.route('/api/admin/user-activity/<email>')
 @login_required
@@ -2692,81 +2871,77 @@ def get_user_activity(email):
     """Get activity logs for a specific user"""
     try:
         print(f"\n=== Getting Activity for User: {email} ===")
-        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
         
-        try:
-            # Get user details first
-            print("Fetching user details...")
-            cursor.execute('''
-                SELECT first_name, last_name, email, last_login
-                FROM users
-                WHERE email = ?
-            ''', (email,))
-            user = cursor.fetchone()
+        # Get user details first
+        print("Fetching user details...")
+        user = execute_query_one(
+            """
+            SELECT first_name, last_name, email, last_login
+            FROM users
+            WHERE email = %(email)s
+            """,
+            {'email': email}
+        )
+        
+        if not user:
+            print(f"User not found: {email}")
+            return jsonify({'error': 'User not found'}), 404
             
-            if not user:
-                print(f"User not found: {email}")
-                return jsonify({'error': 'User not found'}), 404
-                
-            print(f"Found user: {user[0]} {user[1]}")
-                
-            # Get activity logs with explicit timestamp ordering
-            print("Fetching activity logs...")
-            cursor.execute('''
-                SELECT id, activity_type, page, action, details, ip_address, 
-                       datetime(timestamp, '-5 hours') || '.000-05:00' as central_time
-                FROM user_activity_logs
-                WHERE user_email = ?
-                ORDER BY timestamp DESC, id DESC
-                LIMIT 1000
-            ''', (email,))
+        print(f"Found user: {user['first_name']} {user['last_name']}")
             
-            logs = []
-            print("\nMost recent activities:")
-            for idx, row in enumerate(cursor.fetchall()):
-                if idx < 5:  # Print details of 5 most recent activities
-                    print(f"ID: {row[0]}, Type: {row[1]}, Time: {row[6]}")
-                
-                logs.append({
-                    'id': row[0],
-                    'activity_type': row[1],
-                    'page': row[2],
-                    'action': row[3],
-                    'details': row[4],
-                    'ip_address': row[5],
-                    'timestamp': row[6]  # Send UTC time to frontend
-                })
-            
-            print(f"\nFound {len(logs)} activity logs")
-            if logs:
-                print(f"Most recent log ID: {logs[0]['id']}")
-                print(f"Most recent timestamp: {logs[0]['timestamp']}")
-            
-            response_data = {
-                'user': {
-                    'first_name': user[0],
-                    'last_name': user[1],
-                    'email': user[2],
-                    'last_login': user[3]
-                },
-                'activities': logs
-            }
-            
-            print("Returning response data")
-            print("=== End Activity Request ===\n")
-            
-            # Create response with cache-busting headers
-            response = jsonify(response_data)
-            response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-            response.headers['Pragma'] = 'no-cache'
-            response.headers['Expires'] = '0'
-            return response
-            
-        finally:
-            conn.close()
-            
+        # Get activity logs with explicit timestamp ordering
+        print("Fetching activity logs...")
+        logs = execute_query(
+            """
+            SELECT id, activity_type, page, action, details, ip_address, 
+                   timezone('America/Chicago', timestamp) as central_time
+            FROM user_activity_logs
+            WHERE user_email = %(email)s
+            ORDER BY timestamp DESC, id DESC
+            LIMIT 1000
+            """,
+            {'email': email}
+        )
+        
+        print("\nMost recent activities:")
+        for idx, log in enumerate(logs[:5]):  # Print details of 5 most recent activities
+            print(f"ID: {log['id']}, Type: {log['activity_type']}, Time: {log['central_time']}")
+        
+        formatted_logs = [{
+            'id': log['id'],
+            'activity_type': log['activity_type'],
+            'page': log['page'],
+            'action': log['action'],
+            'details': log['details'],
+            'ip_address': log['ip_address'],
+            'timestamp': log['central_time'].isoformat()  # Format timestamp as ISO string
+        } for log in logs]
+        
+        print(f"\nFound {len(formatted_logs)} activity logs")
+        if formatted_logs:
+            print(f"Most recent log ID: {formatted_logs[0]['id']}")
+            print(f"Most recent timestamp: {formatted_logs[0]['timestamp']}")
+        
+        response_data = {
+            'user': {
+                'first_name': user['first_name'],
+                'last_name': user['last_name'],
+                'email': user['email'],
+                'last_login': user['last_login']
+            },
+            'activities': formatted_logs
+        }
+        
+        print("Returning response data")
+        print("=== End Activity Request ===\n")
+        
+        # Create response with cache-busting headers
+        response = jsonify(response_data)
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        return response
+        
     except Exception as e:
         print(f"Error getting user activity: {str(e)}")
         print(traceback.format_exc())
@@ -2804,7 +2979,7 @@ def test_activity():
             return jsonify({'error': 'Not authenticated'}), 401
             
         user_email = session['user']['email']
-        log_user_activity(
+        success = log_user_activity(
             user_email,
             'test',
             page='test_page',
@@ -2812,52 +2987,39 @@ def test_activity():
             details='Testing activity logging'
         )
         
-        # Try to read back the test activity
-        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
+        if not success:
+            return jsonify({'error': 'Failed to log activity'}), 500
         
-        try:
-            cursor.execute('''
-                SELECT * FROM user_activity_logs 
-                WHERE user_email = ? 
-                ORDER BY timestamp DESC 
-                LIMIT 1
-            ''', (user_email,))
-            
-            last_log = cursor.fetchone()
-            
-            if last_log:
-                return jsonify({
-                    'status': 'success',
-                    'message': 'Activity logged successfully',
-                    'last_log': {
-                        'id': last_log[0],
-                        'user_email': last_log[1],
-                        'activity_type': last_log[2],
-                        'page': last_log[3],
-                        'action': last_log[4],
-                        'details': last_log[5],
-                        'ip_address': last_log[6],
-                        'timestamp': last_log[7]
-                    }
-                })
-            else:
-                return jsonify({
-                    'status': 'error',
-                    'message': 'Activity was not logged'
-                }), 500
-                
-        finally:
-            conn.close()
+        # Try to read back the test activity
+        last_log = execute_query_one(
+            """
+            SELECT * FROM user_activity_logs 
+            WHERE user_email = %(email)s 
+            ORDER BY timestamp DESC 
+            LIMIT 1
+            """,
+            {'email': user_email}
+        )
+        
+        if last_log:
+            return jsonify({
+                'status': 'success',
+                'last_log': {
+                    'id': last_log['id'],
+                    'activity_type': last_log['activity_type'],
+                    'page': last_log['page'],
+                    'action': last_log['action'],
+                    'details': last_log['details'],
+                    'timestamp': last_log['timestamp'].isoformat()
+                }
+            })
+        else:
+            return jsonify({'error': 'Activity log not found after insert'}), 500
             
     except Exception as e:
-        print(f"Error in test route: {str(e)}")
+        print(f"Error testing activity logging: {str(e)}")
         print(traceback.format_exc())
-        return jsonify({
-            'status': 'error',
-            'message': str(e)
-        }), 500
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/test-log', methods=['GET'])
 @login_required
@@ -2878,43 +3040,33 @@ def test_log():
         )
         
         # Verify the log was written
-        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
+        last_log = execute_query_one('''
+            SELECT * FROM user_activity_logs 
+            WHERE user_email = %(email)s 
+            ORDER BY timestamp DESC 
+            LIMIT 1
+        ''', {'email': user_email})
         
-        try:
-            cursor.execute('''
-                SELECT * FROM user_activity_logs 
-                WHERE user_email = ? 
-                ORDER BY timestamp DESC 
-                LIMIT 1
-            ''', (user_email,))
-            
-            last_log = cursor.fetchone()
-            
-            if last_log:
-                return jsonify({
-                    'status': 'success',
-                    'message': 'Activity logged successfully',
-                    'log': {
-                        'id': last_log[0],
-                        'email': last_log[1],
-                        'type': last_log[2],
-                        'page': last_log[3],
-                        'action': last_log[4],
-                        'details': last_log[5],
-                        'ip': last_log[6],
-                        'timestamp': last_log[7]
-                    }
-                })
-            else:
-                return jsonify({
-                    'status': 'error',
-                    'message': 'Activity was not logged'
-                }), 500
-                
-        finally:
-            conn.close()
+        if last_log:
+            return jsonify({
+                'status': 'success',
+                'message': 'Activity logged successfully',
+                'log': {
+                    'id': last_log['id'],
+                    'email': last_log['user_email'],
+                    'type': last_log['activity_type'],
+                    'page': last_log['page'],
+                    'action': last_log['action'],
+                    'details': last_log['details'],
+                    'ip': last_log['ip_address'],
+                    'timestamp': last_log['timestamp'].isoformat() if isinstance(last_log['timestamp'], datetime) else last_log['timestamp']
+                }
+            })
+        else:
+            return jsonify({
+                'status': 'error',
+                'message': 'Activity was not logged'
+            }), 500
             
     except Exception as e:
         print(f"Error in test endpoint: {str(e)}")
@@ -2946,42 +3098,32 @@ def verify_logging():
         )
         
         # Verify the log was written
-        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
+        last_log = execute_query_one('''
+            SELECT * FROM user_activity_logs 
+            WHERE user_email = %(email)s AND activity_type = 'test'
+            ORDER BY timestamp DESC 
+            LIMIT 1
+        ''', {'email': user_email})
         
-        try:
-            cursor.execute('''
-                SELECT * FROM user_activity_logs 
-                WHERE user_email = ? AND activity_type = 'test'
-                ORDER BY timestamp DESC 
-                LIMIT 1
-            ''', (user_email,))
-            
-            last_log = cursor.fetchone()
-            
-            if last_log:
-                return jsonify({
-                    'status': 'success',
-                    'message': 'Logging system verified',
-                    'log': {
-                        'id': last_log[0],
-                        'email': last_log[1],
-                        'type': last_log[2],
-                        'page': last_log[3],
-                        'action': last_log[4],
-                        'details': last_log[5],
-                        'timestamp': last_log[7]
-                    }
-                })
-            else:
-                return jsonify({
-                    'status': 'error',
-                    'message': 'Log entry not found after writing'
-                }), 500
-                
-        finally:
-            conn.close()
+        if last_log:
+            return jsonify({
+                'status': 'success',
+                'message': 'Logging system verified',
+                'log': {
+                    'id': last_log['id'],
+                    'email': last_log['user_email'],
+                    'type': last_log['activity_type'],
+                    'page': last_log['page'],
+                    'action': last_log['action'],
+                    'details': last_log['details'],
+                    'timestamp': last_log['timestamp'].isoformat() if isinstance(last_log['timestamp'], datetime) else last_log['timestamp']
+                }
+            })
+        else:
+            return jsonify({
+                'status': 'error',
+                'message': 'Log entry not found after writing'
+            }), 500
             
     except Exception as e:
         print(f"Error in verify logging: {str(e)}")
@@ -2993,41 +3135,46 @@ def verify_logging():
 
 @app.route('/api/log-click', methods=['POST'])
 def log_click():
-    """Log a user's click on the page"""
+    """Handle click tracking"""
     try:
+        print("\n=== Request Info ===")
+        print(f"Path: {request.path}")
+        print(f"Method: {request.method}")
+        print(f"User in session: {'user' in session}")
+        if 'user' in session:
+            print(f"User email: {session['user']['email']}")
+        print("===================\n")
+
+        # Check content type
+        if not request.is_json:
+            print(f"Invalid content type: {request.content_type}")
+            return jsonify({'error': 'Content-Type must be application/json'}), 415
+
         data = request.get_json()
+        
         if not data:
+            print("No JSON data received")
             return jsonify({'error': 'No data provided'}), 400
 
-        element_id = data.get('elementId')
-        element_text = data.get('elementText')
-        element_type = data.get('elementType', 'button')
-        page_url = data.get('pageUrl')
-        
-        # Extract page name from URL
-        page_name = os.path.splitext(os.path.basename(page_url))[0] if page_url else None
-        
-        # Create descriptive details
-        details = f"Clicked {element_type}"
-        if element_id:
-            details += f" with id '{element_id}'"
-        if element_text:
-            details += f" containing text '{element_text}'"
-        
-        # Only log if user is in session
+        # Log the click data
         if 'user' in session:
             log_user_activity(
                 session['user']['email'],
                 'click',
-                page=page_name,
-                action='click',
-                details=details
+                action=data.get('action_type', 'unknown'),
+                details={
+                    'text': data.get('action_text', ''),
+                    'href': data.get('action_href', ''),
+                    'page': data.get('page', '')
+                }
             )
+            return jsonify({'status': 'success'})
         
-        return jsonify({'success': True})
+        return jsonify({'status': 'not logged in'}), 401
+
     except Exception as e:
-        print(f"Error logging click: {str(e)}")
-        print(traceback.format_exc())
+        print(f"Error in log_click: {str(e)}")
+        print(f"Error traceback: {traceback.format_exc()}")
         return jsonify({'error': str(e)}), 500
 
 # Add a basic healthcheck endpoint
@@ -3036,16 +3183,9 @@ def healthcheck():
     """Basic healthcheck endpoint that also verifies database connection"""
     try:
         # Test database connection
-        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
+        result = execute_query_one('SELECT 1 as test')
         
-        # Try to execute a simple query
-        cursor.execute('SELECT 1')
-        result = cursor.fetchone()
-        conn.close()
-        
-        if result and result[0] == 1:
+        if result and result['test'] == 1:
             # Database connection successful
             return jsonify({
                 'status': 'ok',
@@ -3377,25 +3517,19 @@ def serve_mobile():
 @app.route('/mobile/rally')
 @login_required
 def serve_rally_mobile():
-    """Serve the new rally mobile interface"""
-    # Create session data script
-    session_data = {
-        'user': session['user'],
-        'authenticated': True
-    }
-    
-    # Log mobile access
+    """Redirect from old mobile interface to new one"""
     try:
+        # Log the redirect
         log_user_activity(
             session['user']['email'], 
-            'page_visit', 
-            page='rally_mobile',
-            details='Accessed new rally mobile interface'
+            'redirect',
+            page='rally_mobile_to_new',
+            details='Redirected from old mobile interface to new one'
         )
     except Exception as e:
-        print(f"Error logging rally mobile page visit: {str(e)}")
+        print(f"Error logging rally mobile redirect: {str(e)}")
     
-    return render_template('rally_mobile.html', session_data=session_data)
+    return redirect(url_for('serve_mobile_index'))
 
 @app.route('/mobile/matches')
 @login_required
@@ -3490,17 +3624,34 @@ def serve_white_text_fix():
 
 
 def get_user_availability(player_name, matches, series):
+    """Get availability for a user across multiple matches"""
+    # First get the series_id
+    series_record = execute_query_one(
+        "SELECT id FROM series WHERE name = %(series)s",
+        {'series': series}
+    )
+    
+    if not series_record:
+        return []
+        
     availability = []
     for match in matches:
         match_date = match.get('date', '')
-        is_available = get_player_availability(player_name, match_date, series)
-        if is_available is None:
+        avail_records = get_player_availability(series_record['id'], match_date)
+        
+        # Find this player's availability in the records
+        player_avail = next(
+            (rec for rec in avail_records if rec['player_name'] == player_name),
+            None
+        )
+        
+        if player_avail is None:
             status = 'unknown'
-        elif is_available:
-            status = 'available'
         else:
-            status = 'unavailable'
+            status = 'available' if player_avail['is_available'] else 'unavailable'
+            
         availability.append({'status': status})
+        
     return availability
 
 @app.route('/mobile/availability', methods=['GET', 'POST'])
@@ -3557,51 +3708,132 @@ def serve_mobile_find_subs():
 
 @app.route('/mobile/view-schedule')
 @login_required
-def mobile_view_schedule():
+def serve_mobile_view_schedule():
     """Serve the mobile View Schedule page with the user's schedule."""
-    from datetime import datetime
-    user = session['user']
-    matches = get_matches_for_user_club(user)
-    
-    # Sort matches by date
     try:
-        matches = sorted(matches, key=lambda x: datetime.strptime(x['date'], '%d-%b-%y'))
-    except Exception as e:
-        print(f"Error sorting matches: {e}")
-        matches = sorted(matches, key=lambda x: x['date'])
-    
-    # Add formatted_date to each match
-    for match in matches:
-        try:
-            # Convert date to datetime object
-            dt = datetime.strptime(match['date'], '%d-%b-%y')
-            # Format for display
-            match['formatted_date'] = f"{dt.strftime('%A')} {dt.month}/{dt.day}/{dt.strftime('%y')}"
-        except Exception as e:
-            print(f"Error formatting date {match.get('date')}: {e}")
-            match['formatted_date'] = match.get('date', '')
-            
-        # Ensure all required fields exist
-        match.setdefault('time', '')
-        match.setdefault('location', '')
-        match.setdefault('home_team', '')
-        match.setdefault('away_team', '')
+        print("\n=== VIEW SCHEDULE REQUEST ===")
+        user = session.get('user')
+        print(f"User from session: {user}")
         
-        # Add practice flag if needed
-        match['is_practice'] = 'Practice' in match.get('type', '')
-    
-    return render_template(
-        'mobile/view_schedule.html',
-        matches=matches,
-        user=user,
-        session_data={'user': user}
-    )
+        if not user:
+            print("❌ No user in session")
+            return redirect(url_for('login'))
+            
+        matches = get_matches_for_user_club(user)
+        print(f"Found {len(matches)} matches for user")
+        
+        # Sort matches by date
+        from datetime import datetime
+        try:
+            # First try MM/DD/YYYY format (from schedules.json)
+            matches = sorted(matches, key=lambda x: datetime.strptime(x['date'], '%m/%d/%Y'))
+            print("Sorted matches using MM/DD/YYYY format")
+        except Exception as e:
+            print(f"Error sorting matches with MM/DD/YYYY format: {e}")
+            try:
+                # Try DD-Mon-YY format
+                matches = sorted(matches, key=lambda x: datetime.strptime(x['date'], '%d-%b-%y'))
+                print("Sorted matches using DD-Mon-YY format")
+            except Exception as e2:
+                print(f"Error sorting matches with DD-Mon-YY format: {e2}")
+                try:
+                    # Try YYYY-MM-DD format
+                    matches = sorted(matches, key=lambda x: datetime.strptime(x['date'], '%Y-%m-%d'))
+                    print("Sorted matches using YYYY-MM-DD format")
+                except Exception as e3:
+                    print(f"Error sorting matches with any format, using string sort: {e3}")
+                    matches = sorted(matches, key=lambda x: x['date'])
+        
+        # Add formatted_date to each match
+        for match in matches:
+            try:
+                # Try different date formats
+                dt = None
+                date_formats = ['%m/%d/%Y', '%d-%b-%y', '%Y-%m-%d']
+                date_str = match['date']
+                
+                for fmt in date_formats:
+                    try:
+                        dt = datetime.strptime(date_str, fmt)
+                        break
+                    except ValueError:
+                        continue
+                
+                if dt:
+                    # Format for display
+                    match['formatted_date'] = f"{dt.strftime('%A')} {dt.month}/{dt.day}/{dt.strftime('%y')}"
+                    # Also store the raw datetime for template use
+                    match['datetime'] = dt
+                else:
+                    print(f"Could not parse date: {date_str}")
+                    match['formatted_date'] = date_str
+                    match['datetime'] = None
+            except Exception as e:
+                print(f"Error formatting date {match.get('date')}: {e}")
+                match['formatted_date'] = match.get('date', '')
+                match['datetime'] = None
+            
+            # Ensure all required fields exist
+            match.setdefault('time', '')
+            match.setdefault('location', '')
+            match.setdefault('home_team', '')
+            match.setdefault('away_team', '')
+            match.setdefault('type', 'match')
+            
+            # Add practice flag if needed
+            match['is_practice'] = match.get('type', '') == 'Practice'
+            
+            # Clean up time format if needed
+            if match['time']:
+                try:
+                    # Parse and reformat time to ensure consistency
+                    time_obj = datetime.strptime(match['time'], '%I:%M %p')
+                    match['time'] = time_obj.strftime('%I:%M %p').lstrip('0')
+                except ValueError:
+                    # If parsing fails, just use the original time
+                    match['time'] = match['time'].lstrip('0')
+
+        session_data = {
+            'user': user,
+            'authenticated': True
+        }
+        
+        # Log the page visit
+        log_user_activity(
+            user['email'],
+            'page_visit',
+            page='mobile_view_schedule',
+            details='Viewed schedule'
+        )
+        
+        print(f"Rendering template with {len(matches)} matches")
+        # Pass user directly to the template in addition to session_data
+        return render_template('mobile/view_schedule.html', 
+                             session_data=session_data,
+                             matches=matches,
+                             user=user)  # Add user object here
+                             
+    except Exception as e:
+        print(f"❌ Error in view schedule: {str(e)}")
+        print(traceback.format_exc())  # Print full traceback for debugging
+        return redirect(url_for('login'))
 
 @app.route('/mobile/ask-ai')
 @login_required
 def mobile_ask_ai():
+    """Serve the mobile Ask AI page"""
     user = session['user']
-    return render_template('mobile/ask_ai.html', user=user, session_data={'user': user})
+    session_data = {
+        'user': user,
+        'authenticated': True
+    }
+    log_user_activity(
+        user['email'],
+        'page_visit',
+        page='mobile_ask_ai',
+        details='Accessed Ask AI page'
+    )
+    return render_template('mobile/ask_ai.html', session_data=session_data)
 
 @app.template_filter('pretty_date')
 def pretty_date(value):
@@ -5521,53 +5753,113 @@ def get_matches_for_user_club(user):
         user: User object containing club and series information
         
     Returns:
-        List of match dictionaries from match_history.json filtered for the user's club and series
+        List of match dictionaries from schedules.json filtered for the user's club and series
     """
     try:
-        with open('data/match_history.json', 'r') as f:
+        schedule_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'schedules.json')
+        print(f"\n=== Getting matches for user club ===")
+        print(f"Looking for schedule file at: {schedule_path}")
+        
+        with open(schedule_path, 'r') as f:
             all_matches = json.load(f)
             
         if not user or not user.get('club') or not user.get('series'):
+            print("❌ Missing user data:", user)
             return []
             
         user_club = user['club']
-        user_series = user['series'].split()[-1]  # Get the series number (e.g., "22" from "Series 22")
-        user_team = f"{user_club} - {user_series}"  # Full team name (e.g., "Tennaqua - 22")
+        # Handle different series formats (e.g. "Chicago 22" or just "22")
+        user_series = user['series'].split()[-1]  # Get the last part which should be the number
+        print(f"Looking for matches for club: {user_club}, series: {user_series}")
+        
+        # The team name in schedules.json could be in multiple formats:
+        # 1. "Club - Series - Series" (e.g. "Tennaqua - 22 - 22")
+        # 2. "Club - Chicago - Series - Series" (e.g. "Midtown - Chicago - 6 - 6")
+        possible_team_formats = [
+            f"{user_club} - {user_series} - {user_series}",  # Format 1
+            f"{user_club} - Chicago - {user_series} - {user_series}",  # Format 2
+            f"{user_club} - {user_series}"  # Legacy format
+        ]
         
         # Filter matches where user's team is either home or away team
         club_matches = []
         for match in all_matches:
-            home_team = match.get('Home Team', '')
-            away_team = match.get('Away Team', '')
-            
-            # Only include matches where the exact team name matches
-            if user_team == home_team or user_team == away_team:
-                # Normalize keys to snake_case
-                normalized_match = {
-                    'date': match.get('Date', ''),
-                    'time': match.get('Time', ''),
-                    'location': match.get('Location', ''),
-                    'home_team': home_team,
-                    'away_team': away_team,
-                    'winner': match.get('Winner', ''),
-                    'scores': match.get('Scores', ''),
-                    'home_player_1': match.get('Home Player 1', ''),
-                    'home_player_2': match.get('Home Player 2', ''),
-                    'away_player_1': match.get('Away Player 1', ''),
-                    'away_player_2': match.get('Away Player 2', '')
-                }
-                club_matches.append(normalized_match)
+            try:
+                # Check if it's a practice record
+                if 'Practice' in match:
+                    # For practices, add them all since they're at the user's club
+                    normalized_match = {
+                        'date': match.get('date', ''),
+                        'time': match.get('time', ''),
+                        'location': match.get('location', user_club),
+                        'Practice': True,
+                        'type': 'Practice'
+                    }
+                    club_matches.append(normalized_match)
+                    continue
+                
+                home_team = match.get('home_team', '')
+                away_team = match.get('away_team', '')
+                
+                # Check if either home or away team matches any of our possible formats
+                is_user_team = any(fmt in (home_team, away_team) for fmt in possible_team_formats)
+                
+                if is_user_team:
+                    print(f"Found match: {home_team} vs {away_team}")
+                    # Normalize keys to snake_case and ensure all required fields exist
+                    normalized_match = {
+                        'date': match.get('date', ''),
+                        'time': match.get('time', ''),
+                        'location': match.get('location', ''),
+                        'home_team': home_team,
+                        'away_team': away_team,
+                        'winner': match.get('winner', ''),
+                        'scores': match.get('scores', ''),
+                        'home_player_1': match.get('home_player_1', ''),
+                        'home_player_2': match.get('home_player_2', ''),
+                        'away_player_1': match.get('away_player_1', ''),
+                        'away_player_2': match.get('away_player_2', ''),
+                        'type': 'match'
+                    }
+                    club_matches.append(normalized_match)
+            except KeyError as e:
+                print(f"Warning: Skipping invalid match record: {e}")
+                continue
         
+        print(f"Found {len(club_matches)} matches for club")
+        print("=== End getting matches for user club ===\n")
         return club_matches
     except Exception as e:
         print(f"Error getting matches for user club: {e}")
+        print(traceback.format_exc())  # Print full traceback for debugging
         return []
 
 @app.route('/mobile/improve')
 @login_required
 def serve_mobile_improve():
-    """Serve the improve my game page"""
-    return render_template('mobile/improve.html', show_back_arrow=True)
+    """Serve the mobile improve page"""
+    try:
+        user = session.get('user')
+        if not user:
+            return redirect(url_for('login'))
+            
+        session_data = {
+            'user': user,
+            'authenticated': True
+        }
+        
+        log_user_activity(
+            user['email'], 
+            'page_visit', 
+            page='mobile_improve',
+            details='Accessed improve page'
+        )
+        
+        return render_template('mobile/improve.html', session_data=session_data)
+        
+    except Exception as e:
+        print(f"Error serving improve page: {str(e)}")
+        return redirect(url_for('login'))
 
 @app.route('/mobile/email-team')
 @login_required
@@ -5575,8 +5867,269 @@ def serve_mobile_email_team():
     """Serve the email team page"""
     return render_template('mobile/email_team.html', show_back_arrow=True)
 
+def get_user_by_id(user_id):
+    """Get user by ID from database"""
+    user = execute_query_one(
+        "SELECT * FROM users WHERE id = %(user_id)s",
+        {'user_id': user_id}
+    )
+    return user if user else None
+
+def get_user_by_email(email):
+    """Get user by email from database"""
+    user = execute_query_one(
+        "SELECT * FROM users WHERE email = %(email)s",
+        {'email': email}
+    )
+    return user if user else None
+
+def get_club_by_id(club_id):
+    """Get club by ID from database"""
+    club = execute_query_one(
+        "SELECT * FROM clubs WHERE id = %(club_id)s",
+        {'club_id': club_id}
+    )
+    return club if club else None
+
+def get_series_by_id(series_id):
+    """Get series by ID from database"""
+    series = execute_query_one(
+        "SELECT * FROM series WHERE id = %(series_id)s",
+        {'series_id': series_id}
+    )
+    return series if series else None
+
+# Serve logout.js without requiring login
+@app.route('/static/js/logout.js')
+def serve_logout_js():
+    """Serve the logout.js file with proper headers"""
+    try:
+        response = send_from_directory('static/js', 'logout.js')
+        
+        # Add CORS headers
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Methods'] = 'GET'
+        response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+        
+        # Add cache control headers
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        
+        print("Successfully served logout.js")
+        return response
+    except Exception as e:
+        print(f"Error serving logout.js: {str(e)}")
+        return str(e), 500
+
+@app.route('/mobile/team-schedule')
+@login_required
+def serve_mobile_team_schedule():
+    """Serve the team schedule page showing all players and their schedules"""
+    try:
+        # Get the team from user's session data
+        user = session.get('user')
+        if not user:
+            flash('Please log in first', 'error')
+            return redirect(url_for('login'))
+            
+        club = user.get('club')
+        series = user.get('series')
+        if not club or not series:
+            flash('Please set your club and series first', 'error')
+            return redirect(url_for('serve_mobile_view_schedule'))
+            
+        print(f"\n=== TEAM SCHEDULE DEBUG ===")
+        print(f"User data: {user}")
+        print(f"Club: {club}")
+        print(f"Series: {series}")
+
+        # Get club ID first
+        club_record = execute_query_one(
+            "SELECT id, name FROM clubs WHERE name = %(name)s",
+            {'name': club}
+        )
+        print(f"Club record: {club_record}")
+
+        if not club_record:
+            print(f"Club not found: {club}")
+            flash('Club not found', 'error')
+            return redirect(url_for('serve_mobile_view_schedule'))
+
+        # Try to find the series directly first
+        print("\nLooking up series...")
+        print(f"Trying series name: {series}")
+        print(f"Trying alternate format: Series {series.split()[-1]}")
+        
+        series_record = execute_query_one(
+            """
+            SELECT s.id, s.name 
+            FROM series s
+            WHERE s.name = %(series)s
+               OR s.name = %(series_alt)s
+               OR s.name LIKE %(series_pattern)s
+            """,
+            {
+                'series': series,
+                'series_alt': f"Series {series.split()[-1]}",  # Try both "Chicago 22" and "Series 22" format
+                'series_pattern': f"%{series.split()[-1]}%"  # Try pattern match on series number
+            }
+        )
+        print(f"Series lookup result: {series_record}")
+        
+        # If not found, try getting all series to debug
+        if not series_record:
+            all_series = execute_query("SELECT id, name FROM series ORDER BY name")
+            print("\nAll available series:")
+            for s in all_series:
+                print(f"- {s['name']} (ID: {s['id']})")
+        
+        if not series_record:
+            # If not found, try extracting the number and using Series format
+            m = re.search(r'(\d+)', series)
+            if m:
+                series_num = m.group(1)
+                series_name = f"Series {series_num}"
+                series_record = execute_query_one(
+                    "SELECT id, name FROM series WHERE name = %(series)s",
+                    {'series': series_name}
+                )
+                
+            if not series_record:
+                # If still not found, try looking up by club and series number
+                series_record = execute_query_one(
+                    """
+                    SELECT s.id, s.name 
+                    FROM series s
+                    JOIN users u ON s.id = u.series_id
+                    JOIN clubs c ON u.club_id = c.id
+                    WHERE c.name = %(club)s 
+                    AND s.name LIKE %(series_pattern)s
+                    """,
+                    {
+                        'club': club,
+                        'series_pattern': f'%{series_num if m else series}%'
+                    }
+                )
+        
+        print(f"Series record found: {series_record}")
+        
+        if not series_record:
+            print("No series record found with any method")
+            flash('Series not found', 'error')
+            return redirect(url_for('serve_mobile_view_schedule'))
+            
+        # Set the team name based on the found series
+        team = f"{club} - {series}"
+            
+        print("\nQuerying players...")
+        # First check if we have any players in series_players
+        player_count = execute_query_one(
+            """
+            SELECT COUNT(*) as count
+            FROM users u
+            WHERE u.series_id = %(series_id)s
+            AND u.club_id = %(club_id)s
+            """,
+            {
+                'series_id': series_record['id'],
+                'club_id': club_record['id']
+            }
+        )
+        print(f"Number of players in series: {player_count['count'] if player_count else 0}")
+
+        # Get all players in the series
+        team_players = execute_query(
+            """
+            SELECT DISTINCT u.id, 
+                   CONCAT(u.first_name, ' ', u.last_name) as player_name
+            FROM users u
+            WHERE u.series_id = %(series_id)s
+            AND u.club_id = %(club_id)s
+            ORDER BY player_name
+            """,
+            {
+                'series_id': series_record['id'],
+                'club_id': club_record['id']
+            }
+        )
+        print(f"Found {len(team_players)} players")
+
+        # Get match dates for this team
+        match_dates = execute_query(
+            """
+            SELECT DISTINCT match_date 
+            FROM player_availability 
+            WHERE series_id = %(series_id)s
+            ORDER BY match_date
+            """,
+            {'series_id': series_record['id']}
+        )
+        print(f"Found {len(match_dates)} match dates")
+
+        # Get availability for each player
+        players_schedule = {}
+        for player in team_players:
+            availability = execute_query(
+                """
+                SELECT match_date as date, is_available
+                FROM player_availability
+                WHERE player_name = %(player)s
+                AND series_id = %(series_id)s
+                ORDER BY match_date
+                """,
+                {
+                    'player': player['player_name'],
+                    'series_id': series_record['id']
+                }
+            )
+            players_schedule[player['player_name']] = availability
+
+        print(f"Collected availability for {len(players_schedule)} players")
+
+        return render_template(
+            'mobile/team_schedule.html',
+            team=team,
+            players_schedule=players_schedule,
+            session_data={'user': user},
+            show_back_arrow=True
+        )
+
+    except Exception as e:
+        print(f"\n=== TEAM SCHEDULE ERROR ===")
+        print(f"Error type: {type(e).__name__}")
+        print(f"Error message: {str(e)}")
+        print("Full traceback:")
+        print(traceback.format_exc())
+        
+        # Get database connection status
+        try:
+            test_connection = execute_query_one("SELECT 1")
+            print("\nDatabase connection test:", "OK" if test_connection else "Failed")
+        except Exception as db_e:
+            print("\nDatabase connection test failed:", str(db_e))
+            
+        error_details = f"""
+        Verification steps:
+        1. Club setting: {club}
+        2. Series setting: {series}
+        3. Error: {str(e)}
+        
+        Please check your profile settings and try again.
+        """
+        return render_template(
+            'mobile/team_schedule.html',
+            team=f"{club} - {series}" if club and series else None,
+            players_schedule=None,
+            session_data={'user': user} if 'user' in locals() else {},
+            show_back_arrow=True,
+            error_details=error_details
+        )
+
+
+
 if __name__ == '__main__':
-        # Get port from environment variable or use default
+    # Get port from environment variable or use default
         port = int(os.environ.get("PORT", os.environ.get("RAILWAY_PORT", 8080)))
         host = os.environ.get("HOST", "0.0.0.0")
         

@@ -17,12 +17,6 @@
                 <li class="nav-item">
                     <a class="nav-link" href="#" onclick="showContent('settings'); return false;" id="welcomeMessage"></a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#" id="logoutLink">
-                        <i class="fas fa-sign-out-alt me-1"></i>
-                        Logout
-                    </a>
-                </li>
             </ul>
         </div>
     </div>
@@ -62,33 +56,22 @@
 }
 </style>
 
+<!-- Make sure logout.js is loaded -->
+<script src="/static/js/logout.js"></script>
+
 <script>
 // Update welcome message when navbar is loaded
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('[DEBUG] Navbar DOMContentLoaded');
-    fetch('/api/check-auth')
-        .then(response => {
-            console.log('[DEBUG] /api/check-auth response:', response);
-            return response.json();
-        })
-        .then(data => {
-            console.log('[DEBUG] /api/check-auth data:', data);
-            if (data.authenticated) {
-                const user = data.user;
-                const welcomeMsg = `Welcome back, ${user.first_name} ${user.last_name} (${user.series} at ${user.club})`;
-                console.log('[DEBUG] Setting welcome message:', welcomeMsg);
-                const welcomeElem = document.getElementById('welcomeMessage');
-                if (welcomeElem) {
-                    welcomeElem.textContent = welcomeMsg;
-                } else {
-                    console.warn('[DEBUG] #welcomeMessage element not found');
+    const welcomeMessage = document.getElementById('welcomeMessage');
+    if (welcomeMessage) {
+        fetch('/api/check-auth')
+            .then(response => response.json())
+            .then(data => {
+                if (data.authenticated && data.user) {
+                    welcomeMessage.textContent = `Welcome, ${data.user.name || data.user.email}`;
                 }
-            } else {
-                console.warn('[DEBUG] User not authenticated');
-            }
-        })
-        .catch(error => {
-            console.error('[DEBUG] Error fetching user data:', error);
-        });
+            })
+            .catch(error => console.error('Error:', error));
+    }
 });
 </script> 
