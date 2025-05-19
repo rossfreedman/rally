@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rally Admin Dashboard</title>
+    <link rel="icon" type="image/png" href="/static/images/rally_favicon.png">
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@3.9.4/dist/full.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.0.0/css/all.css" rel="stylesheet">
+</head>
+<body class="min-h-screen bg-base-200">
+    <div class="drawer lg:drawer-open">
+        <input id="admin-drawer" type="checkbox" class="drawer-toggle" />
+        
+        <!-- Drawer content -->
+        <div class="drawer-content flex flex-col p-4">
+            <div class="w-full navbar bg-base-100 lg:hidden">
+                <div class="flex-none">
+                    <label for="admin-drawer" class="btn btn-square btn-ghost">
+                        <i class="fas fa-bars"></i>
+                    </label>
+                </div>
+                <div class="flex-1">
+                    <h1 class="text-xl font-bold">Rally Admin</h1>
+                </div>
+            </div>
+
+            <!-- Tab content -->
+            <div class="tabs tabs-boxed my-4">
+                <a class="tab tab-active" data-tab="users">Users</a>
+                <a class="tab" data-tab="clubs">Clubs</a>
+                <a class="tab" data-tab="series">Series</a>
+            </div>
+
+            <!-- Users content -->
+            <div id="users-content" class="tab-content">
+                <div class="card bg-base-100 shadow-xl">
+                    <div class="card-body">
+                        <div class="flex justify-between items-center">
+                            <h2 class="card-title">Active Users</h2>
+                            <button class="btn btn-primary" onclick="exportUsers()">
+                                <i class="fas fa-download mr-2"></i> Export
+                            </button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="table table-zebra w-full">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Email</th>
+                                        <th>Club</th>
+                                        <th>Series</th>
+                                        <th>Last Login</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="usersTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Clubs content -->
+            <div id="clubs-content" class="tab-content hidden">
+                <div class="card bg-base-100 shadow-xl">
+                    <div class="card-body">
+                        <div class="flex justify-between items-center">
+                            <h2 class="card-title">Clubs</h2>
+                            <button class="btn btn-primary" onclick="showAddClubModal()">
+                                <i class="fas fa-plus mr-2"></i> Add Club
+                            </button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="table table-zebra w-full">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Name</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="clubsTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Series content -->
+            <div id="series-content" class="tab-content hidden">
+                <div class="card bg-base-100 shadow-xl">
+                    <div class="card-body">
+                        <div class="flex justify-between items-center">
+                            <h2 class="card-title">Series</h2>
+                            <button class="btn btn-primary" onclick="showAddSeriesModal()">
+                                <i class="fas fa-plus mr-2"></i> Add Series
+                            </button>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="table table-zebra w-full">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Name</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="seriesTableBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="drawer-side">
+            <label for="admin-drawer" class="drawer-overlay"></label>
+            <div class="menu p-4 w-80 min-h-full bg-base-100 text-base-content">
+                <h1 class="text-2xl font-bold mb-4">Rally Admin</h1>
+                <ul class="menu bg-base-200 rounded-box">
+                    <li><a class="active" data-tab="users">Users</a></li>
+                    <li><a data-tab="clubs">Clubs</a></li>
+                    <li><a data-tab="series">Series</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <!-- Edit User Modal -->
+    <dialog id="editUserModal" class="modal">
+        <div class="modal-box">
+            <h3 class="font-bold text-lg">Edit User</h3>
+            <form id="editUserForm" class="py-4">
+                <input type="hidden" id="editUserId">
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">First Name</span>
+                    </label>
+                    <input type="text" id="editFirstName" class="input input-bordered" required>
+                </div>
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Last Name</span>
+                    </label>
+                    <input type="text" id="editLastName" class="input input-bordered" required>
+                </div>
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Email</span>
+                    </label>
+                    <input type="email" id="editEmail" class="input input-bordered" required>
+                </div>
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Club</span>
+                    </label>
+                    <select id="editClub" class="select select-bordered" required></select>
+                </div>
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Series</span>
+                    </label>
+                    <select id="editSeries" class="select select-bordered" required></select>
+                </div>
+            </form>
+            <div class="modal-action">
+                <button class="btn" onclick="closeModal('editUserModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="saveUserChanges()">Save Changes</button>
+            </div>
+        </div>
+    </dialog>
+
+    <!-- Club Modal -->
+    <dialog id="clubModal" class="modal">
+        <div class="modal-box">
+            <h3 class="font-bold text-lg">Add/Edit Club</h3>
+            <form id="clubForm" class="py-4">
+                <input type="hidden" id="clubId">
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Club Name</span>
+                    </label>
+                    <input type="text" id="clubName" class="input input-bordered" required>
+                </div>
+            </form>
+            <div class="modal-action">
+                <button class="btn" onclick="closeModal('clubModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="saveClub()">Save</button>
+            </div>
+        </div>
+    </dialog>
+
+    <!-- Series Modal -->
+    <dialog id="seriesModal" class="modal">
+        <div class="modal-box">
+            <h3 class="font-bold text-lg">Add/Edit Series</h3>
+            <form id="seriesForm" class="py-4">
+                <input type="hidden" id="seriesId">
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Series Name</span>
+                    </label>
+                    <input type="text" id="seriesName" class="input input-bordered" required>
+                </div>
+            </form>
+            <div class="modal-action">
+                <button class="btn" onclick="closeModal('seriesModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="saveSeries()">Save</button>
+            </div>
+        </div>
+    </dialog>
+
+    <script src="/static/js/admin.js"></script>
+</body>
+</html> 
