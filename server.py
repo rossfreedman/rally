@@ -6177,6 +6177,11 @@ def serve_mobile_team_schedule():
             error_details=error_details
         )
 
+@app.route('/mobile/reserve-court')
+@login_required
+def serve_mobile_reserve_court():
+    return render_template('mobile/reserve-court.html')
+
 
 
 if __name__ == '__main__':
