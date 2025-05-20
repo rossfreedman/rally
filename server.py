@@ -3,7 +3,7 @@ from flask_socketio import SocketIO, emit
 import pandas as pd
 from flask_cors import CORS
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 import traceback
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -28,7 +28,7 @@ from utils.logging import log_user_activity
 from routes.analyze import init_analyze_routes
 from routes.act import init_act_routes
 from routes.admin import admin_bp
-from routes.act.availability import init_availability_routes  # Add this import
+from routes.act.availability import update_player_availability as act_update_player_availability
 
 def is_public_file(path):
     """Check if a file should be publicly accessible without authentication"""
@@ -195,10 +195,6 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
 # Store active threads
 active_threads = {}
-
-# Initialize routes
-init_act_routes(app)  # Initialize act routes (includes availability and auth)
-init_analyze_routes(app)  # Initialize analyze routes
 
 # Login required decorator
 from utils.auth import login_required
@@ -1562,22 +1558,77 @@ def serve_schedule():
         print(traceback.format_exc())  # Print full traceback for debugging
         return jsonify({'error': 'Internal server error'}), 500
 
-def get_player_availability(series_id, date):
-    """Get player availability for a series on a specific date"""
-    availability = execute_query(
-        """
-        SELECT 
-            player_name,
-            match_date,
-            availability_status,
-            series_id,
-            updated_at
-        FROM player_availability 
-        WHERE series_id = %(series_id)s AND match_date = %(date)s
-        """,
-        {'series_id': series_id, 'date': date}
-    )
-    return availability if availability else []
+def get_player_availability(player_name, match_date, series):
+    """Get availability for a player on a specific date"""
+    try:
+        print(f"\n=== GET PLAYER AVAILABILITY ===")
+        print(f"Player: {player_name}")
+        print(f"Original date: {match_date}")
+        print(f"Series: {series}")
+        
+        # First get the series_id
+        series_record = execute_query_one(
+            "SELECT id FROM series WHERE name = %(series)s",
+            {'series': series}
+        )
+        print(f"Series lookup result: {series_record}")
+        
+        if not series_record:
+            print(f"No series found with name: {series}")
+            return 0  # Default to "Not Set" when no series found
+        
+        # Standardize the date format
+        original_date = match_date
+        if isinstance(match_date, str):
+            try:
+                # Convert MM/DD/YYYY to YYYY-MM-DD
+                if '/' in match_date:
+                    month, day, year = match_date.split('/')
+                    match_date = f"{year}-{month.zfill(2)}-{day.zfill(2)}"
+                # Try to parse the date to validate format
+                match_date = datetime.strptime(match_date, '%Y-%m-%d').date()
+                print(f"Standardized date: {match_date} (from {original_date})")
+            except ValueError as e:
+                print(f"Invalid date format: {match_date}, error: {str(e)}")
+                return 0  # Default to "Not Set" on date error
+        
+        print(f"Querying availability with parameters:")
+        print(f"  player_name: {player_name.strip()}")
+        print(f"  match_date: {match_date}")
+        print(f"  series_id: {series_record['id']}")
+        
+        # Try both date formats in the query
+        result = execute_query_one(
+            """
+            SELECT availability_status 
+            FROM player_availability 
+            WHERE player_name = %(player_name)s 
+            AND (
+                match_date = %(match_date)s 
+                OR match_date = %(match_date_str)s::date
+            )
+            AND series_id = %(series_id)s
+            """,
+            {
+                'player_name': player_name.strip(),
+                'match_date': match_date,
+                'match_date_str': match_date.strftime('%Y-%m-%d'),
+                'series_id': series_record['id']
+            }
+        )
+        print(f"Availability lookup result: {result}")
+        
+        if not result:
+            print(f"No availability found for {player_name} on {match_date}")
+            return 0  # Default to "Not Set" when no record found
+            
+        print(f"Found availability status: {result['availability_status']}")
+        return result['availability_status']
+            
+    except Exception as e:
+        print(f"Error getting player availability: {str(e)}")
+        print(traceback.format_exc())  # Add full traceback
+        return 0  # Default to "Not Set" on any error
 
 def standardize_date(date_str):
     """Convert date string to standard format MM/DD/YYYY"""
@@ -1593,7 +1644,7 @@ def standardize_date(date_str):
         print(f"Error standardizing date {date_str}: {str(e)}")
         return date_str
 
-def update_player_availability(series_id, date, player_name, is_available, series_name):
+def update_player_availability(series_id, date, player_name, availability_status, series_name):
     """Update player availability for a series on a specific date"""
     try:
         print(f"\n=== UPDATE PLAYER AVAILABILITY ===")
@@ -1601,17 +1652,23 @@ def update_player_availability(series_id, date, player_name, is_available, serie
         print(f"series_id: {series_id}")
         print(f"date: {date}")
         print(f"player_name: {player_name}")
-        print(f"is_available: {is_available}")
+        print(f"availability_status: {availability_status}")
         print(f"series_name: {series_name}")
         
         # Standardize the date format
         standardized_date = standardize_date(date)
         print(f"Standardized date: {standardized_date}")
         
+        # Ensure status is an integer and in valid range
+        status = int(availability_status)
+        if status not in [1, 2, 3]:
+            print(f"Invalid status value: {status}")
+            return False
+        
         # First, check if a record already exists
         existing = execute_query(
             """
-            SELECT id, is_available, match_date 
+            SELECT id, availability_status, match_date 
             FROM player_availability 
             WHERE series_id = %(series_id)s 
             AND match_date = %(date)s 
@@ -1629,30 +1686,120 @@ def update_player_availability(series_id, date, player_name, is_available, serie
         result = execute_query(
             """
             INSERT INTO player_availability 
-                (series_id, match_date, player_name, is_available, updated_at)
+                (series_id, match_date, player_name, availability_status, updated_at)
             VALUES 
-                (%(series_id)s, %(date)s, %(player_name)s, %(is_available)s, CURRENT_TIMESTAMP)
+                (%(series_id)s, %(date)s, %(player_name)s, %(status)s, CURRENT_TIMESTAMP)
             ON CONFLICT (player_name, match_date, series_id) 
             DO UPDATE SET 
-                is_available = %(is_available)s,
+                availability_status = %(status)s,
                 updated_at = CURRENT_TIMESTAMP
-            RETURNING id, is_available
+            RETURNING id, availability_status
             """,
             {
                 'series_id': series_id,
                 'date': standardized_date,
                 'player_name': player_name,
-                'is_available': is_available
+                'status': status
             }
         )
         print(f"Update result: {result}")
         
         return bool(result)
     except Exception as e:
-        print(f"Error in update_player_availability: {str(e)}")
+        print(f"Error updating player availability: {str(e)}")
+        print(f"Full error: {traceback.format_exc()}")
         return False
 
-# Availability routes moved to routes/act/availability.py
+@app.route('/api/availability', methods=['GET', 'POST'])
+@login_required
+def handle_availability():
+    if request.method == 'GET':
+        player_name = request.args.get('player_name')
+        match_date = request.args.get('match_date')
+        series = request.args.get('series')
+        if not all([player_name, match_date, series]):
+            return jsonify({'error': 'Missing required parameters'}), 400
+            
+        # Get series ID
+        series_record = execute_query_one(
+            "SELECT id FROM series WHERE name = %(series)s",
+            {'series': series}
+        )
+        if not series_record:
+            return jsonify({'error': f'Series not found: {series}'}), 404
+            
+        availability = get_player_availability(series_record['id'], match_date, series)
+        return jsonify({'is_available': availability})
+    
+    elif request.method == 'POST':
+        if 'user' not in session:
+            return jsonify({'error': 'Not authenticated'}), 401
+            
+        data = request.get_json()
+        print("\n=== AVAILABILITY UPDATE ===")
+        print(f"Received data: {data}")
+        
+        required_fields = ['player_name', 'match_date', 'availability_status', 'series']
+        if not all(field in data for field in required_fields):
+            return jsonify({'error': 'Missing required fields'}), 400
+            
+        try:
+            # Verify the player_name matches the logged-in user
+            user = session['user']
+            if data['player_name'] != f"{user['first_name']} {user['last_name']}":
+                return jsonify({'error': 'Can only update your own availability'}), 403
+                
+            # Get series ID
+            print(f"Looking up series: {data['series']}")
+            series_record = execute_query_one(
+                "SELECT id, name FROM series WHERE name = %(series)s",
+                {'series': data['series']}
+            )
+            print(f"Series lookup result: {series_record}")
+            
+            if not series_record:
+                # Try with "Chicago " prefix
+                series_with_prefix = f"Chicago {data['series'].split()[-1]}"
+                print(f"Trying with prefix: {series_with_prefix}")
+                series_record = execute_query_one(
+                    "SELECT id, name FROM series WHERE name = %(series)s",
+                    {'series': series_with_prefix}
+                )
+                print(f"Series lookup with prefix result: {series_record}")
+                
+                if not series_record:
+                    return jsonify({'error': f'Series not found: {data["series"]}'}), 404
+            
+            # Log availability update
+            log_user_activity(
+                session['user']['email'], 
+                'feature_use', 
+                action='update_availability',
+                details=f"Player: {data['player_name']}, Date: {data['match_date']}, Available: {data['availability_status']}"
+            )
+            
+            # The date is already in the correct format from the frontend
+            match_date = data['match_date']
+            print(f"Updating availability for: {data['player_name']} on {match_date} in series {data['series']}")
+            
+            # Update the availability in the database using the act module's function
+            success = act_update_player_availability(
+                data['player_name'],
+                match_date,
+                data['availability_status'],
+                series_record['name']  # Pass the series name
+            )
+            
+            if success:
+                print("Successfully updated availability")
+                return jsonify({'status': 'success'})
+            else:
+                print("Failed to update availability")
+                return jsonify({'error': 'Failed to update availability'}), 500
+                
+        except Exception as e:
+            print(f"Full error: {traceback.format_exc()}")
+            return jsonify({'error': str(e)}), 500
 
 @app.route('/api/get-availability', methods=['GET'])
 def get_availability():
@@ -2297,8 +2444,7 @@ def get_series_stats():
                             
                             if court_key not in player_performance[player['name']]['courts']:
                                 player_performance[player['name']]['courts'][court_key] = {
-                                    'wins': 0,
-                                    'matches': 0
+                                    'wins': 0, 'matches': 0
                                 }
                             
                             player_performance[player['name']]['courts'][court_key]['matches'] += 1
@@ -3609,64 +3755,103 @@ def get_user_availability(player_name, matches, series):
     availability = []
     for match in matches:
         match_date = match.get('date', '')
-        avail_records = get_player_availability(series_record['id'], match_date)
+        # Pass all required arguments: player_name, match_date, and series
+        avail_status = get_player_availability(player_name, match_date, series)
         
-        # Find this player's availability in the records
-        player_avail = next(
-            (rec for rec in avail_records if rec['player_name'] == player_name),
-            None
-        )
-        
-        if player_avail is None:
-            status = 'unknown'
+        if avail_status is None:
+            availability.append({'availability_status': 0})  # Default to "not set"
         else:
-            # Map availability_status to string values
-            status = str(player_avail['availability_status'])
-            
-        availability.append({'status': status})
+            availability.append({'availability_status': avail_status})
         
     return availability
 
 @app.route('/mobile/availability', methods=['GET', 'POST'])
 @login_required
 def mobile_availability():
-    user = session.get('user')
-    player_name = f"{user['first_name']} {user['last_name']}"
-    series = user['series']
+    try:
+        print("\n=== MOBILE AVAILABILITY PAGE ===")
+        # Clear any existing error flashes
+        session.pop('_flashes', None)
+        
+        user = session.get('user')
+        if not user:
+            print("❌ No user in session")
+            flash('Please log in first', 'error')
+            return redirect(url_for('login'))
 
-    # 1. Get matches for the user's club/series
-    matches = get_matches_for_user_club(user)
+        player_name = f"{user['first_name']} {user['last_name']}"
+        series = user['series']
+        print(f"Loading availability for player: {player_name}, series: {series}")
 
-    # 2. Get this user's availability for each match
-    player_availability = get_user_availability(player_name, matches, series)
+        # 1. Get matches for the user's club/series
+        matches = get_matches_for_user_club(user)
+        if not matches:
+            print("❌ No matches found for user's club/series")
+            flash('No matches found for your club and series', 'warning')
+            return render_template(
+                'mobile/availability.html',
+                players=[{'name': player_name}],
+                matches=[],
+                match_avail_pairs=[],
+                session_data={'user': user},
+                user=user
+            )
 
-    # 3. Prepare data for the template
-    players = [{
-        'name': player_name,
-        'availability': player_availability
-    }]
-    match_objs = [
-        {
-            'date': m.get('date', ''),
-            'time': m.get('time', ''),
-            'location': m.get('location', m.get('home_team', '')),
-            'home_team': m.get('home_team', ''),
-            'away_team': m.get('away_team', '')
-        }
-        for m in matches
-    ]
-    # Zip matches and availability for template
-    match_avail_pairs = list(zip(match_objs, player_availability))
+        print(f"✓ Found {len(matches)} matches")
 
-    return render_template(
-        'mobile/availability.html',
-        players=players,
-        matches=match_objs,
-        match_avail_pairs=match_avail_pairs,
-        session_data={'user': user},
-        user=user,  # Add user to the template context
-        zip=zip
-    )
+        # 2. Get this user's availability for each match
+        player_availability = get_user_availability(player_name, matches, series)
+        print(f"✓ Retrieved availability for {len(player_availability)} dates")
+
+        # Map availability status to new format
+        player_availability = [{
+            'status': 'available' if a.get('availability_status') == 1 else
+                     'unavailable' if a.get('availability_status') == 2 else
+                     'not_sure' if a.get('availability_status') == 3 else
+                     'not_set'  # Default to 'not_set' for status 0 or None
+        } for a in player_availability]
+
+        # 3. Prepare data for the template
+        players = [{
+            'name': player_name,
+            'availability': player_availability
+        }]
+        match_objs = [
+            {
+                'date': m.get('date', ''),
+                'time': m.get('time', ''),
+                'location': m.get('location', m.get('home_team', '')),
+                'home_team': m.get('home_team', ''),
+                'away_team': m.get('away_team', '')
+            }
+            for m in matches
+        ]
+        # Zip matches and availability for template
+        match_avail_pairs = list(zip(match_objs, player_availability))
+        print(f"✓ Prepared {len(match_avail_pairs)} match-availability pairs")
+
+        return render_template(
+            'mobile/availability.html',
+            players=players,
+            matches=match_objs,
+            match_avail_pairs=match_avail_pairs,
+            session_data={'user': user},
+            user=user,
+            zip=zip
+        )
+
+    except Exception as e:
+        print(f"❌ Error in mobile_availability: {str(e)}")
+        print(traceback.format_exc())  # Print full traceback
+        flash('An error occurred while loading your availability. Please try again.', 'error')
+        return render_template(
+            'mobile/availability.html',
+            players=[{'name': player_name}] if 'player_name' in locals() else [],
+            matches=[],
+            match_avail_pairs=[],
+            session_data={'user': user} if 'user' in locals() else {},
+            user=user if 'user' in locals() else None
+        )
 
 @app.route('/mobile/find-subs')
 @login_required
@@ -3808,21 +3993,67 @@ def mobile_ask_ai():
     )
     return render_template('mobile/ask_ai.html', session_data=session_data)
 
+@app.template_filter('parse_date')
+def parse_date(value):
+    """
+    Jinja2 filter to parse a date string or datetime.date into a datetime object.
+    Handles multiple date formats.
+    """
+    from datetime import datetime, date
+    
+    if not value:
+        return None
+    
+    # If already a datetime.date, convert to datetime with default time
+    if isinstance(value, date):
+        return datetime.combine(value, datetime.strptime('6:30 PM', '%I:%M %p').time())
+    
+    # If already a datetime, return as is
+    if isinstance(value, datetime):
+        return value
+    
+    # Try different date formats for strings
+    formats = [
+        "%Y-%m-%d",
+        "%m/%d/%Y",
+        "%m/%d/%y",
+        "%d-%b-%y"
+    ]
+    
+    for fmt in formats:
+        try:
+            dt = datetime.strptime(str(value), fmt)
+            # Add default time of 6:30 PM if not specified
+            if dt.hour == 0 and dt.minute == 0:
+                dt = dt.replace(hour=18, minute=30)
+            return dt
+        except ValueError:
+            continue
+    
+    return None
+
 @app.template_filter('pretty_date')
 def pretty_date(value):
-    """
-    Jinja2 filter to format a date string (YYYY-MM-DD or MM/DD/YYYY) as 'Tuesday 9/24/24'.
-    """
-    from datetime import datetime
+    """Format a date as 'Tuesday 9/24/24 at 6:30 PM'"""
     if not value:
-        return ''
-    for fmt in ("%Y-%m-%d", "%m/%d/%Y", "%m/%d/%y"):
-        try:
-            dt = datetime.strptime(value, fmt)
-            return f"{dt.strftime('%A')} {dt.month}/{dt.day}/{dt.strftime('%y')}"
-        except Exception:
-            continue
-    return value  # fallback if parsing fails
+        return "None"
+    try:
+        if isinstance(value, str):
+            dt = datetime.strptime(value, '%Y-%m-%d')
+        elif isinstance(value, datetime):
+            dt = value
+        elif isinstance(value, date):
+            dt = datetime.combine(value, datetime.strptime('6:30 PM', '%I:%M %p').time())
+        else:
+            return str(value)
+            
+        # Add default time of 6:30 PM if not specified
+        if dt.hour == 0 and dt.minute == 0:
+            dt = dt.replace(hour=18, minute=30)
+            
+        return dt.strftime('%A %-m/%-d/%y at %-I:%M %p')
+    except ValueError:
+        return str(value)  # Fallback if parsing fails
 
 def get_player_analysis(user):
     """
@@ -5900,204 +6131,185 @@ def serve_logout_js():
 def serve_mobile_team_schedule():
     """Serve the team schedule page showing all players and their schedules"""
     try:
+        print("\n=== TEAM SCHEDULE PAGE REQUEST ===")
         # Get the team from user's session data
         user = session.get('user')
         if not user:
+            print("❌ No user in session")
             flash('Please log in first', 'error')
             return redirect(url_for('login'))
             
-        club = user.get('club')
+        club_name = user.get('club')
         series = user.get('series')
-        if not club or not series:
-            flash('Please set your club and series first', 'error')
-            return redirect(url_for('serve_mobile_view_schedule'))
-            
-        print(f"\n=== TEAM SCHEDULE DEBUG ===")
-        print(f"User data: {user}")
-        print(f"Club: {club}")
+        print(f"User: {user.get('email')}")
+        print(f"Club: {club_name}")
         print(f"Series: {series}")
-
-        # Get club ID first
-        club_record = execute_query_one(
-            "SELECT id, name FROM clubs WHERE name = %(name)s",
-            {'name': club}
-        )
-        print(f"Club record: {club_record}")
-
-        if not club_record:
-            print(f"Club not found: {club}")
-            flash('Club not found', 'error')
+        
+        if not club_name or not series:
+            print("❌ Missing club or series")
+            flash('Please set your club and series in your profile settings', 'error')
             return redirect(url_for('serve_mobile_view_schedule'))
 
-        # Try to find the series directly first
-        print("\nLooking up series...")
-        print(f"Trying series name: {series}")
-        print(f"Trying alternate format: Series {series.split()[-1]}")
+        # Get series ID first since we want all players in the series
+        series_query = "SELECT id, name FROM series WHERE name = %(name)s"
+        print(f"Executing series query: {series_query}")
+        print(f"Query params: {{'name': {series}}}")
         
-        series_record = execute_query_one(
-            """
-            SELECT s.id, s.name 
-            FROM series s
-            WHERE s.name = %(series)s
-               OR s.name = %(series_alt)s
-               OR s.name LIKE %(series_pattern)s
-            """,
-            {
-                'series': series,
-                'series_alt': f"Series {series.split()[-1]}",  # Try both "Chicago 22" and "Series 22" format
-                'series_pattern': f"%{series.split()[-1]}%"  # Try pattern match on series number
-            }
-        )
-        print(f"Series lookup result: {series_record}")
-        
-        # If not found, try getting all series to debug
-        if not series_record:
-            all_series = execute_query("SELECT id, name FROM series ORDER BY name")
-            print("\nAll available series:")
-            for s in all_series:
-                print(f"- {s['name']} (ID: {s['id']})")
+        series_record = execute_query(series_query, {'name': series})
+        print(f"Series query result: {series_record}")
         
         if not series_record:
-            # If not found, try extracting the number and using Series format
-            m = re.search(r'(\d+)', series)
-            if m:
-                series_num = m.group(1)
-                series_name = f"Series {series_num}"
-                series_record = execute_query_one(
-                    "SELECT id, name FROM series WHERE name = %(series)s",
-                    {'series': series_name}
-                )
-                
-            if not series_record:
-                # If still not found, try looking up by club and series number
-                series_record = execute_query_one(
-                    """
-                    SELECT s.id, s.name 
-                    FROM series s
-                    JOIN users u ON s.id = u.series_id
-                    JOIN clubs c ON u.club_id = c.id
-                    WHERE c.name = %(club)s 
-                    AND s.name LIKE %(series_pattern)s
-                    """,
-                    {
-                        'club': club,
-                        'series_pattern': f'%{series_num if m else series}%'
-                    }
-                )
-        
-        print(f"Series record found: {series_record}")
-        
-        if not series_record:
-            print("No series record found with any method")
-            flash('Series not found', 'error')
+            print(f"❌ Series not found: {series}")
+            flash(f'Series "{series}" not found in database', 'error')
             return redirect(url_for('serve_mobile_view_schedule'))
             
-        # Set the team name based on the found series
-        team = f"{club} - {series}"
-            
-        print("\nQuerying players...")
-        # First check if we have any players in series_players
-        player_count = execute_query_one(
-            """
-            SELECT COUNT(*) as count
-            FROM users u
-            WHERE u.series_id = %(series_id)s
-            AND u.club_id = %(club_id)s
-            """,
-            {
-                'series_id': series_record['id'],
-                'club_id': club_record['id']
-            }
-        )
-        print(f"Number of players in series: {player_count['count'] if player_count else 0}")
+        series_record = series_record[0]
+        print(f"✓ Found series: {series_record}")
 
-        # Get all players in the series
-        team_players = execute_query(
-            """
-            SELECT DISTINCT u.id, 
-                   CONCAT(u.first_name, ' ', u.last_name) as player_name
-            FROM users u
-            WHERE u.series_id = %(series_id)s
-            AND u.club_id = %(club_id)s
-            ORDER BY player_name
-            """,
-            {
-                'series_id': series_record['id'],
-                'club_id': club_record['id']
-            }
-        )
-        print(f"Found {len(team_players)} players")
-
-        # Get match dates for this team
-        match_dates = execute_query(
-            """
-            SELECT DISTINCT match_date 
-            FROM player_availability 
-            WHERE series_id = %(series_id)s
-            ORDER BY match_date
-            """,
-            {'series_id': series_record['id']}
-        )
-        print(f"Found {len(match_dates)} match dates")
-
-        # Get availability for each player
-        players_schedule = {}
-        for player in team_players:
-            availability = execute_query(
-                """
-                SELECT match_date as date, is_available
-                FROM player_availability
-                WHERE player_name = %(player)s
-                AND series_id = %(series_id)s
-                ORDER BY match_date
-                """,
-                {
-                    'player': player['player_name'],
-                    'series_id': series_record['id']
-                }
-            )
-            players_schedule[player['player_name']] = availability
-
-        print(f"Collected availability for {len(players_schedule)} players")
-
-        return render_template(
-            'mobile/team_schedule.html',
-            team=team,
-            players_schedule=players_schedule,
-            session_data={'user': user},
-            show_back_arrow=True
-        )
-
-    except Exception as e:
-        print(f"\n=== TEAM SCHEDULE ERROR ===")
-        print(f"Error type: {type(e).__name__}")
-        print(f"Error message: {str(e)}")
-        print("Full traceback:")
-        print(traceback.format_exc())
-        
-        # Get database connection status
+        # Load all players from players.json
         try:
-            test_connection = execute_query_one("SELECT 1")
-            print("\nDatabase connection test:", "OK" if test_connection else "Failed")
-        except Exception as db_e:
-            print("\nDatabase connection test failed:", str(db_e))
+            with open('data/players.json', 'r') as f:
+                all_players = json.load(f)
             
-        error_details = f"""
-        Verification steps:
-        1. Club setting: {club}
-        2. Series setting: {series}
-        3. Error: {str(e)}
+            # Filter players for this series and club
+            team_players = []
+            for player in all_players:
+                if (player.get('Series') == series and 
+                    player.get('Club') == club_name):
+                    full_name = f"{player['First Name']} {player['Last Name']}"
+                    team_players.append({
+                        'player_name': full_name,
+                        'club_name': club_name
+                    })
+            
+            print(f"✓ Found {len(team_players)} players in players.json for {club_name} - {series}")
+            
+            if not team_players:
+                print("❌ No players found in players.json")
+                flash('No players found for your team', 'warning')
+                return redirect(url_for('serve_mobile_view_schedule'))
+                
+        except Exception as e:
+            print(f"❌ Error reading players.json: {e}")
+            print(traceback.format_exc())
+            flash('Error loading player data', 'error')
+            return redirect(url_for('serve_mobile_view_schedule'))
+
+        # Get match dates from schedules.json
+        try:
+            matches_path = os.path.join('data', 'schedules.json')
+            print(f"\nReading matches from: {matches_path}")
+            
+            if not os.path.exists(matches_path):
+                print(f"❌ Schedules file not found: {matches_path}")
+                flash('Match schedule file not found', 'error')
+                return redirect(url_for('serve_mobile_view_schedule'))
+                
+            with open(matches_path, 'r') as f:
+                all_matches = json.load(f)
+                
+            # Filter matches for this series
+            series_number = series.split()[-1]  # Get the number part (e.g. "22" from "Chicago 22")
+            match_dates = []
+            
+            print(f"Looking for matches with series number: {series_number}")
+            for match in all_matches:
+                # Check if either team is in this series
+                home_team = match.get('home_team', '')
+                away_team = match.get('away_team', '')
+                match_date = match.get('date')
+                
+                if (f" - {series_number} - " in home_team or 
+                    f" - {series_number} - " in away_team):
+                    if match_date:
+                        try:
+                            # Convert from MM/DD/YYYY to YYYY-MM-DD
+                            date_obj = datetime.strptime(match_date, '%m/%d/%Y')
+                            match_dates.append(date_obj.strftime('%Y-%m-%d'))
+                        except ValueError as e:
+                            print(f"Invalid date format: {match_date}, error: {e}")
+                            continue
+            
+            match_dates = sorted(list(set(match_dates)))  # Remove duplicates and sort
+            print(f"✓ Found {len(match_dates)} match dates")
+            
+            if not match_dates:
+                print("❌ No match dates found for series")
+                flash('No matches found for your series', 'warning')
+                return redirect(url_for('serve_mobile_view_schedule'))
+            
+        except Exception as e:
+            print(f"❌ Error reading schedules.json: {e}")
+            print(traceback.format_exc())
+            flash('Error loading match schedule', 'error')
+            return redirect(url_for('serve_mobile_view_schedule'))
+
+        players_schedule = {}
+        print("\nProcessing player availability:")
+        for player in team_players:
+            availability = []
+            player_name = player['player_name']
+            print(f"\nChecking availability for {player_name}")
+            
+            for match_date in match_dates:
+                try:
+                    # Convert match_date string to datetime.date object
+                    match_date_obj = datetime.strptime(match_date, '%Y-%m-%d').date()
+                    
+                    # Get availability status for this player and date
+                    avail_query = """
+                        SELECT availability_status
+                        FROM player_availability 
+                        WHERE player_name = %(player)s 
+                        AND series_id = %(series_id)s 
+                        AND match_date = %(date)s::date
+                    """
+                    avail_params = {
+                        'player': player_name,
+                        'series_id': series_record['id'],
+                        'date': match_date_obj
+                    }
+                    
+                    avail_record = execute_query(avail_query, avail_params)
+                    status = avail_record[0]['availability_status'] if avail_record and avail_record[0]['availability_status'] is not None else 0
+                    
+                    availability.append({
+                        'date': match_date,
+                        'availability_status': status
+                    })
+                except Exception as e:
+                    print(f"Error processing availability for {player_name} on {match_date}: {e}")
+                    # Skip this date if there's an error
+                    continue
+            
+            # Store both player name and club name in the schedule
+            display_name = f"{player_name} ({player['club_name']})"
+            players_schedule[display_name] = availability
+            print(f"✓ Added {display_name} with {len(availability)} dates")
+
+        if not players_schedule:
+            print("❌ No player schedules created")
+            flash('No player schedules found for your series', 'warning')
+            return redirect(url_for('serve_mobile_view_schedule'))
+            
+        print(f"\n✓ Final players_schedule has {len(players_schedule)} players")
+            
+        # Create a clean team name string for the title
+        team_name = f"{club_name} - {series}"
+        print(f"\nRendering template with team: {team_name}")
         
-        Please check your profile settings and try again.
-        """
         return render_template(
             'mobile/team_schedule.html',
-            team=f"{club} - {series}" if club and series else None,
-            players_schedule=None,
-            session_data={'user': user} if 'user' in locals() else {},
-            show_back_arrow=True,
-            error_details=error_details
+            team=team_name,
+            players_schedule=players_schedule,
+            session_data={'user': user}
         )
+        
+    except Exception as e:
+        print(f"❌ Error in serve_mobile_team_schedule: {str(e)}")
+        print(traceback.format_exc())
+        flash('An error occurred while loading the team schedule', 'error')
+        return redirect(url_for('serve_mobile_view_schedule'))
 
 @app.route('/mobile/reserve-court')
 @login_required
