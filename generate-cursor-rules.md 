@@ -8,6 +8,7 @@ Analyze my project and automatically generate or update the `.cursor-rules.mdc` 
 - Proactively suggests improvements, but avoids breaking existing functionality.
 - Reminds me to back up code before major changes.
 - Uses markdown formatting and asks clarifying questions when needed.
+- Don't use bootstrap. Use Flask + Jinja + Tailwind CSS + DaisyUI for the Rally application.
 
 Make sure the rule structure follows the proper `.mdc` format.
 

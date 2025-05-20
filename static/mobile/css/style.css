@@ -231,56 +231,47 @@ a:hover {
 .hamburger-btn:active {
     width: 48px !important;
     height: 48px !important;
-    padding: 0 !important;
+    padding: 12px !important;
     margin: 0 !important;
     background: none !important;
     border: none !important;
     box-shadow: none !important;
     outline: none !important;
     display: flex !important;
-    align-items: center;
-    justify-content: center;
-    box-sizing: border-box !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+    align-items: flex-end !important;
+    gap: 6px !important;
+    position: absolute !important;
+    top: 50% !important;
+    transform: translateY(calc(-50% + 3px)) !important;
+    right: 4px !important;
+    cursor: pointer !important;
     z-index: 1001 !important;
-    cursor: pointer;
-    overflow: visible !important;
 }
 
 .hamburger-btn .bar {
-    position: absolute;
-    left: 50%;
-    width: 22px;
+    width: 24px;
     height: 2px;
     background: #fff;
-    border-radius: 1px;
-    transition: all 0.3s cubic-bezier(.4,2,.6,1);
-    transform-origin: center;
-    margin: 0;
-}
-
-.hamburger-btn .bar:nth-child(1) {
-    top: 16px;
-    transform: translateX(-50%);
-}
-.hamburger-btn .bar:nth-child(2) {
-    top: 23px;
-    transform: translateX(-50%);
-}
-.hamburger-btn .bar:nth-child(3) {
-    top: 30px;
-    transform: translateX(-50%);
+    border-radius: 2px;
+    transition: all 0.3s ease-in-out;
+    transform-origin: right;
 }
 
 .hamburger-btn.open .bar:nth-child(1) {
-    top: 23px;
-    transform: translateX(-50%) rotate(45deg);
+    transform: translateY(0) rotate(-45deg);
+    width: 24px;
 }
+
 .hamburger-btn.open .bar:nth-child(2) {
     opacity: 0;
+    transform: translateX(5px);
 }
+
 .hamburger-btn.open .bar:nth-child(3) {
-    top: 23px;
-    transform: translateX(-50%) rotate(-45deg);
+    transform: translateY(0) rotate(45deg);
+    width: 24px;
 }
 
 /* --- Modern & Compact Schedule Card Styles --- */

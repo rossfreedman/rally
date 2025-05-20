@@ -28,6 +28,7 @@ from utils.logging import log_user_activity
 from routes.analyze import init_analyze_routes
 from routes.act import init_act_routes
 from routes.admin import admin_bp
+from routes.act.availability import init_availability_routes  # Add this import
 
 def is_public_file(path):
     """Check if a file should be publicly accessible without authentication"""
@@ -194,6 +195,10 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
 # Store active threads
 active_threads = {}
+
+# Initialize routes
+init_act_routes(app)  # Initialize act routes (includes availability and auth)
+init_analyze_routes(app)  # Initialize analyze routes
 
 # Login required decorator
 from utils.auth import login_required
@@ -1561,7 +1566,13 @@ def get_player_availability(series_id, date):
     """Get player availability for a series on a specific date"""
     availability = execute_query(
         """
-        SELECT * FROM player_availability 
+        SELECT 
+            player_name,
+            match_date,
+            availability_status,
+            series_id,
+            updated_at
+        FROM player_availability 
         WHERE series_id = %(series_id)s AND match_date = %(date)s
         """,
         {'series_id': series_id, 'date': date}
@@ -1641,97 +1652,7 @@ def update_player_availability(series_id, date, player_name, is_available, serie
         print(f"Error in update_player_availability: {str(e)}")
         return False
 
-@app.route('/api/availability', methods=['GET', 'POST'])
-@login_required
-def handle_availability():
-    if request.method == 'GET':
-        player_name = request.args.get('player_name')
-        match_date = request.args.get('match_date')
-        series = request.args.get('series')
-        if not all([player_name, match_date, series]):
-            return jsonify({'error': 'Missing required parameters'}), 400
-            
-        # Get series ID
-        series_record = execute_query_one(
-            "SELECT id FROM series WHERE name = %(series)s",
-            {'series': series}
-        )
-        if not series_record:
-            return jsonify({'error': f'Series not found: {series}'}), 404
-            
-        availability = get_player_availability(series_record['id'], match_date)
-        return jsonify({'is_available': availability})
-    
-    elif request.method == 'POST':
-        if 'user' not in session:
-            return jsonify({'error': 'Not authenticated'}), 401
-            
-        data = request.get_json()
-        print("\n=== AVAILABILITY UPDATE ===")
-        print(f"Received data: {data}")
-        
-        required_fields = ['player_name', 'match_date', 'is_available', 'series']
-        if not all(field in data for field in required_fields):
-            return jsonify({'error': 'Missing required fields'}), 400
-            
-        try:
-            # Verify the player_name matches the logged-in user
-            user = session['user']
-            if data['player_name'] != f"{user['first_name']} {user['last_name']}":
-                return jsonify({'error': 'Can only update your own availability'}), 403
-                
-            # Get series ID
-            print(f"Looking up series: {data['series']}")
-            series_record = execute_query_one(
-                "SELECT id, name FROM series WHERE name = %(series)s",
-                {'series': data['series']}
-            )
-            print(f"Series lookup result: {series_record}")
-            
-            if not series_record:
-                # Try with "Chicago " prefix
-                series_with_prefix = f"Chicago {data['series'].split()[-1]}"
-                print(f"Trying with prefix: {series_with_prefix}")
-                series_record = execute_query_one(
-                    "SELECT id, name FROM series WHERE name = %(series)s",
-                    {'series': series_with_prefix}
-                )
-                print(f"Series lookup with prefix result: {series_record}")
-                
-                if not series_record:
-                    return jsonify({'error': f'Series not found: {data["series"]}'}), 404
-            
-            # Log availability update
-            log_user_activity(
-                session['user']['email'], 
-                'feature_use', 
-                action='update_availability',
-                details=f"Player: {data['player_name']}, Date: {data['match_date']}, Available: {data['is_available']}"
-            )
-            
-            # The date is already in the correct format from the frontend
-            match_date = data['match_date']
-            print(f"Updating availability for: {data['player_name']} on {match_date} in series {data['series']}")
-            
-            # Update the availability in the database
-            success = update_player_availability(
-                series_record['id'],
-                match_date,
-                data['player_name'],
-                data['is_available'],
-                series_record['name']  # Pass the series name
-            )
-            
-            if success:
-                print("Successfully updated availability")
-                return jsonify({'status': 'success'})
-            else:
-                print("Failed to update availability")
-                return jsonify({'error': 'Failed to update availability'}), 500
-                
-        except Exception as e:
-            print(f"Full error: {traceback.format_exc()}")
-            return jsonify({'error': str(e)}), 500
+# Availability routes moved to routes/act/availability.py
 
 @app.route('/api/get-availability', methods=['GET'])
 def get_availability():
@@ -3699,7 +3620,8 @@ def get_user_availability(player_name, matches, series):
         if player_avail is None:
             status = 'unknown'
         else:
-            status = 'available' if player_avail['is_available'] else 'unavailable'
+            # Map availability_status to string values
+            status = str(player_avail['availability_status'])
             
         availability.append({'status': status})
         

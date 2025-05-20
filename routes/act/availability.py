@@ -28,7 +28,7 @@ def get_player_availability(player_name, match_date, series):
         
         result = execute_query_one(
             """
-            SELECT is_available 
+            SELECT availability_status 
             FROM player_availability 
             WHERE player_name = %(player_name)s 
             AND match_date = %(match_date)s 
@@ -42,18 +42,18 @@ def get_player_availability(player_name, match_date, series):
         )
         print(f"Availability lookup result: {result}")
         
-        return result['is_available'] if result else None
+        return result['availability_status'] if result else None
     except Exception as e:
         print(f"Error getting player availability: {str(e)}")
         return None
 
-def update_player_availability(player_name, match_date, is_available, series):
+def update_player_availability(player_name, match_date, availability_status, series):
     """Update or insert availability for a player"""
     try:
         print(f"\n=== UPDATE PLAYER AVAILABILITY ===")
         print(f"Player: {player_name}")
         print(f"Date: {match_date}")
-        print(f"Available: {is_available}")
+        print(f"Status: {availability_status}")
         print(f"Series: {series}")
         
         # First get the series_id
@@ -78,7 +78,7 @@ def update_player_availability(player_name, match_date, is_available, series):
         # Check if record exists first
         existing = execute_query_one(
             """
-            SELECT id, is_available 
+            SELECT id, availability_status 
             FROM player_availability 
             WHERE player_name = %(player_name)s 
             AND match_date = %(match_date)s 
@@ -96,19 +96,19 @@ def update_player_availability(player_name, match_date, is_available, series):
         result = execute_query_one(
             """
             INSERT INTO player_availability 
-                (player_name, match_date, is_available, series_id, updated_at)
+                (player_name, match_date, availability_status, series_id, updated_at)
             VALUES 
-                (%(player_name)s, %(match_date)s, %(is_available)s, %(series_id)s, CURRENT_TIMESTAMP)
+                (%(player_name)s, %(match_date)s, %(availability_status)s, %(series_id)s, CURRENT_TIMESTAMP)
             ON CONFLICT (player_name, match_date, series_id) 
             DO UPDATE SET 
-                is_available = %(is_available)s,
+                availability_status = %(availability_status)s,
                 updated_at = CURRENT_TIMESTAMP
-            RETURNING id, is_available
+            RETURNING id, availability_status
             """,
             {
                 'player_name': player_name,
                 'match_date': match_date,
-                'is_available': is_available,
+                'availability_status': availability_status,
                 'series_id': series_record['id']
             }
         )
@@ -124,14 +124,10 @@ def get_user_availability(player_name, matches, series):
     availability = []
     for match in matches:
         match_date = match.get('date', '')
-        is_available = get_player_availability(player_name, match_date, series)
-        if is_available is None:
+        status = get_player_availability(player_name, match_date, series)
+        if status is None:
             status = 'unknown'
-        elif is_available:
-            status = 'available'
-        else:
-            status = 'unavailable'
-        availability.append({'status': status})
+        availability.append({'status': str(status)})
     return availability
 
 def init_availability_routes(app):
@@ -144,10 +140,10 @@ def init_availability_routes(app):
                 data = request.json
                 player_name = data.get('player_name')
                 match_date = data.get('match_date')
-                is_available = data.get('is_available')
+                availability_status = data.get('availability_status')
                 series = data.get('series')
                 
-                success = update_player_availability(player_name, match_date, is_available, series)
+                success = update_player_availability(player_name, match_date, availability_status, series)
                 if success:
                     return jsonify({'status': 'success'})
                 return jsonify({'error': 'Failed to update availability'}), 500
@@ -180,33 +176,65 @@ def init_availability_routes(app):
             try:
                 data = request.json
                 print(f"\n=== AVAILABILITY API POST ===")
-                print(f"Received data: {data}")
+                print(f"Raw request data: {request.get_data()}")
+                print(f"Content type: {request.content_type}")
+                print(f"Parsed JSON data: {data}")
                 
                 # Validate required fields
-                required_fields = ['player_name', 'match_date', 'is_available', 'series']
-                if not all(field in data for field in required_fields):
-                    missing = [f for f in required_fields if f not in data]
-                    print(f"Missing required fields: {missing}")
-                    return jsonify({'error': 'Missing required fields'}), 400
+                required_fields = ['player_name', 'match_date', 'availability_status', 'series']
+                missing_fields = [f for f in required_fields if f not in data]
+                
+                if missing_fields:
+                    error_msg = f"Missing required fields: {', '.join(missing_fields)}"
+                    print(f"Error: {error_msg}")
+                    print(f"Received fields: {list(data.keys())}")
+                    return jsonify({'error': error_msg}), 400
+                
+                # Validate availability_status is an integer between 1 and 3
+                try:
+                    availability_status = int(data['availability_status'])
+                    if availability_status not in [1, 2, 3]:
+                        error_msg = f"Invalid availability_status value: {availability_status}"
+                        print(f"Error: {error_msg}")
+                        return jsonify({'error': 'availability_status must be 1, 2, or 3'}), 400
+                except (ValueError, TypeError):
+                    error_msg = f"Invalid availability_status type: {data['availability_status']}"
+                    print(f"Error: {error_msg}")
+                    return jsonify({'error': 'availability_status must be an integer'}), 400
                 
                 # Verify the player_name matches the logged-in user
                 user = session['user']
                 if data['player_name'] != f"{user['first_name']} {user['last_name']}":
-                    print(f"Player name mismatch: {data['player_name']} vs {user['first_name']} {user['last_name']}")
+                    error_msg = f"Player name mismatch: {data['player_name']} vs {user['first_name']} {user['last_name']}"
+                    print(f"Error: {error_msg}")
                     return jsonify({'error': 'Can only update your own availability'}), 403
                 
+                # Validate date format
+                try:
+                    match_date = datetime.strptime(data['match_date'], '%Y-%m-%d').date()
+                except ValueError:
+                    error_msg = f"Invalid date format: {data['match_date']}"
+                    print(f"Error: {error_msg}")
+                    return jsonify({'error': 'Invalid date format. Use YYYY-MM-DD'}), 400
+                
+                print(f"All validation passed, updating availability...")
                 success = update_player_availability(
                     data['player_name'],
-                    data['match_date'],
-                    data['is_available'],
+                    match_date,
+                    availability_status,
                     data['series']
                 )
                 
                 if success:
+                    print("Successfully updated availability")
                     return jsonify({'status': 'success'})
+                
+                print("Failed to update availability")
                 return jsonify({'error': 'Failed to update availability'}), 500
             except Exception as e:
                 print(f"Error in availability POST handler: {str(e)}")
+                import traceback
+                print(f"Full traceback: {traceback.format_exc()}")
                 return jsonify({'error': str(e)}), 500
         else:
             try:
@@ -217,8 +245,8 @@ def init_availability_routes(app):
                 print(f"\n=== AVAILABILITY API GET ===")
                 print(f"Query params: player_name={player_name}, match_date={match_date}, series={series}")
                 
-                is_available = get_player_availability(player_name, match_date, series)
-                return jsonify({'is_available': is_available})
+                availability_status = get_player_availability(player_name, match_date, series)
+                return jsonify({'availability_status': availability_status})
             except Exception as e:
                 print(f"Error in availability GET handler: {str(e)}")
                 return jsonify({'error': str(e)}), 500 

@@ -4,7 +4,7 @@
 {% block content %}
 <div class="max-w-lg mx-auto">
     <!-- Consistent Header (matches view_schedule.html) -->
-    <div class="flex items-center gap-3 mt-4 mb-2 px-4">
+    <div class="flex items-center gap-3 mt-4 mb-6 px-4">
         <div class="bg-white rounded-md flex items-center justify-center h-10 w-10">
             <i class="fas fa-calendar-check text-black text-2xl"></i>
         </div>
@@ -12,17 +12,6 @@
             <div class="text-xl font-bold leading-tight">Update Availability</div>
             <div class="text-sm text-gray-500 mt-1">Manage your availability for upcoming matches and practices.</div>
         </div>
-    </div>
-    <!-- Instructional message -->
-    <div class="availability-info-message mt-6 mb-6 mx-4">
-      <i class="fas fa-info-circle mr-4"></i>
-      <div>
-        To change your availability, click the availability button to toggle between:
-        <ul class="ml-6 mt-2 list-disc">
-          <li>I can play</li>
-          <li>Sorry, can't</li>
-        </ul>
-      </div>
     </div>
     <!-- (Optional) Filter Bar: Uncomment if you want filtering like schedule -->
     {#
@@ -92,16 +81,28 @@
                             <span class="schedule-location-text-normal truncate">{{ loc }}</span>
                         </div>
                     </div>
-                    <!-- Availability Button (now right-aligned and vertically centered) -->
-                    <div class="flex-shrink-0 ml-2">
+                    <!-- Availability Buttons (three-button layout) -->
+                    <div class="flex-shrink-0 ml-2 flex flex-col gap-2">
                         <button
-                            class="btn btn-lg availability-btn h-12 w-44 whitespace-nowrap {% if avail.status == 'available' %}btn-success{% elif avail.status == 'unavailable' %}btn-error{% else %}btn-neutral{% endif %}"
-                            data-state="{{ avail.status }}"
-                            onclick="toggleAvailability(this, '{{ players[0].name }}', '{{ match.date }}')"
+                            class="btn btn-sm availability-btn whitespace-nowrap {% if avail.status == '1' %}btn-success opacity-100{% else %}btn-success opacity-50{% endif %}"
+                            data-state="1"
+                            onclick="setAvailability(this, '{{ players[0].name }}', '{{ match.date }}', 1)"
                         >
-                            {% if avail.status == 'available' %}I can play
-                            {% elif avail.status == 'unavailable' %}Sorry, can't
-                            {% else %}Update{% endif %}
+                            Count me in!
+                        </button>
+                        <button
+                            class="btn btn-sm availability-btn whitespace-nowrap {% if avail.status == '2' %}btn-error opacity-100{% else %}btn-error opacity-50{% endif %}"
+                            data-state="2"
+                            onclick="setAvailability(this, '{{ players[0].name }}', '{{ match.date }}', 2)"
+                        >
+                            Sorry, can't
+                        </button>
+                        <button
+                            class="btn btn-sm availability-btn whitespace-nowrap {% if avail.status == '3' %}btn-warning opacity-100{% else %}btn-warning opacity-50{% endif %}"
+                            data-state="3"
+                            onclick="setAvailability(this, '{{ players[0].name }}', '{{ match.date }}', 3)"
+                        >
+                            Not sure yet
                         </button>
                     </div>
                 </div>
@@ -111,27 +112,27 @@
     </div>
 </div>
 <script>
-    // setView function and related logic removed. Card view is always visible.
+    function setAvailability(button, playerName, date, status) {
+        // Get all buttons in this group (siblings)
+        const buttonGroup = button.parentElement.querySelectorAll('button');
+        
+        // Update visual state of all buttons
+        buttonGroup.forEach(btn => {
+            const btnStatus = btn.getAttribute('data-state');
+            if (btnStatus === status.toString()) {
+                btn.classList.remove('opacity-50');
+                btn.classList.add('opacity-100');
+            } else {
+                btn.classList.remove('opacity-100');
+                btn.classList.add('opacity-50');
+            }
+        });
 
-    function toggleAvailability(button, playerName, date) {
-        const currentState = button.getAttribute('data-state');
-        let newState;
-        if (currentState === 'unknown' || currentState === 'unavailable') {
-            newState = 'available';
-            button.className = 'btn btn-success btn-lg availability-btn h-12 w-44 whitespace-nowrap';
-            button.textContent = "I can play";
-        } else {
-            newState = 'unavailable';
-            button.className = 'btn btn-error btn-lg availability-btn h-12 w-44 whitespace-nowrap';
-            button.textContent = "Sorry, can't";
-        }
-        button.setAttribute('data-state', newState);
-        saveAvailabilityChange(button, playerName, date);
+        saveAvailabilityChange(button, playerName, date, status);
     }
 
-    async function saveAvailabilityChange(button, playerName, date) {
+    async function saveAvailabilityChange(button, playerName, date, status) {
         try {
-            const isAvailable = button.getAttribute('data-state') === 'available';
             const user = window.sessionData && window.sessionData.user;
             
             if (!user || !user.series) {
@@ -140,48 +141,64 @@
                 return;
             }
             
-            console.log('Saving availability:', {
+            // Format the date to YYYY-MM-DD
+            const [month, day, year] = date.split('/');
+            const formattedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+            
+            // Log the data we're about to send
+            console.log('Player Name:', playerName);
+            console.log('Match Date:', formattedDate);
+            console.log('Status:', status);
+            console.log('Series:', user.series);
+            
+            const requestData = {
                 player_name: playerName,
-                match_date: date,
-                is_available: isAvailable,
+                match_date: formattedDate,
+                availability_status: parseInt(status),
                 series: user.series
-            });
+            };
+            
+            console.log('Sending request data:', requestData);
             
             const response = await fetch('/api/availability', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
                 },
-                body: JSON.stringify({
-                    player_name: playerName,
-                    match_date: date,
-                    is_available: isAvailable,
-                    series: user.series
-                })
+                body: JSON.stringify(requestData)
             });
+            
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to save availability');
+            }
             
             const responseData = await response.json();
             
-            if (!response.ok) {
-                throw new Error(responseData.error || 'Failed to save availability');
-            }
-            
             // Show success indicator
             const successIndicator = document.createElement('span');
-            successIndicator.className = 'ml-2 text-green-600 font-bold';
-            successIndicator.textContent = '✓';
-            button.appendChild(successIndicator);
+            successIndicator.className = 'absolute top-0 right-0 mr-2 mt-2 text-green-600';
+            successIndicator.innerHTML = '<i class="fas fa-check-circle"></i>';
+            button.parentElement.appendChild(successIndicator);
             setTimeout(() => {
                 successIndicator.remove();
             }, 1000);
+            
+            // Update button states
+            const buttonGroup = button.parentElement.querySelectorAll('button');
+            buttonGroup.forEach(btn => {
+                const btnStatus = btn.getAttribute('data-state');
+                if (btnStatus === status.toString()) {
+                    btn.classList.remove('opacity-50');
+                    btn.classList.add('opacity-100');
+                } else {
+                    btn.classList.remove('opacity-100');
+                    btn.classList.add('opacity-50');
+                }
+            });
         } catch (error) {
             console.error('Error saving availability:', error);
-            // Revert the button state
-            const currentState = button.getAttribute('data-state');
-            button.setAttribute('data-state', currentState === 'available' ? 'unavailable' : 'available');
-            button.className = `btn ${currentState === 'available' ? 'btn-error' : 'btn-success'} btn-lg availability-btn h-12 w-44 whitespace-nowrap`;
-            button.textContent = currentState === 'available' ? "Sorry, can't" : "I can play";
-            
             alert(error.message || 'Error saving availability. Please try again.');
         }
     }
@@ -190,19 +207,25 @@
 /* Ensure button text stays proper case */
 .availability-btn {
     text-transform: none !important;
+    min-width: 120px !important;
 }
 
-/* Style for neutral state button */
-.btn-neutral {
+/* Style for warning state button */
+.btn-warning {
     background-color: #FFD600 !important;  /* Yellow color matching the location icon */
     color: #000000 !important;  /* Black text */
     border: none !important;
 }
 
-/* Hover state for neutral button */
-.btn-neutral:hover {
+/* Hover state for warning button */
+.btn-warning:hover {
     background-color: #E6C200 !important;  /* Slightly darker yellow on hover */
     color: #000000 !important;
+}
+
+/* Transition for opacity changes */
+.availability-btn {
+    transition: opacity 0.2s ease-in-out !important;
 }
 </style>
 {% endblock %} 
