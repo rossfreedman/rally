@@ -70,10 +70,11 @@ def init_db():
         id SERIAL PRIMARY KEY,
         player_name VARCHAR(255) NOT NULL,
         match_date DATE NOT NULL,
-        is_available BOOLEAN DEFAULT TRUE,
+        availability_status INTEGER NOT NULL DEFAULT 3, -- 1: available, 2: unavailable, 3: not sure
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         series_id INTEGER NOT NULL REFERENCES series(id),
-        UNIQUE(player_name, match_date, series_id)
+        UNIQUE(player_name, match_date, series_id),
+        CONSTRAINT valid_availability_status CHECK (availability_status IN (1, 2, 3))
     )
     ''')
     

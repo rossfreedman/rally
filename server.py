@@ -4034,26 +4034,29 @@ def parse_date(value):
 
 @app.template_filter('pretty_date')
 def pretty_date(value):
-    """Format a date as 'Tuesday 9/24/24 at 6:30 PM'"""
-    if not value:
-        return "None"
     try:
         if isinstance(value, str):
-            dt = datetime.strptime(value, '%Y-%m-%d')
-        elif isinstance(value, datetime):
-            dt = value
-        elif isinstance(value, date):
-            dt = datetime.combine(value, datetime.strptime('6:30 PM', '%I:%M %p').time())
+            # Try different date formats
+            formats = ['%Y-%m-%d', '%m/%d/%Y', '%d-%b-%y']
+            date_obj = None
+            for fmt in formats:
+                try:
+                    date_obj = datetime.strptime(value, fmt)
+                    break
+                except ValueError:
+                    continue
+            if not date_obj:
+                return value
         else:
-            return str(value)
+            date_obj = value
             
-        # Add default time of 6:30 PM if not specified
-        if dt.hour == 0 and dt.minute == 0:
-            dt = dt.replace(hour=18, minute=30)
-            
-        return dt.strftime('%A %-m/%-d/%y at %-I:%M %p')
-    except ValueError:
-        return str(value)  # Fallback if parsing fails
+        # Format with day of week followed by date
+        day_of_week = date_obj.strftime('%A')
+        date_str = date_obj.strftime('%-m/%-d/%y')
+        return f"{day_of_week} {date_str}"
+    except Exception as e:
+        print(f"Error formatting date: {e}")
+        return value
 
 def get_player_analysis(user):
     """
