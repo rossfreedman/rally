@@ -1,76 +1,67 @@
-from flask import request
-from datetime import datetime
-from .db import execute_update
-import sqlite3
+import os
 import json
-import traceback
+from datetime import datetime
+from database import get_db
+import logging
 
-def ensure_activity_logs_table():
-    """Ensure the user activity logs table exists"""
-    try:
-        conn = sqlite3.connect('data/paddlepro.db')
-        cursor = conn.cursor()
-        
-        # Create table if it doesn't exist
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS user_activity_logs (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_email TEXT NOT NULL,
-                activity_type TEXT NOT NULL,
-                page TEXT,
-                action TEXT,
-                details TEXT,
-                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
-        
-        conn.commit()
-        conn.close()
-        
-    except Exception as e:
-        print(f"Error creating activity logs table: {str(e)}")
-        print(f"Error traceback: {traceback.format_exc()}")
+logger = logging.getLogger(__name__)
 
-def log_user_activity(user_email, activity_type, page=None, action=None, details=None):
+def log_user_activity(user_email, activity_type, **kwargs):
     """Log user activity to the database"""
     try:
-        # Ensure table exists
-        ensure_activity_logs_table()
+        # Extract common fields from kwargs
+        page = kwargs.pop('page', None)
+        action = kwargs.pop('action', None)
+        details = kwargs.pop('details', None)
+        ip_address = kwargs.pop('ip_address', None)
         
         # Connect to database
-        conn = sqlite3.connect('data/paddlepro.db')
-        cursor = conn.cursor()
-        
-        # Convert details to string if it's a dictionary
-        if isinstance(details, dict):
-            details = json.dumps(details)
-        elif details is None:
-            details = ''
+        with get_db() as conn:
+            cursor = conn.cursor()
             
-        # Get current timestamp
-        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        
-        # Insert activity log
-        cursor.execute('''
-            INSERT INTO user_activity_logs (
-                user_email, 
-                activity_type,
-                page,
-                action,
-                details, 
-                timestamp
-            ) VALUES (?, ?, ?, ?, ?, ?)
-        ''', (user_email, activity_type, page, action, details, timestamp))
-        
-        conn.commit()
-        conn.close()
-        
+            # Insert activity log
+            cursor.execute('''
+                INSERT INTO user_activity_logs 
+                (user_email, activity_type, page, action, details, ip_address)
+                VALUES (%s, %s, %s, %s, %s, %s)
+            ''', (user_email, activity_type, page, action, details, ip_address))
+            
+            conn.commit()
+            
+        return True
     except Exception as e:
-        print(f"Error executing update: {str(e)}")
-        print(f"Error traceback: {traceback.format_exc()}")
-        print("WARNING: Failed to log user activity")
+        logger.error(f"Error logging user activity: {str(e)}")
         return False
-                    
+
+def get_user_activity(user_email):
+    """Get user activity history"""
+    try:
+        # Connect to database
+        with get_db() as conn:
+            cursor = conn.cursor()
+            
+            # Get activity logs
+            cursor.execute('''
+                SELECT activity_type, page, action, details, ip_address, timestamp
+                FROM user_activity_logs
+                WHERE user_email = %s
+                ORDER BY timestamp DESC
+                LIMIT 100
+            ''', (user_email,))
+            
+            activities = []
+            for row in cursor.fetchall():
+                activity_type, page, action, details, ip_address, timestamp = row
+                activities.append({
+                    'type': activity_type,
+                    'page': page,
+                    'action': action,
+                    'details': details,
+                    'ip_address': ip_address,
+                    'timestamp': timestamp.isoformat() if timestamp else None
+                })
+            
+            return activities
     except Exception as e:
-        print(f"Error logging user activity: {str(e)}")
-        return False 
+        logger.error(f"Error getting user activity: {str(e)}")
+        return [] 
