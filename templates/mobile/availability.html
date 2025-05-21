@@ -22,8 +22,8 @@
                 {% if not loop.first %}</div>{% endif %}
                 {% set show_time = match.time|strip_leading_zero if match.time else '' %}
                 <div class="schedule-date-group" data-date="{{ match.date }}">
-                  <div class="schedule-date-header">
-                    {{ match.date | pretty_date }} at {{ show_time }}
+                  <div class="schedule-date-header flex justify-between items-center">
+                    <span>{{ match.date | pretty_date }} at {{ show_time }}</span>
                   </div>
                 {% set last_date = match.date %}
             {% endif %}
@@ -52,9 +52,8 @@
                                     {% set home_team = match.home_team.split(' - ') if match.home_team else [] %}
                                     {% set away_team = match.away_team.split(' - ') if match.away_team else [] %}
                                     <div class="flex items-center gap-2 {% if match.get('home_team') == user.club ~ ' - ' ~ user.series.split()[-1] %}font-bold{% endif %}">
-                                        <span class="text-lg">{{ home_team[0] }} - {{ home_team[1] if home_team|length >= 2 else '' }}</span>
+                                        <span class="text-lg">{{ home_team[0] }} - {{ home_team[1] if home_team|length >= 2 else '' }} vs.</span>
                                     </div>
-                                    <div class="text-gray-500 text-lg">vs</div>
                                     <div class="{% if match.get('away_team') == user.club ~ ' - ' ~ user.series.split()[-1] %}font-bold{% endif %}">
                                         <span class="text-lg">{{ away_team[0] }} - {{ away_team[1] if away_team|length >= 2 else '' }}</span>
                                     </div>
@@ -63,6 +62,12 @@
                             <div class="flex items-center gap-1 mt-2">
                                 <i class="fas fa-map-marker-alt text-yellow-500 text-lg"></i>
                                 <span class="text-gray-600 text-lg">{{ match.location or match.home_team }}</span>
+                            </div>
+                            <div class="mt-2">
+                                <a href="{{ url_for('serve_all_team_availability', date=match.date) }}" class="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-500 text-white rounded-full text-sm hover:bg-blue-600 transition-colors">
+                                    <i class="fas fa-users text-xs"></i>
+                                    View Team Availability
+                                </a>
                             </div>
                         </div>
                     </div>
