@@ -106,6 +106,13 @@ async function updateAvailability(button, playerName, date, status) {
     const buttonGroup = button.closest('[data-availability-buttons]');
     const allButtons = buttonGroup.querySelectorAll('button');
     
+    // Store original button content
+    const originalContent = button.innerHTML;
+    
+    // Show loading state only on clicked button
+    allButtons.forEach(btn => btn.disabled = true);
+    button.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>' + button.textContent;
+    
     try {
         const user = window.sessionData && window.sessionData.user;
         
@@ -113,28 +120,24 @@ async function updateAvailability(button, playerName, date, status) {
             throw new Error('No user or series information available');
         }
         
-        // Map status to availability_status
         const availabilityStatus = {
             'available': 1,
             'unavailable': 2,
             'not_sure': 3
         }[status];
         
-        // Standardize date format from MM/DD/YYYY to YYYY-MM-DD
         let standardizedDate = date;
         if (date.includes('/')) {
             const [month, day, year] = date.split('/');
             standardizedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
         }
         
-        // Debug log the request data
         const requestData = {
             'player_name': playerName.trim(),
             'match_date': standardizedDate.trim(),
             'availability_status': availabilityStatus,
             'series': user.series.trim()
         };
-        console.log('Sending availability update:', requestData);
         
         const response = await fetch('/api/availability', {
             method: 'POST',
@@ -146,48 +149,82 @@ async function updateAvailability(button, playerName, date, status) {
         });
         
         const data = await response.json();
-        console.log('Server response:', data);
         
         if (!response.ok) {
             throw new Error(data.error || 'Failed to save availability');
         }
         
-        // Update button states
+        // Update button states with animation
         allButtons.forEach(btn => {
             const btnStatus = btn.getAttribute('data-status');
+            btn.disabled = false;
             btn.setAttribute('data-current-status', status);
+            
+            // Only update the class name, keep the original content
+            let newClass;
             if (btnStatus === 'available') {
-                btn.className = `btn availability-btn w-full py-2 text-center rounded-lg transition-colors text-base font-extrabold ${status === 'available' ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-700'} hover:bg-green-600 hover:text-white`;
-                btn.innerHTML = `<i class="fas fa-check mr-1"></i>Count Me In!`;
+                newClass = `btn availability-btn w-full py-2 text-center rounded-lg transition-colors text-base font-extrabold ${status === 'available' ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-700'} hover:bg-green-600 hover:text-white`;
             } else if (btnStatus === 'unavailable') {
-                btn.className = `btn availability-btn w-full py-2 text-center rounded-lg transition-colors text-base font-extrabold ${status === 'unavailable' ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-700'} hover:bg-red-600 hover:text-white`;
-                btn.innerHTML = `<i class="fas fa-times mr-1"></i>Sorry, Can't`;
+                newClass = `btn availability-btn w-full py-2 text-center rounded-lg transition-colors text-base font-extrabold ${status === 'unavailable' ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-700'} hover:bg-red-600 hover:text-white`;
             } else {
-                btn.className = `btn availability-btn w-full py-2 text-center rounded-lg transition-colors text-base font-extrabold ${status === 'not_sure' ? 'bg-yellow-500 text-white' : 'bg-gray-100 text-gray-700'} hover:bg-yellow-600 hover:text-white`;
-                btn.innerHTML = `<i class="fas fa-question mr-1"></i>Not Sure`;
+                newClass = `btn availability-btn w-full py-2 text-center rounded-lg transition-colors text-base font-extrabold ${status === 'not_sure' ? 'bg-yellow-500 text-white' : 'bg-gray-100 text-gray-700'} hover:bg-yellow-600 hover:text-white`;
             }
+            
+            // Apply changes with a fade effect
+            btn.style.opacity = '0';
+            setTimeout(() => {
+                btn.className = newClass;
+                // Restore original content for clicked button
+                if (btn === button) {
+                    btn.innerHTML = originalContent;
+                }
+                btn.style.opacity = '1';
+            }, 150);
         });
-
-        // Show success indicator
+        
+        // Show success toast that fades out
         const toast = document.createElement('div');
-        toast.className = 'fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+        toast.className = 'fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 opacity-0 transition-opacity duration-300';
         toast.textContent = 'Availability updated!';
         document.body.appendChild(toast);
         
-        // Wait a moment before reloading to ensure DB update is complete
-        setTimeout(() => {
-            window.location.reload();
-        }, 1000);
+        // Fade in
+        requestAnimationFrame(() => {
+            toast.style.opacity = '1';
+            // Fade out after 2 seconds
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 2000);
+        });
         
     } catch (error) {
         console.error('Error saving availability:', error);
         
-        // Show error toast
+        // Re-enable buttons and restore original state
+        allButtons.forEach(btn => {
+            btn.disabled = false;
+            // Restore original content for clicked button
+            if (btn === button) {
+                btn.innerHTML = originalContent;
+            }
+        });
+        
+        // Show error toast with fade effect
         const toast = document.createElement('div');
-        toast.className = 'fixed bottom-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+        toast.className = 'fixed bottom-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 opacity-0 transition-opacity duration-300';
         toast.textContent = error.message || 'Error saving availability. Please try again.';
         document.body.appendChild(toast);
-        setTimeout(() => toast.remove(), 4000);
+        
+        // Fade in
+        requestAnimationFrame(() => {
+            toast.style.opacity = '1';
+            // Fade out after 4 seconds
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        });
     }
 }
 </script>
@@ -219,6 +256,17 @@ async function updateAvailability(button, playerName, date, status) {
 .availability-btn {
     text-transform: none !important;
     font-size: 14px !important;
+    transition: all 0.3s ease;
+}
+
+/* Add loading spinner animation */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.fa-spin {
+    animation: spin 1s linear infinite;
 }
 </style>
 {% endblock %} 
