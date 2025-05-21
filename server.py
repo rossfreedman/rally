@@ -23,7 +23,7 @@ from selenium import webdriver
 from utils.series_matcher import series_match, normalize_series_for_storage, normalize_series_for_display
 from collections import defaultdict
 from werkzeug.security import generate_password_hash, check_password_hash
-from database import get_db, execute_query, execute_query_one, execute_update
+from database_utils import get_db_cursor as get_db, execute_query, execute_query_one, execute_update
 from utils.logging import log_user_activity
 from routes.analyze import init_analyze_routes
 from routes.act import init_act_routes
