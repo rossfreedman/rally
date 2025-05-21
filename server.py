@@ -23,7 +23,7 @@ from selenium import webdriver
 from utils.series_matcher import series_match, normalize_series_for_storage, normalize_series_for_display
 from collections import defaultdict
 from werkzeug.security import generate_password_hash, check_password_hash
-from database_utils import execute_query, execute_query_one, execute_many
+from database import get_db, execute_query, execute_query_one, execute_update
 from utils.logging import log_user_activity
 from routes.analyze import init_analyze_routes
 from routes.act import init_act_routes
@@ -749,9 +749,8 @@ def serve_static(path):
 def get_admin_users():
     """Get all registered users with their club and series information"""
     try:
-        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
+        with get_db() as conn:
+            cursor = conn.cursor()
         
         cursor.execute('''
             SELECT u.first_name, u.last_name, u.email, u.last_login,
@@ -1566,15 +1565,26 @@ def get_player_availability(player_name, match_date, series):
         print(f"Original date: {match_date}")
         print(f"Series: {series}")
         
-        # First get the series_id
-        series_record = execute_query_one(
-            "SELECT id FROM series WHERE name = %(series)s",
-            {'series': series}
-        )
+        # Handle series parameter which could be either an ID or name
+        series_id = None
+        if isinstance(series, int) or (isinstance(series, str) and series.isdigit()):
+            series_id = int(series)
+            series_record = execute_query_one(
+                "SELECT id FROM series WHERE id = %(series_id)s",
+                {'series_id': series_id}
+            )
+        else:
+            series_record = execute_query_one(
+                "SELECT id FROM series WHERE name = %(series)s",
+                {'series': series}
+            )
+            if series_record:
+                series_id = series_record['id']
+                
         print(f"Series lookup result: {series_record}")
         
-        if not series_record:
-            print(f"No series found with name: {series}")
+        if not series_id:
+            print(f"No series found with identifier: {series}")
             return 0  # Default to "Not Set" when no series found
         
         # Standardize the date format
@@ -1595,7 +1605,7 @@ def get_player_availability(player_name, match_date, series):
         print(f"Querying availability with parameters:")
         print(f"  player_name: {player_name.strip()}")
         print(f"  match_date: {match_date}")
-        print(f"  series_id: {series_record['id']}")
+        print(f"  series_id: {series_id}")
         
         # Try both date formats in the query
         result = execute_query_one(
@@ -1613,7 +1623,7 @@ def get_player_availability(player_name, match_date, series):
                 'player_name': player_name.strip(),
                 'match_date': match_date,
                 'match_date_str': match_date.strftime('%Y-%m-%d'),
-                'series_id': series_record['id']
+                'series_id': series_id
             }
         )
         print(f"Availability lookup result: {result}")
@@ -3253,47 +3263,8 @@ def verify_logging():
 
 @app.route('/api/log-click', methods=['POST'])
 def log_click():
-    """Handle click tracking"""
-    try:
-        print("\n=== Request Info ===")
-        print(f"Path: {request.path}")
-        print(f"Method: {request.method}")
-        print(f"User in session: {'user' in session}")
-        if 'user' in session:
-            print(f"User email: {session['user']['email']}")
-        print("===================\n")
-
-        # Check content type
-        if not request.is_json:
-            print(f"Invalid content type: {request.content_type}")
-            return jsonify({'error': 'Content-Type must be application/json'}), 415
-
-        data = request.get_json()
-        
-        if not data:
-            print("No JSON data received")
-            return jsonify({'error': 'No data provided'}), 400
-
-        # Log the click data
-        if 'user' in session:
-            log_user_activity(
-                session['user']['email'],
-                'click',
-                action=data.get('action_type', 'unknown'),
-                details={
-                    'text': data.get('action_text', ''),
-                    'href': data.get('action_href', ''),
-                    'page': data.get('page', '')
-                }
-            )
-            return jsonify({'status': 'success'})
-        
-        return jsonify({'status': 'not logged in'}), 401
-
-    except Exception as e:
-        print(f"Error in log_click: {str(e)}")
-        print(f"Error traceback: {traceback.format_exc()}")
-        return jsonify({'error': str(e)}), 500
+    """Handle click tracking - DISABLED"""
+    return jsonify({'status': 'tracking disabled'}), 200
 
 # Add a basic healthcheck endpoint
 @app.route('/health')
@@ -3816,16 +3787,19 @@ def mobile_availability():
             'name': player_name,
             'availability': player_availability
         }]
-        match_objs = [
-            {
+        match_objs = []
+        for i, m in enumerate(matches):
+            # Create a unique ID for each match based on date and teams
+            match_id = f"{m.get('date', '')}-{m.get('home_team', '')}-{m.get('away_team', '')}"
+            match_objs.append({
+                'id': match_id,  # Add unique ID
                 'date': m.get('date', ''),
                 'time': m.get('time', ''),
                 'location': m.get('location', m.get('home_team', '')),
                 'home_team': m.get('home_team', ''),
                 'away_team': m.get('away_team', '')
-            }
-            for m in matches
-        ]
+            })
+
         # Zip matches and availability for template
         match_avail_pairs = list(zip(match_objs, player_availability))
         print(f"✓ Prepared {len(match_avail_pairs)} match-availability pairs")
@@ -5996,6 +5970,7 @@ def get_matches_for_user_club(user):
                 if 'Practice' in match:
                     # For practices, add them all since they're at the user's club
                     normalized_match = {
+                        'id': f"practice-{match.get('date', '')}-{user_club}",  # Add unique ID
                         'date': match.get('date', ''),
                         'time': match.get('time', ''),
                         'location': match.get('location', user_club),
@@ -6013,8 +5988,11 @@ def get_matches_for_user_club(user):
                 
                 if is_user_team:
                     print(f"Found match: {home_team} vs {away_team}")
+                    # Create a unique ID for the match
+                    match_id = f"{match.get('date', '')}-{home_team}-{away_team}"
                     # Normalize keys to snake_case and ensure all required fields exist
                     normalized_match = {
+                        'id': match_id,  # Add unique ID
                         'date': match.get('date', ''),
                         'time': match.get('time', ''),
                         'location': match.get('location', ''),
@@ -6318,6 +6296,95 @@ def serve_mobile_team_schedule():
 @login_required
 def serve_mobile_reserve_court():
     return render_template('mobile/reserve-court.html')
+
+@app.route('/submit_availability', methods=['POST'])
+@login_required
+def submit_availability():
+    """Handle availability submission from HTMX"""
+    try:
+        # Get data from form
+        player_name = request.form.get('player_name')
+        match_date = request.form.get('match_date')
+        status = request.form.get('status')
+        series = request.form.get('series')
+        match_id = request.form.get('match_id')  # This is now a safe ID
+        user = session['user']
+
+        print(f"\n=== SUBMIT AVAILABILITY ===")
+        print(f"Player: {player_name}")
+        print(f"Date: {match_date}")
+        print(f"Status: {status}")
+        print(f"Series: {series}")
+        print(f"Match ID: {match_id}")
+
+        # Validate required fields
+        if not all([player_name, match_date, status, series]):
+            print("Missing required fields")
+            return 'Missing required fields', 400
+
+        # Map status strings to numeric values
+        status_map = {
+            'available': 1,
+            'unavailable': 2,
+            'not_sure': 3
+        }
+        numeric_status = status_map.get(status)
+        if numeric_status is None:
+            print(f"Invalid status: {status}")
+            return 'Invalid status', 400
+
+        # Get series ID from the database
+        series_record = execute_query_one(
+            "SELECT id FROM series WHERE name = %(series)s",
+            {'series': series}
+        )
+        
+        if not series_record:
+            # Try with "Chicago " prefix if not found
+            series_with_prefix = f"Chicago {series.split()[-1]}"
+            series_record = execute_query_one(
+                "SELECT id FROM series WHERE name = %(series)s",
+                {'series': series_with_prefix}
+            )
+            if not series_record:
+                print(f"Series not found: {series}")
+                return 'Series not found', 404
+
+        # Update availability using the existing function
+        success = update_player_availability(
+            series_record['id'],  # Pass series ID instead of name
+            match_date.strip(),
+            player_name.strip(),
+            numeric_status,
+            series  # Keep series name for logging
+        )
+
+        if not success:
+            print("Failed to update availability")
+            return 'Failed to update availability', 500
+
+        # For HTMX response, render the button group with updated status
+        match = {
+            'date': match_date,
+            'home_team': match_id.split('-')[1] if len(match_id.split('-')) > 1 else '',
+            'away_team': match_id.split('-')[2] if len(match_id.split('-')) > 2 else ''
+        }
+        avail = {'status': status}  # Use string status for template
+        players = [{'name': player_name}]
+        session_data = {'user': user}
+
+        return render_template(
+            'partials/button_group.html',
+            match=match,
+            avail=avail,
+            players=players,
+            session_data=session_data
+        )
+
+    except Exception as e:
+        print(f"Error in submit_availability: {str(e)}")
+        print(traceback.format_exc())  # Add full traceback for debugging
+        return str(e), 500
 
 
 
