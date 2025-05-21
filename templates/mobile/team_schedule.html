@@ -16,10 +16,41 @@
         </div>
     </div>
 
+    <!-- Filters -->
+    <div class="px-4 mb-6 space-y-3">
+        <!-- Date Filter -->
+        <div>
+            <label for="dateFilter" class="block text-sm font-medium text-gray-700 mb-1">Filter by Date</label>
+            <select id="dateFilter" class="w-full p-2 border border-gray-300 rounded-md bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                <option value="all">All Dates</option>
+                {% for date in match_dates %}
+                    <option value="{{ date }}">{{ date | pretty_date }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <!-- Player Filter -->
+        <div>
+            <label for="playerFilter" class="block text-sm font-medium text-gray-700 mb-1">Filter by Player</label>
+            <select id="playerFilter" class="w-full p-2 border border-gray-300 rounded-md bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                <option value="all">All Players</option>
+                {% for player in players_schedule.keys() %}
+                    <option value="{{ player }}">{{ player }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <!-- Reset Button -->
+        <div class="flex justify-end">
+            <button id="resetFilters" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors duration-200 flex items-center">
+                <i class="fas fa-undo-alt mr-2"></i>
+                Reset Filters
+            </button>
+        </div>
+    </div>
+
     {% if players_schedule %}
         <div class="space-y-8 px-4">
             {% for player, dates in players_schedule.items() %}
-                <div class="bg-white rounded-lg shadow-md p-4">
+                <div class="bg-white rounded-lg shadow-md p-4 player-schedule" data-player="{{ player }}" data-dates='{{ dates | tojson }}'>
                     <h2 class="text-xl font-semibold mb-4">{{ player }}</h2>
                     <div class="overflow-x-auto">
                         <table class="min-w-full table-auto">
@@ -31,7 +62,7 @@
                             </thead>
                             <tbody>
                                 {% for date in dates %}
-                                    <tr class="border-t">
+                                    <tr class="border-t date-row" data-date="{{ date.date }}">
                                         <td class="px-4 py-2">{{ date.date | pretty_date }}</td>
                                         <td class="px-4 py-2">
                                             {% if date.availability_status == 1 %}
@@ -79,4 +110,48 @@
         </div>
     {% endif %}
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const dateFilter = document.getElementById('dateFilter');
+    const playerFilter = document.getElementById('playerFilter');
+    const resetButton = document.getElementById('resetFilters');
+    const playerSchedules = document.querySelectorAll('.player-schedule');
+    const dateRows = document.querySelectorAll('.date-row');
+
+    function updateVisibility() {
+        const selectedDate = dateFilter.value;
+        const selectedPlayer = playerFilter.value;
+
+        // First hide/show player schedules based on player filter
+        playerSchedules.forEach(schedule => {
+            const playerName = schedule.dataset.player;
+            if (selectedPlayer === 'all' || playerName === selectedPlayer) {
+                schedule.style.display = '';
+            } else {
+                schedule.style.display = 'none';
+            }
+        });
+
+        // Then hide/show date rows based on date filter
+        dateRows.forEach(row => {
+            if (selectedDate === 'all' || row.dataset.date === selectedDate) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    }
+
+    function resetFilters() {
+        dateFilter.value = 'all';
+        playerFilter.value = 'all';
+        updateVisibility();
+    }
+
+    dateFilter.addEventListener('change', updateVisibility);
+    playerFilter.addEventListener('change', updateVisibility);
+    resetButton.addEventListener('click', resetFilters);
+});
+</script>
 {% endblock %} 

@@ -1,5 +1,5 @@
 from flask import jsonify, request, session
-import sqlite3
+from database import get_db
 import logging
 import json
 from .auth import login_required
@@ -17,18 +17,17 @@ def init_routes(app):
             user_email = session['user']['email']
             
             # Connect to database
-            conn = sqlite3.connect('data/paddlepro.db')
-            cursor = conn.cursor()
-            
-            # Get user settings
-            cursor.execute('''
-                SELECT settings
-                FROM users 
-                WHERE email = ?
-            ''', (user_email,))
-            
-            result = cursor.fetchone()
-            conn.close()
+            with get_db() as conn:
+                cursor = conn.cursor()
+                
+                # Get user settings
+                cursor.execute('''
+                    SELECT settings
+                    FROM users 
+                    WHERE email = %s
+                ''', (user_email,))
+                
+                result = cursor.fetchone()
             
             if not result:
                 return jsonify({'error': 'User not found'}), 404
@@ -55,18 +54,17 @@ def init_routes(app):
                 return jsonify({'error': 'Invalid settings format'}), 400
             
             # Connect to database
-            conn = sqlite3.connect('data/paddlepro.db')
-            cursor = conn.cursor()
-            
-            # Update user settings
-            cursor.execute('''
-                UPDATE users 
-                SET settings = ?
-                WHERE email = ?
-            ''', (json.dumps(data), user_email))
-            
-            conn.commit()
-            conn.close()
+            with get_db() as conn:
+                cursor = conn.cursor()
+                
+                # Update user settings
+                cursor.execute('''
+                    UPDATE users 
+                    SET settings = %s
+                    WHERE email = %s
+                ''', (json.dumps(data), user_email))
+                
+                conn.commit()
             
             # Update session
             session['user']['settings'] = json.dumps(data)
@@ -90,18 +88,17 @@ def init_routes(app):
             user_email = session['user']['email']
             
             # Connect to database
-            conn = sqlite3.connect('data/paddlepro.db')
-            cursor = conn.cursor()
-            
-            # Update user series
-            cursor.execute('''
-                UPDATE users 
-                SET series = ?
-                WHERE email = ?
-            ''', (series, user_email))
-            
-            conn.commit()
-            conn.close()
+            with get_db() as conn:
+                cursor = conn.cursor()
+                
+                # Update user series
+                cursor.execute('''
+                    UPDATE users 
+                    SET series = %s
+                    WHERE email = %s
+                ''', (series, user_email))
+                
+                conn.commit()
             
             # Update session
             session['user']['series'] = series

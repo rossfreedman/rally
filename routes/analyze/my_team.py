@@ -1,7 +1,6 @@
 from flask import jsonify, session
 import pandas as pd
-import sqlite3
-from datetime import datetime
+from database import get_db
 import logging
 from ..act.auth import login_required
 
@@ -72,14 +71,13 @@ def calculate_team_analysis(team_stats, team_matches, team):
 def get_team_matches(team_id):
     """Get all matches for a team"""
     try:
-        conn = sqlite3.connect('data/paddlepro.db')
-        matches_df = pd.read_sql_query('''
-            SELECT * FROM matches 
-            WHERE team1_id = ? OR team2_id = ?
-            ORDER BY date DESC
-        ''', conn, params=[team_id, team_id])
-        conn.close()
-        return matches_df
+        with get_db() as conn:
+            matches_df = pd.read_sql_query('''
+                SELECT * FROM matches 
+                WHERE team1_id = %s OR team2_id = %s
+                ORDER BY date DESC
+            ''', conn, params=[team_id, team_id])
+            return matches_df
     except Exception as e:
         logger.error(f"Error getting team matches: {str(e)}")
         return pd.DataFrame()
@@ -87,13 +85,12 @@ def get_team_matches(team_id):
 def get_team_stats(team_id):
     """Get team statistics"""
     try:
-        conn = sqlite3.connect('data/paddlepro.db')
-        stats_df = pd.read_sql_query('''
-            SELECT * FROM team_stats 
-            WHERE team_id = ?
-        ''', conn, params=[team_id])
-        conn.close()
-        return stats_df
+        with get_db() as conn:
+            stats_df = pd.read_sql_query('''
+                SELECT * FROM team_stats 
+                WHERE team_id = %s
+            ''', conn, params=[team_id])
+            return stats_df
     except Exception as e:
         logger.error(f"Error getting team stats: {str(e)}")
         return pd.DataFrame()
@@ -107,17 +104,16 @@ def init_routes(app):
                 return jsonify({'error': 'Not authenticated'}), 401
 
             # Get user's team
-            conn = sqlite3.connect('data/paddlepro.db')
-            cursor = conn.cursor()
-            
-            cursor.execute('''
-                SELECT t.* FROM teams t
-                JOIN team_players tp ON t.id = tp.team_id
-                WHERE tp.player_email = ?
-            ''', (session['user']['email'],))
-            
-            team = cursor.fetchone()
-            conn.close()
+            with get_db() as conn:
+                cursor = conn.cursor()
+                
+                cursor.execute('''
+                    SELECT t.* FROM teams t
+                    JOIN team_players tp ON t.id = tp.team_id
+                    WHERE tp.player_email = %s
+                ''', (session['user']['email'],))
+                
+                team = cursor.fetchone()
             
             if not team:
                 return jsonify({'error': 'No team found'}), 404
@@ -161,17 +157,16 @@ def init_routes(app):
                 return jsonify({'error': 'Not authenticated'}), 401
 
             # Get user's team
-            conn = sqlite3.connect('data/paddlepro.db')
-            cursor = conn.cursor()
-            
-            cursor.execute('''
-                SELECT t.* FROM teams t
-                JOIN team_players tp ON t.id = tp.team_id
-                WHERE tp.player_email = ?
-            ''', (session['user']['email'],))
-            
-            team = cursor.fetchone()
-            conn.close()
+            with get_db() as conn:
+                cursor = conn.cursor()
+                
+                cursor.execute('''
+                    SELECT t.* FROM teams t
+                    JOIN team_players tp ON t.id = tp.team_id
+                    WHERE tp.player_email = %s
+                ''', (session['user']['email'],))
+                
+                team = cursor.fetchone()
             
             if not team:
                 return jsonify({'error': 'No team found'}), 404

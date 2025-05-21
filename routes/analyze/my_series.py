@@ -1,6 +1,6 @@
 from flask import jsonify, session
 import pandas as pd
-import sqlite3
+from database import get_db
 from datetime import datetime
 import logging
 from ..act.auth import login_required
@@ -11,22 +11,19 @@ def get_series_stats(series_name):
     """Get comprehensive statistics for a series"""
     try:
         # Connect to database
-        conn = sqlite3.connect('data/paddlepro.db')
-        
-        # Get all matches in the series
-        matches_df = pd.read_sql_query('''
-            SELECT * FROM matches 
-            WHERE series = ?
-            ORDER BY date DESC
-        ''', conn, params=[series_name])
-        
-        # Get all teams in the series
-        teams_df = pd.read_sql_query('''
-            SELECT * FROM teams 
-            WHERE series = ?
-        ''', conn, params=[series_name])
-        
-        conn.close()
+        with get_db() as conn:
+            # Get all matches in the series
+            matches_df = pd.read_sql_query('''
+                SELECT * FROM matches 
+                WHERE series = %s
+                ORDER BY date DESC
+            ''', conn, params=[series_name])
+            
+            # Get all teams in the series
+            teams_df = pd.read_sql_query('''
+                SELECT * FROM teams 
+                WHERE series = %s
+            ''', conn, params=[series_name])
 
         if matches_df.empty or teams_df.empty:
             return {
@@ -60,9 +57,9 @@ def get_series_stats(series_name):
             }
         
         # Sort teams by win rate
-        rankings = sorted(
+        sorted_teams = sorted(
             team_stats.items(),
-            key=lambda x: (x[1]['win_rate'], x[1]['wins']),
+            key=lambda x: (x[1]['win_rate'], x[1]['matches_played']),
             reverse=True
         )
         
@@ -89,9 +86,9 @@ def get_series_stats(series_name):
             'series_name': series_name,
             'total_matches': total_matches,
             'total_teams': total_teams,
-            'rankings': [
+            'team_rankings': [
                 {
-                    'team': team,
+                    'team_name': team_name,
                     'stats': stats
                 }
                 for team, stats in rankings

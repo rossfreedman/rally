@@ -1,6 +1,6 @@
 from flask import jsonify, session
 import pandas as pd
-import sqlite3
+from database import get_db
 from datetime import datetime
 import logging
 from ..act.auth import login_required
@@ -10,39 +10,38 @@ logger = logging.getLogger(__name__)
 def get_recent_matches_for_user_club(user):
     """Get recent matches for the user's club"""
     try:
-        conn = sqlite3.connect('data/paddlepro.db')
-        matches_df = pd.read_sql_query('''
-            SELECT * FROM matches 
-            WHERE club = ?
-            ORDER BY date DESC, time DESC
-            LIMIT 50
-        ''', conn, params=[user['club']])
-        conn.close()
-        
-        if matches_df.empty:
-            return []
+        with get_db() as conn:
+            matches_df = pd.read_sql_query('''
+                SELECT * FROM matches 
+                WHERE club = %s
+                ORDER BY date DESC, time DESC
+                LIMIT 50
+            ''', conn, params=[user['club']])
             
-        recent_matches = []
-        for _, match in matches_df.iterrows():
-            recent_matches.append({
-                'date': match['date'],
-                'time': match['time'],
-                'court': match['court'],
-                'team1': {
-                    'name': match['team1_name'],
-                    'players': [match['player1'], match['player2']],
-                    'score': match['team1_score']
-                },
-                'team2': {
-                    'name': match['team2_name'],
-                    'players': [match['player3'], match['player4']],
-                    'score': match['team2_score']
-                },
-                'winner': 'team1' if match['team1_won'] else 'team2'
-            })
+            if matches_df.empty:
+                return []
+                
+            recent_matches = []
+            for _, match in matches_df.iterrows():
+                recent_matches.append({
+                    'date': match['date'],
+                    'time': match['time'],
+                    'court': match['court'],
+                    'team1': {
+                        'name': match['team1_name'],
+                        'players': [match['player1'], match['player2']],
+                        'score': match['team1_score']
+                    },
+                    'team2': {
+                        'name': match['team2_name'],
+                        'players': [match['player3'], match['player4']],
+                        'score': match['team2_score']
+                    },
+                    'winner': 'team1' if match['team1_won'] else 'team2'
+                })
+                
+            return recent_matches
             
-        return recent_matches
-        
     except Exception as e:
         logger.error(f"Error getting recent club matches: {str(e)}")
         return []
@@ -103,22 +102,19 @@ def calculate_player_streaks(matches, club_name):
 def get_club_analysis(user):
     """Get comprehensive club analysis"""
     try:
-        conn = sqlite3.connect('data/paddlepro.db')
-        
-        # Get all matches for the club
-        matches_df = pd.read_sql_query('''
-            SELECT * FROM matches 
-            WHERE club = ?
-            ORDER BY date DESC
-        ''', conn, params=[user['club']])
-        
-        # Get all teams in the club
-        teams_df = pd.read_sql_query('''
-            SELECT * FROM teams 
-            WHERE club = ?
-        ''', conn, params=[user['club']])
-        
-        conn.close()
+        with get_db() as conn:
+            # Get all matches for the club
+            matches_df = pd.read_sql_query('''
+                SELECT * FROM matches 
+                WHERE club = %s
+                ORDER BY date DESC
+            ''', conn, params=[user['club']])
+            
+            # Get all teams in the club
+            teams_df = pd.read_sql_query('''
+                SELECT * FROM teams 
+                WHERE club = %s
+            ''', conn, params=[user['club']])
 
         if matches_df.empty:
             return {
@@ -194,13 +190,12 @@ def init_routes(app):
             user = session['user']
             
             # Get matches for the club
-            conn = sqlite3.connect('data/paddlepro.db')
-            matches_df = pd.read_sql_query('''
-                SELECT * FROM matches 
-                WHERE club = ?
-                ORDER BY date DESC
-            ''', conn, params=[user['club']])
-            conn.close()
+            with get_db() as conn:
+                matches_df = pd.read_sql_query('''
+                    SELECT * FROM matches 
+                    WHERE club = %s
+                    ORDER BY date DESC
+                ''', conn, params=[user['club']])
             
             if matches_df.empty:
                 return jsonify({'streaks': []})

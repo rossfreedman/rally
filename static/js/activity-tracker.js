@@ -1,41 +1,18 @@
-// Click tracking functionality
-function logClick(event) {
-    // Only track clicks on interactive elements
-    const interactiveElements = ['A', 'BUTTON', 'INPUT', 'SELECT', 'TEXTAREA'];
-    const target = event.target.closest(interactiveElements.join(','));
-    
-    if (!target) return; // Not an interactive element
-    
-    // Skip if it's a logout link - let the main logout handler work
-    if (target.classList.contains('logout-link')) {
-        return;
-    }
-    
-    // Prepare click data
-    const data = {
-        elementId: target.id,
-        elementText: target.textContent.trim() || target.value,
-        elementType: target.tagName.toLowerCase(),
-        pageUrl: window.location.pathname
+// Click tracking functionality - DISABLED
+(function() {
+    // Create a disabled version of the activity tracker that still allows HTMX to work
+    window.activityTrackerReady = Promise.resolve();
+    window.clickTrackingInitialized = true;
+    window.trackClick = function() {
+        // No-op function when tracking is disabled
+        console.debug('Click tracking is disabled');
     };
-    
-    // Send click data to server
-    fetch('/api/log-click', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        credentials: 'include',
-        body: JSON.stringify(data)
-    }).catch(error => {
-        console.error('Error logging click:', error);
-    });
-}
 
-// Initialize click tracking
-document.addEventListener('DOMContentLoaded', function() {
-    // Add click listener to document
-    document.addEventListener('click', logClick);
+    // Add HTMX event listeners to handle transitions
+    document.addEventListener('htmx:configRequest', function(evt) {
+        // Let HTMX handle its own requests
+        evt.detail.headers['X-Requested-With'] = 'XMLHttpRequest';
+    });
     
-    console.log('Click tracking initialized');
-}); 
+    console.log('Activity tracking is disabled, HTMX support enabled');
+})(); 

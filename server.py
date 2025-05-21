@@ -6283,7 +6283,8 @@ def serve_mobile_team_schedule():
             'mobile/team_schedule.html',
             team=team_name,
             players_schedule=players_schedule,
-            session_data={'user': user}
+            session_data={'user': user},
+            match_dates=match_dates  # Add match_dates to the template context
         )
         
     except Exception as e:
@@ -6385,6 +6386,136 @@ def submit_availability():
         print(f"Error in submit_availability: {str(e)}")
         print(traceback.format_exc())  # Add full traceback for debugging
         return str(e), 500
+
+@app.route('/mobile/all-team-availability')
+@login_required
+def serve_all_team_availability():
+    """Serve the all team availability page showing all players' availability for a specific date"""
+    try:
+        print("\n=== ALL TEAM AVAILABILITY PAGE REQUEST ===")
+        # Get the selected date from query parameter
+        selected_date = request.args.get('date')
+        if not selected_date:
+            flash('No date selected', 'error')
+            return redirect(url_for('mobile_availability'))
+
+        # Get the team from user's session data
+        user = session.get('user')
+        if not user:
+            print("❌ No user in session")
+            flash('Please log in first', 'error')
+            return redirect(url_for('login'))
+            
+        club_name = user.get('club')
+        series = user.get('series')
+        print(f"User: {user.get('email')}")
+        print(f"Club: {club_name}")
+        print(f"Series: {series}")
+        print(f"Selected Date: {selected_date}")
+        
+        if not club_name or not series:
+            print("❌ Missing club or series")
+            flash('Please set your club and series in your profile settings', 'error')
+            return redirect(url_for('mobile_availability'))
+
+        # Get series ID
+        series_record = execute_query("SELECT id, name FROM series WHERE name = %(name)s", {'name': series})
+        if not series_record:
+            print(f"❌ Series not found: {series}")
+            flash(f'Series "{series}" not found in database', 'error')
+            return redirect(url_for('mobile_availability'))
+            
+        series_record = series_record[0]
+
+        # Load all players from players.json
+        try:
+            with open('data/players.json', 'r') as f:
+                all_players = json.load(f)
+            
+            # Filter players for this series and club
+            team_players = []
+            for player in all_players:
+                if (player.get('Series') == series and 
+                    player.get('Club') == club_name):
+                    full_name = f"{player['First Name']} {player['Last Name']}"
+                    team_players.append({
+                        'player_name': full_name,
+                        'club_name': club_name
+                    })
+            
+            if not team_players:
+                print("❌ No players found in players.json")
+                flash('No players found for your team', 'warning')
+                return redirect(url_for('mobile_availability'))
+                
+        except Exception as e:
+            print(f"❌ Error reading players.json: {e}")
+            print(traceback.format_exc())
+            flash('Error loading player data', 'error')
+            return redirect(url_for('mobile_availability'))
+
+        players_schedule = {}
+        for player in team_players:
+            availability = []
+            player_name = player['player_name']
+            
+            try:
+                # Convert selected_date string to datetime.date object if needed
+                if '/' in selected_date:
+                    selected_date_obj = datetime.strptime(selected_date, '%m/%d/%Y').date()
+                else:
+                    selected_date_obj = datetime.strptime(selected_date, '%Y-%m-%d').date()
+                
+                # Get availability status for this player and date
+                avail_query = """
+                    SELECT availability_status
+                    FROM player_availability 
+                    WHERE player_name = %(player)s 
+                    AND series_id = %(series_id)s 
+                    AND match_date = %(date)s::date
+                """
+                avail_params = {
+                    'player': player_name,
+                    'series_id': series_record['id'],
+                    'date': selected_date_obj
+                }
+                
+                avail_record = execute_query(avail_query, avail_params)
+                status = avail_record[0]['availability_status'] if avail_record and avail_record[0]['availability_status'] is not None else 0
+                
+                availability.append({
+                    'date': selected_date,
+                    'availability_status': status
+                })
+            except Exception as e:
+                print(f"Error processing availability for {player_name} on {selected_date}: {e}")
+                continue
+            
+            # Store both player name and club name in the schedule
+            display_name = f"{player_name} ({player['club_name']})"
+            players_schedule[display_name] = availability
+
+        if not players_schedule:
+            print("❌ No player schedules created")
+            flash('No player schedules found for your series', 'warning')
+            return redirect(url_for('mobile_availability'))
+            
+        # Create a clean team name string for the title
+        team_name = f"{club_name} - {series}"
+        
+        return render_template(
+            'mobile/all_team_availability.html',
+            team=team_name,
+            players_schedule=players_schedule,
+            session_data={'user': user},
+            selected_date=selected_date
+        )
+        
+    except Exception as e:
+        print(f"❌ Error in serve_all_team_availability: {str(e)}")
+        print(traceback.format_exc())
+        flash('An error occurred while loading the team availability', 'error')
+        return redirect(url_for('mobile_availability'))
 
 
 

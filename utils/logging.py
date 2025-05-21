@@ -15,6 +15,10 @@ def log_user_activity(user_email, activity_type, **kwargs):
         details = kwargs.pop('details', None)
         ip_address = kwargs.pop('ip_address', None)
         
+        # Convert details to JSON string if it's a dictionary
+        if isinstance(details, dict):
+            details = json.dumps(details)
+        
         # Connect to database
         with get_db() as conn:
             cursor = conn.cursor()
