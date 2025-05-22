@@ -64,7 +64,7 @@
                                 <span class="text-gray-600 text-lg">{{ match.location or match.home_team }}</span>
                             </div>
                             <div class="mt-2">
-                                <a href="{{ url_for('serve_all_team_availability', date=match.date) }}" class="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-500 text-white rounded-full text-sm hover:bg-blue-600 transition-colors">
+                                <a href="{{ url_for('serve_all_team_availability', date=match.date) }}" class="inline-flex items-center gap-1 px-2 py-1 bg-blue-500 text-white rounded-full text-xs hover:bg-blue-600 transition-colors whitespace-nowrap">
                                     <i class="fas fa-users text-xs"></i>
                                     View Team Availability
                                 </a>
