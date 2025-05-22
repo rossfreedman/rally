@@ -13,6 +13,13 @@
     </div>
   </div>
   <div class="space-y-6 px-4">
+    <!-- Charts Section -->
+    <div id="series-charts" class="space-y-6 mb-6">
+      <div id="pointsBarChart" style="height:260px;"></div>
+      <div id="clusterPlot" style="height:260px;"></div>
+      <div id="comparisonPlot" style="height:260px;"></div>
+      <div id="playoffPlot" style="height:260px;"></div>
+    </div>
     <!-- Standings Table -->
     <div class="bg-white rounded-xl shadow p-3 mb-6 border border-gray-200">
       <div class="flex items-center mb-2">
@@ -25,13 +32,6 @@
         </table>
       </div>
     </div>
-    <!-- Charts Section -->
-    <div id="series-charts" class="space-y-6 mb-6">
-      <div id="pointsBarChart" style="height:260px;"></div>
-      <div id="clusterPlot" style="height:260px;"></div>
-      <div id="comparisonPlot" style="height:260px;"></div>
-      <div id="playoffPlot" style="height:260px;"></div>
-    </div>
   </div>
 </div>
 <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
@@ -39,6 +39,7 @@
 const userTeam = (window.sessionData && window.sessionData.user && window.sessionData.user.team) || '';
 
 document.addEventListener('DOMContentLoaded', async function() {
+  // Load series stats
   const response = await fetch('/api/series-stats');
   const statsData = await response.json();
   const stats = statsData.teams || statsData;
@@ -149,31 +150,17 @@ document.addEventListener('DOMContentLoaded', async function() {
     if (isPlayoffTeam) {
       rowClass += ' playoff-row';
       playoffIcon = '<span title="Playoff Contender" class="ml-1 text-green-600" style="vertical-align:middle;"><i class="fas fa-trophy"></i></span>';
-    } else {
-      rowClass += ' non-playoff-row';
     }
-    const totalMatches = team.matches.won + team.matches.lost;
-    const avgPts = totalMatches > 0 ? (team.points / totalMatches).toFixed(1) : '-';
-    let pointsBack = idx === 0 ? 0 : firstPlacePoints - team.points;
-    let ptsBackCell = '';
-    if (idx === 0) {
-      ptsBackCell = `0${playoffIcon}`;
-    } else {
-      ptsBackCell = `<span class='text-red-600'>-${pointsBack}</span>${playoffIcon}`;
-    }
-    html += `<tr class="${rowClass}" style="border-left: 5px solid ${isPlayoffTeam ? '#22c55e' : '#d1d5db'};">\
-      <td>${team.team}</td>
-      <td class='text-right' style='text-align:right;'>${team.matches.won}-${team.matches.lost}</td>
-      <td class='text-right' style='text-align:right;'>${team.points}</td>
-      <td class='text-right' style='text-align:right;'>${avgPts}</td>
-      <td class='text-right' style='text-align:right;'>${ptsBackCell}</td>
+    html += `<tr class="${rowClass}">
+      <td>${team.team}${playoffIcon}</td>
+      <td class='text-right'>${team.matches.wins}-${team.matches.losses}</td>
+      <td class='text-right'>${team.points}</td>
+      <td class='text-right'>${(team.points / (team.matches.wins + team.matches.losses)).toFixed(1)}</td>
+      <td class='text-right'>${firstPlacePoints - team.points}</td>
     </tr>`;
   });
   html += '</tbody>';
   table.innerHTML = html;
-  // Optionally scroll to user team
-  const row = table.querySelector('.bg-yellow-100');
-  if (row) row.scrollIntoView({behavior: 'smooth', block: 'center'});
 });
 </script>
 <style>

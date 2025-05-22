@@ -784,12 +784,39 @@ def get_admin_users():
 def get_player_history():
     """Get player history data"""
     try:
+        print("\n=== Loading Player History Data ===")
         file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'player_history.json')
+        print(f"Reading from: {file_path}")
+        
         with open(file_path, 'r') as f:
             data = json.load(f)
-        return jsonify(data)
+            print(f"Total entries in data: {len(data)}")
+            
+        # Filter data for Ross Freedman
+        ross_data = []
+        for player in data:
+            if player.get('name') == 'Ross Freedman':
+                # Extract PTI history from matches
+                for match in player.get('matches', []):
+                    if match.get('date') and match.get('end_pti'):
+                        ross_data.append({
+                            'date': match['date'],
+                            'end_pti': float(match['end_pti'])
+                        })
+                break  # Found Ross, no need to continue searching
+                
+        # Sort by date
+        ross_data.sort(key=lambda x: x['date'])
+        
+        print(f"Found {len(ross_data)} entries for Ross Freedman")
+        print("First 3 entries:", ross_data[:3] if ross_data else "No data")
+        print("Last 3 entries:", ross_data[-3:] if ross_data else "No data")
+        print("=== End Player History Data ===\n")
+        
+        return jsonify(ross_data)
     except Exception as e:
         print(f"Error loading player history: {str(e)}")
+        print(traceback.format_exc())
         return jsonify({'error': str(e)}), 500
 
 # Protect all API routes except check-auth and login

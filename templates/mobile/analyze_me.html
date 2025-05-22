@@ -17,47 +17,9 @@
     {% if analyze_data.error %}
         <div class="text-red-600 text-center my-8">{{ analyze_data.error }}</div>
     {% endif %}
-    
-    <!-- Current PTI -->
+    <!-- Player Stats (tabular, two columns) -->
     <div class='analyze-card'>
-        <div class='analyze-card-header'><i class='fas fa-chart-line'></i> My PTI</div>
-        <div class='w-full flex justify-center items-center py-4'>
-            {% if analyze_data.current_pti is not none %}
-                <div class="text-4xl font-bold text-black">
-                    {{ analyze_data.current_pti|round(1, 'common') }}
-                    {% if analyze_data.weekly_pti_change is not none %}
-                        <span class="text-xl ml-2">
-                            {% if analyze_data.weekly_pti_change > 0 %}
-                                <span class="text-red-600">(+{{ analyze_data.weekly_pti_change|round(1, 'common') }} ↑ since last match)</span>
-                            {% elif analyze_data.weekly_pti_change < 0 %}
-                                <span class="text-green-600">({{ analyze_data.weekly_pti_change|round(1, 'common') }} ↓ since last match)</span>
-                            {% else %}
-                                <span class="text-gray-500">(0.0 since last match)</span>
-                            {% endif %}
-                        </span>
-                    {% endif %}
-                </div>
-            {% else %}
-                <div class="text-2xl text-gray-400">No PTI data available</div>
-            {% endif %}
-        </div>
-    </div>
-
-    <!-- PTI Trend Graph -->
-    <div class='analyze-card'>
-        <div class='analyze-card-header'><i class='fas fa-chart-line'></i> PTI Trend</div>
-        <div class='w-full py-4'>
-            {% if analyze_data.pti_history %}
-                <canvas id="ptiTrendChart" width="400" height="200"></canvas>
-            {% else %}
-                <div class="text-2xl text-gray-400 text-center">No trend data available</div>
-            {% endif %}
-        </div>
-    </div>
-
-    <!-- My Stats (formerly Player Stats) -->
-    <div class='analyze-card'>
-        <div class='analyze-card-header'><i class='fas fa-user'></i> My Stats</div>
+        <div class='analyze-card-header'><i class='fas fa-user'></i> Player Stats</div>
         <div class='w-full'>
             <table class='player-stats-table w-full'>
                 <thead>
@@ -139,6 +101,37 @@
                 </tbody>
             </table>
         </div>
+    </div>
+    
+    <!-- Current PTI -->
+    <div class='analyze-card'>
+        <div class='analyze-card-header'><i class='fas fa-chart-line'></i> My PTI</div>
+        <div class='w-full flex justify-center items-center py-4'>
+            {% if analyze_data.current_pti is not none %}
+                <div class="text-4xl font-bold text-black">
+                    {{ analyze_data.current_pti|round(1, 'common') }}
+                    {% if analyze_data.weekly_pti_change is not none %}
+                        <span class="text-xl ml-2">
+                            {% if analyze_data.weekly_pti_change > 0 %}
+                                <span class="text-red-600">(+{{ analyze_data.weekly_pti_change|round(1, 'common') }} ↑ since last match)</span>
+                            {% elif analyze_data.weekly_pti_change < 0 %}
+                                <span class="text-green-600">({{ analyze_data.weekly_pti_change|round(1, 'common') }} ↓ since last match)</span>
+                            {% else %}
+                                <span class="text-gray-500">(0.0 since last match)</span>
+                            {% endif %}
+                        </span>
+                    {% endif %}
+                </div>
+            {% else %}
+                <div class="text-2xl text-gray-400">No PTI data available</div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- PTI History Chart -->
+    <div class='analyze-card'>
+        <div class='analyze-card-header'><i class='fas fa-chart-line'></i> PTI History</div>
+        <div id="ptiHistoryChart" style="height:400px;"></div>
     </div>
     
     <!-- Court Analysis (2x2 grid) -->
@@ -399,64 +392,71 @@
   font-size: 1em;
 }
 </style>
-{% endblock %}
 
-{% block scripts %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const ptiData = {{ analyze_data.pti_history|tojson|safe if analyze_data.pti_history else '[]' }};
+document.addEventListener('DOMContentLoaded', async function() {
+  console.log('Loading PTI history chart...');
+  
+  try {
+    // Load player history data from API
+    console.log('Fetching data from /api/player-history...');
+    const playerHistoryResponse = await fetch('/api/player-history');
+    console.log('Response status:', playerHistoryResponse.status);
     
-    if (ptiData.length > 0) {
-        const ctx = document.getElementById('ptiTrendChart').getContext('2d');
-        new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: ptiData.map(d => d.date),
-                datasets: [{
-                    label: 'PTI',
-                    data: ptiData.map(d => d.pti),
-                    borderColor: '#2563eb',
-                    backgroundColor: 'rgba(37, 99, 235, 0.1)',
-                    borderWidth: 2,
-                    fill: true,
-                    tension: 0.4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: false
-                    },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return `PTI: ${context.parsed.y.toFixed(1)}`;
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: false,
-                        ticks: {
-                            callback: function(value) {
-                                return value.toFixed(1);
-                            }
-                        }
-                    },
-                    x: {
-                        ticks: {
-                            maxRotation: 45,
-                            minRotation: 45
-                        }
-                    }
-                }
-            }
-        });
+    const rossData = await playerHistoryResponse.json();
+    console.log('Received data:', rossData);
+    
+    if (!Array.isArray(rossData) || rossData.length === 0) {
+      console.error('No data received or invalid format');
+      document.getElementById('ptiHistoryChart').innerHTML = 'No PTI history data available';
+      return;
     }
+    
+    // Extract dates and PTI values
+    const dates = rossData.map(entry => entry.date);
+    const ptiValues = rossData.map(entry => entry.end_pti);
+
+    console.log('Processed data:');
+    console.log('Dates:', dates);
+    console.log('PTI Values:', ptiValues);
+
+    // Create PTI History Chart
+    console.log('Creating chart...');
+    Plotly.newPlot('ptiHistoryChart', [{
+      x: dates,
+      y: ptiValues,
+      type: 'scatter',
+      mode: 'lines+markers',
+      name: 'PTI History',
+      line: {
+        color: 'rgb(49, 130, 189)',
+        width: 2
+      },
+      marker: {
+        size: 6,
+        color: 'rgb(49, 130, 189)'
+      }
+    }], {
+      title: 'PTI History - Ross Freedman',
+      xaxis: {
+        title: 'Date',
+        showticklabels: false,  // Hide date labels
+        automargin: true
+      },
+      yaxis: {
+        title: 'PTI',
+        zeroline: false,
+        range: [Math.min(...ptiValues) - 2, Math.max(...ptiValues) + 2]  // Add padding to y-axis range
+      },
+      margin: {b: 40, t: 40, l: 60, r: 10},  // Adjusted margins
+      font: {size: 12}
+    }, {responsive: true, displayModeBar: false});
+    console.log('Chart created successfully');
+  } catch (error) {
+    console.error('Error creating PTI history chart:', error);
+    document.getElementById('ptiHistoryChart').innerHTML = 'Error loading PTI history data';
+  }
 });
 </script>
 {% endblock %} 
