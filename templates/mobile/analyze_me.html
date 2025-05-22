@@ -17,9 +17,47 @@
     {% if analyze_data.error %}
         <div class="text-red-600 text-center my-8">{{ analyze_data.error }}</div>
     {% endif %}
-    <!-- Player Stats (tabular, two columns) -->
+    
+    <!-- Current PTI -->
     <div class='analyze-card'>
-        <div class='analyze-card-header'><i class='fas fa-user'></i> Player Stats</div>
+        <div class='analyze-card-header'><i class='fas fa-chart-line'></i> My PTI</div>
+        <div class='w-full flex justify-center items-center py-4'>
+            {% if analyze_data.current_pti is not none %}
+                <div class="text-4xl font-bold text-black">
+                    {{ analyze_data.current_pti|round(1, 'common') }}
+                    {% if analyze_data.weekly_pti_change is not none %}
+                        <span class="text-xl ml-2">
+                            {% if analyze_data.weekly_pti_change > 0 %}
+                                <span class="text-red-600">(+{{ analyze_data.weekly_pti_change|round(1, 'common') }} ↑ since last match)</span>
+                            {% elif analyze_data.weekly_pti_change < 0 %}
+                                <span class="text-green-600">({{ analyze_data.weekly_pti_change|round(1, 'common') }} ↓ since last match)</span>
+                            {% else %}
+                                <span class="text-gray-500">(0.0 since last match)</span>
+                            {% endif %}
+                        </span>
+                    {% endif %}
+                </div>
+            {% else %}
+                <div class="text-2xl text-gray-400">No PTI data available</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- PTI Trend Graph -->
+    <div class='analyze-card'>
+        <div class='analyze-card-header'><i class='fas fa-chart-line'></i> PTI Trend</div>
+        <div class='w-full py-4'>
+            {% if analyze_data.pti_history %}
+                <canvas id="ptiTrendChart" width="400" height="200"></canvas>
+            {% else %}
+                <div class="text-2xl text-gray-400 text-center">No trend data available</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- My Stats (formerly Player Stats) -->
+    <div class='analyze-card'>
+        <div class='analyze-card-header'><i class='fas fa-user'></i> My Stats</div>
         <div class='w-full'>
             <table class='player-stats-table w-full'>
                 <thead>
@@ -100,43 +138,6 @@
                     </tr>
                 </tbody>
             </table>
-        </div>
-    </div>
-    
-    <!-- Current PTI -->
-    <div class='analyze-card'>
-        <div class='analyze-card-header'><i class='fas fa-chart-line'></i> My PTI</div>
-        <div class='w-full flex justify-center items-center py-4'>
-            {% if analyze_data.current_pti is not none %}
-                <div class="text-4xl font-bold text-black">
-                    {{ analyze_data.current_pti|round(1, 'common') }}
-                    {% if analyze_data.weekly_pti_change is not none %}
-                        <span class="text-xl ml-2">
-                            {% if analyze_data.weekly_pti_change > 0 %}
-                                <span class="text-red-600">(+{{ analyze_data.weekly_pti_change|round(1, 'common') }} ↑ since last match)</span>
-                            {% elif analyze_data.weekly_pti_change < 0 %}
-                                <span class="text-green-600">({{ analyze_data.weekly_pti_change|round(1, 'common') }} ↓ since last match)</span>
-                            {% else %}
-                                <span class="text-gray-500">(0.0 since last match)</span>
-                            {% endif %}
-                        </span>
-                    {% endif %}
-                </div>
-            {% else %}
-                <div class="text-2xl text-gray-400">No PTI data available</div>
-            {% endif %}
-        </div>
-    </div>
-
-    <!-- PTI Trend Graph -->
-    <div class='analyze-card'>
-        <div class='analyze-card-header'><i class='fas fa-chart-line'></i> PTI Trend</div>
-        <div class='w-full py-4'>
-            {% if analyze_data.pti_history %}
-                <canvas id="ptiTrendChart" width="400" height="200"></canvas>
-            {% else %}
-                <div class="text-2xl text-gray-400 text-center">No trend data available</div>
-            {% endif %}
         </div>
     </div>
     
