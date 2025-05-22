@@ -102,6 +102,44 @@
             </table>
         </div>
     </div>
+    
+    <!-- Current PTI -->
+    <div class='analyze-card'>
+        <div class='analyze-card-header'><i class='fas fa-chart-line'></i> My PTI</div>
+        <div class='w-full flex justify-center items-center py-4'>
+            {% if analyze_data.current_pti is not none %}
+                <div class="text-4xl font-bold text-black">
+                    {{ analyze_data.current_pti|round(1, 'common') }}
+                    {% if analyze_data.weekly_pti_change is not none %}
+                        <span class="text-xl ml-2">
+                            {% if analyze_data.weekly_pti_change > 0 %}
+                                <span class="text-red-600">(+{{ analyze_data.weekly_pti_change|round(1, 'common') }} ↑ since last match)</span>
+                            {% elif analyze_data.weekly_pti_change < 0 %}
+                                <span class="text-green-600">({{ analyze_data.weekly_pti_change|round(1, 'common') }} ↓ since last match)</span>
+                            {% else %}
+                                <span class="text-gray-500">(0.0 since last match)</span>
+                            {% endif %}
+                        </span>
+                    {% endif %}
+                </div>
+            {% else %}
+                <div class="text-2xl text-gray-400">No PTI data available</div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- PTI Trend Graph -->
+    <div class='analyze-card'>
+        <div class='analyze-card-header'><i class='fas fa-chart-line'></i> PTI Trend</div>
+        <div class='w-full py-4'>
+            {% if analyze_data.pti_history %}
+                <canvas id="ptiTrendChart" width="400" height="200"></canvas>
+            {% else %}
+                <div class="text-2xl text-gray-400 text-center">No trend data available</div>
+            {% endif %}
+        </div>
+    </div>
+    
     <!-- Court Analysis (2x2 grid) -->
     <div class='analyze-card'>
         <div class='analyze-card-header'><i class='fas fa-table-tennis'></i> Court Analysis</div>
@@ -192,50 +230,6 @@
         {% else %}
             <div class="text-gray-400 p-2">No season history available.</div>
         {% endif %}
-    </div>
-    <!-- Review Video Footage -->
-    <div class='analyze-card'>
-        <div class='analyze-card-header'><i class='fas fa-video'></i> Review Video Footage</div>
-        <div class='analyze-video-section-header'>Match Videos</div>
-        <div class='grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4'>
-            {% set match_videos = analyze_data.videos.match if analyze_data.videos.match else [
-                {'thumbnail': '/static/images/video_thumbnail.png', 'title': 'You/Jonathan Blume vs. Victor Forman/Stephen Statkus - Court 3', 'duration': '12:43', 'date': 'Apr 12, 2025', 'views': 243},
-                {'thumbnail': '/static/images/video_thumbnail.png', 'title': 'You/Mike Lieberman vs. Brian Stutland/David Schwartz - Court 1', 'duration': '15:21', 'date': 'Mar 24, 2025', 'views': 127},
-                {'thumbnail': '/static/images/video_thumbnail.png', 'title': 'You/Andrew Franger vs. Mike Lieberman/Josh Cohen - Court 2', 'duration': '9:58', 'date': 'Feb 18, 2025', 'views': 85},
-                {'thumbnail': '/static/images/video_thumbnail.png', 'title': 'You/Victor Forman vs. David Schwartz/Alex Johnson - Court 4', 'duration': '11:16', 'date': 'Jan 30, 2025', 'views': 204}
-            ] %}
-            {% for video in match_videos %}
-                <div class='video-card'>
-                    <div class='rounded-lg overflow-hidden relative mb-2'>
-                        <img src='{{ video.thumbnail or "/static/images/video_thumbnail.png" }}' class='w-full h-36 object-cover' alt='{{ video.title }}'>
-                        <div class='absolute bottom-2 right-2 bg-black bg-opacity-80 text-white text-xs px-2 py-0.5 rounded'>{{ video.duration }}</div>
-                    </div>
-                    <div class='font-semibold text-xs mb-1'>{{ video.title }}</div>
-                    <div class='text-xs text-gray-500'>{{ video.date }} • {{ video.views }} views</div>
-                </div>
-            {% endfor %}
-        </div>
-        <div class='analyze-video-section-header'>Practice Videos</div>
-        <div class='grid grid-cols-1 sm:grid-cols-2 gap-4'>
-            {% set practice_videos = analyze_data.videos.practice if analyze_data.videos.practice else [
-                {'thumbnail': '/static/images/video_thumbnail.png', 'title': 'Practice Session 1', 'duration': '8:12', 'date': 'Mar 10, 2025', 'views': 99},
-                {'thumbnail': '/static/images/video_thumbnail.png', 'title': 'Practice Session 2', 'duration': '17:45', 'date': 'Feb 28, 2025', 'views': 56},
-                {'thumbnail': '/static/images/video_thumbnail.png', 'title': 'Practice Session 3', 'duration': '10:27', 'date': 'Jan 15, 2025', 'views': 77}
-            ] %}
-            {% for video in practice_videos %}
-                <div class='video-card'>
-                    <div class='rounded-lg overflow-hidden relative mb-2'>
-                        <img src='{{ video.thumbnail or "/static/images/video_thumbnail.png" }}' class='w-full h-36 object-cover' alt='{{ video.title }}'>
-                        <div class='absolute bottom-2 right-2 bg-black bg-opacity-80 text-white text-xs px-2 py-0.5 rounded'>{{ video.duration }}</div>
-                    </div>
-                    <div class='font-semibold text-xs mb-1'>{{ video.title }}</div>
-                    <div class='text-xs text-gray-500'>{{ video.date }} • {{ video.views }} views</div>
-                </div>
-            {% endfor %}
-        </div>
-        <div class='mt-4 text-center'>
-            <a href="#" class="btn btn-outline btn-sm btn-primary">View All Videos <i class="fas fa-arrow-right ms-1"></i></a>
-        </div>
     </div>
 </div>
 
@@ -404,4 +398,64 @@
   font-size: 1em;
 }
 </style>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ptiData = {{ analyze_data.pti_history|tojson|safe if analyze_data.pti_history else '[]' }};
+    
+    if (ptiData.length > 0) {
+        const ctx = document.getElementById('ptiTrendChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ptiData.map(d => d.date),
+                datasets: [{
+                    label: 'PTI',
+                    data: ptiData.map(d => d.pti),
+                    borderColor: '#2563eb',
+                    backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `PTI: ${context.parsed.y.toFixed(1)}`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        ticks: {
+                            callback: function(value) {
+                                return value.toFixed(1);
+                            }
+                        }
+                    },
+                    x: {
+                        ticks: {
+                            maxRotation: 45,
+                            minRotation: 45
+                        }
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
 {% endblock %} 

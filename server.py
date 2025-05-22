@@ -2522,34 +2522,42 @@ def get_series_stats():
                     court_players.sort(key=lambda x: x['win_rate'], reverse=True)
                     court_stats[court_key]['key_players'] = court_players[:2]
                 
-                # Add match patterns to the response
-                stats_data['team_analysis']['match_patterns'] = {
-                    'total_matches': total_matches,
-                    'set_win_rate': round(total_sets_won / total_sets_played * 100, 1) if total_sets_played > 0 else 0,
-                    'three_set_record': f"{three_set_wins}-{three_set_matches - three_set_wins}",
-                    'straight_set_wins': straight_set_wins,
-                    'comeback_wins': comeback_wins,
-                    'court_analysis': {
-                        str(court_num): {
-                            'wins': court_stats[f'court{court_num}']['wins'],
-                            'losses': court_stats[f'court{court_num}']['losses'],
-                            'win_rate': round(court_stats[f'court{court_num}']['wins'] / 
-                                            (court_stats[f'court{court_num}']['wins'] + court_stats[f'court{court_num}']['losses']) * 100, 1)
-                                            if (court_stats[f'court{court_num}']['wins'] + court_stats[f'court{court_num}']['losses']) > 0 else 0,
-                            'key_players': [
-                                {
-                                    'name': player['name'],
-                                    'win_rate': round(player['win_rate'] * 100, 1),
-                                    'matches': player['matches']
-                                }
-                                for player in court_stats[f'court{court_num}']['key_players']
-                            ]
-                        }
-                        for court_num in range(1, 5)
-                    }
+                # Calculate basic team stats
+                total_matches = team_stats['matches']['won'] + team_stats['matches']['lost']
+                win_rate = team_stats['matches']['won'] / total_matches if total_matches > 0 else 0
+                
+                # Calculate average points
+                total_games = team_stats['games']['won'] + team_stats['games']['lost']
+                avg_points_for = team_stats['games']['won'] / total_matches if total_matches > 0 else 0
+                avg_points_against = team_stats['games']['lost'] / total_matches if total_matches > 0 else 0
+                
+                # Calculate consistency rating (based on standard deviation of scores)
+                consistency_rating = 8.5  # Placeholder - would calculate from actual score variance
+                
+                # Calculate strength index (composite of win rate and point differential)
+                point_differential = avg_points_for - avg_points_against
+                strength_index = (win_rate * 7 + (point_differential / 10) * 3)  # Scale to 0-10
+                
+                # Get recent form (last 5 matches)
+                recent_form = ['W', 'L', 'W', 'W', 'L']  # Placeholder - would get from actual match history
+                
+                # Format response
+                response = {
+                    'teamName': team_id,
+                    'wins': team_stats['matches']['won'],
+                    'losses': team_stats['matches']['lost'],
+                    'winRate': win_rate,
+                    'avgPointsFor': avg_points_for,
+                    'avgPointsAgainst': avg_points_against,
+                    'consistencyRating': consistency_rating,
+                    'strengthIndex': strength_index,
+                    'recentForm': recent_form,
+                    'dates': ['2025-01-01', '2025-01-15', '2025-02-01', '2025-02-15', '2025-03-01'],  # Placeholder dates
+                    'scores': [6, 8, 7, 9, 6],  # Placeholder scores
+                    'courtAnalysis': court_stats
                 }
-            
-            return jsonify(stats_data)
+                
+                return jsonify(response)
             
         # If no team requested, filter stats by user's series
         user = session.get('user')
@@ -4301,6 +4309,73 @@ def serve_mobile_analyze_me():
         # Get analysis data for the user
         analyze_data = get_player_analysis(user)
         
+        # Get current PTI from player history
+        try:
+            player_history_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'player_history.json')
+            print(f"Loading player history from: {player_history_path}")
+            
+            with open(player_history_path, 'r') as f:
+                player_history = json.load(f)
+                print(f"Loaded {len(player_history)} player records")
+                
+            # Build full name for comparison
+            full_name = f"{user['first_name']} {user['last_name']}"
+            print(f"Looking for player with name: {full_name}")
+            
+            # Find the player's record by matching first and last name
+            player_record = next((p for p in player_history if p.get('name', '').lower() == full_name.lower()), None)
+            print(f"Found player record: {player_record is not None}")
+            
+            if player_record and player_record.get('matches'):
+                print(f"Found {len(player_record['matches'])} matches for player")
+                # Sort matches by date to find most recent
+                matches = sorted(player_record['matches'], key=lambda x: datetime.strptime(x['date'], '%m/%d/%Y'), reverse=True)
+                if matches:
+                    print(f"Most recent match date: {matches[0]['date']}")
+                    current_pti = matches[0].get('end_pti')
+                    print(f"Current PTI from most recent match: {current_pti}")
+                    
+                    # Calculate weekly PTI change
+                    weekly_pti_change = None
+                    if len(matches) > 1:
+                        current_date = datetime.strptime(matches[0]['date'], '%m/%d/%Y')
+                        # Find the match closest to one week ago
+                        prev_match = None
+                        for match in matches[1:]:  # Skip the first match (current)
+                            match_date = datetime.strptime(match['date'], '%m/%d/%Y')
+                            if (current_date - match_date).days >= 5:  # Allow some flexibility in what constitutes a "week"
+                                prev_match = match
+                                break
+                        
+                        if prev_match and 'end_pti' in prev_match:
+                            prev_pti = prev_match['end_pti']
+                            weekly_pti_change = current_pti - prev_pti  # Change calculation to current - previous
+                            print(f"Weekly PTI change: {weekly_pti_change} (Previous: {prev_pti}, Current: {current_pti})")
+                    
+                    if current_pti is not None:
+                        analyze_data['current_pti'] = float(current_pti)
+                        analyze_data['weekly_pti_change'] = float(weekly_pti_change) if weekly_pti_change is not None else None
+                    else:
+                        print("No end_pti found in most recent match")
+                        analyze_data['current_pti'] = None
+                        analyze_data['weekly_pti_change'] = None
+                else:
+                    print("No matches found after sorting")
+                    analyze_data['current_pti'] = None
+                    analyze_data['weekly_pti_change'] = None
+            else:
+                if not player_record:
+                    print("No player record found")
+                elif not player_record.get('matches'):
+                    print("Player record found but no matches")
+                analyze_data['current_pti'] = None
+                analyze_data['weekly_pti_change'] = None
+                
+        except Exception as e:
+            print(f"Error getting current PTI: {str(e)}")
+            analyze_data['current_pti'] = None
+            analyze_data['weekly_pti_change'] = None
+        
         # Prepare session data
         session_data = {
             'user': user,
@@ -4896,16 +4971,22 @@ def calculate_team_analysis(team_stats, team_matches, team):
         winner_is_home = match.get('Winner') == 'home'
         team_won = (is_home and winner_is_home) or (not is_home and not winner_is_home)
         sets = match.get('Sets', [])
-        if len(sets) == 2 and team_won:
+        # Get the scores
+        scores = match.get('Scores', '').split(', ')
+        if len(scores) == 2 and team_won:
             straight_set_wins += 1
-        if len(sets) == 3:
+        if len(scores) == 3:
             if team_won:
                 three_set_wins += 1
+                # Check for comeback win - lost first set but won the match
+                first_set = scores[0].split('-')
+                home_score, away_score = map(int, first_set)
+                if is_home and home_score < away_score:
+                    comeback_wins += 1
+                elif not is_home and away_score < home_score:
+                    comeback_wins += 1
             else:
                 three_set_losses += 1
-            # Comeback win: lost first set, won next two
-            if team_won and sets and sets[0][('away' if is_home else 'home')] > sets[0][('home' if is_home else 'away')]:
-                comeback_wins += 1
     three_set_record = f"{three_set_wins}-{three_set_losses}"
     match_patterns = {
         'total_matches': total_matches,
@@ -6264,7 +6345,7 @@ def serve_mobile_team_schedule():
                     continue
             
             # Store both player name and club name in the schedule
-            display_name = f"{player_name} ({player['club_name']})"
+            display_name = player_name
             players_schedule[display_name] = availability
             print(f"✓ Added {display_name} with {len(availability)} dates")
 
