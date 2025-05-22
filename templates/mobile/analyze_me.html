@@ -459,18 +459,24 @@ document.addEventListener('DOMContentLoaded', async function() {
         tickangle: -45,
         tickformat: '%b %d',
         nticks: 8,
-        range: [dates[0], dates[dates.length - 1]]
+        range: [dates[0], dates[dates.length - 1]],
+        fixedrange: true  // Disable zoom/pan on x-axis
       },
       yaxis: {
         title: 'PTI',
         zeroline: false,
-        range: [Math.min(...ptiValues) - 2, Math.max(...ptiValues) + 2]
+        range: [Math.min(...ptiValues) - 2, Math.max(...ptiValues) + 2],
+        fixedrange: true  // Disable zoom/pan on y-axis
       },
       margin: {b: 60, t: 20, l: 60, r: 10},
-      font: {size: 12}
+      font: {size: 12},
+      dragmode: false  // Disable all dragging
     }, {
       responsive: true,
-      displayModeBar: false
+      displayModeBar: false,  // Hide the modebar completely
+      staticPlot: true,  // Make the plot completely static
+      scrollZoom: false, // Disable scroll to zoom
+      doubleClick: false // Disable double click actions
     });
     console.log('Chart created successfully');
   } catch (error) {
