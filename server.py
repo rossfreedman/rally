@@ -781,10 +781,18 @@ def get_admin_users():
 
 
 @app.route('/api/player-history')
+@login_required
 def get_player_history():
     """Get player history data"""
     try:
         print("\n=== Loading Player History Data ===")
+        
+        # Get user's name from session
+        first_name = session['user'].get('first_name', '')
+        last_name = session['user'].get('last_name', '')
+        player_name = f"{first_name} {last_name}"
+        print(f"Getting history for player: {player_name}")
+        
         file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'player_history.json')
         print(f"Reading from: {file_path}")
         
@@ -792,28 +800,41 @@ def get_player_history():
             data = json.load(f)
             print(f"Total entries in data: {len(data)}")
             
-        # Filter data for Ross Freedman
-        ross_data = []
+        # Filter data for the logged-in user
+        player_data = []
         for player in data:
-            if player.get('name') == 'Ross Freedman':
+            if player.get('name') == player_name:
                 # Extract PTI history from matches
                 for match in player.get('matches', []):
                     if match.get('date') and match.get('end_pti'):
-                        ross_data.append({
-                            'date': match['date'],
-                            'end_pti': float(match['end_pti'])
-                        })
-                break  # Found Ross, no need to continue searching
+                        try:
+                            # Parse date in MM/DD/YYYY format
+                            match_date = datetime.strptime(match['date'], '%m/%d/%Y')
+                            # Format date as YYYY-MM-DD for frontend consistency
+                            formatted_date = match_date.strftime('%Y-%m-%d')
+                            player_data.append({
+                                'date': formatted_date,
+                                'end_pti': float(match['end_pti']),
+                                'sort_date': match_date
+                            })
+                        except ValueError as e:
+                            print(f"Error parsing date {match['date']}: {e}")
+                            continue
+                break  # Found player, no need to continue searching
                 
         # Sort by date
-        ross_data.sort(key=lambda x: x['date'])
+        player_data.sort(key=lambda x: x['sort_date'])
         
-        print(f"Found {len(ross_data)} entries for Ross Freedman")
-        print("First 3 entries:", ross_data[:3] if ross_data else "No data")
-        print("Last 3 entries:", ross_data[-3:] if ross_data else "No data")
+        # Remove sort_date from final output
+        for entry in player_data:
+            del entry['sort_date']
+            
+        print(f"Found {len(player_data)} entries for {player_name}")
+        print("First 3 entries:", player_data[:3] if player_data else "No data")
+        print("Last 3 entries:", player_data[-3:] if player_data else "No data")
         print("=== End Player History Data ===\n")
         
-        return jsonify(ross_data)
+        return jsonify({'data': player_data, 'player_name': player_name})
     except Exception as e:
         print(f"Error loading player history: {str(e)}")
         print(traceback.format_exc())
