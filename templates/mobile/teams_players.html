@@ -57,84 +57,75 @@
     </div>
     <!-- Match Patterns + Court Analysis Card (Desktop Style) -->
     <div class="card mb-6 shadow-lg rounded-xl p-5 bg-white border-l-4 border-yellow-400">
-      <div class="card-header mb-2 flex items-center gap-2">
+      <div class="card-header flex items-center gap-2">
         <i class="fas fa-random text-yellow-400"></i>
         <h5 class="mb-0 text-lg font-bold">Match Patterns</h5>
       </div>
-      <div class="card-body">
-        <div class="overall-stats mb-4">
-          <h6 class="mb-3">Overall Performance</h6>
-          <div class="stat-item">
-            <strong>Total Matches:</strong> {{ team_analysis_data.match_patterns.total_matches }}
-          </div>
-          <div class="stat-item">
-            <strong>Set Win Rate:</strong> {{ team_analysis_data.match_patterns.set_win_rate }}%
-          </div>
-          <div class="stat-item">
-            <strong>Three-Set Record:</strong> {{ team_analysis_data.match_patterns.three_set_record }}
-          </div>
-          <div class="stat-item">
-            <strong>Straight Set Wins:</strong> {{ team_analysis_data.match_patterns.straight_set_wins }}
-          </div>
-          <div class="stat-item">
-            <strong>Comeback Wins:</strong> {{ team_analysis_data.match_patterns.comeback_wins }}
-          </div>
+      <div class="mt-4">
+        <h6 class="text-base font-semibold mb-2">Overall Performance</h6>
+        <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-base">
+          <div class="font-semibold text-gray-600">Total Matches</div>
+          <div class="font-bold">{{ team_analysis_data.match_patterns.total_matches }}</div>
+          <div class="font-semibold text-gray-600">Set Win Rate</div>
+          <div class="font-bold">{{ team_analysis_data.match_patterns.set_win_rate }}%</div>
+          <div class="font-semibold text-gray-600">Three-Set Record</div>
+          <div class="font-bold">{{ team_analysis_data.match_patterns.three_set_record }}</div>
+          <div class="font-semibold text-gray-600">Straight Set Wins</div>
+          <div class="font-bold">{{ team_analysis_data.match_patterns.straight_set_wins }}</div>
+          <div class="font-semibold text-gray-600">Comeback Wins</div>
+          <div class="font-bold">{{ team_analysis_data.match_patterns.comeback_wins }}</div>
         </div>
-        <div class="court-analysis">
-          <h6 class="mb-3">Court Analysis</h6>
-          {# --- BEGIN: Rally AI - analyze_me style court analysis block (with correct data loop, enhanced visuals) --- #}
-          <div class='grid grid-cols-2 gap-3'>
-            {% set court_colors = ['border-blue-400', 'border-green-400', 'border-yellow-400', 'border-red-400'] %}
-            {% for court, stats in team_analysis_data.court_analysis.items() %}
-                {% set court_idx = loop.index0 %}
-                {# Color-code win rate #}
-                {% set win_rate = stats.win_rate|default(stats.winRate) %}
-                {% if win_rate is not string and win_rate >= 60 %}
-                  {% set win_color = 'text-green-600' %}
-                  {% set badge_bg = 'bg-green-100' %}
-                {% elif win_rate is not string and win_rate >= 45 %}
-                  {% set win_color = 'text-yellow-600' %}
-                  {% set badge_bg = 'bg-yellow-100' %}
-                {% else %}
-                  {% set win_color = 'text-red-600' %}
-                  {% set badge_bg = 'bg-red-100' %}
-                {% endif %}
-                <div class="court-analysis-card flex flex-col items-start p-4 mb-3 bg-gray-50 rounded-xl shadow border-l-4 {{ court_colors[court_idx % 4] }}">
-                  <div class="flex items-center gap-2 mb-2 w-full">
-                    <i class="fas fa-table-tennis text-xl {{ court_colors[court_idx % 4] }}"></i>
-                    <span class="font-bold text-lg text-black">{{ court|capitalize }}</span>
+        <h6 class="text-base font-semibold mt-6 mb-2">Court Analysis</h6>
+        <div class='grid grid-cols-2 gap-3'>
+          {% set court_colors = ['border-blue-400', 'border-green-400', 'border-yellow-400', 'border-red-400'] %}
+          {% for court, stats in team_analysis_data.court_analysis.items() %}
+              {% set court_idx = loop.index0 %}
+              {# Color-code win rate #}
+              {% set win_rate = stats.win_rate|default(stats.winRate) %}
+              {% if win_rate is not string and win_rate >= 60 %}
+                {% set win_color = 'text-green-600' %}
+                {% set badge_bg = 'bg-green-100' %}
+              {% elif win_rate is not string and win_rate >= 45 %}
+                {% set win_color = 'text-yellow-600' %}
+                {% set badge_bg = 'bg-yellow-100' %}
+              {% else %}
+                {% set win_color = 'text-red-600' %}
+                {% set badge_bg = 'bg-red-100' %}
+              {% endif %}
+              <div class="court-analysis-card flex flex-col items-start p-4 mb-3 bg-gray-50 rounded-xl shadow border-l-4 {{ court_colors[court_idx % 4] }}">
+                <div class="flex items-center gap-2 mb-2 w-full">
+                  <i class="fas fa-table-tennis text-xl {{ court_colors[court_idx % 4] }}"></i>
+                  <span class="font-bold text-lg text-black">{{ court|capitalize }}</span>
+                </div>
+                <div class="w-full mb-2">
+                  <div class="flex justify-between items-center mb-1">
+                    <span class="font-semibold text-gray-700">Win Rate</span>
+                    <span class="font-bold text-xl analyze-badge px-2 py-1 rounded {{ win_color }} {{ badge_bg }}">{{ win_rate|round(1, 'common') if win_rate is not string else win_rate }}%</span>
                   </div>
-                  <div class="w-full mb-2">
-                    <div class="flex justify-between items-center mb-1">
-                      <span class="font-semibold text-gray-700">Win Rate</span>
-                      <span class="font-bold text-xl analyze-badge px-2 py-1 rounded {{ win_color }} {{ badge_bg }}">{{ win_rate|round(1, 'common') if win_rate is not string else win_rate }}%</span>
-                    </div>
-                    <div class="flex justify-between items-center mb-1">
-                      <span class="font-semibold text-gray-700">Record</span>
-                      <span class="text-gray-900">{{ stats.record if stats and stats.record is defined else 'N/A' }}</span>
-                    </div>
-                  </div>
-                  <div class="w-full mt-2">
-                    <span class="font-semibold text-gray-700 block mb-1">Key Players</span>
-                    <ul class="partner-list space-y-1">
-                      {% if stats and stats.key_players %}
-                        {% for p in stats.key_players %}
-                          <li class="flex flex-col items-start">
-                            <a href="/mobile/player-detail/{{ p.name | urlencode }}" class="partner-name font-medium text-gray-800 flex items-center gap-1 hover:underline">
-                              <i class="fas fa-user-circle text-primary"></i> {{ p.name }}
-                            </a>
-                            <span class="analyze-badge mt-1 text-xs px-2 py-0.5 rounded bg-blue-50 text-blue-700">{{ p.win_rate|default(p.winRate)|round(1, 'common') if p.win_rate is defined or p.winRate is defined else '' }}% in {{ p.matches }} matches</span>
-                          </li>
-                        {% endfor %}
-                      {% else %}
-                        <li class="text-gray-400">None</li>
-                      {% endif %}
-                    </ul>
+                  <div class="flex justify-between items-center mb-1">
+                    <span class="font-semibold text-gray-700">Record</span>
+                    <span class="text-gray-900">{{ stats.record if stats and stats.record is defined else 'N/A' }}</span>
                   </div>
                 </div>
-            {% endfor %}
-          </div>
-          {# --- END: Rally AI - analyze_me style court analysis block (with correct data loop, enhanced visuals) --- #}
+                <div class="w-full mt-2">
+                  <span class="font-semibold text-gray-700 block mb-1">Key Players</span>
+                  <ul class="partner-list space-y-1">
+                    {% if stats and stats.key_players %}
+                      {% for p in stats.key_players %}
+                        <li class="flex flex-col items-start">
+                          <a href="/mobile/player-detail/{{ p.name | urlencode }}" class="partner-name font-medium text-gray-800 flex items-center gap-1 hover:underline">
+                            <i class="fas fa-user-circle text-primary"></i> {{ p.name }}
+                          </a>
+                          <span class="analyze-badge mt-1 text-xs px-2 py-0.5 rounded bg-blue-50 text-blue-700">{{ p.win_rate|default(p.winRate)|round(1, 'common') if p.win_rate is defined or p.winRate is defined else '' }}% in {{ p.matches }} matches</span>
+                        </li>
+                      {% endfor %}
+                    {% else %}
+                      <li class="text-gray-400">None</li>
+                    {% endif %}
+                  </ul>
+                </div>
+              </div>
+          {% endfor %}
         </div>
       </div>
     </div>

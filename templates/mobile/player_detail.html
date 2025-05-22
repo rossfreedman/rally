@@ -81,27 +81,27 @@
                     </tr>
                     <tr>
                         <td class='stat-label text-center'><i class='fas fa-arrow-down text-black'></i> PTI Change</td>
-                        <td class='stat-value text-center {% if analyze_data.current_season and analyze_data.current_season.ptiChange is defined and analyze_data.current_season.ptiChange is not string and analyze_data.current_season.ptiChange > 0 %}text-green-600{% elif analyze_data.current_season and analyze_data.current_season.ptiChange is defined and analyze_data.current_season.ptiChange is not string and analyze_data.current_season.ptiChange < 0 %}text-red-600{% endif %}'>
+                        <td class='stat-value text-center {% if analyze_data.current_season and analyze_data.current_season.ptiChange is defined and analyze_data.current_season.ptiChange is not string and analyze_data.current_season.ptiChange > 0 %}text-red-600{% elif analyze_data.current_season and analyze_data.current_season.ptiChange is defined and analyze_data.current_season.ptiChange is not string and analyze_data.current_season.ptiChange < 0 %}text-green-600{% endif %}'>
                             {% if analyze_data.current_season and analyze_data.current_season.ptiChange is defined %}
                                 {% if analyze_data.current_season.ptiChange is string or analyze_data.current_season.ptiChange == 'N/A' %}
                                     <span class="text-black">{{ analyze_data.current_season.ptiChange }}</span>
                                 {% elif analyze_data.current_season.ptiChange|float > 0 %}
-                                    <span class="text-green-600 font-bold flex items-center justify-center">{{ analyze_data.current_season.ptiChange|round(1, 'common') }} <span aria-label="PTI Up" class="ml-1">▲</span></span>
+                                    <span class="text-red-600 font-bold flex items-center justify-center">{{ analyze_data.current_season.ptiChange|round(1, 'common') }} <span aria-label="PTI Up" class="ml-1">▲</span></span>
                                 {% elif analyze_data.current_season.ptiChange|float < 0 %}
-                                    <span class="text-red-600 font-bold flex items-center justify-center">{{ analyze_data.current_season.ptiChange|round(1, 'common') }} <span aria-label="PTI Down" class="ml-1">▼</span></span>
+                                    <span class="text-green-600 font-bold flex items-center justify-center">{{ analyze_data.current_season.ptiChange|round(1, 'common') }} <span aria-label="PTI Down" class="ml-1">▼</span></span>
                                 {% else %}
                                     <span class="text-black">0.0</span>
                                 {% endif %}
                             {% else %}N/A{% endif %}
                         </td>
-                        <td class='stat-value text-center {% if analyze_data.career_pti_change is defined and analyze_data.career_pti_change is not string and analyze_data.career_pti_change > 0 %}text-green-600{% elif analyze_data.career_pti_change is defined and analyze_data.career_pti_change is not string and analyze_data.career_pti_change < 0 %}text-red-600{% endif %}'>
+                        <td class='stat-value text-center {% if analyze_data.career_pti_change is defined and analyze_data.career_pti_change is not string and analyze_data.career_pti_change > 0 %}text-red-600{% elif analyze_data.career_pti_change is defined and analyze_data.career_pti_change is not string and analyze_data.career_pti_change < 0 %}text-green-600{% endif %}'>
                             {% if analyze_data.career_pti_change is defined %}
                                 {% if analyze_data.career_pti_change is string or analyze_data.career_pti_change == 'N/A' %}
                                     <span class="text-black">{{ analyze_data.career_pti_change }}</span>
                                 {% elif analyze_data.career_pti_change|float > 0 %}
-                                    <span class="text-green-600 font-bold flex items-center justify-center">{{ analyze_data.career_pti_change|round(1, 'common') }} <span aria-label="PTI Up" class="ml-1">▲</span></span>
+                                    <span class="text-red-600 font-bold flex items-center justify-center">{{ analyze_data.career_pti_change|round(1, 'common') }} <span aria-label="PTI Up" class="ml-1">▲</span></span>
                                 {% elif analyze_data.career_pti_change|float < 0 %}
-                                    <span class="text-red-600 font-bold flex items-center justify-center">{{ analyze_data.career_pti_change|round(1, 'common') }} <span aria-label="PTI Down" class="ml-1">▼</span></span>
+                                    <span class="text-green-600 font-bold flex items-center justify-center">{{ analyze_data.career_pti_change|round(1, 'common') }} <span aria-label="PTI Down" class="ml-1">▼</span></span>
                                 {% else %}
                                     <span class="text-black">0.0</span>
                                 {% endif %}
@@ -197,9 +197,9 @@
                             <td class='py-1 px-2 text-center'>
                                 {% set trend = row.trend %}
                                 {% if trend is string and trend.startswith('+') %}
-                                    <span class="text-green-600 font-bold flex items-center">{{ trend }} <span aria-label="PTI Up" class="ml-1">▲</span></span>
+                                    <span class="text-red-600 font-bold flex items-center">{{ trend }} <span aria-label="PTI Up" class="ml-1">▲</span></span>
                                 {% elif trend is string and trend.startswith('-') %}
-                                    <span class="text-red-600 font-bold flex items-center">{{ trend }} <span aria-label="PTI Down" class="ml-1">▼</span></span>
+                                    <span class="text-green-600 font-bold flex items-center">{{ trend }} <span aria-label="PTI Down" class="ml-1">▼</span></span>
                                 {% else %}
                                     <span class="text-black">{{ trend }}</span>
                                 {% endif %}
