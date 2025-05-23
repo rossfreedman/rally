@@ -3,7 +3,7 @@
 {% block content %}
 <div class="max-w-lg mx-auto">
   <!-- Consistent Header -->
-  <div class="flex items-center gap-3 mt-4 mb-2 px-4">
+  <div class="flex items-center gap-3 mt-4 mb-8 px-4">
     <div class="bg-white rounded-md flex items-center justify-center h-12 w-12">
       <i class="fas fa-chart-line text-rally-green text-3xl"></i>
     </div>
@@ -13,13 +13,6 @@
     </div>
   </div>
   <div class="space-y-6 px-4">
-    <!-- Charts Section -->
-    <div id="series-charts" class="space-y-6 mb-6">
-      <div id="pointsBarChart" style="height:260px;"></div>
-      <div id="clusterPlot" style="height:260px;"></div>
-      <div id="comparisonPlot" style="height:260px;"></div>
-      <div id="playoffPlot" style="height:260px;"></div>
-    </div>
     <!-- Standings Table -->
     <div class="bg-white rounded-xl shadow p-3 mb-6 border border-gray-200">
       <div class="flex items-center mb-2">
@@ -31,6 +24,12 @@
           <!-- Table will be populated by JS -->
         </table>
       </div>
+    </div>
+    <!-- Charts Section -->
+    <div id="series-charts" class="space-y-6 mb-6">
+      <div id="pointsBarChart" style="height:260px;"></div>
+      <div id="comparisonPlot" style="height:260px;"></div>
+      <div id="playoffPlot" style="height:260px;"></div>
     </div>
   </div>
 </div>
@@ -66,30 +65,6 @@ document.addEventListener('DOMContentLoaded', async function() {
     yaxis: {title: 'Points'},
     margin: {b: 80, t: 40, l: 40, r: 10},
     font: {size: 12}
-  }, {responsive: true, displayModeBar: false});
-
-  // --- Team Performance Clusters ---
-  const matchWinPct = stats.map(t => parseFloat(t.matches.percentage.replace('%','')));
-  const setWinPct = stats.map(t => parseFloat(t.sets.percentage.replace('%','')));
-  const performanceScores = stats.map((t,i) => ({team: t.team, score: (matchWinPct[i]+setWinPct[i])/2, matchWinPct: matchWinPct[i], setWinPct: setWinPct[i]}));
-  const clusters = performanceScores.map(t => t.score >= 60 ? 'Dominant' : t.score >= 45 ? 'Average' : 'Struggling');
-  const clusterColors = {'Dominant':'rgb(65,171,93)','Average':'rgb(254,224,139)','Struggling':'rgb(239,138,98)'};
-  Plotly.newPlot('clusterPlot', [{
-    x: performanceScores.map(t=>t.matchWinPct),
-    y: performanceScores.map(t=>t.setWinPct),
-    mode: 'markers+text',
-    type: 'scatter',
-    text: performanceScores.map(t=>t.team),
-    textposition: 'top',
-    marker: {size: 12, color: clusters.map(c=>clusterColors[c])},
-    name: 'Teams'
-  }], {
-    title: 'Team Performance Clusters',
-    xaxis: {title: 'Match Win %', ticksuffix:'%'},
-    yaxis: {title: 'Set Win %', ticksuffix:'%'},
-    margin: {t: 40, l: 40, r: 10, b: 40},
-    font: {size: 12},
-    showlegend: false
   }, {responsive: true, displayModeBar: false});
 
   // --- Top 5 vs Bottom 5 ---
@@ -151,11 +126,13 @@ document.addEventListener('DOMContentLoaded', async function() {
       rowClass += ' playoff-row';
       playoffIcon = '<span title="Playoff Contender" class="ml-1 text-green-600" style="vertical-align:middle;"><i class="fas fa-trophy"></i></span>';
     }
+    const totalMatches = team.matches.won + team.matches.lost + (team.matches.tied || 0);
+    const avgPoints = totalMatches > 0 ? (team.points / totalMatches).toFixed(1) : '0.0';
     html += `<tr class="${rowClass}">
       <td>${team.team}${playoffIcon}</td>
-      <td class='text-right'>${team.matches.wins}-${team.matches.losses}</td>
+      <td class='text-right'>${team.matches.won}-${team.matches.lost}</td>
       <td class='text-right'>${team.points}</td>
-      <td class='text-right'>${(team.points / (team.matches.wins + team.matches.losses)).toFixed(1)}</td>
+      <td class='text-right'>${avgPoints}</td>
       <td class='text-right'>${firstPlacePoints - team.points}</td>
     </tr>`;
   });
