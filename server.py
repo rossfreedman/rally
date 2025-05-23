@@ -310,6 +310,7 @@ def serve_index():
     if 'user' not in session:
         print("No user in session, redirecting to login")
         return redirect('/login')
+        
     print("User in session, redirecting to mobile")
     return redirect('/mobile')
 
@@ -528,11 +529,11 @@ def handle_login():
             print("Invalid password")
             return jsonify({'error': 'Invalid email or password'}), 401
             
-        # Update last login
+        # Update last login with explicit timezone handling
         result = execute_query(
             """
             UPDATE users 
-            SET last_login = CURRENT_TIMESTAMP 
+            SET last_login = NOW() AT TIME ZONE 'UTC'
             WHERE id = %(user_id)s
             RETURNING id
             """,
@@ -664,27 +665,40 @@ def admin_required(f):
     """Decorator to check if user is an admin"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
+        print(f"=== ADMIN_REQUIRED CHECK ===")
+        print(f"User in session: {'user' in session}")
+        if 'user' in session:
+            print(f"User email: {session['user']['email']}")
+        
         if 'user' not in session:
+            print("No user in session, redirecting to login")
             flash('Please log in first.', 'error')
             return redirect(url_for('login'))
         
         try:
+            print(f"Checking admin status for: {session['user']['email']}")
             user = execute_query_one(
                 "SELECT id, email FROM users WHERE email = %(email)s",
                 {'email': session['user']['email']}
             )
+            print(f"Database user result: {user}")
             
             if not user:
+                print("User not found in database, redirecting to index")
                 flash('User not found.', 'error')
                 return redirect(url_for('serve_index'))
                 
-            if user['id'] != 1:  # TODO: Implement proper admin roles
+            if user['id'] not in [1, 7]:  # TODO: Implement proper admin roles
+                print(f"User ID {user['id']} is not admin (allowed IDs: 1, 7), redirecting to index")
                 flash('You do not have permission to access this page.', 'error')
                 return redirect(url_for('serve_index'))
                 
+            print("Admin check passed, proceeding to admin function")
             return f(*args, **kwargs)
         except Exception as e:
             print(f"Error checking admin status: {str(e)}")
+            import traceback
+            print(f"Full traceback: {traceback.format_exc()}")
             flash('An error occurred while checking permissions.', 'error')
             return redirect(url_for('serve_index'))
             
@@ -692,10 +706,29 @@ def admin_required(f):
 
 @app.route('/admin')
 @login_required
+@admin_required
 def serve_admin():
     """Serve the admin dashboard"""
+    print(f"=== SERVE_ADMIN FUNCTION CALLED ===")
+    print(f"Request path: {request.path}")
+    print(f"Request method: {request.method}")
+    print(f"User in session: {session.get('user', 'No user')}")
+    
     log_user_activity(session['user']['email'], 'page_visit', page='admin')
-    return render_template('admin/index.html')
+    
+    # Check if request is from mobile but ALWAYS use admin template
+    user_agent = request.headers.get('User-Agent', '').lower()
+    is_mobile = any(device in user_agent for device in ['mobile', 'android', 'iphone', 'ipad'])
+    
+    print(f"Is mobile: {is_mobile}")
+    print(f"About to render template...")
+    
+    if is_mobile:
+        print("Rendering mobile admin template")
+        return render_template('mobile/admin.html', session_data={'user': session['user']})
+    
+    print("Rendering desktop admin template")
+    return render_template('admin/index.html', session_data={'user': session['user']})
 
 @app.route('/<path:path>')
 @login_required
@@ -732,7 +765,7 @@ def serve_static(path):
             return jsonify({'error': 'Not authenticated'}), 401
         return redirect(url_for('login'))
     
-    # Serve the file if authenticated
+            # Serve the file if authenticated
     try:
         response = send_from_directory('static', path)
         print(f"Successfully served {path}")
@@ -1708,6 +1741,7 @@ def test_static():
 
 @app.route('/api/admin/delete-user', methods=['POST'])
 @login_required
+@admin_required
 def delete_user():
     """Delete a user from the database"""
     try:
@@ -1716,33 +1750,40 @@ def delete_user():
         
         if not email:
             return jsonify({'error': 'Email is required'}), 400
-            
-        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
+
+        # Get user details for logging before deletion
+        user = execute_query_one(
+            "SELECT first_name, last_name FROM users WHERE email = %(email)s",
+            {'email': email}
+        )
         
-        try:
-            # Delete user
-            cursor.execute('DELETE FROM users WHERE email = ?', (email,))
-            
-            if cursor.rowcount == 0:
-                return jsonify({'error': 'User not found'}), 404
-                
-            # Also delete any related data
-            cursor.execute('DELETE FROM user_instructions WHERE user_email = ?', (email,))
-            cursor.execute('DELETE FROM player_availability WHERE player_name = ?', (email,))
-            
-            conn.commit()
-            return jsonify({'status': 'success', 'message': 'User deleted successfully'})
-            
-        finally:
-            conn.close()
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+
+        # Delete user and related data
+        execute_update("""
+            DELETE FROM user_activity_logs WHERE user_email = %(email)s;
+            DELETE FROM user_instructions WHERE user_email = %(email)s;
+            DELETE FROM player_availability WHERE player_name = %(email)s;
+            DELETE FROM users WHERE email = %(email)s;
+        """, {'email': email})
+        
+        # Log the deletion
+        log_user_activity(
+            session['user']['email'],
+            'admin_action',
+            action='delete_user',
+            details=f"Deleted user: {user['first_name']} {user['last_name']} ({email})"
+        )
+        
+        return jsonify({
+            'status': 'success',
+            'message': 'User deleted successfully'
+        })
             
     except Exception as e:
         print(f"Error deleting user: {str(e)}")
         return jsonify({'error': str(e)}), 500
-
-
 
 @app.route('/api/admin/user-activity/<email>')
 @login_required
@@ -2335,6 +2376,15 @@ def research_my_team():
 @login_required
 def serve_mobile():
     """Serve the mobile version of the application"""
+    print(f"=== SERVE_MOBILE FUNCTION CALLED ===")
+    print(f"Request path: {request.path}")
+    print(f"Request method: {request.method}")
+    
+    # Don't handle admin routes
+    if '/admin' in request.path:
+        print("Admin route detected in mobile, redirecting to serve_admin")
+        return redirect(url_for('serve_admin'))
+        
     # Create session data script
     session_data = {
         'user': session['user'],
@@ -2345,12 +2395,11 @@ def serve_mobile():
     try:
         log_user_activity(
             session['user']['email'], 
-            'page_visit', 
-            page='mobile_home',
-            details='Accessed mobile home page'
+            'page_visit',
+            page='mobile_home'
         )
     except Exception as e:
-        print(f"Error logging mobile home page visit: {str(e)}")
+        print(f"Error logging mobile access: {str(e)}")
     
     return render_template('mobile/index.html', session_data=session_data)
 
@@ -5575,26 +5624,27 @@ def get_user_settings():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/get-clubs')
-@login_required
 def get_clubs():
-    """Get list of all clubs"""
+    """Get list of all clubs - public endpoint for registration"""
     try:
-        clubs = execute_query("SELECT name FROM clubs ORDER BY name")
+        clubs_data = execute_query("SELECT name FROM clubs ORDER BY name")
+        clubs_list = [club['name'] for club in clubs_data]
         return jsonify({
-            'clubs': [club['name'] for club in clubs]
+            'clubs': clubs_list  # For login page compatibility
         })
     except Exception as e:
         print(f"Error getting clubs: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/get-series')
-@login_required
 def get_series():
-    """Get list of all series"""
+    """Get list of all series - public endpoint for registration"""
     try:
-        series = execute_query("SELECT name FROM series ORDER BY name")
+        series_data = execute_query("SELECT name FROM series ORDER BY name")
+        series_list = [s['name'] for s in series_data]
         return jsonify({
-            'all_series': [s['name'] for s in series]
+            'series': series_list,     # For login page compatibility
+            'all_series': series_list  # For user settings compatibility
         })
     except Exception as e:
         print(f"Error getting series: {str(e)}")

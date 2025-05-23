@@ -3,6 +3,7 @@ import json
 from datetime import datetime
 from database import get_db
 import logging
+from flask import request
 
 logger = logging.getLogger(__name__)
 
@@ -13,7 +14,15 @@ def log_user_activity(user_email, activity_type, **kwargs):
         page = kwargs.pop('page', None)
         action = kwargs.pop('action', None)
         details = kwargs.pop('details', None)
+        
+        # Get IP address from request or kwargs
         ip_address = kwargs.pop('ip_address', None)
+        if not ip_address and request:
+            # Try to get IP from X-Forwarded-For header first (for proxy setups)
+            ip_address = request.headers.get('X-Forwarded-For', '').split(',')[0].strip()
+            if not ip_address:
+                # Fallback to remote_addr if no X-Forwarded-For
+                ip_address = request.remote_addr
         
         # Convert details to JSON string if it's a dictionary
         if isinstance(details, dict):

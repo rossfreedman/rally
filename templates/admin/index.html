@@ -4,89 +4,97 @@
 
 {% block content %}
 <!-- Tab content -->
-<div class="card bg-base-100 shadow-xl">
-    <div class="card-body p-0">
-        <div class="tabs tabs-boxed bg-base-200 rounded-t-xl">
-            <a class="tab tab-active" data-tab="users">Users</a>
-            <a class="tab" data-tab="clubs">Clubs</a>
-            <a class="tab" data-tab="series">Series</a>
-        </div>
-
-        <!-- Users Tab -->
-        <div id="users-content" class="tab-content p-6">
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-                <h2 class="text-2xl font-bold text-primary">Users</h2>
+<div class="space-y-6">
+    <!-- Users Tab -->
+    <div id="users-content" class="tab-content">
+        <div class="card bg-white shadow-sm rounded-xl overflow-hidden">
+            <div class="p-4 border-b">
+                <h2 class="text-2xl font-bold text-gray-800">Users</h2>
             </div>
-            <div class="overflow-x-auto">
-                <div class="grid grid-cols-1 gap-4 md:hidden">
-                    <!-- Mobile cards for users -->
-                    <div id="usersMobileView"></div>
+            <div class="p-4">
+                <div class="overflow-x-auto">
+                    <div class="grid grid-cols-1 gap-3 md:hidden">
+                        <!-- Mobile cards for users -->
+                        <div id="usersMobileView"></div>
+                    </div>
+                    <table class="table table-zebra table-compact w-full hidden md:table">
+                        <thead>
+                            <tr>
+                                <th class="py-2">Name</th>
+                                <th class="py-2">Email</th>
+                                <th class="py-2">Club</th>
+                                <th class="py-2">Series</th>
+                                <th class="py-2">Last Login</th>
+                                <th class="py-2 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody"></tbody>
+                    </table>
                 </div>
-                <table class="table table-zebra w-full hidden md:table">
-                    <thead>
-                        <tr>
-                            <th>Name</th>
-                            <th>Email</th>
-                            <th>Club</th>
-                            <th>Series</th>
-                            <th>Last Login</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="usersTableBody"></tbody>
-                </table>
             </div>
         </div>
+    </div>
 
-        <!-- Clubs Tab -->
-        <div id="clubs-content" class="tab-content hidden p-6">
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-                <h2 class="text-2xl font-bold text-primary">Clubs</h2>
-                <button class="btn btn-primary w-full sm:w-auto" onclick="showAddClubModal()">
-                    <i class="fas fa-plus mr-2"></i> Add Club
-                </button>
-            </div>
-            <div class="overflow-x-auto">
-                <div class="grid grid-cols-1 gap-4 md:hidden">
-                    <!-- Mobile cards for clubs -->
-                    <div id="clubsMobileView"></div>
+    <!-- Clubs Tab -->
+    <div id="clubs-content" class="tab-content hidden">
+        <div class="card bg-white shadow-sm rounded-xl overflow-hidden">
+            <div class="p-4 border-b">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <h2 class="text-2xl font-bold text-gray-800">Clubs</h2>
+                    <button class="btn bg-black hover:bg-gray-800 text-yellow-400 w-full sm:w-auto" onclick="showAddClubModal()">
+                        <i class="fas fa-plus mr-2"></i> Add Club
+                    </button>
                 </div>
-                <table class="table table-zebra w-full hidden md:table">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Name</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="clubsTableBody"></tbody>
-                </table>
+            </div>
+            <div class="p-4">
+                <div class="overflow-x-auto">
+                    <div class="grid grid-cols-1 gap-3 md:hidden">
+                        <!-- Mobile cards for clubs -->
+                        <div id="clubsMobileView"></div>
+                    </div>
+                    <table class="table table-zebra table-compact w-full hidden md:table">
+                        <thead>
+                            <tr>
+                                <th class="py-2">ID</th>
+                                <th class="py-2">Name</th>
+                                <th class="py-2">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="clubsTableBody"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
+    </div>
 
-        <!-- Series Tab -->
-        <div id="series-content" class="tab-content hidden p-6">
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-                <h2 class="text-2xl font-bold text-primary">Series</h2>
-                <button class="btn btn-primary w-full sm:w-auto" onclick="showAddSeriesModal()">
-                    <i class="fas fa-plus mr-2"></i> Add Series
-                </button>
-            </div>
-            <div class="overflow-x-auto">
-                <div class="grid grid-cols-1 gap-4 md:hidden">
-                    <!-- Mobile cards for series -->
-                    <div id="seriesMobileView"></div>
+    <!-- Series Tab -->
+    <div id="series-content" class="tab-content hidden">
+        <div class="card bg-white shadow-sm rounded-xl overflow-hidden">
+            <div class="p-4 border-b">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <h2 class="text-2xl font-bold text-gray-800">Series</h2>
+                    <button class="btn bg-black hover:bg-gray-800 text-yellow-400 w-full sm:w-auto" onclick="showAddSeriesModal()">
+                        <i class="fas fa-plus mr-2"></i> Add Series
+                    </button>
                 </div>
-                <table class="table table-zebra w-full hidden md:table">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Name</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="seriesTableBody"></tbody>
-                </table>
+            </div>
+            <div class="p-4">
+                <div class="overflow-x-auto">
+                    <div class="grid grid-cols-1 gap-3 md:hidden">
+                        <!-- Mobile cards for series -->
+                        <div id="seriesMobileView"></div>
+                    </div>
+                    <table class="table table-zebra table-compact w-full hidden md:table">
+                        <thead>
+                            <tr>
+                                <th class="py-2">ID</th>
+                                <th class="py-2">Name</th>
+                                <th class="py-2">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="seriesTableBody"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -97,13 +105,13 @@
 <!-- Edit User Modal -->
 <dialog id="editUserModal" class="modal">
     <div class="modal-box w-11/12 max-w-2xl">
-        <div class="flex justify-between items-center mb-6">
-            <h3 class="font-bold text-2xl text-primary">Edit User</h3>
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="font-bold text-2xl text-gray-800">Edit User</h3>
             <button class="btn btn-ghost btn-sm btn-circle" onclick="closeModal('editUserModal')">
                 <i class="fas fa-times"></i>
             </button>
         </div>
-        <form method="dialog" class="space-y-4">
+        <form onsubmit="event.preventDefault(); saveUserChanges();" class="space-y-4">
             <input type="hidden" id="editUserId">
             <div class="form-control">
                 <label class="label">
@@ -135,9 +143,9 @@
                 </label>
                 <select id="editSeries" class="select select-bordered w-full"></select>
             </div>
-            <div class="modal-action flex justify-center sm:justify-end mt-8">
-                <button class="btn btn-ghost w-full sm:w-auto" onclick="closeModal('editUserModal')">Cancel</button>
-                <button class="btn btn-primary w-full sm:w-auto" onclick="saveUserChanges()">Save</button>
+            <div class="modal-action flex justify-end gap-2 mt-6">
+                <button type="button" class="btn btn-ghost" onclick="closeModal('editUserModal')">Cancel</button>
+                <button type="submit" class="btn bg-black hover:bg-gray-800 text-yellow-400">Save</button>
             </div>
         </form>
     </div>
@@ -146,13 +154,13 @@
 <!-- Club Modal -->
 <dialog id="clubModal" class="modal">
     <div class="modal-box w-11/12 max-w-lg">
-        <div class="flex justify-between items-center mb-6">
-            <h3 class="font-bold text-2xl text-primary">Club</h3>
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="font-bold text-2xl text-gray-800">Club</h3>
             <button class="btn btn-ghost btn-sm btn-circle" onclick="closeModal('clubModal')">
                 <i class="fas fa-times"></i>
             </button>
         </div>
-        <form method="dialog" class="space-y-4">
+        <form onsubmit="event.preventDefault(); saveClub();" class="space-y-4">
             <input type="hidden" id="clubId">
             <div class="form-control">
                 <label class="label">
@@ -160,9 +168,9 @@
                 </label>
                 <input type="text" id="clubName" class="input input-bordered w-full">
             </div>
-            <div class="modal-action flex justify-center sm:justify-end mt-8">
-                <button class="btn btn-ghost w-full sm:w-auto" onclick="closeModal('clubModal')">Cancel</button>
-                <button class="btn btn-primary w-full sm:w-auto" onclick="saveClub()">Save</button>
+            <div class="modal-action flex justify-end gap-2 mt-6">
+                <button type="button" class="btn btn-ghost" onclick="closeModal('clubModal')">Cancel</button>
+                <button type="submit" class="btn bg-black hover:bg-gray-800 text-yellow-400">Save</button>
             </div>
         </form>
     </div>
@@ -171,13 +179,13 @@
 <!-- Series Modal -->
 <dialog id="seriesModal" class="modal">
     <div class="modal-box w-11/12 max-w-lg">
-        <div class="flex justify-between items-center mb-6">
-            <h3 class="font-bold text-2xl text-primary">Series</h3>
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="font-bold text-2xl text-gray-800">Series</h3>
             <button class="btn btn-ghost btn-sm btn-circle" onclick="closeModal('seriesModal')">
                 <i class="fas fa-times"></i>
             </button>
         </div>
-        <form method="dialog" class="space-y-4">
+        <form onsubmit="event.preventDefault(); saveSeries();" class="space-y-4">
             <input type="hidden" id="seriesId">
             <div class="form-control">
                 <label class="label">
@@ -185,341 +193,110 @@
                 </label>
                 <input type="text" id="seriesName" class="input input-bordered w-full">
             </div>
-            <div class="modal-action flex justify-center sm:justify-end mt-8">
-                <button class="btn btn-ghost w-full sm:w-auto" onclick="closeModal('seriesModal')">Cancel</button>
-                <button class="btn btn-primary w-full sm:w-auto" onclick="saveSeries()">Save</button>
+            <div class="modal-action flex justify-end gap-2 mt-6">
+                <button type="button" class="btn btn-ghost" onclick="closeModal('seriesModal')">Cancel</button>
+                <button type="submit" class="btn bg-black hover:bg-gray-800 text-yellow-400">Save</button>
             </div>
         </form>
     </div>
 </dialog>
 
+<!-- Delete User Modal -->
+<dialog id="deleteUserModal" class="modal">
+    <div class="modal-box w-11/12 max-w-md">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="font-bold text-2xl text-red-600">Delete User</h3>
+            <button class="btn btn-ghost btn-sm btn-circle" onclick="closeModal('deleteUserModal')">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="space-y-4">
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle"></i>
+                <div>
+                    <h4 class="font-bold">Are you sure you want to delete this user?</h4>
+                    <p class="text-sm">This action cannot be undone. All user data including activity logs, instructions, and availability will be permanently deleted.</p>
+                </div>
+            </div>
+            <div class="modal-action flex justify-end gap-2 mt-6">
+                <button type="button" class="btn btn-ghost" onclick="closeModal('deleteUserModal')">Cancel</button>
+                <button type="button" class="btn bg-red-600 hover:bg-red-700 text-white" onclick="confirmDeleteUser()">
+                    <i class="fas fa-trash mr-2"></i>Delete User
+                </button>
+            </div>
+        </div>
+    </div>
+</dialog>
+
 <!-- Activity Modal -->
 <dialog id="activityModal" class="modal">
-    <div class="modal-box w-11/12 max-w-4xl">
-        <div class="flex justify-between items-center mb-6">
-            <h3 class="font-bold text-2xl text-primary">User Activity History</h3>
+    <div class="modal-box w-11/12 max-w-5xl">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="font-bold text-2xl text-gray-800">User Activity History</h3>
             <button class="btn btn-ghost btn-sm btn-circle" onclick="closeModal('activityModal')">
                 <i class="fas fa-times"></i>
             </button>
         </div>
-        <div class="card bg-base-100 shadow-sm">
-            <div class="card-body">
-                <h4 class="font-semibold mb-2">User Information</h4>
-                <div id="userInfo" class="bg-base-200 p-4 rounded-lg"></div>
-            </div>
-        </div>
-        <div class="card bg-base-100 shadow-sm mt-6">
-            <div class="card-body">
-                <h4 class="font-semibold mb-2">Recent Activities</h4>
-                <div class="overflow-x-auto">
-                    <div class="grid grid-cols-1 gap-4 md:hidden">
-                        <!-- Mobile cards for activities -->
-                        <div id="activityMobileView"></div>
-                    </div>
-                    <table class="table table-zebra w-full hidden md:table">
-                        <thead>
-                            <tr>
-                                <th>Time</th>
-                                <th>Type</th>
-                                <th>Page</th>
-                                <th>Action</th>
-                                <th>Details</th>
-                                <th>IP</th>
-                            </tr>
-                        </thead>
-                        <tbody id="activityTableBody"></tbody>
-                    </table>
+        
+        <!-- User Information -->
+        <div class="bg-gray-50 rounded-lg p-6 mb-6">
+            <h4 class="text-xl font-bold mb-4">User Information</h4>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="userInfo">
+                <div>
+                    <p class="text-sm text-gray-600">Name</p>
+                    <p class="font-medium user-name"></p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-600">Email</p>
+                    <p class="font-medium user-email"></p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-600">Last Login</p>
+                    <p class="font-medium user-last-login"></p>
                 </div>
             </div>
         </div>
-        <div class="modal-action flex justify-center sm:justify-end mt-8">
-            <button class="btn btn-primary w-full sm:w-auto gap-2" onclick="closeModal('activityModal')">
-                <i class="fas fa-chevron-left"></i>
-                Back
-            </button>
+
+        <!-- Recent Activities -->
+        <div>
+            <h4 class="text-xl font-bold mb-4">Recent Activities</h4>
+            
+            <!-- Mobile View -->
+            <div class="grid grid-cols-1 gap-4 md:hidden" id="activityMobileView"></div>
+            
+            <!-- Desktop View -->
+            <div class="overflow-x-auto hidden md:block">
+                <table class="table table-zebra table-compact w-full">
+                    <thead>
+                        <tr>
+                            <th class="py-2">Timestamp</th>
+                            <th class="py-2">Type</th>
+                            <th class="py-2">Page</th>
+                            <th class="py-2">Action</th>
+                            <th class="py-2">Details</th>
+                            <th class="py-2">IP Address</th>
+                        </tr>
+                    </thead>
+                    <tbody id="activityTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</dialog>
+
+<!-- Delete Confirmation Modal -->
+<dialog id="deleteUserModal" class="modal">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg text-red-600">Delete User</h3>
+        <p class="py-4">Are you sure you want to delete this user? This action cannot be undone.</p>
+        <div class="modal-action">
+            <button class="btn btn-ghost" onclick="closeModal('deleteUserModal')">Cancel</button>
+            <button class="btn bg-red-600 hover:bg-red-700 text-white" onclick="confirmDeleteUser()">Delete</button>
         </div>
     </div>
 </dialog>
 {% endblock %}
 
 {% block scripts %}
-<script>
-// Helper function to format date
-function formatDate(dateStr) {
-    if (!dateStr) return 'Never';
-    const date = new Date(dateStr);
-    return date.toLocaleString();
-}
-
-// Helper function to create a mobile card
-function createMobileCard(data, type) {
-    const card = document.createElement('div');
-    card.className = 'card bg-base-100 shadow-xl';
-    
-    let content = '';
-    if (type === 'user') {
-        content = `
-            <div class="card-body">
-                <h2 class="card-title text-primary">${data.first_name} ${data.last_name}</h2>
-                <p class="text-sm">${data.email}</p>
-                <div class="text-sm">
-                    <p><strong>Club:</strong> ${data.club_name || 'None'}</p>
-                    <p><strong>Series:</strong> ${data.series_name || 'None'}</p>
-                    <p><strong>Last Login:</strong> ${formatDate(data.last_login)}</p>
-                </div>
-                <div class="card-actions justify-end mt-4">
-                    <button class="btn btn-sm btn-primary" onclick="showUserActivity('${data.email}')">
-                        <i class="fas fa-history"></i>
-                    </button>
-                    <button class="btn btn-sm btn-secondary" onclick="editUser('${data.id}')">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                </div>
-            </div>
-        `;
-    } else if (type === 'club') {
-        content = `
-            <div class="card-body">
-                <h2 class="card-title text-primary">${data.name}</h2>
-                <p class="text-sm">ID: ${data.id}</p>
-                <div class="card-actions justify-end mt-4">
-                    <button class="btn btn-sm btn-secondary" onclick="editClub('${data.id}')">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                </div>
-            </div>
-        `;
-    } else if (type === 'series') {
-        content = `
-            <div class="card-body">
-                <h2 class="card-title text-primary">${data.name}</h2>
-                <p class="text-sm">ID: ${data.id}</p>
-                <div class="card-actions justify-end mt-4">
-                    <button class="btn btn-sm btn-secondary" onclick="editSeries('${data.id}')">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                </div>
-            </div>
-        `;
-    } else if (type === 'activity') {
-        content = `
-            <div class="card-body">
-                <p class="text-sm font-semibold text-primary">${formatDate(data.timestamp)}</p>
-                <div class="text-sm">
-                    <p><strong>Type:</strong> ${data.activity_type}</p>
-                    <p><strong>Page:</strong> ${data.page || 'N/A'}</p>
-                    <p><strong>Action:</strong> ${data.action || 'N/A'}</p>
-                    <p><strong>Details:</strong> ${data.details || 'N/A'}</p>
-                    <p><strong>IP:</strong> ${data.ip_address || 'N/A'}</p>
-                </div>
-            </div>
-        `;
-    }
-    
-    card.innerHTML = content;
-    return card;
-}
-
-// Load users data
-async function loadUsers() {
-    try {
-        const response = await fetch('/api/admin/users');
-        const users = await response.json();
-        
-        // Update table view
-        const tableBody = document.getElementById('usersTableBody');
-        tableBody.innerHTML = users.map(user => `
-            <tr>
-                <td>${user.first_name} ${user.last_name}</td>
-                <td>${user.email}</td>
-                <td>${user.club_name || 'None'}</td>
-                <td>${user.series_name || 'None'}</td>
-                <td>${formatDate(user.last_login)}</td>
-                <td>
-                    <button class="btn btn-sm btn-primary" onclick="showUserActivity('${user.email}')">
-                        <i class="fas fa-history"></i>
-                    </button>
-                    <button class="btn btn-sm btn-secondary" onclick="editUser('${user.id}')">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                </td>
-            </tr>
-        `).join('');
-        
-        // Update mobile view
-        const mobileView = document.getElementById('usersMobileView');
-        mobileView.innerHTML = '';
-        users.forEach(user => {
-            mobileView.appendChild(createMobileCard(user, 'user'));
-        });
-    } catch (error) {
-        console.error('Error loading users:', error);
-    }
-}
-
-// Load clubs data
-async function loadClubs() {
-    try {
-        const response = await fetch('/api/admin/clubs');
-        const clubs = await response.json();
-        
-        // Update table view
-        const tableBody = document.getElementById('clubsTableBody');
-        tableBody.innerHTML = clubs.map(club => `
-            <tr>
-                <td>${club.id}</td>
-                <td>${club.name}</td>
-                <td>
-                    <button class="btn btn-sm btn-secondary" onclick="editClub('${club.id}')">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                </td>
-            </tr>
-        `).join('');
-        
-        // Update mobile view
-        const mobileView = document.getElementById('clubsMobileView');
-        mobileView.innerHTML = '';
-        clubs.forEach(club => {
-            mobileView.appendChild(createMobileCard(club, 'club'));
-        });
-    } catch (error) {
-        console.error('Error loading clubs:', error);
-    }
-}
-
-// Load series data
-async function loadSeries() {
-    try {
-        const response = await fetch('/api/admin/series');
-        const series = await response.json();
-        
-        // Update table view
-        const tableBody = document.getElementById('seriesTableBody');
-        tableBody.innerHTML = series.map(s => `
-            <tr>
-                <td>${s.id}</td>
-                <td>${s.name}</td>
-                <td>
-                    <button class="btn btn-sm btn-secondary" onclick="editSeries('${s.id}')">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                </td>
-            </tr>
-        `).join('');
-        
-        // Update mobile view
-        const mobileView = document.getElementById('seriesMobileView');
-        mobileView.innerHTML = '';
-        series.forEach(s => {
-            mobileView.appendChild(createMobileCard(s, 'series'));
-        });
-    } catch (error) {
-        console.error('Error loading series:', error);
-    }
-}
-
-// Handle tab switching
-function switchTab(tabName) {
-    // Hide all tab content
-    document.querySelectorAll('.tab-content').forEach(content => {
-        content.classList.add('hidden');
-    });
-    
-    // Show selected tab content
-    document.getElementById(`${tabName}-content`).classList.remove('hidden');
-    
-    // Update tab styling
-    document.querySelectorAll('.tab').forEach(tab => {
-        tab.classList.remove('tab-active');
-        if (tab.getAttribute('data-tab') === tabName) {
-            tab.classList.add('tab-active');
-        }
-    });
-    
-    // Load data for the selected tab
-    if (tabName === 'users') loadUsers();
-    else if (tabName === 'clubs') loadClubs();
-    else if (tabName === 'series') loadSeries();
-}
-
-// Handle user activity
-async function showUserActivity(email) {
-    try {
-        const response = await fetch(`/api/admin/user-activity/${email}`);
-        const data = await response.json();
-        
-        // Update user info
-        document.getElementById('userInfo').innerHTML = `
-            <p><strong>Name:</strong> ${data.user.first_name} ${data.user.last_name}</p>
-            <p><strong>Email:</strong> ${data.user.email}</p>
-            <p><strong>Last Login:</strong> ${formatDate(data.user.last_login)}</p>
-        `;
-        
-        // Update activity table
-        const tableBody = document.getElementById('activityTableBody');
-        tableBody.innerHTML = data.activities.map(activity => `
-            <tr>
-                <td>${formatDate(activity.timestamp)}</td>
-                <td>${activity.activity_type}</td>
-                <td>${activity.page || 'N/A'}</td>
-                <td>${activity.action || 'N/A'}</td>
-                <td>${activity.details || 'N/A'}</td>
-                <td>${activity.ip_address || 'N/A'}</td>
-            </tr>
-        `).join('');
-        
-        // Update mobile view
-        const mobileView = document.getElementById('activityMobileView');
-        mobileView.innerHTML = '';
-        data.activities.forEach(activity => {
-            mobileView.appendChild(createMobileCard(activity, 'activity'));
-        });
-        
-        // Show modal
-        document.getElementById('activityModal').showModal();
-    } catch (error) {
-        console.error('Error loading user activity:', error);
-    }
-}
-
-// Modal functions
-function showAddClubModal() {
-    document.getElementById('clubId').value = '';
-    document.getElementById('clubName').value = '';
-    document.getElementById('clubModal').showModal();
-}
-
-function showAddSeriesModal() {
-    document.getElementById('seriesId').value = '';
-    document.getElementById('seriesName').value = '';
-    document.getElementById('seriesModal').showModal();
-}
-
-function closeModal(modalId) {
-    document.getElementById(modalId).close();
-}
-
-// Initialize page
-document.addEventListener('DOMContentLoaded', () => {
-    // Load initial data
-    loadUsers();
-    
-    // Set up tab click handlers
-    document.querySelectorAll('.tab').forEach(tab => {
-        tab.addEventListener('click', (e) => {
-            e.preventDefault();
-            switchTab(tab.getAttribute('data-tab'));
-        });
-    });
-    
-    // Set up menu item click handlers
-    document.querySelectorAll('.menu-item').forEach(item => {
-        item.addEventListener('click', (e) => {
-            e.preventDefault();
-            switchTab(item.getAttribute('data-tab'));
-        });
-    });
-});
-</script>
+<script src="/static/js/admin.js"></script>
 {% endblock %} 

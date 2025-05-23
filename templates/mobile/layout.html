@@ -108,7 +108,7 @@
                     <div class="font-bold text-lg mb-2 flex items-center gap-2 text-black"><i class="fas fa-cog text-black"></i> Settings</div>
                     <ul class="space-y-2 ml-6">
                         <li><a href="/mobile/settings" class="nav-link flex items-center gap-2 text-lg text-black"><span class="inline-block w-7 text-center"><i class="fas fa-user-cog text-black"></i></span> User Settings</a></li>
-                        <li><button class="nav-link flex items-center gap-2 text-lg text-black w-full text-left" data-action="logout"><span class="inline-block w-7 text-center"><i class="fas fa-sign-out-alt text-black"></i></span> Logout</button></li>
+                        <li><a href="/logout" class="nav-link flex items-center gap-2 text-lg text-black"><span class="inline-block w-7 text-center"><i class="fas fa-sign-out-alt text-black"></i></span> Logout</a></li>
                     </ul>
                 </div>
             </nav>
@@ -209,45 +209,7 @@
                     toggleDrawer();
                     return;
                 }
-
-                // Handle logout action
-                if (target.closest('[data-action="logout"]')) {
-                    logout();
-                }
             });
-
-            // Handle logout
-            async function logout() {
-                console.log('Logout function called');
-                try {
-                    const response = await fetch('/api/logout', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Accept': 'application/json',
-                            'X-Requested-With': 'XMLHttpRequest'
-                        },
-                        credentials: 'include'
-                    });
-                    
-                    if (response.ok) {
-                        // Clear any client-side state
-                        sessionStorage.clear();
-                        localStorage.clear();
-                        
-                        // Redirect to login page
-                        window.location.href = '/login';
-                    } else {
-                        console.error('Logout failed:', response.status);
-                        // Fallback to direct logout
-                        window.location.href = '/logout';
-                    }
-                } catch (error) {
-                    console.error('Logout error:', error);
-                    // Fallback to direct logout
-                    window.location.href = '/logout';
-                }
-            }
         });
     </script>
 
