@@ -2,8 +2,9 @@ from flask import jsonify, request, session, render_template
 from datetime import datetime
 import os
 import json
+import time
 from utils.logging import log_user_activity
-from utils.ai import get_or_create_assistant
+from utils.ai import get_or_create_assistant, client
 
 def init_rally_ai_routes(app):
     @app.route('/mobile/ask-ai')

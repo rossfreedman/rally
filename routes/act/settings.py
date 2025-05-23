@@ -112,9 +112,21 @@ def init_routes(app):
     @app.route('/api/get-series')
     def get_series():
         try:
+            from utils.db import execute_query
+            
+            # Get all available series
+            all_series_records = execute_query("SELECT name FROM series ORDER BY name")
+            all_series = [record['name'] for record in all_series_records]
+            
+            # Get user's current series
+            current_series = None
             if 'user' in session and 'series' in session['user']:
-                return jsonify({'series': session['user']['series']})
-            return jsonify({'error': 'Series not set'}), 404
+                current_series = session['user']['series']
+            
+            return jsonify({
+                'series': current_series,
+                'all_series': all_series
+            })
             
         except Exception as e:
             logger.error(f"Error getting series: {str(e)}")

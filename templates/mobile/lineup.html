@@ -67,15 +67,24 @@ let instructions = [];
 // --- 1. Load Players ---
 function loadPlayers() {
   fetch(`/api/players?series=${encodeURIComponent(series)}&team_id=${encodeURIComponent(teamId)}`)
-    .then(res => res.json())
+    .then(res => {
+      if (!res.ok) {
+        throw new Error(`Server error: ${res.status} ${res.statusText}`);
+      }
+      return res.json();
+    })
     .then(data => {
+      if (data.error) {
+        throw new Error(data.error);
+      }
       players = data;
       // Select all players by default on load
       selectedPlayers = new Set(players.map(p => p.name));
       renderPlayers();
     })
-    .catch(() => {
-      document.getElementById('players-list').innerHTML = '<span class="text-error">Failed to load players.</span>';
+    .catch(error => {
+      console.error('Error loading players:', error);
+      document.getElementById('players-list').innerHTML = `<span class="text-error">Failed to load players: ${error.message}</span>`;
     });
 }
 
@@ -104,13 +113,22 @@ function renderPlayers() {
 // --- 2. Load & Manage Instructions ---
 function loadInstructions() {
   fetch(`/api/lineup-instructions?team_id=${encodeURIComponent(teamId)}`)
-    .then(res => res.json())
+    .then(res => {
+      if (!res.ok) {
+        throw new Error(`Server error: ${res.status} ${res.statusText}`);
+      }
+      return res.json();
+    })
     .then(data => {
+      if (data.error) {
+        throw new Error(data.error);
+      }
       instructions = data.instructions || [];
       renderInstructions();
     })
-    .catch(() => {
-      document.getElementById('instructions-list').innerHTML = '<li class="text-error">Failed to load instructions.</li>';
+    .catch(error => {
+      console.error('Error loading instructions:', error);
+      document.getElementById('instructions-list').innerHTML = `<li class="text-error">Failed to load instructions: ${error.message}</li>`;
     });
 }
 
@@ -138,10 +156,22 @@ document.getElementById('add-instruction-btn').onclick = () => {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ instruction: value, team_id: teamId })
   })
-    .then(res => res.json())
-    .then(() => {
+    .then(res => {
+      if (!res.ok) {
+        throw new Error(`Server error: ${res.status} ${res.statusText}`);
+      }
+      return res.json();
+    })
+    .then(data => {
+      if (data.error) {
+        throw new Error(data.error);
+      }
       input.value = '';
       loadInstructions();
+    })
+    .catch(error => {
+      console.error('Error adding instruction:', error);
+      alert(`Failed to add instruction: ${error.message}`);
     });
 };
 
@@ -151,8 +181,22 @@ function deleteInstruction(instr) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ instruction: instr, team_id: teamId })
   })
-    .then(res => res.json())
-    .then(() => loadInstructions());
+    .then(res => {
+      if (!res.ok) {
+        throw new Error(`Server error: ${res.status} ${res.statusText}`);
+      }
+      return res.json();
+    })
+    .then(data => {
+      if (data.error) {
+        throw new Error(data.error);
+      }
+      loadInstructions();
+    })
+    .catch(error => {
+      console.error('Error deleting instruction:', error);
+      alert(`Failed to delete instruction: ${error.message}`);
+    });
 }
 
 // --- 3. Generate Lineup ---

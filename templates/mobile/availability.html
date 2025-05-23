@@ -51,10 +51,10 @@
                                 {% else %}
                                     {% set home_team = match.home_team.split(' - ') if match.home_team else [] %}
                                     {% set away_team = match.away_team.split(' - ') if match.away_team else [] %}
-                                    <div class="flex items-center gap-2 {% if match.get('home_team') == user.club ~ ' - ' ~ user.series.split()[-1] %}font-bold{% endif %}">
+                                    <div class="flex items-center gap-2 {% if match.get('home_team') == session_data.user.club ~ ' - ' ~ session_data.user.series.split()[-1] %}font-bold{% endif %}">
                                         <span class="text-lg">{{ home_team[0] }} - {{ home_team[1] if home_team|length >= 2 else '' }} vs.</span>
                                     </div>
-                                    <div class="{% if match.get('away_team') == user.club ~ ' - ' ~ user.series.split()[-1] %}font-bold{% endif %}">
+                                    <div class="{% if match.get('away_team') == session_data.user.club ~ ' - ' ~ session_data.user.series.split()[-1] %}font-bold{% endif %}">
                                         <span class="text-lg">{{ away_team[0] }} - {{ away_team[1] if away_team|length >= 2 else '' }}</span>
                                     </div>
                                 {% endif %}

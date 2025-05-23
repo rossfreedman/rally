@@ -2,9 +2,12 @@ from flask import jsonify, request, session, render_template
 from datetime import datetime
 import os
 import json
+import time
 from utils.db import execute_query, execute_query_one, execute_update
 from utils.logging import log_user_activity
-from utils.ai import get_or_create_assistant
+from utils.ai import get_or_create_assistant, client
+from utils.series_matcher import normalize_series_for_display
+from utils.auth import login_required
 
 def get_user_instructions(user_email, team_id=None):
     """Get lineup instructions for a user"""
@@ -45,8 +48,32 @@ def add_user_instruction(user_email, instruction, team_id=None):
         print(f"Error adding instruction: {str(e)}")
         return False
 
+def delete_user_instruction(user_email, instruction, team_id=None):
+    """Delete a lineup instruction"""
+    try:
+        query = """
+            UPDATE user_instructions 
+            SET is_active = false 
+            WHERE user_email = %(user_email)s AND instruction = %(instruction)s
+        """
+        params = {
+            'user_email': user_email,
+            'instruction': instruction
+        }
+        
+        if team_id:
+            query += ' AND team_id = %(team_id)s'
+            params['team_id'] = team_id
+            
+        success = execute_update(query, params)
+        return success
+    except Exception as e:
+        print(f"Error deleting instruction: {str(e)}")
+        return False
+
 def init_lineup_routes(app):
     @app.route('/mobile/lineup')
+    @login_required
     def serve_mobile_lineup():
         """Serve the mobile lineup page"""
         try:
@@ -61,6 +88,7 @@ def init_lineup_routes(app):
             return jsonify({'error': str(e)}), 500
 
     @app.route('/mobile/lineup-escrow')
+    @login_required
     def serve_mobile_lineup_escrow():
         """Serve the mobile Lineup Escrow page"""
         session_data = {
@@ -76,6 +104,7 @@ def init_lineup_routes(app):
         return render_template('mobile/lineup_escrow.html', session_data=session_data)
 
     @app.route('/api/lineup-instructions', methods=['GET', 'POST', 'DELETE'])
+    @login_required
     def lineup_instructions():
         """Handle lineup instructions"""
         if request.method == 'GET':
@@ -104,8 +133,27 @@ def init_lineup_routes(app):
                 return jsonify({'status': 'success'})
             except Exception as e:
                 return jsonify({'error': str(e)}), 500
+                
+        elif request.method == 'DELETE':
+            try:
+                user_email = session['user']['email']
+                data = request.json
+                instruction = data.get('instruction')
+                team_id = data.get('team_id')
+                
+                if not instruction:
+                    return jsonify({'error': 'Instruction is required'}), 400
+                    
+                success = delete_user_instruction(user_email, instruction, team_id=team_id)
+                if not success:
+                    return jsonify({'error': 'Failed to delete instruction'}), 500
+                    
+                return jsonify({'status': 'success'})
+            except Exception as e:
+                return jsonify({'error': str(e)}), 500
 
     @app.route('/api/generate-lineup', methods=['POST'])
+    @login_required
     def generate_lineup():
         """Generate lineup using AI"""
         try:

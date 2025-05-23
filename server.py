@@ -145,6 +145,9 @@ is_development = os.environ.get('FLASK_ENV') == 'development'
 # Register blueprints
 app.register_blueprint(admin_bp, url_prefix='/api/admin')
 
+# Initialize ACT routes
+init_act_routes(app)
+
 # Configure CORS for admin routes
 CORS(app, resources={
     r"/admin/*": {
@@ -318,347 +321,9 @@ def serve_index():
 def redirect_index_html():
     return redirect('/mobile')
 
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-    """Serve the login page"""
-    if 'user' in session:
-        return redirect(url_for('serve_mobile'))
-    return app.send_static_file('login.html')
+# Authentication routes and functions moved to routes/act/auth.py
 
-def hash_password(password):
-    """Hash a password for storing."""
-    return generate_password_hash(password, method='pbkdf2:sha256')
-
-def verify_password(stored_password, provided_password):
-    """Verify a stored password against one provided by user"""
-    # Check if it's a new-style Werkzeug hash (starts with 'pbkdf2:sha256')
-    if stored_password.startswith('pbkdf2:sha256'):
-        return check_password_hash(stored_password, provided_password)
-    
-    # Handle old-style hash (format: salt:hash)
-    try:
-        if ':' in stored_password:
-            salt, hash_value = stored_password.split(':')
-            # Convert provided password to old hash format
-            import hashlib
-            provided_hash = hashlib.sha256((salt + provided_password).encode()).hexdigest()
-            return hash_value == provided_hash
-    except Exception as e:
-        print(f"Error verifying old password format: {str(e)}")
-        return False
-    
-    return False
-
-@app.route('/api/register', methods=['POST'])
-def handle_register():
-    try:
-        data = request.get_json()
-        print("Registration data received:", data)
-        
-        email = data.get('email')
-        password = data.get('password')
-        first_name = data.get('firstName')
-        last_name = data.get('lastName')
-        club_name = data.get('club')
-        series_name = data.get('series')
-        
-        print(f"Registration attempt - Email: {email}, First Name: {first_name}, Last Name: {last_name}, Club: {club_name}, Series: {series_name}")
-        
-        if not all([email, password, first_name, last_name, club_name, series_name]):
-            missing = [field for field, value in {
-                'email': email, 
-                'password': password, 
-                'firstName': first_name, 
-                'lastName': last_name, 
-                'club': club_name, 
-                'series': series_name
-            }.items() if not value]
-            print(f"Missing required fields: {missing}")
-            return jsonify({'error': 'Missing required fields'}), 400
-            
-        # Get club_id and series_id from names
-        try:
-            club = execute_query_one(
-                """
-                SELECT id FROM clubs WHERE name = %(name)s
-                """,
-                {'name': club_name}
-            )
-            print("Club query result:", club)
-        except Exception as e:
-            print(f"Error querying club: {str(e)}")
-            return jsonify({'error': 'Database error'}), 500
-        
-        if not club:
-            print(f"Invalid club selected: {club_name}")
-            return jsonify({'error': 'Invalid club selected'}), 400
-            
-        try:
-            series = execute_query_one(
-                """
-                SELECT id FROM series WHERE name = %(name)s
-                """,
-                {'name': series_name}
-            )
-            print("Series query result:", series)
-        except Exception as e:
-            print(f"Error querying series: {str(e)}")
-            return jsonify({'error': 'Database error'}), 500
-        
-        if not series:
-            print(f"Invalid series selected: {series_name}")
-            return jsonify({'error': 'Invalid series selected'}), 400
-            
-        # Check if user already exists
-        try:
-            existing_user = execute_query_one(
-                """
-                SELECT id FROM users WHERE email = %(email)s
-                """,
-                {'email': email}
-            )
-            print("Existing user check result:", existing_user)
-        except Exception as e:
-            print(f"Error checking existing user: {str(e)}")
-            return jsonify({'error': 'Database error'}), 500
-        
-        if existing_user:
-            print(f"User already exists with email: {email}")
-            return jsonify({'error': 'User already exists'}), 409
-            
-        try:
-            password_hash = hash_password(password)
-            print("Password hashed successfully")
-        except Exception as e:
-            print(f"Error hashing password: {str(e)}")
-            return jsonify({'error': 'Error processing password'}), 500
-        
-        try:
-            result = execute_query(
-                """
-                INSERT INTO users 
-                (email, password_hash, first_name, last_name, club_id, series_id) 
-                VALUES (
-                    %(email)s, 
-                    %(password_hash)s, 
-                    %(first_name)s, 
-                    %(last_name)s, 
-                    %(club_id)s, 
-                    %(series_id)s
-                )
-                RETURNING id
-                """,
-                {
-                    'email': email,
-                    'password_hash': password_hash,
-                    'first_name': first_name,
-                    'last_name': last_name,
-                    'club_id': club['id'],
-                    'series_id': series['id']
-                }
-            )
-            success = bool(result)
-            print("Database insert result:", success)
-        except Exception as e:
-            print(f"Error inserting user: {str(e)}")
-            return jsonify({'error': 'Database error'}), 500
-        
-        if not success:
-            print("Failed to insert new user into database")
-            return jsonify({'error': 'Registration failed'}), 500
-            
-        print(f"Successfully registered user: {email}")
-        
-        # Create session for the new user
-        session.permanent = True
-        session['user'] = {
-            'email': email,
-            'first_name': first_name,
-            'last_name': last_name,
-            'club': club_name,
-            'series': series_name
-        }
-        
-        # Log successful registration
-        log_user_activity(email, 'auth', action='register', details='User registered successfully')
-        
-        return jsonify({
-            'status': 'success',
-            'message': 'Registration successful',
-            'redirect': '/'
-        }), 201
-
-    except Exception as e:
-        print(f"Error in registration: {str(e)}")
-        return jsonify({'error': 'Registration failed'}), 500
-
-@app.route('/api/login', methods=['POST'])
-def handle_login():
-    try:
-        data = request.json
-        email = data.get('email')
-        password = data.get('password')
-        
-        print(f"Login attempt for email: {email}")
-        
-        if not email or not password:
-            print("Missing email or password")
-            return jsonify({'error': 'Please provide both email and password'}), 401
-            
-        # Get user with club and series info - using case-insensitive email comparison
-        user = execute_query_one(
-            """
-            SELECT u.id, u.email, u.password_hash, u.first_name, u.last_name,
-                   c.name as club_name, s.name as series_name
-            FROM users u
-            JOIN clubs c ON u.club_id = c.id
-            JOIN series s ON u.series_id = s.id
-            WHERE LOWER(u.email) = LOWER(%(email)s)
-            """,
-            {'email': email}
-        )
-        
-        print(f"User found: {user is not None}")
-        
-        if not user:
-            print("User not found")
-            return jsonify({'error': 'Invalid email or password'}), 401
-            
-        # Verify password
-        if not verify_password(user['password_hash'], password):
-            print("Invalid password")
-            return jsonify({'error': 'Invalid email or password'}), 401
-            
-        # Update last login with explicit timezone handling
-        result = execute_query(
-            """
-            UPDATE users 
-            SET last_login = NOW() AT TIME ZONE 'UTC'
-            WHERE id = %(user_id)s
-            RETURNING id
-            """,
-            {'user_id': user['id']}
-        )
-        success = bool(result)
-        
-        if not success:
-            print("Warning: Failed to update last login time")
-        
-        # Create session with all user information
-        session.permanent = True  # Use the permanent session lifetime
-        session['user'] = {
-            'id': user['id'],
-            'email': user['email'],
-            'first_name': user['first_name'],
-            'last_name': user['last_name'],
-            'club': user['club_name'],
-            'series': user['series_name']
-        }
-        
-        print(f"Session after login: {session}")
-        
-        # Log successful login
-        log_user_activity(email, 'auth', action='login', details='Successful login')
-        
-        print(f"Login successful for user: {email}")
-        return jsonify({
-            'status': 'success',
-            'message': 'Login successful',
-            'redirect': '/mobile'
-        })
-        
-    except Exception as e:
-        print(f"Error in login: {str(e)}")
-        return jsonify({'error': 'Login failed'}), 500
-
-@app.route('/api/logout', methods=['POST'])
-def handle_logout():
-    """Handle the AJAX logout request"""
-    try:
-        print("\n=== LOGOUT ATTEMPT ===")
-        print(f"Request method: {request.method}")
-        print(f"Request headers: {dict(request.headers)}")
-        print(f"Request cookies: {request.cookies}")
-        print(f"Session before logout: {dict(session)}")
-        
-        if 'user' in session:
-            # Log the logout activity
-            print(f"Logging out user: {session['user']['email']}")
-            log_user_activity(session['user']['email'], 'auth', action='logout')
-        
-        # Clear all session data
-        session.clear()
-        session.modified = True
-        
-        # Create response with cookie clearing
-        response = make_response(jsonify({
-            'status': 'success',
-            'message': 'Successfully logged out',
-            'redirect': '/login'
-        }))
-        
-        # Explicitly expire all cookies
-        for cookie in request.cookies:
-            response.set_cookie(cookie, '', expires=0, path='/', secure=not is_development, httponly=True)
-        
-        # Add cache control headers
-        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-        response.headers['Pragma'] = 'no-cache'
-        response.headers['Expires'] = '0'
-        
-        print("\n=== LOGOUT RESPONSE ===")
-        print(f"Response headers: {dict(response.headers)}")
-        print(f"Session after logout: {dict(session)}")
-        print(f"Response cookies: {response.headers.get('Set-Cookie')}")
-        
-        return response
-        
-    except Exception as e:
-        print(f"Error during logout: {str(e)}")
-        print(f"Error traceback: {traceback.format_exc()}")
-        return jsonify({'error': 'Logout failed', 'details': str(e)}), 500
-
-@app.route('/logout')
-def logout_page():
-    """Handle direct logout request"""
-    try:
-        print("\n=== LOGOUT PAGE ===")
-        print(f"Request headers: {dict(request.headers)}")
-        print(f"Request cookies: {request.cookies}")
-        print(f"Session before logout: {dict(session)}")
-        
-        if 'user' in session:
-            # Log the logout activity
-            print(f"Logging out user: {session['user']['email']}")
-            log_user_activity(session['user']['email'], 'auth', action='logout')
-        
-        # Clear all session data
-        session.clear()
-        session.modified = True
-        
-        # Create response with redirect
-        response = make_response(redirect(url_for('login')))
-        
-        # Explicitly expire all cookies
-        for cookie in request.cookies:
-            response.set_cookie(cookie, '', expires=0, path='/', secure=not is_development, httponly=True)
-        
-        # Add cache control headers
-        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-        response.headers['Pragma'] = 'no-cache'
-        response.headers['Expires'] = '0'
-        
-        print("\n=== LOGOUT RESPONSE ===")
-        print(f"Response headers: {dict(response.headers)}")
-        print(f"Session after logout: {dict(session)}")
-        print(f"Response cookies: {response.headers.get('Set-Cookie')}")
-        
-        return response
-        
-    except Exception as e:
-        print(f"Error during logout page: {str(e)}")
-        print(f"Error traceback: {traceback.format_exc()}")
-        return redirect(url_for('login'))
+# All authentication routes moved to routes/act/auth.py
 
 # Admin routes
 def admin_required(f):
@@ -729,6 +394,12 @@ def serve_admin():
     
     print("Rendering desktop admin template")
     return render_template('admin/index.html', session_data={'user': session['user']})
+
+@app.route('/contact-sub')
+@login_required
+def serve_contact_sub():
+    """Serve the contact sub page"""
+    return send_from_directory('static/components', 'contact-sub.html')
 
 @app.route('/<path:path>')
 @login_required
@@ -975,157 +646,7 @@ def get_chrome_options():
         print(f"Warning: Failed to create Chrome options: {e}")
         return None
 
-@app.route('/api/reserve-court', methods=['POST'])
-@login_required
-def reserve_court():
-    if not SELENIUM_ENABLED:
-        return jsonify({
-            'error': 'SELENIUM_DISABLED',
-            'message': 'Court reservation is temporarily disabled'
-        }), 503
-        
-    logger = logging.getLogger(__name__)
-    logger.debug("Starting court reservation process")
-    
-    try:
-        # Get the current user's email from the session
-        user_email = session['user']['email']
-        logger.debug(f"Attempting to reserve court for user: {user_email}")
-        
-        # Get credentials from database
-        try:
-            db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
-            conn = sqlite3.connect(db_path)
-            cursor = conn.cursor()
-            cursor.execute('SELECT club_automation_password FROM users WHERE email = ?', (user_email,))
-            result = cursor.fetchone()
-            if not result or not result[0]:
-                logger.error(f"No Club Automation password found for user {user_email}")
-                return jsonify({'error': 'NO_CLUB_AUTOMATION_PASSWORD', 'message': 'No Club Automation password found for this user.'}), 400
-            password = result[0]
-        finally:
-            conn.close()
-
-        # Initialize Chrome webdriver with options
-        options = get_chrome_options()
-        if not options:
-            return jsonify({'error': 'Failed to create Chrome options'}), 500
-        
-        driver = webdriver.Chrome(options=options)
-        
-        try:
-            # Navigate to login page with retry
-            logger.debug("Navigating to login page...")
-            navigate_with_retry(driver, "https://tennaqua.clubautomation.com")
-            
-            # Login using the enhanced element interaction methods
-            logger.debug("Attempting login...")
-            username_field = wait_for_element(driver, "input[name='login']")
-            username_field.send_keys(user_email)
-            
-            password_field = wait_for_element(driver, "input[name='password']")
-            password_field.send_keys(password)
-            
-            wait_and_click(driver, "#loginButton")
-            
-            # Wait for successful login
-            WebDriverWait(driver, 15).until(lambda d: "member" in d.current_url.lower())
-            logger.debug("Successfully logged in")
-            
-            # Navigate to court reservation
-            logger.debug("Navigating to court reservation page...")
-            navigate_with_retry(driver, "https://tennaqua.clubautomation.com/event/reserve-court")
-            
-            # Wait for profile tabs and try to find Paddle Tennis tab using multiple methods
-            logger.debug("Looking for Paddle Tennis tab...")
-            paddle_tennis_selectors = [
-                (By.CSS_SELECTOR, "#tab_27.profileTabButton"),
-                (By.XPATH, "//div[contains(@class, 'profileTabButton') and contains(text(), 'Paddle Tennis')]"),
-                (By.LINK_TEXT, "Paddle Tennis")
-            ]
-            
-            paddle_tennis_tab = find_element_by_multiple_selectors(driver, paddle_tennis_selectors)
-            logger.debug("Found Paddle Tennis tab")
-            
-            # Try to click the tab using our safe click method
-            safe_click(driver, paddle_tennis_tab)
-            logger.debug("Clicked Paddle Tennis tab")
-            
-            # Wait for the content to load
-            wait_for_element(driver, "#component_paddletennis_location_id")
-            logger.debug("Paddle Tennis content loaded")
-            
-            # Take a screenshot for verification
-            driver.save_screenshot("paddle_tennis_page.png")
-            logger.debug("Saved screenshot of the page")
-            
-            # Wait for specific element to appear
-            wait_for_element(driver, ".new-page-element")
-            
-            return '', 200
-            
-        except Exception as e:
-            logger.error(f"Error during navigation: {str(e)}")
-            if driver:
-                driver.save_screenshot("error_screenshot.png")
-            raise
-            
-    except Exception as e:
-        logger.error(f"Error during court reservation: {str(e)}")
-        return jsonify({'error': str(e)}), 500
-
-# Add these helper functions after the imports
-def wait_and_click(driver, selector, by=By.CSS_SELECTOR, timeout=10):
-    """Wait for an element to be clickable and click it"""
-    element = WebDriverWait(driver, timeout).until(
-        EC.element_to_be_clickable((by, selector))
-    )
-    driver.execute_script("arguments[0].scrollIntoView(true);", element)
-    time.sleep(0.5)
-    element.click()
-    return element
-
-def wait_for_element(driver, selector, by=By.CSS_SELECTOR, timeout=10):
-    """Wait for an element to be present and return it"""
-    return WebDriverWait(driver, timeout).until(
-        EC.presence_of_element_located((by, selector))
-    )
-
-def safe_click(driver, element):
-    """Try multiple click methods until one works"""
-    try:
-        element.click()
-    except:
-        try:
-            driver.execute_script("arguments[0].click();", element)
-        except:
-            from selenium.webdriver.common.action_chains import ActionChains
-            ActionChains(driver).move_to_element(element).click().perform()
-
-def find_element_by_multiple_selectors(driver, selectors):
-    """Try multiple selectors to find an element"""
-    for selector_type, selector in selectors:
-        try:
-            element = driver.find_element(selector_type, selector)
-            if element.is_displayed():
-                return element
-        except:
-            continue
-    raise Exception(f"Could not find element with any of these selectors: {selectors}")
-
-def navigate_with_retry(driver, url, max_retries=3):
-    """Navigate to a URL with retry logic"""
-    for attempt in range(max_retries):
-        try:
-            driver.get(url)
-            WebDriverWait(driver, 10).until(
-                lambda d: d.execute_script('return document.readyState') == 'complete'
-            )
-            return True
-        except Exception as e:
-            if attempt == max_retries - 1:
-                raise
-            time.sleep(2 ** attempt)  # Exponential backoff
+# Reserve court route moved to routes/act/court.py
 
 @app.route('/api/series-stats')
 def get_series_stats():
@@ -1349,44 +870,7 @@ def get_series_stats():
         print(traceback.format_exc())
         return jsonify({'error': 'Failed to read stats file'}), 500
 
-@app.route('/api/player-contact')
-@login_required  # Add login requirement for security
-def get_player_contact():
-    first_name = request.args.get('firstName')
-    last_name = request.args.get('lastName')
-    
-    print(f"\n=== Getting Contact Info ===")
-    print(f"First Name: {first_name}")
-    print(f"Last Name: {last_name}")
-    
-    if not first_name or not last_name:
-        return jsonify({'error': 'Missing first or last name parameter'}), 400
-        
-    try:
-        # Search the club directory CSV for the player
-        import pandas as pd
-        directory_path = os.path.join('data', 'club_directories', 'directory_tennaqua.csv')
-        df = pd.read_csv(directory_path)
-        # The columns are: Series,Last Name,First,Email,Phone
-        player = df[
-            (df['First'].str.lower() == first_name.lower()) & \
-            (df['Last Name'].str.lower() == last_name.lower())
-        ]
-        if not player.empty:
-            email = player.iloc[0]['Email'] if pd.notnull(player.iloc[0]['Email']) else 'Not available'
-            phone = player.iloc[0]['Phone'] if pd.notnull(player.iloc[0]['Phone']) else 'Not available'
-            return jsonify({
-                'email': email,
-                'phone': phone
-            })
-        else:
-            print(f"Player not found in directory: {first_name} {last_name}")
-            return jsonify({'error': 'Player not found in the club directory'}), 404
-    except Exception as e:
-        print(f"Error fetching player contact info: {str(e)}")
-        import traceback
-        print(traceback.format_exc())
-        return jsonify({'error': 'Internal server error'}), 500
+# Player contact route moved to routes/act/find_sub.py
 
 # Initialize paths
 app_dir = os.path.dirname(os.path.abspath(__file__))
@@ -1620,116 +1104,7 @@ def get_team_players(team_id):
         print(traceback.format_exc())
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/update-settings', methods=['POST'])
-@login_required
-def update_settings():
-    try:
-        data = request.get_json()
-        
-        if not all(key in data for key in ['firstName', 'lastName', 'email', 'series', 'club']):
-            return jsonify({'success': False, 'message': 'Missing required fields'}), 400
-        
-        current_email = session['user']['email']
-        
-        from utils.db import get_db_connection
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        try:
-            # Get series_id and club_id
-            cursor.execute('SELECT id FROM series WHERE name = %s', (data['series'],))
-            series_result = cursor.fetchone()
-            if not series_result:
-                return jsonify({'success': False, 'message': 'Invalid series'}), 400
-            series_id = series_result[0]
-            
-            cursor.execute('SELECT id FROM clubs WHERE name = %s', (data['club'],))
-            club_result = cursor.fetchone()
-            if not club_result:
-                return jsonify({'success': False, 'message': 'Invalid club'}), 400
-            club_id = club_result[0]
-            
-            # Update user data
-            if 'clubAutomationPassword' in data and data['clubAutomationPassword']:
-                cursor.execute('''
-                    UPDATE users 
-                    SET first_name = %s, last_name = %s, email = %s, series_id = %s, club_id = %s, club_automation_password = %s
-                    WHERE email = %s
-                ''', (
-                    data['firstName'],
-                    data['lastName'],
-                    data['email'],
-                    series_id,
-                    club_id,
-                    data['clubAutomationPassword'],
-                    current_email
-                ))
-            else:
-                cursor.execute('''
-                    UPDATE users 
-                    SET first_name = %s, last_name = %s, email = %s, series_id = %s, club_id = %s
-                    WHERE email = %s
-                ''', (
-                    data['firstName'],
-                    data['lastName'],
-                    data['email'],
-                    series_id,
-                    club_id,
-                    current_email
-                ))
-            
-            if cursor.rowcount == 0:
-                return jsonify({'success': False, 'message': 'User not found'}), 404
-            
-            conn.commit()
-            
-            # Update session data with all necessary fields
-            session['user'] = {
-                'email': data['email'],
-                'first_name': data['firstName'],
-                'last_name': data['lastName'],
-                'club': data['club'],
-                'series': data['series'],
-                'authenticated': True  # Maintain authentication status
-            }
-            # Force session update
-            session.modified = True
-            
-            # Get updated user data
-            cursor.execute('''
-                SELECT u.first_name, u.last_name, u.email, c.name as club_name, s.name as series_name
-                FROM users u
-                JOIN clubs c ON u.club_id = c.id
-                JOIN series s ON u.series_id = s.id
-                WHERE u.email = %s
-            ''', (data['email'],))
-            
-            updated_user = cursor.fetchone()
-            if updated_user:
-                return jsonify({
-                    'success': True,
-                    'message': 'Settings updated successfully',
-                    'user': {
-                        'first_name': updated_user[0],
-                        'last_name': updated_user[1],
-                        'email': updated_user[2],
-                        'club': updated_user[3],
-                        'series': updated_user[4]
-                    }
-                })
-            else:
-                return jsonify({'success': True, 'message': 'Settings updated successfully'})
-            
-        except Exception as e:
-            conn.rollback()
-            return jsonify({'success': False, 'message': 'Database error occurred'}), 500
-            
-        finally:
-            cursor.close()
-            conn.close()
-            
-    except Exception as e:
-        return jsonify({'success': False, 'message': 'Failed to update settings'}), 500
+# Update settings route moved to routes/act/settings.py
 
 @app.route('/test-static')
 def test_static():
@@ -2089,36 +1464,7 @@ def healthcheck():
             'timestamp': datetime.now().isoformat()
         }), 500
 
-@app.route('/api/team-matches')
-@login_required
-def get_team_matches():
-    """Return matches for a specific team"""
-    try:
-        team = request.args.get('team')
-        if not team:
-            return jsonify({'error': 'Team parameter is required'}), 400
-        
-        # Log the request
-        print(f"Fetching matches for team: {team}")
-        log_user_activity(
-            session['user']['email'], 
-            'feature_use', 
-            action='view_team_matches',
-            details=f"Team: {team}"
-        )
-        
-        # Read the matches file
-        matches_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'match_history.json')
-        with open(matches_path, 'r') as f:
-            all_matches = json.load(f)
-        
-        # Filter matches for the specific team
-        team_matches = [match for match in all_matches if match.get('Home Team') == team or match.get('Away Team') == team]
-        
-        return jsonify(team_matches)
-    except Exception as e:
-        print(f"Error fetching team matches: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+# Team matches route moved to routes/act/schedule.py
 
 @app.route('/data/<path:filename>')
 def serve_data_file(filename):
@@ -2456,33 +1802,7 @@ def serve_mobile_profile():
     log_user_activity(session['user']['email'], 'page_visit', page='mobile_profile')
     return render_template('mobile/profile.html', session_data=session_data)
 
-@app.route('/mobile/lineup')
-@login_required
-def serve_mobile_lineup():
-    """Serve the mobile lineup page"""
-    session_data = {
-        'user': session['user'],
-        'authenticated': True
-    }
-    
-    log_user_activity(session['user']['email'], 'page_visit', page='mobile_lineup')
-    return render_template('mobile/lineup.html', session_data=session_data)
-
-@app.route('/mobile/lineup-escrow')
-@login_required
-def serve_mobile_lineup_escrow():
-    """Serve the mobile Lineup Escrow page"""
-    session_data = {
-        'user': session['user'],
-        'authenticated': True
-    }
-    log_user_activity(
-        session['user']['email'],
-        'page_visit',
-        page='mobile_lineup_escrow',
-        details='Accessed mobile lineup escrow page'
-    )
-    return render_template('mobile/lineup_escrow.html', session_data=session_data)
+# Lineup routes moved to routes/act/lineup.py
 
 @app.route('/mobile/player-detail/<player_id>')
 @login_required
@@ -2536,107 +1856,9 @@ def get_user_availability(player_name, matches, series):
         
     return availability
 
-@app.route('/mobile/availability', methods=['GET', 'POST'])
-@login_required
-def mobile_availability():
-    try:
-        print("\n=== MOBILE AVAILABILITY PAGE ===")
-        # Clear any existing error flashes
-        session.pop('_flashes', None)
-        
-        user = session.get('user')
-        if not user:
-            print("❌ No user in session")
-            flash('Please log in first', 'error')
-            return redirect(url_for('login'))
+# Mobile availability route moved to routes/act/availability.py
 
-        player_name = f"{user['first_name']} {user['last_name']}"
-        series = user['series']
-        print(f"Loading availability for player: {player_name}, series: {series}")
-
-        # 1. Get matches for the user's club/series
-        matches = get_matches_for_user_club(user)
-        if not matches:
-            print("❌ No matches found for user's club/series")
-            flash('No matches found for your club and series', 'warning')
-            return render_template(
-                'mobile/availability.html',
-                players=[{'name': player_name}],
-                matches=[],
-                match_avail_pairs=[],
-                session_data={'user': user},
-                user=user
-            )
-
-        print(f"✓ Found {len(matches)} matches")
-
-        # 2. Get this user's availability for each match
-        player_availability = get_user_availability(player_name, matches, series)
-        print(f"✓ Retrieved availability for {len(player_availability)} dates")
-
-        # Map availability status to new format
-        player_availability = [{
-            'status': 'available' if a.get('availability_status') == 1 else
-                     'unavailable' if a.get('availability_status') == 2 else
-                     'not_sure' if a.get('availability_status') == 3 else
-                     'not_set'  # Default to 'not_set' for status 0 or None
-        } for a in player_availability]
-
-        # 3. Prepare data for the template
-        players = [{
-            'name': player_name,
-            'availability': player_availability
-        }]
-        match_objs = []
-        for i, m in enumerate(matches):
-            # Create a unique ID for each match based on date and teams
-            match_id = f"{m.get('date', '')}-{m.get('home_team', '')}-{m.get('away_team', '')}"
-            match_objs.append({
-                'id': match_id,  # Add unique ID
-                'date': m.get('date', ''),
-                'time': m.get('time', ''),
-                'location': m.get('location', m.get('home_team', '')),
-                'home_team': m.get('home_team', ''),
-                'away_team': m.get('away_team', '')
-            })
-
-        # Zip matches and availability for template
-        match_avail_pairs = list(zip(match_objs, player_availability))
-        print(f"✓ Prepared {len(match_avail_pairs)} match-availability pairs")
-
-        return render_template(
-            'mobile/availability.html',
-            players=players,
-            matches=match_objs,
-            match_avail_pairs=match_avail_pairs,
-            session_data={'user': user},
-            user=user,
-            zip=zip
-        )
-
-    except Exception as e:
-        print(f"❌ Error in mobile_availability: {str(e)}")
-        print(traceback.format_exc())  # Print full traceback
-        flash('An error occurred while loading your availability. Please try again.', 'error')
-        return render_template(
-            'mobile/availability.html',
-            players=[{'name': player_name}] if 'player_name' in locals() else [],
-            matches=[],
-            match_avail_pairs=[],
-            session_data={'user': user} if 'user' in locals() else {},
-            user=user if 'user' in locals() else None
-        )
-
-@app.route('/mobile/find-subs')
-@login_required
-def serve_mobile_find_subs():
-    """Serve the mobile Find Sub page"""
-    session_data = {
-        'user': session['user'],
-        'authenticated': True
-    }
-    log_user_activity(session['user']['email'], 'page_visit', page='mobile_find_subs')
-    return render_template('mobile/find_subs.html', session_data=session_data)
+# Mobile find-subs route moved to routes/act/find_sub.py
 
 @app.route('/mobile/view-schedule')
 @login_required
@@ -2750,22 +1972,7 @@ def serve_mobile_view_schedule():
         print(traceback.format_exc())  # Print full traceback for debugging
         return redirect(url_for('login'))
 
-@app.route('/mobile/ask-ai')
-@login_required
-def mobile_ask_ai():
-    """Serve the mobile Ask AI page"""
-    user = session['user']
-    session_data = {
-        'user': user,
-        'authenticated': True
-    }
-    log_user_activity(
-        user['email'],
-        'page_visit',
-        page='mobile_ask_ai',
-        details='Accessed Ask AI page'
-    )
-    return render_template('mobile/ask_ai.html', session_data=session_data)
+# Mobile ask-ai route moved to routes/act/rally_ai.py
 
 @app.template_filter('parse_date')
 def parse_date(value):
@@ -5492,136 +4699,9 @@ def get_user_availability(player_name, matches, series):
         print(traceback.format_exc())
         return []
 
-@app.route('/api/availability', methods=['GET', 'POST'])
-@login_required
-def handle_availability():
-    """Handle availability API requests"""
-    try:
-        print(f"\n=== AVAILABILITY API {request.method} ===")
-        
-        if request.method == 'POST':
-            try:
-                if not request.is_json:
-                    return jsonify({'error': 'Content-Type must be application/json'}), 400
-                
-                data = request.get_json()
-                print(f"Received data: {data}")
-                
-                # Validate required fields
-                required_fields = ['player_name', 'match_date', 'availability_status', 'series']
-                missing = [f for f in required_fields if f not in data]
-                if missing:
-                    return jsonify({'error': f'Missing required fields: {missing}'}), 400
-                
-                # Validate availability_status is in valid range
-                status = int(data['availability_status'])
-                if status not in [1, 2, 3]:
-                    return jsonify({'error': 'Invalid availability status'}), 400
-                
-                # Get series ID
-                series_record = execute_query(
-                    "SELECT id FROM series WHERE name = %(name)s",
-                    {'name': data['series']}
-                )
-                
-                if not series_record:
-                    return jsonify({'error': 'Series not found'}), 404
-                    
-                series_id = series_record[0]['id']
-                
-                # Convert date string to datetime
-                try:
-                    if '/' in data['match_date']:
-                        match_date = datetime.strptime(data['match_date'], '%m/%d/%Y').date()
-                    else:
-                        match_date = datetime.strptime(data['match_date'], '%Y-%m-%d').date()
-                except ValueError as e:
-                    return jsonify({'error': f'Invalid date format: {str(e)}'}), 400
-                
-                # Update or insert availability
-                query = """
-                    INSERT INTO player_availability 
-                        (player_name, match_date, availability_status, series_id)
-                    VALUES 
-                        (%(player)s, %(date)s, %(status)s, %(series_id)s)
-                    ON CONFLICT (player_name, match_date, series_id)
-                    DO UPDATE SET availability_status = %(status)s
-                """
-                params = {
-                    'player': data['player_name'],
-                    'date': match_date,
-                    'status': status,
-                    'series_id': series_id
-                }
-                
-                execute_query(query, params)
-                print(f"✓ Updated availability for {data['player_name']} on {match_date}")
-                
-                return jsonify({'status': 'success'})
-                
-            except Exception as e:
-                print(f"❌ Error in availability POST: {str(e)}")
-                print(traceback.format_exc())
-                return jsonify({'error': str(e)}), 500
-        else:
-            # Handle GET request
-            player_name = request.args.get('player_name')
-            match_date = request.args.get('match_date')
-            series = request.args.get('series')
-            
-            if not all([player_name, match_date, series]):
-                return jsonify({'error': 'Missing required parameters'}), 400
-            
-            availability = get_player_availability(player_name, match_date, series)
-            return jsonify(availability)
-            
-    except Exception as e:
-        print(f"❌ Error in availability handler: {str(e)}")
-        print(traceback.format_exc())
-        return jsonify({'error': str(e)}), 500
+# API availability route moved to routes/act/availability.py
 
-@app.route('/api/get-user-settings')
-@login_required
-def get_user_settings():
-    """Get user settings"""
-    try:
-        if 'user' not in session:
-            return jsonify({'error': 'Not authenticated'}), 401
-            
-        user = session['user']
-        
-        # Get full user data from database
-        user_data = execute_query(
-            """
-            SELECT u.*, c.name as club_name, s.name as series_name
-            FROM users u
-            LEFT JOIN clubs c ON u.club_id = c.id
-            LEFT JOIN series s ON u.series_id = s.id
-            WHERE u.email = %(email)s
-            """,
-            {'email': user['email']}
-        )
-        
-        if not user_data:
-            return jsonify({'error': 'User not found'}), 404
-            
-        user_data = user_data[0]
-        
-        # Format user settings
-        settings = {
-            'first_name': user_data['first_name'],
-            'last_name': user_data['last_name'],
-            'email': user_data['email'],
-            'club': user_data['club_name'],
-            'series': user_data['series_name'],
-            'club_automation_password': user_data.get('club_automation_password', '')
-        }
-        
-        return jsonify(settings)
-        
-    except Exception as e:
-        print(f"Error getting user settings: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+# Get user settings route moved to routes/act/settings.py
 
 @app.route('/api/get-clubs')
 def get_clubs():
@@ -5636,19 +4716,7 @@ def get_clubs():
         print(f"Error getting clubs: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/get-series')
-def get_series():
-    """Get list of all series - public endpoint for registration"""
-    try:
-        series_data = execute_query("SELECT name FROM series ORDER BY name")
-        series_list = [s['name'] for s in series_data]
-        return jsonify({
-            'series': series_list,     # For login page compatibility
-            'all_series': series_list  # For user settings compatibility
-        })
-    except Exception as e:
-        print(f"Error getting series: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+# Get series route moved to routes/act/settings.py
 
 @app.route('/api/player-history')
 @login_required

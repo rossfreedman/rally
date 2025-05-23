@@ -29,6 +29,17 @@
         .nav-drawer.open {
             transform: translateX(0);
         }
+        
+        /* Ensure drawer is initially hidden to prevent flash */
+        #navDrawer {
+            transform: translateX(100%) !important;
+            transition: none !important;
+        }
+        
+        /* Re-enable transitions after page load */
+        .drawer-ready #navDrawer {
+            transition: transform 0.3s ease-in-out !important;
+        }
     </style>
     
     <!-- Session data will be injected here -->
@@ -129,6 +140,11 @@
             const drawer = document.getElementById('navDrawer');
             const overlay = document.getElementById('drawerOverlay');
             const hamburger = document.getElementById('hamburgerToggle');
+            
+            // Enable transitions after a short delay to prevent flash
+            setTimeout(() => {
+                document.body.classList.add('drawer-ready');
+            }, 50);
 
             // Track drawer state
             let isDrawerTransitioning = false;

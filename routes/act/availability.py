@@ -154,30 +154,23 @@ def update_player_availability(player_name, match_date, status, series):
 
 def get_user_availability(player_name, matches, series):
     """Get availability for a user across multiple matches"""
-    # First get the series_id
-    series_record = execute_query_one(
-        "SELECT id FROM series WHERE name = %(series)s",
-        {'series': series}
-    )
-    
-    if not series_record:
-        return []
-        
     availability = []
+    
+    # Map numeric status to string status for template
+    status_map = {
+        1: 'available',
+        2: 'unavailable', 
+        3: 'not_sure'
+    }
+    
     for match in matches:
         match_date = match.get('date', '')
-        avail_records = get_player_availability(series_record['id'], match_date)
+        # Get this player's availability for this specific match
+        numeric_status = get_player_availability(player_name, match_date, series)
         
-        # Find this player's availability in the records
-        player_avail = next(
-            (rec for rec in avail_records if rec['player_name'] == player_name),
-            None
-        )
-        
-        if player_avail is None:
-            availability.append({'availability_status': 3})  # Default to "not sure"
-        else:
-            availability.append({'availability_status': player_avail.get('availability_status', 3)})
+        # Convert numeric status to string status that template expects
+        string_status = status_map.get(numeric_status, 'not_sure')
+        availability.append({'status': string_status})
         
     return availability
 

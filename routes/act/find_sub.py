@@ -24,23 +24,43 @@ def init_find_sub_routes(app):
 
     @app.route('/api/player-contact')
     def get_player_contact():
-        """Get player contact information"""
+        """Get player contact information for a specific player from CSV directory"""
         try:
-            players = execute_query(
-                """
-                SELECT first_name, last_name, email, phone
-                FROM users
-                ORDER BY last_name, first_name
-                """
-            )
+            first_name = request.args.get('first')
+            last_name = request.args.get('last')
             
-            formatted_players = [{
-                'name': f"{player['first_name']} {player['last_name']}",
-                'email': player['email'],
-                'phone': player['phone'] if player['phone'] else 'Not provided'
-            } for player in players]
+            if not first_name or not last_name:
+                return jsonify({'error': 'First and last name parameters are required'}), 400
             
-            return jsonify(formatted_players)
+            # Read from CSV file (go up to project root)
+            csv_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'data', 'club_directories', 'directory_tennaqua.csv')
+            
+            print(f"Looking for CSV file at: {csv_path}")
+            if not os.path.exists(csv_path):
+                print(f"CSV file not found at: {csv_path}")
+                return jsonify({'error': 'Directory file not found'}), 404
+            
+            import csv
+            with open(csv_path, 'r') as file:
+                reader = csv.DictReader(file)
+                for row in reader:
+                    # Match by first and last name (case insensitive)
+                    if (row['First'].strip().lower() == first_name.lower() and 
+                        row['Last Name'].strip().lower() == last_name.lower()):
+                        
+                        result = {
+                            'first_name': row['First'].strip(),
+                            'last_name': row['Last Name'].strip(),
+                            'email': row['Email'].strip(),
+                            'phone': row['Phone'].strip(),
+                            'series': f"Series {row['Series'].strip()}" if row['Series'].strip() else 'Unknown'
+                        }
+                        
+                        return jsonify(result)
+            
+            # Player not found in CSV
+            return jsonify({'error': f'Player {first_name} {last_name} not found in directory'}), 404
+            
         except Exception as e:
             print(f"Error getting player contact info: {str(e)}")
             return jsonify({'error': str(e)}), 500 
