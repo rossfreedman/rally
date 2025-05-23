@@ -12,6 +12,7 @@
 - Use modern ES6+ syntax in JavaScript unless otherwise specified.
 - Prefer functional React components with hooks over class-based components.
 - Use clear naming conventions: avoid abbreviations, use snake_case in Python, camelCase in JS/React.
+- Don't use bootstrap. Use Flask + Jinja + Tailwind CSS + DaisyUI for the Rally application.
 
 # Documentation & Comments
 - Verbosely document all new functions, components, and complex logic.

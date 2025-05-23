@@ -6,38 +6,6 @@ from utils.auth import login_required
 
 admin_bp = Blueprint('admin', __name__)
 
-def admin_required(f):
-    """Decorator to check if user is an admin"""
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if 'user' not in session:
-            print("No user in session")
-            return jsonify({'error': 'Not authenticated'}), 401
-        
-        # For now, we'll consider the first user (ID 1) as admin
-        # TODO: Implement proper admin roles
-        try:
-            user = execute_query_one(
-                "SELECT id, email FROM users WHERE email = %(email)s",
-                {'email': session['user']['email']}
-            )
-            print(f"Admin check for user: {user}")
-            
-            if not user:
-                print(f"No user found in database for email: {session['user']['email']}")
-                return jsonify({'error': 'User not found'}), 404
-                
-            if user['id'] != 1:
-                print(f"Non-admin user {user['email']} (ID: {user['id']}) attempted to access admin endpoint")
-                return jsonify({'error': 'Unauthorized'}), 403
-                
-            print(f"Admin access granted to user {user['email']} (ID: {user['id']})")
-            return f(*args, **kwargs)
-        except Exception as e:
-            print(f"Error checking admin status: {str(e)}")
-            return jsonify({'error': 'Server error'}), 500
-    return decorated_function
-
 @admin_bp.route('/users')
 @login_required
 def get_users():
@@ -61,16 +29,80 @@ def get_users():
 def get_user_activity(email):
     """Get activity logs for a specific user"""
     try:
-        logs = execute_query("""
-            SELECT activity_type, page, action, details, 
-                   ip_address, timestamp
+        print(f"\n=== Getting Activity for User: {email} ===")
+        
+        # Get user details first
+        print("Fetching user details...")
+        user = execute_query_one(
+            """
+            SELECT first_name, last_name, email, last_login
+            FROM users
+            WHERE email = %(email)s
+            """,
+            {'email': email}
+        )
+        
+        if not user:
+            print(f"User not found: {email}")
+            return jsonify({'error': 'User not found'}), 404
+            
+        print(f"Found user: {user['first_name']} {user['last_name']}")
+            
+        # Get activity logs with explicit timestamp ordering
+        print("Fetching activity logs...")
+        logs = execute_query(
+            """
+            SELECT id, activity_type, page, action, details, ip_address, 
+                   timezone('America/Chicago', timestamp) as central_time
             FROM user_activity_logs
             WHERE user_email = %(email)s
-            ORDER BY timestamp DESC
-            LIMIT 100
-        """, {'email': email})
-        return jsonify(logs)
+            ORDER BY timestamp DESC, id DESC
+            LIMIT 1000
+            """,
+            {'email': email}
+        )
+        
+        print("\nMost recent activities:")
+        for idx, log in enumerate(logs[:5]):  # Print details of 5 most recent activities
+            print(f"ID: {log['id']}, Type: {log['activity_type']}, Time: {log['central_time']}")
+        
+        formatted_logs = [{
+            'id': log['id'],
+            'activity_type': log['activity_type'],
+            'page': log['page'],
+            'action': log['action'],
+            'details': log['details'],
+            'ip_address': log['ip_address'],
+            'timestamp': log['central_time'].isoformat()  # Format timestamp as ISO string
+        } for log in logs]
+        
+        print(f"\nFound {len(formatted_logs)} activity logs")
+        if formatted_logs:
+            print(f"Most recent log ID: {formatted_logs[0]['id']}")
+            print(f"Most recent timestamp: {formatted_logs[0]['timestamp']}")
+        
+        response_data = {
+            'user': {
+                'first_name': user['first_name'],
+                'last_name': user['last_name'],
+                'email': user['email'],
+                'last_login': user['last_login']
+            },
+            'activities': formatted_logs
+        }
+        
+        print("Returning response data")
+        print("=== End Activity Request ===\n")
+        
+        # Create response with cache-busting headers
+        response = jsonify(response_data)
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        return response
+        
     except Exception as e:
+        print(f"Error getting user activity: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @admin_bp.route('/update-user', methods=['POST'])

@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rally Admin - {% block title %}{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@3.9.2/dist/full.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* Custom scrollbar for better mobile experience */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+        /* Ensure modals don't overflow on mobile */
+        .modal-box {
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        /* Rally theme customizations */
+        [data-theme="light"] {
+            --p: 262 80% 50%;     /* primary */
+            --pc: 0 0% 100%;      /* primary content */
+            --s: 316 70% 50%;     /* secondary */
+            --sc: 0 0% 100%;      /* secondary content */
+            --a: 175 70% 41%;     /* accent */
+            --ac: 0 0% 100%;      /* accent content */
+            --n: 213 18% 20%;     /* neutral */
+            --nc: 0 0% 100%;      /* neutral content */
+            --b1: 0 0% 100%;      /* base-100 */
+            --b2: 0 0% 95%;       /* base-200 */
+            --b3: 0 0% 90%;       /* base-300 */
+            --bc: 215 28% 17%;    /* base content */
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-base-200">
+    <!-- Main header - always visible -->
+    <header class="bg-primary text-primary-content shadow-lg">
+        <div class="navbar container mx-auto px-4">
+            <div class="flex-1">
+                <a href="/mobile" class="btn btn-ghost gap-2">
+                    <i class="fas fa-chevron-left"></i>
+                    Back
+                </a>
+                <h1 class="text-xl font-bold">Rally Admin</h1>
+            </div>
+            <div class="flex-none">
+                <label for="admin-drawer" class="btn btn-ghost drawer-button lg:hidden">
+                    <i class="fas fa-bars"></i>
+                </label>
+            </div>
+        </div>
+    </header>
+
+    <div class="drawer lg:drawer-open">
+        <input id="admin-drawer" type="checkbox" class="drawer-toggle" />
+        
+        <!-- Main content -->
+        <div class="drawer-content">
+            <main class="container mx-auto px-4 py-6">
+                {% block content %}{% endblock %}
+            </main>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="drawer-side">
+            <label for="admin-drawer" class="drawer-overlay"></label>
+            <aside class="bg-base-100 w-80 min-h-screen pt-4">
+                <div class="px-6 mb-8">
+                    <div class="flex items-center gap-3">
+                        <img src="/static/images/rally_logo.png" alt="Rally Logo" class="w-8 h-8">
+                        <span class="font-bold text-xl">Rally Admin</span>
+                    </div>
+                </div>
+                <ul class="menu menu-lg p-4 gap-2">
+                    <li>
+                        <a href="#users" class="menu-item hover:bg-primary hover:text-primary-content rounded-lg" data-tab="users">
+                            <i class="fas fa-users"></i> Users
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#clubs" class="menu-item hover:bg-primary hover:text-primary-content rounded-lg" data-tab="clubs">
+                            <i class="fas fa-building"></i> Clubs
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#series" class="menu-item hover:bg-primary hover:text-primary-content rounded-lg" data-tab="series">
+                            <i class="fas fa-trophy"></i> Series
+                        </a>
+                    </li>
+                </ul>
+            </aside>
+        </div>
+    </div>
+
+    {% block modals %}{% endblock %}
+    {% block scripts %}{% endblock %}
+
+    <script>
+        // Close drawer when menu item is clicked (mobile only)
+        document.querySelectorAll('.menu-item').forEach(item => {
+            item.addEventListener('click', () => {
+                if (window.innerWidth < 1024) { // lg breakpoint
+                    document.getElementById('admin-drawer').checked = false;
+                }
+            });
+        });
+    </script>
+</body>
+</html> 

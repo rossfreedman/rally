@@ -11,14 +11,18 @@ document.addEventListener('DOMContentLoaded', function() {
     const tabs = document.querySelectorAll('.tab');
     tabs.forEach(tab => {
         tab.addEventListener('click', function() {
-            // Remove active class from all tabs and content
+            // Remove active class from all tabs
             tabs.forEach(t => t.classList.remove('tab-active'));
+            
+            // Hide all content
             document.querySelectorAll('.tab-content').forEach(content => {
                 content.classList.add('hidden');
             });
             
-            // Add active class to clicked tab and show content
+            // Add active class to clicked tab
             this.classList.add('tab-active');
+            
+            // Show corresponding content
             const contentId = `${this.getAttribute('data-tab')}-content`;
             document.getElementById(contentId).classList.remove('hidden');
             
@@ -31,11 +35,12 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Initialize sidebar menu handling
-    const menuItems = document.querySelectorAll('.menu a');
+    const menuItems = document.querySelectorAll('.menu-item');
     menuItems.forEach(item => {
-        item.addEventListener('click', function() {
-            menuItems.forEach(i => i.classList.remove('active'));
-            this.classList.add('active');
+        item.addEventListener('click', function(e) {
+            e.preventDefault();
+            menuItems.forEach(i => i.parentElement.classList.remove('active'));
+            this.parentElement.classList.add('active');
             
             // Trigger click on corresponding tab
             const tabId = this.getAttribute('data-tab');
@@ -179,14 +184,46 @@ async function saveUserChanges() {
 async function viewUserActivity(email) {
     try {
         const response = await fetch(`/api/admin/user-activity/${encodeURIComponent(email)}`, {
-            credentials: 'include'  // Include cookies for authentication
+            credentials: 'include'
         });
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         const data = await response.json();
-        // TODO: Implement activity view modal
-        console.log('User activity:', data);
+        
+        // Update user info
+        const userInfo = document.getElementById('userInfo');
+        userInfo.innerHTML = `
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <p class="text-sm opacity-70">Name</p>
+                    <p class="font-medium">${data.user.first_name} ${data.user.last_name}</p>
+                </div>
+                <div>
+                    <p class="text-sm opacity-70">Email</p>
+                    <p class="font-medium">${data.user.email}</p>
+                </div>
+                <div>
+                    <p class="text-sm opacity-70">Last Login</p>
+                    <p class="font-medium">${data.user.last_login ? new Date(data.user.last_login).toLocaleString() : 'Never'}</p>
+                </div>
+            </div>
+        `;
+        
+        // Update activity table
+        const tbody = document.getElementById('activityTableBody');
+        tbody.innerHTML = data.activities.map(activity => `
+            <tr>
+                <td class="whitespace-nowrap">${new Date(activity.timestamp).toLocaleString()}</td>
+                <td>${activity.activity_type || '-'}</td>
+                <td>${activity.page || '-'}</td>
+                <td>${activity.action || '-'}</td>
+                <td class="max-w-xs truncate">${activity.details || '-'}</td>
+                <td class="whitespace-nowrap">${activity.ip_address || '-'}</td>
+            </tr>
+        `).join('');
+        
+        showModal('activityModal');
     } catch (error) {
         console.error('Error loading user activity:', error);
         alert('Failed to load user activity');
@@ -270,7 +307,7 @@ async function saveClub() {
     };
 
     try {
-        const response = await fetch('/api/admin/save-club', {
+        const response = await fetch('/api/admin/update-club', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
@@ -296,7 +333,7 @@ async function deleteClub(clubId) {
     try {
         const response = await fetch(`/api/admin/delete-club/${clubId}`, {
             method: 'DELETE',
-            credentials: 'include'  // Include cookies for authentication
+            credentials: 'include'
         });
 
         if (response.ok) {
@@ -388,7 +425,7 @@ async function saveSeries() {
     };
 
     try {
-        const response = await fetch('/api/admin/save-series', {
+        const response = await fetch('/api/admin/update-series', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
