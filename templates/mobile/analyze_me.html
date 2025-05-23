@@ -426,7 +426,8 @@ document.addEventListener('DOMContentLoaded', async function() {
     // Extract dates and PTI values
     const dates = response.data.map(entry => {
       // Parse the date string into a Date object
-      return new Date(entry.date);
+      const [month, day, year] = entry.date.split('/');
+      return new Date(year, month - 1, day);
     });
     const ptiValues = response.data.map(entry => entry.end_pti);
 
@@ -436,7 +437,27 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     // Create PTI History Chart
     console.log('Creating chart...');
-    Plotly.newPlot('ptiHistoryChart', [{
+    const layout = {
+      xaxis: {
+        title: 'Date',
+        type: 'date',
+        showticklabels: true,
+        automargin: true,
+        tickangle: -45,
+        tickformat: '%b %d',
+        nticks: 8,
+        range: [dates[0], dates[dates.length - 1]]
+      },
+      yaxis: {
+        title: 'PTI',
+        zeroline: false,
+        range: [Math.min(...ptiValues) - 2, Math.max(...ptiValues) + 2]
+      },
+      margin: {b: 60, t: 20, l: 60, r: 10},
+      font: {size: 12}
+    };
+
+    const data = [{
       x: dates,
       y: ptiValues,
       type: 'scatter',
@@ -450,34 +471,14 @@ document.addEventListener('DOMContentLoaded', async function() {
         size: 6,
         color: 'rgb(49, 130, 189)'
       }
-    }], {
-      xaxis: {
-        title: 'Date',
-        type: 'date',
-        showticklabels: true,
-        automargin: true,
-        tickangle: -45,
-        tickformat: '%b %d',
-        nticks: 8,
-        range: [dates[0], dates[dates.length - 1]],
-        fixedrange: true  // Disable zoom/pan on x-axis
-      },
-      yaxis: {
-        title: 'PTI',
-        zeroline: false,
-        range: [Math.min(...ptiValues) - 2, Math.max(...ptiValues) + 2],
-        fixedrange: true  // Disable zoom/pan on y-axis
-      },
-      margin: {b: 60, t: 20, l: 60, r: 10},
-      font: {size: 12},
-      dragmode: false  // Disable all dragging
-    }, {
+    }];
+
+    const config = {
       responsive: true,
-      displayModeBar: false,  // Hide the modebar completely
-      staticPlot: true,  // Make the plot completely static
-      scrollZoom: false, // Disable scroll to zoom
-      doubleClick: false // Disable double click actions
-    });
+      displayModeBar: false
+    };
+
+    Plotly.newPlot('ptiHistoryChart', data, layout, config);
     console.log('Chart created successfully');
   } catch (error) {
     console.error('Error creating PTI history chart:', error);

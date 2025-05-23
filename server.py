@@ -660,33 +660,43 @@ def logout_page():
         return redirect(url_for('login'))
 
 # Admin routes
+def admin_required(f):
+    """Decorator to check if user is an admin"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user' not in session:
+            flash('Please log in first.', 'error')
+            return redirect(url_for('login'))
+        
+        try:
+            user = execute_query_one(
+                "SELECT id, email FROM users WHERE email = %(email)s",
+                {'email': session['user']['email']}
+            )
+            
+            if not user:
+                flash('User not found.', 'error')
+                return redirect(url_for('serve_index'))
+                
+            if user['id'] != 1:  # TODO: Implement proper admin roles
+                flash('You do not have permission to access this page.', 'error')
+                return redirect(url_for('serve_index'))
+                
+            return f(*args, **kwargs)
+        except Exception as e:
+            print(f"Error checking admin status: {str(e)}")
+            flash('An error occurred while checking permissions.', 'error')
+            return redirect(url_for('serve_index'))
+            
+    return decorated_function
+
 @app.route('/admin')
 @login_required
 def serve_admin():
-    """Serve the admin dashboard page"""
-    try:
-        # Log admin page visit
-        log_user_activity(session['user']['email'], 'page_visit', page='admin')
-        
-        # Check if admin.html exists
-        admin_path = os.path.join(app.static_folder, 'admin.html')
-        if not os.path.exists(admin_path):
-            print(f"Admin file not found at: {admin_path}")
-            return "Error: Admin page not found", 404
-            
-        # Add cache control headers to prevent caching
-        response = send_from_directory(app.static_folder, 'admin.html')
-        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-        response.headers['Pragma'] = 'no-cache'
-        response.headers['Expires'] = '0'
-        response.headers['Content-Type'] = 'text/html'  # Ensure correct content type
-        return response
-    except Exception as e:
-        print(f"Error serving admin page: {str(e)}")
-        traceback.print_exc()
-        return "Error: Admin page not found", 404
+    """Serve the admin dashboard"""
+    log_user_activity(session['user']['email'], 'page_visit', page='admin')
+    return render_template('admin/index.html')
 
-# Protect all other routes
 @app.route('/<path:path>')
 @login_required
 def serve_static(path):
@@ -695,19 +705,6 @@ def serve_static(path):
     print(f"Path: {path}")
     print(f"Is public: {is_public_file(path)}")
     print(f"User in session: {'user' in session}")
-    
-    # Special handling for admin routes
-    if path == 'admin':
-        return serve_admin()
-    elif path.startswith('admin/'):
-        # Check if user is admin
-        user = execute_query_one(
-            "SELECT id FROM users WHERE email = %(email)s",
-            {'email': session['user']['email']}
-        )
-        if not user or user['id'] != 1:
-            print(f"Non-admin user {session['user']['email']} attempted to access admin resource")
-            return redirect(url_for('serve_mobile'))
     
     # Special handling for favicon.ico
     if path == 'favicon.ico':
@@ -734,7 +731,7 @@ def serve_static(path):
         if path.startswith('api/'):
             return jsonify({'error': 'Not authenticated'}), 401
         return redirect(url_for('login'))
-        
+    
     # Serve the file if authenticated
     try:
         response = send_from_directory('static', path)
@@ -749,1317 +746,15 @@ def serve_static(path):
 def get_admin_users():
     """Get all registered users with their club and series information"""
     try:
-        with get_db() as conn:
-            cursor = conn.cursor()
-        
-        cursor.execute('''
-            SELECT u.first_name, u.last_name, u.email, u.last_login,
+        users = execute_query('''
+            SELECT u.id, u.first_name, u.last_name, u.email, u.last_login,
                    c.name as club_name, s.name as series_name
             FROM users u
-            JOIN clubs c ON u.club_id = c.id
-            JOIN series s ON u.series_id = s.id
-            ORDER BY u.last_login DESC
-        ''')
-        
-        users = []
-        for row in cursor.fetchall():
-            users.append({
-                'first_name': row[0],
-                'last_name': row[1],
-                'email': row[2],
-                'last_login': row[3],
-                'club_name': row[4],
-                'series_name': row[5]
-            })
-        
-        conn.close()
-        return jsonify(users)
-    except Exception as e:
-        print(f"Error getting admin users: {str(e)}")
-        return jsonify({'error': str(e)}), 500
-
-
-
-@app.route('/api/player-history')
-@login_required
-def get_player_history():
-    """Get player history data"""
-    try:
-        print("\n=== Loading Player History Data ===")
-        
-        # Get user's name from session
-        first_name = session['user'].get('first_name', '')
-        last_name = session['user'].get('last_name', '')
-        player_name = f"{first_name} {last_name}"
-        print(f"Getting history for player: {player_name}")
-        
-        file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'player_history.json')
-        print(f"Reading from: {file_path}")
-        
-        with open(file_path, 'r') as f:
-            data = json.load(f)
-            print(f"Total entries in data: {len(data)}")
-            
-        # Filter data for the logged-in user
-        player_data = []
-        for player in data:
-            if player.get('name') == player_name:
-                # Extract PTI history from matches
-                for match in player.get('matches', []):
-                    if match.get('date') and match.get('end_pti'):
-                        try:
-                            # Parse date in MM/DD/YYYY format
-                            match_date = datetime.strptime(match['date'], '%m/%d/%Y')
-                            # Format date as YYYY-MM-DD for frontend consistency
-                            formatted_date = match_date.strftime('%Y-%m-%d')
-                            player_data.append({
-                                'date': formatted_date,
-                                'end_pti': float(match['end_pti']),
-                                'sort_date': match_date
-                            })
-                        except ValueError as e:
-                            print(f"Error parsing date {match['date']}: {e}")
-                            continue
-                break  # Found player, no need to continue searching
-                
-        # Sort by date
-        player_data.sort(key=lambda x: x['sort_date'])
-        
-        # Remove sort_date from final output
-        for entry in player_data:
-            del entry['sort_date']
-            
-        print(f"Found {len(player_data)} entries for {player_name}")
-        print("First 3 entries:", player_data[:3] if player_data else "No data")
-        print("Last 3 entries:", player_data[-3:] if player_data else "No data")
-        print("=== End Player History Data ===\n")
-        
-        return jsonify({'data': player_data, 'player_name': player_name})
-    except Exception as e:
-        print(f"Error loading player history: {str(e)}")
-        print(traceback.format_exc())
-        return jsonify({'error': str(e)}), 500
-
-# Protect all API routes except check-auth and login
-@app.route('/api/<path:path>', methods=['GET', 'POST'])
-def api_route(path):
-    """Handle API routes and log access"""
-    print(f"\n=== API Route Access ===")
-    print(f"Path: {path}")
-    print(f"Method: {request.method}")
-    print(f"User in session: {'user' in session}")
-    
-    # List of routes that don't require authentication
-    public_routes = ['check-auth', 'login', 'register', 'log-click']
-    
-    if path not in public_routes:
-        if 'user' not in session:
-            print("Authentication required but user not in session")
-            return jsonify({'error': 'Not authenticated'}), 401
-        print(f"Authenticated user: {session['user']['email']}")
-        
-        # Log API access for authenticated routes
-        try:
-            log_user_activity(
-                session['user']['email'],
-                'api_access',
-                action=f'api_{path}',
-                details=f"Method: {request.method}"
-            )
-            print("Successfully logged API access")
-        except Exception as e:
-            print(f"Error logging API access: {str(e)}")
-            print(traceback.format_exc())
-    
-    # Let the route continue to the specific handler
-    # If no specific handler matched, return a 404 error
-    return jsonify({'error': 'API endpoint not found'}), 404
-
-@app.route('/api/set-series', methods=['POST'])
-def set_series():
-    """Set the series for the current session"""
-    try:
-        data = request.get_json()
-        series = data.get('series')
-        if not series:
-            return jsonify({'error': 'Series is required'}), 400
-        session['series'] = series
-        return jsonify({'success': True})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/get-series')
-def get_series():
-    """Get all series for registration and the user's current series as a string"""
-    try:
-        print("\n=== Getting Series ===")
-        print("Executing database query...")
-        result = execute_query(
-            """
-            SELECT name 
-            FROM series 
-            ORDER BY name
-            """
-        )
-        all_series = [row['name'] for row in result]
-        print(f"Found {len(all_series)} series: {all_series}")
-        # Get the user's current series from session, ensure it's a string
-        user_series = ''
-        if 'user' in session and 'series' in session['user']:
-            user_series = session['user']['series']
-            if not isinstance(user_series, str):
-                user_series = str(user_series) if user_series is not None else ''
-        print(f"User series from session: {user_series}")
-        print("=== End Getting Series ===\n")
-        response = make_response(jsonify({'series': user_series, 'all_series': all_series}))
-        # Add cache control headers
-        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-        response.headers['Pragma'] = 'no-cache'
-        response.headers['Expires'] = '0'
-        return response
-    except Exception as e:
-        print(f"Error getting series: {str(e)}")
-        print(f"Error traceback: {traceback.format_exc()}")
-        return jsonify({'error': 'Failed to get series'}), 500
-
-@app.route('/get-players-series-22', methods=['GET'])
-def get_players_series_22():
-    """Get all players for series 22"""
-    try:
-        csv_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'all_tennaqua_players.csv')
-        df = pd.read_csv(csv_path)
-
-        # Filter for Series 22
-        series_22_df = df[df['Series'] == 'Chicago 22']  # Changed from 'Series 22' to 'Chicago 22'
-        print(f"Found {len(series_22_df)} players in Series 22")
-        
-        # Track unique players
-        unique_players = set()
-        players = []
-        
-        for _, row in series_22_df.iterrows():
-            player_name = f"{row['First Name']} {row['Last Name']}"  # Format as First Name Last Name
-            
-            if player_name not in unique_players:
-                unique_players.add(player_name)
-                player = {
-                    'name': player_name,
-                    'series': row['Series'],
-                    'rating': str(row['PTI']),
-                    'wins': str(row['Wins']),
-                    'losses': str(row['Losses']),
-                    'winRate': row['Win %']
-                }
-                players.append(player)
-        
-        print(f"Returning {len(players)} unique players")
-        return jsonify({'players': players})  # Wrap players array in an object with 'players' key
-        
-    except Exception as e:
-        print(f"\nERROR getting Series 22 players: {str(e)}")
-        print(traceback.format_exc())
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/generate-lineup', methods=['POST'])
-@login_required
-def generate_lineup():
-    try:
-        data = request.json
-        selected_players = data.get('players', [])
-        
-        # Get the user's current series and normalize it for display
-        user_series = session['user'].get('series', '')
-        display_series = normalize_series_for_display(user_series)
-        
-        # Stricter prompt to enforce exact format
-        prompt = f"""Create an optimal lineup for these players from {display_series}: {', '.join([f"{p}" for p in selected_players])}
-
-Provide detailed lineup recommendations based on player stats, match history, and team dynamics. Each recommendation should include:
-
-Player Pairings: List the players paired for each court as follows:
-
-Court 1: Player1/Player2
-Court 2: Player3/Player4
-Court 3: Player5/Player6
-Court 4: Player7/Player8
-
-Strategic Explanation: For each court, provide a brief explanation of the strategic reasoning behind the player pairings, highlighting player strengths, intended roles within the pairing, and any specific matchup considerations.
-"""
-
-        logger.debug(f"\n=== PROMPT ===\n{prompt}\n")
-        
-        # Create a new thread
-        thread = client.beta.threads.create()
-        
-        # Add the message to the thread
-        message = client.beta.threads.messages.create(
-            thread_id=thread.id,
-            role="user",
-            content=prompt
-        )
-        
-        # Create and run the assistant
-        run = client.beta.threads.runs.create(
-            thread_id=thread.id,
-            assistant_id=assistant.id
-        )
-        
-        # Wait for the run to complete
-        while True:
-            run_status = client.beta.threads.runs.retrieve(
-                thread_id=thread.id,
-                run_id=run.id
-            )
-            if run_status.status == 'completed':
-                break
-            elif run_status.status == 'failed':
-                raise Exception(f"Run failed: {run_status.last_error}")
-            time.sleep(1)
-        
-        # Get the assistant's response
-        messages = client.beta.threads.messages.list(
-            thread_id=thread.id,
-            order="desc",
-            limit=1
-        )
-        
-        # Return the response
-        return jsonify({
-            'prompt': prompt,
-            'suggestion': messages.data[0].content[0].text.value
-        })
-        
-    except Exception as e:
-        print(f"Error generating lineup: {str(e)}")
-        print(traceback.format_exc())
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/create-lineup')
-@app.route('/create-lineup.html')
-def create_lineup():
-    print("\n=== Serving Create Lineup Page ===")
-    return send_from_directory('static', 'create-lineup.html')
-
-@socketio.on('connect')
-def handle_connect():
-    # Create a new thread for this session
-    thread = client.beta.threads.create()
-    active_threads[request.sid] = thread.id
-    print(f"New client connected. Thread ID: {thread.id}")
-
-@socketio.on('disconnect')
-def handle_disconnect():
-    # Clean up the thread
-    thread_id = active_threads.pop(request.sid, None)
-    if thread_id:
-        print(f"Client disconnected. Thread ID: {thread_id}")
-
-@socketio.on('send_message')
-def handle_message(data):
-    thread_id = active_threads.get(request.sid)
-    if not thread_id:
-        return
-    
-    try:
-        # Add the user message to the thread
-        client.beta.threads.messages.create(
-            thread_id=thread_id,
-            role="user",
-            content=data['message']
-        )
-
-        # Run the assistant
-        run = client.beta.threads.runs.create(
-            thread_id=thread_id,
-            assistant_id=assistant.id
-        )
-
-        # Wait for the response
-        while True:
-            run_status = client.beta.threads.runs.retrieve(
-                thread_id=thread_id,
-                run_id=run.id
-            )
-            if run_status.status == 'completed':
-                break
-            socketio.sleep(1)
-
-        # Get the assistant's response
-        messages = client.beta.threads.messages.list(thread_id=thread_id)
-        assistant_message = messages.data[0].content[0].text.value
-
-        # Send the response back to the client
-        emit('receive_message', {'message': assistant_message})
-
-    except Exception as e:
-        print(f"Error: {str(e)}")
-        emit('receive_message', {'message': f"Error: {str(e)}"})
-
-@app.route('/api/chat', methods=['POST'])
-def handle_chat():
-    try:
-        data = request.json
-        message = data.get('message', '')
-        
-        print("\n=== CHAT REQUEST ===")
-        print(f"Message: {message}")
-        print(f"Current series: {selected_series}")
-        print("=== END REQUEST ===\n")
-        
-        # Create a new thread for this request
-        thread = client.beta.threads.create()
-        
-        # Add context message first
-        client.beta.threads.messages.create(
-            thread_id=thread.id,
-            role="user",
-            content=f"""You are a paddle tennis assistant. The current series is {selected_series}.
-            Base your responses on player statistics and paddle tennis knowledge.
-            Be specific and data-driven in your responses."""
-        )
-        
-        # Add the user's message
-        client.beta.threads.messages.create(
-            thread_id=thread.id,
-            role="user",
-            content=message
-        )
-        
-        # Run the assistant
-        run = client.beta.threads.runs.create(
-            thread_id=thread.id,
-            assistant_id=assistant.id
-        )
-        
-        # Wait for completion with timeout
-        timeout = 30  # seconds
-        start_time = time.time()
-        while True:
-            if time.time() - start_time > timeout:
-                raise TimeoutError("Assistant response timed out")
-                
-            run_status = client.beta.threads.runs.retrieve(
-                thread_id=thread.id,
-                run_id=run.id
-            )
-            
-            if run_status.status == 'failed':
-                print("\n=== CHAT ERROR ===")
-                print(f"Run failed: {run_status.last_error}")
-                print("=== END ERROR ===\n")
-                if 'rate_limit_exceeded' in str(run_status.last_error):
-                    return jsonify({'error': 'The AI service is currently experiencing high demand. Please try again in a few minutes.'}), 429
-                raise Exception(f"Assistant run failed: {run_status.last_error}")
-            elif run_status.status == 'completed':
-                break
-                
-            time.sleep(1)
-        
-        # Get the messages
-        messages = client.beta.threads.messages.list(thread_id=thread.id)
-        if not messages.data:
-            raise Exception("No response received from assistant")
-            
-        assistant_message = messages.data[0].content[0].text.value
-        
-        print("\n=== CHAT RESPONSE ===")
-        print(f"Response: {assistant_message}")
-        print("=== END RESPONSE ===\n")
-        
-        return jsonify({'message': assistant_message})
-        
-    except Exception as e:
-        print(f"\n=== CHAT ERROR ===")
-        print(f"Error type: {type(e)}")
-        print(f"Error message: {str(e)}")
-        print("=== END ERROR ===\n")
-        
-        if 'rate_limit_exceeded' in str(e):
-            return jsonify({'error': 'The AI service is currently experiencing high demand. Please try again in a few minutes.'}), 429
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/contact-sub')
-@login_required
-def contact_sub():
-    """Serve the contact sub page with player info"""
-    first = request.args.get('first')
-    last = request.args.get('last')
-    session_data = {
-        'user': session['user'],
-        'authenticated': True,
-        'first_name': first,
-        'last_name': last
-    }
-    return render_template('mobile/contact_sub.html', session_data=session_data)
-
-@app.route('/find-subs')
-@login_required
-def find_subs():
-    """Serve the find subs page"""
-    return send_from_directory('static', 'find-subs.html')
-
-@app.route('/api/teams')
-@login_required
-def get_teams():
-    """Return a list of all teams from the schedule"""
-    try:
-        # Read the schedule file
-        schedule_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'schedules.json')
-        if not os.path.exists(schedule_path):
-            return jsonify({'error': 'Schedule file not found'}), 404
-            
-        with open(schedule_path, 'r') as f:
-            schedule = json.load(f)
-            
-        # Extract unique team names from home_team and away_team fields
-        teams = set()
-        for match in schedule:
-            # Skip practice records
-            if 'Practice' in match:
-                continue
-            if 'home_team' in match:
-                teams.add(match['home_team'])
-            if 'away_team' in match:
-                teams.add(match['away_team'])
-                
-        # Convert to sorted list
-        teams_list = sorted(list(teams))
-        
-        return jsonify({'teams': teams_list})
-        
-    except Exception as e:
-        print(f"Error getting teams: {str(e)}")
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/team-stats/<team_id>')
-@login_required
-def get_team_stats(team_id):
-    """Return detailed statistics for a specific team"""
-    try:
-        # Read the series stats file
-        stats_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'series_stats.json')
-        matches_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'match_history.json')
-        
-        if not os.path.exists(stats_path):
-            return jsonify({'error': 'Stats file not found'}), 404
-            
-        with open(stats_path, 'r') as f:
-            stats = json.load(f)
-            
-        # Find the team's stats
-        team_stats = next((team for team in stats if team['team'] == team_id), None)
-        if not team_stats:
-            return jsonify({'error': 'Team not found'}), 404
-            
-        # Read match data for court analysis
-        court_stats = {
-            'court1': {'wins': 0, 'losses': 0, 'key_players': set()},
-            'court2': {'wins': 0, 'losses': 0, 'key_players': set()},
-            'court3': {'wins': 0, 'losses': 0, 'key_players': set()},
-            'court4': {'wins': 0, 'losses': 0, 'key_players': set()}
-        }
-        
-        player_performance = {}  # Track individual player performance by court
-        
-        if os.path.exists(matches_path):
-            with open(matches_path, 'r') as f:
-                matches = json.load(f)
-                
-            # Analyze matches for court performance
-            for match in matches:
-                if match['Home Team'] == team_id or match['Away Team'] == team_id:
-                    is_home = match['Home Team'] == team_id
-                    
-                    # Process each court's results
-                    for court_num in range(1, 5):
-                        court_key = f'court{court_num}'
-                        court_result = match.get(f'Court {court_num}', {})
-                        
-                        if court_result:
-                            # Determine if this court was won
-                            won_court = (is_home and court_result.get('winner') == 'home') or \
-                                      (not is_home and court_result.get('winner') == 'away')
-                            
-                            # Update court stats
-                            if won_court:
-                                court_stats[court_key]['wins'] += 1
-                            else:
-                                court_stats[court_key]['losses'] += 1
-                                
-                            # Track players for this court
-                            players = court_result.get('players', [])
-                            for player in players:
-                                if (is_home and player['team'] == 'home') or \
-                                   (not is_home and player['team'] == 'away'):
-                                    # Initialize player stats if needed
-                                    if player['name'] not in player_performance:
-                                        player_performance[player['name']] = {
-                                            'courts': {},
-                                            'total_wins': 0,
-                                            'total_matches': 0
-                                        }
-                                    
-                                    # Update player's court performance
-                                    if court_key not in player_performance[player['name']]['courts']:
-                                        player_performance[player['name']]['courts'][court_key] = {
-                                            'wins': 0, 'matches': 0
-                                        }
-                                    
-                                    player_performance[player['name']]['courts'][court_key]['matches'] += 1
-                                    if won_court:
-                                        player_performance[player['name']]['courts'][court_key]['wins'] += 1
-                                        player_performance[player['name']]['total_wins'] += 1
-                                    player_performance[player['name']]['total_matches'] += 1
-        
-        # Identify key players for each court
-        for court_key in court_stats:
-            # Find players with best win rate on this court (minimum 3 matches)
-            court_players = []
-            for player, stats in player_performance.items():
-                if court_key in stats['courts'] and stats['courts'][court_key]['matches'] >= 3:
-                    win_rate = stats['courts'][court_key]['wins'] / stats['courts'][court_key]['matches']
-                    court_players.append({
-                        'name': player,
-                        'win_rate': win_rate,
-                        'matches': stats['courts'][court_key]['matches'],
-                        'wins': stats['courts'][court_key]['wins']
-                    })
-            
-            # Sort by win rate and take top 2
-            court_players.sort(key=lambda x: x['win_rate'], reverse=True)
-            court_stats[court_key]['key_players'] = court_players[:2]
-        
-        # Calculate basic team stats
-        total_matches = team_stats['matches']['won'] + team_stats['matches']['lost']
-        win_rate = team_stats['matches']['won'] / total_matches if total_matches > 0 else 0
-        
-        # Calculate average points
-        total_games = team_stats['games']['won'] + team_stats['games']['lost']
-        avg_points_for = team_stats['games']['won'] / total_matches if total_matches > 0 else 0
-        avg_points_against = team_stats['games']['lost'] / total_matches if total_matches > 0 else 0
-        
-        # Calculate consistency rating (based on standard deviation of scores)
-        consistency_rating = 8.5  # Placeholder - would calculate from actual score variance
-        
-        # Calculate strength index (composite of win rate and point differential)
-        point_differential = avg_points_for - avg_points_against
-        strength_index = (win_rate * 7 + (point_differential / 10) * 3)  # Scale to 0-10
-        
-        # Get recent form (last 5 matches)
-        recent_form = ['W', 'L', 'W', 'W', 'L']  # Placeholder - would get from actual match history
-        
-        # Format response
-        response = {
-            'teamName': team_id,
-            'wins': team_stats['matches']['won'],
-            'losses': team_stats['matches']['lost'],
-            'winRate': win_rate,
-            'avgPointsFor': avg_points_for,
-            'avgPointsAgainst': avg_points_against,
-            'consistencyRating': consistency_rating,
-            'strengthIndex': strength_index,
-            'recentForm': recent_form,
-            'dates': ['2025-01-01', '2025-01-15', '2025-02-01', '2025-02-15', '2025-03-01'],  # Placeholder dates
-            'scores': [6, 8, 7, 9, 6],  # Placeholder scores
-            'courtAnalysis': court_stats
-        }
-        
-        return jsonify(response)
-        
-    except Exception as e:
-        print(f"Error getting team stats: {str(e)}")
-        print(traceback.format_exc())  # Print full traceback for debugging
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/lineup-instructions', methods=['GET', 'POST', 'DELETE'])
-@login_required
-def lineup_instructions():
-    if request.method == 'GET':
-        try:
-            user_email = session['user']['email']
-            team_id = request.args.get('team_id')
-            
-            if not team_id:
-                return jsonify({'error': 'Team ID is required'}), 400
-                
-            instructions = get_user_instructions(user_email, team_id=team_id)
-            return jsonify({'instructions': [i['instruction'] for i in instructions]})
-        except Exception as e:
-            print(f"Error getting lineup instructions: {str(e)}")
-            return jsonify({'error': str(e)}), 500
-            
-    elif request.method == 'POST':
-        try:
-            user_email = session['user']['email']
-            data = request.get_json()
-            instruction = data.get('instruction')
-            team_id = data.get('team_id')
-            
-            if not instruction:
-                return jsonify({'error': 'Instruction is required'}), 400
-            if not team_id:
-                return jsonify({'error': 'Team ID is required'}), 400
-                
-            success = add_user_instruction(user_email, instruction, team_id=team_id)
-            if not success:
-                return jsonify({'error': 'Failed to add instruction'}), 500
-                
-            return jsonify({'status': 'success'})
-        except Exception as e:
-            print(f"Error adding lineup instruction: {str(e)}")
-            return jsonify({'error': str(e)}), 500
-            
-    elif request.method == 'DELETE':
-        try:
-            user_email = session['user']['email']
-            data = request.get_json()
-            instruction = data.get('instruction')
-            team_id = data.get('team_id')
-            
-            if not instruction:
-                return jsonify({'error': 'Instruction is required'}), 400
-            if not team_id:
-                return jsonify({'error': 'Team ID is required'}), 400
-                
-            db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
-            conn = sqlite3.connect(db_path)
-            cursor = conn.cursor()
-            
-            cursor.execute('''
-            UPDATE user_instructions
-            SET is_active = 0
-            WHERE instruction = ? AND user_email = ? AND team_id = ?
-            ''', (instruction, user_email, team_id))
-            
-            conn.commit()
-            conn.close()
-            return jsonify({'status': 'success'})
-        except Exception as e:
-            print(f"Error deleting lineup instruction: {str(e)}")
-            return jsonify({'error': str(e)}), 500
-        finally:
-            if 'conn' in locals():
-                conn.close()
-
-def get_user_instructions(user_email, team_id=None):
-    """Get all active instructions for a user, optionally filtered by team"""
-    logger.info(f"Getting instructions for user: {user_email}, team_id: {team_id}")
-    try:
-        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
-        
-        query = '''
-        SELECT id, instruction, team_id, created_at
-        FROM user_instructions
-        WHERE user_email = ? AND is_active = 1
-        '''
-        params = [user_email]
-        
-        if team_id:
-            query += ' AND team_id = ?'
-            params.append(team_id)
-            
-        query += ' ORDER BY created_at DESC'
-        
-        logger.debug(f"Executing query: {query} with params: {params}")
-        cursor.execute(query, params)
-        instructions = cursor.fetchall()
-        logger.debug(f"Found {len(instructions)} instructions")
-        
-        # Convert to list of dictionaries
-        result = []
-        for row in instructions:
-            result.append({
-                'id': row[0],
-                'instruction': row[1],
-                'team_id': row[2],
-                'created_at': row[3]
-            })
-        
-        cursor.close()
-        conn.close()
-        return result
-    except Exception as e:
-        logger.error(f"Error getting user instructions: {str(e)}")
-        logger.error(traceback.format_exc())
-        if 'conn' in locals():
-            conn.close()
-        return []
-
-def add_user_instruction(user_email, instruction, team_id=None):
-    """Add a new instruction for a user, optionally associated with a team"""
-    logger.info(f"Adding instruction for user: {user_email}, team_id: {team_id}")
-    logger.debug(f"Instruction text: {instruction}")
-    try:
-        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
-        
-        query = '''
-        INSERT INTO user_instructions (user_email, instruction, team_id)
-        VALUES (?, ?, ?)
-        '''
-        params = (user_email, instruction, team_id)
-        logger.debug(f"Executing query: {query} with params: {params}")
-        cursor.execute(query, params)
-        conn.commit()
-        logger.info("Successfully added instruction")
-        cursor.close()
-        conn.close()
-        return True
-    except Exception as e:
-        logger.error(f"Error adding user instruction: {str(e)}")
-        logger.error(traceback.format_exc())
-        if 'conn' in locals():
-            conn.close()
-        return False
-
-def deactivate_instruction(user_email, instruction_id):
-    """Deactivate an instruction for a user"""
-    try:
-        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
-        cursor.execute('''
-            UPDATE user_instructions 
-            SET is_active = 0 
-            WHERE id = ? AND user_email = ?
-        ''', (instruction_id, user_email))
-        conn.commit()
-        cursor.close()
-        conn.close()
-    except Exception as e:
-        logger.error(f"Error deactivating instruction: {str(e)}")
-        logger.error(traceback.format_exc())
-        if 'conn' in locals():
-            conn.close()
-        raise
-
-@app.route('/api/schedule')
-@login_required
-def serve_schedule():
-    try:
-        print("\n=== SCHEDULE REQUEST ===")
-        print(f"Session data: {session.get('user')}")
-        
-        # Log schedule access
-        log_user_activity(
-            session['user']['email'], 
-            'feature_use', 
-            action='view_schedule'
-        )
-        
-        # Read the schedule file
-        schedule_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'schedules.json')
-        with open(schedule_path, 'r') as f:
-            schedule_data = json.load(f)
-
-        # Get the current series and club from the session
-        if 'user' not in session:
-            print("❌ No user in session")
-            return jsonify({'error': 'Not authenticated'}), 401
-            
-        user_club = session['user'].get('club')
-        if not user_club:
-            print("❌ No club found in user session")
-            return jsonify({'error': 'Club information not found'}), 400
-            
-        print(f"User club from session: {user_club}")
-        
-        # Format the club name to match the schedule format
-        # The schedule uses format "Club Name - Series - Series"
-        series = session['user'].get('series', '')
-        series_num = series.split()[-1] if series else ''
-        club_name = f"{user_club} - {series_num} - {series_num}"
-        print(f"Formatted club name for filtering: {club_name}")
-        
-        # Filter matches based on the club
-        filtered_matches = []
-        for match in schedule_data:
-            try:
-                # Check if it's a practice record
-                if 'Practice' in match:
-                    # For practices, add them all since they're at the user's club
-                    filtered_matches.append(match)
-                    continue
-                    
-                # For regular matches, check if the club is either home or away team
-                if match.get('home_team') == club_name or match.get('away_team') == club_name:
-                    filtered_matches.append(match)
-            except KeyError as e:
-                print(f"Warning: Skipping invalid match record: {e}")
-                continue
-        
-        print(f"Found {len(filtered_matches)} matches for club {club_name}")
-        print("=== END SCHEDULE REQUEST ===\n")
-        return jsonify(filtered_matches)
-    except FileNotFoundError:
-        print(f"❌ Schedule file not found at {schedule_path}")
-        return jsonify({'error': 'Schedule file not found'}), 404
-    except json.JSONDecodeError:
-        print(f"❌ Error parsing schedule file: Invalid JSON format")
-        return jsonify({'error': 'Invalid schedule file format'}), 500
-    except Exception as e:
-        print(f"❌ Error serving schedule file: {str(e)}")
-        print(traceback.format_exc())  # Print full traceback for debugging
-        return jsonify({'error': 'Internal server error'}), 500
-
-def get_player_availability(player_name, match_date, series):
-    """Get availability for a player on a specific date"""
-    try:
-        print(f"\n=== GET PLAYER AVAILABILITY ===")
-        print(f"Player: {player_name}")
-        print(f"Original date: {match_date}")
-        print(f"Series: {series}")
-        
-        # Handle series parameter which could be either an ID or name
-        series_id = None
-        if isinstance(series, int) or (isinstance(series, str) and series.isdigit()):
-            series_id = int(series)
-            series_record = execute_query_one(
-                "SELECT id FROM series WHERE id = %(series_id)s",
-                {'series_id': series_id}
-            )
-        else:
-            series_record = execute_query_one(
-                "SELECT id FROM series WHERE name = %(series)s",
-                {'series': series}
-            )
-            if series_record:
-                series_id = series_record['id']
-                
-        print(f"Series lookup result: {series_record}")
-        
-        if not series_id:
-            print(f"No series found with identifier: {series}")
-            return 0  # Default to "Not Set" when no series found
-        
-        # Standardize the date format
-        original_date = match_date
-        if isinstance(match_date, str):
-            try:
-                # Convert MM/DD/YYYY to YYYY-MM-DD
-                if '/' in match_date:
-                    month, day, year = match_date.split('/')
-                    match_date = f"{year}-{month.zfill(2)}-{day.zfill(2)}"
-                # Try to parse the date to validate format
-                match_date = datetime.strptime(match_date, '%Y-%m-%d').date()
-                print(f"Standardized date: {match_date} (from {original_date})")
-            except ValueError as e:
-                print(f"Invalid date format: {match_date}, error: {str(e)}")
-                return 0  # Default to "Not Set" on date error
-        
-        print(f"Querying availability with parameters:")
-        print(f"  player_name: {player_name.strip()}")
-        print(f"  match_date: {match_date}")
-        print(f"  series_id: {series_id}")
-        
-        # Try both date formats in the query
-        result = execute_query_one(
-            """
-            SELECT availability_status 
-            FROM player_availability 
-            WHERE player_name = %(player_name)s 
-            AND (
-                match_date = %(match_date)s 
-                OR match_date = %(match_date_str)s::date
-            )
-            AND series_id = %(series_id)s
-            """,
-            {
-                'player_name': player_name.strip(),
-                'match_date': match_date,
-                'match_date_str': match_date.strftime('%Y-%m-%d'),
-                'series_id': series_id
-            }
-        )
-        print(f"Availability lookup result: {result}")
-        
-        if not result:
-            print(f"No availability found for {player_name} on {match_date}")
-            return 0  # Default to "Not Set" when no record found
-            
-        print(f"Found availability status: {result['availability_status']}")
-        return result['availability_status']
-            
-    except Exception as e:
-        print(f"Error getting player availability: {str(e)}")
-        print(traceback.format_exc())  # Add full traceback
-        return 0  # Default to "Not Set" on any error
-
-def standardize_date(date_str):
-    """Convert date string to standard format MM/DD/YYYY"""
-    try:
-        # Try parsing with different formats
-        for fmt in ['%m/%d/%Y', '%d-%b-%y', '%Y-%m-%d']:
-            try:
-                return datetime.strptime(date_str, fmt).strftime('%m/%d/%Y')
-            except ValueError:
-                continue
-        raise ValueError(f"Unable to parse date: {date_str}")
-    except Exception as e:
-        print(f"Error standardizing date {date_str}: {str(e)}")
-        return date_str
-
-def update_player_availability(series_id, date, player_name, availability_status, series_name):
-    """Update player availability for a series on a specific date"""
-    try:
-        print(f"\n=== UPDATE PLAYER AVAILABILITY ===")
-        print(f"Input parameters:")
-        print(f"series_id: {series_id}")
-        print(f"date: {date}")
-        print(f"player_name: {player_name}")
-        print(f"availability_status: {availability_status}")
-        print(f"series_name: {series_name}")
-        
-        # Standardize the date format
-        standardized_date = standardize_date(date)
-        print(f"Standardized date: {standardized_date}")
-        
-        # Ensure status is an integer and in valid range
-        status = int(availability_status)
-        if status not in [1, 2, 3]:
-            print(f"Invalid status value: {status}")
-            return False
-        
-        # First, check if a record already exists
-        existing = execute_query(
-            """
-            SELECT id, availability_status, match_date 
-            FROM player_availability 
-            WHERE series_id = %(series_id)s 
-            AND match_date = %(date)s 
-            AND player_name = %(player_name)s
-            """,
-            {
-                'series_id': series_id,
-                'date': standardized_date,
-                'player_name': player_name
-            }
-        )
-        print("Existing record:", existing)
-        
-        # Then perform the update/insert
-        result = execute_query(
-            """
-            INSERT INTO player_availability 
-                (series_id, match_date, player_name, availability_status, updated_at)
-            VALUES 
-                (%(series_id)s, %(date)s, %(player_name)s, %(status)s, CURRENT_TIMESTAMP)
-            ON CONFLICT (player_name, match_date, series_id) 
-            DO UPDATE SET 
-                availability_status = %(status)s,
-                updated_at = CURRENT_TIMESTAMP
-            RETURNING id, availability_status
-            """,
-            {
-                'series_id': series_id,
-                'date': standardized_date,
-                'player_name': player_name,
-                'status': status
-            }
-        )
-        print(f"Update result: {result}")
-        
-        return bool(result)
-    except Exception as e:
-        print(f"Error updating player availability: {str(e)}")
-        print(f"Full error: {traceback.format_exc()}")
-        return False
-
-@app.route('/api/availability', methods=['GET', 'POST'])
-@login_required
-def handle_availability():
-    if request.method == 'GET':
-        player_name = request.args.get('player_name')
-        match_date = request.args.get('match_date')
-        series = request.args.get('series')
-        if not all([player_name, match_date, series]):
-            return jsonify({'error': 'Missing required parameters'}), 400
-            
-        # Get series ID
-        series_record = execute_query_one(
-            "SELECT id FROM series WHERE name = %(series)s",
-            {'series': series}
-        )
-        if not series_record:
-            return jsonify({'error': f'Series not found: {series}'}), 404
-            
-        availability = get_player_availability(series_record['id'], match_date, series)
-        return jsonify({'is_available': availability})
-    
-    elif request.method == 'POST':
-        if 'user' not in session:
-            return jsonify({'error': 'Not authenticated'}), 401
-            
-        data = request.get_json()
-        print("\n=== AVAILABILITY UPDATE ===")
-        print(f"Received data: {data}")
-        
-        required_fields = ['player_name', 'match_date', 'availability_status', 'series']
-        if not all(field in data for field in required_fields):
-            return jsonify({'error': 'Missing required fields'}), 400
-            
-        try:
-            # Verify the player_name matches the logged-in user
-            user = session['user']
-            if data['player_name'] != f"{user['first_name']} {user['last_name']}":
-                return jsonify({'error': 'Can only update your own availability'}), 403
-                
-            # Get series ID
-            print(f"Looking up series: {data['series']}")
-            series_record = execute_query_one(
-                "SELECT id, name FROM series WHERE name = %(series)s",
-                {'series': data['series']}
-            )
-            print(f"Series lookup result: {series_record}")
-            
-            if not series_record:
-                # Try with "Chicago " prefix
-                series_with_prefix = f"Chicago {data['series'].split()[-1]}"
-                print(f"Trying with prefix: {series_with_prefix}")
-                series_record = execute_query_one(
-                    "SELECT id, name FROM series WHERE name = %(series)s",
-                    {'series': series_with_prefix}
-                )
-                print(f"Series lookup with prefix result: {series_record}")
-                
-                if not series_record:
-                    return jsonify({'error': f'Series not found: {data["series"]}'}), 404
-            
-            # Log availability update
-            log_user_activity(
-                session['user']['email'], 
-                'feature_use', 
-                action='update_availability',
-                details=f"Player: {data['player_name']}, Date: {data['match_date']}, Available: {data['availability_status']}"
-            )
-            
-            # The date is already in the correct format from the frontend
-            match_date = data['match_date']
-            print(f"Updating availability for: {data['player_name']} on {match_date} in series {data['series']}")
-            
-            # Update the availability in the database using the act module's function
-            success = act_update_player_availability(
-                data['player_name'],
-                match_date,
-                data['availability_status'],
-                series_record['name']  # Pass the series name
-            )
-            
-            if success:
-                print("Successfully updated availability")
-                return jsonify({'status': 'success'})
-            else:
-                print("Failed to update availability")
-                return jsonify({'error': 'Failed to update availability'}), 500
-                
-        except Exception as e:
-            print(f"Full error: {traceback.format_exc()}")
-            return jsonify({'error': str(e)}), 500
-
-@app.route('/api/get-availability', methods=['GET'])
-def get_availability():
-    try:
-        print("\n=== GET AVAILABILITY REQUEST ===")
-        # Get current series
-        series_response = get_series()
-        if not series_response:
-            print("❌ Failed to get current series")
-            return jsonify({'error': 'Failed to get current series'}), 500
-            
-        # Parse the JSON response
-        series_data = series_response.get_json()
-        if not series_data:
-            print("❌ Failed to parse series data")
-            return jsonify({'error': 'Failed to parse series data'}), 500
-            
-        series = series_data['series']
-        print(f"Getting availability for series: {series}")
-        
-        # Get all availability data for the current series
-        # Get series ID first
-        series_record = execute_query_one(
-            "SELECT id FROM series WHERE name = %(series)s",
-            {'series': series}
-        )
-        
-        if not series_record:
-            print("❌ Series not found:", series)
-            return jsonify({'error': f'Series not found: {series}'}), 404
-            
-        # Get all availability data for the series
-        availability_records = execute_query(
-            """
-            SELECT player_name, match_date, is_available
-            FROM player_availability
-            WHERE series = %(series)s
-            """,
-            {'series': series}
-        )
-        
-        # Transform into the expected format
-        availability_data = {}
-        for record in availability_records:
-            player_name = record['player_name']
-            match_date = record['match_date']
-            is_available = record['is_available']
-            
-            if player_name not in availability_data:
-                availability_data[player_name] = {}
-            availability_data[player_name][match_date] = is_available
-            
-        print(f"Found availability data for {len(availability_data)} players")
-        return jsonify(availability_data)
-                
-    except Exception as e:
-        print(f"Error getting availability: {str(e)}")
-        print("Full error:", traceback.format_exc())
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/get-clubs')
-def get_clubs():
-    """Get all clubs for registration"""
-    try:
-        print("\n=== Getting Clubs ===")
-        print("Executing database query...")
-        result = execute_query(
-            """
-            SELECT name 
-            FROM clubs 
-            ORDER BY name
-            """
-        )
-        clubs = [row['name'] for row in result]
-        print(f"Found {len(clubs)} clubs: {clubs}")
-        print("=== End Getting Clubs ===\n")
-        response = make_response(jsonify({'clubs': clubs}))
-        # Add cache control headers
-        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-        response.headers['Pragma'] = 'no-cache'
-        response.headers['Expires'] = '0'
-        return response
-    except Exception as e:
-        print(f"Error getting clubs: {str(e)}")
-        print(f"Error traceback: {traceback.format_exc()}")
-        return jsonify({'error': 'Failed to get clubs'}), 500
-
-@app.route('/api/check-auth')
-def check_auth():
-    """Check if user is authenticated"""
-    try:
-        print("\n=== CHECK AUTH ===")
-        print(f"Request headers: {dict(request.headers)}")
-        print(f"Request cookies: {request.cookies}")
-        print(f"Current session: {dict(session)}")
-        
-        is_authenticated = 'user' in session
-        print(f"Is authenticated: {is_authenticated}")
-        
-        response = make_response(jsonify({
-            'authenticated': is_authenticated,
-            'user': session.get('user', None)
-        }))
-        
-        # Add cache control headers
-        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-        response.headers['Pragma'] = 'no-cache'
-        response.headers['Expires'] = '0'
-        
-        print(f"Response headers: {dict(response.headers)}")
-        return response
-        
-    except Exception as e:
-        print(f"Error in check_auth: {str(e)}")
-        print(f"Error traceback: {traceback.format_exc()}")
-        return jsonify({'error': 'Authentication check failed'}), 500
-
-@app.route('/api/get-user-settings')
-@login_required
-def get_user_settings():
-    """Get the current user's settings"""
-    try:
-        print("\n=== GETTING USER SETTINGS ===")
-        user = session['user']
-        print(f"User from session: {user}")
-        
-        from utils.db import get_db_connection
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        
-        try:
-            # Get user details from database
-            cursor.execute('''
-                SELECT u.first_name, u.last_name, u.email, c.name as club_name, s.name as series_name, u.club_automation_password
-                FROM users u
-                JOIN clubs c ON u.club_id = c.id
-                JOIN series s ON u.series_id = s.id
-                WHERE u.email = %s
-            ''', (user['email'],))
-            
-            user_data = cursor.fetchone()
-            print(f"User data from database: {user_data}")
-            
-            if not user_data:
-                print("No user data found in database")
-                return jsonify({'error': 'User not found'}), 404
-                
-            has_club_automation_password = bool(user_data[5])
-            return jsonify({
-                'first_name': user_data[0],
-                'last_name': user_data[1],
-                'email': user_data[2],
-                'club': user_data[3],
-                'series': user_data[4],
-                'has_club_automation_password': has_club_automation_password,
-                'club_automation_password': user_data[5] or ''
-            })
-            
-        except Exception as e:
-            print(f"Database error: {str(e)}")
-            conn.rollback()
-            return jsonify({'error': 'Database error occurred'}), 500
-            
-        finally:
-            cursor.close()
-            conn.close()
-            
-    except Exception as e:
-        print(f"Error getting user settings: {str(e)}")
-        print("Full error:", traceback.format_exc())
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/admin/clubs')
-@login_required
-def get_admin_clubs():
-    """Get all active clubs with member counts and active series"""
-    try:
-        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddlepro.db')
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
-        
-        # Get clubs with member counts
-        cursor.execute('''
-            SELECT c.name, COUNT(u.id) as member_count,
-                   GROUP_CONCAT(DISTINCT s.name) as active_series
-            FROM clubs c
-            LEFT JOIN users u ON c.id = u.club_id
+            LEFT JOIN clubs c ON u.club_id = c.id
             LEFT JOIN series s ON u.series_id = s.id
-            GROUP BY c.id
-            ORDER BY member_count DESC
+            ORDER BY u.last_name, u.first_name
         ''')
-        
-        clubs = []
-        for row in cursor.fetchall():
-            clubs.append({
-                'name': row[0],
-                'member_count': row[1],
-                'active_series': row[2] or 'None'
-            })
-        
-        conn.close()
-        return jsonify(clubs)
+        return jsonify(users)
     except Exception as e:
         print(f"Error getting admin clubs: {str(e)}")
         return jsonify({'error': str(e)}), 500
@@ -6646,7 +5341,321 @@ def serve_all_team_availability():
         flash('An error occurred while loading the team availability', 'error')
         return redirect(url_for('mobile_availability'))
 
+@app.route('/api/check-auth')
+def check_auth():
+    """Check if the user is authenticated"""
+    try:
+        if 'user' in session:
+            return jsonify({
+                'authenticated': True,
+                'user': session['user']
+            })
+        return jsonify({
+            'authenticated': False
+        })
+    except Exception as e:
+        print(f"Error checking authentication: {str(e)}")
+        return jsonify({
+            'error': str(e),
+            'authenticated': False
+        }), 500
 
+def get_player_availability(player_name, match_date, series):
+    """Get a player's availability status for a specific match date and series"""
+    try:
+        print(f"\n=== Getting availability for {player_name} on {match_date} ===")
+        
+        # Get series ID
+        series_record = execute_query(
+            "SELECT id FROM series WHERE name = %(name)s",
+            {'name': series}
+        )
+        
+        if not series_record:
+            print(f"❌ Series not found: {series}")
+            return {'availability_status': 0}  # Default to not set
+            
+        series_id = series_record[0]['id']
+        
+        # Convert match_date to datetime if it's a string
+        if isinstance(match_date, str):
+            if '/' in match_date:  # Handle MM/DD/YYYY format
+                match_date = datetime.strptime(match_date, '%m/%d/%Y').date()
+            else:  # Handle YYYY-MM-DD format
+                match_date = datetime.strptime(match_date, '%Y-%m-%d').date()
+        elif isinstance(match_date, dict) and 'date' in match_date:
+            # Handle case where match_date is a dictionary containing date
+            date_str = match_date['date']
+            if '/' in date_str:
+                match_date = datetime.strptime(date_str, '%m/%d/%Y').date()
+            else:
+                match_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+
+        # Query the database for availability
+        query = """
+            SELECT availability_status
+            FROM player_availability 
+            WHERE player_name = %(player)s 
+            AND series_id = %(series_id)s 
+            AND match_date = %(date)s::date
+        """
+        params = {
+            'player': player_name,
+            'series_id': series_id,
+            'date': match_date
+        }
+        
+        result = execute_query(query, params)
+        
+        if result and result[0]['availability_status'] is not None:
+            status = result[0]['availability_status']
+            print(f"✓ Found availability status: {status}")
+            return {'availability_status': status}
+        
+        print("✓ No availability set, returning default status")
+        return {'availability_status': 0}  # Default to not set
+        
+    except Exception as e:
+        print(f"❌ Error getting player availability: {str(e)}")
+        print(traceback.format_exc())
+        return {'availability_status': 0}  # Default to not set on error
+
+def get_user_availability(player_name, matches, series):
+    """Get a user's availability for multiple matches"""
+    try:
+        print(f"\n=== Getting availability for {player_name} ===")
+        availability = []
+        
+        for match in matches:
+            match_date = match.get('date')
+            if not match_date:
+                print(f"❌ No date in match: {match}")
+                continue
+                
+            avail_status = get_player_availability(player_name, match_date, series)
+            availability.append(avail_status)
+            
+        print(f"✓ Retrieved {len(availability)} availability records")
+        return availability
+        
+    except Exception as e:
+        print(f"❌ Error getting user availability: {str(e)}")
+        print(traceback.format_exc())
+        return []
+
+@app.route('/api/availability', methods=['GET', 'POST'])
+@login_required
+def handle_availability():
+    """Handle availability API requests"""
+    try:
+        print(f"\n=== AVAILABILITY API {request.method} ===")
+        
+        if request.method == 'POST':
+            try:
+                if not request.is_json:
+                    return jsonify({'error': 'Content-Type must be application/json'}), 400
+                
+                data = request.get_json()
+                print(f"Received data: {data}")
+                
+                # Validate required fields
+                required_fields = ['player_name', 'match_date', 'availability_status', 'series']
+                missing = [f for f in required_fields if f not in data]
+                if missing:
+                    return jsonify({'error': f'Missing required fields: {missing}'}), 400
+                
+                # Validate availability_status is in valid range
+                status = int(data['availability_status'])
+                if status not in [1, 2, 3]:
+                    return jsonify({'error': 'Invalid availability status'}), 400
+                
+                # Get series ID
+                series_record = execute_query(
+                    "SELECT id FROM series WHERE name = %(name)s",
+                    {'name': data['series']}
+                )
+                
+                if not series_record:
+                    return jsonify({'error': 'Series not found'}), 404
+                    
+                series_id = series_record[0]['id']
+                
+                # Convert date string to datetime
+                try:
+                    if '/' in data['match_date']:
+                        match_date = datetime.strptime(data['match_date'], '%m/%d/%Y').date()
+                    else:
+                        match_date = datetime.strptime(data['match_date'], '%Y-%m-%d').date()
+                except ValueError as e:
+                    return jsonify({'error': f'Invalid date format: {str(e)}'}), 400
+                
+                # Update or insert availability
+                query = """
+                    INSERT INTO player_availability 
+                        (player_name, match_date, availability_status, series_id)
+                    VALUES 
+                        (%(player)s, %(date)s, %(status)s, %(series_id)s)
+                    ON CONFLICT (player_name, match_date, series_id)
+                    DO UPDATE SET availability_status = %(status)s
+                """
+                params = {
+                    'player': data['player_name'],
+                    'date': match_date,
+                    'status': status,
+                    'series_id': series_id
+                }
+                
+                execute_query(query, params)
+                print(f"✓ Updated availability for {data['player_name']} on {match_date}")
+                
+                return jsonify({'status': 'success'})
+                
+            except Exception as e:
+                print(f"❌ Error in availability POST: {str(e)}")
+                print(traceback.format_exc())
+                return jsonify({'error': str(e)}), 500
+        else:
+            # Handle GET request
+            player_name = request.args.get('player_name')
+            match_date = request.args.get('match_date')
+            series = request.args.get('series')
+            
+            if not all([player_name, match_date, series]):
+                return jsonify({'error': 'Missing required parameters'}), 400
+            
+            availability = get_player_availability(player_name, match_date, series)
+            return jsonify(availability)
+            
+    except Exception as e:
+        print(f"❌ Error in availability handler: {str(e)}")
+        print(traceback.format_exc())
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/get-user-settings')
+@login_required
+def get_user_settings():
+    """Get user settings"""
+    try:
+        if 'user' not in session:
+            return jsonify({'error': 'Not authenticated'}), 401
+            
+        user = session['user']
+        
+        # Get full user data from database
+        user_data = execute_query(
+            """
+            SELECT u.*, c.name as club_name, s.name as series_name
+            FROM users u
+            LEFT JOIN clubs c ON u.club_id = c.id
+            LEFT JOIN series s ON u.series_id = s.id
+            WHERE u.email = %(email)s
+            """,
+            {'email': user['email']}
+        )
+        
+        if not user_data:
+            return jsonify({'error': 'User not found'}), 404
+            
+        user_data = user_data[0]
+        
+        # Format user settings
+        settings = {
+            'first_name': user_data['first_name'],
+            'last_name': user_data['last_name'],
+            'email': user_data['email'],
+            'club': user_data['club_name'],
+            'series': user_data['series_name'],
+            'club_automation_password': user_data.get('club_automation_password', '')
+        }
+        
+        return jsonify(settings)
+        
+    except Exception as e:
+        print(f"Error getting user settings: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/get-clubs')
+@login_required
+def get_clubs():
+    """Get list of all clubs"""
+    try:
+        clubs = execute_query("SELECT name FROM clubs ORDER BY name")
+        return jsonify({
+            'clubs': [club['name'] for club in clubs]
+        })
+    except Exception as e:
+        print(f"Error getting clubs: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/get-series')
+@login_required
+def get_series():
+    """Get list of all series"""
+    try:
+        series = execute_query("SELECT name FROM series ORDER BY name")
+        return jsonify({
+            'all_series': [s['name'] for s in series]
+        })
+    except Exception as e:
+        print(f"Error getting series: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/player-history')
+@login_required
+def get_player_history():
+    """Return the player history data for PTI history chart"""
+    try:
+        # Get user info from session
+        user = session.get('user')
+        if not user:
+            return jsonify({'error': 'Not authenticated'}), 401
+        
+        # Build player name
+        player_name = f"{user['first_name']} {user['last_name']}"
+        
+        # Load player history data
+        player_history_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'player_history.json')
+        
+        with open(player_history_path, 'r') as f:
+            all_players = json.load(f)
+            
+        # Find the player's record
+        def normalize(name):
+            return name.replace(',', '').replace('  ', ' ').strip().lower()
+            
+        player_name_normal = normalize(player_name)
+        player_last_first = normalize(f"{user['last_name']}, {user['first_name']}")
+        
+        player = None
+        for p in all_players:
+            n = normalize(p.get('name', ''))
+            if n == player_name_normal or n == player_last_first:
+                player = p
+                break
+                
+        if not player or not player.get('matches'):
+            return jsonify({'error': 'No match history found', 'data': []}), 404
+            
+        # Extract matches with PTI data
+        matches_with_pti = [
+            {
+                'date': m['date'],
+                'end_pti': m['end_pti']
+            }
+            for m in player['matches'] 
+            if 'end_pti' in m and 'date' in m
+        ]
+        
+        # Sort matches by date
+        matches_with_pti.sort(key=lambda m: datetime.strptime(m['date'], '%m/%d/%Y'))
+        
+        return jsonify({
+            'data': matches_with_pti
+        })
+        
+    except Exception as e:
+        print(f"Error getting player history: {str(e)}")
+        return jsonify({'error': str(e), 'data': []}), 500
 
 if __name__ == '__main__':
     # Get port from environment variable or use default
