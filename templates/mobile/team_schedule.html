@@ -47,8 +47,31 @@
         </div>
     </div>
 
+    <!-- Selected Date Display (center-justified, only shown when a date is selected) -->
+    <div id="selectedDateDisplay" class="text-lg font-semibold mb-4 text-center"></div>
+
     {% if players_schedule %}
-        <div class="space-y-8 px-4">
+        <!-- Single Table View: Only show when a specific date is selected -->
+        <div id="singleTableView" class="px-4" style="display:none;">
+            <div class="bg-white rounded-lg shadow-md p-4">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full table-auto">
+                        <thead>
+                            <tr class="bg-gray-100">
+                                <th class="px-4 py-2 text-left font-semibold">Player</th>
+                                <th class="px-4 py-2 text-left font-semibold">Availability</th>
+                            </tr>
+                        </thead>
+                        <tbody id="singleTableBody">
+                            {# Rows will be dynamically inserted by JS #}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Per-Player Card View: Show for 'All Dates' -->
+        <div id="perPlayerView" class="space-y-8 px-4">
             {% for player, dates in players_schedule.items() %}
                 <div class="bg-white rounded-lg shadow-md p-4 player-schedule" data-player="{{ player }}" data-dates='{{ dates | tojson }}'>
                     <h2 class="text-xl font-semibold mb-4">{{ player }}</h2>
@@ -118,29 +141,98 @@ document.addEventListener('DOMContentLoaded', function() {
     const resetButton = document.getElementById('resetFilters');
     const playerSchedules = document.querySelectorAll('.player-schedule');
     const dateRows = document.querySelectorAll('.date-row');
+    const singleTableView = document.getElementById('singleTableView');
+    const perPlayerView = document.getElementById('perPlayerView');
+    const singleTableBody = document.getElementById('singleTableBody');
+
+    // Parse all player schedule data from the DOM
+    const playersData = Array.from(playerSchedules).map(schedule => {
+        return {
+            player: schedule.dataset.player,
+            dates: JSON.parse(schedule.dataset.dates)
+        };
+    });
+
+    // Helper to format YYYY-MM-DD as [Day of week], MM/DD/YY
+    function formatDateString(dateStr) {
+        const [year, month, day] = dateStr.split('-');
+        const jsDate = new Date(Number(year), Number(month) - 1, Number(day));
+        const weekday = jsDate.toLocaleDateString(undefined, { weekday: 'long' });
+        const mmddyy = `${month}/${day}/${year.slice(-2)}`;
+        return `${weekday}, ${mmddyy}`;
+    }
+
+    function renderSingleTable(selectedDate, selectedPlayer) {
+        // Clear previous rows
+        singleTableBody.innerHTML = '';
+        // Show the selected date at the top in the desired format
+        const selectedDateDisplay = document.getElementById('selectedDateDisplay');
+        let formattedDate = '';
+        if (selectedDate && selectedDate !== 'all') {
+            formattedDate = formatDateString(selectedDate.slice(0, 10));
+            selectedDateDisplay.style.display = '';
+        } else {
+            selectedDateDisplay.style.display = 'none';
+        }
+        selectedDateDisplay.textContent = formattedDate;
+        // Use the raw string for comparison (no Date conversion)
+        const selectedDateStr = selectedDate.slice(0, 10);
+        // For each player, find the date entry for the selected date
+        playersData.forEach(playerObj => {
+            if (selectedPlayer !== 'all' && playerObj.player !== selectedPlayer) return;
+            let foundEntry = null;
+            playerObj.dates.forEach(d => {
+                // Use the raw string for comparison
+                let dDateStr = d.date.slice(0, 10);
+                // Debug log
+                console.log('Comparing:', {selectedDate, selectedDateStr, dDate: d.date, dDateStr});
+                if (dDateStr === selectedDateStr) {
+                    foundEntry = d;
+                }
+            });
+            if (foundEntry) {
+                let statusHtml = '';
+                if (foundEntry.availability_status === 1) {
+                    statusHtml = '<span class="text-green-600 font-medium"><i class="fas fa-check-circle mr-1"></i>Available</span>';
+                } else if (foundEntry.availability_status === 2) {
+                    statusHtml = '<span class="text-red-600 font-medium"><i class="fas fa-times-circle mr-1"></i>Not Available</span>';
+                } else if (foundEntry.availability_status === 3) {
+                    statusHtml = '<span class="text-yellow-500 font-medium"><i class="fas fa-question-circle mr-1"></i>Not Sure</span>';
+                } else {
+                    statusHtml = '<span class="text-gray-400"><i class="fas fa-minus-circle mr-1"></i>Not Set</span>';
+                }
+                const row = `<tr class=\"border-t\">\n                    <td class=\"px-4 py-2\">${playerObj.player}</td>\n                    <td class=\"px-4 py-2\">${statusHtml}</td>\n                </tr>`;
+                singleTableBody.insertAdjacentHTML('beforeend', row);
+            }
+        });
+    }
 
     function updateVisibility() {
         const selectedDate = dateFilter.value;
         const selectedPlayer = playerFilter.value;
-
-        // First hide/show player schedules based on player filter
-        playerSchedules.forEach(schedule => {
-            const playerName = schedule.dataset.player;
-            if (selectedPlayer === 'all' || playerName === selectedPlayer) {
-                schedule.style.display = '';
-            } else {
-                schedule.style.display = 'none';
-            }
-        });
-
-        // Then hide/show date rows based on date filter
-        dateRows.forEach(row => {
-            if (selectedDate === 'all' || row.dataset.date === selectedDate) {
+        if (selectedDate !== 'all') {
+            // Show single table view
+            singleTableView.style.display = '';
+            perPlayerView.style.display = 'none';
+            renderSingleTable(selectedDate, selectedPlayer);
+        } else {
+            // Show per-player card view
+            singleTableView.style.display = 'none';
+            perPlayerView.style.display = '';
+            // Also update per-player view for player filter
+            playerSchedules.forEach(schedule => {
+                const playerName = schedule.dataset.player;
+                if (selectedPlayer === 'all' || playerName === selectedPlayer) {
+                    schedule.style.display = '';
+                } else {
+                    schedule.style.display = 'none';
+                }
+            });
+            // Show all date rows
+            dateRows.forEach(row => {
                 row.style.display = '';
-            } else {
-                row.style.display = 'none';
-            }
-        });
+            });
+        }
     }
 
     function resetFilters() {
@@ -152,6 +244,9 @@ document.addEventListener('DOMContentLoaded', function() {
     dateFilter.addEventListener('change', updateVisibility);
     playerFilter.addEventListener('change', updateVisibility);
     resetButton.addEventListener('click', resetFilters);
+
+    // Initial render
+    updateVisibility();
 });
 </script>
 {% endblock %} 
