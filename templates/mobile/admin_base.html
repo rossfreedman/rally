@@ -109,6 +109,105 @@
         {% block content %}{% endblock %}
     </main>
 
+    <script>
+        // Initialize drawer functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const drawer = document.getElementById('navDrawer');
+            const overlay = document.getElementById('drawerOverlay');
+            const hamburger = document.getElementById('hamburgerToggle');
+            
+            if (!drawer || !overlay || !hamburger) {
+                console.error('Missing drawer elements:', { drawer: !!drawer, overlay: !!overlay, hamburger: !!hamburger });
+                return;
+            }
+
+            // Track drawer state
+            let isDrawerTransitioning = false;
+
+            // Handle drawer toggle with debounce
+            const toggleDrawer = debounce(function() {
+                console.log('Admin toggleDrawer called, transitioning:', isDrawerTransitioning);
+                if (isDrawerTransitioning) return;
+                isDrawerTransitioning = true;
+
+                const isOpen = drawer.classList.contains('translate-x-0');
+                if (isOpen) {
+                    drawer.classList.remove('translate-x-0');
+                    drawer.classList.add('translate-x-full');
+                    overlay.classList.add('hidden');
+                    hamburger.classList.remove('open');
+                } else {
+                    drawer.classList.remove('translate-x-full');
+                    drawer.classList.add('translate-x-0');
+                    overlay.classList.remove('hidden');
+                    hamburger.classList.add('open');
+                }
+
+                // Reset transition state after animation completes
+                setTimeout(() => {
+                    isDrawerTransitioning = false;
+                }, 300); // Match transition duration
+            }, 100);
+
+            // Debounce function for handlers
+            function debounce(func, wait) {
+                let timeout;
+                return function executedFunction(...args) {
+                    const later = () => {
+                        clearTimeout(timeout);
+                        func.apply(this, args);
+                    };
+                    clearTimeout(timeout);
+                    timeout = setTimeout(later, wait);
+                };
+            }
+
+            // Event delegation for drawer controls
+            document.addEventListener('click', function(e) {
+                // Stop if drawer is transitioning
+                if (isDrawerTransitioning) {
+                    e.preventDefault();
+                    return;
+                }
+
+                const target = e.target;
+
+                // Handle hamburger button
+                if (target.closest('#hamburgerToggle')) {
+                    e.preventDefault();
+                    toggleDrawer();
+                    return;
+                }
+
+                // Handle overlay click
+                if (target.matches('#drawerOverlay')) {
+                    e.preventDefault();
+                    toggleDrawer();
+                    return;
+                }
+
+                // Handle navigation links
+                const navLink = target.closest('.nav-link');
+                if (navLink) {
+                    // Check if it's a logout action
+                    if (navLink.dataset.action === 'logout') {
+                        e.preventDefault();
+                        // Handle logout
+                        fetch('/logout', { method: 'POST' })
+                            .then(() => window.location.href = '/login')
+                            .catch(error => console.error('Logout error:', error));
+                    } else {
+                        // Close the drawer and let navigation happen naturally
+                        toggleDrawer();
+                    }
+                    return;
+                }
+            });
+
+            console.log('Admin hamburger menu initialized');
+        });
+    </script>
+
     {% block scripts %}{% endblock %}
 </body>
 </html> 
