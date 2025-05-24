@@ -24,6 +24,14 @@
   font-size: 1rem;
   margin-bottom: 2px;
   box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  line-height: 1.4;
+}
+.imessage-bubble ul {
+  margin: 0.5em 0;
+  padding-left: 1em;
+}
+.imessage-bubble li {
+  margin: 0.2em 0;
 }
 .imessage-user {
   align-self: flex-end;
@@ -107,12 +115,77 @@
     </div>
 </div>
 <script>
-// iMessage-style chat rendering
+// iMessage-style chat rendering with improved formatting
 const messages = document.getElementById('ai-chat-messages');
+
+function formatAIResponse(text) {
+    // Clean up the text first
+    let formatted = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'); // Bold text
+    formatted = formatted.replace(/\*(.*?)\*/g, '<em>$1</em>'); // Italic text
+    
+    // Format lists - convert bullet points to proper HTML lists
+    if (formatted.includes('•') || formatted.includes('-') || /^\d+\./.test(formatted)) {
+        const lines = formatted.split('\n');
+        let inList = false;
+        let listHtml = '';
+        let regularText = '';
+        
+        lines.forEach(line => {
+            const trimmed = line.trim();
+            if (trimmed.startsWith('•') || trimmed.startsWith('-') || /^\d+\./.test(trimmed)) {
+                if (!inList) {
+                    if (regularText) {
+                        listHtml += `<div class="mb-2">${regularText}</div>`;
+                        regularText = '';
+                    }
+                    listHtml += '<ul class="list-disc list-inside space-y-1 my-2">';
+                    inList = true;
+                }
+                const content = trimmed.replace(/^[•\-\d+\.]\s*/, '');
+                listHtml += `<li class="text-sm">${content}</li>`;
+            } else if (trimmed) {
+                if (inList) {
+                    listHtml += '</ul>';
+                    inList = false;
+                }
+                regularText += (regularText ? '<br>' : '') + trimmed;
+            }
+        });
+        
+        if (inList) listHtml += '</ul>';
+        if (regularText) listHtml += `<div>${regularText}</div>`;
+        
+        formatted = listHtml;
+    } else {
+        // Just handle line breaks for regular text
+        formatted = formatted.replace(/\n\n/g, '<br><br>').replace(/\n/g, '<br>');
+    }
+    
+    // Format player stats if present
+    if (formatted.includes('PTI') || formatted.includes('win percentage') || formatted.includes('wins and') || formatted.includes('losses')) {
+        formatted = formatted.replace(/(PTI[:\s]*[\d.]+)/gi, '<span class="font-semibold text-blue-600">$1</span>');
+        formatted = formatted.replace(/(win percentage[:\s]*[\d.]+%)/gi, '<span class="font-semibold text-green-600">$1</span>');
+        formatted = formatted.replace(/(\d+ wins? and \d+ losses?)/gi, '<span class="font-semibold">$1</span>');
+    }
+    
+    // Format section headers (lines that end with colon)
+    formatted = formatted.replace(/^([^:]+:)(?=<br>|$)/gm, '<div class="font-semibold text-gray-800 mt-2 mb-1">$1</div>');
+    
+    return formatted;
+}
+
 function appendMessage(text, sender) {
     const div = document.createElement('div');
     div.className = 'imessage-bubble ' + (sender === 'user' ? 'imessage-user' : 'imessage-ai');
-    div.innerHTML = text;
+    
+    if (sender === 'ai' && !text.includes('<b>Rally AI:</b>')) {
+        // This is an AI response that needs formatting
+        div.innerHTML = formatAIResponse(text);
+    } else {
+        // User message or already formatted text
+        div.innerHTML = text;
+    }
+    
     messages.appendChild(div);
     messages.scrollTop = messages.scrollHeight;
 }
@@ -123,38 +196,80 @@ window.addEventListener('DOMContentLoaded', function() {
     appendMessage("Request stats on a team", 'ai');
     appendMessage("Ask me anything about league rules", 'ai');
 });
+// Track conversation thread
+let threadId = null;
+
 document.getElementById('ai-chat-form').addEventListener('submit', async function(e) {
     e.preventDefault();
     const input = document.getElementById('ai-chat-input');
     const userMsg = input.value.trim();
     if (!userMsg) return;
-    appendMessage(`<b>You:</b> ${userMsg}`, 'user');
+    appendMessage(`<strong class="text-white">You:</strong> ${userMsg}`, 'user');
     input.value = '';
     appendMessage('One moment. Rally AI is thinking...', 'ai');
+    
+    // Minimal debug info (only in development)
+    if (window.location.hostname === 'localhost') {
+        console.log(`Chat: "${userMsg}" (${userMsg.length} chars, thread: ${threadId || 'new'})`);
+    }
+    
     try {
         const resp = await fetch('/api/chat', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({message: userMsg})
+            body: JSON.stringify({
+                message: userMsg,
+                thread_id: threadId
+            })
         });
         const data = await resp.json();
+        
+        // Minimal response logging
+        if (window.location.hostname === 'localhost') {
+            console.log(`Response: ${data.response ? data.response.length : 0} chars, ${data.debug?.context_percentage?.toFixed(1) || 0}% context used`);
+        }
+        
+        // Store thread ID for conversation continuity
+        if (data.thread_id) {
+            threadId = data.thread_id;
+        }
+        
         // Remove the typing indicator (last AI message)
         const last = messages.lastChild;
         if (last && last.classList.contains('imessage-ai') && last.innerText === 'One moment. Rally AI is thinking...') {
             messages.removeChild(last);
         }
-        if (data.message) {
-            appendMessage(`<b>Rally AI:</b> ${data.message}`, 'ai');
+        if (data.response) {
+            // Display AI response with improved formatting
+            const formattedResponse = formatAIResponse(data.response);
+            appendMessage(`<div class="mb-1"><strong class="text-blue-700">Rally AI:</strong></div>${formattedResponse}`, 'ai');
+            
+            // Show debug info if available (only in development)
+            if (data.debug && window.location.hostname === 'localhost') {
+                const contextWarning = data.debug.approaching_limit ? ' ⚠️' : '';
+                const debugInfo = `<small style="color: #666; font-size: 0.8em; opacity: 0.7;">
+                    [${data.debug.message_count} msgs, ${data.debug.context_size} chars (${data.debug.context_percentage.toFixed(1)}%)${contextWarning}]
+                </small>`;
+                appendMessage(debugInfo, 'ai');
+                
+                // Warn if approaching context limit
+                if (data.debug.approaching_limit) {
+                    appendMessage('<small style="color: #ff6b35; font-size: 0.8em;">⚠️ Conversation is getting long. Consider refreshing to start fresh.</small>', 'ai');
+                }
+            }
         } else {
-            appendMessage('<b>Rally AI:</b> Sorry, something went wrong.', 'ai');
+            appendMessage('<div><strong class="text-red-600">Rally AI:</strong> Sorry, something went wrong.</div>', 'ai');
         }
-    } catch {
+    } catch (error) {
+        console.error('Chat error:', error);
         const last = messages.lastChild;
         if (last && last.classList.contains('imessage-ai') && last.innerText === 'One moment. Rally AI is thinking...') {
             messages.removeChild(last);
         }
-        appendMessage('<b>Rally AI:</b> Sorry, something went wrong.', 'ai');
+        appendMessage('<div><strong class="text-red-600">Rally AI:</strong> Sorry, something went wrong.</div>', 'ai');
     }
 });
+
+
 </script>
 {% endblock %} 

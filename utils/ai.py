@@ -1,6 +1,14 @@
 import os
 import traceback
+import logging
 from openai import OpenAI
+
+# Reduce OpenAI HTTP logging verbosity in production
+is_development = os.environ.get('FLASK_ENV') == 'development'
+if not is_development:
+    logging.getLogger("openai").setLevel(logging.WARNING)
+    logging.getLogger("httpcore").setLevel(logging.WARNING)
+    logging.getLogger("httpx").setLevel(logging.WARNING)
 
 # Initialize OpenAI client
 client = OpenAI(
