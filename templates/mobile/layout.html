@@ -6,9 +6,8 @@
     <title>{% block title %}Rally{% endblock %}</title>
     <link rel="icon" type="image/png" href="/static/images/rally_favicon.png">
     
-    <!-- Tailwind CSS & DaisyUI -->
-    <link href="https://cdn.jsdelivr.net/npm/daisyui@3.9.3/dist/full.css" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tailwind CSS (compiled) & DaisyUI -->
+    <link href="/static/css/output.css" rel="stylesheet">
     
     <!-- HTMX -->
     <script src="https://unpkg.com/htmx.org@1.9.10" integrity="sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC" crossorigin="anonymous"></script>
@@ -18,7 +17,6 @@
     <script src="/static/js/activity-tracker.js" defer></script>
     <script src="/static/mobile/js/main.js" defer></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link href="/static/mobile/css/tailwind.css" rel="stylesheet">
 
     <style>
         /* Custom styles */
@@ -105,7 +103,7 @@
     </nav>
 
     <!-- Slide-in Nav Drawer (right) -->
-    <div id="navDrawer" class="fixed top-0 right-0 h-full w-72 max-w-full bg-white shadow-2xl z-50 transform translate-x-full transition-transform duration-300 drawer-right">
+    <div id="navDrawer" class="fixed top-0 right-0 h-full w-72 max-w-full bg-white shadow-2xl z-50 transform translate-x-full transition-transform duration-300 drawer-right" style="transform: translateX(100%) !important;">
         <div class="flex flex-col h-full">
             <!-- Nav Drawer Top Bar -->
             <div class="flex items-center justify-between p-4" style="background-color: #fff;">
@@ -153,7 +151,6 @@
                     <div class="font-bold text-lg mb-2 flex items-center gap-2 text-black"><i class="fas fa-cog text-black"></i> Settings</div>
                     <ul class="space-y-2 ml-6">
                         <li><a href="/mobile/settings" class="nav-link flex items-center gap-2 text-lg text-black"><span class="inline-block w-7 text-center"><i class="fas fa-user-cog text-black"></i></span> User Settings</a></li>
-                        <li><button class="nav-link flex items-center gap-2 text-lg text-black w-full text-left" data-action="logout"><span class="inline-block w-7 text-center"><i class="fas fa-sign-out-alt text-black"></i></span> Logout</button></li>
                     </ul>
                 </div>
             </nav>
@@ -175,23 +172,58 @@
             const overlay = document.getElementById('drawerOverlay');
             const hamburger = document.getElementById('hamburgerToggle');
 
+            // EXPLICITLY ensure drawer is closed on page load
+            if (drawer && overlay && hamburger) {
+                drawer.style.transform = 'translateX(100%)';
+                overlay.classList.add('hidden');
+                hamburger.classList.remove('open');
+                console.log('Drawer explicitly closed on page load with inline style');
+                
+                // Also do this after a short delay to ensure it overrides any other scripts
+                setTimeout(() => {
+                    drawer.style.transform = 'translateX(100%)';
+                    overlay.classList.add('hidden');
+                    hamburger.classList.remove('open');
+                    console.log('Drawer ensured closed after delay with inline style');
+                }, 100);
+            }
+
             // Track drawer state
             let isDrawerTransitioning = false;
+            let intentionalChange = false;
+
+            // Watch for unwanted changes to the drawer
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    if (mutation.type === 'attributes' && 
+                        mutation.attributeName === 'style' && 
+                        !intentionalChange &&
+                        drawer.style.transform !== 'translateX(100%)') {
+                        console.log('Unwanted drawer state change detected, forcing close');
+                        drawer.style.transform = 'translateX(100%)';
+                        overlay.classList.add('hidden');
+                        hamburger.classList.remove('open');
+                    }
+                });
+            });
+            
+            if (drawer) {
+                observer.observe(drawer, { attributes: true, attributeFilter: ['style', 'class'] });
+            }
 
             // Handle drawer toggle with debounce
             const toggleDrawer = debounce(function() {
                 if (isDrawerTransitioning) return;
                 isDrawerTransitioning = true;
+                intentionalChange = true;
 
-                const isOpen = drawer.classList.contains('translate-x-0');
+                const isOpen = drawer.style.transform === 'translateX(0px)' || drawer.style.transform === 'translateX(0%)';
                 if (isOpen) {
-                    drawer.classList.remove('translate-x-0');
-                    drawer.classList.add('translate-x-full');
+                    drawer.style.transform = 'translateX(100%)';
                     overlay.classList.add('hidden');
                     hamburger.classList.remove('open');
                 } else {
-                    drawer.classList.remove('translate-x-full');
-                    drawer.classList.add('translate-x-0');
+                    drawer.style.transform = 'translateX(0%)';
                     overlay.classList.remove('hidden');
                     hamburger.classList.add('open');
                 }
@@ -199,6 +231,7 @@
                 // Reset transition state after animation completes
                 setTimeout(() => {
                     isDrawerTransitioning = false;
+                    intentionalChange = false;
                 }, 300); // Match transition duration
             }, 100);
 
@@ -246,53 +279,19 @@
                     return;
                 }
 
-                // Handle navigation links
+                // Handle navigation links ONLY inside the drawer
                 const navLink = target.closest('.nav-link');
-                if (navLink) {
+                if (navLink && navLink.closest('#navDrawer')) {
                     // Let activity-tracker.js handle the click tracking
                     // Just close the drawer and let the navigation happen naturally
-                    toggleDrawer();
+                    intentionalChange = true;
+                    drawer.style.transform = 'translateX(100%)';
+                    overlay.classList.add('hidden');
+                    hamburger.classList.remove('open');
+                    setTimeout(() => { intentionalChange = false; }, 300);
                     return;
                 }
-
-                // Handle logout action
-                if (target.closest('[data-action="logout"]')) {
-                    logout();
-                }
             });
-
-            // Handle logout
-            async function logout() {
-                console.log('Logout function called');
-                try {
-                    const response = await fetch('/api/logout', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Accept': 'application/json',
-                            'X-Requested-With': 'XMLHttpRequest'
-                        },
-                        credentials: 'include'
-                    });
-                    
-                    if (response.ok) {
-                        // Clear any client-side state
-                        sessionStorage.clear();
-                        localStorage.clear();
-                        
-                        // Redirect to login page
-                        window.location.href = '/login';
-                    } else {
-                        console.error('Logout failed:', response.status);
-                        // Fallback to direct logout
-                        window.location.href = '/logout';
-                    }
-                } catch (error) {
-                    console.error('Logout error:', error);
-                    // Fallback to direct logout
-                    window.location.href = '/logout';
-                }
-            }
         });
     </script>
 

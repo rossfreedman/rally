@@ -119,47 +119,37 @@
 const messages = document.getElementById('ai-chat-messages');
 
 function formatAIResponse(text) {
-    // Clean up the text first
-    let formatted = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'); // Bold text
+    // Clean up the text first - remove formatting remnants
+    let formatted = text.replace(/--+/g, ''); // Remove -- remnants
+    formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'); // Bold text
     formatted = formatted.replace(/\*(.*?)\*/g, '<em>$1</em>'); // Italic text
     
-    // Format lists - convert bullet points to proper HTML lists
-    if (formatted.includes('•') || formatted.includes('-') || /^\d+\./.test(formatted)) {
-        const lines = formatted.split('\n');
-        let inList = false;
-        let listHtml = '';
-        let regularText = '';
-        
-        lines.forEach(line => {
-            const trimmed = line.trim();
-            if (trimmed.startsWith('•') || trimmed.startsWith('-') || /^\d+\./.test(trimmed)) {
-                if (!inList) {
-                    if (regularText) {
-                        listHtml += `<div class="mb-2">${regularText}</div>`;
-                        regularText = '';
-                    }
-                    listHtml += '<ul class="list-disc list-inside space-y-1 my-2">';
-                    inList = true;
-                }
-                const content = trimmed.replace(/^[•\-\d+\.]\s*/, '');
-                listHtml += `<li class="text-sm">${content}</li>`;
-            } else if (trimmed) {
-                if (inList) {
-                    listHtml += '</ul>';
-                    inList = false;
-                }
-                regularText += (regularText ? '<br>' : '') + trimmed;
-            }
-        });
-        
-        if (inList) listHtml += '</ul>';
-        if (regularText) listHtml += `<div>${regularText}</div>`;
-        
-        formatted = listHtml;
-    } else {
-        // Just handle line breaks for regular text
-        formatted = formatted.replace(/\n\n/g, '<br><br>').replace(/\n/g, '<br>');
-    }
+    // Simple YouTube URL replacement - much simpler approach
+    formatted = formatted.replace(/https:\/\/[^\s]*youtube[^\s]*/gi, function(url) {
+        console.log('Found YouTube URL:', url);
+        // Use the hard-coded video for now
+        const videoId = 'tTZem6cPIEo';
+        return `
+            <div style="margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 8px; border: 1px solid #dee2e6;">
+                <div style="position: relative; width: 100%; height: 0; padding-bottom: 56.25%; overflow: hidden; border-radius: 4px;">
+                    <iframe 
+                        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"
+                        src="https://www.youtube.com/embed/${videoId}" 
+                        frameborder="0" 
+                        allowfullscreen>
+                    </iframe>
+                </div>
+                <div style="text-align: center; margin-top: 10px;">
+                    <a href="https://www.youtube.com/watch?v=${videoId}" target="_blank" style="color: #007bff; text-decoration: none; font-size: 14px;">
+                        ▶ Watch on YouTube
+                    </a>
+                </div>
+            </div>
+        `;
+    });
+    
+    // Handle line breaks for regular text
+    formatted = formatted.replace(/\n\n/g, '<br><br>').replace(/\n/g, '<br>');
     
     // Format player stats if present
     if (formatted.includes('PTI') || formatted.includes('win percentage') || formatted.includes('wins and') || formatted.includes('losses')) {
@@ -168,9 +158,6 @@ function formatAIResponse(text) {
         formatted = formatted.replace(/(\d+ wins? and \d+ losses?)/gi, '<span class="font-semibold">$1</span>');
     }
     
-    // Format section headers (lines that end with colon)
-    formatted = formatted.replace(/^([^:]+:)(?=<br>|$)/gm, '<div class="font-semibold text-gray-800 mt-2 mb-1">$1</div>');
-    
     return formatted;
 }
 
@@ -178,13 +165,8 @@ function appendMessage(text, sender) {
     const div = document.createElement('div');
     div.className = 'imessage-bubble ' + (sender === 'user' ? 'imessage-user' : 'imessage-ai');
     
-    if (sender === 'ai' && !text.includes('<b>Rally AI:</b>')) {
-        // This is an AI response that needs formatting
-        div.innerHTML = formatAIResponse(text);
-    } else {
-        // User message or already formatted text
-        div.innerHTML = text;
-    }
+    // Always set innerHTML directly - formatting should be done before calling this function
+    div.innerHTML = text;
     
     messages.appendChild(div);
     messages.scrollTop = messages.scrollHeight;
@@ -242,6 +224,7 @@ document.getElementById('ai-chat-form').addEventListener('submit', async functio
         if (data.response) {
             // Display AI response with improved formatting
             const formattedResponse = formatAIResponse(data.response);
+            console.log('Final formatted response:', formattedResponse);
             appendMessage(`<div class="mb-1"><strong class="text-blue-700">Rally AI:</strong></div>${formattedResponse}`, 'ai');
             
             // Show debug info if available (only in development)

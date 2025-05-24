@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rally</title>
+    <link rel="icon" type="image/png" href="/static/images/rally_favicon.png">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/static/css/styles.css" rel="stylesheet">
+    <!-- Activity tracking -->
+    <script src="/static/js/activity-tracker.js"></script>
+    <style>
+        :root {
+            --primary-color: #007417; /* Rally green */
+            --text-color: #333;
+            --border-color: #dee2e6;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .auth-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 800px;
+            text-align: center;
+            position: static;
+            align-self: center;
+        }
+
+        .auth-content {
+            padding: 0 60px 60px 60px;
+        }
+
+        .logo-header {
+            background: #000;
+            border-radius: 12px 12px 0 0;
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 0;
+        }
+
+        .logo-img {
+            width: 194px;
+            height: auto;
+            margin-bottom: 0;
+            filter: none;
+        }
+
+        .form-control {
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 20px;
+            border: 1px solid var(--border-color);
+            font-size: 1.15rem;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(0, 116, 23, 0.15);
+        }
+
+        .btn-primary {
+            background-color: #000;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 12px;
+            width: 100%;
+            font-weight: 500;
+            transition: background-color 0.2s;
+            font-size: 1.15rem;
+        }
+
+        .btn-primary:hover {
+            background-color: #222;
+        }
+
+        .error-message {
+            color: #dc3545;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .auth-error-container {
+            margin-bottom: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            background-color: #fff3f3;
+            border: 1px solid #ffcdd2;
+            display: none;
+        }
+
+        .auth-error-container.active {
+            display: block;
+        }
+
+        .auth-error-message {
+            color: #dc3545;
+            margin: 0;
+            font-size: 14px;
+            text-align: center;
+        }
+
+        .form-floating {
+            margin-bottom: 20px;
+        }
+
+        .form-floating label {
+            color: #6c757d;
+        }
+
+        .auth-tabs {
+            display: flex;
+            margin-bottom: 30px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .auth-tab {
+            flex: 1;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .auth-tab.active {
+            border-bottom: 2px solid var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        .auth-form {
+            display: none;
+        }
+
+        .auth-form.active {
+            display: block;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 15px;
+        }
+
+        .form-row .form-floating {
+            flex: 1;
+        }
+
+        .auth-hero { display: none; }
+        .white-logo { filter: brightness(0) invert(1); }
+
+        .rally-footer {
+            position: fixed;
+            left: 0;
+            bottom: 0;
+            width: 100%;
+            background: #fff;
+            color: #888;
+            font-size: 13px;
+            text-align: center;
+            padding: 10px 0 8px 0;
+            box-shadow: 0 -2px 8px rgba(0,0,0,0.03);
+            z-index: 100;
+        }
+
+        .login-stack {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100vw;
+            min-height: 100vh;
+        }
+        .auth-container {
+            position: static;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-stack">
+        <div style="height:100px;"></div>
+        <div style="display:flex; justify-content:center; align-items:center;">
+            <img src="/static/rallylogo.png" alt="Rally" class="logo-img">
+        </div>
+        <div style="height:100px;"></div>
+        <div class="auth-container">
+            <div class="auth-content">
+                <div class="auth-error-container" id="authErrorContainer">
+                    <p class="auth-error-message" id="authErrorMessage"></p>
+                </div>
+                
+                <div class="auth-tabs">
+                    <div class="auth-tab active" onclick="showForm('login')">Sign In</div>
+                    <div class="auth-tab" onclick="showForm('register')">Register</div>
+                </div>
+                
+                <form id="loginForm" class="auth-form active">
+                    <div class="form-floating">
+                        <input type="email" class="form-control" id="loginEmail" placeholder="name@example.com" required>
+                        <label for="loginEmail">Email address</label>
+                    </div>
+                    
+                    <div class="form-floating">
+                        <input type="password" class="form-control" id="loginPassword" placeholder="Password" required>
+                        <label for="loginPassword">Password</label>
+                    </div>
+                    
+                    <div class="error-message" id="loginErrorMessage"></div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-sign-in-alt me-2"></i>Sign In
+                    </button>
+                </form>
+                
+                <form id="registerForm" class="auth-form">
+                    <div class="form-row">
+                        <div class="form-floating">
+                            <input type="text" class="form-control" id="firstName" placeholder="First Name" required>
+                            <label for="firstName">First Name</label>
+                        </div>
+                        
+                        <div class="form-floating">
+                            <input type="text" class="form-control" id="lastName" placeholder="Last Name" required>
+                            <label for="lastName">Last Name</label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-floating">
+                        <input type="email" class="form-control" id="registerEmail" placeholder="name@example.com" required>
+                        <label for="registerEmail">Email address</label>
+                    </div>
+                    
+                    <div class="form-floating">
+                        <input type="password" class="form-control" id="registerPassword" placeholder="Password" required>
+                        <label for="registerPassword">Password</label>
+                    </div>
+                    
+                    <div class="form-floating">
+                        <select class="form-control" id="club" required>
+                            <option value="">Select your club</option>
+                        </select>
+                        <label for="club">Club</label>
+                    </div>
+                    
+                    <div class="form-floating">
+                        <select class="form-control" id="series" required>
+                            <option value="">Select your series</option>
+                        </select>
+                        <label for="series">Series</label>
+                    </div>
+                    
+                    <div class="error-message" id="registerErrorMessage"></div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-user-plus me-2"></i>Register
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Load clubs and series on page load
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const [clubsResponse, seriesResponse] = await Promise.all([
+                    fetch('/api/get-clubs', { credentials: 'include' }),
+                    fetch('/api/get-series', { credentials: 'include' })
+                ]);
+                
+                if (clubsResponse.ok && seriesResponse.ok) {
+                    const clubs = await clubsResponse.json();
+                    const series = await seriesResponse.json();
+                    
+                    const clubSelect = document.getElementById('club');
+                    const seriesSelect = document.getElementById('series');
+                    
+                    // Add placeholder options
+                    clubSelect.innerHTML = '<option value="" disabled selected>Select Club</option>';
+                    seriesSelect.innerHTML = '<option value="" disabled selected>Select Series/Division</option>';
+                    
+                    // Add club options
+                    if (clubs.clubs && Array.isArray(clubs.clubs)) {
+                        clubs.clubs.forEach(club => {
+                            const option = document.createElement('option');
+                            option.value = club;
+                            option.textContent = club;
+                            clubSelect.appendChild(option);
+                        });
+                    }
+                    
+                    // Add series options
+                    if (series.all_series && Array.isArray(series.all_series)) {
+                        series.all_series.forEach(s => {
+                            const option = document.createElement('option');
+                            option.value = s;
+                            option.textContent = s;
+                            seriesSelect.appendChild(option);
+                        });
+                    }
+                } else {
+                    console.error('Failed to load clubs or series');
+                    console.log('Clubs response:', clubsResponse.status);
+                    console.log('Series response:', seriesResponse.status);
+                }
+            } catch (error) {
+                console.error('Error loading clubs and series:', error);
+            }
+        });
+
+        function showForm(formType) {
+            document.querySelectorAll('.auth-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.auth-form').forEach(form => {
+                form.classList.remove('active');
+            });
+            
+            document.querySelector(`.auth-tab:nth-child(${formType === 'login' ? 1 : 2})`).classList.add('active');
+            document.getElementById(`${formType}Form`).classList.add('active');
+        }
+
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const errorMessage = document.getElementById('loginErrorMessage');
+            const authErrorContainer = document.getElementById('authErrorContainer');
+            const authErrorMessage = document.getElementById('authErrorMessage');
+            
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                if (response.ok && data.status === 'success') {
+                    if (data.redirect) {
+                        window.location.href = data.redirect;
+                    } else {
+                        window.location.href = '/';
+                    }
+                } else {
+                    authErrorMessage.textContent = data.error || 'Invalid email or password';
+                    authErrorContainer.classList.add('active');
+                    errorMessage.style.display = 'none';
+                }
+            } catch (error) {
+                authErrorMessage.textContent = 'An error occurred. Please try again.';
+                authErrorContainer.classList.add('active');
+                errorMessage.style.display = 'none';
+            }
+        });
+
+        document.getElementById('registerForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+            const firstName = document.getElementById('firstName').value;
+            const lastName = document.getElementById('lastName').value;
+            const club = document.getElementById('club').value;
+            const series = document.getElementById('series').value;
+            const errorMessage = document.getElementById('registerErrorMessage');
+            const authErrorContainer = document.getElementById('authErrorContainer');
+            const authErrorMessage = document.getElementById('authErrorMessage');
+            
+            try {
+                const response = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        email,
+                        password,
+                        firstName,
+                        lastName,
+                        club,
+                        series
+                    })
+                });
+                
+                const data = await response.json();
+                if (response.ok && data.status === 'success') {
+                    if (data.redirect) {
+                        window.location.href = data.redirect;
+                    } else {
+                        window.location.href = '/';
+                    }
+                    authErrorContainer.classList.remove('active');
+                    errorMessage.style.display = 'none';
+                } else {
+                    authErrorMessage.textContent = data.error || 'Registration failed';
+                    authErrorContainer.classList.add('active');
+                    errorMessage.style.display = 'none';
+                }
+            } catch (error) {
+                authErrorMessage.textContent = 'An error occurred. Please try again.';
+                authErrorContainer.classList.add('active');
+                errorMessage.style.display = 'none';
+            }
+        });
+    </script>
+    <!-- Footer for branding -->
+    <footer class="rally-footer">
+        &copy; 2024 Rally. All rights reserved.
+    </footer>
+</body>
+</html> 

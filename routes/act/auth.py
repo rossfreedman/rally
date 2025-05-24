@@ -104,10 +104,39 @@ def init_routes(app):
                     logger.error("Failed to insert new user")
                     return jsonify({'error': 'Registration failed'}), 500
 
+                # Get the newly created user with club and series info for session
+                user = execute_query_one(
+                    """
+                    SELECT u.id, u.email, u.first_name, u.last_name,
+                           c.name as club_name, s.name as series_name
+                    FROM users u
+                    JOIN clubs c ON u.club_id = c.id
+                    JOIN series s ON u.series_id = s.id
+                    WHERE LOWER(u.email) = LOWER(%(email)s)
+                    """,
+                    {'email': email}
+                )
+
+                # Set session data to automatically log in the user
+                session['user'] = {
+                    'id': user['id'],
+                    'email': user['email'],
+                    'first_name': user['first_name'],
+                    'last_name': user['last_name'],
+                    'club': user['club_name'],
+                    'series': user['series_name'],
+                    'settings': '{}'  # Default empty settings
+                }
+                session.permanent = True
+
                 # Log successful registration
                 log_user_activity(email, 'auth', action='register', details='Registration successful')
                 
-                return jsonify({'message': 'Registration successful'}), 201
+                return jsonify({
+                    'status': 'success',
+                    'message': 'Registration successful',
+                    'redirect': '/mobile'
+                }), 201
 
             except Exception as db_error:
                 logger.error(f"Database error during registration: {str(db_error)}")
@@ -132,7 +161,7 @@ def init_routes(app):
                 user = execute_query_one(
                     """
                     SELECT u.id, u.email, u.password_hash, u.first_name, u.last_name,
-                           c.name as club_name, s.name as series_name, u.settings
+                           c.name as club_name, s.name as series_name
                     FROM users u
                     JOIN clubs c ON u.club_id = c.id
                     JOIN series s ON u.series_id = s.id
@@ -157,7 +186,7 @@ def init_routes(app):
                     'last_name': user['last_name'],
                     'club': user['club_name'],
                     'series': user['series_name'],
-                    'settings': user['settings'] if user['settings'] else '{}'
+                    'settings': '{}'  # Default empty settings
                 }
                 session.permanent = True
 

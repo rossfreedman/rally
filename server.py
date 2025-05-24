@@ -1114,6 +1114,15 @@ def test_static():
     except Exception as e:
         return str(e), 500
 
+@app.route('/test-video')
+def test_video():
+    """Test route for video embedding"""
+    try:
+        return render_template('test_video.html')
+    except Exception as e:
+        print(f"Error serving test video page: {str(e)}")
+        return str(e), 500
+
 @app.route('/api/admin/delete-user', methods=['POST'])
 @login_required
 @admin_required
@@ -4787,6 +4796,125 @@ def get_player_history():
     except Exception as e:
         print(f"Error getting player history: {str(e)}")
         return jsonify({'error': str(e), 'data': []}), 500
+
+@app.route('/api/paddle-insights', methods=['POST'])
+@login_required
+def get_paddle_insights():
+    """Search paddle insights based on user query"""
+    try:
+        user = session.get('user')
+        if not user:
+            return jsonify({'error': 'Not authenticated'}), 401
+            
+        data = request.get_json()
+        query = data.get('query', '').lower().strip()
+        
+        if not query:
+            return jsonify({'error': 'Query cannot be empty'}), 400
+            
+        # Load paddle insights from JSON file
+        insights_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddle_insights.json')
+        with open(insights_path, 'r', encoding='utf-8') as f:
+            insights_data = json.load(f)
+        
+        # Search through insights
+        matching_insights = []
+        
+        def search_insights(data, path=""):
+            """Recursively search through the insights data structure"""
+            if isinstance(data, dict):
+                for key, value in data.items():
+                    current_path = f"{path}/{key}" if path else key
+                    
+                    if isinstance(value, dict):
+                        # Check if this is a content section with text and tags
+                        if 'text' in value and 'tags' in value:
+                            text_content = value.get('text', '').lower()
+                            tags = [tag.lower() for tag in value.get('tags', [])]
+                            linked_videos = value.get('linked_videos', [])
+                            
+                            # Check if query matches tags or appears in text
+                            if (query in tags or 
+                                any(query in tag for tag in tags) or
+                                query in text_content or
+                                any(word in text_content for word in query.split())):
+                                
+                                matching_insights.append({
+                                    'title': key.replace('_', ' ').title(),
+                                    'category': current_path.split('/')[0] if '/' in current_path else 'General',
+                                    'text': value.get('text', ''),
+                                    'tags': value.get('tags', []),
+                                    'linked_videos': linked_videos,
+                                    'relevance_score': calculate_relevance(query, text_content, tags)
+                                })
+                        else:
+                            # Continue searching deeper
+                            search_insights(value, current_path)
+                    elif isinstance(value, list):
+                        for item in value:
+                            if isinstance(item, dict):
+                                search_insights(item, current_path)
+        
+        def calculate_relevance(query, text, tags):
+            """Calculate relevance score based on how well the query matches"""
+            score = 0
+            query_words = query.split()
+            
+            # Exact tag match gets highest score
+            if query in [tag.lower() for tag in tags]:
+                score += 100
+            
+            # Partial tag matches
+            for tag in tags:
+                if query in tag.lower():
+                    score += 50
+                for word in query_words:
+                    if word in tag.lower():
+                        score += 25
+            
+            # Text content matches
+            text_lower = text.lower()
+            if query in text_lower:
+                score += 30
+            
+            for word in query_words:
+                if word in text_lower:
+                    score += 10
+            
+            return score
+        
+        # Perform the search
+        search_insights(insights_data)
+        
+        # If no results found, return appropriate message
+        if not matching_insights:
+            return jsonify({
+                'query': query,
+                'result': None,
+                'message': f'No specific insights found for "{query}". Try searching for terms like "serve", "volley", "overhead", "backhand", or "beginner tips".'
+            })
+        
+        # Sort by relevance score and get the BEST match
+        matching_insights.sort(key=lambda x: x['relevance_score'], reverse=True)
+        best_match = matching_insights[0]  # Take only the top result
+        
+        log_user_activity(
+            user['email'], 
+            'paddle_insight_search', 
+            details=f'Searched for: {query}, found best match: {best_match["title"]}'
+        )
+        
+        return jsonify({
+            'query': query,
+            'result': best_match,
+            'message': f'Here\'s the most relevant advice for improving your {query}:'
+        })
+        
+    except FileNotFoundError:
+        return jsonify({'error': 'Paddle insights data not found'}), 404
+    except Exception as e:
+        print(f"Error searching paddle insights: {str(e)}")
+        return jsonify({'error': 'An error occurred while searching insights'}), 500
 
 if __name__ == '__main__':
     # Get port from environment variable or use default

@@ -78,7 +78,7 @@
                             class="btn availability-btn w-full py-2 text-center rounded-lg transition-colors text-base font-extrabold {% if avail.status == 'available' %}bg-green-500 text-white{% else %}bg-gray-100 text-gray-700{% endif %} hover:bg-green-600 hover:text-white"
                             onclick="updateAvailability(this, '{{ players[0].name }}', '{{ match.date }}', 'available')"
                             data-status="available"
-                            data-current-status="{{ avail.status }}"
+                            data-current-status="{{ avail.status or '' }}"
                             style="text-transform: none;">
                             <i class="fas fa-check mr-1"></i>Count Me In!
                         </button>
@@ -86,7 +86,7 @@
                             class="btn availability-btn w-full py-2 text-center rounded-lg transition-colors text-base font-extrabold {% if avail.status == 'unavailable' %}bg-red-500 text-white{% else %}bg-gray-100 text-gray-700{% endif %} hover:bg-red-600 hover:text-white"
                             onclick="updateAvailability(this, '{{ players[0].name }}', '{{ match.date }}', 'unavailable')"
                             data-status="unavailable"
-                            data-current-status="{{ avail.status }}"
+                            data-current-status="{{ avail.status or '' }}"
                             style="text-transform: none;">
                             <i class="fas fa-times mr-1"></i>Sorry, Can't
                         </button>
@@ -94,7 +94,7 @@
                             class="btn availability-btn w-full py-2 text-center rounded-lg transition-colors text-base font-extrabold {% if avail.status == 'not_sure' %}bg-yellow-500 text-white{% else %}bg-gray-100 text-gray-700{% endif %} hover:bg-yellow-600 hover:text-white"
                             onclick="updateAvailability(this, '{{ players[0].name }}', '{{ match.date }}', 'not_sure')"
                             data-status="not_sure"
-                            data-current-status="{{ avail.status }}"
+                            data-current-status="{{ avail.status or '' }}"
                             style="text-transform: none;">
                             <i class="fas fa-question mr-1"></i>Not Sure
                         </button>

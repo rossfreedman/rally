@@ -40,7 +40,7 @@ def get_player_availability(player_name, match_date, series):
                 print(f"Standardized date: {match_date} (from {original_date})")
             except ValueError as e:
                 print(f"Invalid date format: {match_date}, error: {str(e)}")
-                return 3  # Default to "not sure" on error
+                return None
         
         print(f"Querying availability with parameters:")
         print(f"  player_name: {player_name.strip()}")
@@ -70,7 +70,7 @@ def get_player_availability(player_name, match_date, series):
         
         if not result:
             print(f"No availability found for {player_name} on {match_date}")
-            return 3  # Default to "not sure"
+            return None
             
         print(f"Found availability status: {result['availability_status']}")
         return result['availability_status']
@@ -78,7 +78,7 @@ def get_player_availability(player_name, match_date, series):
     except Exception as e:
         print(f"Error getting player availability: {str(e)}")
         print(traceback.format_exc())  # Add full traceback
-        return 3  # Default to "not sure" on error
+        return None  # Return None on error instead of defaulting to "not_sure"
 
 def update_player_availability(player_name, match_date, status, series):
     """Update or insert availability for a player"""
@@ -160,7 +160,8 @@ def get_user_availability(player_name, matches, series):
     status_map = {
         1: 'available',
         2: 'unavailable', 
-        3: 'not_sure'
+        3: 'not_sure',
+        None: None  # No selection made
     }
     
     for match in matches:
@@ -169,7 +170,7 @@ def get_user_availability(player_name, matches, series):
         numeric_status = get_player_availability(player_name, match_date, series)
         
         # Convert numeric status to string status that template expects
-        string_status = status_map.get(numeric_status, 'not_sure')
+        string_status = status_map.get(numeric_status)
         availability.append({'status': string_status})
         
     return availability

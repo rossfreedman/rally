@@ -14,20 +14,6 @@
         </div>
     </div>
 
-    <!-- Game Improvement Question -->
-    <div class="p-4 bg-white rounded-lg shadow mb-4">
-        <h3 class="text-lg font-semibold mb-3">What part of your game do you want to work on?</h3>
-        <div class="relative">
-            <input type="text" 
-                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                   placeholder="e.g. serve, backhand, volleys..."
-                   id="gameImprovement">
-            <button class="absolute right-2 top-1/2 transform -translate-y-1/2 text-blue-600 hover:text-blue-800">
-                <i class="fas fa-arrow-right"></i>
-            </button>
-        </div>
-    </div>
-
     <!-- Paddle Tips Section -->
     {% if paddle_tips %}
     <div class="p-4 mb-6">
@@ -35,7 +21,7 @@
             <div class="flex items-center justify-between mb-4">
                 <div class="flex items-center">
                     <i class="fas fa-lightbulb text-yellow-300 text-2xl mr-3"></i>
-                    <h3 class="text-xl font-bold">Daily Paddle Tip</h3>
+                    <h3 class="text-xl font-bold">Paddle Tip #10</h3>
                 </div>
                 <button id="refreshTip" class="bg-white bg-opacity-20 hover:bg-opacity-30 rounded-full p-2 transition-all duration-200">
                     <i class="fas fa-refresh text-white"></i>
@@ -71,6 +57,41 @@
         </div>
     </div>
     {% endif %}
+
+    <!-- Coach Rally Section -->
+    <div class="p-4 bg-white rounded-lg shadow mb-4">
+        <div class="flex items-center gap-3 mb-4">
+            <div class="bg-gradient-to-br from-green-500 to-blue-600 rounded-md flex items-center justify-center h-10 w-10">
+                <i class="fas fa-user-graduate text-white text-lg"></i>
+            </div>
+            <div>
+                <h3 class="text-xl font-bold text-gray-800">Coach Rally</h3>
+                <p class="text-sm text-gray-600">Your AI-powered paddle tennis coach to help you prepare for your next match</p>
+            </div>
+        </div>
+        
+        <!-- Chat Messages Container -->
+        <div id="paddle-coach-messages" class="min-h-[200px] max-h-[350px] overflow-y-auto bg-gray-50 rounded-xl p-3 mb-4 space-y-2"></div>
+        
+        <!-- Chat Input Form -->
+        <form id="paddle-coach-form" class="flex gap-2">
+            <input type="text" 
+                   id="paddle-coach-input" 
+                   class="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                   placeholder="Ask about serve, volleys, strategy, footwork..."
+                   autocomplete="off" 
+                   required>
+            <button type="submit" 
+                    class="bg-gradient-to-br from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white px-4 py-2 rounded-lg transition-all duration-200">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </form>
+        
+        <div class="text-xs text-gray-500 mt-2">
+            <i class="fas fa-lightbulb mr-1"></i>
+            Try: "How do I improve my serve?", "Volley tips for beginners", "Screen play strategy"
+        </div>
+    </div>
 
     <!-- Training Resources -->
     <div class="p-4 space-y-4">
@@ -288,14 +309,20 @@ document.addEventListener('DOMContentLoaded', function() {
         setTimeout(function() {
             // Update content
             tipTitle.textContent = tip.name || 'Untitled Tip';
-            tipMeta.textContent = 'Tip #' + (tip.number || '');
+            tipMeta.textContent = '';
+            tipMeta.style.display = 'none';
+            
+            // Process description for YouTube videos and format properly
+            let description = tip.description || '';
             
             // Truncate description if too long for mobile (shorter now due to image)
-            let description = tip.description || '';
             if (description.length > 200) {
                 description = description.substring(0, 200) + '...';
             }
-            tipDescription.textContent = description;
+            
+            // Format the description with basic HTML support
+            const formattedDescription = formatTipDescription(description);
+            tipDescription.innerHTML = formattedDescription;
             
             tipDate.textContent = tip.date || '';
             
@@ -331,6 +358,31 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 150);
     }
     
+    // Format tip descriptions with basic HTML and YouTube video support
+    function formatTipDescription(text) {
+        if (!text) return '';
+        
+        // Convert line breaks
+        let formatted = text.replace(/\n/g, '<br>');
+        
+        // Convert URLs to clickable links, with special handling for YouTube
+        formatted = formatted.replace(/(https?:\/\/[^\s]+)/g, function(url) {
+            // Check if it's a YouTube URL
+            const youtubeRegex = /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/;
+            const youtubeMatch = url.match(youtubeRegex);
+            
+            if (youtubeMatch) {
+                return `<a href="${url}" target="_blank" class="text-blue-600 hover:underline font-medium">
+                    <i class="fas fa-play mr-1"></i>Watch Video
+                </a>`;
+            } else {
+                return `<a href="${url}" target="_blank" class="text-blue-600 hover:underline">${url}</a>`;
+            }
+        });
+        
+        return formatted;
+    }
+    
     function rotateToNextTip() {
         const nextTip = getRandomTip();
         displayTip(nextTip);
@@ -338,6 +390,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function showTipModal(tip) {
         if (!tip) return;
+        
+        // Format the full description with YouTube video embeds
+        const formattedDescription = formatTipDescriptionWithEmbeds(tip.description || '');
         
         // Create modal backdrop
         const modal = document.createElement('div');
@@ -353,7 +408,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
                 <div class="p-4">
                     ${tip.image ? `<img src="/static/images/tip_images/${tip.image}" alt="Paddle Tip" class="w-full h-64 object-cover rounded-lg mb-4" onerror="this.style.display='none'">` : ''}
-                    <div class="text-gray-700 leading-relaxed mb-4">${(tip.description || '').replace(/\n/g, '<br>')}</div>
+                    <div class="text-gray-700 leading-relaxed mb-4">${formattedDescription}</div>
                     ${tip.url ? `
                         <div class="mt-4">
                             <a href="${tip.url}" target="_blank" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
@@ -397,6 +452,82 @@ document.addEventListener('DOMContentLoaded', function() {
         observer.observe(document.body, { childList: true });
     }
     
+    // Enhanced formatting for modal with YouTube embeds
+    function formatTipDescriptionWithEmbeds(text) {
+        if (!text) return '';
+        
+        // FIRST: Convert URLs to embeds or links, with special handling for YouTube
+        let formatted = text.replace(/(https?:\/\/[^\s]+)/g, function(url) {
+            // Check if it's a YouTube URL
+            const youtubeRegex = /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/;
+            const youtubeMatch = url.match(youtubeRegex);
+            
+            if (youtubeMatch) {
+                const videoId = youtubeMatch[1];
+                return `__YOUTUBE_EMBED_START__
+                    <div class="mt-4 mb-4">
+                        <div class="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                            <h4 class="font-medium text-gray-800 mb-3">${title}</h4>
+                            <div class="w-full" style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden;">
+                                <iframe 
+                                    style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"
+                                    src="https://www.youtube.com/embed/${videoId}" 
+                                    title="${title}"
+                                    frameborder="0" 
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                    allowfullscreen>
+                                </iframe>
+                            </div>
+                            <div class="text-xs text-gray-600 mt-2 text-center">
+                                <a href="${url}" target="_blank" class="text-blue-600 hover:underline">
+                                    Watch on YouTube →
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                __YOUTUBE_EMBED_END__`;
+            } else {
+                return `<a href="${url}" target="_blank" class="text-blue-600 hover:underline">${url}</a>`;
+            }
+        });
+        
+        // THEN: Convert line breaks (only for remaining text, not within HTML blocks)
+        // Split by HTML blocks to avoid breaking them
+        const htmlBlockRegex = /<div[^>]*>[\s\S]*?<\/div>/g;
+        const htmlBlocks = [];
+        let blockIndex = 0;
+        
+        // Replace HTML blocks with placeholders
+        formatted = formatted.replace(htmlBlockRegex, function(match) {
+            const placeholder = `__HTML_BLOCK_${blockIndex}__`;
+            htmlBlocks[blockIndex] = match;
+            blockIndex++;
+            return placeholder;
+        });
+        
+        // Now safely convert line breaks in the remaining text
+        formatted = formatted.replace(/\n/g, '<br>');
+        
+        // Restore HTML blocks
+        for (let i = 0; i < htmlBlocks.length; i++) {
+            formatted = formatted.replace(`__HTML_BLOCK_${i}__`, htmlBlocks[i]);
+        }
+        
+        // Format follow-up questions at the end with simple styling
+        formatted = formatted.replace(/(?:<\/div>|<br>|^)([^<]*\?[^<]*)$/gm, function(match, question) {
+            const trimmedQuestion = question.trim();
+            if (trimmedQuestion.length > 10) { // Only format substantial questions
+                return `<div class="mt-4 mb-2 text-gray-800 font-medium">${trimmedQuestion}</div>`;
+            }
+            return match;
+        });
+        
+        // Finally, restore YouTube embeds (remove the protective markers)
+        formatted = formatted.replace(/__YOUTUBE_EMBED_START__([\s\S]*?)__YOUTUBE_EMBED_END__/g, '$1');
+        
+        return formatted;
+    }
+    
     // Initialize with first tip
     rotateToNextTip();
     
@@ -428,6 +559,329 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Auto-rotate every 30 seconds
     setInterval(rotateToNextTip, 30000);
+    
+    // Coach Rally Interactive Chat
+    const paddleCoachMessages = document.getElementById('paddle-coach-messages');
+    const paddleCoachForm = document.getElementById('paddle-coach-form');
+    const paddleCoachInput = document.getElementById('paddle-coach-input');
+    let coachThreadId = null;
+
+    function appendPaddleCoachMessage(text, sender) {
+        // Remove markdown video link labels like [Platform Tennis Serve Technique](...)
+        if (sender === 'ai' && typeof text === 'string') {
+            text = text.replace(/\[.*?\]\([^)]*\)/g, '');
+        }
+
+        // Special handling for AI responses with Recommended Video and follow-up question
+        if (sender === 'ai' && text.includes('**Recommended Video:**')) {
+            // Split on Recommended Video
+            const parts = text.split(/\*\*Recommended Video:\*\*/);
+            let beforeVideo = parts[0].trim();
+            let afterVideo = parts[1] ? parts[1].trim() : '';
+
+            // Try to split out a follow-up question at the end of afterVideo
+            let followUp = '';
+            let videoSection = afterVideo;
+            const match = afterVideo.match(/([\s\S]*?)([^\.!?]*\?)(\s*)$/);
+            if (match && match[2].length > 10) {
+                videoSection = match[1].trim();
+                followUp = match[2].trim();
+                // Remove leading YouTube ID fragments like 'v=F8Hc8X1pM6g) '
+                followUp = followUp.replace(/^v=[a-zA-Z0-9_-]{11}\)\s*/, '');
+            }
+
+            // Render main content and YouTube video in the same bubble
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'flex justify-start mb-4';
+            const bubbleDiv = document.createElement('div');
+            bubbleDiv.className = 'max-w-sm lg:max-w-md px-4 py-3 rounded-2xl shadow-sm bg-white border border-gray-200 text-gray-800 rounded-bl-md';
+            // Add Coach Rally header
+            const headerDiv = document.createElement('div');
+            headerDiv.className = 'flex items-center gap-2 mb-2 pb-2 border-b border-gray-100';
+            headerDiv.innerHTML = `
+                <div class=\"bg-gradient-to-br from-green-500 to-blue-600 rounded-full w-6 h-6 flex items-center justify-center\">
+                    <i class=\"fas fa-user-graduate text-white text-xs\"></i>
+                </div>
+                <span class=\"text-xs font-bold text-gray-700\">Coach Rally</span>
+                <div class=\"flex-1\"></div>
+                <span class=\"text-xs text-gray-400\">${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+            `;
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'text-sm leading-relaxed';
+            // Add main content
+            if (beforeVideo) {
+                let formattedText = beforeVideo.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                formattedText = formattedText.replace(/\*(.*?)\*/g, '<em>$1</em>');
+                formattedText = formattedText.replace(/\n/g, '<br>');
+                contentDiv.innerHTML = formattedText;
+            }
+            // Add hard-coded YouTube video embed right after main content
+            const videoId = 'tTZem6cPIEo';
+            const youtubeUrl = 'https://www.youtube.com/watch?v=' + videoId;
+            const videoEmbed = document.createElement('div');
+            videoEmbed.className = 'w-full my-4';
+            videoEmbed.innerHTML = `
+                <div style=\"position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 8px; background: #e5e7eb;\">
+                    <iframe style=\"position: absolute; top: 0; left: 0; width: 100%; height: 100%;\" src=\"https://www.youtube.com/embed/${videoId}\" frameborder=\"0\" allowfullscreen></iframe>
+                </div>
+                <div class=\"text-xs text-center mt-2\">
+                    <a href=\"${youtubeUrl}\" target=\"_blank\" class=\"text-blue-600 hover:underline font-medium\">🎥 Watch on YouTube</a>
+                </div>
+            `;
+            contentDiv.appendChild(videoEmbed);
+            bubbleDiv.appendChild(headerDiv);
+            bubbleDiv.appendChild(contentDiv);
+            messageDiv.appendChild(bubbleDiv);
+            paddleCoachMessages.appendChild(messageDiv);
+            // Render follow-up question as a regular bubble
+            if (followUp) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'flex justify-start mb-4';
+                const bubbleDiv = document.createElement('div');
+                bubbleDiv.className = 'max-w-sm lg:max-w-md px-4 py-3 rounded-2xl shadow-sm bg-white border border-gray-200 text-gray-800 rounded-bl-md';
+                // Add Coach Rally header
+                const headerDiv = document.createElement('div');
+                headerDiv.className = 'flex items-center gap-2 mb-2 pb-2 border-b border-gray-100';
+                headerDiv.innerHTML = `
+                    <div class=\"bg-gradient-to-br from-green-500 to-blue-600 rounded-full w-6 h-6 flex items-center justify-center\">
+                        <i class=\"fas fa-user-graduate text-white text-xs\"></i>
+                    </div>
+                    <span class=\"text-xs font-bold text-gray-700\">Coach Rally</span>
+                    <div class=\"flex-1\"></div>
+                    <span class=\"text-xs text-gray-400\">${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                `;
+                const contentDiv = document.createElement('div');
+                contentDiv.className = 'text-sm leading-relaxed';
+                contentDiv.textContent = followUp;
+                bubbleDiv.appendChild(headerDiv);
+                bubbleDiv.appendChild(contentDiv);
+                messageDiv.appendChild(bubbleDiv);
+                paddleCoachMessages.appendChild(messageDiv);
+            }
+            // No scrollIntoView here
+            return;
+        }
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start'} mb-4`;
+        
+        const bubbleDiv = document.createElement('div');
+        bubbleDiv.className = `max-w-sm lg:max-w-md px-4 py-3 rounded-2xl shadow-sm ${
+            sender === 'user' 
+                ? 'bg-gradient-to-br from-green-500 to-blue-600 text-white rounded-br-md' 
+                : 'bg-white border border-gray-200 text-gray-800 rounded-bl-md'
+        }`;
+        
+        if (sender === 'ai') {
+            // Add typing animation for smoother feel
+            bubbleDiv.style.animation = 'messageSlideIn 0.3s ease-out';
+            
+            // Create header separately
+            const headerDiv = document.createElement('div');
+            headerDiv.className = 'flex items-center gap-2 mb-2 pb-2 border-b border-gray-100';
+            headerDiv.innerHTML = `
+                <div class=\"bg-gradient-to-br from-green-500 to-blue-600 rounded-full w-6 h-6 flex items-center justify-center\">
+                    <i class=\"fas fa-user-graduate text-white text-xs\"></i>
+                </div>
+                <span class=\"text-xs font-bold text-gray-700\">Coach Rally</span>
+                <div class=\"flex-1\"></div>
+                <span class=\"text-xs text-gray-400\">${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+            `;
+            
+            // Create content div separately and handle video embeds
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'text-sm leading-relaxed';
+            
+            // Check if text contains YouTube URL
+            if (text.includes('youtube')) {
+                console.log('Coach Rally: Found YouTube URL, creating video embed');
+                
+                // Split text at YouTube URL
+                const parts = text.split(/(https:\/\/[^\s]*youtube[^\s]*)/gi);
+                
+                parts.forEach(part => {
+                    if (part.match(/https:\/\/[^\s]*youtube[^\s]*/gi)) {
+                        // This is a YouTube URL - create video embed
+                        const videoContainer = document.createElement('div');
+                        videoContainer.style.cssText = 'margin: 15px 0; padding: 12px; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #3b82f6;';
+                        
+                        const videoWrapper = document.createElement('div');
+                        videoWrapper.style.cssText = 'position: relative; width: 100%; height: 0; padding-bottom: 56.25%; overflow: hidden; border-radius: 6px; background: #e5e7eb;';
+                        
+                        const iframe = document.createElement('iframe');
+                        iframe.style.cssText = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%;';
+                        iframe.src = 'https://www.youtube.com/embed/tTZem6cPIEo';
+                        iframe.frameBorder = '0';
+                        iframe.allowFullscreen = true;
+                        
+                        const linkDiv = document.createElement('div');
+                        linkDiv.style.cssText = 'text-align: center; margin-top: 8px;';
+                        
+                        const link = document.createElement('a');
+                        link.href = 'https://www.youtube.com/watch?v=tTZem6cPIEo';
+                        link.target = '_blank';
+                        link.style.cssText = 'color: #2563eb; text-decoration: none; font-size: 13px; font-weight: 500;';
+                        link.textContent = '🎥 Watch on YouTube';
+                        
+                        linkDiv.appendChild(link);
+                        videoWrapper.appendChild(iframe);
+                        videoContainer.appendChild(videoWrapper);
+                        videoContainer.appendChild(linkDiv);
+                        contentDiv.appendChild(videoContainer);
+                    } else {
+                        // Regular text - format and add
+                        const textNode = document.createElement('div');
+                        let formattedText = part.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                        formattedText = formattedText.replace(/\*(.*?)\*/g, '<em>$1</em>');
+                        formattedText = formattedText.replace(/\n/g, '<br>');
+                        
+                        // Only highlight questions that come after substantial content (not initial greetings)
+                        if (part.length > 100 && part.includes('.') && part.includes('?')) {
+                            formattedText = formattedText.replace(/([^.!]*\?)/g, '<div class="question-highlight mt-3 mb-2 p-3 bg-blue-50 border-l-4 border-blue-400 rounded-r-lg"><strong class="text-blue-800">$1</strong></div>');
+                        }
+                        
+                        textNode.innerHTML = formattedText;
+                        contentDiv.appendChild(textNode);
+                    }
+                });
+            } else {
+                // No YouTube URL - just format text normally
+                let formattedText = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                formattedText = formattedText.replace(/\*(.*?)\*/g, '<em>$1</em>');
+                formattedText = formattedText.replace(/\n/g, '<br>');
+                
+                // Only highlight questions that come after substantial content (not initial greetings)
+                if (text.length > 100 && text.includes('.') && text.includes('?')) {
+                    formattedText = formattedText.replace(/([^.!]*\?)/g, '<div class="question-highlight mt-3 mb-2 p-3 bg-blue-50 border-l-4 border-blue-400 rounded-r-lg"><strong class="text-blue-800">$1</strong></div>');
+                }
+                
+                contentDiv.innerHTML = formattedText;
+            }
+            
+            // Append both parts to bubble
+            bubbleDiv.appendChild(headerDiv);
+            bubbleDiv.appendChild(contentDiv);
+        } else {
+            bubbleDiv.innerHTML = `
+                <div class="text-sm text-white font-medium">${text}</div>
+            `;
+        }
+        
+        messageDiv.appendChild(bubbleDiv);
+        paddleCoachMessages.appendChild(messageDiv);
+        // No scrollIntoView here
+    }
+
+    // Initialize Coach Rally with welcome message
+    function initializePaddleCoach() {
+        appendPaddleCoachMessage("👋 Hi! I'm Coach Rally. I'm here to help you improve your paddle tennis game!", 'ai');
+        appendPaddleCoachMessage("What would you like to work on today?", 'ai');
+    }
+
+    // Handle Coach Rally form submission with improved UX
+    if (paddleCoachForm) {
+        paddleCoachForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const userMessage = paddleCoachInput.value.trim();
+            if (!userMessage) return;
+            
+            // Add user message to chat immediately
+            appendPaddleCoachMessage(userMessage, 'user');
+            paddleCoachInput.value = '';
+            
+            // Disable input while processing
+            paddleCoachInput.disabled = true;
+            const submitBtn = paddleCoachForm.querySelector('button[type="submit"]');
+            const originalIcon = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            
+            // Add enhanced typing indicator
+            const typingId = 'typing-' + Date.now();
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'flex justify-start mb-2';
+            typingDiv.innerHTML = `
+                <div id="${typingId}" class="flex items-center gap-2 bg-gray-100 text-gray-500 px-3 py-1 rounded-full text-xs">
+                    <span>Coach Rally is thinking...</span>
+                    <div class="flex gap-1">
+                        <div class="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0ms"></div>
+                        <div class="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 150ms"></div>
+                        <div class="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 300ms"></div>
+                    </div>
+                </div>
+            `;
+            paddleCoachMessages.appendChild(typingDiv);
+            
+            const startTime = Date.now();
+            
+            try {
+                // Enhanced message with coaching context
+                const enhancedMessage = `Paddle tennis coaching: ${userMessage}`;
+                
+                const response = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        message: enhancedMessage,
+                        thread_id: coachThreadId
+                    })
+                });
+                
+                const data = await response.json();
+                const responseTime = ((Date.now() - startTime) / 1000).toFixed(1);
+                
+                // Store thread ID for conversation continuity
+                if (data.thread_id) {
+                    coachThreadId = data.thread_id;
+                }
+                
+                // Remove typing indicator
+                const typingElement = document.getElementById(typingId);
+                if (typingElement) {
+                    typingElement.parentElement.remove();
+                }
+                
+                if (data.response) {
+                    appendPaddleCoachMessage(data.response, 'ai');
+                    
+                    // Show speed improvement in subtle way
+                    if (responseTime < 3) {
+                        const speedIndicator = document.createElement('div');
+                        speedIndicator.className = 'text-center text-xs text-green-600 mb-2 opacity-75';
+                        speedIndicator.innerHTML = `<i class="fas fa-bolt text-yellow-500 mr-1"></i>Fast response (${responseTime}s)`;
+                        paddleCoachMessages.appendChild(speedIndicator);
+                        
+                        // Auto-remove after 3 seconds
+                        setTimeout(() => {
+                            if (speedIndicator.parentNode) {
+                                speedIndicator.parentNode.removeChild(speedIndicator);
+                            }
+                        }, 3000);
+                    }
+                } else {
+                    appendPaddleCoachMessage("I had trouble with that. Could you try rephrasing?", 'ai');
+                }
+                
+            } catch (error) {
+                console.error('Coach Rally error:', error);
+                
+                // Remove typing indicator
+                const typingElement = document.getElementById(typingId);
+                if (typingElement) {
+                    typingElement.parentElement.remove();
+                }
+                
+                appendPaddleCoachMessage("I'm having technical difficulties. Please try again!", 'ai');
+            } finally {
+                // Re-enable input
+                paddleCoachInput.disabled = false;
+                submitBtn.innerHTML = originalIcon;
+                paddleCoachInput.focus();
+            }
+        });
+    }
+
+    // Initialize Coach Rally
+    initializePaddleCoach();
 });
 </script>
 
@@ -447,6 +901,107 @@ document.addEventListener('DOMContentLoaded', function() {
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
+}
+
+/* Enhanced Coach Rally chat styles */
+#paddle-coach-messages {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 #f1f5f9;
+}
+
+#paddle-coach-messages::-webkit-scrollbar {
+    width: 6px;
+}
+
+#paddle-coach-messages::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 3px;
+}
+
+#paddle-coach-messages::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+}
+
+#paddle-coach-messages::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Enhanced message animations */
+@keyframes messageSlideIn {
+    from { 
+        opacity: 0; 
+        transform: translateY(15px) scale(0.95); 
+    }
+    to { 
+        opacity: 1; 
+        transform: translateY(0) scale(1); 
+    }
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 1; }
+}
+
+/* Input state styling */
+#paddle-coach-input:disabled {
+    background-color: #f9fafb;
+    cursor: wait;
+}
+
+/* Button loading state */
+.loading-btn {
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+/* Speed indicator animation */
+@keyframes speedPulse {
+    0% { transform: scale(1); opacity: 0; }
+    50% { transform: scale(1.1); opacity: 1; }
+    100% { transform: scale(1); opacity: 0.75; }
+}
+
+.speed-indicator {
+    animation: speedPulse 0.6s ease-out;
+}
+
+/* Enhanced bubble styling */
+.coach-message-bubble {
+    backdrop-filter: blur(10px);
+    transition: all 0.2s ease;
+}
+
+.coach-message-bubble:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Practice highlight styling */
+.practice-highlight {
+    background: linear-gradient(120deg, #84fab0 0%, #8fd3f4 100%);
+    padding: 2px 6px;
+    border-radius: 12px;
+    font-weight: 500;
+}
+
+/* Question highlight styling */
+.question-highlight {
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(59, 130, 246, 0.1);
+}
+
+.question-highlight:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+}
+
+.question-highlight strong {
+    font-size: 14px;
+    line-height: 1.4;
 }
 </style>
 {% endif %}
