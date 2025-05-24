@@ -59,7 +59,7 @@
     {% endif %}
 
     <!-- Coach Rally Section -->
-    <div class="p-4 bg-white rounded-lg shadow mb-4">
+    <div class="p-4 bg-white rounded-lg shadow mb-4 border-2 border-blue-400 min-h-[550px] max-h-[700px] flex flex-col">
         <div class="flex items-center gap-3 mb-4">
             <div class="bg-gradient-to-br from-green-500 to-blue-600 rounded-md flex items-center justify-center h-10 w-10">
                 <i class="fas fa-user-graduate text-white text-lg"></i>
@@ -71,7 +71,7 @@
         </div>
         
         <!-- Chat Messages Container -->
-        <div id="paddle-coach-messages" class="min-h-[200px] max-h-[350px] overflow-y-auto bg-gray-50 rounded-xl p-3 mb-4 space-y-2"></div>
+        <div id="paddle-coach-messages" class="min-h-[200px] max-h-[350px] overflow-y-auto bg-gray-50 rounded-xl p-3 mb-4 space-y-2 flex-1"></div>
         
         <!-- Chat Input Form -->
         <form id="paddle-coach-form" class="flex gap-2">
@@ -557,9 +557,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Auto-rotate every 30 seconds
-    setInterval(rotateToNextTip, 30000);
-    
     // Coach Rally Interactive Chat
     const paddleCoachMessages = document.getElementById('paddle-coach-messages');
     const paddleCoachForm = document.getElementById('paddle-coach-form');
@@ -659,6 +656,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 paddleCoachMessages.appendChild(messageDiv);
             }
             // No scrollIntoView here
+            // Nudge chat window down by 50px after response
+            paddleCoachMessages.scrollTop += 50;
             return;
         }
         const messageDiv = document.createElement('div');
@@ -769,6 +768,8 @@ document.addEventListener('DOMContentLoaded', function() {
         messageDiv.appendChild(bubbleDiv);
         paddleCoachMessages.appendChild(messageDiv);
         // No scrollIntoView here
+        // Nudge chat window down by 50px after response
+        paddleCoachMessages.scrollTop += 50;
     }
 
     // Initialize Coach Rally with welcome message
