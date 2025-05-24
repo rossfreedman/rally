@@ -4102,7 +4102,7 @@ def get_matches_for_user_club(user):
 @app.route('/mobile/improve')
 @login_required
 def serve_mobile_improve():
-    """Serve the mobile improve page"""
+    """Serve the mobile improve page with paddle tips"""
     try:
         user = session.get('user')
         if not user:
@@ -4113,6 +4113,17 @@ def serve_mobile_improve():
             'authenticated': True
         }
         
+        # Load paddle tips from JSON file
+        paddle_tips = []
+        try:
+            tips_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddle_tips.json')
+            with open(tips_path, 'r', encoding='utf-8') as f:
+                tips_data = json.load(f)
+                paddle_tips = tips_data.get('paddle_tips', [])
+        except Exception as tips_error:
+            print(f"Error loading paddle tips: {str(tips_error)}")
+            # Continue without tips if file can't be loaded
+        
         log_user_activity(
             user['email'], 
             'page_visit', 
@@ -4120,7 +4131,9 @@ def serve_mobile_improve():
             details='Accessed improve page'
         )
         
-        return render_template('mobile/improve.html', session_data=session_data)
+        return render_template('mobile/improve.html', 
+                              session_data=session_data, 
+                              paddle_tips=paddle_tips)
         
     except Exception as e:
         print(f"Error serving improve page: {str(e)}")

@@ -28,142 +28,427 @@
         </div>
     </div>
 
+    <!-- Paddle Tips Section -->
+    {% if paddle_tips %}
+    <div class="p-4 mb-6">
+        <div class="bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg shadow-lg p-4 text-white">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center">
+                    <i class="fas fa-lightbulb text-yellow-300 text-2xl mr-3"></i>
+                    <h3 class="text-xl font-bold">Daily Paddle Tip</h3>
+                </div>
+                <button id="refreshTip" class="bg-white bg-opacity-20 hover:bg-opacity-30 rounded-full p-2 transition-all duration-200">
+                    <i class="fas fa-refresh text-white"></i>
+                </button>
+            </div>
+            
+            <div id="tipContainer" class="min-h-[200px]">
+                <div class="tip-content">
+                    <!-- Tip Image -->
+                    <div class="mb-3">
+                        <img id="tipImage" src="" alt="Paddle Tip" class="w-full h-48 object-cover rounded-lg border-2 border-white border-opacity-20 hidden">
+                    </div>
+                    
+                    <h4 class="text-lg font-semibold mb-2" id="tipTitle">Loading tip...</h4>
+                    <p class="text-sm text-blue-100 mb-3" id="tipMeta">Tip #</p>
+                    <p class="text-white leading-relaxed mb-3" id="tipDescription">Loading...</p>
+                    
+                    <div id="tipActions" class="flex justify-between items-center mb-3">
+                        <span class="text-xs text-blue-200" id="tipDate"></span>
+                        <a id="tipVideoLink" href="#" target="_blank" class="bg-white bg-opacity-20 hover:bg-opacity-30 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hidden">
+                            <i class="fas fa-play mr-1"></i> Watch Video
+                        </a>
+                    </div>
+                    
+                    <!-- View More Link -->
+                    <div class="border-t border-white border-opacity-20 pt-3">
+                        <button id="viewMoreTip" class="w-full bg-white bg-opacity-10 hover:bg-opacity-20 rounded-lg py-2 px-4 text-white font-medium transition-all duration-200 flex items-center justify-center">
+                            <i class="fas fa-external-link-alt mr-2"></i> View Full Tip
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Training Resources -->
     <div class="p-4 space-y-4">
         <!-- Video Library Card -->
-        <div class="bg-white rounded-lg shadow p-4">
-            <div class="flex items-center mb-3">
-                <i class="fas fa-video text-blue-600 text-xl mr-2"></i>
-                <span class="text-lg font-bold">Training Video Library</span>
+        <div class="bg-gray-50 rounded-lg shadow p-4 opacity-60 relative">
+            <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center">
+                    <i class="fas fa-video text-gray-400 text-xl mr-2"></i>
+                    <span class="text-lg font-bold text-gray-500">Training Video Library</span>
+                </div>
+                <span class="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full font-medium">Coming Soon</span>
             </div>
-            <p class="text-gray-600 mb-4">Access our curated collection of training videos and tutorials.</p>
-            <a href="#" class="text-blue-600 hover:text-blue-800 font-semibold flex items-center">
-                Browse Videos <i class="fas fa-arrow-right ml-2"></i>
-            </a>
+            <p class="text-gray-500 mb-4">Access our curated collection of training videos and tutorials.</p>
+            <div class="text-gray-400 font-semibold flex items-center cursor-not-allowed">
+                Browse Videos <i class="fas fa-lock ml-2"></i>
+            </div>
         </div>
 
         <!-- Drills & Exercises Card -->
-        <div class="bg-white rounded-lg shadow p-4">
-            <div class="flex items-center mb-3">
-                <i class="fas fa-dumbbell text-green-600 text-xl mr-2"></i>
-                <span class="text-lg font-bold">Drills & Exercises</span>
+        <div class="bg-gray-50 rounded-lg shadow p-4 opacity-60 relative">
+            <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center">
+                    <i class="fas fa-dumbbell text-gray-400 text-xl mr-2"></i>
+                    <span class="text-lg font-bold text-gray-500">Drills & Exercises</span>
+                </div>
+                <span class="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full font-medium">Coming Soon</span>
             </div>
-            <p class="text-gray-600 mb-4">Practice routines and exercises to enhance your skills.</p>
-            <a href="#" class="text-blue-600 hover:text-blue-800 font-semibold flex items-center">
-                View Drills <i class="fas fa-arrow-right ml-2"></i>
-            </a>
+            <p class="text-gray-500 mb-4">Practice routines and exercises to enhance your skills.</p>
+            <div class="text-gray-400 font-semibold flex items-center cursor-not-allowed">
+                View Drills <i class="fas fa-lock ml-2"></i>
+            </div>
         </div>
 
         <!-- Performance Analysis Card -->
-        <div class="bg-white rounded-lg shadow p-4">
-            <div class="flex items-center mb-3">
-                <i class="fas fa-chart-bar text-purple-600 text-xl mr-2"></i>
-                <span class="text-lg font-bold">Performance Analysis</span>
+        <div class="bg-gray-50 rounded-lg shadow p-4 opacity-60 relative">
+            <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center">
+                    <i class="fas fa-chart-bar text-gray-400 text-xl mr-2"></i>
+                    <span class="text-lg font-bold text-gray-500">Performance Analysis</span>
+                </div>
+                <span class="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full font-medium">Coming Soon</span>
             </div>
-            <p class="text-gray-600 mb-4">Track your progress and identify areas for improvement.</p>
-            <a href="#" class="text-blue-600 hover:text-blue-800 font-semibold flex items-center">
-                View Analysis <i class="fas fa-arrow-right ml-2"></i>
-            </a>
+            <p class="text-gray-500 mb-4">Track your progress and identify areas for improvement.</p>
+            <div class="text-gray-400 font-semibold flex items-center cursor-not-allowed">
+                View Analysis <i class="fas fa-lock ml-2"></i>
+            </div>
         </div>
     </div>
 
     <!-- Review Video Footage Section -->
-    <div class="p-4 space-y-4">
-        <div class="flex items-center gap-2">
-            <i class="fas fa-video text-xl"></i>
-            <h2 class="text-xl font-bold">Review Video Footage</h2>
+    <div class="p-4 space-y-4 bg-gray-50 opacity-60 relative">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <i class="fas fa-video text-gray-400 text-xl"></i>
+                <h2 class="text-xl font-bold text-gray-500">Review Video Footage</h2>
+            </div>
+            <span class="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full font-medium">Coming Soon</span>
         </div>
-        <p class="text-red-500 text-sm">Videos are currently placeholders</p>
+        <p class="text-gray-500 text-sm">This feature will allow you to review and analyze your match footage.</p>
 
-        <h3 class="text-lg font-semibold mt-6 mb-4">Match Videos</h3>
+        <h3 class="text-lg font-semibold mt-6 mb-4 text-gray-500">Match Videos</h3>
         <div class="grid grid-cols-1 gap-4">
             <!-- Match Video 1 -->
-            <div class="bg-white rounded-lg shadow overflow-hidden">
-                <img src="/static/images/video_thumbnail.png" class="w-full h-48 object-cover" alt="Match Video">
+            <div class="bg-gray-100 rounded-lg shadow overflow-hidden relative">
+                <img src="/static/images/video_thumbnail.png" class="w-full h-48 object-cover opacity-50" alt="Match Video">
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <i class="fas fa-lock text-gray-400 text-3xl"></i>
+                </div>
                 <div class="p-4">
                     <div class="flex justify-between items-center mb-2">
-                        <h5 class="font-semibold text-sm">You/Jonathan Blume vs. Victor Forman/Stephen Statkus - Court 3</h5>
-                        <span class="bg-gray-800 text-white text-xs px-2 py-1 rounded">12:43</span>
+                        <h5 class="font-semibold text-sm text-gray-400">You/Jonathan Blume vs. Victor Forman/Stephen Statkus - Court 3</h5>
+                        <span class="bg-gray-400 text-white text-xs px-2 py-1 rounded">12:43</span>
                     </div>
-                    <p class="text-gray-500 text-sm">Apr 12, 2025 • 243 views</p>
+                    <p class="text-gray-400 text-sm">Apr 12, 2025 • 243 views</p>
                 </div>
             </div>
 
             <!-- Match Video 2 -->
-            <div class="bg-white rounded-lg shadow overflow-hidden">
-                <img src="/static/images/video_thumbnail.png" class="w-full h-48 object-cover" alt="Match Video">
+            <div class="bg-gray-100 rounded-lg shadow overflow-hidden relative">
+                <img src="/static/images/video_thumbnail.png" class="w-full h-48 object-cover opacity-50" alt="Match Video">
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <i class="fas fa-lock text-gray-400 text-3xl"></i>
+                </div>
                 <div class="p-4">
                     <div class="flex justify-between items-center mb-2">
-                        <h5 class="font-semibold text-sm">You/Mike Lieberman vs. Brian Stutland/David Schwartz - Court 1</h5>
-                        <span class="bg-gray-800 text-white text-xs px-2 py-1 rounded">15:21</span>
+                        <h5 class="font-semibold text-sm text-gray-400">You/Mike Lieberman vs. Brian Stutland/David Schwartz - Court 1</h5>
+                        <span class="bg-gray-400 text-white text-xs px-2 py-1 rounded">15:21</span>
                     </div>
-                    <p class="text-gray-500 text-sm">Mar 24, 2025 • 127 views</p>
+                    <p class="text-gray-400 text-sm">Mar 24, 2025 • 127 views</p>
                 </div>
             </div>
 
             <!-- Match Video 3 -->
-            <div class="bg-white rounded-lg shadow overflow-hidden">
-                <img src="/static/images/video_thumbnail.png" class="w-full h-48 object-cover" alt="Match Video">
+            <div class="bg-gray-100 rounded-lg shadow overflow-hidden relative">
+                <img src="/static/images/video_thumbnail.png" class="w-full h-48 object-cover opacity-50" alt="Match Video">
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <i class="fas fa-lock text-gray-400 text-3xl"></i>
+                </div>
                 <div class="p-4">
                     <div class="flex justify-between items-center mb-2">
-                        <h5 class="font-semibold text-sm">You/Andrew Franger vs. Mike Lieberman/Josh Cohen - Court 2</h5>
-                        <span class="bg-gray-800 text-white text-xs px-2 py-1 rounded">9:58</span>
+                        <h5 class="font-semibold text-sm text-gray-400">You/Andrew Franger vs. Mike Lieberman/Josh Cohen - Court 2</h5>
+                        <span class="bg-gray-400 text-white text-xs px-2 py-1 rounded">9:58</span>
                     </div>
-                    <p class="text-gray-500 text-sm">Feb 18, 2025 • 85 views</p>
+                    <p class="text-gray-400 text-sm">Feb 18, 2025 • 85 views</p>
                 </div>
             </div>
 
             <!-- Match Video 4 -->
-            <div class="bg-white rounded-lg shadow overflow-hidden">
-                <img src="/static/images/video_thumbnail.png" class="w-full h-48 object-cover" alt="Match Video">
+            <div class="bg-gray-100 rounded-lg shadow overflow-hidden relative">
+                <img src="/static/images/video_thumbnail.png" class="w-full h-48 object-cover opacity-50" alt="Match Video">
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <i class="fas fa-lock text-gray-400 text-3xl"></i>
+                </div>
                 <div class="p-4">
                     <div class="flex justify-between items-center mb-2">
-                        <h5 class="font-semibold text-sm">You/Victor Forman vs. David Schwartz/Alex Johnson - Court 4</h5>
-                        <span class="bg-gray-800 text-white text-xs px-2 py-1 rounded">11:16</span>
+                        <h5 class="font-semibold text-sm text-gray-400">You/Victor Forman vs. David Schwartz/Alex Johnson - Court 4</h5>
+                        <span class="bg-gray-400 text-white text-xs px-2 py-1 rounded">11:16</span>
                     </div>
-                    <p class="text-gray-500 text-sm">Jan 30, 2025 • 204 views</p>
+                    <p class="text-gray-400 text-sm">Jan 30, 2025 • 204 views</p>
                 </div>
             </div>
         </div>
 
-        <h3 class="text-lg font-semibold mt-6 mb-4">Practice Videos</h3>
+        <h3 class="text-lg font-semibold mt-6 mb-4 text-gray-500">Practice Videos</h3>
         <div class="grid grid-cols-1 gap-4">
             <!-- Practice Video 1 -->
-            <div class="bg-white rounded-lg shadow overflow-hidden">
-                <img src="/static/images/video_thumbnail.png" class="w-full h-48 object-cover" alt="Practice Video">
+            <div class="bg-gray-100 rounded-lg shadow overflow-hidden relative">
+                <img src="/static/images/video_thumbnail.png" class="w-full h-48 object-cover opacity-50" alt="Practice Video">
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <i class="fas fa-lock text-gray-400 text-3xl"></i>
+                </div>
                 <div class="p-4">
                     <div class="flex justify-between items-center mb-2">
-                        <h5 class="font-semibold text-sm">Serve Practice with Coach Smith</h5>
-                        <span class="bg-gray-800 text-white text-xs px-2 py-1 rounded">8:32</span>
+                        <h5 class="font-semibold text-sm text-gray-400">Serve Practice with Coach Smith</h5>
+                        <span class="bg-gray-400 text-white text-xs px-2 py-1 rounded">8:32</span>
                     </div>
-                    <p class="text-gray-500 text-sm">Apr 15, 2025 • 156 views</p>
+                    <p class="text-gray-400 text-sm">Apr 15, 2025 • 156 views</p>
                 </div>
             </div>
 
             <!-- Practice Video 2 -->
-            <div class="bg-white rounded-lg shadow overflow-hidden">
-                <img src="/static/images/video_thumbnail.png" class="w-full h-48 object-cover" alt="Practice Video">
+            <div class="bg-gray-100 rounded-lg shadow overflow-hidden relative">
+                <img src="/static/images/video_thumbnail.png" class="w-full h-48 object-cover opacity-50" alt="Practice Video">
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <i class="fas fa-lock text-gray-400 text-3xl"></i>
+                </div>
                 <div class="p-4">
                     <div class="flex justify-between items-center mb-2">
-                        <h5 class="font-semibold text-sm">Backhand Drills Session</h5>
-                        <span class="bg-gray-800 text-white text-xs px-2 py-1 rounded">12:15</span>
+                        <h5 class="font-semibold text-sm text-gray-400">Backhand Drills Session</h5>
+                        <span class="bg-gray-400 text-white text-xs px-2 py-1 rounded">12:15</span>
                     </div>
-                    <p class="text-gray-500 text-sm">Apr 8, 2025 • 98 views</p>
+                    <p class="text-gray-400 text-sm">Apr 8, 2025 • 98 views</p>
                 </div>
             </div>
 
             <!-- Practice Video 3 -->
-            <div class="bg-white rounded-lg shadow overflow-hidden">
-                <img src="/static/images/video_thumbnail.png" class="w-full h-48 object-cover" alt="Practice Video">
+            <div class="bg-gray-100 rounded-lg shadow overflow-hidden relative">
+                <img src="/static/images/video_thumbnail.png" class="w-full h-48 object-cover opacity-50" alt="Practice Video">
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <i class="fas fa-lock text-gray-400 text-3xl"></i>
+                </div>
                 <div class="p-4">
                     <div class="flex justify-between items-center mb-2">
-                        <h5 class="font-semibold text-sm">Volley Technique Workshop</h5>
-                        <span class="bg-gray-800 text-white text-xs px-2 py-1 rounded">10:45</span>
+                        <h5 class="font-semibold text-sm text-gray-400">Volley Technique Workshop</h5>
+                        <span class="bg-gray-400 text-white text-xs px-2 py-1 rounded">10:45</span>
                     </div>
-                    <p class="text-gray-500 text-sm">Apr 1, 2025 • 172 views</p>
+                    <p class="text-gray-400 text-sm">Apr 1, 2025 • 172 views</p>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+{% if paddle_tips %}
+<!-- Paddle Tips Data -->
+<script id="paddle-tips-data" type="application/json">{{ paddle_tips | tojson | safe }}</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const paddleTipsScript = document.getElementById('paddle-tips-data');
+    const paddleTips = paddleTipsScript ? JSON.parse(paddleTipsScript.textContent) : [];
+    let currentTipIndex = -1;
+    
+    function getRandomTip() {
+        if (paddleTips.length === 0) return null;
+        
+        let newIndex;
+        do {
+            newIndex = Math.floor(Math.random() * paddleTips.length);
+        } while (newIndex === currentTipIndex && paddleTips.length > 1);
+        
+        currentTipIndex = newIndex;
+        return paddleTips[newIndex];
+    }
+    
+    function displayTip(tip) {
+        if (!tip) return;
+        
+        const tipContainer = document.getElementById('tipContainer');
+        const tipTitle = document.getElementById('tipTitle');
+        const tipMeta = document.getElementById('tipMeta');
+        const tipDescription = document.getElementById('tipDescription');
+        const tipDate = document.getElementById('tipDate');
+        const tipVideoLink = document.getElementById('tipVideoLink');
+        const tipImage = document.getElementById('tipImage');
+        const viewMoreTip = document.getElementById('viewMoreTip');
+        
+        if (!tipContainer || !tipTitle || !tipMeta || !tipDescription || !tipDate || !tipVideoLink) {
+            return;
+        }
+        
+        // Add fade out effect
+        tipContainer.style.opacity = '0.7';
+        
+        setTimeout(function() {
+            // Update content
+            tipTitle.textContent = tip.name || 'Untitled Tip';
+            tipMeta.textContent = 'Tip #' + (tip.number || '');
+            
+            // Truncate description if too long for mobile (shorter now due to image)
+            let description = tip.description || '';
+            if (description.length > 200) {
+                description = description.substring(0, 200) + '...';
+            }
+            tipDescription.textContent = description;
+            
+            tipDate.textContent = tip.date || '';
+            
+            // Handle tip image - hide if doesn't exist
+            if (tipImage && tip.image) {
+                tipImage.src = '/static/images/tip_images/' + tip.image;
+                tipImage.classList.remove('hidden');
+                
+                // Simple error handling - just hide if image doesn't exist
+                tipImage.onerror = function() {
+                    this.classList.add('hidden');
+                };
+            } else if (tipImage) {
+                tipImage.classList.add('hidden');
+            }
+            
+            // Handle video link
+            if (tip.url) {
+                tipVideoLink.href = tip.url;
+                tipVideoLink.classList.remove('hidden');
+            } else {
+                tipVideoLink.classList.add('hidden');
+            }
+            
+            // Store current tip data for view more functionality
+            if (viewMoreTip) {
+                viewMoreTip.setAttribute('data-tip-number', tip.number || '');
+                viewMoreTip.setAttribute('data-tip-name', tip.name || '');
+            }
+            
+            // Fade back in
+            tipContainer.style.opacity = '1';
+        }, 150);
+    }
+    
+    function rotateToNextTip() {
+        const nextTip = getRandomTip();
+        displayTip(nextTip);
+    }
+    
+    function showTipModal(tip) {
+        if (!tip) return;
+        
+        // Create modal backdrop
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4';
+        modal.innerHTML = `
+            <div class="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
+                <div class="p-4 border-b border-gray-200 flex justify-between items-center">
+                    <div>
+                        <h3 class="text-lg font-bold text-gray-800">${tip.name || 'Untitled Tip'}</h3>
+                        <p class="text-sm text-gray-500">Tip #${tip.number || ''} • ${tip.date || ''}</p>
+                    </div>
+                    <button class="close-modal text-gray-400 hover:text-gray-600 text-2xl">×</button>
+                </div>
+                <div class="p-4">
+                    ${tip.image ? `<img src="/static/images/tip_images/${tip.image}" alt="Paddle Tip" class="w-full h-64 object-cover rounded-lg mb-4" onerror="this.style.display='none'">` : ''}
+                    <div class="text-gray-700 leading-relaxed mb-4">${(tip.description || '').replace(/\n/g, '<br>')}</div>
+                    ${tip.url ? `
+                        <div class="mt-4">
+                            <a href="${tip.url}" target="_blank" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                                <i class="fas fa-play mr-2"></i> Watch Video
+                            </a>
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+        
+        // Add to page
+        document.body.appendChild(modal);
+        
+        // Set up close handlers
+        const closeButton = modal.querySelector('.close-modal');
+        closeButton.addEventListener('click', function() {
+            document.body.removeChild(modal);
+        });
+        
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                document.body.removeChild(modal);
+            }
+        });
+        
+        // Prevent body scroll
+        document.body.style.overflow = 'hidden';
+        
+        // Restore body scroll when modal closes
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                mutation.removedNodes.forEach(function(node) {
+                    if (node === modal) {
+                        document.body.style.overflow = '';
+                        observer.disconnect();
+                    }
+                });
+            });
+        });
+        observer.observe(document.body, { childList: true });
+    }
+    
+    // Initialize with first tip
+    rotateToNextTip();
+    
+    // Set up refresh button
+    const refreshButton = document.getElementById('refreshTip');
+    if (refreshButton) {
+        refreshButton.addEventListener('click', function() {
+            // Add rotation animation
+            refreshButton.style.transform = 'rotate(360deg)';
+            setTimeout(function() {
+                refreshButton.style.transform = 'rotate(0deg)';
+            }, 300);
+            
+            rotateToNextTip();
+        });
+    }
+    
+    // Set up view more button
+    const viewMoreButton = document.getElementById('viewMoreTip');
+    if (viewMoreButton) {
+        viewMoreButton.addEventListener('click', function() {
+            const tipNumber = this.getAttribute('data-tip-number');
+            const tipName = this.getAttribute('data-tip-name');
+            
+            // Create modal or expanded view
+            showTipModal(paddleTips.find(tip => tip.number == tipNumber));
+        });
+    }
+    
+    // Auto-rotate every 30 seconds
+    setInterval(rotateToNextTip, 30000);
+});
+</script>
+
+<style>
+#tipContainer {
+    transition: opacity 0.3s ease-in-out;
+}
+
+#refreshTip {
+    transition: transform 0.3s ease-in-out;
+}
+
+.tip-content {
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+</style>
+{% endif %}
+
 {% endblock %} 
