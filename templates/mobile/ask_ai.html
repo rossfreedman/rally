@@ -90,6 +90,49 @@
 #ai-chat-form button:hover {
   background: #005ecb;
 }
+
+/* Video bubble styles for AI chat */
+.video-container {
+  position: relative;
+  width: 100%;
+  height: 0;
+  padding-bottom: 56.25%;
+  overflow: hidden;
+  border-radius: 8px;
+  margin: 10px 0;
+}
+
+.video-container iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.video-bubble {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%) !important;
+  color: white !important;
+}
+
+.video-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 12px;
+  background: rgba(255,255,255,0.2);
+  color: white;
+  text-decoration: none;
+  border-radius: 6px;
+  font-size: 0.85em;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.video-link:hover {
+  background: rgba(255,255,255,0.3);
+  color: white;
+  text-decoration: none;
+}
 </style>
 
 <!-- Consistent mobile header -->
@@ -181,6 +224,94 @@ window.addEventListener('DOMContentLoaded', function() {
 // Track conversation thread
 let threadId = null;
 
+// Helper function to extract YouTube video ID
+function extractYouTubeId(url) {
+    if (!url) return null;
+    const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/);
+    return match ? match[1] : null;
+}
+
+// Helper function to escape HTML
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Function to search for and add training videos
+function searchAndAddTrainingVideo(message) {
+    // Check if message contains paddle tennis technique keywords
+    const techniqueKeywords = ['serve', 'volley', 'overhead', 'lob', 'backhand', 'forehand', 'return', 'net play', 'strategy', 'footwork', 'positioning'];
+    const messageWords = message.toLowerCase().split(/\s+/);
+    const hasKeyword = techniqueKeywords.some(keyword => 
+        messageWords.some(word => word.includes(keyword) || keyword.includes(word))
+    );
+    
+    if (!hasKeyword) return; // Don't search for videos if no technique keywords
+    
+    // Call API to find relevant training video
+    fetch('/api/find-training-video', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            content: message
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.video) {
+            // Add video bubble with delay for natural feel
+            setTimeout(() => {
+                const videoBubble = document.createElement('div');
+                videoBubble.className = 'imessage-bubble imessage-ai';
+                videoBubble.style.maxWidth = '90%';
+                videoBubble.style.background = 'linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%)';
+                videoBubble.style.color = 'white';
+                videoBubble.style.marginBottom = '0.5rem';
+                
+                // Extract YouTube video ID for embedding
+                const videoId = extractYouTubeId(data.video.url);
+                
+                videoBubble.innerHTML = `
+                    <div style="margin-bottom: 10px;">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                            <i class="fas fa-play" style="color: white;"></i>
+                            <span style="font-weight: 600; font-size: 0.9em;">Training Video</span>
+                        </div>
+                        <div style="font-weight: 500; margin-bottom: 4px;">${escapeHtml(data.video.title)}</div>
+                        <div style="font-size: 0.8em; opacity: 0.9;">Related to: ${escapeHtml(data.video.topic)}</div>
+                    </div>
+                    ${videoId ? `
+                        <div style="position: relative; width: 100%; height: 0; padding-bottom: 56.25%; overflow: hidden; border-radius: 8px; margin-bottom: 10px;">
+                            <iframe 
+                                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"
+                                src="https://www.youtube.com/embed/${videoId}" 
+                                frameborder="0" 
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                allowfullscreen>
+                            </iframe>
+                        </div>
+                    ` : ''}
+                    <div style="text-align: center;">
+                        <a href="${data.video.url}" target="_blank" 
+                           style="display: inline-flex; align-items: center; padding: 8px 12px; background: rgba(255,255,255,0.2); color: white; text-decoration: none; border-radius: 6px; font-size: 0.85em; font-weight: 500;">
+                            <i class="fas fa-external-link-alt" style="margin-right: 6px;"></i> Watch on YouTube
+                        </a>
+                    </div>
+                `;
+                
+                messages.appendChild(videoBubble);
+                messages.scrollTop = messages.scrollHeight;
+            }, 800);
+        }
+    })
+    .catch(error => {
+        console.error('Error finding training video:', error);
+    });
+}
+
 document.getElementById('ai-chat-form').addEventListener('submit', async function(e) {
     e.preventDefault();
     const input = document.getElementById('ai-chat-input');
@@ -226,6 +357,9 @@ document.getElementById('ai-chat-form').addEventListener('submit', async functio
             const formattedResponse = formatAIResponse(data.response);
             console.log('Final formatted response:', formattedResponse);
             appendMessage(`<div class="mb-1"><strong class="text-blue-700">Rally AI:</strong></div>${formattedResponse}`, 'ai');
+            
+            // Search for and add relevant training video
+            searchAndAddTrainingVideo(userMsg);
             
             // Show debug info if available (only in development)
             if (data.debug && window.location.hostname === 'localhost') {

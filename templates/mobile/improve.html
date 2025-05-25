@@ -687,8 +687,11 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
         paddleCoachMessages.appendChild(userMessageDiv);
         
-        // Scroll to bottom
-        paddleCoachMessages.scrollTop = paddleCoachMessages.scrollHeight;
+        // Store the position of the user message for smart scrolling
+        const userMessagePosition = userMessageDiv.offsetTop;
+        
+        // Scroll to show the user message plus a small buffer (25px)
+        paddleCoachMessages.scrollTop = userMessagePosition - 25;
         
         // Update preview
         updateChatPreview(message);
@@ -752,27 +755,12 @@ document.addEventListener('DOMContentLoaded', function() {
             `;
             paddleCoachMessages.appendChild(coachMessageDiv);
             
-            // Add follow-up question as separate bubble if it exists
-            if (followupQuestion) {
-                setTimeout(() => {
-                    const followupDiv = document.createElement('div');
-                    followupDiv.className = 'flex justify-start mb-3';
-                    followupDiv.innerHTML = `
-                        <div class="bg-gray-200 text-gray-900 rounded-2xl py-3 px-4 max-w-[42%] shadow-sm imessage-followup-bubble">
-                            <div class="flex items-start gap-3">
-                                <div class="bg-gradient-to-br from-green-500 to-blue-600 rounded-full flex items-center justify-center h-5 w-5 flex-shrink-0 mt-1">
-                                    <i class="fas fa-user-graduate text-white text-xs"></i>
-                                </div>
-                                <div class="text-sm leading-relaxed">
-                                    <span class="font-medium text-green-700 text-xs">Coach Rally</span><br>
-                                    <span class="text-gray-900">${escapeHtml(followupQuestion)}</span>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                    paddleCoachMessages.appendChild(followupDiv);
-                }, 800); // Small delay to make it feel more natural
-            }
+            // Smart scroll: show the top of the coach response with 25px buffer from user message
+            const coachMessagePosition = coachMessageDiv.offsetTop;
+            paddleCoachMessages.scrollTop = userMessagePosition - 25;
+            
+            // Search for relevant training video and add video bubble if found
+            searchAndAddTrainingVideo(message, followupQuestion, userMessagePosition);
             
             // Update thread ID
             if (data.thread_id) {
@@ -815,43 +803,53 @@ document.addEventListener('DOMContentLoaded', function() {
             response = response.replace(new RegExp(followupQuestion.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*$'), '').trim();
         }
         
-        // Parse markdown links: [title](url)
-        let html = escapeHtml(response);
+        // Check if response contains HTML content (from paddle insights)
+        const containsHTML = /<div[^>]*style=/.test(response) || /<strong>/.test(response) || /<div[^>]*class=/.test(response);
         
-        // Convert **text** to bold
-        html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+        let html;
         
-        // Convert numbered sections (1., 2., 3., etc.) to have proper spacing and bold headers
-        html = html.replace(/(\n|^)(\d+\.)([^\n]+)/g, function(match, prefix, number, content) {
-            // Check if the content after the number looks like a header (short and descriptive)
-            if (content.length < 50 && !content.includes('•')) {
-                return `<div class="coach-section-header"><strong>${number}${content}</strong></div>`;
-            } else {
-                return `<div class="coach-numbered-item">${number}${content}</div>`;
-            }
-        });
-        
-        // Convert bullet points with proper spacing
-        html = html.replace(/\n\s*•\s*/g, '<br><div class="coach-bullet-item"><span class="coach-bullet">•</span> ');
-        
-        // Close bullet point divs (find bullet items and wrap them properly)
-        html = html.replace(/(<div class="coach-bullet-item"><span class="coach-bullet">•<\/span> [^<]*?)(<br>|<div|$)/g, '$1</div>$2');
-        
-        // Add paragraph breaks for regular content (double newlines)
-        html = html.replace(/\n\s*\n/g, '<div class="coach-paragraph-break"></div>');
-        
-        // Convert markdown links to clickable links
-        html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, function(_, text, url) {
-            // If YouTube, embed below
-            if (/youtube\.com|youtu\.be/.test(url)) {
-                return `<a href="${url}" target="_blank" class="coach-link">${escapeHtml(text)}</a> <span class="coach-video-embed" data-url="${url}"></span>`;
-            } else {
-                return `<a href="${url}" target="_blank" class="coach-link">${escapeHtml(text)}</a>`;
-            }
-        });
-        
-        // Convert remaining single newlines to <br>
-        html = html.replace(/\n/g, '<br>');
+        if (containsHTML) {
+            // This is HTML content from paddle insights - sanitize but preserve structure
+            html = sanitizeHTML(response);
+        } else {
+            // This is regular text - escape and format as before
+            html = escapeHtml(response);
+            
+            // Convert **text** to bold
+            html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+            
+            // Convert numbered sections (1., 2., 3., etc.) to have proper spacing and bold headers
+            html = html.replace(/(\n|^)(\d+\.)([^\n]+)/g, function(match, prefix, number, content) {
+                // Check if the content after the number looks like a header (short and descriptive)
+                if (content.length < 50 && !content.includes('•')) {
+                    return `<div class="coach-section-header"><strong>${number}${content}</strong></div>`;
+                } else {
+                    return `<div class="coach-numbered-item">${number}${content}</div>`;
+                }
+            });
+            
+            // Convert bullet points with proper spacing
+            html = html.replace(/\n\s*•\s*/g, '<br><div class="coach-bullet-item"><span class="coach-bullet">•</span> ');
+            
+            // Close bullet point divs (find bullet items and wrap them properly)
+            html = html.replace(/(<div class="coach-bullet-item"><span class="coach-bullet">•<\/span> [^<]*?)(<br>|<div|$)/g, '$1</div>$2');
+            
+            // Add paragraph breaks for regular content (double newlines)
+            html = html.replace(/\n\s*\n/g, '<div class="coach-paragraph-break"></div>');
+            
+            // Convert markdown links to clickable links
+            html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, function(_, text, url) {
+                // If YouTube, embed below
+                if (/youtube\.com|youtu\.be/.test(url)) {
+                    return `<a href="${url}" target="_blank" class="coach-link">${escapeHtml(text)}</a> <span class="coach-video-embed" data-url="${url}"></span>`;
+                } else {
+                    return `<a href="${url}" target="_blank" class="coach-link">${escapeHtml(text)}</a>`;
+                }
+            });
+            
+            // Convert remaining single newlines to <br>
+            html = html.replace(/\n/g, '<br>');
+        }
         
         // After rendering, insert YouTube iframes for .coach-video-embed
         setTimeout(() => {
@@ -865,6 +863,97 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 0);
         
         return html;
+    }
+
+    // Helper: Sanitize HTML content while preserving safe formatting
+    function sanitizeHTML(html) {
+        // Create a temporary div to parse the HTML
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = html;
+        
+        // Define allowed tags and attributes
+        const allowedTags = ['div', 'strong', 'b', 'i', 'em', 'br', 'span', 'p'];
+        const allowedAttributes = ['style', 'class'];
+        const allowedStyles = ['font-size', 'font-weight', 'margin-bottom', 'margin-left', 'color', 'margin-top'];
+        const allowedClasses = [
+            'technique-title', 'section-header', 'section-content', 'bullet-item', 
+            'sub-item', 'mistake-item', 'why-item', 'fix-item', 'cue-item',
+            'coach-paragraph-break'
+        ];
+        
+        // Function to sanitize a single element
+        function sanitizeElement(element) {
+            if (element.nodeType === Node.TEXT_NODE) {
+                return element.textContent;
+            }
+            
+            if (element.nodeType !== Node.ELEMENT_NODE) {
+                return '';
+            }
+            
+            const tagName = element.tagName.toLowerCase();
+            
+            // Remove disallowed tags but keep their content
+            if (!allowedTags.includes(tagName)) {
+                return Array.from(element.childNodes).map(sanitizeElement).join('');
+            }
+            
+            // Create new element
+            const newElement = document.createElement(tagName);
+            
+            // Copy allowed attributes
+            for (const attr of element.attributes) {
+                if (allowedAttributes.includes(attr.name.toLowerCase())) {
+                    if (attr.name.toLowerCase() === 'style') {
+                        // Sanitize style attribute
+                        const styles = attr.value.split(';').filter(style => {
+                            const [property] = style.split(':').map(s => s.trim());
+                            return allowedStyles.includes(property);
+                        });
+                        if (styles.length > 0) {
+                            newElement.setAttribute('style', styles.join('; '));
+                        }
+                    } else if (attr.name.toLowerCase() === 'class') {
+                        // Sanitize class attribute
+                        const classes = attr.value.split(' ').filter(cls => 
+                            allowedClasses.includes(cls.trim())
+                        );
+                        if (classes.length > 0) {
+                            newElement.setAttribute('class', classes.join(' '));
+                        }
+                    } else {
+                        newElement.setAttribute(attr.name, attr.value);
+                    }
+                }
+            }
+            
+            // Recursively sanitize children
+            for (const child of element.childNodes) {
+                const sanitizedChild = sanitizeElement(child);
+                if (typeof sanitizedChild === 'string') {
+                    newElement.appendChild(document.createTextNode(sanitizedChild));
+                } else if (sanitizedChild instanceof Node) {
+                    newElement.appendChild(sanitizedChild);
+                }
+            }
+            
+            return newElement;
+        }
+        
+        // Sanitize all elements
+        const sanitizedElements = Array.from(tempDiv.childNodes).map(sanitizeElement);
+        
+        // Convert back to HTML string
+        const resultDiv = document.createElement('div');
+        sanitizedElements.forEach(element => {
+            if (typeof element === 'string') {
+                resultDiv.appendChild(document.createTextNode(element));
+            } else if (element instanceof Node) {
+                resultDiv.appendChild(element);
+            }
+        });
+        
+        return resultDiv.innerHTML;
     }
 
     // Helper: Extract YouTube video ID from URL
@@ -893,6 +982,144 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         return null;
+    }
+
+    // Helper: Search for relevant training video and add video bubble if found
+    function searchAndAddTrainingVideo(message, followupQuestion, userMessagePosition) {
+        // Call API to find relevant training video
+        fetch('/api/find-training-video', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                content: message
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.video) {
+                // Add video bubble with delay for natural feel
+                setTimeout(() => {
+                    const videoBubble = document.createElement('div');
+                    videoBubble.className = 'flex justify-start mb-3';
+                    
+                    // Extract YouTube video ID for embedding
+                    const videoId = extractYouTubeId(data.video.url);
+                    
+                    videoBubble.innerHTML = `
+                        <div class="bg-gradient-to-br from-red-50 to-red-100 border border-red-200 rounded-2xl py-3 px-4 max-w-[90%] shadow-sm imessage-video-bubble">
+                            <div class="flex items-start gap-3 mb-3">
+                                <div class="bg-red-500 rounded-full flex items-center justify-center h-6 w-6 flex-shrink-0 mt-1">
+                                    <i class="fas fa-play text-white text-xs"></i>
+                                </div>
+                                <div class="text-sm leading-relaxed">
+                                    <span class="font-medium text-red-700 text-xs">Training Video</span><br>
+                                    <span class="text-gray-900 font-medium">${escapeHtml(data.video.title)}</span><br>
+                                    <span class="text-gray-600 text-xs">Related to: ${escapeHtml(data.video.topic)}</span>
+                                </div>
+                            </div>
+                            ${videoId ? `
+                                <div class="coach-video-container mb-3">
+                                    <iframe src="https://www.youtube.com/embed/${videoId}" 
+                                            frameborder="0" 
+                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                            allowfullscreen>
+                                    </iframe>
+                                </div>
+                            ` : ''}
+                            <div class="text-center">
+                                <a href="${data.video.url}" target="_blank" 
+                                   class="inline-flex items-center px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm font-medium">
+                                    <i class="fas fa-external-link-alt mr-2"></i> Watch on YouTube
+                                </a>
+                            </div>
+                        </div>
+                    `;
+                    paddleCoachMessages.appendChild(videoBubble);
+                    
+                    // Smart scroll: show the top of the coach response with 25px buffer from user message
+                    paddleCoachMessages.scrollTop = userMessagePosition - 25;
+                    
+                    // Add follow-up question after video if it exists
+                    if (followupQuestion) {
+                        setTimeout(() => {
+                            const followupDiv = document.createElement('div');
+                            followupDiv.className = 'flex justify-start mb-3';
+                            followupDiv.innerHTML = `
+                                <div class="bg-gray-200 text-gray-900 rounded-2xl py-3 px-4 max-w-[75%] shadow-sm imessage-followup-bubble">
+                                    <div class="flex items-start gap-3">
+                                        <div class="bg-gradient-to-br from-green-500 to-blue-600 rounded-full flex items-center justify-center h-5 w-5 flex-shrink-0 mt-1">
+                                            <i class="fas fa-user-graduate text-white text-xs"></i>
+                                        </div>
+                                        <div class="text-sm leading-relaxed">
+                                            <span class="font-medium text-green-700 text-xs">Coach Rally</span><br>
+                                            <span class="text-gray-900">${escapeHtml(followupQuestion)}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                            paddleCoachMessages.appendChild(followupDiv);
+                            
+                            // Smart scroll: show the top of the coach response with 25px buffer from user message
+                            paddleCoachMessages.scrollTop = userMessagePosition - 25;
+                        }, 600);
+                    }
+                }, 400);
+            } else {
+                // No video found, just add follow-up question if it exists
+                if (followupQuestion) {
+                    setTimeout(() => {
+                        const followupDiv = document.createElement('div');
+                        followupDiv.className = 'flex justify-start mb-3';
+                        followupDiv.innerHTML = `
+                            <div class="bg-gray-200 text-gray-900 rounded-2xl py-3 px-4 max-w-[75%] shadow-sm imessage-followup-bubble">
+                                <div class="flex items-start gap-3">
+                                    <div class="bg-gradient-to-br from-green-500 to-blue-600 rounded-full flex items-center justify-center h-5 w-5 flex-shrink-0 mt-1">
+                                        <i class="fas fa-user-graduate text-white text-xs"></i>
+                                    </div>
+                                    <div class="text-sm leading-relaxed">
+                                        <span class="font-medium text-green-700 text-xs">Coach Rally</span><br>
+                                        <span class="text-gray-900">${escapeHtml(followupQuestion)}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        paddleCoachMessages.appendChild(followupDiv);
+                        
+                        // Smart scroll: show the top of the coach response with 25px buffer from user message
+                        paddleCoachMessages.scrollTop = userMessagePosition - 25;
+                    }, 800);
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error finding training video:', error);
+            // Still add follow-up question if it exists
+            if (followupQuestion) {
+                setTimeout(() => {
+                    const followupDiv = document.createElement('div');
+                    followupDiv.className = 'flex justify-start mb-3';
+                    followupDiv.innerHTML = `
+                        <div class="bg-gray-200 text-gray-900 rounded-2xl py-3 px-4 max-w-[75%] shadow-sm imessage-followup-bubble">
+                            <div class="flex items-start gap-3">
+                                <div class="bg-gradient-to-br from-green-500 to-blue-600 rounded-full flex items-center justify-center h-5 w-5 flex-shrink-0 mt-1">
+                                    <i class="fas fa-user-graduate text-white text-xs"></i>
+                                </div>
+                                <div class="text-sm leading-relaxed">
+                                    <span class="font-medium text-green-700 text-xs">Coach Rally</span><br>
+                                    <span class="text-gray-900">${escapeHtml(followupQuestion)}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    paddleCoachMessages.appendChild(followupDiv);
+                    
+                    // Smart scroll: show the top of the coach response with 25px buffer from user message
+                    paddleCoachMessages.scrollTop = userMessagePosition - 25;
+                }, 800);
+            }
+        });
     }
 });
 </script>
@@ -947,6 +1174,7 @@ document.addEventListener('DOMContentLoaded', function() {
 .imessage-user-bubble,
 .imessage-coach-bubble,
 .imessage-followup-bubble,
+.imessage-video-bubble,
 .imessage-loading-bubble {
     animation: messageSlideIn 0.3s ease-out;
     position: relative;
@@ -969,6 +1197,11 @@ document.addEventListener('DOMContentLoaded', function() {
     border-bottom-left-radius: 8px;
 }
 
+.imessage-video-bubble {
+    border-bottom-left-radius: 8px;
+    animation: messageSlideIn 0.4s ease-out;
+}
+
 .imessage-loading-bubble {
     background: #E5E5EA;
     border-bottom-left-radius: 8px;
@@ -977,7 +1210,8 @@ document.addEventListener('DOMContentLoaded', function() {
 /* Bubble hover effects */
 .imessage-user-bubble:hover,
 .imessage-coach-bubble:hover,
-.imessage-followup-bubble:hover {
+.imessage-followup-bubble:hover,
+.imessage-video-bubble:hover {
     transform: scale(1.02);
     transition: transform 0.1s ease-out;
 }
@@ -1134,6 +1368,149 @@ document.addEventListener('DOMContentLoaded', function() {
         opacity: 1; 
         transform: translateY(0) scale(1); 
     }
+}
+
+/* Paddle Insights specific formatting in chat bubbles */
+.imessage-coach-bubble div[style*="font-size: 1.1em"] {
+    font-size: 1.05em !important;
+    font-weight: 600 !important;
+    color: #1e40af !important;
+    margin-bottom: 8px !important;
+    line-height: 1.3;
+}
+
+.imessage-coach-bubble div[style*="font-weight: bold"] {
+    font-weight: 600 !important;
+    color: #374151 !important;
+    margin-bottom: 6px !important;
+    margin-top: 8px !important;
+}
+
+.imessage-coach-bubble div[style*="margin-left: 12px"] {
+    margin-left: 8px !important;
+    margin-bottom: 4px !important;
+    line-height: 1.4;
+}
+
+.imessage-coach-bubble div[style*="margin-left: 24px"] {
+    margin-left: 16px !important;
+    margin-bottom: 3px !important;
+    font-size: 0.9em;
+    line-height: 1.4;
+}
+
+.imessage-coach-bubble div[style*="color: #6b7280"] {
+    color: #6b7280 !important;
+}
+
+.imessage-coach-bubble div[style*="color: #059669"] {
+    color: #059669 !important;
+    font-weight: 500 !important;
+}
+
+.imessage-coach-bubble div[style*="color: #7c3aed"] {
+    color: #7c3aed !important;
+    font-weight: 500 !important;
+}
+
+.imessage-coach-bubble strong {
+    font-weight: 600;
+    color: #1f2937;
+}
+
+/* Improve spacing for paddle insights content */
+.imessage-coach-bubble > div {
+    line-height: 1.5;
+}
+
+.imessage-coach-bubble div + div {
+    margin-top: 2px;
+}
+
+/* Override inline styles for better mobile display */
+.imessage-coach-bubble [style*="margin-bottom: 12px"] {
+    margin-bottom: 8px !important;
+}
+
+.imessage-coach-bubble [style*="margin-bottom: 8px"] {
+    margin-bottom: 6px !important;
+}
+
+.imessage-coach-bubble [style*="margin-bottom: 6px"] {
+    margin-bottom: 4px !important;
+}
+
+.imessage-coach-bubble [style*="margin-bottom: 3px"] {
+    margin-bottom: 2px !important;
+}
+
+/* New structured paddle insights styles */
+.imessage-coach-bubble .technique-title {
+    font-size: 1.05em;
+    font-weight: 600;
+    color: #1e40af;
+    margin-bottom: 12px;
+    line-height: 1.3;
+}
+
+.imessage-coach-bubble .section-header {
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 6px;
+    margin-top: 12px;
+}
+
+.imessage-coach-bubble .section-header:first-child {
+    margin-top: 0;
+}
+
+.imessage-coach-bubble .section-content {
+    margin-bottom: 8px;
+}
+
+.imessage-coach-bubble .bullet-item {
+    margin-left: 8px;
+    margin-bottom: 4px;
+    line-height: 1.4;
+}
+
+.imessage-coach-bubble .sub-item {
+    margin-left: 16px;
+    margin-bottom: 2px;
+    font-size: 0.9em;
+    line-height: 1.4;
+    color: #6b7280;
+}
+
+.imessage-coach-bubble .mistake-item {
+    margin-left: 8px;
+    margin-bottom: 4px;
+    line-height: 1.4;
+}
+
+.imessage-coach-bubble .why-item {
+    margin-left: 16px;
+    margin-bottom: 2px;
+    font-size: 0.9em;
+    line-height: 1.4;
+    color: #6b7280;
+}
+
+.imessage-coach-bubble .fix-item {
+    margin-left: 16px;
+    margin-bottom: 2px;
+    font-size: 0.9em;
+    line-height: 1.4;
+    color: #059669;
+    font-weight: 500;
+}
+
+.imessage-coach-bubble .cue-item {
+    margin-left: 8px;
+    margin-bottom: 3px;
+    line-height: 1.4;
+    color: #7c3aed;
+    font-weight: 500;
 }
 </style>
 {% endif %}

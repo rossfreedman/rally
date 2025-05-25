@@ -4128,6 +4128,16 @@ def serve_mobile_improve():
             print(f"Error loading paddle tips: {str(tips_error)}")
             # Continue without tips if file can't be loaded
         
+        # Load training guide data for video references
+        training_guide = {}
+        try:
+            guide_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'complete_platform_tennis_training_guide.json')
+            with open(guide_path, 'r', encoding='utf-8') as f:
+                training_guide = json.load(f)
+        except Exception as guide_error:
+            print(f"Error loading training guide: {str(guide_error)}")
+            # Continue without training guide if file can't be loaded
+        
         log_user_activity(
             user['email'], 
             'page_visit', 
@@ -4137,11 +4147,114 @@ def serve_mobile_improve():
         
         return render_template('mobile/improve.html', 
                               session_data=session_data, 
-                              paddle_tips=paddle_tips)
+                              paddle_tips=paddle_tips,
+                              training_guide=training_guide)
         
     except Exception as e:
         print(f"Error serving improve page: {str(e)}")
         return redirect(url_for('login'))
+
+@app.route('/api/find-training-video', methods=['POST'])
+def find_training_video():
+    """Find relevant training videos based on user prompt"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'videos': [], 'error': 'No data provided'})
+            
+        user_prompt = data.get('content', '').lower().strip()
+        
+        if not user_prompt:
+            return jsonify({'videos': []})
+        
+        # Load training guide data
+        try:
+            guide_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'complete_platform_tennis_training_guide.json')
+            with open(guide_path, 'r', encoding='utf-8') as f:
+                training_guide = json.load(f)
+        except Exception as e:
+            print(f"Error loading training guide: {str(e)}")
+            return jsonify({'videos': [], 'error': 'Could not load training guide'})
+        
+        # Search through training guide sections
+        matching_sections = []
+        
+        def search_sections(data):
+            """Search through the training guide sections"""
+            if isinstance(data, dict):
+                for key, value in data.items():
+                    if isinstance(value, dict) and 'Reference Videos' in value:
+                        # Calculate relevance based on section title
+                        relevance_score = calculate_video_relevance(user_prompt, key.lower())
+                        
+                        if relevance_score > 0:
+                            # Get all videos from Reference Videos
+                            videos = value.get('Reference Videos', [])
+                            if videos and len(videos) > 0:
+                                # Add each video with the section info
+                                for video in videos:
+                                    matching_sections.append({
+                                        'title': key.replace('_', ' ').title(),
+                                        'video': video,
+                                        'relevance_score': relevance_score
+                                    })
+        
+        def calculate_video_relevance(query, section_title):
+            """Calculate relevance score for video matching"""
+            score = 0
+            query_words = query.split()
+            
+            # Exact match in section title gets highest score
+            if query == section_title:
+                score += 200
+            
+            # Query appears as a word in the section title
+            if query in section_title.split():
+                score += 150
+            
+            # Query appears anywhere in section title
+            if query in section_title:
+                score += 100
+            
+            # Partial word matches in section title
+            for word in query_words:
+                if word in section_title:
+                    score += 50
+            
+            return score
+        
+        # Perform the search
+        search_sections(training_guide)
+        
+        # Sort by relevance score and return all relevant matches
+        if matching_sections:
+            matching_sections.sort(key=lambda x: x['relevance_score'], reverse=True)
+            
+            # Filter to only include videos with sufficient relevance
+            relevant_videos = []
+            for match in matching_sections:
+                if match['relevance_score'] >= 50:  # Minimum threshold for relevance
+                    relevant_videos.append({
+                        'title': match['video']['title'],
+                        'url': match['video']['url'],
+                        'topic': match['title'],
+                        'relevance_score': match['relevance_score']
+                    })
+            
+            # Return both formats for backward compatibility
+            response = {'videos': relevant_videos}
+            
+            # Include the best video as 'video' for backward compatibility
+            if relevant_videos:
+                response['video'] = relevant_videos[0]  # Best match (highest relevance)
+            
+            return jsonify(response)
+        
+        return jsonify({'videos': [], 'video': None})
+        
+    except Exception as e:
+        print(f"Error finding training video: {str(e)}")
+        return jsonify({'videos': [], 'video': None, 'error': str(e)})
 
 @app.route('/mobile/email-team')
 @login_required
@@ -4808,7 +4921,7 @@ def get_paddle_insights():
             return jsonify({'error': 'Query cannot be empty'}), 400
             
         # Load paddle insights from JSON file
-        insights_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddle_insights.json')
+        insights_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'complete_platform_tennis_training_guide.json')
         with open(insights_path, 'r', encoding='utf-8') as f:
             insights_data = json.load(f)
         
@@ -4822,25 +4935,26 @@ def get_paddle_insights():
                     current_path = f"{path}/{key}" if path else key
                     
                     if isinstance(value, dict):
-                        # Check if this is a content section with text and tags
-                        if 'text' in value and 'tags' in value:
-                            text_content = value.get('text', '').lower()
-                            tags = [tag.lower() for tag in value.get('tags', [])]
-                            linked_videos = value.get('linked_videos', [])
+                        # Check if this is a training section with Reference Videos
+                        if 'Reference Videos' in value:
+                            # Calculate relevance based on section title
+                            relevance_score = calculate_relevance(query, key.lower(), [])
                             
-                            # Check if query matches tags or appears in text
-                            if (query in tags or 
-                                any(query in tag for tag in tags) or
-                                query in text_content or
-                                any(word in text_content for word in query.split())):
+                            if relevance_score > 0:
+                                # Extract rich content from the training guide
+                                formatted_text = format_training_content(key, value)
+                                
+                                # Get the first video from Reference Videos
+                                videos = value.get('Reference Videos', [])
+                                first_video = videos[0] if videos and len(videos) > 0 else None
                                 
                                 matching_insights.append({
                                     'title': key.replace('_', ' ').title(),
-                                    'category': current_path.split('/')[0] if '/' in current_path else 'General',
-                                    'text': value.get('text', ''),
-                                    'tags': value.get('tags', []),
-                                    'linked_videos': linked_videos,
-                                    'relevance_score': calculate_relevance(query, text_content, tags)
+                                    'category': 'Training Guide',
+                                    'text': formatted_text,
+                                    'tags': [key.lower()],
+                                    'linked_videos': [first_video] if first_video else [],
+                                    'relevance_score': relevance_score
                                 })
                         else:
                             # Continue searching deeper
@@ -4850,12 +4964,101 @@ def get_paddle_insights():
                             if isinstance(item, dict):
                                 search_insights(item, current_path)
         
+        def format_training_content(technique_name, content):
+            """Format the training content into a nicely structured HTML text"""
+            formatted_parts = []
+            
+            # Add technique title
+            title = technique_name.replace('_', ' ').title()
+            formatted_parts.append(f"<div class='technique-title'><strong>{title} – Step-by-Step Technique</strong></div>")
+            
+            # Add recommendations
+            recommendations = content.get('Recommendation', [])
+            if recommendations:
+                formatted_parts.append("<div class='section-header'><strong>Recommendation:</strong></div>")
+                formatted_parts.append("<div class='section-content'>")
+                for rec in recommendations:
+                    rec_title = rec.get('title', '')
+                    details = rec.get('details', [])
+                    if rec_title:
+                        formatted_parts.append(f"<div class='bullet-item'>• <strong>{rec_title}</strong></div>")
+                        for detail in details:
+                            formatted_parts.append(f"<div class='sub-item'>- {detail}</div>")
+                    else:
+                        # Handle simple string recommendations
+                        if isinstance(rec, str):
+                            formatted_parts.append(f"<div class='bullet-item'>• {rec}</div>")
+                formatted_parts.append("</div>")
+            
+            # Add drills
+            drills = content.get('Drills to Improve', [])
+            if drills:
+                formatted_parts.append("<div class='section-header'><strong>Drills to Improve:</strong></div>")
+                formatted_parts.append("<div class='section-content'>")
+                for drill in drills:
+                    drill_title = drill.get('title', '')
+                    steps = drill.get('steps', [])
+                    if drill_title:
+                        formatted_parts.append(f"<div class='bullet-item'>• <strong>{drill_title}</strong></div>")
+                        for step in steps:
+                            formatted_parts.append(f"<div class='sub-item'>- {step}</div>")
+                    else:
+                        # Handle simple string drills
+                        if isinstance(drill, str):
+                            formatted_parts.append(f"<div class='bullet-item'>• {drill}</div>")
+                formatted_parts.append("</div>")
+            
+            # Add common mistakes
+            mistakes = content.get('Common Mistakes & Fixes', [])
+            if mistakes:
+                formatted_parts.append("<div class='section-header'><strong>Common Mistakes & Fixes:</strong></div>")
+                formatted_parts.append("<div class='section-content'>")
+                for mistake in mistakes:
+                    mistake_text = mistake.get('Mistake', '')
+                    why = mistake.get('Why it happens', '')
+                    fix = mistake.get('Fix', '')
+                    if mistake_text:
+                        formatted_parts.append(f"<div class='mistake-item'><strong>Mistake:</strong> {mistake_text}</div>")
+                        if why:
+                            formatted_parts.append(f"<div class='why-item'><strong>Why it happens:</strong> {why}</div>")
+                        if fix:
+                            formatted_parts.append(f"<div class='fix-item'><strong>Fix:</strong> {fix}</div>")
+                formatted_parts.append("</div>")
+            
+            # Add coach's cues
+            cues = content.get("Coach's Cues", [])
+            if cues:
+                formatted_parts.append("<div class='section-header'><strong>Coach's Cues:</strong></div>")
+                formatted_parts.append("<div class='section-content'>")
+                for cue in cues:
+                    formatted_parts.append(f"<div class='cue-item'>• {cue}</div>")
+                formatted_parts.append("</div>")
+            
+            return "".join(formatted_parts).strip()
+        
         def calculate_relevance(query, text, tags):
             """Calculate relevance score based on how well the query matches"""
             score = 0
             query_words = query.split()
             
-            # Exact tag match gets highest score
+            # Exact match in section title gets highest score
+            if query == text:
+                score += 200
+            
+            # Query appears as a word in the section title
+            if query in text.split():
+                score += 150
+            
+            # Query appears anywhere in section title
+            if query in text:
+                score += 100
+            
+            # Partial word matches in section title
+            for word in query_words:
+                if word in text:
+                    score += 50
+            
+            # Exact tag match gets high score
             if query in [tag.lower() for tag in tags]:
                 score += 100
             
@@ -4866,15 +5069,6 @@ def get_paddle_insights():
                 for word in query_words:
                     if word in tag.lower():
                         score += 25
-            
-            # Text content matches
-            text_lower = text.lower()
-            if query in text_lower:
-                score += 30
-            
-            for word in query_words:
-                if word in text_lower:
-                    score += 10
             
             return score
         

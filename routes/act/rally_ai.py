@@ -24,41 +24,57 @@ _context_summaries = {}  # {thread_id: summary}
 # Thread metadata cache to reduce API calls
 _thread_metadata = {}  # {thread_id: {last_message_time, message_count, context_size}}
 
+# NEW: Run status cache to reduce polling
+_run_status_cache = {}  # {run_id: {status, last_check, completion_time}}
+RUN_CACHE_DURATION = 30  # Cache run status for 30 seconds
+
+# NEW: Response prefetch cache
+_response_cache = {}  # {thread_id: {response, timestamp}}
+RESPONSE_CACHE_DURATION = 60  # Cache responses for 1 minute
+
 # Optimization configuration - easily adjustable
 OPTIMIZATION_LEVEL = os.environ.get('AI_OPTIMIZATION_LEVEL', 'HIGH')  # LOW, MEDIUM, HIGH, ULTRA
 
 # Set optimization parameters based on level
 if OPTIMIZATION_LEVEL == 'ULTRA':
     BATCH_OPERATIONS = True
-    MIN_POLL_INTERVAL = 3.0
-    MAX_POLL_INTERVAL = 10.0
-    EXPONENTIAL_BACKOFF = 2.0
+    MIN_POLL_INTERVAL = 4.0  # Increased from 3.0
+    MAX_POLL_INTERVAL = 15.0  # Increased from 10.0
+    EXPONENTIAL_BACKOFF = 2.5  # Increased from 2.0
     ASSISTANT_CACHE_DURATION = 14400  # 4 hours
+    PREDICTIVE_POLLING = True
 elif OPTIMIZATION_LEVEL == 'HIGH':
     BATCH_OPERATIONS = True
-    MIN_POLL_INTERVAL = 2.0
-    MAX_POLL_INTERVAL = 8.0
-    EXPONENTIAL_BACKOFF = 1.5
+    MIN_POLL_INTERVAL = 3.0  # Increased from 2.0
+    MAX_POLL_INTERVAL = 12.0  # Increased from 8.0
+    EXPONENTIAL_BACKOFF = 2.0  # Increased from 1.5
     ASSISTANT_CACHE_DURATION = 7200  # 2 hours
+    PREDICTIVE_POLLING = True
 elif OPTIMIZATION_LEVEL == 'MEDIUM':
     BATCH_OPERATIONS = True
-    MIN_POLL_INTERVAL = 1.0
-    MAX_POLL_INTERVAL = 4.0
-    EXPONENTIAL_BACKOFF = 1.3
+    MIN_POLL_INTERVAL = 2.0  # Increased from 1.0
+    MAX_POLL_INTERVAL = 8.0  # Increased from 4.0
+    EXPONENTIAL_BACKOFF = 1.5  # Increased from 1.3
     ASSISTANT_CACHE_DURATION = 3600  # 1 hour
+    PREDICTIVE_POLLING = False
 else:  # LOW
     BATCH_OPERATIONS = False
-    MIN_POLL_INTERVAL = 0.5
-    MAX_POLL_INTERVAL = 2.0
-    EXPONENTIAL_BACKOFF = 1.2
+    MIN_POLL_INTERVAL = 1.0  # Increased from 0.5
+    MAX_POLL_INTERVAL = 4.0  # Increased from 2.0
+    EXPONENTIAL_BACKOFF = 1.3  # Increased from 1.2
     ASSISTANT_CACHE_DURATION = 1800  # 30 minutes
+    PREDICTIVE_POLLING = False
 
 # API call tracking for monitoring
 _api_stats = {
     'total_requests': 0,
     'total_polls': 0,
     'cache_hits': 0,
-    'optimization_saves': 0
+    'optimization_saves': 0,
+    'predictive_hits': 0,  # NEW: Successful predictive polling
+    'context_cache_hits': 0,  # NEW: Context checks avoided
+    'thread_reuses': 0,  # NEW: Threads reused instead of created
+    'response_cache_hits': 0  # NEW: Response cache hits
 }
 
 def get_cached_assistant():
@@ -276,11 +292,26 @@ def batch_thread_operations(thread_id, user_message, assistant_id):
         print(f"Error in batch operations: {e}")
         raise
 
-def optimized_polling(thread_id, run_id, timeout=30):
-    """Optimized polling with exponential backoff and fewer API calls"""
+def ultra_optimized_polling(thread_id, run_id, timeout=30):
+    """Ultra-optimized polling with predictive completion and status caching"""
     start_time = time.time()
     poll_count = 0
     wait_time = MIN_POLL_INTERVAL
+    
+    # Check if we have cached status for this run
+    cached_run = _run_status_cache.get(run_id)
+    if cached_run and time.time() - cached_run['last_check'] < RUN_CACHE_DURATION:
+        if cached_run['status'] == 'completed':
+            print(f"🚀 Run status cache hit - already completed")
+            return cached_run, 0
+    
+    # Predictive completion based on message length and complexity
+    if PREDICTIVE_POLLING:
+        # Estimate completion time based on recent patterns
+        estimated_time = estimate_completion_time(thread_id)
+        if estimated_time > MIN_POLL_INTERVAL:
+            print(f"🔮 Predictive wait: {estimated_time:.1f}s before first poll")
+            time.sleep(estimated_time)
     
     while time.time() - start_time < timeout:
         poll_count += 1
@@ -289,40 +320,148 @@ def optimized_polling(thread_id, run_id, timeout=30):
         try:
             run_status = client.beta.threads.runs.retrieve(thread_id=thread_id, run_id=run_id)
             
+            # Cache the status
+            _run_status_cache[run_id] = {
+                'status': run_status.status,
+                'last_check': time.time(),
+                'completion_time': time.time() if run_status.status == 'completed' else None
+            }
+            
             if run_status.status == 'completed':
+                print(f"✅ Run completed after {poll_count} polls")
                 return run_status, poll_count
             elif run_status.status in ['failed', 'cancelled', 'expired']:
                 raise Exception(f"Run {run_status.status}: {getattr(run_status, 'last_error', 'Unknown error')}")
             
-            # Exponential backoff with longer waits
-            time.sleep(wait_time)
+            # Smart backoff - longer waits for longer conversations
+            context_factor = 1.0
+            if thread_id in _thread_metadata:
+                context_size = _thread_metadata[thread_id].get('context_size', 0)
+                context_factor = 1.0 + (context_size / MAX_CONTEXT_CHARS) * 0.5  # Up to 50% longer waits
+            
+            adjusted_wait = wait_time * context_factor
+            time.sleep(adjusted_wait)
             wait_time = min(wait_time * EXPONENTIAL_BACKOFF, MAX_POLL_INTERVAL)
             
         except Exception as e:
             if "rate limit" in str(e).lower():
-                # If rate limited, wait longer
-                time.sleep(wait_time * 2)
+                # If rate limited, wait much longer and reduce future polling frequency
+                extended_wait = wait_time * 3
+                print(f"⚠️ Rate limited - waiting {extended_wait:.1f}s")
+                time.sleep(extended_wait)
                 wait_time = min(wait_time * 2, MAX_POLL_INTERVAL)
             else:
                 raise
     
     raise Exception(f"Request timed out after {timeout}s with {poll_count} polls")
 
+def estimate_completion_time(thread_id):
+    """Estimate completion time based on context and historical patterns"""
+    base_time = MIN_POLL_INTERVAL
+    
+    # Factor in context size
+    if thread_id in _thread_metadata:
+        context_size = _thread_metadata[thread_id].get('context_size', 0)
+        message_count = _thread_metadata[thread_id].get('message_count', 0)
+        
+        # Longer contexts take more time
+        context_factor = 1.0 + (context_size / MAX_CONTEXT_CHARS) * 2.0
+        
+        # More messages in conversation = more complex responses
+        message_factor = 1.0 + (message_count / MAX_MESSAGES) * 1.0
+        
+        estimated = base_time * context_factor * message_factor
+        return min(estimated, MAX_POLL_INTERVAL * 0.5)  # Cap at half max interval
+    
+    return base_time
+
+def get_cached_response(thread_id):
+    """Check if we have a cached response for this thread"""
+    cached = _response_cache.get(thread_id)
+    if cached and time.time() - cached['timestamp'] < RESPONSE_CACHE_DURATION:
+        _api_stats['response_cache_hits'] += 1  # NEW: Track response cache hits
+        print(f"📋 Response cache hit for thread {thread_id}")
+        return cached['response']
+    return None
+
+def cache_response(thread_id, response):
+    """Cache a response for potential reuse"""
+    _response_cache[thread_id] = {
+        'response': response,
+        'timestamp': time.time()
+    }
+
+def optimized_polling(thread_id, run_id, timeout=30):
+    """Legacy function - redirects to ultra-optimized version"""
+    return ultra_optimized_polling(thread_id, run_id, timeout)
+
 def smart_context_check(thread_id):
-    """Smart context checking that uses cached data when possible"""
+    """Ultra-smart context checking that aggressively uses cached data"""
     # Check if we have recent metadata
     metadata = _thread_metadata.get(thread_id)
     if metadata:
-        # Use cached data if recent (less than 5 minutes old)
+        # Use cached data if recent (extended from 5 to 10 minutes for efficiency)
         time_diff = time.time() - metadata.get('last_message_time', 0)
-        if time_diff < 300:  # 5 minutes
+        if time_diff < 600:  # 10 minutes instead of 5
             estimated_size = metadata.get('context_size', 0)
-            if estimated_size < MAX_CONTEXT_CHARS * CONTEXT_TRIM_THRESHOLD:
+            
+            # Be more aggressive about avoiding optimization checks
+            if estimated_size < MAX_CONTEXT_CHARS * 0.8:  # Increased threshold from 0.6 to 0.8
                 _api_stats['optimization_saves'] += 1
+                _api_stats['context_cache_hits'] += 1  # NEW: Track context cache hits
+                print(f"🎯 Smart cache hit - avoiding context check (estimated: {estimated_size} chars)")
                 return estimated_size, metadata.get('message_count', 0), False, ""
     
     # Only do full optimization if really needed
+    print(f"📊 Performing context check for thread {thread_id}")
     return optimize_thread_context(thread_id)
+
+def enhanced_metadata_update(thread_id, message_length, response_length, was_optimized=False):
+    """Enhanced metadata tracking with better estimates"""
+    current_time = time.time()
+    
+    if thread_id in _thread_metadata:
+        # Update existing metadata
+        metadata = _thread_metadata[thread_id]
+        metadata['last_message_time'] = current_time
+        metadata['message_count'] += 2  # User message + assistant response
+        metadata['context_size'] += message_length + response_length
+        
+        # If context was optimized, reset the size estimate
+        if was_optimized:
+            metadata['context_size'] = message_length + response_length + 500  # Base context
+            metadata['message_count'] = 2  # Reset to just this exchange
+    else:
+        # Create new metadata
+        _thread_metadata[thread_id] = {
+            'last_message_time': current_time,
+            'message_count': 2,
+            'context_size': message_length + response_length + 200,  # Include some base overhead
+            'created_time': current_time
+        }
+    
+    # Clean up old metadata to prevent memory bloat
+    cleanup_old_metadata()
+
+def cleanup_old_metadata():
+    """Clean up metadata for threads older than 24 hours"""
+    current_time = time.time()
+    old_threads = []
+    
+    for thread_id, metadata in _thread_metadata.items():
+        if current_time - metadata.get('last_message_time', 0) > 86400:  # 24 hours
+            old_threads.append(thread_id)
+    
+    for thread_id in old_threads:
+        del _thread_metadata[thread_id]
+        # Also clean up related caches
+        if thread_id in _context_summaries:
+            del _context_summaries[thread_id]
+        if thread_id in _response_cache:
+            del _response_cache[thread_id]
+    
+    if old_threads:
+        print(f"🧹 Cleaned up {len(old_threads)} old thread metadata entries")
 
 def init_rally_ai_routes(app):
     @app.route('/mobile/ask-ai')
@@ -371,19 +510,33 @@ def init_rally_ai_routes(app):
                 context_chars = 0
                 message_count = 0
             else:
-                # Use cached metadata when possible
+                # Use cached metadata when possible with smarter gap detection
                 metadata = get_thread_metadata(thread_id)
                 if metadata:
                     time_diff = time.time() - metadata['last_message_time']
-                    if time_diff > 300:  # 5 minutes - create new thread
+                    
+                    # Smarter gap detection - consider context size and user patterns
+                    context_size = metadata.get('context_size', 0)
+                    message_count = metadata.get('message_count', 0)
+                    
+                    # Longer gaps needed for larger contexts, shorter for small contexts
+                    gap_threshold = 300  # Base 5 minutes
+                    if context_size > MAX_CONTEXT_CHARS * 0.7:
+                        gap_threshold = 180  # 3 minutes for large contexts (force refresh sooner)
+                    elif context_size < MAX_CONTEXT_CHARS * 0.3:
+                        gap_threshold = 900  # 15 minutes for small contexts (keep longer)
+                    
+                    if time_diff > gap_threshold:
                         thread = client.beta.threads.create()
                         thread_id = thread.id
-                        print(f"🆕 Created new thread after {time_diff:.0f}s gap")
+                        print(f"🆕 Created new thread after {time_diff:.0f}s gap (threshold: {gap_threshold}s)")
                         context_chars = 0
                         message_count = 0
                     else:
                         # Use smart context checking (uses cache when possible)
                         context_chars, message_count, was_optimized, context_summary = smart_context_check(thread_id)
+                        _api_stats['thread_reuses'] += 1  # NEW: Track thread reuses
+                        print(f"♻️ Reusing thread (gap: {time_diff:.0f}s < {gap_threshold}s)")
                 else:
                     # Fallback for threads without metadata
                     context_chars, message_count, was_optimized, context_summary = smart_context_check(thread_id)
@@ -416,12 +569,11 @@ def init_rally_ai_routes(app):
             messages = client.beta.threads.messages.list(thread_id=thread_id, limit=1)
             response_text = messages.data[0].content[0].text.value
             
-            # Update thread metadata cache
-            _thread_metadata[thread_id] = {
-                'last_message_time': time.time(),
-                'message_count': message_count + 2,
-                'context_size': context_chars + len(message) + len(response_text)
-            }
+            # Enhanced metadata update with better tracking
+            enhanced_metadata_update(thread_id, len(message), len(response_text), was_optimized)
+            
+            # Cache the response for potential reuse
+            cache_response(thread_id, response_text)
             
             # Format the response
             formatted_response = format_response(response_text)
@@ -434,7 +586,11 @@ def init_rally_ai_routes(app):
             print(f"📊 Context: {final_context_chars} chars, {final_message_count} msgs")
             if was_optimized:
                 print(f"🎯 Optimization saved ~{max(0, context_chars - MAX_CONTEXT_CHARS)} chars")
-            print(f"🚀 API Efficiency: {poll_count} polls vs ~{poll_count * 3} in old system")
+            
+            # Calculate efficiency improvements
+            estimated_old_polls = 15  # Old system average
+            efficiency_improvement = max(0, ((estimated_old_polls - poll_count) / estimated_old_polls) * 100)
+            print(f"🚀 API Efficiency: {poll_count} polls (saved {efficiency_improvement:.0f}% vs baseline)")
             print(f"=== CHAT COMPLETE ===\n")
             
             # Log with optimization info
@@ -585,14 +741,22 @@ def init_rally_ai_routes(app):
             total_polls = _api_stats['total_polls']
             cache_hits = _api_stats['cache_hits']
             optimization_saves = _api_stats['optimization_saves']
+            predictive_hits = _api_stats['predictive_hits']
+            context_cache_hits = _api_stats['context_cache_hits']
+            thread_reuses = _api_stats['thread_reuses']
+            response_cache_hits = _api_stats['response_cache_hits']
             
             avg_polls_per_request = total_polls / max(total_requests, 1)
-            cache_hit_rate = (cache_hits / max(total_requests * 2, 1)) * 100  # Estimate 2 cache opportunities per request
+            cache_hit_rate = (cache_hits / max(total_requests * 2, 1)) * 100
             
-            # Estimate API call savings
+            # Calculate total API calls saved
             estimated_old_polls = total_requests * 15  # Old system average
             polls_saved = max(0, estimated_old_polls - total_polls)
             efficiency_improvement = (polls_saved / max(estimated_old_polls, 1)) * 100
+            
+            # Calculate additional savings from new optimizations
+            total_optimizations = context_cache_hits + thread_reuses + response_cache_hits
+            additional_api_saves = total_optimizations * 2  # Estimate 2 API calls saved per optimization
             
             return jsonify({
                 'optimization_level': OPTIMIZATION_LEVEL,
@@ -601,22 +765,36 @@ def init_rally_ai_routes(app):
                     'total_polls': total_polls,
                     'cache_hits': cache_hits,
                     'optimization_saves': optimization_saves,
+                    'predictive_hits': predictive_hits,
+                    'context_cache_hits': context_cache_hits,
+                    'thread_reuses': thread_reuses,
+                    'response_cache_hits': response_cache_hits,
                     'avg_polls_per_request': round(avg_polls_per_request, 1),
                     'cache_hit_rate': f"{cache_hit_rate:.1f}%",
-                    'estimated_api_calls_saved': polls_saved,
-                    'efficiency_improvement': f"{efficiency_improvement:.1f}%"
+                    'estimated_api_calls_saved': polls_saved + additional_api_saves,
+                    'efficiency_improvement': f"{efficiency_improvement:.1f}%",
+                    'total_optimizations': total_optimizations
                 },
                 'configuration': {
                     'batch_operations': BATCH_OPERATIONS,
+                    'predictive_polling': PREDICTIVE_POLLING if 'PREDICTIVE_POLLING' in globals() else False,
                     'min_poll_interval': MIN_POLL_INTERVAL,
                     'max_poll_interval': MAX_POLL_INTERVAL,
                     'exponential_backoff': EXPONENTIAL_BACKOFF,
                     'assistant_cache_duration': ASSISTANT_CACHE_DURATION,
-                    'max_context_chars': MAX_CONTEXT_CHARS
+                    'max_context_chars': MAX_CONTEXT_CHARS,
+                    'run_cache_duration': RUN_CACHE_DURATION,
+                    'response_cache_duration': RESPONSE_CACHE_DURATION
                 },
                 'recommendations': {
-                    'status': 'Excellent' if efficiency_improvement > 50 else 'Good' if efficiency_improvement > 30 else 'Fair',
-                    'message': f"System is operating at {efficiency_improvement:.0f}% efficiency improvement over baseline"
+                    'status': 'Excellent' if efficiency_improvement > 60 else 'Good' if efficiency_improvement > 40 else 'Fair',
+                    'message': f"System is operating at {efficiency_improvement:.0f}% efficiency improvement with {total_optimizations} additional optimizations",
+                    'next_steps': [
+                        f"Polling reduced by {efficiency_improvement:.0f}%",
+                        f"Context checks avoided: {context_cache_hits}",
+                        f"Threads reused: {thread_reuses}",
+                        f"Response cache hits: {response_cache_hits}"
+                    ]
                 }
             })
         except Exception as e:
@@ -632,7 +810,11 @@ def init_rally_ai_routes(app):
                 'total_requests': 0,
                 'total_polls': 0,
                 'cache_hits': 0,
-                'optimization_saves': 0
+                'optimization_saves': 0,
+                'predictive_hits': 0,  # NEW: Successful predictive polling
+                'context_cache_hits': 0,  # NEW: Context checks avoided
+                'thread_reuses': 0,  # NEW: Threads reused instead of created
+                'response_cache_hits': 0  # NEW: Response cache hits
             }
             return jsonify({'message': 'AI statistics reset successfully'})
         except Exception as e:
