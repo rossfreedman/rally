@@ -646,21 +646,212 @@ async function deleteSeries(seriesId) {
 // Utility Functions
 function exportUsers() {
     const csvContent = "data:text/csv;charset=utf-8," + 
-        "First Name,Last Name,Email,Club,Series,Last Login\n" +
-        users.map(user => [
-            user.first_name,
-            user.last_name,
-            user.email,
-            user.club_name,
-            user.series_name,
-            user.last_login ? new Date(user.last_login).toLocaleString() : 'Never'
-        ].join(",")).join("\n");
-
+        "Name,Email,Club,Series,Last Login\n" +
+        users.map(user => 
+            `"${user.first_name} ${user.last_name}","${user.email}","${user.club_name || ''}","${user.series_name || ''}","${user.last_login ? formatTimestamp(user.last_login) : 'Never'}"`
+        ).join("\n");
+    
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "users.csv");
+    link.setAttribute("download", "rally_users.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-} 
+}
+
+// AI Optimization Monitoring Functions
+async function refreshAIStats() {
+    console.log('Refreshing AI statistics...');
+    const container = document.getElementById('ai-stats-container');
+    
+    // Show loading state
+    container.innerHTML = `
+        <div class="flex justify-center items-center py-8">
+            <div class="loading loading-spinner loading-md"></div>
+            <span class="ml-2">Loading AI statistics...</span>
+        </div>
+    `;
+    
+    try {
+        const response = await fetch('/api/ai/stats', {
+            credentials: 'include'
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        renderAIStats(data);
+    } catch (error) {
+        console.error('Error loading AI stats:', error);
+        container.innerHTML = `
+            <div class="alert alert-error">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span>Failed to load AI statistics: ${error.message}</span>
+            </div>
+        `;
+    }
+}
+
+function renderAIStats(data) {
+    const container = document.getElementById('ai-stats-container');
+    const stats = data.statistics;
+    const config = data.configuration;
+    const recommendations = data.recommendations;
+    
+    // Determine status color
+    const statusColor = recommendations.status === 'Excellent' ? 'success' : 
+                       recommendations.status === 'Good' ? 'warning' : 'error';
+    
+    container.innerHTML = `
+        <!-- Status Overview -->
+        <div class="alert alert-${statusColor} mb-6">
+            <i class="fas fa-chart-line"></i>
+            <div>
+                <h3 class="font-bold">Optimization Level: ${data.optimization_level}</h3>
+                <div class="text-sm">${recommendations.message}</div>
+            </div>
+        </div>
+        
+        <!-- Statistics Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            <div class="stat bg-base-200 rounded-lg">
+                <div class="stat-figure text-primary">
+                    <i class="fas fa-comments text-2xl"></i>
+                </div>
+                <div class="stat-title">Total Requests</div>
+                <div class="stat-value text-primary">${stats.total_requests}</div>
+                <div class="stat-desc">Chat interactions</div>
+            </div>
+            
+            <div class="stat bg-base-200 rounded-lg">
+                <div class="stat-figure text-secondary">
+                    <i class="fas fa-sync-alt text-2xl"></i>
+                </div>
+                <div class="stat-title">API Polls</div>
+                <div class="stat-value text-secondary">${stats.total_polls}</div>
+                <div class="stat-desc">${stats.avg_polls_per_request} avg per request</div>
+            </div>
+            
+            <div class="stat bg-base-200 rounded-lg">
+                <div class="stat-figure text-accent">
+                    <i class="fas fa-memory text-2xl"></i>
+                </div>
+                <div class="stat-title">Cache Hits</div>
+                <div class="stat-value text-accent">${stats.cache_hits}</div>
+                <div class="stat-desc">${stats.cache_hit_rate} hit rate</div>
+            </div>
+            
+            <div class="stat bg-base-200 rounded-lg">
+                <div class="stat-figure text-success">
+                    <i class="fas fa-bolt text-2xl"></i>
+                </div>
+                <div class="stat-title">Efficiency</div>
+                <div class="stat-value text-success">${stats.efficiency_improvement}</div>
+                <div class="stat-desc">vs baseline</div>
+            </div>
+        </div>
+        
+        <!-- Configuration Details -->
+        <div class="collapse collapse-arrow bg-base-200 mb-4">
+            <input type="checkbox" /> 
+            <div class="collapse-title text-xl font-medium">
+                <i class="fas fa-cog mr-2"></i>Configuration Details
+            </div>
+            <div class="collapse-content"> 
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <h4 class="font-semibold mb-2">Polling Settings</h4>
+                        <ul class="text-sm space-y-1">
+                            <li><strong>Min Interval:</strong> ${config.min_poll_interval}s</li>
+                            <li><strong>Max Interval:</strong> ${config.max_poll_interval}s</li>
+                            <li><strong>Backoff Factor:</strong> ${config.exponential_backoff}x</li>
+                            <li><strong>Batch Operations:</strong> ${config.batch_operations ? 'Enabled' : 'Disabled'}</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold mb-2">Cache Settings</h4>
+                        <ul class="text-sm space-y-1">
+                            <li><strong>Assistant Cache:</strong> ${Math.round(config.assistant_cache_duration / 3600)}h</li>
+                            <li><strong>Max Context:</strong> ${config.max_context_chars} chars</li>
+                            <li><strong>Optimization Saves:</strong> ${stats.optimization_saves}</li>
+                            <li><strong>API Calls Saved:</strong> ~${stats.estimated_api_calls_saved}</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Performance Chart Placeholder -->
+        <div class="card bg-base-200">
+            <div class="card-body">
+                <h3 class="card-title">
+                    <i class="fas fa-chart-bar mr-2"></i>Performance Summary
+                </h3>
+                <div class="flex justify-between items-center">
+                    <div class="text-sm">
+                        <p><strong>Optimization Status:</strong> <span class="badge badge-${statusColor}">${recommendations.status}</span></p>
+                        <p><strong>Last Updated:</strong> ${new Date().toLocaleString()}</p>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-2xl font-bold text-${statusColor === 'success' ? 'success' : statusColor === 'warning' ? 'warning' : 'error'}">
+                            ${stats.efficiency_improvement}
+                        </div>
+                        <div class="text-sm opacity-70">Efficiency Gain</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+async function resetAIStats() {
+    if (!confirm('Are you sure you want to reset AI statistics? This action cannot be undone.')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/ai/reset-stats', {
+            method: 'POST',
+            credentials: 'include'
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        // Show success message
+        const container = document.getElementById('ai-stats-container');
+        container.innerHTML = `
+            <div class="alert alert-success mb-4">
+                <i class="fas fa-check-circle"></i>
+                <span>AI statistics have been reset successfully.</span>
+            </div>
+        `;
+        
+        // Refresh stats after a short delay
+        setTimeout(refreshAIStats, 1000);
+    } catch (error) {
+        console.error('Error resetting AI stats:', error);
+        const container = document.getElementById('ai-stats-container');
+        container.innerHTML = `
+            <div class="alert alert-error">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span>Failed to reset AI statistics: ${error.message}</span>
+            </div>
+        `;
+    }
+}
+
+// Load AI stats when the tab is first accessed
+document.addEventListener('DOMContentLoaded', function() {
+    // Add event listener for tab switching
+    document.querySelectorAll('[data-tab="ai-stats"]').forEach(tab => {
+        tab.addEventListener('click', function() {
+            // Load AI stats when tab is clicked
+            setTimeout(refreshAIStats, 100);
+        });
+    });
+}); 

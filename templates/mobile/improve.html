@@ -66,13 +66,13 @@
             </div>
             <div>
                 <h3 class="text-xl font-bold text-gray-800">Coach Rally</h3>
-                <p class="text-sm text-gray-600">Your AI-powered paddle tennis coach to help you prepare for your next match</p>
+                <p class="text-sm text-gray-600">Your AI-powered coach</p>
             </div>
         </div>
         
         <!-- Chat Preview -->
         <div id="chat-preview" class="bg-gray-50 rounded-xl p-3 mb-4 min-h-[100px] max-h-[150px] overflow-y-auto">
-            <div class="text-sm text-gray-500 italic">Ask Coach Rally anything about paddle tennis...</div>
+            <div class="text-sm text-gray-500 italic">Ask me anything about paddle tennis to improve your game...</div>
         </div>
         
         <!-- Chat Input Form -->
@@ -80,7 +80,6 @@
             <input type="text" 
                    id="paddle-coach-input" 
                    class="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                   placeholder="Ask about serve, volleys, strategy, footwork..."
                    autocomplete="off" 
                    required>
             <button type="submit" 
@@ -91,7 +90,10 @@
         
         <div class="text-xs text-gray-500 mt-2">
             <i class="fas fa-lightbulb mr-1"></i>
-            Try: "How do I improve my serve?", "Volley tips for beginners", "Screen play strategy"
+            Try:<br>
+            - "How do I improve my serve?"<br>
+            - "Transitioning from Defense to Offense"<br>
+            - "Blitzing strategies"
         </div>
     </div>
 
@@ -105,7 +107,7 @@
                 </div>
                 <div>
                     <h3 class="text-xl font-bold text-gray-800">Coach Rally</h3>
-                    <p class="text-sm text-gray-600">Your AI paddle tennis coach</p>
+                    <p class="text-sm text-gray-600">Your AI-powered coach</p>
                 </div>
             </div>
             <button id="close-modal" class="p-2 hover:bg-gray-100 rounded-full">
@@ -122,7 +124,6 @@
                 <input type="text" 
                        id="modal-coach-input" 
                        class="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                       placeholder="Ask about serve, volleys, strategy, footwork..."
                        autocomplete="off" 
                        required>
                 <button type="submit" 
@@ -697,8 +698,7 @@ document.addEventListener('DOMContentLoaded', function() {
         loadingDiv.className = 'flex justify-start mb-3';
         loadingDiv.innerHTML = `
             <div class="bg-gray-200 rounded-2xl py-3 px-4 shadow-sm imessage-loading-bubble" style="display: flex; flex-direction: column; align-items: flex-start;">
-                <div class="text-xs text-gray-600 font-medium mb-1 flex items-center gap-2">
-                    <i class="fas fa-circle-notch fa-spin text-gray-500"></i>
+                <div class="text-sm text-gray-600 font-medium mb-1">
                     Coach Rally is thinking...
                 </div>
                 <div class="imessage-typing flex items-center gap-1 mt-1">

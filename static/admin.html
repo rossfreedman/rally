@@ -31,6 +31,7 @@
                 <a class="tab tab-active" data-tab="users">Users</a>
                 <a class="tab" data-tab="clubs">Clubs</a>
                 <a class="tab" data-tab="series">Series</a>
+                <a class="tab" data-tab="ai-stats">AI Optimization</a>
             </div>
 
             <!-- Users content -->
@@ -113,6 +114,32 @@
                     </div>
                 </div>
             </div>
+
+            <!-- AI Optimization content -->
+            <div id="ai-stats-content" class="tab-content hidden">
+                <div class="card bg-base-100 shadow-xl mb-6">
+                    <div class="card-body">
+                        <div class="flex justify-between items-center">
+                            <h2 class="card-title text-primary">🤖 AI Optimization Monitor</h2>
+                            <div class="flex gap-2">
+                                <button class="btn btn-outline btn-sm" onclick="refreshAIStats()">
+                                    <i class="fas fa-sync-alt mr-1"></i> Refresh
+                                </button>
+                                <button class="btn btn-warning btn-sm" onclick="resetAIStats()">
+                                    <i class="fas fa-trash mr-1"></i> Reset Stats
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div id="ai-stats-container" class="mt-4">
+                            <div class="flex justify-center items-center py-8">
+                                <div class="loading loading-spinner loading-md"></div>
+                                <span class="ml-2">Loading AI statistics...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Sidebar -->
@@ -124,6 +151,7 @@
                     <li><a class="active" data-tab="users">Users</a></li>
                     <li><a data-tab="clubs">Clubs</a></li>
                     <li><a data-tab="series">Series</a></li>
+                    <li><a data-tab="ai-stats">AI Optimization</a></li>
                 </ul>
             </div>
         </div>

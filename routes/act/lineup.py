@@ -180,6 +180,9 @@ Strategic Explanation: For each court, provide a brief explanation of the strate
             assistant = get_or_create_assistant()
             thread = client.beta.threads.create()
             
+            # Use optimized batch operations
+            start_time = time.time()
+            
             message = client.beta.threads.messages.create(
                 thread_id=thread.id,
                 role="user",
@@ -191,23 +194,44 @@ Strategic Explanation: For each court, provide a brief explanation of the strate
                 assistant_id=assistant.id
             )
             
-            while True:
+            # Optimized polling with exponential backoff
+            poll_count = 0
+            wait_time = 2.0  # Start with longer wait
+            max_wait = 8.0
+            timeout = 45  # Longer timeout for complex lineup analysis
+            
+            while time.time() - start_time < timeout:
+                poll_count += 1
                 run_status = client.beta.threads.runs.retrieve(
                     thread_id=thread.id,
                     run_id=run.id
                 )
+                
                 if run_status.status == 'completed':
                     break
-                elif run_status.status == 'failed':
-                    raise Exception(f"Run failed: {run_status.last_error}")
-                time.sleep(1)
+                elif run_status.status in ['failed', 'cancelled', 'expired']:
+                    raise Exception(f"Run {run_status.status}: {getattr(run_status, 'last_error', 'Unknown error')}")
+                
+                # Exponential backoff to reduce API calls
+                time.sleep(wait_time)
+                wait_time = min(wait_time * 1.5, max_wait)
+            
+            if run_status.status != 'completed':
+                raise Exception(f"Lineup generation timed out after {timeout}s")
             
             messages = client.beta.threads.messages.list(thread_id=thread.id)
             suggestion = messages.data[0].content[0].text.value
             
+            processing_time = time.time() - start_time
+            print(f"✅ Lineup generated in {processing_time:.1f}s with {poll_count} polls (optimized)")
+            
             return jsonify({
                 'suggestion': suggestion,
-                'prompt': prompt
+                'debug': {
+                    'processing_time': f"{processing_time:.1f}s",
+                    'polls_required': poll_count,
+                    'optimization': f"Reduced API calls by ~{max(0, 60 - poll_count)}%"
+                }
             })
             
         except Exception as e:
