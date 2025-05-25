@@ -4,7 +4,8 @@ import os
 import json
 import time
 from utils.logging import log_user_activity
-from utils.ai import get_or_create_assistant, client
+from utils.ai import get_or_create_assistant, client, update_assistant_instructions
+from utils.auth import login_required
 
 # Ultra-optimized context management settings for speed
 MAX_CONTEXT_CHARS = 4000  # Reduced from 6000 for faster processing
@@ -232,17 +233,25 @@ def init_rally_ai_routes(app):
                 message_count = 0
                 was_optimized = False
             else:
-                # Check if existing thread needs optimization
-                context_chars, message_count, was_optimized, context_summary = optimize_thread_context(thread_id)
-                
-                # If context is too large, create optimized thread
-                if was_optimized and context_chars > MAX_CONTEXT_CHARS:
-                    messages = client.beta.threads.messages.list(thread_id=thread_id, limit=8)
-                    new_thread_id = create_optimized_thread_with_context(
-                        thread_id, context_summary, list(messages.data)
-                    )
-                    thread_id = new_thread_id
-                    print(f"🔄 Switched to optimized thread: {thread_id}")
+                # For better UI matching, create a new thread if the last message was more than 5 minutes ago
+                messages = client.beta.threads.messages.list(thread_id=thread_id, limit=1)
+                if messages.data:
+                    last_message_time = messages.data[0].created_at
+                    time_diff = time.time() - last_message_time
+                    if time_diff > 300:  # 5 minutes
+                        thread = client.beta.threads.create()
+                        thread_id = thread.id
+                        print(f"🆕 Created new thread after {time_diff:.0f}s gap")
+                        context_chars = 0
+                        message_count = 0
+                        was_optimized = False
+                    else:
+                        # Check if existing thread needs optimization
+                        context_chars, message_count, was_optimized, context_summary = optimize_thread_context(thread_id)
+                else:
+                    context_chars = 0
+                    message_count = 0
+                    was_optimized = False
             
             # Add user message
             start_time = time.time()
@@ -289,6 +298,9 @@ def init_rally_ai_routes(app):
             messages = client.beta.threads.messages.list(thread_id=thread_id, limit=1)
             response_text = messages.data[0].content[0].text.value
             
+            # Format the response to match OpenAI UI style
+            formatted_response = format_response(response_text)
+            
             processing_time = time.time() - start_time
             
             # Calculate final stats
@@ -314,7 +326,7 @@ def init_rally_ai_routes(app):
             )
             
             return jsonify({
-                'response': response_text,
+                'response': formatted_response,
                 'thread_id': thread_id,
                 'debug': {
                     'message_length': len(message),
@@ -410,4 +422,76 @@ def init_rally_ai_routes(app):
             clear_assistant_cache()
             return jsonify({'message': 'Assistant cache cleared successfully'})
         except Exception as e:
-            return jsonify({'error': str(e)}), 500 
+            return jsonify({'error': str(e)}), 500
+
+    @app.route('/api/assistant/update', methods=['POST'])
+    @login_required
+    def update_assistant():
+        """Update the assistant's instructions"""
+        try:
+            data = request.json
+            new_instructions = data.get('instructions')
+            
+            if not new_instructions:
+                return jsonify({'error': 'Instructions are required'}), 400
+            
+            # Update assistant instructions
+            assistant = update_assistant_instructions(new_instructions)
+            
+            # Clear the cache to force reload with new instructions
+            clear_assistant_cache()
+            
+            return jsonify({
+                'message': 'Assistant instructions updated successfully',
+                'assistant_id': assistant.id
+            })
+        except Exception as e:
+            print(f"Error updating assistant: {str(e)}")
+            return jsonify({'error': str(e)}), 500
+
+def format_response(text):
+    """Format the response to match OpenAI UI style"""
+    # Split into sections
+    sections = text.split('\n\n')
+    formatted_sections = []
+    
+    for section in sections:
+        # Skip empty sections
+        if not section.strip():
+            continue
+            
+        # Check if section is a list
+        if section.strip().startswith('- '):
+            # Format list items
+            items = section.split('\n')
+            formatted_items = []
+            for item in items:
+                if item.strip().startswith('- '):
+                    formatted_items.append(item.strip())
+            if formatted_items:
+                formatted_sections.append('\n'.join(formatted_items))
+        # Check if section is a drill
+        elif '🏹' in section or 'Drill:' in section:
+            formatted_sections.append(section.strip())
+        # Check if section is a video recommendation
+        elif '🎥' in section or 'Video:' in section:
+            formatted_sections.append(section.strip())
+        # Check if section is a question
+        elif '?' in section and len(section) < 100:
+            formatted_sections.append(section.strip())
+        # Regular section
+        else:
+            formatted_sections.append(section.strip())
+    
+    # Join sections with proper spacing
+    formatted_text = '\n\n'.join(formatted_sections)
+    
+    # Add emojis for key sections if not present
+    if 'Drill:' in formatted_text:
+        # Remove existing drill icons and make bold
+        formatted_text = formatted_text.replace('🏹 Drill:', '**Drill:**')
+        formatted_text = formatted_text.replace('Drill:', '**Drill:**')
+    if 'Video:' in formatted_text and '🎥' not in formatted_text:
+        formatted_text = formatted_text.replace('Video:', '🎥 Video:')
+    
+    return formatted_text 

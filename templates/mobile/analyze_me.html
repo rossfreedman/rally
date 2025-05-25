@@ -475,7 +475,8 @@ document.addEventListener('DOMContentLoaded', async function() {
 
     const config = {
       responsive: true,
-      displayModeBar: false
+      displayModeBar: false,
+      staticPlot: true
     };
 
     Plotly.newPlot('ptiHistoryChart', data, layout, config);

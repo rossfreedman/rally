@@ -233,12 +233,7 @@ def get_or_create_assistant():
         # Create new assistant if retrieval failed
         assistant = client.beta.assistants.create(
             name="PaddlePro Assistant",
-            instructions="""You are a paddle tennis assistant. Help users with:
-            1. Generating optimal lineups based on player statistics
-            2. Analyzing match patterns and team performance
-            3. Providing strategic advice for upcoming matches
-            4. Answering questions about paddle tennis rules and strategy""",
-            model="gpt-4-turbo-preview"
+            model="gpt-4"  # Match the UI model
         )
         print(f"Successfully created new assistant with ID: {assistant.id}")
         print("\nIMPORTANT: Save this assistant ID in your environment variables:")

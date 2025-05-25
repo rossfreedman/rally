@@ -59,7 +59,7 @@
     {% endif %}
 
     <!-- Coach Rally Section -->
-    <div class="p-4 bg-white rounded-lg shadow mb-4 border-2 border-blue-400 min-h-[550px] max-h-[700px] flex flex-col">
+    <div class="p-4 bg-white rounded-lg shadow mb-4 border-2 border-blue-400">
         <div class="flex items-center gap-3 mb-4">
             <div class="bg-gradient-to-br from-green-500 to-blue-600 rounded-md flex items-center justify-center h-10 w-10">
                 <i class="fas fa-user-graduate text-white text-lg"></i>
@@ -70,8 +70,10 @@
             </div>
         </div>
         
-        <!-- Chat Messages Container -->
-        <div id="paddle-coach-messages" class="min-h-[200px] max-h-[350px] overflow-y-auto bg-gray-50 rounded-xl p-3 mb-4 space-y-2 flex-1"></div>
+        <!-- Chat Preview -->
+        <div id="chat-preview" class="bg-gray-50 rounded-xl p-3 mb-4 min-h-[100px] max-h-[150px] overflow-y-auto">
+            <div class="text-sm text-gray-500 italic">Ask Coach Rally anything about paddle tennis...</div>
+        </div>
         
         <!-- Chat Input Form -->
         <form id="paddle-coach-form" class="flex gap-2">
@@ -93,66 +95,107 @@
         </div>
     </div>
 
-    <!-- Training Resources -->
-    <div class="p-4 space-y-4">
-        <!-- Video Library Card -->
-        <div class="bg-gray-50 rounded-lg shadow p-4 opacity-60 relative">
-            <div class="flex items-center justify-between mb-3">
-                <div class="flex items-center">
-                    <i class="fas fa-video text-gray-400 text-xl mr-2"></i>
-                    <span class="text-lg font-bold text-gray-500">Training Video Library</span>
+    <!-- Full Screen Modal -->
+    <div id="coach-rally-modal" class="fixed inset-0 bg-white z-50 hidden flex flex-col">
+        <!-- Modal Header -->
+        <div class="flex items-center justify-between p-4 border-b border-gray-200 bg-white shadow sticky top-0 z-10">
+            <div class="flex items-center gap-3">
+                <div class="bg-gradient-to-br from-green-500 to-blue-600 rounded-md flex items-center justify-center h-10 w-10">
+                    <i class="fas fa-user-graduate text-white text-lg"></i>
                 </div>
-                <span class="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full font-medium">Coming Soon</span>
+                <div>
+                    <h3 class="text-xl font-bold text-gray-800">Coach Rally</h3>
+                    <p class="text-sm text-gray-600">Your AI paddle tennis coach</p>
+                </div>
             </div>
-            <p class="text-gray-500 mb-4">Access our curated collection of training videos and tutorials.</p>
-            <div class="text-gray-400 font-semibold flex items-center cursor-not-allowed">
-                Browse Videos <i class="fas fa-lock ml-2"></i>
-            </div>
+            <button id="close-modal" class="p-2 hover:bg-gray-100 rounded-full">
+                <i class="fas fa-times text-gray-500 text-xl"></i>
+            </button>
         </div>
 
-        <!-- Drills & Exercises Card -->
-        <div class="bg-gray-50 rounded-lg shadow p-4 opacity-60 relative">
-            <div class="flex items-center justify-between mb-3">
-                <div class="flex items-center">
-                    <i class="fas fa-dumbbell text-gray-400 text-xl mr-2"></i>
-                    <span class="text-lg font-bold text-gray-500">Drills & Exercises</span>
-                </div>
-                <span class="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full font-medium">Coming Soon</span>
-            </div>
-            <p class="text-gray-500 mb-4">Practice routines and exercises to enhance your skills.</p>
-            <div class="text-gray-400 font-semibold flex items-center cursor-not-allowed">
-                View Drills <i class="fas fa-lock ml-2"></i>
-            </div>
-        </div>
+        <!-- Chat Messages Container -->
+        <div id="paddle-coach-messages" class="flex-1 overflow-y-auto p-4 space-y-4 imessage-background"></div>
 
-        <!-- Performance Analysis Card -->
-        <div class="bg-gray-50 rounded-lg shadow p-4 opacity-60 relative">
-            <div class="flex items-center justify-between mb-3">
-                <div class="flex items-center">
-                    <i class="fas fa-chart-bar text-gray-400 text-xl mr-2"></i>
-                    <span class="text-lg font-bold text-gray-500">Performance Analysis</span>
-                </div>
-                <span class="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full font-medium">Coming Soon</span>
-            </div>
-            <p class="text-gray-500 mb-4">Track your progress and identify areas for improvement.</p>
-            <div class="text-gray-400 font-semibold flex items-center cursor-not-allowed">
-                View Analysis <i class="fas fa-lock ml-2"></i>
-            </div>
+        <!-- Chat Input Form -->
+        <div class="p-4 border-t border-gray-200 bg-white">
+            <form id="modal-coach-form" class="flex gap-2">
+                <input type="text" 
+                       id="modal-coach-input" 
+                       class="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                       placeholder="Ask about serve, volleys, strategy, footwork..."
+                       autocomplete="off" 
+                       required>
+                <button type="submit" 
+                        class="bg-gradient-to-br from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white px-4 py-2 rounded-lg transition-all duration-200">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </form>
         </div>
     </div>
 
+    <!-- Training Resources Section -->
+    <div class="p-4">
+      <div class="border-2 border-blue-200 rounded-xl p-4 bg-white">
+        <h2 class="text-xl font-bold text-blue-700 mb-4">Training Resources</h2>
+        <div class="space-y-4">
+          <!-- Video Library Card -->
+          <div class="bg-gray-50 rounded-lg shadow p-4 relative">
+              <div class="flex items-center justify-between mb-3">
+                  <div class="flex items-center">
+                      <i class="fas fa-video text-gray-400 text-xl mr-2"></i>
+                      <span class="text-lg font-bold text-gray-700">Training Video Library</span>
+                  </div>
+                  <span class="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full font-medium">Coming Soon</span>
+              </div>
+              <p class="text-gray-700 mb-4">Access our curated collection of training videos and tutorials.</p>
+              <div class="text-gray-700 font-semibold flex items-center cursor-not-allowed">
+                  Browse Videos <i class="fas fa-lock ml-2"></i>
+              </div>
+          </div>
+          <!-- Drills & Exercises Card -->
+          <div class="bg-gray-50 rounded-lg shadow p-4 relative">
+              <div class="flex items-center justify-between mb-3">
+                  <div class="flex items-center">
+                      <i class="fas fa-dumbbell text-gray-400 text-xl mr-2"></i>
+                      <span class="text-lg font-bold text-gray-700">Drills & Exercises</span>
+                  </div>
+                  <span class="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full font-medium">Coming Soon</span>
+              </div>
+              <p class="text-gray-700 mb-4">Practice routines and exercises to enhance your skills.</p>
+              <div class="text-gray-700 font-semibold flex items-center cursor-not-allowed">
+                  View Drills <i class="fas fa-lock ml-2"></i>
+              </div>
+          </div>
+          <!-- Performance Analysis Card -->
+          <div class="bg-gray-50 rounded-lg shadow p-4 relative">
+              <div class="flex items-center justify-between mb-3">
+                  <div class="flex items-center">
+                      <i class="fas fa-chart-bar text-gray-400 text-xl mr-2"></i>
+                      <span class="text-lg font-bold text-gray-700">Performance Analysis</span>
+                  </div>
+                  <span class="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full font-medium">Coming Soon</span>
+              </div>
+              <p class="text-gray-700 mb-4">Track your progress and identify areas for improvement.</p>
+              <div class="text-gray-700 font-semibold flex items-center cursor-not-allowed">
+                  View Analysis <i class="fas fa-lock ml-2"></i>
+              </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Review Video Footage Section -->
-    <div class="p-4 space-y-4 bg-gray-50 opacity-60 relative">
+    <div class="p-4 space-y-4 bg-gray-50 relative">
         <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
                 <i class="fas fa-video text-gray-400 text-xl"></i>
-                <h2 class="text-xl font-bold text-gray-500">Review Video Footage</h2>
+                <h2 class="text-xl font-bold text-gray-700">Review Video Footage</h2>
             </div>
             <span class="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full font-medium">Coming Soon</span>
         </div>
-        <p class="text-gray-500 text-sm">This feature will allow you to review and analyze your match footage.</p>
+        <p class="text-gray-700 text-sm">This feature will allow you to review and analyze your match footage.</p>
 
-        <h3 class="text-lg font-semibold mt-6 mb-4 text-gray-500">Match Videos</h3>
+        <h3 class="text-lg font-semibold mt-6 mb-4 text-gray-700">Match Videos</h3>
         <div class="grid grid-cols-1 gap-4">
             <!-- Match Video 1 -->
             <div class="bg-gray-100 rounded-lg shadow overflow-hidden relative">
@@ -162,10 +205,10 @@
                 </div>
                 <div class="p-4">
                     <div class="flex justify-between items-center mb-2">
-                        <h5 class="font-semibold text-sm text-gray-400">You/Jonathan Blume vs. Victor Forman/Stephen Statkus - Court 3</h5>
+                        <h5 class="font-semibold text-sm text-gray-700">You/Jonathan Blume vs. Victor Forman/Stephen Statkus - Court 3</h5>
                         <span class="bg-gray-400 text-white text-xs px-2 py-1 rounded">12:43</span>
                     </div>
-                    <p class="text-gray-400 text-sm">Apr 12, 2025 • 243 views</p>
+                    <p class="text-gray-700 text-sm">Apr 12, 2025 • 243 views</p>
                 </div>
             </div>
 
@@ -177,10 +220,10 @@
                 </div>
                 <div class="p-4">
                     <div class="flex justify-between items-center mb-2">
-                        <h5 class="font-semibold text-sm text-gray-400">You/Mike Lieberman vs. Brian Stutland/David Schwartz - Court 1</h5>
+                        <h5 class="font-semibold text-sm text-gray-700">You/Mike Lieberman vs. Brian Stutland/David Schwartz - Court 1</h5>
                         <span class="bg-gray-400 text-white text-xs px-2 py-1 rounded">15:21</span>
                     </div>
-                    <p class="text-gray-400 text-sm">Mar 24, 2025 • 127 views</p>
+                    <p class="text-gray-700 text-sm">Mar 24, 2025 • 127 views</p>
                 </div>
             </div>
 
@@ -192,10 +235,10 @@
                 </div>
                 <div class="p-4">
                     <div class="flex justify-between items-center mb-2">
-                        <h5 class="font-semibold text-sm text-gray-400">You/Andrew Franger vs. Mike Lieberman/Josh Cohen - Court 2</h5>
+                        <h5 class="font-semibold text-sm text-gray-700">You/Andrew Franger vs. Mike Lieberman/Josh Cohen - Court 2</h5>
                         <span class="bg-gray-400 text-white text-xs px-2 py-1 rounded">9:58</span>
                     </div>
-                    <p class="text-gray-400 text-sm">Feb 18, 2025 • 85 views</p>
+                    <p class="text-gray-700 text-sm">Feb 18, 2025 • 85 views</p>
                 </div>
             </div>
 
@@ -207,15 +250,15 @@
                 </div>
                 <div class="p-4">
                     <div class="flex justify-between items-center mb-2">
-                        <h5 class="font-semibold text-sm text-gray-400">You/Victor Forman vs. David Schwartz/Alex Johnson - Court 4</h5>
+                        <h5 class="font-semibold text-sm text-gray-700">You/Victor Forman vs. David Schwartz/Alex Johnson - Court 4</h5>
                         <span class="bg-gray-400 text-white text-xs px-2 py-1 rounded">11:16</span>
                     </div>
-                    <p class="text-gray-400 text-sm">Jan 30, 2025 • 204 views</p>
+                    <p class="text-gray-700 text-sm">Jan 30, 2025 • 204 views</p>
                 </div>
             </div>
         </div>
 
-        <h3 class="text-lg font-semibold mt-6 mb-4 text-gray-500">Practice Videos</h3>
+        <h3 class="text-lg font-semibold mt-6 mb-4 text-gray-700">Practice Videos</h3>
         <div class="grid grid-cols-1 gap-4">
             <!-- Practice Video 1 -->
             <div class="bg-gray-100 rounded-lg shadow overflow-hidden relative">
@@ -225,10 +268,10 @@
                 </div>
                 <div class="p-4">
                     <div class="flex justify-between items-center mb-2">
-                        <h5 class="font-semibold text-sm text-gray-400">Serve Practice with Coach Smith</h5>
+                        <h5 class="font-semibold text-sm text-gray-700">Serve Practice with Coach Smith</h5>
                         <span class="bg-gray-400 text-white text-xs px-2 py-1 rounded">8:32</span>
                     </div>
-                    <p class="text-gray-400 text-sm">Apr 15, 2025 • 156 views</p>
+                    <p class="text-gray-700 text-sm">Apr 15, 2025 • 156 views</p>
                 </div>
             </div>
 
@@ -240,10 +283,10 @@
                 </div>
                 <div class="p-4">
                     <div class="flex justify-between items-center mb-2">
-                        <h5 class="font-semibold text-sm text-gray-400">Backhand Drills Session</h5>
+                        <h5 class="font-semibold text-sm text-gray-700">Backhand Drills Session</h5>
                         <span class="bg-gray-400 text-white text-xs px-2 py-1 rounded">12:15</span>
                     </div>
-                    <p class="text-gray-400 text-sm">Apr 8, 2025 • 98 views</p>
+                    <p class="text-gray-700 text-sm">Apr 8, 2025 • 98 views</p>
                 </div>
             </div>
 
@@ -255,10 +298,10 @@
                 </div>
                 <div class="p-4">
                     <div class="flex justify-between items-center mb-2">
-                        <h5 class="font-semibold text-sm text-gray-400">Volley Technique Workshop</h5>
+                        <h5 class="font-semibold text-sm text-gray-700">Volley Technique Workshop</h5>
                         <span class="bg-gray-400 text-white text-xs px-2 py-1 rounded">10:45</span>
                     </div>
-                    <p class="text-gray-400 text-sm">Apr 1, 2025 • 172 views</p>
+                    <p class="text-gray-700 text-sm">Apr 1, 2025 • 172 views</p>
                 </div>
             </div>
         </div>
@@ -270,6 +313,8 @@
 <script id="paddle-tips-data" type="application/json">{{ paddle_tips | tojson | safe }}</script>
 
 <script>
+let coachThreadId = null;
+
 document.addEventListener('DOMContentLoaded', function() {
     const paddleTipsScript = document.getElementById('paddle-tips-data');
     const paddleTips = paddleTipsScript ? JSON.parse(paddleTipsScript.textContent) : [];
@@ -557,332 +602,298 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Coach Rally Interactive Chat
-    const paddleCoachMessages = document.getElementById('paddle-coach-messages');
+    // Coach Rally Modal Functionality
+    const coachRallyModal = document.getElementById('coach-rally-modal');
+    const closeModalBtn = document.getElementById('close-modal');
+    const chatPreview = document.getElementById('chat-preview');
     const paddleCoachForm = document.getElementById('paddle-coach-form');
+    const modalCoachForm = document.getElementById('modal-coach-form');
     const paddleCoachInput = document.getElementById('paddle-coach-input');
-    let coachThreadId = null;
+    const modalCoachInput = document.getElementById('modal-coach-input');
+    const paddleCoachMessages = document.getElementById('paddle-coach-messages');
 
-    function appendPaddleCoachMessage(text, sender) {
-        // Remove markdown video link labels like [Platform Tennis Serve Technique](...)
-        if (sender === 'ai' && typeof text === 'string') {
-            text = text.replace(/\[.*?\]\([^)]*\)/g, '');
-        }
+    // Show modal when clicking the chat preview or submitting the main form
+    chatPreview.addEventListener('click', () => {
+        coachRallyModal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    });
 
-        // Special handling for AI responses with Recommended Video and follow-up question
-        if (sender === 'ai' && text.includes('**Recommended Video:**')) {
-            // Split on Recommended Video
-            const parts = text.split(/\*\*Recommended Video:\*\*/);
-            let beforeVideo = parts[0].trim();
-            let afterVideo = parts[1] ? parts[1].trim() : '';
-
-            // Try to split out a follow-up question at the end of afterVideo
-            let followUp = '';
-            let videoSection = afterVideo;
-            const match = afterVideo.match(/([\s\S]*?)([^\.!?]*\?)(\s*)$/);
-            if (match && match[2].length > 10) {
-                videoSection = match[1].trim();
-                followUp = match[2].trim();
-                // Remove leading YouTube ID fragments like 'v=F8Hc8X1pM6g) '
-                followUp = followUp.replace(/^v=[a-zA-Z0-9_-]{11}\)\s*/, '');
-            }
-
-            // Render main content and YouTube video in the same bubble
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'flex justify-start mb-4';
-            const bubbleDiv = document.createElement('div');
-            bubbleDiv.className = 'max-w-sm lg:max-w-md px-4 py-3 rounded-2xl shadow-sm bg-white border border-gray-200 text-gray-800 rounded-bl-md';
-            // Add Coach Rally header
-            const headerDiv = document.createElement('div');
-            headerDiv.className = 'flex items-center gap-2 mb-2 pb-2 border-b border-gray-100';
-            headerDiv.innerHTML = `
-                <div class=\"bg-gradient-to-br from-green-500 to-blue-600 rounded-full w-6 h-6 flex items-center justify-center\">
-                    <i class=\"fas fa-user-graduate text-white text-xs\"></i>
-                </div>
-                <span class=\"text-xs font-bold text-gray-700\">Coach Rally</span>
-                <div class=\"flex-1\"></div>
-                <span class=\"text-xs text-gray-400\">${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-            `;
-            const contentDiv = document.createElement('div');
-            contentDiv.className = 'text-sm leading-relaxed';
-            // Add main content
-            if (beforeVideo) {
-                let formattedText = beforeVideo.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-                formattedText = formattedText.replace(/\*(.*?)\*/g, '<em>$1</em>');
-                formattedText = formattedText.replace(/\n/g, '<br>');
-                contentDiv.innerHTML = formattedText;
-            }
-            // Add hard-coded YouTube video embed right after main content
-            const videoId = 'tTZem6cPIEo';
-            const youtubeUrl = 'https://www.youtube.com/watch?v=' + videoId;
-            const videoEmbed = document.createElement('div');
-            videoEmbed.className = 'w-full my-4';
-            videoEmbed.innerHTML = `
-                <div style=\"position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 8px; background: #e5e7eb;\">
-                    <iframe style=\"position: absolute; top: 0; left: 0; width: 100%; height: 100%;\" src=\"https://www.youtube.com/embed/${videoId}\" frameborder=\"0\" allowfullscreen></iframe>
-                </div>
-                <div class=\"text-xs text-center mt-2\">
-                    <a href=\"${youtubeUrl}\" target=\"_blank\" class=\"text-blue-600 hover:underline font-medium\">🎥 Watch on YouTube</a>
-                </div>
-            `;
-            contentDiv.appendChild(videoEmbed);
-            bubbleDiv.appendChild(headerDiv);
-            bubbleDiv.appendChild(contentDiv);
-            messageDiv.appendChild(bubbleDiv);
-            paddleCoachMessages.appendChild(messageDiv);
-            // Render follow-up question as a regular bubble
-            if (followUp) {
-                const messageDiv = document.createElement('div');
-                messageDiv.className = 'flex justify-start mb-4';
-                const bubbleDiv = document.createElement('div');
-                bubbleDiv.className = 'max-w-sm lg:max-w-md px-4 py-3 rounded-2xl shadow-sm bg-white border border-gray-200 text-gray-800 rounded-bl-md';
-                // Add Coach Rally header
-                const headerDiv = document.createElement('div');
-                headerDiv.className = 'flex items-center gap-2 mb-2 pb-2 border-b border-gray-100';
-                headerDiv.innerHTML = `
-                    <div class=\"bg-gradient-to-br from-green-500 to-blue-600 rounded-full w-6 h-6 flex items-center justify-center\">
-                        <i class=\"fas fa-user-graduate text-white text-xs\"></i>
-                    </div>
-                    <span class=\"text-xs font-bold text-gray-700\">Coach Rally</span>
-                    <div class=\"flex-1\"></div>
-                    <span class=\"text-xs text-gray-400\">${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                `;
-                const contentDiv = document.createElement('div');
-                contentDiv.className = 'text-sm leading-relaxed';
-                contentDiv.textContent = followUp;
-                bubbleDiv.appendChild(headerDiv);
-                bubbleDiv.appendChild(contentDiv);
-                messageDiv.appendChild(bubbleDiv);
-                paddleCoachMessages.appendChild(messageDiv);
-            }
-            // No scrollIntoView here
-            // Nudge chat window down by 50px after response
-            paddleCoachMessages.scrollTop += 50;
-            return;
-        }
-        const messageDiv = document.createElement('div');
-        messageDiv.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start'} mb-4`;
-        
-        const bubbleDiv = document.createElement('div');
-        bubbleDiv.className = `max-w-sm lg:max-w-md px-4 py-3 rounded-2xl shadow-sm ${
-            sender === 'user' 
-                ? 'bg-gradient-to-br from-green-500 to-blue-600 text-white rounded-br-md' 
-                : 'bg-white border border-gray-200 text-gray-800 rounded-bl-md'
-        }`;
-        
-        if (sender === 'ai') {
-            // Add typing animation for smoother feel
-            bubbleDiv.style.animation = 'messageSlideIn 0.3s ease-out';
-            
-            // Create header separately
-            const headerDiv = document.createElement('div');
-            headerDiv.className = 'flex items-center gap-2 mb-2 pb-2 border-b border-gray-100';
-            headerDiv.innerHTML = `
-                <div class=\"bg-gradient-to-br from-green-500 to-blue-600 rounded-full w-6 h-6 flex items-center justify-center\">
-                    <i class=\"fas fa-user-graduate text-white text-xs\"></i>
-                </div>
-                <span class=\"text-xs font-bold text-gray-700\">Coach Rally</span>
-                <div class=\"flex-1\"></div>
-                <span class=\"text-xs text-gray-400\">${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-            `;
-            
-            // Create content div separately and handle video embeds
-            const contentDiv = document.createElement('div');
-            contentDiv.className = 'text-sm leading-relaxed';
-            
-            // Check if text contains YouTube URL
-            if (text.includes('youtube')) {
-                console.log('Coach Rally: Found YouTube URL, creating video embed');
-                
-                // Split text at YouTube URL
-                const parts = text.split(/(https:\/\/[^\s]*youtube[^\s]*)/gi);
-                
-                parts.forEach(part => {
-                    if (part.match(/https:\/\/[^\s]*youtube[^\s]*/gi)) {
-                        // This is a YouTube URL - create video embed
-                        const videoContainer = document.createElement('div');
-                        videoContainer.style.cssText = 'margin: 15px 0; padding: 12px; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #3b82f6;';
-                        
-                        const videoWrapper = document.createElement('div');
-                        videoWrapper.style.cssText = 'position: relative; width: 100%; height: 0; padding-bottom: 56.25%; overflow: hidden; border-radius: 6px; background: #e5e7eb;';
-                        
-                        const iframe = document.createElement('iframe');
-                        iframe.style.cssText = 'position: absolute; top: 0; left: 0; width: 100%; height: 100%;';
-                        iframe.src = 'https://www.youtube.com/embed/tTZem6cPIEo';
-                        iframe.frameBorder = '0';
-                        iframe.allowFullscreen = true;
-                        
-                        const linkDiv = document.createElement('div');
-                        linkDiv.style.cssText = 'text-align: center; margin-top: 8px;';
-                        
-                        const link = document.createElement('a');
-                        link.href = 'https://www.youtube.com/watch?v=tTZem6cPIEo';
-                        link.target = '_blank';
-                        link.style.cssText = 'color: #2563eb; text-decoration: none; font-size: 13px; font-weight: 500;';
-                        link.textContent = '🎥 Watch on YouTube';
-                        
-                        linkDiv.appendChild(link);
-                        videoWrapper.appendChild(iframe);
-                        videoContainer.appendChild(videoWrapper);
-                        videoContainer.appendChild(linkDiv);
-                        contentDiv.appendChild(videoContainer);
-                    } else {
-                        // Regular text - format and add
-                        const textNode = document.createElement('div');
-                        let formattedText = part.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-                        formattedText = formattedText.replace(/\*(.*?)\*/g, '<em>$1</em>');
-                        formattedText = formattedText.replace(/\n/g, '<br>');
-                        
-                        // Only highlight questions that come after substantial content (not initial greetings)
-                        if (part.length > 100 && part.includes('.') && part.includes('?')) {
-                            formattedText = formattedText.replace(/([^.!]*\?)/g, '<div class="question-highlight mt-3 mb-2 p-3 bg-blue-50 border-l-4 border-blue-400 rounded-r-lg"><strong class="text-blue-800">$1</strong></div>');
-                        }
-                        
-                        textNode.innerHTML = formattedText;
-                        contentDiv.appendChild(textNode);
-                    }
-                });
-            } else {
-                // No YouTube URL - just format text normally
-                let formattedText = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-                formattedText = formattedText.replace(/\*(.*?)\*/g, '<em>$1</em>');
-                formattedText = formattedText.replace(/\n/g, '<br>');
-                
-                // Only highlight questions that come after substantial content (not initial greetings)
-                if (text.length > 100 && text.includes('.') && text.includes('?')) {
-                    formattedText = formattedText.replace(/([^.!]*\?)/g, '<div class="question-highlight mt-3 mb-2 p-3 bg-blue-50 border-l-4 border-blue-400 rounded-r-lg"><strong class="text-blue-800">$1</strong></div>');
-                }
-                
-                contentDiv.innerHTML = formattedText;
-            }
-            
-            // Append both parts to bubble
-            bubbleDiv.appendChild(headerDiv);
-            bubbleDiv.appendChild(contentDiv);
-        } else {
-            bubbleDiv.innerHTML = `
-                <div class="text-sm text-white font-medium">${text}</div>
-            `;
-        }
-        
-        messageDiv.appendChild(bubbleDiv);
-        paddleCoachMessages.appendChild(messageDiv);
-        // No scrollIntoView here
-        // Nudge chat window down by 50px after response
-        paddleCoachMessages.scrollTop += 50;
-    }
-
-    // Initialize Coach Rally with welcome message
-    function initializePaddleCoach() {
-        appendPaddleCoachMessage("👋 Hi! I'm Coach Rally. I'm here to help you improve your paddle tennis game!", 'ai');
-        appendPaddleCoachMessage("What would you like to work on today?", 'ai');
-    }
-
-    // Handle Coach Rally form submission with improved UX
-    if (paddleCoachForm) {
-        paddleCoachForm.addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const userMessage = paddleCoachInput.value.trim();
-            if (!userMessage) return;
-            
-            // Add user message to chat immediately
-            appendPaddleCoachMessage(userMessage, 'user');
+    paddleCoachForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const message = paddleCoachInput.value.trim();
+        if (message) {
+            coachRallyModal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+            modalCoachInput.value = message;
+            handleCoachMessage(message);
             paddleCoachInput.value = '';
+            modalCoachInput.value = '';
+        }
+    });
+
+    // Close modal
+    closeModalBtn.addEventListener('click', () => {
+        coachRallyModal.classList.add('hidden');
+        document.body.style.overflow = '';
+    });
+
+    // Allow closing modal by clicking outside the modal content
+    coachRallyModal.addEventListener('click', function(e) {
+        // Only close if the click is directly on the modal background (not a child)
+        if (e.target === coachRallyModal) {
+            coachRallyModal.classList.add('hidden');
+            document.body.style.overflow = '';
+        }
+    });
+
+    // Allow closing modal with Escape key
+    document.addEventListener('keydown', function(e) {
+        if (!coachRallyModal.classList.contains('hidden') && (e.key === 'Escape' || e.key === 'Esc')) {
+            coachRallyModal.classList.add('hidden');
+            document.body.style.overflow = '';
+        }
+    });
+
+    // Handle modal form submission
+    modalCoachForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const message = modalCoachInput.value.trim();
+        if (message) {
+            handleCoachMessage(message);
+            modalCoachInput.value = '';
+            paddleCoachInput.value = '';
+        }
+    });
+
+    // Update chat preview with latest message
+    function updateChatPreview(message) {
+        const previewText = document.createElement('div');
+        previewText.className = 'text-sm text-gray-700';
+        previewText.textContent = message;
+        chatPreview.innerHTML = '';
+        chatPreview.appendChild(previewText);
+    }
+
+    // Handle coach messages
+    function handleCoachMessage(message) {
+        // Add user message
+        const userMessageDiv = document.createElement('div');
+        userMessageDiv.className = 'flex justify-end mb-3';
+        userMessageDiv.innerHTML = `
+            <div class="bg-blue-500 text-white rounded-2xl py-3 px-4 max-w-[75%] shadow-sm imessage-user-bubble">
+                <div class="text-sm leading-relaxed">${escapeHtml(message)}</div>
+            </div>
+        `;
+        paddleCoachMessages.appendChild(userMessageDiv);
+        
+        // Scroll to bottom
+        paddleCoachMessages.scrollTop = paddleCoachMessages.scrollHeight;
+        
+        // Update preview
+        updateChatPreview(message);
+        
+        // Show loading state
+        const loadingDiv = document.createElement('div');
+        loadingDiv.className = 'flex justify-start mb-3';
+        loadingDiv.innerHTML = `
+            <div class="bg-gray-200 rounded-2xl py-3 px-4 shadow-sm imessage-loading-bubble" style="display: flex; flex-direction: column; align-items: flex-start;">
+                <div class="text-xs text-gray-600 font-medium mb-1 flex items-center gap-2">
+                    <i class="fas fa-circle-notch fa-spin text-gray-500"></i>
+                    Coach Rally is thinking...
+                </div>
+                <div class="imessage-typing flex items-center gap-1 mt-1">
+                    <span class="imessage-dot bg-gray-400"></span>
+                    <span class="imessage-dot bg-gray-500"></span>
+                    <span class="imessage-dot bg-gray-600"></span>
+                </div>
+            </div>
+        `;
+        paddleCoachMessages.appendChild(loadingDiv);
+        
+        // Make API call to get response
+        fetch('/api/chat', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                message: message,
+                thread_id: coachThreadId
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Remove loading state
+            paddleCoachMessages.removeChild(loadingDiv);
             
-            // Disable input while processing
-            paddleCoachInput.disabled = true;
-            const submitBtn = paddleCoachForm.querySelector('button[type="submit"]');
-            const originalIcon = submitBtn.innerHTML;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-            
-            // Add enhanced typing indicator
-            const typingId = 'typing-' + Date.now();
-            const typingDiv = document.createElement('div');
-            typingDiv.className = 'flex justify-start mb-2';
-            typingDiv.innerHTML = `
-                <div id="${typingId}" class="flex items-center gap-2 bg-gray-100 text-gray-500 px-3 py-1 rounded-full text-xs">
-                    <span>Coach Rally is thinking...</span>
-                    <div class="flex gap-1">
-                        <div class="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0ms"></div>
-                        <div class="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 150ms"></div>
-                        <div class="w-1 h-1 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 300ms"></div>
+            if (data.error) {
+                // Show error in chat
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'flex justify-start mb-3';
+                errorDiv.innerHTML = `
+                    <div class="bg-red-100 text-red-700 rounded-2xl py-3 px-4 max-w-[80%] shadow-sm">
+                        <div class="text-sm">${escapeHtml(data.error)}</div>
                     </div>
+                `;
+                paddleCoachMessages.appendChild(errorDiv);
+                return;
+            }
+            // Format the response and extract follow-up question
+            const formattedResponse = formatCoachResponse(data.response);
+            const followupQuestion = extractFollowupQuestion(data.response);
+            
+            // Add main coach response (without follow-up question)
+            const coachMessageDiv = document.createElement('div');
+            coachMessageDiv.className = 'flex justify-start mb-3';
+            coachMessageDiv.innerHTML = `
+                <div class="bg-gray-200 text-gray-900 rounded-2xl py-3 px-4 max-w-[85%] shadow-sm imessage-coach-bubble">
+                    ${formattedResponse}
                 </div>
             `;
-            paddleCoachMessages.appendChild(typingDiv);
+            paddleCoachMessages.appendChild(coachMessageDiv);
             
-            const startTime = Date.now();
-            
-            try {
-                // Enhanced message with coaching context
-                const enhancedMessage = `Paddle tennis coaching: ${userMessage}`;
-                
-                const response = await fetch('/api/chat', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        message: enhancedMessage,
-                        thread_id: coachThreadId
-                    })
-                });
-                
-                const data = await response.json();
-                const responseTime = ((Date.now() - startTime) / 1000).toFixed(1);
-                
-                // Store thread ID for conversation continuity
-                if (data.thread_id) {
-                    coachThreadId = data.thread_id;
-                }
-                
-                // Remove typing indicator
-                const typingElement = document.getElementById(typingId);
-                if (typingElement) {
-                    typingElement.parentElement.remove();
-                }
-                
-                if (data.response) {
-                    appendPaddleCoachMessage(data.response, 'ai');
-                    
-                    // Show speed improvement in subtle way
-                    if (responseTime < 3) {
-                        const speedIndicator = document.createElement('div');
-                        speedIndicator.className = 'text-center text-xs text-green-600 mb-2 opacity-75';
-                        speedIndicator.innerHTML = `<i class="fas fa-bolt text-yellow-500 mr-1"></i>Fast response (${responseTime}s)`;
-                        paddleCoachMessages.appendChild(speedIndicator);
-                        
-                        // Auto-remove after 3 seconds
-                        setTimeout(() => {
-                            if (speedIndicator.parentNode) {
-                                speedIndicator.parentNode.removeChild(speedIndicator);
-                            }
-                        }, 3000);
-                    }
-                } else {
-                    appendPaddleCoachMessage("I had trouble with that. Could you try rephrasing?", 'ai');
-                }
-                
-            } catch (error) {
-                console.error('Coach Rally error:', error);
-                
-                // Remove typing indicator
-                const typingElement = document.getElementById(typingId);
-                if (typingElement) {
-                    typingElement.parentElement.remove();
-                }
-                
-                appendPaddleCoachMessage("I'm having technical difficulties. Please try again!", 'ai');
-            } finally {
-                // Re-enable input
-                paddleCoachInput.disabled = false;
-                submitBtn.innerHTML = originalIcon;
-                paddleCoachInput.focus();
+            // Add follow-up question as separate bubble if it exists
+            if (followupQuestion) {
+                setTimeout(() => {
+                    const followupDiv = document.createElement('div');
+                    followupDiv.className = 'flex justify-start mb-3';
+                    followupDiv.innerHTML = `
+                        <div class="bg-gray-200 text-gray-900 rounded-2xl py-3 px-4 max-w-[42%] shadow-sm imessage-followup-bubble">
+                            <div class="flex items-start gap-3">
+                                <div class="bg-gradient-to-br from-green-500 to-blue-600 rounded-full flex items-center justify-center h-5 w-5 flex-shrink-0 mt-1">
+                                    <i class="fas fa-user-graduate text-white text-xs"></i>
+                                </div>
+                                <div class="text-sm leading-relaxed">
+                                    <span class="font-medium text-green-700 text-xs">Coach Rally</span><br>
+                                    <span class="text-gray-900">${escapeHtml(followupQuestion)}</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    paddleCoachMessages.appendChild(followupDiv);
+                }, 800); // Small delay to make it feel more natural
             }
+            
+            // Update thread ID
+            if (data.thread_id) {
+                coachThreadId = data.thread_id;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            // Remove loading state
+            paddleCoachMessages.removeChild(loadingDiv);
+            
+            // Show error message
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'flex justify-start mb-3';
+            errorDiv.innerHTML = `
+                <div class="bg-red-100 text-red-700 rounded-2xl py-3 px-4 max-w-[80%] shadow-sm">
+                    <div class="text-sm">Sorry, there was an error processing your request. Please try again.</div>
+                </div>
+            `;
+            paddleCoachMessages.appendChild(errorDiv);
         });
     }
 
-    // Initialize Coach Rally
-    initializePaddleCoach();
+    // Helper: Escape HTML
+    function escapeHtml(text) {
+        if (!text) return '';
+        return text.replace(/[&<>"']/g, function (c) {
+            return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c];
+        });
+    }
+
+    // Helper: Format coach response with sections and inline video
+    function formatCoachResponse(response) {
+        if (!response) return '';
+        
+        // Remove follow-up question from the response since it will be displayed separately
+        const followupQuestion = extractFollowupQuestion(response);
+        if (followupQuestion) {
+            // Remove the follow-up question from the response
+            response = response.replace(new RegExp(followupQuestion.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*$'), '').trim();
+        }
+        
+        // Parse markdown links: [title](url)
+        let html = escapeHtml(response);
+        
+        // Convert **text** to bold
+        html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+        
+        // Convert numbered sections (1., 2., 3., etc.) to have proper spacing and bold headers
+        html = html.replace(/(\n|^)(\d+\.)([^\n]+)/g, function(match, prefix, number, content) {
+            // Check if the content after the number looks like a header (short and descriptive)
+            if (content.length < 50 && !content.includes('•')) {
+                return `<div class="coach-section-header"><strong>${number}${content}</strong></div>`;
+            } else {
+                return `<div class="coach-numbered-item">${number}${content}</div>`;
+            }
+        });
+        
+        // Convert bullet points with proper spacing
+        html = html.replace(/\n\s*•\s*/g, '<br><div class="coach-bullet-item"><span class="coach-bullet">•</span> ');
+        
+        // Close bullet point divs (find bullet items and wrap them properly)
+        html = html.replace(/(<div class="coach-bullet-item"><span class="coach-bullet">•<\/span> [^<]*?)(<br>|<div|$)/g, '$1</div>$2');
+        
+        // Add paragraph breaks for regular content (double newlines)
+        html = html.replace(/\n\s*\n/g, '<div class="coach-paragraph-break"></div>');
+        
+        // Convert markdown links to clickable links
+        html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, function(_, text, url) {
+            // If YouTube, embed below
+            if (/youtube\.com|youtu\.be/.test(url)) {
+                return `<a href="${url}" target="_blank" class="coach-link">${escapeHtml(text)}</a> <span class="coach-video-embed" data-url="${url}"></span>`;
+            } else {
+                return `<a href="${url}" target="_blank" class="coach-link">${escapeHtml(text)}</a>`;
+            }
+        });
+        
+        // Convert remaining single newlines to <br>
+        html = html.replace(/\n/g, '<br>');
+        
+        // After rendering, insert YouTube iframes for .coach-video-embed
+        setTimeout(() => {
+            document.querySelectorAll('.coach-video-embed').forEach(function(el) {
+                const url = el.getAttribute('data-url');
+                const videoId = extractYouTubeId(url);
+                if (videoId) {
+                    el.innerHTML = `<div class="coach-video-container"><iframe src="https://www.youtube.com/embed/${videoId}" frameborder="0" allowfullscreen></iframe></div>`;
+                }
+            });
+        }, 0);
+        
+        return html;
+    }
+
+    // Helper: Extract YouTube video ID from URL
+    function extractYouTubeId(url) {
+        if (!url) return null;
+        // Support both youtu.be and youtube.com
+        let match = url.match(/youtu\.be\/([\w-]{11})/);
+        if (match) return match[1];
+        match = url.match(/[?&]v=([\w-]{11})/);
+        if (match) return match[1];
+        match = url.match(/embed\/([\w-]{11})/);
+        if (match) return match[1];
+        return null;
+    }
+
+    // Helper: Extract follow-up question from response
+    function extractFollowupQuestion(response) {
+        if (!response) return null;
+        // Split response into lines
+        const lines = response.split('\n');
+        // Find the last line that ends with a question mark
+        for (let i = lines.length - 1; i >= 0; i--) {
+            const line = lines[i].trim();
+            if (line.endsWith('?')) {
+                return line;
+            }
+        }
+        return null;
+    }
 });
 </script>
 
@@ -905,6 +916,10 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 
 /* Enhanced Coach Rally chat styles */
+.imessage-background {
+    background: linear-gradient(180deg, #f8f9fa 0%, #e9ecef 100%);
+}
+
 #paddle-coach-messages {
     scrollbar-width: thin;
     scrollbar-color: #cbd5e1 #f1f5f9;
@@ -928,7 +943,188 @@ document.addEventListener('DOMContentLoaded', function() {
     background: #94a3b8;
 }
 
-/* Enhanced message animations */
+/* iMessage-style bubble animations */
+.imessage-user-bubble,
+.imessage-coach-bubble,
+.imessage-followup-bubble,
+.imessage-loading-bubble {
+    animation: messageSlideIn 0.3s ease-out;
+    position: relative;
+}
+
+.imessage-user-bubble {
+    background: linear-gradient(135deg, #007AFF 0%, #0051D5 100%);
+    border-bottom-right-radius: 8px;
+}
+
+.imessage-coach-bubble {
+    background: #E5E5EA;
+    color: #000000;
+    border-bottom-left-radius: 8px;
+}
+
+.imessage-followup-bubble {
+    background: #E5E5EA;
+    color: #000000;
+    border-bottom-left-radius: 8px;
+}
+
+.imessage-loading-bubble {
+    background: #E5E5EA;
+    border-bottom-left-radius: 8px;
+}
+
+/* Bubble hover effects */
+.imessage-user-bubble:hover,
+.imessage-coach-bubble:hover,
+.imessage-followup-bubble:hover {
+    transform: scale(1.02);
+    transition: transform 0.1s ease-out;
+}
+
+/* Content styling within bubbles */
+.imessage-coach-bubble .coach-section-header strong {
+    color: #007AFF;
+    font-weight: 600;
+}
+
+.imessage-coach-bubble .coach-bullet {
+    color: #007AFF;
+    font-weight: bold;
+}
+
+.imessage-coach-bubble .coach-link {
+    color: #007AFF;
+    text-decoration: underline;
+}
+
+/* iMessage-style typing dots */
+.imessage-typing {
+    min-height: 18px;
+    margin-top: 0.25rem;
+    margin-bottom: 0.1rem;
+    justify-content: flex-start;
+}
+.imessage-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    margin: 0 1px;
+    background: #8E8E93;
+    border-radius: 50%;
+    opacity: 0.6;
+    animation: imessage-bounce 1.4s infinite both;
+}
+.imessage-dot:nth-child(1) { animation-delay: 0s; }
+.imessage-dot:nth-child(2) { animation-delay: 0.2s; }
+.imessage-dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes imessage-bounce {
+    0%, 80%, 100% { 
+        transform: translateY(0); 
+        opacity: 0.6; 
+    }
+    40% { 
+        transform: translateY(-4px); 
+        opacity: 1; 
+    }
+}
+
+.coach-response-bubble {
+    border-left: 4px solid #3b82f6;
+    background: #f8fafc;
+    margin-top: 2px;
+    margin-bottom: 2px;
+}
+
+/* New formatting styles for better readability */
+.coach-section-break {
+    margin-top: 1.5em;
+    margin-bottom: 0.5em;
+}
+
+.coach-section-header {
+    margin-top: 1.2em;
+    margin-bottom: 0.1em;
+    font-size: 1.05em;
+}
+
+.coach-section-header:first-child {
+    margin-top: 0;
+}
+
+.coach-section-header strong {
+    color: #1e40af;
+    font-weight: 600;
+}
+
+.coach-numbered-item {
+    margin-bottom: 0.5em;
+    font-weight: 500;
+}
+
+.coach-paragraph-break {
+    margin-top: 1em;
+    margin-bottom: 0.5em;
+}
+
+.coach-bullet-item {
+    margin-bottom: 0.4em;
+    margin-left: 0.5em;
+    line-height: 1.4;
+}
+
+.coach-bullet {
+    color: #3b82f6;
+    font-weight: bold;
+    margin-right: 0.5em;
+}
+
+.coach-link {
+    color: #2563eb;
+    text-decoration: underline;
+    font-weight: 500;
+}
+.coach-video-container {
+    margin: 1em 0 0.5em 0;
+    width: 100%;
+    max-width: 320px;
+    aspect-ratio: 16/9;
+    background: #e5e7eb;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(59,130,246,0.08);
+}
+.coach-video-container iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    display: block;
+}
+.coach-followup {
+    margin-top: 1em;
+    background: linear-gradient(90deg, #dbeafe 0%, #f0f9ff 100%);
+    color: #1e293b;
+    font-weight: 500;
+    border-radius: 8px;
+    padding: 0.7em 1em;
+    font-size: 1em;
+    box-shadow: 0 1px 4px rgba(59,130,246,0.07);
+    display: inline-block;
+}
+.coach-followup-bubble {
+    animation: messageSlideIn 0.4s ease-out;
+    transition: all 0.2s ease;
+}
+.coach-followup-bubble:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.15);
+}
+.animate-fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+/* Essential animations */
 @keyframes messageSlideIn {
     from { 
         opacity: 0; 
@@ -938,71 +1134,6 @@ document.addEventListener('DOMContentLoaded', function() {
         opacity: 1; 
         transform: translateY(0) scale(1); 
     }
-}
-
-@keyframes pulse {
-    0%, 100% { opacity: 0.4; }
-    50% { opacity: 1; }
-}
-
-/* Input state styling */
-#paddle-coach-input:disabled {
-    background-color: #f9fafb;
-    cursor: wait;
-}
-
-/* Button loading state */
-.loading-btn {
-    pointer-events: none;
-    opacity: 0.7;
-}
-
-/* Speed indicator animation */
-@keyframes speedPulse {
-    0% { transform: scale(1); opacity: 0; }
-    50% { transform: scale(1.1); opacity: 1; }
-    100% { transform: scale(1); opacity: 0.75; }
-}
-
-.speed-indicator {
-    animation: speedPulse 0.6s ease-out;
-}
-
-/* Enhanced bubble styling */
-.coach-message-bubble {
-    backdrop-filter: blur(10px);
-    transition: all 0.2s ease;
-}
-
-.coach-message-bubble:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-/* Practice highlight styling */
-.practice-highlight {
-    background: linear-gradient(120deg, #84fab0 0%, #8fd3f4 100%);
-    padding: 2px 6px;
-    border-radius: 12px;
-    font-weight: 500;
-}
-
-/* Question highlight styling */
-.question-highlight {
-    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
-    border-radius: 8px;
-    transition: all 0.2s ease;
-    box-shadow: 0 1px 3px rgba(59, 130, 246, 0.1);
-}
-
-.question-highlight:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
-}
-
-.question-highlight strong {
-    font-size: 14px;
-    line-height: 1.4;
 }
 </style>
 {% endif %}
