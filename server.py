@@ -145,6 +145,10 @@ is_development = os.environ.get('FLASK_ENV') == 'development'
 # Register blueprints
 app.register_blueprint(admin_bp, url_prefix='/api/admin')
 
+# Register training data API blueprint
+from api.training_data import training_data_bp
+app.register_blueprint(training_data_bp)
+
 # Initialize ACT routes
 init_act_routes(app)
 
@@ -4154,18 +4158,13 @@ def serve_mobile_improve():
         print(f"Error serving improve page: {str(e)}")
         return redirect(url_for('login'))
 
-@app.route('/api/find-training-video', methods=['POST'])
-def find_training_video():
-    """Find relevant training videos based on user prompt"""
+def find_training_video_direct(user_prompt):
+    """Find relevant training videos based on user prompt - direct function call version"""
     try:
-        data = request.get_json()
-        if not data:
-            return jsonify({'videos': [], 'error': 'No data provided'})
-            
-        user_prompt = data.get('content', '').lower().strip()
-        
         if not user_prompt:
-            return jsonify({'videos': []})
+            return {'videos': [], 'video': None}
+        
+        user_prompt = user_prompt.lower().strip()
         
         # Load training guide data
         try:
@@ -4174,7 +4173,7 @@ def find_training_video():
                 training_guide = json.load(f)
         except Exception as e:
             print(f"Error loading training guide: {str(e)}")
-            return jsonify({'videos': [], 'error': 'Could not load training guide'})
+            return {'videos': [], 'video': None, 'error': 'Could not load training guide'}
         
         # Search through training guide sections
         matching_sections = []
@@ -4248,9 +4247,27 @@ def find_training_video():
             if relevant_videos:
                 response['video'] = relevant_videos[0]  # Best match (highest relevance)
             
-            return jsonify(response)
+            return response
         
-        return jsonify({'videos': [], 'video': None})
+        return {'videos': [], 'video': None}
+        
+    except Exception as e:
+        print(f"Error finding training video: {str(e)}")
+        return {'videos': [], 'video': None, 'error': str(e)}
+
+@app.route('/api/find-training-video', methods=['POST'])
+def find_training_video():
+    """Find relevant training videos based on user prompt"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'videos': [], 'error': 'No data provided'})
+            
+        user_prompt = data.get('content', '').lower().strip()
+        
+        # Use the direct function
+        result = find_training_video_direct(user_prompt)
+        return jsonify(result)
         
     except Exception as e:
         print(f"Error finding training video: {str(e)}")

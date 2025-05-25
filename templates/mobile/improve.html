@@ -759,8 +759,43 @@ document.addEventListener('DOMContentLoaded', function() {
             const coachMessagePosition = coachMessageDiv.offsetTop;
             paddleCoachMessages.scrollTop = userMessagePosition - 25;
             
-            // Search for relevant training video and add video bubble if found
-            searchAndAddTrainingVideo(message, followupQuestion, userMessagePosition);
+            // Check if response already contains training data/videos to avoid duplication
+            const responseText = data.response || '';
+            const hasTrainingVideo = responseText.includes('Training Video') || 
+                                   responseText.includes('youtube.com') || 
+                                   responseText.includes('youtu.be') ||
+                                   responseText.includes('### Training Video') ||
+                                   responseText.includes('Training Videos');
+            
+            // Only search for additional videos if the response doesn't already contain them
+            if (!hasTrainingVideo) {
+                searchAndAddTrainingVideo(message, followupQuestion, userMessagePosition);
+            } else {
+                // Response already has training data, just add follow-up question if it exists
+                if (followupQuestion) {
+                    setTimeout(() => {
+                        const followupDiv = document.createElement('div');
+                        followupDiv.className = 'flex justify-start mb-3';
+                        followupDiv.innerHTML = `
+                            <div class="bg-gray-200 text-gray-900 rounded-2xl py-3 px-4 max-w-[75%] shadow-sm imessage-followup-bubble">
+                                <div class="flex items-start gap-3">
+                                    <div class="bg-gradient-to-br from-green-500 to-blue-600 rounded-full flex items-center justify-center h-5 w-5 flex-shrink-0 mt-1">
+                                        <i class="fas fa-user-graduate text-white text-xs"></i>
+                                    </div>
+                                    <div class="text-sm leading-relaxed">
+                                        <span class="font-medium text-green-700 text-xs">Coach Rally</span><br>
+                                        <span class="text-gray-900">${escapeHtml(followupQuestion)}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        paddleCoachMessages.appendChild(followupDiv);
+                        
+                        // Smart scroll: show the top of the coach response with 25px buffer from user message
+                        paddleCoachMessages.scrollTop = userMessagePosition - 25;
+                    }, 800);
+                }
+            }
             
             // Update thread ID
             if (data.thread_id) {
