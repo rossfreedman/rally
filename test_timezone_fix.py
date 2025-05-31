@@ -162,64 +162,161 @@ def test_database_connection():
         traceback.print_exc()
 
 def test_timezone_fix():
-    """Test that the timezone fix is working correctly"""
-    print("🔍 Testing Timezone Fix for Availability")
-    print("=" * 50)
+    """Test that the timezone fix correctly stores and retrieves dates"""
     
-    # Import the updated functions
+    print("=== TIMEZONE FIX TEST ===")
+    
+    # Test date: September 24, 2024 (the date mentioned in the issue)
+    test_date = "9/24/2024"
+    test_player = "Test Player"
+    test_series = "S3"
+    test_status = 1  # Available
+    
+    print(f"Testing with date: {test_date}")
+    print(f"Player: {test_player}")
+    print(f"Series: {test_series}")
+    
+    # Step 1: Test date conversion
+    print("\n--- Step 1: Date Conversion Test ---")
+    converted_date = date_to_db_timestamp(test_date)
+    print(f"Input date: {test_date}")
+    print(f"Converted to UTC timestamp: {converted_date}")
+    print(f"UTC date part: {converted_date.date()}")
+    
+    # Verify the converted date is correct
+    expected_date = datetime(2024, 9, 24).date()
+    if converted_date.date() == expected_date:
+        print("✅ Date conversion is correct")
+    else:
+        print(f"❌ Date conversion is wrong. Expected: {expected_date}, Got: {converted_date.date()}")
+        return False
+    
+    # Step 2: Clean any existing test data
+    print("\n--- Step 2: Cleanup Test Data ---")
     try:
-        from routes.act.availability import update_player_availability, get_player_availability
-        from utils.date_utils import date_to_db_timestamp
+        # Get series ID for cleanup
+        series_record = execute_query_one(
+            "SELECT id FROM series WHERE name = %(name)s",
+            {'name': test_series}
+        )
         
-        print("✅ Successfully imported updated functions")
-        
-        # Test date conversion
-        test_dates = ['05/26/2025', '2025-05-26', '05/26/25']
-        for test_date in test_dates:
-            try:
-                converted = date_to_db_timestamp(test_date)
-                print(f"✅ {test_date} -> {converted}")
-            except Exception as e:
-                print(f"❌ {test_date} -> Error: {e}")
-        
-        # Test availability functions with known data
-        player_name = "Ross Freedman"
-        series = "Series 2B"
-        
-        print(f"\n🧪 Testing availability functions for {player_name}")
-        
-        # Test getting availability
-        for test_date in ['05/26/2025', '05/29/2025', '06/02/2025']:
-            result = get_player_availability(player_name, test_date, series)
-            print(f"📅 {test_date}: Status = {result}")
-        
-        # Test updating availability (status 1 = available)
-        test_date = '12/31/2024'
-        print(f"\n🔄 Testing update for {test_date}")
-        
-        # First get current status
-        before = get_player_availability(player_name, test_date, series)
-        print(f"Before update: {before}")
-        
-        # Update to status 1 (available)
-        success = update_player_availability(player_name, test_date, 1, series)
-        print(f"Update success: {success}")
-        
-        # Check the result
-        after = get_player_availability(player_name, test_date, series)
-        print(f"After update: {after}")
-        
-        if success and after is not None:
-            print("✅ Timezone fix working correctly!")
+        if series_record:
+            series_id = series_record['id']
+            execute_query(
+                "DELETE FROM player_availability WHERE player_name = %(player)s AND series_id = %(series_id)s",
+                {'player': test_player, 'series_id': series_id}
+            )
+            print("✅ Cleaned up existing test data")
         else:
-            print("❌ Timezone fix may have issues")
+            print(f"⚠️ Series {test_series} not found, creating test series")
+            # For this test, we'll assume the series exists
+            print("❌ Cannot proceed without valid series")
+            return False
             
-        print("\n🎯 Test completed!")
-        
     except Exception as e:
-        print(f"❌ Error during testing: {str(e)}")
-        import traceback
-        traceback.print_exc()
+        print(f"Error during cleanup: {e}")
+        return False
+    
+    # Step 3: Test storing availability
+    print("\n--- Step 3: Store Availability Test ---")
+    try:
+        success = update_player_availability(test_player, test_date, test_status, test_series)
+        if success:
+            print("✅ Successfully stored availability")
+        else:
+            print("❌ Failed to store availability")
+            return False
+    except Exception as e:
+        print(f"❌ Error storing availability: {e}")
+        return False
+    
+    # Step 4: Verify what was actually stored in the database
+    print("\n--- Step 4: Database Verification ---")
+    try:
+        # Query the raw database record
+        verification_query = """
+            SELECT 
+                match_date,
+                DATE(match_date AT TIME ZONE 'UTC') as utc_date_part,
+                availability_status,
+                EXTRACT(TIMEZONE FROM match_date)/3600 as timezone_offset_hours
+            FROM player_availability 
+            WHERE player_name = %(player)s 
+            AND series_id = %(series_id)s
+        """
+        
+        db_record = execute_query_one(verification_query, {
+            'player': test_player,
+            'series_id': series_id
+        })
+        
+        if db_record:
+            print(f"Raw stored timestamp: {db_record['match_date']}")
+            print(f"UTC date part: {db_record['utc_date_part']}")
+            print(f"Timezone offset (hours): {db_record['timezone_offset_hours']}")
+            print(f"Status: {db_record['availability_status']}")
+            
+            # Check if the date is correct
+            stored_date = db_record['utc_date_part']
+            if str(stored_date) == "2024-09-24":
+                print("✅ Date stored correctly in database")
+            else:
+                print(f"❌ Date stored incorrectly. Expected: 2024-09-24, Got: {stored_date}")
+                return False
+        else:
+            print("❌ No record found in database")
+            return False
+            
+    except Exception as e:
+        print(f"❌ Error verifying database: {e}")
+        return False
+    
+    # Step 5: Test retrieving availability
+    print("\n--- Step 5: Retrieve Availability Test ---")
+    try:
+        retrieved_status = get_player_availability(test_player, test_date, test_series)
+        if retrieved_status == test_status:
+            print(f"✅ Successfully retrieved correct status: {retrieved_status}")
+        else:
+            print(f"❌ Retrieved wrong status. Expected: {test_status}, Got: {retrieved_status}")
+            return False
+    except Exception as e:
+        print(f"❌ Error retrieving availability: {e}")
+        return False
+    
+    # Step 6: Test with different date formats
+    print("\n--- Step 6: Multiple Date Format Test ---")
+    test_dates = [
+        "2024-09-24",  # YYYY-MM-DD format
+        "09/24/2024",  # MM/DD/YYYY format
+        "9/24/2024"    # M/D/YYYY format
+    ]
+    
+    for date_format in test_dates:
+        try:
+            converted = date_to_db_timestamp(date_format)
+            if converted.date() == expected_date:
+                print(f"✅ Format {date_format} -> {converted.date()}")
+            else:
+                print(f"❌ Format {date_format} -> {converted.date()} (expected {expected_date})")
+                return False
+        except Exception as e:
+            print(f"❌ Error with format {date_format}: {e}")
+            return False
+    
+    # Step 7: Cleanup
+    print("\n--- Step 7: Final Cleanup ---")
+    try:
+        execute_query(
+            "DELETE FROM player_availability WHERE player_name = %(player)s AND series_id = %(series_id)s",
+            {'player': test_player, 'series_id': series_id}
+        )
+        print("✅ Cleaned up test data")
+    except Exception as e:
+        print(f"Warning: Could not cleanup test data: {e}")
+    
+    print("\n=== TIMEZONE FIX TEST COMPLETED SUCCESSFULLY ===")
+    return True
 
 def main():
     """Run all tests"""
@@ -242,4 +339,11 @@ def main():
     print("   URL: https://www.rallytennaqua.com/mobile/availability")
 
 if __name__ == "__main__":
-    main() 
+    success = test_timezone_fix()
+    if success:
+        print("\n🎉 All tests passed! The timezone fix is working correctly.")
+        print("Dates should no longer be stored 2 days back.")
+    else:
+        print("\n💥 Some tests failed. The timezone issue may still exist.")
+    
+    sys.exit(0 if success else 1) 
