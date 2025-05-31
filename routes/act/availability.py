@@ -199,27 +199,104 @@ def update_player_availability(player_name, match_date, availability_status, ser
             )
         
         # Verify the record was stored correctly by querying it back
+        print(f"\n🔍 === VERIFICATION QUERY DEBUG ===")
+        print(f"📥 Verifying insert for:")
+        print(f"  - player: '{player_name.strip()}'")
+        print(f"  - series_id: {series_id}")
+        print(f"  - date_obj: {date_obj}")
+        
+        # First, let's see what's actually in the database for this player/series
+        debug_query = """
+            SELECT player_name, match_date, availability_status, series_id, 
+                   DATE(match_date AT TIME ZONE 'UTC') as utc_date_part,
+                   DATE(match_date AT TIME ZONE 'America/Chicago') as chicago_date_part,
+                   match_date AT TIME ZONE 'UTC' as utc_timestamp,
+                   match_date AT TIME ZONE 'America/Chicago' as chicago_timestamp
+            FROM player_availability 
+            WHERE player_name = %(player)s 
+            AND series_id = %(series_id)s
+            ORDER BY match_date DESC
+            LIMIT 5
+        """
+        debug_params = {
+            'player': player_name.strip(),
+            'series_id': series_id
+        }
+        
+        print(f"🔍 Running debug query to see all records for this player/series:")
+        debug_results = execute_query(debug_query, debug_params)
+        
+        if debug_results:
+            print(f"📊 Found {len(debug_results)} existing records:")
+            for i, record in enumerate(debug_results):
+                print(f"  Record {i+1}:")
+                print(f"    - match_date (raw): {record['match_date']}")
+                print(f"    - UTC date part: {record['utc_date_part']}")
+                print(f"    - Chicago date part: {record['chicago_date_part']}")
+                print(f"    - UTC timestamp: {record['utc_timestamp']}")
+                print(f"    - Chicago timestamp: {record['chicago_timestamp']}")
+                print(f"    - availability_status: {record['availability_status']}")
+        else:
+            print(f"❌ No existing records found for player/series")
+        
         verification_query = """
-            SELECT match_date, availability_status, DATE(match_date AT TIME ZONE 'UTC') as date_part
+            SELECT match_date, availability_status, 
+                   DATE(match_date AT TIME ZONE 'UTC') as date_part,
+                   DATE(match_date AT TIME ZONE 'America/Chicago') as chicago_date_part
             FROM player_availability 
             WHERE player_name = %(player)s 
             AND series_id = %(series_id)s 
             AND DATE(match_date AT TIME ZONE 'UTC') = DATE(%(date)s AT TIME ZONE 'UTC')
         """
-        verification_result = execute_query_one(verification_query, {
+        verification_params = {
             'player': player_name.strip(),
             'series_id': series_id,
             'date': date_obj
-        })
+        }
+        
+        print(f"🔍 Running verification query:")
+        print(f"  - Query: {verification_query}")
+        print(f"  - Params: {verification_params}")
+        
+        verification_result = execute_query_one(verification_query, verification_params)
         
         if verification_result:
             print(f"✅ Verification successful:")
             print(f"  Stored timestamp: {verification_result['match_date']}")
-            print(f"  Date part: {verification_result['date_part']}")
+            print(f"  UTC date part: {verification_result['date_part']}")
+            print(f"  Chicago date part: {verification_result['chicago_date_part']}")
             print(f"  Status: {verification_result['availability_status']}")
         else:
             print(f"❌ Verification failed - record not found after insert/update")
             
+            # Try a broader search to see if record exists with different date
+            broad_query = """
+                SELECT match_date, availability_status, 
+                       DATE(match_date AT TIME ZONE 'UTC') as utc_date,
+                       DATE(match_date AT TIME ZONE 'America/Chicago') as chicago_date
+                FROM player_availability 
+                WHERE player_name = %(player)s 
+                AND series_id = %(series_id)s 
+                ORDER BY match_date DESC
+                LIMIT 3
+            """
+            broad_results = execute_query(broad_query, {
+                'player': player_name.strip(),
+                'series_id': series_id
+            })
+            
+            if broad_results:
+                print(f"🔍 Found {len(broad_results)} records for this player (any date):")
+                for result in broad_results:
+                    print(f"  - match_date: {result['match_date']}")
+                    print(f"  - UTC date: {result['utc_date']}")
+                    print(f"  - Chicago date: {result['chicago_date']}")
+                    print(f"  - status: {result['availability_status']}")
+            else:
+                print(f"❌ No records found at all for this player/series")
+        
+        print(f"🔍 === END VERIFICATION DEBUG ===\n")
+        
         print(f"✅ Successfully updated availability for {player_name}")
         return True
         
