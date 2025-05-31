@@ -9,13 +9,6 @@ import pytz
 # Define the application timezone
 APP_TIMEZONE = pytz.timezone('America/Chicago')
 
-# Import the date verification utilities that fix Railway timezone issues
-from utils.date_verification import (
-    verify_and_fix_date_for_storage,
-    verify_date_from_database,
-    log_date_operation
-)
-
 # Import the correct date utility function for timezone handling
 from utils.date_utils import date_to_db_timestamp, normalize_date_string
 
