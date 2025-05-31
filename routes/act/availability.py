@@ -124,61 +124,33 @@ def get_player_availability(player_name, match_date, series):
 
 def update_player_availability(player_name, match_date, availability_status, series):
     """
-    Update player availability with Railway timezone correction.
-    
-    This function includes a comprehensive date verification system that:
-    1. Verifies and fixes the date before storage to handle Railway timezone issues
-    2. Stores the availability record with the corrected date
-    3. Verifies that the record was stored with the correct date
-    4. If a discrepancy is found, searches for and corrects discrepant records
-    5. Logs all verification and correction operations for monitoring
-    
-    This addresses the Railway PostgreSQL timezone issue where dates can be
-    stored with incorrect values due to timezone conversion.
+    Update player availability with proper timezone handling.
     """
     try:
-        print(f"\n=== UPDATE PLAYER AVAILABILITY WITH RAILWAY CORRECTION ===")
+        print(f"\n=== UPDATE PLAYER AVAILABILITY ===")
         print(f"Input - Player: {player_name}, Date: {match_date}, Status: {availability_status}, Series: {series}")
-        
-        # Step 1: Verify and fix the date before storage (Railway timezone correction)
-        corrected_date, verification_info = verify_and_fix_date_for_storage(
-            input_date=match_date,
-            intended_display_date=None  # We could pass this from frontend if needed
-        )
-        
-        # Log the date verification result
-        log_date_operation(
-            operation="PRE_STORAGE_VERIFICATION",
-            input_data=match_date,
-            output_data=corrected_date,
-            verification_info=verification_info
-        )
-        
-        if verification_info.get('correction_applied'):
-            print(f"⚠️ Railway date correction applied: {match_date} -> {corrected_date}")
         
         # Get series ID
         series_record = execute_query_one(
-            "SELECT id FROM series WHERE name = %(name)s",
-            {'name': series}
+            "SELECT id FROM series WHERE name = %(series)s",
+            {'series': series}
         )
         
         if not series_record:
             print(f"❌ Series not found: {series}")
             return False
-            
+        
         series_id = series_record['id']
         
-        # Convert corrected date to datetime object for database storage
+        # Convert date to datetime object for database storage
         try:
-            date_obj = date_to_db_timestamp(corrected_date)
-            print(f"Converted corrected date for TIMESTAMPTZ storage: {corrected_date} -> {date_obj}")
-            print(f"Date object type: {type(date_obj)}, timezone: {date_obj.tzinfo}")
+            date_obj = date_to_db_timestamp(match_date)
+            print(f"Converted date for TIMESTAMPTZ storage: {match_date} -> {date_obj}")
         except Exception as e:
-            print(f"❌ Error converting corrected date: {e}")
+            print(f"❌ Error converting date: {e}")
             return False
         
-        # Check if record exists using UTC date comparison
+        # Check if record exists using timezone-aware date comparison
         existing_record = execute_query_one(
             """
             SELECT id, availability_status, match_date
@@ -211,10 +183,10 @@ def update_player_availability(player_name, match_date, availability_status, ser
                 }
             )
         else:
-            # Before creating a new record, check for discrepant dates (Railway timezone issues)
-            print("No record found with corrected date. Checking for Railway timezone discrepancies...")
+            # Before creating a new record, check for discrepant dates (timezone issues)
+            print("No record found with intended date. Checking for date discrepancies...")
             
-            # Check one day earlier (most common Railway issue)
+            # Check one day earlier (most common timezone issue)
             one_day_earlier = date_obj - timedelta(days=1)
             earlier_record = execute_query_one(
                 """
@@ -250,7 +222,7 @@ def update_player_availability(player_name, match_date, availability_status, ser
             
             # If we find a discrepant record, correct it instead of creating a new one
             if earlier_record:
-                print(f"🔧 Found Railway timezone discrepancy: record exists one day earlier")
+                print(f"🔧 Found timezone discrepancy: record exists one day earlier")
                 print(f"   Correcting record ID {earlier_record['id']} from {one_day_earlier} to {date_obj}")
                 
                 # Update both the date and status of the discrepant record
@@ -264,18 +236,6 @@ def update_player_availability(player_name, match_date, availability_status, ser
                         'correct_date': date_obj,
                         'status': availability_status,
                         'id': earlier_record['id']
-                    }
-                )
-                
-                # Log the Railway correction
-                log_date_operation(
-                    operation="RAILWAY_DATE_CORRECTION",
-                    input_data=f"discrepant_date={one_day_earlier}, corrected_date={date_obj}",
-                    output_data=f"updated_record_id={earlier_record['id']}",
-                    verification_info={
-                        'discrepancy_found': True,
-                        'discrepancy_type': "railway_timezone_issue",
-                        'correction_type': "update_existing_record"
                     }
                 )
                 
@@ -298,8 +258,8 @@ def update_player_availability(player_name, match_date, availability_status, ser
                 )
                 
             else:
-                # Create new record with Railway-corrected timestamp
-                print("Creating new availability record with Railway-corrected timestamp")
+                # Create new record
+                print("Creating new availability record")
                 print(f"Inserting: player={player_name.strip()}, date={date_obj}, status={availability_status}, series_id={series_id}")
                 
                 result = execute_query(
@@ -315,107 +275,28 @@ def update_player_availability(player_name, match_date, availability_status, ser
                     }
                 )
         
-        # Verify the record was stored correctly by querying it back
-        print(f"\n🔍 === VERIFICATION QUERY DEBUG ===")
-        print(f"📥 Verifying insert for:")
-        print(f"  - player: '{player_name.strip()}'")
-        print(f"  - series_id: {series_id}")
-        print(f"  - date_obj: {date_obj}")
-        
-        # First, let's see what's actually in the database for this player/series
-        debug_query = """
-            SELECT player_name, match_date, availability_status, series_id, 
-                   DATE(match_date AT TIME ZONE 'UTC') as utc_date_part,
-                   DATE(match_date AT TIME ZONE 'America/Chicago') as chicago_date_part,
-                   match_date AT TIME ZONE 'UTC' as utc_timestamp,
-                   match_date AT TIME ZONE 'America/Chicago' as chicago_timestamp
-            FROM player_availability 
-            WHERE player_name = %(player)s 
-            AND series_id = %(series_id)s
-            ORDER BY match_date DESC
-            LIMIT 5
-        """
-        debug_params = {
-            'player': player_name.strip(),
-            'series_id': series_id
-        }
-        
-        print(f"🔍 Running debug query to see all records for this player/series:")
-        debug_results = execute_query(debug_query, debug_params)
-        
-        if debug_results:
-            print(f"📊 Found {len(debug_results)} existing records:")
-            for i, record in enumerate(debug_results):
-                print(f"  Record {i+1}:")
-                print(f"    - match_date (raw): {record['match_date']}")
-                print(f"    - UTC date part: {record['utc_date_part']}")
-                print(f"    - Chicago date part: {record['chicago_date_part']}")
-                print(f"    - UTC timestamp: {record['utc_timestamp']}")
-                print(f"    - Chicago timestamp: {record['chicago_timestamp']}")
-                print(f"    - availability_status: {record['availability_status']}")
-        else:
-            print(f"❌ No existing records found for player/series")
-        
-        verification_query = """
-            SELECT match_date, availability_status, 
-                   DATE(match_date AT TIME ZONE 'UTC') as date_part,
-                   DATE(match_date AT TIME ZONE 'America/Chicago') as chicago_date_part
+        # Verify the record was stored correctly
+        verification_record = execute_query_one(
+            """
+            SELECT availability_status, match_date
             FROM player_availability 
             WHERE player_name = %(player)s 
             AND series_id = %(series_id)s 
             AND DATE(match_date AT TIME ZONE 'UTC') = DATE(%(date)s AT TIME ZONE 'UTC')
-        """
-        verification_params = {
-            'player': player_name.strip(),
-            'series_id': series_id,
-            'date': date_obj
-        }
-        
-        print(f"🔍 Running verification query:")
-        print(f"  - Query: {verification_query}")
-        print(f"  - Params: {verification_params}")
-        
-        verification_result = execute_query_one(verification_query, verification_params)
-        
-        if verification_result:
-            print(f"✅ Verification successful:")
-            print(f"  Stored timestamp: {verification_result['match_date']}")
-            print(f"  UTC date part: {verification_result['date_part']}")
-            print(f"  Chicago date part: {verification_result['chicago_date_part']}")
-            print(f"  Status: {verification_result['availability_status']}")
-        else:
-            print(f"❌ Verification failed - record not found after insert/update")
-            
-            # Try a broader search to see if record exists with different date
-            broad_query = """
-                SELECT match_date, availability_status, 
-                       DATE(match_date AT TIME ZONE 'UTC') as utc_date,
-                       DATE(match_date AT TIME ZONE 'America/Chicago') as chicago_date
-                FROM player_availability 
-                WHERE player_name = %(player)s 
-                AND series_id = %(series_id)s 
-                ORDER BY match_date DESC
-                LIMIT 3
-            """
-            broad_results = execute_query(broad_query, {
+            """,
+            {
                 'player': player_name.strip(),
-                'series_id': series_id
-            })
-            
-            if broad_results:
-                print(f"🔍 Found {len(broad_results)} records for this player (any date):")
-                for result in broad_results:
-                    print(f"  - match_date: {result['match_date']}")
-                    print(f"  - UTC date: {result['utc_date']}")
-                    print(f"  - Chicago date: {result['chicago_date']}")
-                    print(f"  - status: {result['availability_status']}")
-            else:
-                print(f"❌ No records found at all for this player/series")
+                'series_id': series_id,
+                'date': date_obj
+            }
+        )
         
-        print(f"🔍 === END VERIFICATION DEBUG ===\n")
-        
-        print(f"✅ Successfully updated availability for {player_name}")
-        return True
+        if verification_record:
+            print(f"✅ Verification successful: Status={verification_record['availability_status']}, Date={verification_record['match_date']}")
+            return True
+        else:
+            print("❌ Verification failed: Record not found after insert/update")
+            return False
         
     except Exception as e:
         print(f"❌ Error updating player availability: {str(e)}")

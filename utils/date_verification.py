@@ -133,6 +133,12 @@ def check_railway_date_correction(date_obj):
     tz_env = os.getenv('TZ')
     pgtz_env = os.getenv('PGTZ')
     
+    # If timezone environment variables are properly set, no correction needed
+    # This means Railway timezone issues are handled at the infrastructure level
+    if (tz_env and 'America/Chicago' in tz_env) or (pgtz_env and 'America/Chicago' in pgtz_env):
+        logger.info(f"Timezone environment variables detected (TZ={tz_env}, PGTZ={pgtz_env}), skipping Railway correction")
+        return date_obj
+    
     # Check for Railway environment variables
     railway_env_vars = [
         'RAILWAY_ENVIRONMENT', 'DATABASE_URL', 'POSTGRES_DB', 'PGDATABASE'
@@ -144,16 +150,9 @@ def check_railway_date_correction(date_obj):
         logger.info("Not running on Railway, no correction needed")
         return date_obj
     
-    # On Railway, PGTZ and TZ environment variables are actually CAUSING the timezone issue
-    # rather than fixing it. Apply correction when we detect Railway deployment.
-    if (tz_env and 'America/Chicago' in tz_env) or (pgtz_env and 'America/Chicago' in pgtz_env):
-        logger.info(f"Railway timezone environment variables detected (TZ={tz_env}, PGTZ={pgtz_env})")
-        logger.info("These variables are causing timezone conversion issues - applying +1 day correction")
-        corrected_date = date_obj + timedelta(days=1)
-        logger.info(f"Railway correction applied: {date_obj} -> {corrected_date}")
-        return corrected_date
-    
-    # If no timezone environment variables are set on Railway, still apply correction
+    # Only apply Railway correction if:
+    # 1. We're on Railway
+    # 2. No timezone environment variables are set
     logger.info("Railway environment detected without timezone variables, applying +1 day correction")
     corrected_date = date_obj + timedelta(days=1)
     logger.info(f"Railway correction applied: {date_obj} -> {corrected_date}")
