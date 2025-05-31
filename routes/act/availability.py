@@ -1,13 +1,20 @@
 from flask import jsonify, request, session, render_template
 from utils.auth import login_required
 from database_utils import execute_query, execute_query_one
-from datetime import datetime, date, timezone
+from datetime import datetime, date, timezone, timedelta
 from routes.act.schedule import get_matches_for_user_club
 import traceback
 import pytz
 
 # Define the application timezone
 APP_TIMEZONE = pytz.timezone('America/Chicago')
+
+# Import the date verification utilities that fix Railway timezone issues
+from utils.date_verification import (
+    verify_and_fix_date_for_storage,
+    verify_date_from_database,
+    log_date_operation
+)
 
 # Import the correct date utility function for timezone handling
 from utils.date_utils import date_to_db_timestamp, normalize_date_string
@@ -117,15 +124,38 @@ def get_player_availability(player_name, match_date, series):
 
 def update_player_availability(player_name, match_date, availability_status, series):
     """
-    Update player availability with proper timezone handling for TIMESTAMPTZ column.
-    Stores dates as midnight UTC consistently to avoid timezone issues.
+    Update player availability with Railway timezone correction.
     
-    This function addresses the timezone issue where dates were being stored
-    2 days back by ensuring consistent UTC storage.
+    This function includes a comprehensive date verification system that:
+    1. Verifies and fixes the date before storage to handle Railway timezone issues
+    2. Stores the availability record with the corrected date
+    3. Verifies that the record was stored with the correct date
+    4. If a discrepancy is found, searches for and corrects discrepant records
+    5. Logs all verification and correction operations for monitoring
+    
+    This addresses the Railway PostgreSQL timezone issue where dates can be
+    stored with incorrect values due to timezone conversion.
     """
     try:
-        print(f"\n=== UPDATE PLAYER AVAILABILITY WITH UTC HANDLING ===")
+        print(f"\n=== UPDATE PLAYER AVAILABILITY WITH RAILWAY CORRECTION ===")
         print(f"Input - Player: {player_name}, Date: {match_date}, Status: {availability_status}, Series: {series}")
+        
+        # Step 1: Verify and fix the date before storage (Railway timezone correction)
+        corrected_date, verification_info = verify_and_fix_date_for_storage(
+            input_date=match_date,
+            intended_display_date=None  # We could pass this from frontend if needed
+        )
+        
+        # Log the date verification result
+        log_date_operation(
+            operation="PRE_STORAGE_VERIFICATION",
+            input_data=match_date,
+            output_data=corrected_date,
+            verification_info=verification_info
+        )
+        
+        if verification_info.get('correction_applied'):
+            print(f"⚠️ Railway date correction applied: {match_date} -> {corrected_date}")
         
         # Get series ID
         series_record = execute_query_one(
@@ -139,19 +169,19 @@ def update_player_availability(player_name, match_date, availability_status, ser
             
         series_id = series_record['id']
         
-        # Use proper timezone handling for TIMESTAMPTZ column - this is the fix
+        # Convert corrected date to datetime object for database storage
         try:
-            date_obj = date_to_db_timestamp(match_date)
-            print(f"Converted date for TIMESTAMPTZ storage: {match_date} -> {date_obj}")
+            date_obj = date_to_db_timestamp(corrected_date)
+            print(f"Converted corrected date for TIMESTAMPTZ storage: {corrected_date} -> {date_obj}")
             print(f"Date object type: {type(date_obj)}, timezone: {date_obj.tzinfo}")
         except Exception as e:
-            print(f"❌ Error converting date: {e}")
+            print(f"❌ Error converting corrected date: {e}")
             return False
         
         # Check if record exists using UTC date comparison
         existing_record = execute_query_one(
             """
-            SELECT id, availability_status
+            SELECT id, availability_status, match_date
             FROM player_availability 
             WHERE player_name = %(player)s 
             AND series_id = %(series_id)s 
@@ -181,22 +211,109 @@ def update_player_availability(player_name, match_date, availability_status, ser
                 }
             )
         else:
-            # Create new record with proper UTC timestamp
-            print("Creating new availability record with UTC timestamp")
-            print(f"Inserting: player={player_name.strip()}, date={date_obj}, status={availability_status}, series_id={series_id}")
+            # Before creating a new record, check for discrepant dates (Railway timezone issues)
+            print("No record found with corrected date. Checking for Railway timezone discrepancies...")
             
-            result = execute_query(
+            # Check one day earlier (most common Railway issue)
+            one_day_earlier = date_obj - timedelta(days=1)
+            earlier_record = execute_query_one(
                 """
-                INSERT INTO player_availability (player_name, match_date, availability_status, series_id, updated_at)
-                VALUES (%(player)s, %(date)s, %(status)s, %(series_id)s, NOW())
+                SELECT id, match_date, availability_status 
+                FROM player_availability 
+                WHERE player_name = %(player)s 
+                AND series_id = %(series_id)s 
+                AND DATE(match_date AT TIME ZONE 'UTC') = DATE(%(date)s AT TIME ZONE 'UTC')
                 """,
                 {
                     'player': player_name.strip(),
-                    'date': date_obj,
-                    'status': availability_status,
-                    'series_id': series_id
+                    'series_id': series_id,
+                    'date': one_day_earlier
                 }
             )
+            
+            # Check one day later (less common but possible)
+            one_day_later = date_obj + timedelta(days=1)
+            later_record = execute_query_one(
+                """
+                SELECT id, match_date, availability_status 
+                FROM player_availability 
+                WHERE player_name = %(player)s 
+                AND series_id = %(series_id)s 
+                AND DATE(match_date AT TIME ZONE 'UTC') = DATE(%(date)s AT TIME ZONE 'UTC')
+                """,
+                {
+                    'player': player_name.strip(),
+                    'series_id': series_id,
+                    'date': one_day_later
+                }
+            )
+            
+            # If we find a discrepant record, correct it instead of creating a new one
+            if earlier_record:
+                print(f"🔧 Found Railway timezone discrepancy: record exists one day earlier")
+                print(f"   Correcting record ID {earlier_record['id']} from {one_day_earlier} to {date_obj}")
+                
+                # Update both the date and status of the discrepant record
+                result = execute_query(
+                    """
+                    UPDATE player_availability 
+                    SET match_date = %(correct_date)s, availability_status = %(status)s, updated_at = NOW()
+                    WHERE id = %(id)s
+                    """,
+                    {
+                        'correct_date': date_obj,
+                        'status': availability_status,
+                        'id': earlier_record['id']
+                    }
+                )
+                
+                # Log the Railway correction
+                log_date_operation(
+                    operation="RAILWAY_DATE_CORRECTION",
+                    input_data=f"discrepant_date={one_day_earlier}, corrected_date={date_obj}",
+                    output_data=f"updated_record_id={earlier_record['id']}",
+                    verification_info={
+                        'discrepancy_found': True,
+                        'discrepancy_type': "railway_timezone_issue",
+                        'correction_type': "update_existing_record"
+                    }
+                )
+                
+            elif later_record:
+                print(f"🔧 Found record one day later: {one_day_later} (should be {date_obj})")
+                print(f"   Correcting record ID {later_record['id']} date and status")
+                
+                # Update both the date and status of the discrepant record
+                result = execute_query(
+                    """
+                    UPDATE player_availability 
+                    SET match_date = %(correct_date)s, availability_status = %(status)s, updated_at = NOW()
+                    WHERE id = %(id)s
+                    """,
+                    {
+                        'correct_date': date_obj,
+                        'status': availability_status,
+                        'id': later_record['id']
+                    }
+                )
+                
+            else:
+                # Create new record with Railway-corrected timestamp
+                print("Creating new availability record with Railway-corrected timestamp")
+                print(f"Inserting: player={player_name.strip()}, date={date_obj}, status={availability_status}, series_id={series_id}")
+                
+                result = execute_query(
+                    """
+                    INSERT INTO player_availability (player_name, match_date, availability_status, series_id, updated_at)
+                    VALUES (%(player)s, %(date)s, %(status)s, %(series_id)s, NOW())
+                    """,
+                    {
+                        'player': player_name.strip(),
+                        'date': date_obj,
+                        'status': availability_status,
+                        'series_id': series_id
+                    }
+                )
         
         # Verify the record was stored correctly by querying it back
         print(f"\n🔍 === VERIFICATION QUERY DEBUG ===")
