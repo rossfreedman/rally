@@ -4834,10 +4834,19 @@ def serve_all_team_availability():
             
             try:
                 # Convert selected_date string to datetime.date object if needed
-                if '/' in selected_date:
-                    selected_date_obj = datetime.strptime(selected_date, '%m/%d/%Y').date()
-                else:
-                    selected_date_obj = datetime.strptime(selected_date, '%Y-%m-%d').date()
+                try:
+                    # Use the proper timezone conversion function for consistency
+                    if '/' in selected_date:
+                        # Convert MM/DD/YYYY to proper UTC timestamp, then extract date for query
+                        selected_date_utc = date_to_db_timestamp(selected_date)
+                    else:
+                        # Convert YYYY-MM-DD to proper UTC timestamp, then extract date for query  
+                        selected_date_utc = date_to_db_timestamp(selected_date)
+                    
+                    print(f"Converted selected_date {selected_date} to UTC timestamp: {selected_date_utc}")
+                except Exception as e:
+                    print(f"❌ Error converting selected_date {selected_date}: {e}")
+                    continue
                 
                 # Get availability status for this player and date
                 avail_query = """
@@ -4850,7 +4859,7 @@ def serve_all_team_availability():
                 avail_params = {
                     'player': player_name,
                     'series_id': series_record['id'],
-                    'date': selected_date_obj
+                    'date': selected_date_utc
                 }
                 
                 avail_record = execute_query(avail_query, avail_params)

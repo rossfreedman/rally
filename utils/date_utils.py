@@ -7,6 +7,9 @@ After TIMESTAMPTZ migration, all dates are stored at midnight UTC
 from datetime import datetime, timezone, date
 import pytz
 
+# Application timezone - all dates should be interpreted in this timezone
+APP_TIMEZONE = pytz.timezone('America/Chicago')
+
 def normalize_date_string(date_str):
     """
     Normalize various date string formats to YYYY-MM-DD format
@@ -79,8 +82,8 @@ def date_to_db_timestamp(date_obj):
     After TIMESTAMPTZ migration, stores at midnight UTC for consistency.
     
     Args:
-        date_obj: datetime.date, datetime.datetime, or string in various formats
-        
+        date_obj: datetime.date, datetime.datetime, or string in various formats (YYYY-MM-DD, MM/DD/YYYY, etc.)
+    
     Returns:
         datetime: Timezone-aware datetime at midnight UTC
     """
@@ -99,6 +102,23 @@ def date_to_db_timestamp(date_obj):
     # Create midnight timestamp in UTC
     midnight_dt = datetime.combine(date_obj, datetime.min.time())
     return midnight_dt.replace(tzinfo=timezone.utc)
+
+def db_timestamp_to_date(timestamp_obj):
+    """
+    Convert a database timestamp back to a date object.
+    
+    Args:
+        timestamp_obj: timezone-aware datetime from database
+    
+    Returns:
+        date: Date object in application timezone
+    """
+    if timestamp_obj is None:
+        return None
+    
+    # Convert to application timezone and extract date
+    local_dt = timestamp_obj.astimezone(APP_TIMEZONE)
+    return local_dt.date()
 
 def parse_date_flexible(date_str):
     """
@@ -149,4 +169,48 @@ def format_date_for_display(date_obj, include_day=True):
         day_name = date_obj.strftime('%A')
         return f"{day_name} {date_str}"
     
-    return date_str 
+    return date_str
+
+def is_same_date(date1, date2):
+    """
+    Compare two dates for equality, handling various input types.
+    
+    Args:
+        date1, date2: date objects, datetime objects, or YYYY-MM-DD strings
+    
+    Returns:
+        bool: True if dates represent the same day
+    """
+    def normalize_to_date(d):
+        if isinstance(d, str):
+            return datetime.strptime(normalize_date_string(d), '%Y-%m-%d').date()
+        elif isinstance(d, datetime):
+            return d.date()
+        return d
+    
+    return normalize_to_date(date1) == normalize_to_date(date2)
+
+# Database query helpers
+def build_date_query(table_alias="", date_column="match_date"):
+    """
+    Build SQL for date comparison with TIMESTAMPTZ columns.
+    
+    After migration to TIMESTAMPTZ with midnight UTC storage, we can use simple DATE() extraction.
+    
+    Returns:
+        str: SQL fragment like "DATE(match_date)"
+    """
+    prefix = f"{table_alias}." if table_alias else ""
+    return f"DATE({prefix}{date_column})"
+
+def build_date_params(date_value):
+    """
+    Build parameters for date queries with TIMESTAMPTZ columns.
+    
+    Args:
+        date_value: date, datetime, or string
+    
+    Returns:
+        datetime: Timezone-aware datetime at midnight UTC for database queries
+    """
+    return date_to_db_timestamp(date_value) 
