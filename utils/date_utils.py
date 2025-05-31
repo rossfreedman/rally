@@ -26,29 +26,48 @@ def normalize_date_string(date_str):
     Returns:
         str: Date string in YYYY-MM-DD format
     """
+    print(f"\n🔍 === NORMALIZE_DATE_STRING DEBUG ===")
+    print(f"📥 Input: '{date_str}' (type: {type(date_str)})")
+    
     if not date_str:
+        print(f"❌ Empty date string, returning None")
+        print(f"🔍 === END NORMALIZE DEBUG ===\n")
         return None
     
     date_str = date_str.strip()
+    print(f"🔄 After strip: '{date_str}'")
     
     # If already in YYYY-MM-DD format, return as is
     if len(date_str) == 10 and date_str[4] == '-' and date_str[7] == '-':
+        print(f"✅ Already in YYYY-MM-DD format, returning as is")
+        print(f"📤 Output: '{date_str}'")
+        print(f"🔍 === END NORMALIZE DEBUG ===\n")
         return date_str
     
     # Handle MM/DD/YYYY format
     if '/' in date_str:
+        print(f"🔄 Processing MM/DD/YYYY format")
         parts = date_str.split('/')
+        print(f"🔄 Split parts: {parts}")
         if len(parts) == 3:
             month, day, year = parts
+            print(f"🔄 Extracted - month: '{month}', day: '{day}', year: '{year}'")
             # Handle 2-digit years
             if len(year) == 2:
+                old_year = year
                 year = '20' + year if int(year) < 50 else '19' + year
-            return f"{year}-{month.zfill(2)}-{day.zfill(2)}"
+                print(f"🔄 2-digit year conversion: '{old_year}' -> '{year}'")
+            result = f"{year}-{month.zfill(2)}-{day.zfill(2)}"
+            print(f"✅ MM/DD/YYYY conversion result: '{result}'")
+            print(f"📤 Output: '{result}'")
+            print(f"🔍 === END NORMALIZE DEBUG ===\n")
+            return result
     
     # Handle DD-MMM-YY format
     if '-' in date_str and len(date_str.split('-')) == 3:
         parts = date_str.split('-')
         if len(parts[1]) == 3:  # Month abbreviation
+            print(f"🔄 Processing DD-MMM-YY format")
             day, month_abbr, year = parts
             month_map = {
                 'Jan': '01', 'Feb': '02', 'Mar': '03', 'Apr': '04',
@@ -56,24 +75,42 @@ def normalize_date_string(date_str):
                 'Sep': '09', 'Oct': '10', 'Nov': '11', 'Dec': '12'
             }
             month = month_map.get(month_abbr, '01')
+            print(f"🔄 Month abbreviation '{month_abbr}' -> '{month}'")
             # Handle 2-digit years
             if len(year) == 2:
+                old_year = year
                 year = '20' + year if int(year) < 50 else '19' + year
-            return f"{year}-{month}-{day.zfill(2)}"
+                print(f"🔄 2-digit year conversion: '{old_year}' -> '{year}'")
+            result = f"{year}-{month}-{day.zfill(2)}"
+            print(f"✅ DD-MMM-YY conversion result: '{result}'")
+            print(f"📤 Output: '{result}'")
+            print(f"🔍 === END NORMALIZE DEBUG ===\n")
+            return result
     
     # If we can't parse it, try to parse with datetime and convert
+    print(f"🔄 Trying datetime parsing with common formats")
     try:
         # Try common formats
         for fmt in ['%m/%d/%Y', '%Y-%m-%d', '%d-%b-%y', '%m/%d/%y']:
             try:
+                print(f"🔄 Trying format: {fmt}")
                 dt = datetime.strptime(date_str, fmt)
-                return dt.strftime('%Y-%m-%d')
-            except ValueError:
+                result = dt.strftime('%Y-%m-%d')
+                print(f"✅ Successfully parsed with format {fmt}: {dt} -> '{result}'")
+                print(f"📤 Output: '{result}'")
+                print(f"🔍 === END NORMALIZE DEBUG ===\n")
+                return result
+            except ValueError as e:
+                print(f"❌ Format {fmt} failed: {e}")
                 continue
-    except Exception:
+    except Exception as e:
+        print(f"❌ Exception during datetime parsing: {e}")
         pass
     
     # If all else fails, return the original string
+    print(f"❌ All parsing attempts failed, returning original string")
+    print(f"📤 Output: '{date_str}'")
+    print(f"🔍 === END NORMALIZE DEBUG ===\n")
     return date_str
 
 def date_to_db_timestamp(date_obj):
@@ -87,21 +124,39 @@ def date_to_db_timestamp(date_obj):
     Returns:
         datetime: Timezone-aware datetime at midnight UTC
     """
+    print(f"\n🔍 === DATE_TO_DB_TIMESTAMP DEBUG ===")
+    print(f"📥 Input: {date_obj} (type: {type(date_obj)})")
+    
     if isinstance(date_obj, str):
+        print(f"🔄 Processing string input: '{date_obj}'")
         # First normalize the date string to YYYY-MM-DD format
         normalized_date_str = normalize_date_string(date_obj)
+        print(f"🔄 Normalized string: '{normalized_date_str}'")
         if normalized_date_str:
             date_obj = datetime.strptime(normalized_date_str, '%Y-%m-%d').date()
+            print(f"🔄 Parsed to date object: {date_obj}")
         else:
+            print(f"❌ Could not normalize date string: {date_obj}")
             raise ValueError(f"Could not parse date string: {date_obj}")
     elif isinstance(date_obj, datetime):
+        print(f"🔄 Converting datetime to date: {date_obj} -> {date_obj.date()}")
         date_obj = date_obj.date()
     elif not isinstance(date_obj, date):
+        print(f"❌ Invalid date type: {type(date_obj)}")
         raise ValueError(f"Invalid date type: {type(date_obj)}")
+    
+    print(f"🔄 Final date object before combining: {date_obj}")
     
     # Create midnight timestamp in UTC
     midnight_dt = datetime.combine(date_obj, datetime.min.time())
-    return midnight_dt.replace(tzinfo=timezone.utc)
+    print(f"🔄 Combined with midnight time: {midnight_dt}")
+    
+    final_timestamp = midnight_dt.replace(tzinfo=timezone.utc)
+    print(f"🔄 With UTC timezone: {final_timestamp}")
+    print(f"📤 Final output: {final_timestamp}")
+    print(f"🔍 === END DEBUG ===\n")
+    
+    return final_timestamp
 
 def db_timestamp_to_date(timestamp_obj):
     """
