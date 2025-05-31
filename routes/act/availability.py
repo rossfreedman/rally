@@ -12,6 +12,13 @@ APP_TIMEZONE = pytz.timezone('America/Chicago')
 # Import the correct date utility function for timezone handling
 from utils.date_utils import date_to_db_timestamp, normalize_date_string
 
+# Import our date verification utilities
+from utils.date_verification import (
+    verify_and_fix_date_for_storage,
+    verify_date_from_database,
+    log_date_operation
+)
+
 def normalize_date_for_db(date_input, target_timezone='UTC'):
     """
     DEPRECATED: Use date_to_db_timestamp from utils.date_utils instead.
@@ -63,65 +70,115 @@ def normalize_date_for_db(date_input, target_timezone='UTC'):
         raise
 
 def get_player_availability(player_name, match_date, series):
-    """Get a player's availability status for a specific match date and series with proper timezone handling"""
+    """Get availability for a player on a specific date with verification"""
     try:
-        print(f"\n=== Getting availability for {player_name} on {match_date} ===")
+        print(f"Getting availability for {player_name} on {match_date} in series {series}")
+        
+        # Convert match_date to proper format for database query
+        # Use the correct UTC conversion function
+        normalized_date = date_to_db_timestamp(match_date)
+        print(f"Normalized date for query: {normalized_date}")
         
         # Get series ID
         series_record = execute_query_one(
-            "SELECT id FROM series WHERE name = %(name)s",
-            {'name': series}
+            "SELECT id FROM series WHERE name = %(series)s",
+            {'series': series}
         )
+        print(f"Series lookup result: {series_record}")
         
         if not series_record:
-            print(f"❌ Series not found: {series}")
+            print(f"No series found with name: {series}")
             return None
-            
-        series_id = series_record['id']
         
-        # Use proper timezone handling for TIMESTAMPTZ column
-        try:
-            normalized_date = date_to_db_timestamp(match_date)
-            print(f"Converted date for TIMESTAMPTZ query: {match_date} -> {normalized_date}")
-        except Exception as e:
-            print(f"❌ Error converting date {match_date}: {str(e)}")
-            return None
-
-        # Query using TIMESTAMPTZ with UTC timezone handling
-        query = """
+        print(f"Querying availability with parameters:")
+        print(f"  player_name: {player_name.strip()}")
+        print(f"  match_date: {normalized_date}")
+        print(f"  series_id: {series_record['id']}")
+        
+        # Query the database using timezone-aware date comparison
+        # Since we now store as TIMESTAMPTZ at midnight UTC, we need to compare dates in UTC
+        result = execute_query_one(
+            """
             SELECT availability_status, match_date
             FROM player_availability 
-            WHERE player_name = %(player)s 
-            AND series_id = %(series_id)s 
-            AND DATE(match_date AT TIME ZONE 'UTC') = DATE(%(date)s AT TIME ZONE 'UTC')
-        """
-        params = {
-            'player': player_name.strip(),
-            'series_id': series_id,
-            'date': normalized_date
-        }
-        
-        result = execute_query_one(query, params)
+            WHERE player_name = %(player_name)s 
+            AND DATE(match_date AT TIME ZONE 'UTC') = DATE(%(match_date)s AT TIME ZONE 'UTC')
+            AND series_id = %(series_id)s
+            """,
+            {
+                'player_name': player_name.strip(),
+                'match_date': normalized_date,  # Pass timestamptz not string
+                'series_id': series_record['id']
+            }
+        )
+        print(f"Availability lookup result: {result}")
         
         if not result:
             print(f"No availability found for {player_name} on {match_date}")
             return None
         
+        # Verify the retrieved date for display
+        stored_date = result['match_date']
+        display_date, verification_info = verify_date_from_database(
+            stored_date=stored_date,
+            expected_display_format=None
+        )
+        
+        # Log the retrieval verification
+        log_date_operation(
+            operation="RETRIEVAL_VERIFICATION",
+            input_data=f"stored={stored_date}",
+            output_data=f"display={display_date}",
+            verification_info=verification_info
+        )
+        
+        if verification_info.get('correction_applied'):
+            print(f"⚠️ Display correction applied for retrieval")
+        
         print(f"Found availability status: {result['availability_status']}")
         return result['availability_status']
         
     except Exception as e:
-        print(f"❌ Error getting player availability: {str(e)}")
+        print(f"Error in get_player_availability: {str(e)}")
         print(traceback.format_exc())
         return None
 
 def update_player_availability(player_name, match_date, availability_status, series):
     """
-    Update player availability with proper timezone handling.
+    Update player availability with enhanced date verification and correction
+    
+    This function now includes a comprehensive post-storage verification system that:
+    1. Stores the availability record with the intended date
+    2. Verifies that the record was stored with the correct date
+    3. If a discrepancy is found (most commonly one day earlier due to timezone issues):
+       - Searches for records with the wrong date but correct status and player info
+       - Updates the discrepant record to have the correct date
+       - Verifies the correction was successful
+    4. Logs all verification and correction operations for monitoring
+    
+    This addresses timezone-related date storage issues that can cause records
+    to be stored with dates that are off by one day.
     """
     try:
-        print(f"\n=== UPDATE PLAYER AVAILABILITY ===")
+        print(f"\n=== UPDATE PLAYER AVAILABILITY WITH VERIFICATION ===")
         print(f"Input - Player: {player_name}, Date: {match_date}, Status: {availability_status}, Series: {series}")
+        
+        # Step 1: Verify and fix the date before storage
+        corrected_date, verification_info = verify_and_fix_date_for_storage(
+            input_date=match_date,
+            intended_display_date=None  # We could pass this from the frontend if needed
+        )
+        
+        # Log the date verification result
+        log_date_operation(
+            operation="PRE_STORAGE_VERIFICATION",
+            input_data=match_date,
+            output_data=corrected_date,
+            verification_info=verification_info
+        )
+        
+        if verification_info.get('correction_applied'):
+            print(f"⚠️ Date correction applied: {match_date} -> {corrected_date}")
         
         # Get series ID
         series_record = execute_query_one(
@@ -135,13 +192,20 @@ def update_player_availability(player_name, match_date, availability_status, ser
         
         series_id = series_record['id']
         
-        # Convert date to datetime object for database storage
+        # Convert corrected date to datetime object for database storage
+        # With TIMESTAMPTZ migration, we now store as midnight UTC consistently
         try:
-            date_obj = date_to_db_timestamp(match_date)
-            print(f"Converted date for TIMESTAMPTZ storage: {match_date} -> {date_obj}")
+            if isinstance(corrected_date, str):
+                # Use the correct UTC conversion function
+                intended_date_obj = date_to_db_timestamp(corrected_date)
+                print(f"Converted date for TIMESTAMPTZ storage: {corrected_date} -> {intended_date_obj}")
+            else:
+                intended_date_obj = corrected_date
         except Exception as e:
-            print(f"❌ Error converting date: {e}")
+            print(f"❌ Error converting corrected date: {e}")
             return False
+        
+        print(f"Intended date for storage: {intended_date_obj}")
         
         # Check if record exists using timezone-aware date comparison
         existing_record = execute_query_one(
@@ -155,12 +219,11 @@ def update_player_availability(player_name, match_date, availability_status, ser
             {
                 'player': player_name.strip(),
                 'series_id': series_id,
-                'date': date_obj
+                'date': intended_date_obj
             }
         )
         
         if existing_record:
-            # Update existing record
             print(f"Updating existing record (ID: {existing_record['id']})")
             print(f"Old status: {existing_record['availability_status']} -> New status: {availability_status}")
             
@@ -179,8 +242,8 @@ def update_player_availability(player_name, match_date, availability_status, ser
             # Before creating a new record, check for discrepant dates (timezone issues)
             print("No record found with intended date. Checking for date discrepancies...")
             
-            # Check one day earlier (most common timezone issue)
-            one_day_earlier = date_obj - timedelta(days=1)
+            # Check one day earlier (most likely scenario)
+            one_day_earlier = intended_date_obj - timedelta(days=1)
             earlier_record = execute_query_one(
                 """
                 SELECT id, match_date, availability_status 
@@ -196,8 +259,8 @@ def update_player_availability(player_name, match_date, availability_status, ser
                 }
             )
             
-            # Check one day later (less common but possible)
-            one_day_later = date_obj + timedelta(days=1)
+            # Check one day later (less likely but possible)
+            one_day_later = intended_date_obj + timedelta(days=1)
             later_record = execute_query_one(
                 """
                 SELECT id, match_date, availability_status 
@@ -215,8 +278,8 @@ def update_player_availability(player_name, match_date, availability_status, ser
             
             # If we find a discrepant record, correct it instead of creating a new one
             if earlier_record:
-                print(f"🔧 Found timezone discrepancy: record exists one day earlier")
-                print(f"   Correcting record ID {earlier_record['id']} from {one_day_earlier} to {date_obj}")
+                print(f"🔧 Found record one day earlier: {one_day_earlier} (should be {intended_date_obj})")
+                print(f"   Correcting record ID {earlier_record['id']} date and status")
                 
                 # Update both the date and status of the discrepant record
                 result = execute_query(
@@ -226,14 +289,26 @@ def update_player_availability(player_name, match_date, availability_status, ser
                     WHERE id = %(id)s
                     """,
                     {
-                        'correct_date': date_obj,
+                        'correct_date': intended_date_obj,
                         'status': availability_status,
                         'id': earlier_record['id']
                     }
                 )
                 
+                # Log the pre-storage correction
+                log_date_operation(
+                    operation="PRE_STORAGE_CORRECTION",
+                    input_data=f"discrepant_date={one_day_earlier}, intended_date={intended_date_obj}",
+                    output_data=f"corrected_existing_record_id={earlier_record['id']}",
+                    verification_info={
+                        'discrepancy_found': True,
+                        'discrepancy_type': "one_day_earlier",
+                        'correction_type': "update_existing_record"
+                    }
+                )
+                
             elif later_record:
-                print(f"🔧 Found record one day later: {one_day_later} (should be {date_obj})")
+                print(f"🔧 Found record one day later: {one_day_later} (should be {intended_date_obj})")
                 print(f"   Correcting record ID {later_record['id']} date and status")
                 
                 # Update both the date and status of the discrepant record
@@ -244,16 +319,28 @@ def update_player_availability(player_name, match_date, availability_status, ser
                     WHERE id = %(id)s
                     """,
                     {
-                        'correct_date': date_obj,
+                        'correct_date': intended_date_obj,
                         'status': availability_status,
                         'id': later_record['id']
                     }
                 )
                 
+                # Log the pre-storage correction
+                log_date_operation(
+                    operation="PRE_STORAGE_CORRECTION",
+                    input_data=f"discrepant_date={one_day_later}, intended_date={intended_date_obj}",
+                    output_data=f"corrected_existing_record_id={later_record['id']}",
+                    verification_info={
+                        'discrepancy_found': True,
+                        'discrepancy_type': "one_day_later", 
+                        'correction_type': "update_existing_record"
+                    }
+                )
+                
             else:
-                # Create new record
+                # No discrepant records found, create new record
                 print("Creating new availability record")
-                print(f"Inserting: player={player_name.strip()}, date={date_obj}, status={availability_status}, series_id={series_id}")
+                print(f"Inserting: player={player_name.strip()}, date={intended_date_obj}, status={availability_status}, series_id={series_id}")
                 
                 result = execute_query(
                     """
@@ -262,7 +349,7 @@ def update_player_availability(player_name, match_date, availability_status, ser
                     """,
                     {
                         'player': player_name.strip(),
-                        'date': date_obj,
+                        'date': intended_date_obj,
                         'status': availability_status,
                         'series_id': series_id
                     }
@@ -280,7 +367,7 @@ def update_player_availability(player_name, match_date, availability_status, ser
             {
                 'player': player_name.strip(),
                 'series_id': series_id,
-                'date': date_obj
+                'date': intended_date_obj
             }
         )
         
