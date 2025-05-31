@@ -4404,11 +4404,18 @@ def add_practice_times():
         # Get user's club to determine which team schedule to update
         user = session['user']
         user_club = user.get('club', '')
+        user_series = user.get('series', '')
         
         if not user_club:
             return jsonify({
                 'success': False, 
                 'message': 'User club not found'
+            }), 400
+            
+        if not user_series:
+            return jsonify({
+                'success': False, 
+                'message': 'User series not found'
             }), 400
         
         # Convert form data to appropriate formats
@@ -4470,6 +4477,7 @@ def add_practice_times():
         # Start from the first practice date
         current_date = first_date_obj
         practices_added = 0
+        added_practices = []  # Track the specific practices added
         
         # Add practice entries until end of season
         while current_date <= end_date:
@@ -4479,11 +4487,19 @@ def add_practice_times():
                 practice_entry = {
                     "date": current_date.strftime("%m/%d/%Y"),
                     "time": formatted_time,
-                    "Practice": user_club  # Use the user's club as the practice location
+                    "Practice": user_club,  # Use the user's club as the practice location
+                    "Series": user_series   # Add the user's series from session
                 }
                 # Insert at the beginning of the schedule
                 schedule.insert(0, practice_entry)
                 practices_added += 1
+                
+                # Add to our tracking list for the response
+                added_practices.append({
+                    "date": current_date.strftime("%m/%d/%Y"),
+                    "time": formatted_time,
+                    "day": day
+                })
             
             # Move to next day
             current_date += timedelta(days=1)
@@ -4514,16 +4530,110 @@ def add_practice_times():
         log_user_activity(
             user['email'], 
             'practice_times_added',
-            details=f'Added {practices_added} practice times for {day}s at {formatted_time} starting {first_date}'
+            details=f'Added {practices_added} practice times for {user_series} {day}s at {formatted_time} starting {first_date}'
         )
         
         return jsonify({
             'success': True, 
-            'message': f'Successfully added {practices_added} practice times to the schedule!'
+            'message': f'Successfully added {practices_added} practice times to the schedule!',
+            'practices_added': added_practices,
+            'count': practices_added,
+            'series': user_series,
+            'day': day,
+            'time': formatted_time
         })
         
     except Exception as e:
         print(f"Error adding practice times: {str(e)}")
+        return jsonify({
+            'success': False, 
+            'message': 'An unexpected error occurred'
+        }), 500
+
+@app.route('/api/remove-practice-times', methods=['POST'])
+@login_required
+def remove_practice_times():
+    """API endpoint to remove practice times for the user's series from the schedule"""
+    try:
+        import json
+        
+        # Get user's club and series to determine which practice times to remove
+        user = session['user']
+        user_club = user.get('club', '')
+        user_series = user.get('series', '')
+        
+        if not user_club:
+            return jsonify({
+                'success': False, 
+                'message': 'User club not found'
+            }), 400
+            
+        if not user_series:
+            return jsonify({
+                'success': False, 
+                'message': 'User series not found'
+            }), 400
+        
+        # Load the current schedule
+        schedule_file = "data/schedules.json"
+        try:
+            with open(schedule_file, 'r') as f:
+                schedule = json.load(f)
+        except FileNotFoundError:
+            return jsonify({
+                'success': False, 
+                'message': 'Schedule file not found'
+            }), 500
+        except json.JSONDecodeError:
+            return jsonify({
+                'success': False, 
+                'message': 'Invalid schedule file format'
+            }), 500
+        
+        print(f'Original schedule has {len(schedule)} entries')
+        
+        # Count practice entries before removal
+        practice_count = sum(1 for entry in schedule 
+                           if 'Practice' in entry 
+                           and entry.get('Practice') == user_club 
+                           and entry.get('Series') == user_series)
+        print(f'Found {practice_count} practice entries for {user_club} - {user_series} to remove')
+        
+        # Filter out practice entries that match the user's club and series
+        filtered_schedule = [entry for entry in schedule 
+                           if not ('Practice' in entry 
+                                 and entry.get('Practice') == user_club 
+                                 and entry.get('Series') == user_series)]
+        
+        print(f'After removal: {len(filtered_schedule)} entries remaining')
+        
+        # Save the updated schedule
+        try:
+            with open(schedule_file, 'w') as f:
+                json.dump(filtered_schedule, f, indent=4)
+        except Exception as e:
+            return jsonify({
+                'success': False, 
+                'message': f'Failed to save schedule: {str(e)}'
+            }), 500
+        
+        # Log the activity
+        log_user_activity(
+            user['email'], 
+            'practice_times_removed',
+            details=f'Removed {practice_count} practice times for {user_series} at {user_club}'
+        )
+        
+        return jsonify({
+            'success': True, 
+            'message': f'Successfully removed {practice_count} practice times from the schedule!',
+            'count': practice_count,
+            'series': user_series,
+            'club': user_club
+        })
+        
+    except Exception as e:
+        print(f"Error removing practice times: {str(e)}")
         return jsonify({
             'success': False, 
             'message': 'An unexpected error occurred'
