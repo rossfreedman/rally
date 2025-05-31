@@ -3,7 +3,7 @@ from flask_socketio import SocketIO, emit
 import pandas as pd
 from flask_cors import CORS
 import os
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta, date, timezone
 import traceback
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -29,6 +29,7 @@ from routes.analyze import init_analyze_routes
 from routes.act import init_act_routes
 from routes.admin import admin_bp
 from routes.act.availability import update_player_availability as act_update_player_availability
+from utils.date_utils import parse_date_flexible, normalize_date_string, date_to_db_timestamp
 
 def is_public_file(path):
     """Check if a file should be publicly accessible without authentication"""
@@ -1855,12 +1856,13 @@ def get_user_availability(player_name, matches, series):
     for match in matches:
         match_date = match.get('date', '')
         # Pass all required arguments: player_name, match_date, and series
-        avail_status = get_player_availability(player_name, match_date, series)
+        avail_result = get_player_availability(player_name, match_date, series)
         
-        if avail_status is None:
-            availability.append({'availability_status': 0})  # Default to "not set"
+        # Extract the status from the result dictionary
+        if avail_result and 'availability_status' in avail_result:
+            availability.append({'availability_status': avail_result['availability_status']})
         else:
-            availability.append({'availability_status': avail_status})
+            availability.append({'availability_status': 0})  # Default to "not set"
         
     return availability
 
@@ -3487,6 +3489,34 @@ def strip_leading_zero(value):
     import re
     return re.sub(r'^0', '', value) if isinstance(value, str) else value
 
+@app.template_filter('pretty_date_no_year')
+def pretty_date_no_year(value):
+    """Format dates for display without the year"""
+    try:
+        if isinstance(value, str):
+            # Try different date formats
+            formats = ['%Y-%m-%d', '%m/%d/%Y', '%d-%b-%y']
+            date_obj = None
+            for fmt in formats:
+                try:
+                    date_obj = datetime.strptime(value, fmt)
+                    break
+                except ValueError:
+                    continue
+            if not date_obj:
+                return value
+        else:
+            date_obj = value
+        
+        # Format without year
+        day_of_week = date_obj.strftime('%A')
+        date_str = date_obj.strftime('%-m/%-d')
+        return f"{day_of_week} {date_str}"
+        
+    except Exception as e:
+        print(f"[PRETTY_DATE_NO_YEAR] Error formatting date: {e}")
+        return str(value)
+
 @app.route('/api/win-streaks')
 @login_required
 def get_win_streaks():
@@ -4037,18 +4067,26 @@ def get_matches_for_user_club(user):
             return []
             
         user_club = user['club']
-        # Handle different series formats (e.g. "Chicago 22" or just "22")
-        user_series = user['series'].split()[-1]  # Get the last part which should be the number
+        user_series = user['series']
         print(f"Looking for matches for club: {user_club}, series: {user_series}")
         
-        # The team name in schedules.json could be in multiple formats:
-        # 1. "Club - Series - Series" (e.g. "Tennaqua - 22 - 22")
-        # 2. "Club - Chicago - Series - Series" (e.g. "Midtown - Chicago - 6 - 6")
-        possible_team_formats = [
-            f"{user_club} - {user_series} - {user_series}",  # Format 1
-            f"{user_club} - Chicago - {user_series} - {user_series}",  # Format 2
-            f"{user_club} - {user_series}"  # Legacy format
-        ]
+        # Map series to team suffix pattern (same as team schedule logic)
+        series_to_suffix = {
+            'Chicago 22': '6 - 6',
+            'Chicago 21': '5 - 5', 
+            'Chicago 23': '7 - 7',
+            # Add more mappings as needed
+        }
+        
+        # Extract the number from the series name and use it directly for the team suffix
+        # E.g., "Chicago 22" -> "22 - 22", "Chicago 6" -> "6 - 6"
+        series_number = user_series.split()[-1] if ' ' in user_series else user_series
+        team_suffix = series_number
+        print(f"Mapping series '{user_series}' to team suffix '{team_suffix}'")
+        
+        # The team name in schedules.json format: "Club - suffix"
+        user_team_pattern = f"{user_club} - {team_suffix}"
+        print(f"Looking for team pattern: {user_team_pattern}")
         
         # Filter matches where user's team is either home or away team
         club_matches = []
@@ -4063,7 +4101,8 @@ def get_matches_for_user_club(user):
                         'time': match.get('time', ''),
                         'location': match.get('location', user_club),
                         'Practice': True,
-                        'type': 'Practice'
+                        'type': 'practice',
+                        'description': match.get('description', 'Team Practice')
                     }
                     club_matches.append(normalized_match)
                     continue
@@ -4071,8 +4110,8 @@ def get_matches_for_user_club(user):
                 home_team = match.get('home_team', '')
                 away_team = match.get('away_team', '')
                 
-                # Check if either home or away team matches any of our possible formats
-                is_user_team = any(fmt in (home_team, away_team) for fmt in possible_team_formats)
+                # Check if either home or away team matches our user's team pattern
+                is_user_team = (home_team == user_team_pattern or away_team == user_team_pattern)
                 
                 if is_user_team:
                     print(f"Found match: {home_team} vs {away_team}")
@@ -4124,7 +4163,7 @@ def serve_mobile_improve():
         # Load paddle tips from JSON file
         paddle_tips = []
         try:
-            tips_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'paddle_tips.json')
+            tips_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'improve_data', 'paddle_tips.json')
             with open(tips_path, 'r', encoding='utf-8') as f:
                 tips_data = json.load(f)
                 paddle_tips = tips_data.get('paddle_tips', [])
@@ -4135,7 +4174,7 @@ def serve_mobile_improve():
         # Load training guide data for video references
         training_guide = {}
         try:
-            guide_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'complete_platform_tennis_training_guide.json')
+            guide_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'improve_data', 'complete_platform_tennis_training_guide.json')
             with open(guide_path, 'r', encoding='utf-8') as f:
                 training_guide = json.load(f)
         except Exception as guide_error:
@@ -4168,7 +4207,7 @@ def find_training_video_direct(user_prompt):
         
         # Load training guide data
         try:
-            guide_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'complete_platform_tennis_training_guide.json')
+            guide_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'improve_data', 'complete_platform_tennis_training_guide.json')
             with open(guide_path, 'r', encoding='utf-8') as f:
                 training_guide = json.load(f)
         except Exception as e:
@@ -4337,15 +4376,46 @@ def serve_logout_js():
 @app.route('/mobile/team-schedule')
 @login_required
 def serve_mobile_team_schedule():
-    """Serve the team schedule page showing all players and their schedules"""
+    """Serve the team schedule page with loading screen"""
     try:
-        print("\n=== TEAM SCHEDULE PAGE REQUEST ===")
+        user = session.get('user')
+        if not user:
+            flash('Please log in first', 'error')
+            return redirect(url_for('login'))
+            
+        club_name = user.get('club')
+        series = user.get('series')
+        
+        if not club_name or not series:
+            flash('Please set your club and series in your profile settings', 'error')
+            return redirect(url_for('serve_mobile_view_schedule'))
+
+        # Create a clean team name string for the title
+        team_name = f"{club_name} - {series}"
+        
+        return render_template(
+            'mobile/team_schedule.html',
+            team=team_name,
+            session_data={'user': user}
+        )
+        
+    except Exception as e:
+        print(f"❌ Error in serve_mobile_team_schedule: {str(e)}")
+        print(traceback.format_exc())
+        flash('An error occurred while loading the team schedule', 'error')
+        return redirect(url_for('serve_mobile_view_schedule'))
+
+@app.route('/api/team-schedule-data')
+@login_required
+def get_team_schedule_data():
+    """API endpoint to get team schedule data asynchronously"""
+    try:
+        print("\n=== TEAM SCHEDULE DATA API REQUEST ===")
         # Get the team from user's session data
         user = session.get('user')
         if not user:
             print("❌ No user in session")
-            flash('Please log in first', 'error')
-            return redirect(url_for('login'))
+            return jsonify({'error': 'Not authenticated'}), 401
             
         club_name = user.get('club')
         series = user.get('series')
@@ -4355,24 +4425,26 @@ def serve_mobile_team_schedule():
         
         if not club_name or not series:
             print("❌ Missing club or series")
-            flash('Please set your club and series in your profile settings', 'error')
-            return redirect(url_for('serve_mobile_view_schedule'))
+            return jsonify({'error': 'Club or series not set in profile'}), 400
 
         # Get series ID first since we want all players in the series
         series_query = "SELECT id, name FROM series WHERE name = %(name)s"
         print(f"Executing series query: {series_query}")
-        print(f"Query params: {{'name': {series}}}")
         
-        series_record = execute_query(series_query, {'name': series})
-        print(f"Series query result: {series_record}")
+        try:
+            series_record = execute_query(series_query, {'name': series})
+        except Exception as e:
+            print(f"❌ Database error querying series: {e}")
+            # Continue without database series ID - we can still show the schedule
+            series_record = [{'id': None, 'name': series}]
         
         if not series_record:
             print(f"❌ Series not found: {series}")
-            flash(f'Series "{series}" not found in database', 'error')
-            return redirect(url_for('serve_mobile_view_schedule'))
+            # Continue without database series ID - we can still show the schedule
+            series_record = [{'id': None, 'name': series}]
             
         series_record = series_record[0]
-        print(f"✓ Found series: {series_record}")
+        print(f"✓ Using series: {series_record}")
 
         # Load all players from players.json
         try:
@@ -4394,63 +4466,82 @@ def serve_mobile_team_schedule():
             
             if not team_players:
                 print("❌ No players found in players.json")
-                flash('No players found for your team', 'warning')
-                return redirect(url_for('serve_mobile_view_schedule'))
+                return jsonify({'error': f'No players found for {club_name} - {series}'}), 404
                 
         except Exception as e:
             print(f"❌ Error reading players.json: {e}")
-            print(traceback.format_exc())
-            flash('Error loading player data', 'error')
-            return redirect(url_for('serve_mobile_view_schedule'))
+            return jsonify({'error': 'Error loading player data'}), 500
 
-        # Get match dates from schedules.json
-        try:
-            matches_path = os.path.join('data', 'schedules.json')
-            print(f"\nReading matches from: {matches_path}")
-            
-            if not os.path.exists(matches_path):
-                print(f"❌ Schedules file not found: {matches_path}")
-                flash('Match schedule file not found', 'error')
-                return redirect(url_for('serve_mobile_view_schedule'))
+        # Use the same logic as get_matches_for_user_club to get matches
+        print("\n=== Getting matches using same logic as availability page ===")
+        matches = get_matches_for_user_club(user)
+        
+        if not matches:
+            print("❌ No matches found")
+            return jsonify({'error': 'No matches or practices found for your team'}), 404
+        
+        print(f"✓ Found {len(matches)} matches/practices")
+
+        # Convert matches to the format expected by team schedule page
+        event_dates = []
+        event_details = {}
+        
+        for match in matches:
+            match_date = match.get('date', '')
+            if not match_date:
+                continue
                 
-            with open(matches_path, 'r') as f:
-                all_matches = json.load(f)
+            try:
+                # Convert from MM/DD/YYYY to YYYY-MM-DD
+                date_obj = datetime.strptime(match_date, '%m/%d/%Y')
+                formatted_date = date_obj.strftime('%Y-%m-%d')
                 
-            # Filter matches for this series
-            series_number = series.split()[-1]  # Get the number part (e.g. "22" from "Chicago 22")
-            match_dates = []
-            
-            print(f"Looking for matches with series number: {series_number}")
-            for match in all_matches:
-                # Check if either team is in this series
-                home_team = match.get('home_team', '')
-                away_team = match.get('away_team', '')
-                match_date = match.get('date')
+                event_dates.append(formatted_date)
                 
-                if (f" - {series_number} - " in home_team or 
-                    f" - {series_number} - " in away_team):
-                    if match_date:
-                        try:
-                            # Convert from MM/DD/YYYY to YYYY-MM-DD
-                            date_obj = datetime.strptime(match_date, '%m/%d/%Y')
-                            match_dates.append(date_obj.strftime('%Y-%m-%d'))
-                        except ValueError as e:
-                            print(f"Invalid date format: {match_date}, error: {e}")
-                            continue
-            
-            match_dates = sorted(list(set(match_dates)))  # Remove duplicates and sort
-            print(f"✓ Found {len(match_dates)} match dates")
-            
-            if not match_dates:
-                print("❌ No match dates found for series")
-                flash('No matches found for your series', 'warning')
-                return redirect(url_for('serve_mobile_view_schedule'))
-            
-        except Exception as e:
-            print(f"❌ Error reading schedules.json: {e}")
-            print(traceback.format_exc())
-            flash('Error loading match schedule', 'error')
-            return redirect(url_for('serve_mobile_view_schedule'))
+                # Determine event details based on match type
+                if match.get('type') == 'practice':
+                    event_details[formatted_date] = {
+                        'type': 'Practice',
+                        'description': match.get('description', 'Team Practice'),
+                        'location': match.get('location', club_name),
+                        'time': match.get('time', '')
+                    }
+                    print(f"✓ Added practice date: {match_date}")
+                else:
+                    # It's a match
+                    home_team = match.get('home_team', '')
+                    away_team = match.get('away_team', '')
+                    
+                    # Determine opponent
+                    # Extract the number from the series name and use it directly for the team suffix
+                    # E.g., "Chicago 22" -> "22", "Chicago 6" -> "6"
+                    series_number = series.split()[-1] if ' ' in series else series
+                    team_suffix = series_number
+                    user_team_pattern = f"{club_name} - {team_suffix}"
+                    print(f"Using team pattern: {user_team_pattern} (series: {series} -> suffix: {team_suffix})")
+                    
+                    opponent = ''
+                    if home_team == user_team_pattern:
+                        opponent = away_team.replace(f' - {team_suffix}', '').strip()
+                    elif away_team == user_team_pattern:
+                        opponent = home_team.replace(f' - {team_suffix}', '').strip()
+                    
+                    event_details[formatted_date] = {
+                        'type': 'Match',
+                        'opponent': opponent,
+                        'home_team': home_team,
+                        'away_team': away_team,
+                        'location': match.get('location', ''),
+                        'time': match.get('time', '')
+                    }
+                    print(f"✓ Added match date: {match_date} - {user_team_pattern} vs {opponent}")
+                    
+            except ValueError as e:
+                print(f"Invalid date format: {match_date}, error: {e}")
+                continue
+
+        event_dates = sorted(list(set(event_dates)))  # Remove duplicates and sort
+        print(f"✓ Found {len(event_dates)} total event dates (matches + practices)")
 
         players_schedule = {}
         print("\nProcessing player availability:")
@@ -4459,34 +4550,49 @@ def serve_mobile_team_schedule():
             player_name = player['player_name']
             print(f"\nChecking availability for {player_name}")
             
-            for match_date in match_dates:
+            for event_date in event_dates:
                 try:
-                    # Convert match_date string to datetime.date object
-                    match_date_obj = datetime.strptime(match_date, '%Y-%m-%d').date()
+                    # Convert event_date string to datetime.date object
+                    event_date_obj = datetime.strptime(event_date, '%Y-%m-%d').date()
                     
                     # Get availability status for this player and date
-                    avail_query = """
-                        SELECT availability_status
-                        FROM player_availability 
-                        WHERE player_name = %(player)s 
-                        AND series_id = %(series_id)s 
-                        AND match_date = %(date)s::date
-                    """
-                    avail_params = {
-                        'player': player_name,
-                        'series_id': series_record['id'],
-                        'date': match_date_obj
-                    }
+                    status = 0  # Default to unavailable
                     
-                    avail_record = execute_query(avail_query, avail_params)
-                    status = avail_record[0]['availability_status'] if avail_record and avail_record[0]['availability_status'] is not None else 0
+                    if series_record['id'] is not None:
+                        try:
+                            avail_query = """
+                                SELECT availability_status
+                                FROM player_availability 
+                                WHERE player_name = %(player)s 
+                                AND series_id = %(series_id)s 
+                                AND DATE(match_date AT TIME ZONE 'UTC') = DATE(%(date)s AT TIME ZONE 'UTC')
+                            """
+                            avail_params = {
+                                'player': player_name,
+                                'series_id': series_record['id'],
+                                'date': event_date_obj
+                            }
+                            
+                            avail_record = execute_query(avail_query, avail_params)
+                            status = avail_record[0]['availability_status'] if avail_record and avail_record[0]['availability_status'] is not None else 0
+                        except Exception as e:
+                            print(f"Error querying availability for {player_name}: {e}")
+                            status = 0
+                    
+                    # Get event details for this date
+                    event_info = event_details.get(event_date, {})
                     
                     availability.append({
-                        'date': match_date,
-                        'availability_status': status
+                        'date': event_date,
+                        'availability_status': status,
+                        'event_type': event_info.get('type', 'Unknown'),
+                        'opponent': event_info.get('opponent', ''),
+                        'description': event_info.get('description', ''),
+                        'location': event_info.get('location', ''),
+                        'time': event_info.get('time', '')
                     })
                 except Exception as e:
-                    print(f"Error processing availability for {player_name} on {match_date}: {e}")
+                    print(f"Error processing availability for {player_name} on {event_date}: {e}")
                     # Skip this date if there's an error
                     continue
             
@@ -4497,33 +4603,73 @@ def serve_mobile_team_schedule():
 
         if not players_schedule:
             print("❌ No player schedules created")
-            flash('No player schedules found for your series', 'warning')
-            return redirect(url_for('serve_mobile_view_schedule'))
+            return jsonify({'error': 'No player schedules found for your series'}), 404
             
         print(f"\n✓ Final players_schedule has {len(players_schedule)} players")
-            
-        # Create a clean team name string for the title
-        team_name = f"{club_name} - {series}"
-        print(f"\nRendering template with team: {team_name}")
+        print(f"✓ Event details for {len(event_details)} dates")
         
-        return render_template(
-            'mobile/team_schedule.html',
-            team=team_name,
-            players_schedule=players_schedule,
-            session_data={'user': user},
-            match_dates=match_dates  # Add match_dates to the template context
-        )
+        # Return JSON response
+        return jsonify({
+            'players_schedule': players_schedule,
+            'match_dates': event_dates,
+            'event_details': event_details
+        })
         
     except Exception as e:
-        print(f"❌ Error in serve_mobile_team_schedule: {str(e)}")
+        print(f"❌ Error in get_team_schedule_data: {str(e)}")
         print(traceback.format_exc())
-        flash('An error occurred while loading the team schedule', 'error')
-        return redirect(url_for('serve_mobile_view_schedule'))
+        return jsonify({'error': 'Internal server error'}), 500
 
 @app.route('/mobile/reserve-court')
 @login_required
 def serve_mobile_reserve_court():
     return render_template('mobile/reserve-court.html')
+
+@app.route('/mobile/debug-team-schedule')
+@login_required
+def debug_team_schedule():
+    """Debug route to test team schedule data"""
+    try:
+        user = session.get('user')
+        club_name = user.get('club') if user else None
+        series = user.get('series') if user else None
+        
+        debug_info = {
+            'user_exists': user is not None,
+            'club_name': club_name,
+            'series': series,
+            'players_json_exists': os.path.exists('data/players.json'),
+            'schedules_json_exists': os.path.exists('data/schedules.json')
+        }
+        
+        # Check players.json
+        if os.path.exists('data/players.json'):
+            with open('data/players.json', 'r') as f:
+                all_players = json.load(f)
+            
+            team_players = []
+            for player in all_players:
+                if (player.get('Series') == series and 
+                    player.get('Club') == club_name):
+                    team_players.append(f"{player['First Name']} {player['Last Name']}")
+            
+            debug_info['team_players'] = team_players
+            debug_info['total_players'] = len(all_players)
+        
+        # Check schedules.json
+        if os.path.exists('data/schedules.json'):
+            with open('data/schedules.json', 'r') as f:
+                all_matches = json.load(f)
+            
+            series_matches = [m for m in all_matches if m.get('series') == series]
+            debug_info['series_matches'] = len(series_matches)
+            debug_info['total_matches'] = len(all_matches)
+            debug_info['sample_matches'] = series_matches[:3] if series_matches else []
+        
+        return f"<pre>{json.dumps(debug_info, indent=2)}</pre>"
+        
+    except Exception as e:
+        return f"<pre>Error: {str(e)}\n{traceback.format_exc()}</pre>"
 
 @app.route('/submit_availability', methods=['POST'])
 @login_required
@@ -4699,7 +4845,7 @@ def serve_all_team_availability():
                     FROM player_availability 
                     WHERE player_name = %(player)s 
                     AND series_id = %(series_id)s 
-                    AND match_date = %(date)s::date
+                    AND DATE(match_date AT TIME ZONE 'UTC') = DATE(%(date)s AT TIME ZONE 'UTC')
                 """
                 avail_params = {
                     'player': player_name,
@@ -4780,32 +4926,25 @@ def get_player_availability(player_name, match_date, series):
             
         series_id = series_record[0]['id']
         
-        # Convert match_date to datetime if it's a string
-        if isinstance(match_date, str):
-            if '/' in match_date:  # Handle MM/DD/YYYY format
-                match_date = datetime.strptime(match_date, '%m/%d/%Y').date()
-            else:  # Handle YYYY-MM-DD format
-                match_date = datetime.strptime(match_date, '%Y-%m-%d').date()
-        elif isinstance(match_date, dict) and 'date' in match_date:
-            # Handle case where match_date is a dictionary containing date
-            date_str = match_date['date']
-            if '/' in date_str:
-                match_date = datetime.strptime(date_str, '%m/%d/%Y').date()
-            else:
-                match_date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        # Normalize the date for consistent comparison
+        try:
+            normalized_date = date_to_db_timestamp(match_date)
+        except Exception as e:
+            print(f"❌ Error normalizing date {match_date}: {str(e)}")
+            return {'availability_status': 0}
 
-        # Query the database for availability
+        # Query the database for availability using timezone-aware date comparison
         query = """
             SELECT availability_status
             FROM player_availability 
             WHERE player_name = %(player)s 
             AND series_id = %(series_id)s 
-            AND match_date = %(date)s::date
+            AND DATE(match_date) = DATE(%(date)s)
         """
         params = {
             'player': player_name,
             'series_id': series_id,
-            'date': match_date
+            'date': normalized_date
         }
         
         result = execute_query(query, params)
@@ -4938,7 +5077,7 @@ def get_paddle_insights():
             return jsonify({'error': 'Query cannot be empty'}), 400
             
         # Load paddle insights from JSON file
-        insights_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'complete_platform_tennis_training_guide.json')
+        insights_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'improve_data', 'complete_platform_tennis_training_guide.json')
         with open(insights_path, 'r', encoding='utf-8') as f:
             insights_data = json.load(f)
         

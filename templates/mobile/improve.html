@@ -21,7 +21,7 @@
             <div class="flex items-center justify-between mb-4">
                 <div class="flex items-center">
                     <i class="fas fa-lightbulb text-yellow-300 text-2xl mr-3"></i>
-                    <h3 class="text-xl font-bold">Paddle Tip #10</h3>
+                    <h3 class="text-xl font-bold" id="tipHeader">Loading tip...</h3>
                 </div>
                 <button id="refreshTip" class="bg-white bg-opacity-20 hover:bg-opacity-30 rounded-full p-2 transition-all duration-200">
                     <i class="fas fa-refresh text-white"></i>
@@ -337,6 +337,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!tip) return;
         
         const tipContainer = document.getElementById('tipContainer');
+        const tipHeader = document.getElementById('tipHeader');
         const tipTitle = document.getElementById('tipTitle');
         const tipMeta = document.getElementById('tipMeta');
         const tipDescription = document.getElementById('tipDescription');
@@ -353,6 +354,11 @@ document.addEventListener('DOMContentLoaded', function() {
         tipContainer.style.opacity = '0.7';
         
         setTimeout(function() {
+            // Update header with tip number
+            if (tipHeader) {
+                tipHeader.textContent = `Paddle Tip #${tip.number || '?'}`;
+            }
+            
             // Update content
             tipTitle.textContent = tip.name || 'Untitled Tip';
             tipMeta.textContent = '';
@@ -1415,37 +1421,37 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 
 .imessage-coach-bubble div[style*="font-weight: bold"] {
-    font-weight: 600 !important;
-    color: #374151 !important;
-    margin-bottom: 6px !important;
-    margin-top: 8px !important;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 6px;
+    margin-top: 8px;
 }
 
 .imessage-coach-bubble div[style*="margin-left: 12px"] {
-    margin-left: 8px !important;
-    margin-bottom: 4px !important;
+    margin-left: 8px;
+    margin-bottom: 4px;
     line-height: 1.4;
 }
 
 .imessage-coach-bubble div[style*="margin-left: 24px"] {
-    margin-left: 16px !important;
-    margin-bottom: 3px !important;
+    margin-left: 16px;
+    margin-bottom: 3px;
     font-size: 0.9em;
     line-height: 1.4;
 }
 
 .imessage-coach-bubble div[style*="color: #6b7280"] {
-    color: #6b7280 !important;
+    color: #6b7280;
 }
 
 .imessage-coach-bubble div[style*="color: #059669"] {
-    color: #059669 !important;
-    font-weight: 500 !important;
+    color: #059669;
+    font-weight: 500;
 }
 
 .imessage-coach-bubble div[style*="color: #7c3aed"] {
-    color: #7c3aed !important;
-    font-weight: 500 !important;
+    color: #7c3aed;
+    font-weight: 500;
 }
 
 .imessage-coach-bubble strong {
@@ -1464,19 +1470,19 @@ document.addEventListener('DOMContentLoaded', function() {
 
 /* Override inline styles for better mobile display */
 .imessage-coach-bubble [style*="margin-bottom: 12px"] {
-    margin-bottom: 8px !important;
+    margin-bottom: 8px;
 }
 
 .imessage-coach-bubble [style*="margin-bottom: 8px"] {
-    margin-bottom: 6px !important;
+    margin-bottom: 6px;
 }
 
 .imessage-coach-bubble [style*="margin-bottom: 6px"] {
-    margin-bottom: 4px !important;
+    margin-bottom: 4px;
 }
 
 .imessage-coach-bubble [style*="margin-bottom: 3px"] {
-    margin-bottom: 2px !important;
+    margin-bottom: 2px;
 }
 
 /* New structured paddle insights styles */

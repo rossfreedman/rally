@@ -19,7 +19,7 @@ load_dotenv()
 def get_railway_url():
     """Get the appropriate Railway database URL"""
     # Use the working connection URL with the proxy domain
-    return "postgresql://postgres:OoxuYNiTfyRqbqyoFTNTUHRGjtjHVscf@trolley.proxy.rlwy.net:34555/railway"
+    return "postgresql://postgres:HKJnPmxKZmKiIglQhQPSmfcAjTgBsSIq@ballast.proxy.rlwy.net:40911/railway"
 
 RAILWAY_DB_URL = get_railway_url()
 

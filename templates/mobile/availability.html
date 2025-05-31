@@ -14,6 +14,14 @@
         </div>
     </div>
 
+    <!-- Link to Team Schedule -->
+    <div class="pl-4 pr-0 mb-3 flex justify-end">
+        <a href="/mobile/team-schedule" class="inline-flex items-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs font-medium">
+            <i class="fas fa-calendar-alt text-xs"></i>
+            <span>View Team Availability - All Dates</span>
+        </a>
+    </div>
+
     <!-- Match Cards -->
     <div class="space-y-1 mt-[15px]" id="availability-list">
         {% set last_date = None %}
@@ -27,7 +35,7 @@
                   </div>
                 {% set last_date = match.date %}
             {% endif %}
-            {% set is_practice = not match.location %}
+            {% set is_practice = match.type == 'practice' %}
             <div class="schedule-card group relative overflow-hidden mb-4 p-4 bg-white rounded-lg shadow-sm"
                 data-type="{% if is_practice %}practice{% else %}match{% endif %}">
                 <!-- Two Column Layout -->
@@ -47,26 +55,38 @@
                         <div>
                             <div class="text-lg">
                                 {% if is_practice %}
-                                    <span class="font-medium text-lg">Team Practice</span>
+                                    <span class="font-medium text-lg">{{ match.description or 'Team Practice' }}</span>
                                 {% else %}
-                                    {% set home_team = match.home_team.split(' - ') if match.home_team else [] %}
-                                    {% set away_team = match.away_team.split(' - ') if match.away_team else [] %}
-                                    <div class="flex items-center gap-2 {% if match.get('home_team') == session_data.user.club ~ ' - ' ~ session_data.user.series.split()[-1] %}font-bold{% endif %}">
-                                        <span class="text-lg">{{ home_team[0] }} - {{ home_team[1] if home_team|length >= 2 else '' }} vs.</span>
-                                    </div>
-                                    <div class="{% if match.get('away_team') == session_data.user.club ~ ' - ' ~ session_data.user.series.split()[-1] %}font-bold{% endif %}">
-                                        <span class="text-lg">{{ away_team[0] }} - {{ away_team[1] if away_team|length >= 2 else '' }}</span>
-                                    </div>
+                                    {% if match.home_team and match.away_team %}
+                                        {% set home_team = match.home_team.split(' - ') if match.home_team else [] %}
+                                        {% set away_team = match.away_team.split(' - ') if match.away_team else [] %}
+                                        <div class="flex items-center gap-2 {% if session_data.user.club.lower() in match.home_team.lower() %}font-bold{% endif %}">
+                                            <span class="text-lg">{{ match.home_team }} vs.</span>
+                                        </div>
+                                        <div class="{% if session_data.user.club.lower() in match.away_team.lower() %}font-bold{% endif %}">
+                                            <span class="text-lg">{{ match.away_team }}</span>
+                                        </div>
+                                    {% else %}
+                                        <span class="font-medium text-lg">Match Details TBD</span>
+                                    {% endif %}
                                 {% endif %}
                             </div>
                             <div class="flex items-center gap-1 mt-2">
-                                <i class="fas fa-map-marker-alt text-yellow-500 text-lg"></i>
-                                <span class="text-gray-600 text-lg">{{ match.location or match.home_team }}</span>
+                                {% if not is_practice %}
+                                    <i class="fas fa-map-marker-alt text-yellow-500 text-lg"></i>
+                                {% endif %}
+                                {% set location_text = match.location or match.home_team or session_data.user.club %}
+                                {% if location_text != 'All Clubs' %}
+                                    <span class="text-gray-600 text-lg">{{ location_text }}</span>
+                                {% endif %}
                             </div>
                             <div class="mt-2">
-                                <a href="{{ url_for('serve_all_team_availability', date=match.date) }}" class="inline-flex items-center gap-1 px-3 py-1.5 bg-blue-500 text-white rounded-full text-base font-medium hover:bg-blue-600 transition-colors whitespace-nowrap">
-                                    <i class="fas fa-users text-[10px]"></i>
-                                    View full team availability
+                                <a href="{{ url_for('serve_all_team_availability', date=match.date) }}" class="inline-flex items-center gap-1 px-4 py-2 bg-blue-600 text-white rounded-lg text-[10px] font-medium hover:bg-blue-700 transition-colors">
+                                    <i class="fas fa-users text-[6px]"></i>
+                                    <span class="text-left leading-tight">
+                                        View team availability<br>
+                                        on {{ match.date | pretty_date_no_year }}
+                                    </span>
                                 </a>
                             </div>
                         </div>
@@ -79,6 +99,7 @@
                             onclick="updateAvailability(this, '{{ players[0].name }}', '{{ match.date }}', 'available')"
                             data-status="available"
                             data-current-status="{{ avail.status or '' }}"
+                            data-raw-date="{{ match.date }}"
                             style="text-transform: none;">
                             <i class="fas fa-check mr-1"></i>Count Me In!
                         </button>
@@ -108,6 +129,9 @@
 
 <script>
 async function updateAvailability(button, playerName, date, status) {
+    // DEBUG: Log the actual date received
+    console.log(`DEBUG: updateAvailability called with date='${date}', type=${typeof date}`);
+    
     const buttonGroup = button.closest('[data-availability-buttons]');
     const allButtons = buttonGroup.querySelectorAll('button');
     
@@ -132,9 +156,18 @@ async function updateAvailability(button, playerName, date, status) {
         }[status];
         
         let standardizedDate = date;
+        console.log(`DEBUG: Starting conversion with date='${date}'`);
+        
         if (date.includes('/')) {
             const [month, day, year] = date.split('/');
-            standardizedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+            console.log(`DEBUG: Split parts - month='${month}', day='${day}', year='${year}'`);
+            
+            // Convert 2-digit year to 4-digit year
+            const fullYear = year.length === 2 ? `20${year}` : year;
+            console.log(`DEBUG: Year conversion - original='${year}', fullYear='${fullYear}'`);
+            
+            standardizedDate = `${fullYear}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+            console.log(`DEBUG: Final standardizedDate='${standardizedDate}'`);
         }
         
         const requestData = {

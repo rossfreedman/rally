@@ -22,7 +22,7 @@ def get_url():
     """Get the appropriate database URL based on environment"""
     if os.getenv("SYNC_RAILWAY") == "true":
         # Use Railway's proxy URL when syncing with Railway
-        return "postgresql://postgres:OoxuYNiTfyRqbqyoFTNTUHRGjtjHVscf@trolley.proxy.rlwy.net:34555/railway"
+        return "postgresql://postgres:HKJnPmxKZmKiIglQhQPSmfcAjTgBsSIq@ballast.proxy.rlwy.net:40911/railway"
     else:
         # Use local database URL by default
         return os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/rally")

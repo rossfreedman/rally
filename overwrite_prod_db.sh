@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # --- CONFIGURATION ---
-PROD_HOST="trolley.proxy.rlwy.net"
-PROD_PORT="34555"
+PROD_HOST="ballast.proxy.rlwy.net"
+PROD_PORT="40911"
 PROD_USER="postgres"
 PROD_DB="railway"
-PROD_PASSWORD="OoxuYNiTfyRqbqyoFTNTUHRGjtjHVscf"
+PROD_PASSWORD="HKJnPmxKZmKiIglQhQPSmfcAjTgBsSIq"
 
 LOCAL_HOST="localhost"
 LOCAL_PORT="5432"

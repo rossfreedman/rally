@@ -30,7 +30,7 @@ def mask_password(url):
 
 def test_connection():
     # Construct the URL using Railway's proxy domain and exact credentials
-    url = "postgresql://postgres:OoxuYNiTfyRqbqyoFTNTUHRGjtjHVscf@trolley.proxy.rlwy.net:34555/railway"
+    url = "postgresql://postgres:HKJnPmxKZmKiIglQhQPSmfcAjTgBsSIq@ballast.proxy.rlwy.net:40911/railway"
     
     # Log the URL with masked password
     logger.info(f"Using database URL: {mask_password(url)}")
