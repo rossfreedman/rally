@@ -36,7 +36,7 @@ def load_training_data():
     # Assuming this module is in api/ and data/ is at the root level
     current_dir = os.path.dirname(os.path.abspath(__file__))
     project_root = os.path.dirname(current_dir)
-    training_guide_path = os.path.join(project_root, 'data', 'complete_platform_tennis_training_guide.json')
+    training_guide_path = os.path.join(project_root, 'data', 'improve_data', 'complete_platform_tennis_training_guide.json')
     
     with open(training_guide_path, 'r', encoding='utf-8') as f:
         return json.load(f)

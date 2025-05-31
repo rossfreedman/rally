@@ -28,8 +28,9 @@ from utils.logging import log_user_activity
 from routes.analyze import init_analyze_routes
 from routes.act import init_act_routes
 from routes.admin import admin_bp
-from routes.act.availability import update_player_availability as act_update_player_availability
+from routes.act.availability import update_player_availability, get_player_availability
 from utils.date_utils import parse_date_flexible, normalize_date_string, date_to_db_timestamp
+from urllib.parse import urlparse
 
 def is_public_file(path):
     """Check if a file should be publicly accessible without authentication"""
@@ -4726,11 +4727,10 @@ def submit_availability():
 
         # Update availability using the existing function
         success = update_player_availability(
-            series_record['id'],  # Pass series ID instead of name
-            match_date.strip(),
-            player_name.strip(),
-            numeric_status,
-            series  # Keep series name for logging
+            player_name.strip(),    # player_name (first parameter)
+            match_date.strip(),     # match_date (second parameter) 
+            numeric_status,         # availability_status (third parameter)
+            series                  # series (fourth parameter)
         )
 
         if not success:
@@ -4926,20 +4926,21 @@ def get_player_availability(player_name, match_date, series):
             
         series_id = series_record[0]['id']
         
-        # Normalize the date for consistent comparison
+        # Use proper timezone handling for TIMESTAMPTZ column
         try:
             normalized_date = date_to_db_timestamp(match_date)
+            print(f"Converted date for TIMESTAMPTZ query: {match_date} -> {normalized_date}")
         except Exception as e:
-            print(f"❌ Error normalizing date {match_date}: {str(e)}")
+            print(f"❌ Error converting date {match_date}: {str(e)}")
             return {'availability_status': 0}
 
-        # Query the database for availability using timezone-aware date comparison
+        # Query using TIMESTAMPTZ with UTC timezone handling
         query = """
             SELECT availability_status
             FROM player_availability 
             WHERE player_name = %(player)s 
             AND series_id = %(series_id)s 
-            AND DATE(match_date) = DATE(%(date)s)
+            AND DATE(match_date AT TIME ZONE 'UTC') = DATE(%(date)s AT TIME ZONE 'UTC')
         """
         params = {
             'player': player_name,
@@ -5260,6 +5261,37 @@ def get_paddle_insights():
     except Exception as e:
         print(f"Error searching paddle insights: {str(e)}")
         return jsonify({'error': 'An error occurred while searching insights'}), 500
+
+@app.route('/api/debug-db-info')
+def debug_db_info():
+    """Debug endpoint to show database connection info"""
+    try:
+        import os
+        from urllib.parse import urlparse
+        
+        db_url = os.getenv('DATABASE_URL', 'Not set')
+        
+        # Parse URL to show host without password
+        if db_url and db_url != 'Not set':
+            parsed = urlparse(db_url)
+            masked_url = f"postgresql://{parsed.username}:***@{parsed.hostname}:{parsed.port}{parsed.path}"
+        else:
+            masked_url = db_url
+            
+        # Test actual connection
+        result = execute_query_one('SELECT version() as version')
+        
+        # Check player_availability table
+        availability_count = execute_query_one('SELECT COUNT(*) as count FROM player_availability')
+        
+        return jsonify({
+            'database_url': masked_url,
+            'postgres_version': result['version'][:50] if result else 'Connection failed',
+            'availability_records': availability_count['count'] if availability_count else 0,
+            'environment': os.getenv('RAILWAY_ENVIRONMENT', 'unknown')
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     # Get port from environment variable or use default

@@ -5,11 +5,15 @@ from datetime import datetime, date
 from routes.act.schedule import get_matches_for_user_club
 import traceback
 
+# Import the correct date utility function for timezone handling
+from utils.date_utils import date_to_db_timestamp, normalize_date_string
+
 def normalize_date_for_db(date_input, target_timezone='UTC'):
     """
-    Convert various date formats to a simple date object for the DATE column.
-    Much simpler than the TIMESTAMPTZ approach.
+    DEPRECATED: Use date_to_db_timestamp from utils.date_utils instead.
+    This function is kept for backward compatibility but should be replaced.
     """
+    print("⚠️  Warning: Using deprecated normalize_date_for_db. Use date_to_db_timestamp instead.")
     if isinstance(date_input, date):
         return date_input
     
@@ -44,20 +48,21 @@ def get_player_availability(player_name, match_date, series):
             
         series_id = series_record['id']
         
-        # Normalize the date
+        # Use proper timezone handling for TIMESTAMPTZ column
         try:
-            normalized_date = normalize_date_for_db(match_date)
+            normalized_date = date_to_db_timestamp(match_date)
+            print(f"Converted date for TIMESTAMPTZ query: {match_date} -> {normalized_date}")
         except Exception as e:
-            print(f"❌ Error normalizing date {match_date}: {str(e)}")
+            print(f"❌ Error converting date {match_date}: {str(e)}")
             return None
 
-        # Simple query using DATE comparison
+        # Query using TIMESTAMPTZ with UTC timezone handling
         query = """
             SELECT availability_status
             FROM player_availability 
             WHERE player_name = %(player)s 
             AND series_id = %(series_id)s 
-            AND match_date = %(date)s
+            AND DATE(match_date AT TIME ZONE 'UTC') = DATE(%(date)s AT TIME ZONE 'UTC')
         """
         params = {
             'player': player_name,
@@ -81,8 +86,8 @@ def get_player_availability(player_name, match_date, series):
 
 def update_player_availability(player_name, match_date, availability_status, series):
     """
-    Simple update player availability without complex date correction logic.
-    Works with the DATE column type.
+    Update player availability with proper timezone handling for TIMESTAMPTZ column.
+    Stores dates as midnight UTC consistently.
     """
     try:
         print(f"\n=== UPDATE PLAYER AVAILABILITY ===")
@@ -100,22 +105,22 @@ def update_player_availability(player_name, match_date, availability_status, ser
             
         series_id = series_record['id']
         
-        # Normalize the date to simple date object
+        # Use proper timezone handling for TIMESTAMPTZ column
         try:
-            date_obj = normalize_date_for_db(match_date)
-            print(f"Normalized date: {match_date} -> {date_obj}")
+            date_obj = date_to_db_timestamp(match_date)
+            print(f"Converted date for TIMESTAMPTZ storage: {match_date} -> {date_obj}")
         except Exception as e:
-            print(f"❌ Error normalizing date: {e}")
+            print(f"❌ Error converting date: {e}")
             return False
         
-        # Check if record exists
+        # Check if record exists using UTC date comparison
         existing_record = execute_query_one(
             """
             SELECT id, availability_status
             FROM player_availability 
             WHERE player_name = %(player)s 
             AND series_id = %(series_id)s 
-            AND match_date = %(date)s
+            AND DATE(match_date AT TIME ZONE 'UTC') = DATE(%(date)s AT TIME ZONE 'UTC')
             """,
             {
                 'player': player_name,
@@ -141,8 +146,8 @@ def update_player_availability(player_name, match_date, availability_status, ser
                 }
             )
         else:
-            # Create new record
-            print("Creating new availability record")
+            # Create new record with proper UTC timestamp
+            print("Creating new availability record with UTC timestamp")
             result = execute_query(
                 """
                 INSERT INTO player_availability (player_name, match_date, availability_status, series_id, updated_at)

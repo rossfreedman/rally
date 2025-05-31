@@ -161,6 +161,66 @@ def test_database_connection():
         import traceback
         traceback.print_exc()
 
+def test_timezone_fix():
+    """Test that the timezone fix is working correctly"""
+    print("🔍 Testing Timezone Fix for Availability")
+    print("=" * 50)
+    
+    # Import the updated functions
+    try:
+        from routes.act.availability import update_player_availability, get_player_availability
+        from utils.date_utils import date_to_db_timestamp
+        
+        print("✅ Successfully imported updated functions")
+        
+        # Test date conversion
+        test_dates = ['05/26/2025', '2025-05-26', '05/26/25']
+        for test_date in test_dates:
+            try:
+                converted = date_to_db_timestamp(test_date)
+                print(f"✅ {test_date} -> {converted}")
+            except Exception as e:
+                print(f"❌ {test_date} -> Error: {e}")
+        
+        # Test availability functions with known data
+        player_name = "Ross Freedman"
+        series = "Series 2B"
+        
+        print(f"\n🧪 Testing availability functions for {player_name}")
+        
+        # Test getting availability
+        for test_date in ['05/26/2025', '05/29/2025', '06/02/2025']:
+            result = get_player_availability(player_name, test_date, series)
+            print(f"📅 {test_date}: Status = {result}")
+        
+        # Test updating availability (status 1 = available)
+        test_date = '12/31/2024'
+        print(f"\n🔄 Testing update for {test_date}")
+        
+        # First get current status
+        before = get_player_availability(player_name, test_date, series)
+        print(f"Before update: {before}")
+        
+        # Update to status 1 (available)
+        success = update_player_availability(player_name, test_date, 1, series)
+        print(f"Update success: {success}")
+        
+        # Check the result
+        after = get_player_availability(player_name, test_date, series)
+        print(f"After update: {after}")
+        
+        if success and after is not None:
+            print("✅ Timezone fix working correctly!")
+        else:
+            print("❌ Timezone fix may have issues")
+            
+        print("\n🎯 Test completed!")
+        
+    except Exception as e:
+        print(f"❌ Error during testing: {str(e)}")
+        import traceback
+        traceback.print_exc()
+
 def main():
     """Run all tests"""
     print("🚀 Running Timezone Migration Verification Tests")
@@ -171,6 +231,7 @@ def main():
     test_database_connection()
     test_date_utilities()
     test_availability_functions()
+    test_timezone_fix()
     
     print("\n\n" + "=" * 60)
     print("🎯 Test Summary:")
