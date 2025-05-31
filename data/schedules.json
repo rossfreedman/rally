@@ -1,15 +1,5 @@
 [
     {
-        "date": "09/15/2024",
-        "time": "10:30 AM",
-        "Practice": "Tennaqua"
-    },
-    {
-        "date": "09/22/2024",
-        "time": "10:30 AM",
-        "Practice": "Tennaqua"
-    },
-    {
         "date": "09/24/2024",
         "time": "06:30 pm",
         "home_team": "Westmoreland - 7",
@@ -638,11 +628,6 @@
         "home_team": "Tennaqua - 38",
         "away_team": "North Shore - 38",
         "location": "North Shore"
-    },
-    {
-        "date": "09/29/2024",
-        "time": "10:30 AM",
-        "Practice": "Tennaqua"
     },
     {
         "date": "10/01/2024",
@@ -1275,11 +1260,6 @@
         "location": "Winter Club"
     },
     {
-        "date": "10/06/2024",
-        "time": "10:30 AM",
-        "Practice": "Tennaqua"
-    },
-    {
         "date": "10/08/2024",
         "time": "06:30 pm",
         "home_team": "Winnetka - 7",
@@ -1910,11 +1890,6 @@
         "location": "Tennaqua"
     },
     {
-        "date": "10/13/2024",
-        "time": "10:30 AM",
-        "Practice": "Tennaqua"
-    },
-    {
         "date": "10/15/2024",
         "time": "06:30 pm",
         "home_team": "Skokie - 7",
@@ -2543,11 +2518,6 @@
         "home_team": "Tennaqua - 38",
         "away_team": "Skokie - 38",
         "location": "Skokie"
-    },
-    {
-        "date": "10/20/2024",
-        "time": "10:30 AM",
-        "Practice": "Tennaqua"
     },
     {
         "date": "10/22/2024",
@@ -3180,11 +3150,6 @@
         "location": "Winter Club"
     },
     {
-        "date": "10/27/2024",
-        "time": "10:30 AM",
-        "Practice": "Tennaqua"
-    },
-    {
         "date": "10/29/2024",
         "time": "06:30 pm",
         "home_team": "Westmoreland - 7",
@@ -3815,11 +3780,6 @@
         "location": "Tennaqua"
     },
     {
-        "date": "11/03/2024",
-        "time": "10:30 AM",
-        "Practice": "Tennaqua"
-    },
-    {
         "date": "11/05/2024",
         "time": "06:30 pm",
         "home_team": "Lakeshore S&F - 7",
@@ -4448,11 +4408,6 @@
         "home_team": "Sunset Ridge - 38",
         "away_team": "Winter Club - 38",
         "location": "Winter Club"
-    },
-    {
-        "date": "11/10/2024",
-        "time": "10:30 AM",
-        "Practice": "Tennaqua"
     },
     {
         "date": "11/12/2024",
@@ -5085,11 +5040,6 @@
         "location": "Tennaqua"
     },
     {
-        "date": "11/17/2024",
-        "time": "10:30 AM",
-        "Practice": "Tennaqua"
-    },
-    {
         "date": "11/19/2024",
         "time": "06:30 pm",
         "home_team": "Glen View - 7",
@@ -5718,16 +5668,6 @@
         "home_team": "Sunset Ridge - 38",
         "away_team": "Skokie - 38",
         "location": "Skokie"
-    },
-    {
-        "date": "11/24/2024",
-        "time": "10:30 AM",
-        "Practice": "Tennaqua"
-    },
-    {
-        "date": "12/01/2024",
-        "time": "10:30 AM",
-        "Practice": "Tennaqua"
     },
     {
         "date": "12/03/2024",
@@ -6360,11 +6300,6 @@
         "location": "Winter Club"
     },
     {
-        "date": "12/08/2024",
-        "time": "10:30 AM",
-        "Practice": "Tennaqua"
-    },
-    {
         "date": "12/10/2024",
         "time": "06:30 pm",
         "home_team": "Lakeshore S&F - 7",
@@ -6993,11 +6928,6 @@
         "home_team": "Winter Club - 38",
         "away_team": "Tennaqua - 38",
         "location": "Tennaqua"
-    },
-    {
-        "date": "12/15/2024",
-        "time": "10:30 AM",
-        "Practice": "Tennaqua"
     },
     {
         "date": "12/17/2024",
@@ -7630,21 +7560,6 @@
         "location": "Winter Club"
     },
     {
-        "date": "12/22/2024",
-        "time": "10:30 AM",
-        "Practice": "Tennaqua"
-    },
-    {
-        "date": "12/29/2024",
-        "time": "10:30 AM",
-        "Practice": "Tennaqua"
-    },
-    {
-        "date": "01/05/2025",
-        "time": "10:30 AM",
-        "Practice": "Tennaqua"
-    },
-    {
         "date": "01/07/2025",
         "time": "06:30 pm",
         "home_team": "Skokie - 7",
@@ -8273,11 +8188,6 @@
         "home_team": "Birchwood - 38",
         "away_team": "Winter Club - 38",
         "location": "Winter Club"
-    },
-    {
-        "date": "01/12/2025",
-        "time": "10:30 AM",
-        "Practice": "Tennaqua"
     },
     {
         "date": "01/14/2025",
@@ -8910,11 +8820,6 @@
         "location": "Tennaqua"
     },
     {
-        "date": "01/19/2025",
-        "time": "10:30 AM",
-        "Practice": "Tennaqua"
-    },
-    {
         "date": "01/21/2025",
         "time": "06:30 pm",
         "home_team": "Tennaqua - 7",
@@ -9543,11 +9448,6 @@
         "home_team": "Midt-Bannockburn - 38",
         "away_team": "Winter Club - 38",
         "location": "Winter Club"
-    },
-    {
-        "date": "01/26/2025",
-        "time": "10:30 AM",
-        "Practice": "Tennaqua"
     },
     {
         "date": "01/28/2025",
@@ -10180,11 +10080,6 @@
         "location": "Tennaqua"
     },
     {
-        "date": "02/02/2025",
-        "time": "10:30 AM",
-        "Practice": "Tennaqua"
-    },
-    {
         "date": "02/04/2025",
         "time": "06:30 pm",
         "home_team": "Winnetka - 7",
@@ -10815,11 +10710,6 @@
         "location": "Winter Club"
     },
     {
-        "date": "02/09/2025",
-        "time": "10:30 AM",
-        "Practice": "Tennaqua"
-    },
-    {
         "date": "02/11/2025",
         "time": "06:30 pm",
         "home_team": "Lakeshore S&F - 7",
@@ -11448,11 +11338,6 @@
         "home_team": "Lake Bluff - 38",
         "away_team": "Winter Club - 38",
         "location": "Winter Club"
-    },
-    {
-        "date": "02/16/2025",
-        "time": "10:30 AM",
-        "Practice": "Tennaqua"
     },
     {
         "date": "02/19/2025",
@@ -11460,11 +11345,6 @@
         "home_team": "Glenbrook RC - 9",
         "away_team": "Lake Bluff - 9",
         "location": "Lake Bluff"
-    },
-    {
-        "date": "02/23/2025",
-        "time": "10:30 AM",
-        "Practice": "Tennaqua"
     },
     {
         "date": "02/25/2025",
@@ -11971,11 +11851,6 @@
         "location": "Tennaqua"
     },
     {
-        "date": "03/02/2025",
-        "time": "10:30 AM",
-        "Practice": "Tennaqua"
-    },
-    {
         "date": "03/04/2025",
         "time": "06:30 pm",
         "home_team": "Tennaqua - 7",
@@ -12228,11 +12103,6 @@
         "location": "Tennaqua"
     },
     {
-        "date": "03/09/2025",
-        "time": "10:30 AM",
-        "Practice": "Tennaqua"
-    },
-    {
         "date": "03/11/2025",
         "time": "06:30 pm",
         "home_team": "Michigan Shores - 6",
@@ -12357,30 +12227,5 @@
         "home_team": "North Shore - 38",
         "away_team": "Tennaqua - 38",
         "location": "Tennaqua"
-    },
-    {
-        "date": "03/16/2025",
-        "time": "10:30 AM",
-        "Practice": "Tennaqua"
-    },
-    {
-        "date": "03/23/2025",
-        "time": "10:30 AM",
-        "Practice": "Tennaqua"
-    },
-    {
-        "date": "03/30/2025",
-        "time": "10:30 AM",
-        "Practice": "Tennaqua"
-    },
-    {
-        "date": "04/06/2025",
-        "time": "10:30 AM",
-        "Practice": "Tennaqua"
-    },
-    {
-        "date": "04/13/2025",
-        "time": "10:30 AM",
-        "Practice": "Tennaqua"
     }
 ]
