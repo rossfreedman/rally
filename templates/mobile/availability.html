@@ -29,9 +29,19 @@
             {% if match.date != last_date %}
                 {% if not loop.first %}</div>{% endif %}
                 {% set show_time = match.time|strip_leading_zero if match.time else '' %}
+                {% set is_practice = match.type == 'practice' %}
                 <div class="schedule-date-group" data-date="{{ match.date }}">
-                  <div class="schedule-date-header flex justify-between items-center">
-                    <span>{{ match.date | pretty_date }} at {{ show_time }}</span>
+                  <div class="schedule-date-header flex justify-between items-center rounded-md p-3 mb-2" 
+                       style="background-color: {% if is_practice %}#fbbf24{% else %}#000000{% endif %}; color: {% if is_practice %}#000000{% else %}#ffffff{% endif %};">
+                    <div class="flex items-center gap-2">
+                      {% if is_practice %}
+                        <span class="font-medium">Practice</span>
+                      {% else %}
+                        <span class="font-medium">Match</span>
+                      {% endif %}
+                      <span class="{% if is_practice %}text-gray-700{% else %}text-gray-200{% endif %}">•</span>
+                      <span>{{ match.date | pretty_date }} at {{ show_time }}</span>
+                    </div>
                   </div>
                 {% set last_date = match.date %}
             {% endif %}
@@ -44,12 +54,12 @@
                     <div class="flex flex-col gap-3">
                         <div class="flex-shrink-0">
                             {% if is_practice %}
-                                <i class="fas fa-table-tennis text-purple-600 text-2xl"></i>
-                            {% else %}
-                                <div class="flex items-center gap-1 px-3 py-1 bg-yellow-400 rounded-full w-fit">
-                                    <i class="fas fa-trophy text-black text-sm"></i>
-                                    <span class="text-black font-medium text-sm">Match</span>
+                                <div class="flex items-center gap-1">
+                                    <i class="fas fa-tennis-ball text-black text-lg"></i>
+                                    <i class="fas fa-table-tennis text-black text-lg"></i>
                                 </div>
+                            {% else %}
+                                <i class="fas fa-trophy text-black text-2xl"></i>
                             {% endif %}
                         </div>
                         <div>
@@ -268,15 +278,6 @@ async function updateAvailability(button, playerName, date, status) {
 </script>
 
 <style>
-.schedule-date-header {
-    background: #000000;
-    padding: 0.75rem 1rem;
-    font-weight: 500;
-    color: #ffffff;
-    margin-bottom: 0.5rem;
-    border-radius: 0.375rem;
-}
-
 .btn {
     border: none;
     font-weight: 500;

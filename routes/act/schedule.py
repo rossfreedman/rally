@@ -6,7 +6,7 @@ from utils.logging import log_user_activity
 from utils.auth import login_required
 
 def get_matches_for_user_club(user):
-    """Get upcoming matches for a user's club from schedules.json"""
+    """Get upcoming matches and practices for a user's club from schedules.json"""
     try:
         # Use schedules.json for upcoming matches (availability system)
         file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../data', 'schedules.json')
@@ -43,11 +43,24 @@ def get_matches_for_user_club(user):
             try:
                 home_team = match.get('home_team', '')
                 away_team = match.get('away_team', '')
+                practice_field = match.get('Practice', '')
                 
-                # Check if either home or away team matches any of our possible formats
-                is_user_team = any(fmt in (home_team, away_team) for fmt in possible_team_formats)
-                
-                if is_user_team:
+                # Check if this is a practice entry for the user's club
+                if practice_field and practice_field == user_club:
+                    print(f"Found practice: {practice_field} on {match.get('date', '')}")
+                    # Normalize practice data to consistent format
+                    normalized_practice = {
+                        'date': match.get('date', ''),
+                        'time': match.get('time', ''),
+                        'location': practice_field,
+                        'home_team': '',
+                        'away_team': '',
+                        'type': 'practice',
+                        'description': f"{practice_field} Practice"
+                    }
+                    filtered_matches.append(normalized_practice)
+                # Check if either home or away team matches any of our possible formats (regular matches)
+                elif any(fmt in (home_team, away_team) for fmt in possible_team_formats):
                     print(f"Found match: {home_team} vs {away_team}")
                     # Normalize match data to consistent format
                     normalized_match = {
@@ -62,8 +75,20 @@ def get_matches_for_user_club(user):
             except Exception as e:
                 print(f"Warning: Skipping invalid match record: {e}")
                 continue
-                
-        print(f"Found {len(filtered_matches)} matches for team")
+        
+        # Sort matches and practices by date and time
+        def sort_key(match):
+            try:
+                date_obj = datetime.strptime(match['date'], '%m/%d/%Y')
+                time_obj = datetime.strptime(match['time'], '%I:%M %p')
+                return (date_obj, time_obj)
+            except ValueError:
+                # If parsing fails, put it at the end
+                return (datetime.max, datetime.max)
+        
+        filtered_matches.sort(key=sort_key)
+        
+        print(f"Found {len(filtered_matches)} matches and practices for team")
         return filtered_matches
     except Exception as e:
         print(f"Error getting matches for user club: {str(e)}")

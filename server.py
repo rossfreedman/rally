@@ -4316,8 +4316,164 @@ def find_training_video():
 @app.route('/mobile/email-team')
 @login_required
 def serve_mobile_email_team():
-    """Serve the email team page"""
-    return render_template('mobile/email_team.html', show_back_arrow=True)
+    return render_template('mobile/email_team.html')
+
+@app.route('/mobile/practice-times')
+@login_required
+def serve_mobile_practice_times():
+    """Serve the mobile practice times page"""
+    session_data = {
+        'user': session['user'],
+        'authenticated': True
+    }
+    
+    log_user_activity(session['user']['email'], 'page_visit', page='mobile_practice_times')
+    return render_template('mobile/practice_times.html', session_data=session_data)
+
+@app.route('/api/add-practice-times', methods=['POST'])
+@login_required
+def add_practice_times():
+    """API endpoint to add practice times to the schedule"""
+    try:
+        # Get form data
+        first_date = request.form.get('first_date')
+        day = request.form.get('day')
+        time = request.form.get('time')
+        
+        # Validate required fields
+        if not all([first_date, day, time]):
+            return jsonify({
+                'success': False, 
+                'message': 'All fields are required'
+            }), 400
+        
+        # Get user's club to determine which team schedule to update
+        user = session['user']
+        user_club = user.get('club', '')
+        
+        if not user_club:
+            return jsonify({
+                'success': False, 
+                'message': 'User club not found'
+            }), 400
+        
+        # Convert form data to appropriate formats
+        from datetime import datetime, timedelta
+        import json
+        
+        # Parse the first date
+        try:
+            first_date_obj = datetime.strptime(first_date, "%Y-%m-%d")
+        except ValueError:
+            return jsonify({
+                'success': False, 
+                'message': 'Invalid date format'
+            }), 400
+        
+        # Convert 24-hour time to 12-hour format
+        try:
+            time_obj = datetime.strptime(time, "%H:%M")
+            formatted_time = time_obj.strftime("%I:%M %p").lstrip('0')
+        except ValueError:
+            return jsonify({
+                'success': False, 
+                'message': 'Invalid time format'
+            }), 400
+        
+        # Load the current schedule
+        schedule_file = "data/schedules.json"
+        try:
+            with open(schedule_file, 'r') as f:
+                schedule = json.load(f)
+        except FileNotFoundError:
+            return jsonify({
+                'success': False, 
+                'message': 'Schedule file not found'
+            }), 500
+        except json.JSONDecodeError:
+            return jsonify({
+                'success': False, 
+                'message': 'Invalid schedule file format'
+            }), 500
+        
+        # Determine end date - set to end of current season (April 18, 2025)
+        # You may want to make this configurable
+        end_date = datetime(2025, 4, 18)
+        
+        # Convert day name to number (0=Monday, 6=Sunday)
+        day_map = {
+            'Monday': 0, 'Tuesday': 1, 'Wednesday': 2, 'Thursday': 3,
+            'Friday': 4, 'Saturday': 5, 'Sunday': 6
+        }
+        target_weekday = day_map.get(day)
+        
+        if target_weekday is None:
+            return jsonify({
+                'success': False, 
+                'message': 'Invalid day selected'
+            }), 400
+        
+        # Start from the first practice date
+        current_date = first_date_obj
+        practices_added = 0
+        
+        # Add practice entries until end of season
+        while current_date <= end_date:
+            # If current date is the target weekday, add practice
+            if current_date.weekday() == target_weekday:
+                # Create practice entry - using "Practice" field to match original script
+                practice_entry = {
+                    "date": current_date.strftime("%m/%d/%Y"),
+                    "time": formatted_time,
+                    "Practice": user_club  # Use the user's club as the practice location
+                }
+                # Insert at the beginning of the schedule
+                schedule.insert(0, practice_entry)
+                practices_added += 1
+            
+            # Move to next day
+            current_date += timedelta(days=1)
+        
+        # Sort the schedule by date and time
+        def sort_key(x):
+            try:
+                date_obj = datetime.strptime(x['date'], "%m/%d/%Y")
+                time_obj = datetime.strptime(x['time'], "%I:%M %p")
+                return (date_obj, time_obj)
+            except ValueError:
+                # If parsing fails, put it at the end
+                return (datetime.max, datetime.max)
+        
+        schedule.sort(key=sort_key)
+        
+        # Save updated schedule
+        try:
+            with open(schedule_file, 'w') as f:
+                json.dump(schedule, f, indent=4)
+        except Exception as e:
+            return jsonify({
+                'success': False, 
+                'message': f'Failed to save schedule: {str(e)}'
+            }), 500
+        
+        # Log the activity
+        log_user_activity(
+            user['email'], 
+            'practice_times_added',
+            details=f'Added {practices_added} practice times for {day}s at {formatted_time} starting {first_date}'
+        )
+        
+        return jsonify({
+            'success': True, 
+            'message': f'Successfully added {practices_added} practice times to the schedule!'
+        })
+        
+    except Exception as e:
+        print(f"Error adding practice times: {str(e)}")
+        return jsonify({
+            'success': False, 
+            'message': 'An unexpected error occurred'
+        }), 500
 
 def get_user_by_id(user_id):
     """Get user by ID from database"""
