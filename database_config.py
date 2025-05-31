@@ -68,9 +68,8 @@ def parse_db_url(url):
         'keepalives_interval': 30,
         'keepalives_count': 3,
         'tcp_user_timeout': 30000,  # 30 seconds in milliseconds
-        'target_session_attrs': 'read-write',
-        # Add timezone configuration to prevent date conversion issues
-        'options': '-c timezone=America/Chicago'
+        'target_session_attrs': 'read-write'
+        # Removed timezone configuration to prevent date conversion issues
     }
 
 def test_db_connection():
@@ -86,11 +85,11 @@ def test_db_connection():
         logger.info(f"Testing database connection to {test_params['host']}:{test_params['port']}")
         conn = psycopg2.connect(**test_params)
         
-        # Test with a simple query and verify timezone
+        # Test with a simple query
         with conn.cursor() as cursor:
-            cursor.execute('SELECT 1 as test, current_setting(\'timezone\') as tz')
+            cursor.execute('SELECT 1 as test')
             result = cursor.fetchone()
-            logger.info(f"Database timezone: {result[1]}")
+            logger.info(f"Database connection test query successful")
             
         conn.close()
         logger.info("Database connection test successful!")
@@ -127,12 +126,11 @@ def get_db():
             
             conn = psycopg2.connect(**db_params)
             
-            # Ensure timezone is set correctly for this session
+            # Verify connection is working
             with conn.cursor() as cursor:
-                cursor.execute("SET timezone = 'America/Chicago'")
                 cursor.execute("SELECT current_setting('timezone')")
                 tz = cursor.fetchone()[0]
-                logger.info(f"Database session timezone set to: {tz}")
+                logger.info(f"Database session timezone: {tz}")
             
             conn.commit()
             logger.info("Database connection successful!")
