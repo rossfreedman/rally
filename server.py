@@ -3518,6 +3518,60 @@ def pretty_date_no_year(value):
         print(f"[PRETTY_DATE_NO_YEAR] Error formatting date: {e}")
         return str(value)
 
+@app.template_filter('date_to_mmdd')
+def date_to_mmdd(value):
+    """Format dates as simple mm/dd"""
+    try:
+        if isinstance(value, str):
+            # Try different date formats
+            formats = ['%Y-%m-%d', '%m/%d/%Y', '%d-%b-%y']
+            date_obj = None
+            for fmt in formats:
+                try:
+                    date_obj = datetime.strptime(value, fmt)
+                    break
+                except ValueError:
+                    continue
+            if not date_obj:
+                return value
+        else:
+            date_obj = value
+        
+        # Format as mm/dd
+        return date_obj.strftime('%-m/%-d')
+        
+    except Exception as e:
+        print(f"[DATE_TO_MMDD] Error formatting date: {e}")
+        return str(value)
+
+@app.template_filter('pretty_date_with_year')
+def pretty_date_with_year(value):
+    """Format dates as 'Tuesday 9/24/24'"""
+    try:
+        if isinstance(value, str):
+            # Try different date formats
+            formats = ['%Y-%m-%d', '%m/%d/%Y', '%d-%b-%y']
+            date_obj = None
+            for fmt in formats:
+                try:
+                    date_obj = datetime.strptime(value, fmt)
+                    break
+                except ValueError:
+                    continue
+            if not date_obj:
+                return value
+        else:
+            date_obj = value
+        
+        # Format as "Tuesday 9/24/24"
+        day_of_week = date_obj.strftime('%A')
+        date_str = date_obj.strftime('%-m/%-d/%y')
+        return f"{day_of_week} {date_str}"
+        
+    except Exception as e:
+        print(f"[PRETTY_DATE_WITH_YEAR] Error formatting date: {e}")
+        return str(value)
+
 @app.route('/api/win-streaks')
 @login_required
 def get_win_streaks():

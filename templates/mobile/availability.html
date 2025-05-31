@@ -31,36 +31,39 @@
                 {% set show_time = match.time|strip_leading_zero if match.time else '' %}
                 {% set is_practice = match.type == 'practice' %}
                 <div class="schedule-date-group" data-date="{{ match.date }}">
-                  <div class="schedule-date-header flex justify-between items-center rounded-md p-3 mb-2" 
-                       style="background-color: {% if is_practice %}#fbbf24{% else %}#000000{% endif %}; color: {% if is_practice %}#000000{% else %}#ffffff{% endif %};">
+                  <div class="schedule-date-header flex justify-between items-center rounded-md p-3 mb-2 {% if is_practice %}practice-header{% else %}match-header{% endif %}">
                     <div class="flex items-center gap-2">
                       {% if is_practice %}
                         <span class="font-medium">Practice</span>
                       {% else %}
                         <span class="font-medium">Match</span>
                       {% endif %}
-                      <span class="{% if is_practice %}text-gray-700{% else %}text-gray-200{% endif %}">•</span>
-                      <span>{{ match.date | pretty_date }} at {{ show_time }}</span>
                     </div>
                   </div>
                 {% set last_date = match.date %}
             {% endif %}
             {% set is_practice = match.type == 'practice' %}
+            {% set show_time = match.time|strip_leading_zero if match.time else '' %}
             <div class="schedule-card group relative overflow-hidden mb-4 p-4 bg-white rounded-lg shadow-sm"
                 data-type="{% if is_practice %}practice{% else %}match{% endif %}">
                 <!-- Two Column Layout -->
-                <div class="flex flex-row justify-between gap-4">
+                <div class="flex flex-row gap-4">
                     <!-- Column 1: Match Info -->
-                    <div class="flex flex-col gap-3">
+                    <div class="flex flex-col gap-3 flex-1">
                         <div class="flex-shrink-0">
                             {% if is_practice %}
                                 <div class="flex items-center gap-1">
-                                    <i class="fas fa-tennis-ball text-black text-lg"></i>
-                                    <i class="fas fa-table-tennis text-black text-lg"></i>
+                                    <i class="fas fa-tennis-ball text-black text-2xl"></i>
+                                    <i class="fas fa-table-tennis text-black text-2xl"></i>
                                 </div>
                             {% else %}
                                 <i class="fas fa-trophy text-black text-2xl"></i>
                             {% endif %}
+                        </div>
+                        <!-- Date and Time Section -->
+                        <div class="text-lg font-medium">
+                            <div class="font-bold">{{ match.date | pretty_date_with_year }}</div>
+                            <div class="text-base text-gray-600">{{ show_time }}</div>
                         </div>
                         <div>
                             <div class="text-lg">
@@ -70,10 +73,10 @@
                                     {% if match.home_team and match.away_team %}
                                         {% set home_team = match.home_team.split(' - ') if match.home_team else [] %}
                                         {% set away_team = match.away_team.split(' - ') if match.away_team else [] %}
-                                        <div class="flex items-center gap-2 {% if session_data.user.club.lower() in match.home_team.lower() %}font-bold{% endif %}">
+                                        <div class="flex items-center gap-2">
                                             <span class="text-lg">{{ match.home_team }} vs.</span>
                                         </div>
-                                        <div class="{% if session_data.user.club.lower() in match.away_team.lower() %}font-bold{% endif %}">
+                                        <div>
                                             <span class="text-lg">{{ match.away_team }}</span>
                                         </div>
                                     {% else %}
@@ -84,51 +87,51 @@
                             <div class="flex items-center gap-1 mt-2">
                                 {% if not is_practice %}
                                     <i class="fas fa-map-marker-alt text-yellow-500 text-lg"></i>
+                                    {% set location_text = match.location or match.home_team or session_data.user.club %}
+                                    {% if location_text != 'All Clubs' %}
+                                        <span class="text-gray-600 text-lg">{{ location_text }}</span>
+                                    {% endif %}
                                 {% endif %}
-                                {% set location_text = match.location or match.home_team or session_data.user.club %}
-                                {% if location_text != 'All Clubs' %}
-                                    <span class="text-gray-600 text-lg">{{ location_text }}</span>
-                                {% endif %}
-                            </div>
-                            <div class="mt-2">
-                                <a href="{{ url_for('serve_all_team_availability', date=match.date) }}" class="inline-flex items-center gap-1 px-4 py-2 bg-blue-600 text-white rounded-lg text-[10px] font-medium hover:bg-blue-700 transition-colors">
-                                    <i class="fas fa-users text-[6px]"></i>
-                                    <span class="text-left leading-tight">
-                                        View team availability<br>
-                                        on {{ match.date | pretty_date_no_year }}
-                                    </span>
-                                </a>
                             </div>
                         </div>
                     </div>
 
                     <!-- Column 2: Availability Buttons -->
-                    <div class="flex flex-col gap-2 min-w-[140px]" data-availability-buttons>
-                        <button 
-                            class="btn availability-btn w-full py-2 text-center rounded-lg transition-colors text-base font-extrabold {% if avail.status == 'available' %}bg-green-500 text-white{% else %}bg-gray-100 text-gray-700{% endif %} hover:bg-green-600 hover:text-white"
-                            onclick="updateAvailability(this, '{{ players[0].name }}', '{{ match.date }}', 'available')"
-                            data-status="available"
-                            data-current-status="{{ avail.status or '' }}"
-                            data-raw-date="{{ match.date }}"
-                            style="text-transform: none;">
-                            <i class="fas fa-check mr-1"></i>Count Me In!
-                        </button>
-                        <button 
-                            class="btn availability-btn w-full py-2 text-center rounded-lg transition-colors text-base font-extrabold {% if avail.status == 'unavailable' %}bg-red-500 text-white{% else %}bg-gray-100 text-gray-700{% endif %} hover:bg-red-600 hover:text-white"
-                            onclick="updateAvailability(this, '{{ players[0].name }}', '{{ match.date }}', 'unavailable')"
-                            data-status="unavailable"
-                            data-current-status="{{ avail.status or '' }}"
-                            style="text-transform: none;">
-                            <i class="fas fa-times mr-1"></i>Sorry, Can't
-                        </button>
-                        <button 
-                            class="btn availability-btn w-full py-2 text-center rounded-lg transition-colors text-base font-extrabold {% if avail.status == 'not_sure' %}bg-yellow-500 text-white{% else %}bg-gray-100 text-gray-700{% endif %} hover:bg-yellow-600 hover:text-white"
-                            onclick="updateAvailability(this, '{{ players[0].name }}', '{{ match.date }}', 'not_sure')"
-                            data-status="not_sure"
-                            data-current-status="{{ avail.status or '' }}"
-                            style="text-transform: none;">
-                            <i class="fas fa-question mr-1"></i>Not Sure
-                        </button>
+                    <div class="flex flex-col gap-2 w-[180px] flex-shrink-0" data-availability-buttons>
+                        <!-- First grouping: availability selection buttons -->
+                        <div class="border-2 border-black rounded-lg p-3 flex flex-col gap-2">
+                            <button 
+                                class="btn availability-btn w-full py-2 text-center rounded-lg transition-colors text-base font-extrabold {% if avail.status == 'available' %}bg-green-500 text-white{% else %}bg-gray-100 text-gray-700{% endif %} hover:bg-green-600 hover:text-white"
+                                onclick="updateAvailability(this, '{{ players[0].name }}', '{{ match.date }}', 'available')"
+                                data-status="available"
+                                data-current-status="{{ avail.status or '' }}"
+                                data-raw-date="{{ match.date }}"
+                                style="text-transform: none;">
+                                <i class="fas fa-check mr-1"></i>Count Me In!
+                            </button>
+                            <button 
+                                class="btn availability-btn w-full py-2 text-center rounded-lg transition-colors text-base font-extrabold {% if avail.status == 'unavailable' %}bg-red-500 text-white{% else %}bg-gray-100 text-gray-700{% endif %} hover:bg-red-600 hover:text-white"
+                                onclick="updateAvailability(this, '{{ players[0].name }}', '{{ match.date }}', 'unavailable')"
+                                data-status="unavailable"
+                                data-current-status="{{ avail.status or '' }}"
+                                style="text-transform: none;">
+                                <i class="fas fa-times mr-1"></i>Sorry, Can't
+                            </button>
+                            <button 
+                                class="btn availability-btn w-full py-2 text-center rounded-lg transition-colors text-base font-extrabold {% if avail.status == 'not_sure' %}bg-yellow-500 text-white{% else %}bg-gray-100 text-gray-700{% endif %} hover:bg-yellow-600 hover:text-white"
+                                onclick="updateAvailability(this, '{{ players[0].name }}', '{{ match.date }}', 'not_sure')"
+                                data-status="not_sure"
+                                data-current-status="{{ avail.status or '' }}"
+                                style="text-transform: none;">
+                                <i class="fas fa-question mr-1"></i>Not Sure
+                            </button>
+                        </div>
+                        <!-- Second grouping: view team button in its own bordered container -->
+                        <div class="border-2 border-black rounded-lg p-3">
+                            <a href="{{ url_for('serve_all_team_availability', date=match.date) }}" class="btn availability-btn view-team-btn w-full py-2 rounded-lg transition-colors font-extrabold bg-blue-600 text-white hover:bg-blue-700" style="text-transform: none; text-decoration: none;">
+                                <span>View Team Availability {{ match.date | date_to_mmdd }}</span>
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -278,6 +281,25 @@ async function updateAvailability(button, playerName, date, status) {
 </script>
 
 <style>
+/* Header styling for practices and matches */
+.practice-header {
+    background-color: #fbbf24;
+    color: #000000;
+}
+
+.match-header {
+    background-color: #000000;
+    color: #ffffff;
+}
+
+.practice-header .header-separator {
+    color: #6b7280;
+}
+
+.match-header .header-separator {
+    color: #d1d5db;
+}
+
 .btn {
     border: none;
     font-weight: 500;
@@ -296,6 +318,21 @@ async function updateAvailability(button, playerName, date, status) {
     text-transform: none !important;
     font-size: 14px !important;
     transition: all 0.3s ease;
+}
+
+/* Smaller font for view team button */
+.availability-btn.view-team-btn {
+    font-size: 11px !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0.5rem !important;
+}
+
+.availability-btn.view-team-btn i {
+    display: inline-block !important;
+    margin-right: 0 !important;
 }
 
 /* Add loading spinner animation */
