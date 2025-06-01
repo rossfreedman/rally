@@ -48,6 +48,25 @@ def init_find_people_to_play_routes(app):
             with open(players_path, 'r') as f:
                 all_players = json.load(f)
 
+            # Load real contact information from CSV
+            csv_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'data', 'club_directories', 'directory_tennaqua.csv')
+            contact_info = {}
+            
+            if os.path.exists(csv_path):
+                import csv
+                with open(csv_path, 'r') as csvfile:
+                    reader = csv.DictReader(csvfile)
+                    for row in reader:
+                        if row['First'] and row['Last Name']:  # Skip empty rows
+                            full_name = f"{row['First'].strip()} {row['Last Name'].strip()}"
+                            contact_info[full_name.lower()] = {
+                                'phone': row['Phone'].strip(),
+                                'email': row['Email'].strip()
+                            }
+                print(f"Loaded {len(contact_info)} contact records from CSV")
+            else:
+                print(f"CSV file not found at: {csv_path}")
+
             # Calculate PTI range from ALL players in the file (for slider bounds)
             all_pti_values = []
             for player in all_players:
@@ -95,8 +114,11 @@ def init_find_people_to_play_routes(app):
                     if pti_max is not None and pti_value > pti_max:
                         continue
 
-                    # Add player to results
+                    # Get real contact info from CSV
                     player_name = f"{player['First Name']} {player['Last Name']}"
+                    player_contact = contact_info.get(player_name.lower(), {})
+                    
+                    # Add player to results
                     filtered_players.append({
                         'name': player_name,
                         'firstName': player['First Name'],
@@ -105,7 +127,9 @@ def init_find_people_to_play_routes(app):
                         'pti': player['PTI'],
                         'wins': player['Wins'],
                         'losses': player['Losses'],
-                        'winRate': player['Win %']
+                        'winRate': player['Win %'],
+                        'phone': player_contact.get('phone', ''),
+                        'email': player_contact.get('email', '')
                     })
 
             # Sort players by PTI (ascending - lower PTI is better)

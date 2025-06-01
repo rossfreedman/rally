@@ -78,14 +78,24 @@
     <span class="loading loading-spinner loading-lg"></span>
 </div>
 
+<!-- Instructions -->
+<div class="px-4 mb-4">
+  <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+    <p class="text-sm text-blue-800 text-center">
+      <i class="fas fa-info-circle mr-2"></i>
+      Select multiple players with the check box or contact players individually.
+    </p>
+  </div>
+</div>
+
 <!-- Results Section -->
 <div id="playersList" class="space-y-4 px-4 pb-24"></div>
 
 <!-- Message Selected Players Button (moved here for better visibility) -->
 <div id="messageButtonContainer" class="fixed bottom-0 left-0 right-0 w-full p-4 bg-white border-t border-gray-200 shadow-lg z-50" style="display: none;">
   <div class="flex justify-center">
-    <button id="messageSelectedBtn" class="px-8 py-4 bg-green-600 text-white rounded-lg shadow-xl hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-all duration-200 flex items-center gap-3 text-lg font-semibold">
-      <i class="fas fa-sms text-xl"></i>
+    <button id="messageSelectedBtn" class="px-6 py-3 bg-green-600 text-white rounded-lg shadow-xl hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-all duration-200 flex items-center gap-2 text-sm font-semibold">
+      <i class="fas fa-sms text-lg"></i>
       <span>Message <span id="selectedCount">0</span> Selected Players</span>
     </button>
   </div>
@@ -186,7 +196,7 @@
   color: white !important;
   border: none !important;
   font-weight: 600 !important;
-  font-size: 1.125rem !important; /* text-lg */
+  font-size: 0.875rem !important; /* text-sm */
 }
 
 #messageSelectedBtn:hover {
@@ -342,24 +352,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Generate a mock phone number for demonstration
-    function generatePhoneNumber(playerName) {
-        // Generate a consistent phone number based on the player's name
-        let hash = 0;
-        for (let i = 0; i < playerName.length; i++) {
-            const char = playerName.charCodeAt(i);
-            hash = ((hash << 5) - hash) + char;
-            hash = hash & hash; // Convert to 32-bit integer
-        }
-        
-        // Generate a phone number in format +1XXX-XXX-XXXX
-        const areaCode = 200 + Math.abs(hash % 800); // 200-999
-        const exchange = 200 + Math.abs((hash >> 8) % 800); // 200-999  
-        const number = 1000 + Math.abs((hash >> 16) % 9000); // 1000-9999
-        
-        return `+1${areaCode}${exchange}${number}`;
-    }
-
     // Load and display players
     async function loadPlayers() {
         try {
@@ -382,11 +374,6 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const data = await response.json();
             allPlayers = data.players || [];
-            
-            // Add phone numbers to players for demo
-            allPlayers.forEach(player => {
-                player.phoneNumber = generatePhoneNumber(player.name);
-            });
             
             displayPlayers(allPlayers);
             showLoading(false);
@@ -511,23 +498,25 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="font-semibold text-gray-800">${player.name}</div>
                     <div class="text-sm text-gray-600">${player.series}</div>
                 </div>
-                <div class="text-sm text-blue-600 font-mono">${player.phoneNumber}</div>
+                <div class="text-sm text-blue-600 font-mono">${player.phone || 'No phone available'}</div>
             `;
             selectedPlayersList.appendChild(playerElement);
         });
         
-        // Create SMS link
-        if (selectedPlayersData.length > 0) {
-            const phoneNumbers = selectedPlayersData.map(player => player.phoneNumber).join(',');
+        // Create SMS link - only include players with valid phone numbers
+        const playersWithPhones = selectedPlayersData.filter(player => player.phone && player.phone.trim());
+        
+        if (playersWithPhones.length > 0) {
+            const phoneNumbers = playersWithPhones.map(player => player.phone).join(',');
             smsLinkContainer.innerHTML = `
                 <a href="sms:${phoneNumbers}" 
                    class="inline-flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200">
                     <i class="fas fa-sms"></i>
-                    Text the Team (${selectedPlayersData.length} players)
+                    Text the Team (${playersWithPhones.length} players)
                 </a>
             `;
         } else {
-            smsLinkContainer.innerHTML = '<p class="text-gray-500">No players selected</p>';
+            smsLinkContainer.innerHTML = '<p class="text-gray-500">No phone numbers available for selected players</p>';
         }
         
         selectedPlayersModal.classList.remove('hidden');
