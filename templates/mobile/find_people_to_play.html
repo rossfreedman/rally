@@ -79,10 +79,10 @@
 </div>
 
 <!-- Results Section -->
-<div id="playersList" class="space-y-4 px-4"></div>
+<div id="playersList" class="space-y-4 px-4 pb-24"></div>
 
 <!-- Message Selected Players Button (moved here for better visibility) -->
-<div id="messageButtonContainer" class="sticky bottom-0 w-full p-4 bg-white border-t border-gray-200 shadow-lg" style="display: none;">
+<div id="messageButtonContainer" class="fixed bottom-0 left-0 right-0 w-full p-4 bg-white border-t border-gray-200 shadow-lg z-50" style="display: none;">
   <div class="flex justify-center">
     <button id="messageSelectedBtn" class="px-8 py-4 bg-green-600 text-white rounded-lg shadow-xl hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-all duration-200 flex items-center gap-3 text-lg font-semibold">
       <i class="fas fa-sms text-xl"></i>
@@ -178,6 +178,31 @@
   background: #2563eb;
   transform: scale(1.1);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Fix message button styling */
+#messageSelectedBtn {
+  background-color: #16a34a !important; /* green-600 */
+  color: white !important;
+  border: none !important;
+  font-weight: 600 !important;
+  font-size: 1.125rem !important; /* text-lg */
+}
+
+#messageSelectedBtn:hover {
+  background-color: #15803d !important; /* green-700 */
+}
+
+#messageSelectedBtn:focus {
+  outline: 2px solid #16a34a !important;
+  outline-offset: 2px !important;
+}
+
+/* Ensure button container is visible */
+#messageButtonContainer {
+  background-color: white !important;
+  border-top: 1px solid #e5e7eb !important;
+  box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.1) !important;
 }
 </style>
 
@@ -378,6 +403,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (players.length === 0) {
             playersList.innerHTML = '<div class="text-center text-gray-500 py-8">No players found matching your criteria.</div>';
+            updateSelectionUI();
             return;
         }
         
@@ -457,11 +483,18 @@ document.addEventListener('DOMContentLoaded', function() {
         const count = selectedPlayers.size;
         selectedCount.textContent = count;
         
+        console.log(`Updating selection UI: ${count} players selected`);
+        
         if (count > 0) {
             messageButtonContainer.style.display = 'block';
+            console.log('Message button container should be visible');
         } else {
             messageButtonContainer.style.display = 'none';
+            console.log('Message button container should be hidden');
         }
+        
+        // Force a reflow to ensure styles are applied
+        messageButtonContainer.offsetHeight;
     }
 
     // Show selected players modal
@@ -570,6 +603,20 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initialize the page
     initializePage();
+    
+    // Debug function for testing button visibility (can be called from console)
+    window.testMessageButton = function() {
+        console.log('Testing message button...');
+        console.log('Button container element:', messageButtonContainer);
+        console.log('Current display style:', messageButtonContainer.style.display);
+        console.log('Current computed style:', window.getComputedStyle(messageButtonContainer).display);
+        console.log('Selected players count:', selectedPlayers.size);
+        
+        // Force show the button for testing
+        messageButtonContainer.style.display = 'block';
+        messageButtonContainer.style.zIndex = '9999';
+        console.log('Button forced to show with z-index 9999');
+    };
 });
 </script>
 {% endblock %} 

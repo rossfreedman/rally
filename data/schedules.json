@@ -1260,6 +1260,12 @@
         "location": "Winter Club"
     },
     {
+        "date": "10/05/2024",
+        "time": "4:00 PM",
+        "Practice": "Tennaqua",
+        "Series": "Chicago 22"
+    },
+    {
         "date": "10/08/2024",
         "time": "06:30 pm",
         "home_team": "Winnetka - 7",
@@ -1888,6 +1894,12 @@
         "home_team": "Birchwood - 38",
         "away_team": "Tennaqua - 38",
         "location": "Tennaqua"
+    },
+    {
+        "date": "10/12/2024",
+        "time": "4:00 PM",
+        "Practice": "Tennaqua",
+        "Series": "Chicago 22"
     },
     {
         "date": "10/15/2024",
@@ -2520,6 +2532,12 @@
         "location": "Skokie"
     },
     {
+        "date": "10/19/2024",
+        "time": "4:00 PM",
+        "Practice": "Tennaqua",
+        "Series": "Chicago 22"
+    },
+    {
         "date": "10/22/2024",
         "time": "06:30 pm",
         "home_team": "Winnetka - 7",
@@ -3150,6 +3168,12 @@
         "location": "Winter Club"
     },
     {
+        "date": "10/26/2024",
+        "time": "4:00 PM",
+        "Practice": "Tennaqua",
+        "Series": "Chicago 22"
+    },
+    {
         "date": "10/29/2024",
         "time": "06:30 pm",
         "home_team": "Westmoreland - 7",
@@ -3778,6 +3802,12 @@
         "home_team": "Sunset Ridge - 38",
         "away_team": "Tennaqua - 38",
         "location": "Tennaqua"
+    },
+    {
+        "date": "11/02/2024",
+        "time": "4:00 PM",
+        "Practice": "Tennaqua",
+        "Series": "Chicago 22"
     },
     {
         "date": "11/05/2024",
@@ -4410,6 +4440,12 @@
         "location": "Winter Club"
     },
     {
+        "date": "11/09/2024",
+        "time": "4:00 PM",
+        "Practice": "Tennaqua",
+        "Series": "Chicago 22"
+    },
+    {
         "date": "11/12/2024",
         "time": "06:30 pm",
         "home_team": "Tennaqua - 7",
@@ -5038,6 +5074,12 @@
         "home_team": "Lake Bluff - 38",
         "away_team": "Tennaqua - 38",
         "location": "Tennaqua"
+    },
+    {
+        "date": "11/16/2024",
+        "time": "4:00 PM",
+        "Practice": "Tennaqua",
+        "Series": "Chicago 22"
     },
     {
         "date": "11/19/2024",
@@ -5670,6 +5712,18 @@
         "location": "Skokie"
     },
     {
+        "date": "11/23/2024",
+        "time": "4:00 PM",
+        "Practice": "Tennaqua",
+        "Series": "Chicago 22"
+    },
+    {
+        "date": "11/30/2024",
+        "time": "4:00 PM",
+        "Practice": "Tennaqua",
+        "Series": "Chicago 22"
+    },
+    {
         "date": "12/03/2024",
         "time": "06:30 pm",
         "home_team": "Westmoreland - 7",
@@ -6300,6 +6354,12 @@
         "location": "Winter Club"
     },
     {
+        "date": "12/07/2024",
+        "time": "4:00 PM",
+        "Practice": "Tennaqua",
+        "Series": "Chicago 22"
+    },
+    {
         "date": "12/10/2024",
         "time": "06:30 pm",
         "home_team": "Lakeshore S&F - 7",
@@ -6928,6 +6988,12 @@
         "home_team": "Winter Club - 38",
         "away_team": "Tennaqua - 38",
         "location": "Tennaqua"
+    },
+    {
+        "date": "12/14/2024",
+        "time": "4:00 PM",
+        "Practice": "Tennaqua",
+        "Series": "Chicago 22"
     },
     {
         "date": "12/17/2024",
@@ -7560,6 +7626,24 @@
         "location": "Winter Club"
     },
     {
+        "date": "12/21/2024",
+        "time": "4:00 PM",
+        "Practice": "Tennaqua",
+        "Series": "Chicago 22"
+    },
+    {
+        "date": "12/28/2024",
+        "time": "4:00 PM",
+        "Practice": "Tennaqua",
+        "Series": "Chicago 22"
+    },
+    {
+        "date": "01/04/2025",
+        "time": "4:00 PM",
+        "Practice": "Tennaqua",
+        "Series": "Chicago 22"
+    },
+    {
         "date": "01/07/2025",
         "time": "06:30 pm",
         "home_team": "Skokie - 7",
@@ -8188,6 +8272,12 @@
         "home_team": "Birchwood - 38",
         "away_team": "Winter Club - 38",
         "location": "Winter Club"
+    },
+    {
+        "date": "01/11/2025",
+        "time": "4:00 PM",
+        "Practice": "Tennaqua",
+        "Series": "Chicago 22"
     },
     {
         "date": "01/14/2025",
@@ -8820,6 +8910,12 @@
         "location": "Tennaqua"
     },
     {
+        "date": "01/18/2025",
+        "time": "4:00 PM",
+        "Practice": "Tennaqua",
+        "Series": "Chicago 22"
+    },
+    {
         "date": "01/21/2025",
         "time": "06:30 pm",
         "home_team": "Tennaqua - 7",
@@ -9448,6 +9544,12 @@
         "home_team": "Midt-Bannockburn - 38",
         "away_team": "Winter Club - 38",
         "location": "Winter Club"
+    },
+    {
+        "date": "01/25/2025",
+        "time": "4:00 PM",
+        "Practice": "Tennaqua",
+        "Series": "Chicago 22"
     },
     {
         "date": "01/28/2025",
@@ -10080,6 +10182,12 @@
         "location": "Tennaqua"
     },
     {
+        "date": "02/01/2025",
+        "time": "4:00 PM",
+        "Practice": "Tennaqua",
+        "Series": "Chicago 22"
+    },
+    {
         "date": "02/04/2025",
         "time": "06:30 pm",
         "home_team": "Winnetka - 7",
@@ -10710,6 +10818,12 @@
         "location": "Winter Club"
     },
     {
+        "date": "02/08/2025",
+        "time": "4:00 PM",
+        "Practice": "Tennaqua",
+        "Series": "Chicago 22"
+    },
+    {
         "date": "02/11/2025",
         "time": "06:30 pm",
         "home_team": "Lakeshore S&F - 7",
@@ -11338,6 +11452,12 @@
         "home_team": "Lake Bluff - 38",
         "away_team": "Winter Club - 38",
         "location": "Winter Club"
+    },
+    {
+        "date": "02/15/2025",
+        "time": "4:00 PM",
+        "Practice": "Tennaqua",
+        "Series": "Chicago 22"
     },
     {
         "date": "02/19/2025",
@@ -11345,6 +11465,12 @@
         "home_team": "Glenbrook RC - 9",
         "away_team": "Lake Bluff - 9",
         "location": "Lake Bluff"
+    },
+    {
+        "date": "02/22/2025",
+        "time": "4:00 PM",
+        "Practice": "Tennaqua",
+        "Series": "Chicago 22"
     },
     {
         "date": "02/25/2025",
@@ -11851,6 +11977,12 @@
         "location": "Tennaqua"
     },
     {
+        "date": "03/01/2025",
+        "time": "4:00 PM",
+        "Practice": "Tennaqua",
+        "Series": "Chicago 22"
+    },
+    {
         "date": "03/04/2025",
         "time": "06:30 pm",
         "home_team": "Tennaqua - 7",
@@ -12103,6 +12235,12 @@
         "location": "Tennaqua"
     },
     {
+        "date": "03/08/2025",
+        "time": "4:00 PM",
+        "Practice": "Tennaqua",
+        "Series": "Chicago 22"
+    },
+    {
         "date": "03/11/2025",
         "time": "06:30 pm",
         "home_team": "Michigan Shores - 6",
@@ -12227,5 +12365,35 @@
         "home_team": "North Shore - 38",
         "away_team": "Tennaqua - 38",
         "location": "Tennaqua"
+    },
+    {
+        "date": "03/15/2025",
+        "time": "4:00 PM",
+        "Practice": "Tennaqua",
+        "Series": "Chicago 22"
+    },
+    {
+        "date": "03/22/2025",
+        "time": "4:00 PM",
+        "Practice": "Tennaqua",
+        "Series": "Chicago 22"
+    },
+    {
+        "date": "03/29/2025",
+        "time": "4:00 PM",
+        "Practice": "Tennaqua",
+        "Series": "Chicago 22"
+    },
+    {
+        "date": "04/05/2025",
+        "time": "4:00 PM",
+        "Practice": "Tennaqua",
+        "Series": "Chicago 22"
+    },
+    {
+        "date": "04/12/2025",
+        "time": "4:00 PM",
+        "Practice": "Tennaqua",
+        "Series": "Chicago 22"
     }
 ]
