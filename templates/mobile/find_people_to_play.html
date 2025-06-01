@@ -504,14 +504,30 @@ document.addEventListener('DOMContentLoaded', function() {
             selectedPlayersList.appendChild(playerElement);
         });
         
-        // Create "Text this group" button - only include players with valid phone numbers
+        // Create messaging options based on number of players with phones
         const playersWithPhones = selectedPlayersData.filter(player => player.phone && player.phone.trim());
         
-        if (playersWithPhones.length > 0) {
-            // Clean phone numbers - remove all non-digit characters except +
+        if (playersWithPhones.length === 0) {
+            smsLinkContainer.innerHTML = '<p class="text-gray-500">No phone numbers available for selected players</p>';
+        } else if (playersWithPhones.length === 1) {
+            // Single player - use direct SMS link
+            const player = playersWithPhones[0];
+            let cleanNumber = player.phone.replace(/[^\d+]/g, '');
+            if (!cleanNumber.startsWith('+')) {
+                cleanNumber = '+1' + cleanNumber;
+            }
+            
+            smsLinkContainer.innerHTML = `
+                <a href="sms:${cleanNumber}" 
+                   class="inline-flex items-center justify-center gap-2 w-full px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-semibold">
+                    <i class="fas fa-sms"></i>
+                    Text ${player.name}
+                </a>
+            `;
+        } else {
+            // Multiple players - provide options for different platforms
             const cleanedNumbers = playersWithPhones.map(player => {
                 let cleanNumber = player.phone.replace(/[^\d+]/g, '');
-                // If number doesn't start with +, assume US number and add +1
                 if (!cleanNumber.startsWith('+')) {
                     cleanNumber = '+1' + cleanNumber;
                 }
@@ -519,20 +535,134 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             
             const phoneNumbers = cleanedNumbers.join(',');
+            const displayNumbers = playersWithPhones.map(p => p.phone).join(', ');
+            
             console.log('SMS numbers:', phoneNumbers); // Debug log
             
             smsLinkContainer.innerHTML = `
-                <a href="sms:${phoneNumbers}" 
-                   class="inline-flex items-center justify-center gap-2 w-full px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-semibold">
-                    <i class="fas fa-sms"></i>
-                    Text this group
-                </a>
+                <div class="space-y-3">
+                    <!-- Primary SMS Link (works on Android, some iOS versions) -->
+                    <a href="sms:${phoneNumbers}" 
+                       class="inline-flex items-center justify-center gap-2 w-full px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-semibold">
+                        <i class="fas fa-sms"></i>
+                        Text this group (${playersWithPhones.length} players)
+                    </a>
+                    
+                    <!-- Fallback for iOS - Copy Numbers -->
+                    <div class="text-center">
+                        <p class="text-xs text-gray-600 mb-2">If the button above doesn't work on iOS, use this option:</p>
+                        <button id="copyPhoneBtn" data-phone-numbers="${displayNumbers.replace(/"/g, '&quot;')}" 
+                                class="inline-flex items-center justify-center gap-2 w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 text-sm font-medium">
+                            <i class="fas fa-copy"></i>
+                            Copy phone numbers to clipboard
+                        </button>
+                    </div>
+                    
+                    <!-- Individual contacts as backup -->
+                    <div class="pt-2 border-t border-gray-200">
+                        <p class="text-xs text-gray-600 mb-2 text-center">Or text individually:</p>
+                        <div class="grid grid-cols-1 gap-2">
+                            ${playersWithPhones.map(player => {
+                                let cleanNumber = player.phone.replace(/[^\d+]/g, '');
+                                if (!cleanNumber.startsWith('+')) {
+                                    cleanNumber = '+1' + cleanNumber;
+                                }
+                                return `
+                                    <a href="sms:${cleanNumber}" 
+                                       class="inline-flex items-center justify-center gap-2 px-3 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors duration-200 text-sm">
+                                        <i class="fas fa-sms text-xs"></i>
+                                        ${player.name}
+                                    </a>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                </div>
             `;
-        } else {
-            smsLinkContainer.innerHTML = '<p class="text-gray-500">No phone numbers available for selected players</p>';
+            
+            // Add event listener for copy button after adding to DOM
+            const copyBtn = smsLinkContainer.querySelector('#copyPhoneBtn');
+            if (copyBtn) {
+                copyBtn.addEventListener('click', function() {
+                    const phoneNumbers = this.getAttribute('data-phone-numbers');
+                    copyPhoneNumbers(phoneNumbers);
+                });
+            }
         }
         
         selectedPlayersModal.classList.remove('hidden');
+    }
+
+    // Function to copy phone numbers to clipboard (iOS fallback)
+    window.copyPhoneNumbers = function(phoneNumbers) {
+        // Try modern clipboard API first
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(phoneNumbers).then(function() {
+                showCopyFeedback('Phone numbers copied! Open Messages and paste them.');
+            }).catch(function(err) {
+                console.error('Clipboard API failed:', err);
+                fallbackCopyToClipboard(phoneNumbers);
+            });
+        } else {
+            // Fallback for older browsers
+            fallbackCopyToClipboard(phoneNumbers);
+        }
+    };
+
+    // Fallback copy method for older browsers or when clipboard API fails
+    function fallbackCopyToClipboard(text) {
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        
+        try {
+            const successful = document.execCommand('copy');
+            if (successful) {
+                showCopyFeedback('Phone numbers copied! Open Messages and paste them.');
+            } else {
+                showCopyFeedback('Copy failed. Please manually copy the numbers.', true);
+            }
+        } catch (err) {
+            console.error('Fallback copy failed:', err);
+            showCopyFeedback('Copy failed. Please manually copy the numbers.', true);
+        } finally {
+            document.body.removeChild(textArea);
+        }
+    }
+
+    // Show feedback message for copy operations
+    function showCopyFeedback(message, isError = false) {
+        // Create or update feedback element
+        let feedback = document.getElementById('copy-feedback');
+        if (!feedback) {
+            feedback = document.createElement('div');
+            feedback.id = 'copy-feedback';
+            feedback.className = 'fixed top-4 left-1/2 transform -translate-x-1/2 px-4 py-2 rounded-lg shadow-lg z-50 text-sm font-medium transition-all duration-300';
+            document.body.appendChild(feedback);
+        }
+        
+        feedback.className = `fixed top-4 left-1/2 transform -translate-x-1/2 px-4 py-2 rounded-lg shadow-lg z-50 text-sm font-medium transition-all duration-300 ${
+            isError ? 'bg-red-100 text-red-800 border border-red-200' : 'bg-green-100 text-green-800 border border-green-200'
+        }`;
+        feedback.textContent = message;
+        feedback.style.opacity = '1';
+        feedback.style.transform = 'translate(-50%, 0)';
+        
+        // Hide after 3 seconds
+        setTimeout(() => {
+            feedback.style.opacity = '0';
+            feedback.style.transform = 'translate(-50%, -20px)';
+            setTimeout(() => {
+                if (feedback.parentNode) {
+                    feedback.parentNode.removeChild(feedback);
+                }
+            }, 300);
+        }, 3000);
     }
 
     // Hide selected players modal
