@@ -107,7 +107,7 @@
     <!-- Modal Header -->
     <div class="p-4 border-b border-gray-200">
       <div class="flex justify-between items-center">
-        <h3 class="text-lg font-semibold text-gray-800">Selected Players</h3>
+        <h3 class="text-lg font-semibold text-gray-800">Message Selected Players</h3>
         <button id="closeModal" class="text-gray-400 hover:text-gray-600 focus:outline-none">
           <i class="fas fa-times text-xl"></i>
         </button>
@@ -122,17 +122,9 @@
     </div>
     
     <!-- Modal Footer -->
-    <div class="p-4 border-t border-gray-200 space-y-3">
+    <div class="p-4 border-t border-gray-200">
       <div id="smsLinkContainer" class="text-center">
         <!-- SMS link will be populated here -->
-      </div>
-      <div class="flex gap-2">
-        <button id="selectAllBtn" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200">
-          Select All
-        </button>
-        <button id="clearSelectionsBtn" class="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors duration-200">
-          Clear All
-        </button>
       </div>
     </div>
   </div>
@@ -214,6 +206,19 @@
   border-top: 1px solid #e5e7eb !important;
   box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.1) !important;
 }
+
+/* Style the SMS button in the modal */
+#smsLinkContainer a {
+  background-color: #16a34a !important; /* green-600 */
+  color: white !important;
+  text-decoration: none !important;
+  border: none !important;
+  font-weight: 600 !important;
+}
+
+#smsLinkContainer a:hover {
+  background-color: #15803d !important; /* green-700 */
+}
 </style>
 
 <script>
@@ -246,8 +251,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const closeModal = document.getElementById('closeModal');
     const selectedPlayersList = document.getElementById('selectedPlayersList');
     const smsLinkContainer = document.getElementById('smsLinkContainer');
-    const selectAllBtn = document.getElementById('selectAllBtn');
-    const clearSelectionsBtn = document.getElementById('clearSelectionsBtn');
 
     // Initialize page
     async function initializePage() {
@@ -341,8 +344,6 @@ document.addEventListener('DOMContentLoaded', function() {
         // Selection events
         messageSelectedBtn.addEventListener('click', showSelectedPlayersModal);
         closeModal.addEventListener('click', hideSelectedPlayersModal);
-        selectAllBtn.addEventListener('click', selectAllPlayers);
-        clearSelectionsBtn.addEventListener('click', clearAllSelections);
         
         // Close modal when clicking outside
         selectedPlayersModal.addEventListener('click', function(e) {
@@ -503,16 +504,28 @@ document.addEventListener('DOMContentLoaded', function() {
             selectedPlayersList.appendChild(playerElement);
         });
         
-        // Create SMS link - only include players with valid phone numbers
+        // Create "Text this group" button - only include players with valid phone numbers
         const playersWithPhones = selectedPlayersData.filter(player => player.phone && player.phone.trim());
         
         if (playersWithPhones.length > 0) {
-            const phoneNumbers = playersWithPhones.map(player => player.phone).join(',');
+            // Clean phone numbers - remove all non-digit characters except +
+            const cleanedNumbers = playersWithPhones.map(player => {
+                let cleanNumber = player.phone.replace(/[^\d+]/g, '');
+                // If number doesn't start with +, assume US number and add +1
+                if (!cleanNumber.startsWith('+')) {
+                    cleanNumber = '+1' + cleanNumber;
+                }
+                return cleanNumber;
+            });
+            
+            const phoneNumbers = cleanedNumbers.join(',');
+            console.log('SMS numbers:', phoneNumbers); // Debug log
+            
             smsLinkContainer.innerHTML = `
                 <a href="sms:${phoneNumbers}" 
-                   class="inline-flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200">
+                   class="inline-flex items-center justify-center gap-2 w-full px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-semibold">
                     <i class="fas fa-sms"></i>
-                    Text the Team (${playersWithPhones.length} players)
+                    Text this group
                 </a>
             `;
         } else {
@@ -525,34 +538,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Hide selected players modal
     function hideSelectedPlayersModal() {
         selectedPlayersModal.classList.add('hidden');
-    }
-
-    // Select all players
-    function selectAllPlayers() {
-        allPlayers.forEach(player => {
-            selectedPlayers.add(player.name);
-        });
-        
-        // Update all checkboxes
-        document.querySelectorAll('.player-checkbox').forEach(checkbox => {
-            checkbox.checked = true;
-        });
-        
-        updateSelectionUI();
-        hideSelectedPlayersModal();
-    }
-
-    // Clear all selections
-    function clearAllSelections() {
-        selectedPlayers.clear();
-        
-        // Update all checkboxes
-        document.querySelectorAll('.player-checkbox').forEach(checkbox => {
-            checkbox.checked = false;
-        });
-        
-        updateSelectionUI();
-        hideSelectedPlayersModal();
     }
 
     // Reset filters
