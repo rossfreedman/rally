@@ -486,6 +486,41 @@ def init_availability_routes(app):
                 print(traceback.format_exc())
                 return f"Error: {str(e)}", 500
 
+    @app.route('/mobile/availability-calendar', methods=['GET'])
+    @login_required
+    def mobile_availability_calendar():
+        """Handle mobile availability calendar view"""
+        try:
+            user = session.get('user')
+            if not user:
+                return jsonify({'error': 'No user in session'}), 400
+            
+            player_name = f"{user['first_name']} {user['last_name']}"
+            series = user['series']
+
+            # Get matches for the user's club/series
+            matches = get_matches_for_user_club(user)
+            
+            # Get this user's availability for each match
+            availability = get_user_availability(player_name, matches, series)
+
+            session_data = {
+                'user': user,
+                'authenticated': True,
+                'matches': matches,
+                'availability': availability,
+                'players': [{'name': player_name}]
+            }
+            
+            return render_template('mobile/availability-calendar.html', 
+                                 session_data=session_data
+                                 )
+            
+        except Exception as e:
+            print(f"ERROR in mobile_availability_calendar: {str(e)}")
+            print(traceback.format_exc())
+            return f"Error: {str(e)}", 500
+
     @app.route('/api/availability', methods=['GET', 'POST'])
     @login_required
     def handle_availability():

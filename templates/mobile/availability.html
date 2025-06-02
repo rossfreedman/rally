@@ -4,33 +4,33 @@
 {% block content %}
 <div class="max-w-lg mx-auto">
     <!-- Consistent Header -->
-    <div class="flex items-center gap-3 mt-4 mb-2 px-4">
+    <div class="flex items-center gap-3 mt-4 mb-6 px-4">
         <div class="bg-white rounded-md flex items-center justify-center h-10 w-10">
             <i class="fas fa-calendar-check text-black text-2xl"></i>
         </div>
         <div>
             <div class="text-xl font-bold leading-tight">Update Availability</div>
-            <div class="text-sm text-gray-500 mt-1">Manage your availability for upcoming matches and practices.</div>
+            <div class="text-sm text-gray-500 mt-1">Manage your availability for matches & practices</div>
         </div>
     </div>
 
+    <!-- Calendar View Link -->
+    <div class="pl-4 pr-0 mb-8 flex justify-center">
+        <a href="/mobile/availability-calendar" class="switch-view-btn inline-flex items-center gap-2 px-4 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors text-xs font-medium shadow-sm">
+            <i class="fas fa-calendar-alt text-xs"></i>
+            <span>Switch to Calendar View</span>
+        </a>
+    </div>
+
     <!-- Filter Bar -->
-    <div class="schedule-filter-bar flex justify-center gap-2 mb-3 px-4">
+    <div class="schedule-filter-bar flex justify-center gap-2 mb-0 px-4">
         <button class="schedule-filter-btn active" data-filter="all" type="button">All</button>
         <button class="schedule-filter-btn" data-filter="matches" type="button">Matches</button>
         <button class="schedule-filter-btn" data-filter="practices" type="button">Practices</button>
     </div>
 
-    <!-- Link to Team Schedule -->
-    <div class="pl-4 pr-0 mb-3 flex justify-center">
-        <a href="/mobile/team-schedule" class="inline-flex items-center gap-2 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs font-medium">
-            <i class="fas fa-calendar-alt text-xs"></i>
-            <span>View Team Availability - All Dates</span>
-        </a>
-    </div>
-
     <!-- Match Cards -->
-    <div class="space-y-1 mt-[15px]" id="availability-list">
+    <div class="space-y-1 -mt-2" id="availability-list">
         {% set last_date = None %}
         {% for match, avail in match_avail_pairs %}
             {% if match.date != last_date %}
@@ -402,6 +402,15 @@ async function updateAvailability(button, playerName, date, status) {
 
 .fa-spin {
     animation: spin 1s linear infinite;
+}
+
+/* Switch view button styling */
+.switch-view-btn:hover {
+    color: #fbbf24 !important;
+}
+
+.switch-view-btn:hover i {
+    color: #fbbf24 !important;
 }
 </style>
 {% endblock %} 

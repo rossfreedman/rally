@@ -1,0 +1,716 @@
+{% extends 'mobile/layout.html' %}
+{% set show_back_arrow = True %}
+{% block title %}Calendar Availability | Rally{% endblock %}
+{% block content %}
+<div class="w-full">
+    <!-- Header -->
+    <div class="flex items-center gap-3 mt-4 mb-4 px-4">
+        <div class="bg-white rounded-md flex items-center justify-center h-10 w-10">
+            <i class="fas fa-calendar text-black text-2xl"></i>
+        </div>
+        <div>
+            <div class="text-xl font-bold leading-tight">Calendar Availability</div>
+            <div class="text-sm text-gray-500 mt-1">Click on any date to update your availability.</div>
+        </div>
+    </div>
+
+    <!-- Back to List View Link -->
+    <div class="pl-4 pr-0 mb-4 flex justify-center">
+        <a href="/mobile/availability" class="switch-view-btn inline-flex items-center gap-2 px-4 py-3 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors text-xs font-medium shadow-sm">
+            <i class="fas fa-list text-xs"></i>
+            <span>Switch to List View</span>
+        </a>
+    </div>
+
+    <!-- Legend -->
+    <div class="mb-4 px-4">
+        <div class="bg-gray-50 rounded-lg p-3">
+            <div class="text-sm font-medium mb-3 text-center">Legend</div>
+            
+            <!-- Event Types -->
+            <div class="mb-3">
+                <div class="text-xs font-medium mb-2 text-gray-600">Event Types:</div>
+                <div class="flex justify-center gap-4">
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 bg-black rounded flex items-center justify-center text-white text-xs font-medium">
+                            M
+                        </div>
+                        <span class="text-xs">Match</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 bg-yellow-400 rounded flex items-center justify-center text-black text-xs font-medium">
+                            P
+                        </div>
+                        <span class="text-xs">Practice</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Availability Status -->
+            <div>
+                <div class="text-xs font-medium mb-2 text-gray-600">Your Availability:</div>
+                <div class="flex justify-center gap-3">
+                    <div class="flex items-center gap-1">
+                        <div class="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center text-white text-xs font-bold">✓</div>
+                        <span class="text-xs">Available</span>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <div class="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-white text-xs font-bold">✗</div>
+                        <span class="text-xs">Unavailable</span>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <div class="w-5 h-5 bg-yellow-500 rounded-full flex items-center justify-center text-white text-xs font-bold">?</div>
+                        <span class="text-xs">Not Sure</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Calendar Navigation -->
+    <div class="flex items-center justify-between mb-4 px-4">
+        <button id="prevMonth" class="p-3 rounded-lg bg-black text-white hover:bg-gray-800 transition-colors shadow-sm">
+            <i class="fas fa-chevron-left text-sm"></i>
+        </button>
+        <div class="flex items-center gap-2">
+            <h2 id="currentMonth" class="text-lg font-bold text-gray-800"></h2>
+            <button id="monthDropdown" class="p-2 text-black hover:bg-gray-100 rounded-full transition-colors">
+                <i class="fas fa-chevron-down text-sm"></i>
+            </button>
+        </div>
+        <button id="nextMonth" class="p-3 rounded-lg bg-black text-white hover:bg-gray-800 transition-colors shadow-sm">
+            <i class="fas fa-chevron-right text-sm"></i>
+        </button>
+    </div>
+
+    <!-- Month/Year Selector (Hidden by default) -->
+    <div id="monthSelector" class="hidden mb-4 px-4">
+        <div class="bg-white rounded-lg shadow-lg p-4 border">
+            <div class="grid grid-cols-3 gap-2 mb-3">
+                <button class="month-btn p-2 text-sm rounded hover:bg-gray-100" data-month="0">Jan</button>
+                <button class="month-btn p-2 text-sm rounded hover:bg-gray-100" data-month="1">Feb</button>
+                <button class="month-btn p-2 text-sm rounded hover:bg-gray-100" data-month="2">Mar</button>
+                <button class="month-btn p-2 text-sm rounded hover:bg-gray-100" data-month="3">Apr</button>
+                <button class="month-btn p-2 text-sm rounded hover:bg-gray-100" data-month="4">May</button>
+                <button class="month-btn p-2 text-sm rounded hover:bg-gray-100" data-month="5">Jun</button>
+                <button class="month-btn p-2 text-sm rounded hover:bg-gray-100" data-month="6">Jul</button>
+                <button class="month-btn p-2 text-sm rounded hover:bg-gray-100" data-month="7">Aug</button>
+                <button class="month-btn p-2 text-sm rounded hover:bg-gray-100" data-month="8">Sep</button>
+                <button class="month-btn p-2 text-sm rounded hover:bg-gray-100" data-month="9">Oct</button>
+                <button class="month-btn p-2 text-sm rounded hover:bg-gray-100" data-month="10">Nov</button>
+                <button class="month-btn p-2 text-sm rounded hover:bg-gray-100" data-month="11">Dec</button>
+            </div>
+            <div class="flex gap-2">
+                <select id="yearSelect" class="flex-1 p-2 border rounded">
+                    <!-- Years will be populated by JavaScript -->
+                </select>
+                <button id="applyMonthYear" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Apply</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Calendar Grid -->
+    <div class="px-4 mb-6">
+        <div class="bg-white rounded-lg shadow-sm border overflow-hidden w-full">
+            <!-- Calendar Header (Days of Week) -->
+            <div class="calendar-header">
+                <div class="header-day">SUN</div>
+                <div class="header-day">MON</div>
+                <div class="header-day">TUE</div>
+                <div class="header-day">WED</div>
+                <div class="header-day">THU</div>
+                <div class="header-day">FRI</div>
+                <div class="header-day">SAT</div>
+            </div>
+            <!-- Calendar Body -->
+            <div id="calendar-grid" class="grid grid-cols-7 w-full">
+                <!-- Calendar dates will be populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Selected Date Details Modal -->
+    <div id="dateModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-lg max-w-sm w-full shadow-xl">
+            <div class="p-4 border-b">
+                <div class="flex items-center justify-between">
+                    <h3 id="modalDate" class="text-lg font-bold"></h3>
+                    <button id="closeModal" class="p-1 hover:bg-gray-100 rounded">
+                        <i class="fas fa-times text-gray-500"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="p-4">
+                <div id="modalContent">
+                    <!-- Content will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Switch view button styling */
+.switch-view-btn:hover {
+    color: #fbbf24 !important;
+}
+
+.switch-view-btn:hover i {
+    color: #fbbf24 !important;
+}
+
+/* Calendar header styling */
+.calendar-header {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    background-color: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+    width: 100%;
+}
+
+.header-day {
+    padding: 8px;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: #6b7280;
+    border-right: 1px solid #e5e7eb;
+}
+
+.header-day:last-child {
+    border-right: none;
+}
+
+.calendar-date {
+    position: relative;
+    height: 60px;
+    min-height: 60px;
+    width: 100%;
+    border-right: 1px solid #e5e7eb;
+    border-bottom: 1px solid #e5e7eb;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 8px 4px;
+    background-color: white;
+    box-sizing: border-box;
+}
+
+.calendar-date:nth-child(7n) {
+    border-right: none;
+}
+
+.calendar-date:hover {
+    background-color: #f3f4f6;
+}
+
+.calendar-date.other-month {
+    color: #d1d5db;
+    background-color: #f9fafb;
+}
+
+.calendar-date.other-month:hover {
+    background-color: #f3f4f6;
+}
+
+.calendar-date.today {
+    background-color: #dbeafe;
+    color: #1e40af;
+    font-weight: bold;
+}
+
+.calendar-date.today:hover {
+    background-color: #bfdbfe;
+}
+
+/* Match and Practice styling - highlight entire box */
+.calendar-date.match {
+    background-color: #000000 !important;
+    color: white;
+}
+
+.calendar-date.match:hover {
+    background-color: #374151 !important;
+}
+
+.calendar-date.match.today {
+    background-color: #1f2937 !important;
+    color: #60a5fa;
+}
+
+.calendar-date.practice {
+    background-color: #fbbf24 !important;
+    color: #000000;
+}
+
+.calendar-date.practice:hover {
+    background-color: #f59e0b !important;
+}
+
+.calendar-date.practice.today {
+    background-color: #f59e0b !important;
+    color: #1e40af;
+}
+
+.calendar-date-number {
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1;
+    margin-bottom: 2px;
+    text-align: center;
+}
+
+.calendar-date.has-event .calendar-date-number {
+    font-weight: 600;
+}
+
+/* Large central availability indicators */
+.availability-indicator {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: bold;
+    margin-top: 2px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.available-dot {
+    background-color: #10b981;
+    color: white;
+}
+
+.unavailable-dot {
+    background-color: #ef4444;
+    color: white;
+}
+
+.not-sure-dot {
+    background-color: #f59e0b;
+    color: white;
+}
+
+.month-btn.active {
+    background-color: #3b82f6;
+    color: white;
+}
+
+/* Ensure proper grid layout */
+#calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    width: 100%;
+}
+</style>
+
+<script>
+// Calendar state
+let currentDate = new Date();
+let selectedMonth = currentDate.getMonth();
+let selectedYear = currentDate.getFullYear();
+let calendarData = {};
+
+// Initialize calendar
+document.addEventListener('DOMContentLoaded', function() {
+    loadCalendarData();
+    renderCalendar();
+    setupEventListeners();
+});
+
+function setupEventListeners() {
+    // Navigation
+    document.getElementById('prevMonth').addEventListener('click', () => {
+        selectedMonth--;
+        if (selectedMonth < 0) {
+            selectedMonth = 11;
+            selectedYear--;
+        }
+        renderCalendar();
+    });
+
+    document.getElementById('nextMonth').addEventListener('click', () => {
+        selectedMonth++;
+        if (selectedMonth > 11) {
+            selectedMonth = 0;
+            selectedYear++;
+        }
+        renderCalendar();
+    });
+
+    // Month/Year selector
+    document.getElementById('monthDropdown').addEventListener('click', () => {
+        const selector = document.getElementById('monthSelector');
+        selector.classList.toggle('hidden');
+        if (!selector.classList.contains('hidden')) {
+            populateYearSelect();
+            highlightCurrentMonth();
+        }
+    });
+
+    document.querySelectorAll('.month-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.month-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+        });
+    });
+
+    document.getElementById('applyMonthYear').addEventListener('click', () => {
+        const activeMonth = document.querySelector('.month-btn.active');
+        const yearSelect = document.getElementById('yearSelect');
+        
+        if (activeMonth) {
+            selectedMonth = parseInt(activeMonth.dataset.month);
+        }
+        selectedYear = parseInt(yearSelect.value);
+        
+        document.getElementById('monthSelector').classList.add('hidden');
+        renderCalendar();
+    });
+
+    // Modal
+    document.getElementById('closeModal').addEventListener('click', closeModal);
+    document.getElementById('dateModal').addEventListener('click', (e) => {
+        if (e.target.id === 'dateModal') closeModal();
+    });
+}
+
+function populateYearSelect() {
+    const yearSelect = document.getElementById('yearSelect');
+    yearSelect.innerHTML = '';
+    
+    const currentYear = new Date().getFullYear();
+    for (let year = currentYear - 2; year <= currentYear + 2; year++) {
+        const option = document.createElement('option');
+        option.value = year;
+        option.textContent = year;
+        if (year === selectedYear) option.selected = true;
+        yearSelect.appendChild(option);
+    }
+}
+
+function highlightCurrentMonth() {
+    document.querySelectorAll('.month-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (parseInt(btn.dataset.month) === selectedMonth) {
+            btn.classList.add('active');
+        }
+    });
+}
+
+async function loadCalendarData() {
+    try {
+        const user = window.sessionData && window.sessionData.user;
+        if (!user) {
+            console.error('No user data available');
+            return;
+        }
+
+        // For now, use the existing matches data from session
+        const matches = window.sessionData.matches || [];
+        const availability = window.sessionData.availability || [];
+        
+        // Build calendar data structure
+        calendarData = {};
+        
+        matches.forEach((match, index) => {
+            const avail = availability[index] || {};
+            const dateKey = formatDateKey(match.date);
+            
+            if (!calendarData[dateKey]) {
+                calendarData[dateKey] = {
+                    matches: [],
+                    availability: null
+                };
+            }
+            
+            calendarData[dateKey].matches.push(match);
+            if (avail.status) {
+                calendarData[dateKey].availability = avail.status;
+            }
+        });
+        
+    } catch (error) {
+        console.error('Error loading calendar data:', error);
+    }
+}
+
+function formatDateKey(dateStr) {
+    // Convert date string to YYYY-MM-DD format for consistent keys
+    if (dateStr.includes('/')) {
+        const [month, day, year] = dateStr.split('/');
+        const fullYear = year.length === 2 ? `20${year}` : year;
+        return `${fullYear}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+    }
+    return dateStr;
+}
+
+function renderCalendar() {
+    const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'];
+    
+    document.getElementById('currentMonth').textContent = `${monthNames[selectedMonth]} ${selectedYear}`;
+    
+    const grid = document.getElementById('calendar-grid');
+    grid.innerHTML = '';
+    
+    const firstDay = new Date(selectedYear, selectedMonth, 1);
+    const lastDay = new Date(selectedYear, selectedMonth + 1, 0);
+    const startDate = new Date(firstDay);
+    startDate.setDate(startDate.getDate() - firstDay.getDay());
+    
+    for (let i = 0; i < 42; i++) {
+        const cellDate = new Date(startDate);
+        cellDate.setDate(startDate.getDate() + i);
+        
+        const cell = createCalendarCell(cellDate);
+        grid.appendChild(cell);
+    }
+}
+
+function createCalendarCell(date) {
+    const cell = document.createElement('div');
+    cell.className = 'calendar-date';
+    
+    const dateNum = document.createElement('div');
+    dateNum.className = 'calendar-date-number';
+    dateNum.textContent = date.getDate();
+    cell.appendChild(dateNum);
+    
+    // Check if date is in current month
+    if (date.getMonth() !== selectedMonth) {
+        cell.classList.add('other-month');
+    }
+    
+    // Check if today
+    const today = new Date();
+    if (date.toDateString() === today.toDateString()) {
+        cell.classList.add('today');
+    }
+    
+    // Check for events and availability
+    const dateKey = formatDateKey(`${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}`);
+    const dayData = calendarData[dateKey];
+    
+    if (dayData) {
+        cell.classList.add('has-event');
+        
+        if (dayData.matches.length > 0) {
+            const isMatch = dayData.matches.some(m => m.type !== 'practice');
+            const isPractice = dayData.matches.some(m => m.type === 'practice');
+            
+            if (isMatch) {
+                cell.classList.add('match');
+            } else if (isPractice) {
+                cell.classList.add('practice');
+            }
+        }
+        
+        if (dayData.availability) {
+            cell.classList.add(dayData.availability);
+            
+            // Create availability indicator
+            const availabilityDot = document.createElement('div');
+            availabilityDot.className = 'availability-indicator';
+            
+            if (dayData.availability === 'available') {
+                availabilityDot.textContent = '✓';
+                availabilityDot.classList.add('available-dot');
+            } else if (dayData.availability === 'unavailable') {
+                availabilityDot.textContent = '✗';
+                availabilityDot.classList.add('unavailable-dot');
+            } else if (dayData.availability === 'not_sure') {
+                availabilityDot.textContent = '?';
+                availabilityDot.classList.add('not-sure-dot');
+            }
+            
+            cell.appendChild(availabilityDot);
+        }
+    }
+    
+    cell.addEventListener('click', () => openDateModal(date, dayData));
+    
+    return cell;
+}
+
+function openDateModal(date, dayData) {
+    const modal = document.getElementById('dateModal');
+    const modalDate = document.getElementById('modalDate');
+    const modalContent = document.getElementById('modalContent');
+    
+    modalDate.textContent = date.toLocaleDateString('en-US', { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+    });
+    
+    modalContent.innerHTML = '';
+    
+    if (dayData && dayData.matches.length > 0) {
+        // Show matches/practices
+        dayData.matches.forEach(match => {
+            const matchDiv = document.createElement('div');
+            matchDiv.className = 'mb-4 p-3 border rounded-lg';
+            
+            const isMatch = match.type !== 'practice';
+            matchDiv.innerHTML = `
+                <div class="flex items-center gap-2 mb-2">
+                    <i class="fas fa-${isMatch ? 'trophy' : 'tennis-ball'} text-lg"></i>
+                    <span class="font-medium">${isMatch ? 'Match' : 'Practice'}</span>
+                </div>
+                ${match.time ? `<div class="text-sm text-gray-600 mb-2">${match.time}</div>` : ''}
+                ${isMatch && match.home_team && match.away_team ? `
+                    <div class="text-sm mb-3">
+                        <div>${match.home_team} vs.</div>
+                        <div>${match.away_team}</div>
+                    </div>
+                ` : ''}
+            `;
+            
+            modalContent.appendChild(matchDiv);
+        });
+        
+        // Show availability options
+        const availDiv = document.createElement('div');
+        availDiv.className = 'border-t pt-4';
+        availDiv.innerHTML = `
+            <div class="mb-3 font-medium">Update your availability:</div>
+            <div class="grid grid-cols-1 gap-2">
+                <button class="availability-btn-modal ${dayData.availability === 'available' ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-700'} p-3 rounded-lg font-medium hover:bg-green-600 hover:text-white transition-colors"
+                        onclick="updateAvailabilityModal('${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}', 'available')">
+                    <i class="fas fa-check mr-2"></i>Count Me In!
+                </button>
+                <button class="availability-btn-modal ${dayData.availability === 'unavailable' ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-700'} p-3 rounded-lg font-medium hover:bg-red-600 hover:text-white transition-colors"
+                        onclick="updateAvailabilityModal('${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}', 'unavailable')">
+                    <i class="fas fa-times mr-2"></i>Sorry, Can't
+                </button>
+                <button class="availability-btn-modal ${dayData.availability === 'not_sure' ? 'bg-yellow-500 text-white' : 'bg-gray-100 text-gray-700'} p-3 rounded-lg font-medium hover:bg-yellow-600 hover:text-white transition-colors"
+                        onclick="updateAvailabilityModal('${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}', 'not_sure')">
+                    <i class="fas fa-question mr-2"></i>Not Sure
+                </button>
+            </div>
+        `;
+        
+        modalContent.appendChild(availDiv);
+    } else {
+        modalContent.innerHTML = '<div class="text-center text-gray-500 py-4">No matches or practices scheduled for this date.</div>';
+    }
+    
+    modal.classList.remove('hidden');
+}
+
+function closeModal() {
+    document.getElementById('dateModal').classList.add('hidden');
+}
+
+async function updateAvailabilityModal(date, status) {
+    try {
+        const user = window.sessionData && window.sessionData.user;
+        if (!user) {
+            throw new Error('No user information available');
+        }
+        
+        const playerName = `${user.first_name} ${user.last_name}`;
+        
+        // Show loading state
+        const buttons = document.querySelectorAll('.availability-btn-modal');
+        buttons.forEach(btn => {
+            btn.disabled = true;
+            if (btn.textContent.toLowerCase().includes(status.replace('_', ' '))) {
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Updating...';
+            }
+        });
+        
+        const availabilityStatus = {
+            'available': 1,
+            'unavailable': 2,
+            'not_sure': 3
+        }[status];
+        
+        // Convert date to standard format
+        let standardizedDate = date;
+        if (date.includes('/')) {
+            const [month, day, year] = date.split('/');
+            const fullYear = year.length === 2 ? `20${year}` : year;
+            standardizedDate = `${fullYear}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+        }
+        
+        const requestData = {
+            'player_name': playerName.trim(),
+            'match_date': standardizedDate.trim(),
+            'availability_status': availabilityStatus,
+            'series': user.series.trim()
+        };
+        
+        const response = await fetch('/api/availability', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify(requestData)
+        });
+        
+        const data = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to save availability');
+        }
+        
+        // Update local data
+        const dateKey = formatDateKey(date);
+        if (calendarData[dateKey]) {
+            calendarData[dateKey].availability = status;
+        }
+        
+        // Re-render calendar and close modal
+        renderCalendar();
+        closeModal();
+        
+        // Show success message
+        showToast('Availability updated!', 'success');
+        
+    } catch (error) {
+        console.error('Error updating availability:', error);
+        showToast(error.message || 'Error updating availability. Please try again.', 'error');
+        
+        // Re-enable buttons
+        const buttons = document.querySelectorAll('.availability-btn-modal');
+        buttons.forEach(btn => {
+            btn.disabled = false;
+        });
+        
+        // Restore modal content
+        closeModal();
+        setTimeout(() => {
+            const dateObj = new Date(date);
+            const dateKey = formatDateKey(date);
+            openDateModal(dateObj, calendarData[dateKey]);
+        }, 100);
+    }
+}
+
+function showToast(message, type = 'success') {
+    const toast = document.createElement('div');
+    toast.className = `fixed bottom-4 right-4 px-4 py-2 rounded-lg shadow-lg z-50 opacity-0 transition-opacity duration-300 ${
+        type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+    }`;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    
+    requestAnimationFrame(() => {
+        toast.style.opacity = '1';
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            setTimeout(() => toast.remove(), 300);
+        }, 2000);
+    });
+}
+</script>
+{% endblock %} 
