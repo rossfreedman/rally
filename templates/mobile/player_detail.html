@@ -27,6 +27,38 @@
     {% if not analyze_data.current_season and not analyze_data.career_stats %}
         <div class="text-center text-gray-500 my-8">No stats available for this player.</div>
     {% endif %}
+    
+    <!-- Current PTI -->
+    <div class='analyze-card'>
+        <div class='analyze-card-header'><i class='fas fa-gauge-high'></i> Current PTI</div>
+        <div class='w-full flex justify-center items-center py-4'>
+            {% if analyze_data.current_pti is not none %}
+                <div class="text-4xl font-bold text-black">
+                    {{ analyze_data.current_pti|round(1, 'common') }}
+                    {% if analyze_data.weekly_pti_change is not none %}
+                        <span class="text-xl ml-2">
+                            {% if analyze_data.weekly_pti_change > 0 %}
+                                <span class="text-red-600">(+{{ analyze_data.weekly_pti_change|round(1, 'common') }} ↑ since last match)</span>
+                            {% elif analyze_data.weekly_pti_change < 0 %}
+                                <span class="text-green-600">({{ analyze_data.weekly_pti_change|round(1, 'common') }} ↓ since last match)</span>
+                            {% else %}
+                                <span class="text-gray-500">(0.0 since last match)</span>
+                            {% endif %}
+                        </span>
+                    {% endif %}
+                </div>
+            {% else %}
+                <div class="text-2xl text-gray-400">No PTI data available</div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- PTI History Chart -->
+    <div class='analyze-card'>
+        <div class='analyze-card-header'><i class='fas fa-chart-line'></i> PTI History</div>
+        <div id="ptiHistoryChart" style="height:400px;"></div>
+    </div>
+
     <!-- Player Stats -->
     <div class='analyze-card'>
         <div class='analyze-card-header'><i class='fas fa-user'></i> Player Stats</div>
@@ -212,6 +244,50 @@
             <div class="text-gray-400 p-2">No season history available.</div>
         {% endif %}
     </div>
+
+    <!-- Competitive Player Notes -->
+    <div class='analyze-card'>
+        <div class='analyze-card-header'>
+            <i class='fas fa-clipboard-list'></i> Competitive Player Notes
+            <span class="ml-2 px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full font-medium">Coming Soon</span>
+        </div>
+        
+        <!-- Mock Data -->
+        <div class="space-y-3 mb-4">
+            <div class="competitive-note-item">
+                <div class="flex items-center justify-between mb-1">
+                    <span class="font-semibold text-sm text-gray-700">Tactical Notes</span>
+                    <span class="text-xs text-gray-500">Mike Tracy • Nov 15</span>
+                </div>
+                <ul class="competitive-note-list">
+                    <li><i class="fas fa-arrow-right text-blue-600"></i> Pick on his backhand</li>
+                    <li><i class="fas fa-arrow-right text-blue-600"></i> Strong spin serve</li>
+                    <li><i class="fas fa-arrow-right text-blue-600"></i> Watch out for his blitz</li>
+                </ul>
+            </div>
+            
+            <div class="competitive-note-item">
+                <div class="flex items-center justify-between mb-1">
+                    <span class="font-semibold text-sm text-gray-700">Positioning</span>
+                    <span class="text-xs text-gray-500">Dean Thuente • Oct 28</span>
+                </div>
+                <ul class="competitive-note-list">
+                    <li><i class="fas fa-arrow-right text-green-600"></i> Ad side player</li>
+                    <li><i class="fas fa-arrow-right text-green-600"></i> Struggles with low balls</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Add Note Button -->
+        <div class="border-t pt-3">
+            <button class="w-full py-2 px-4 bg-blue-50 border border-blue-200 text-blue-700 font-medium rounded-lg hover:bg-blue-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                <i class="fas fa-plus mr-2"></i>Add Player Note
+            </button>
+            <p class="text-xs text-gray-500 mt-2 text-center">
+                Club members will be able to share competitive insights about opponents
+            </p>
+        </div>
+    </div>
 </div>
 
 <style>
@@ -378,5 +454,120 @@
   color: #444;
   font-size: 1em;
 }
+.competitive-note-item {
+  background: #f8fafc;
+  border: 1.5px solid #e0e7e3;
+  border-radius: 0.8rem;
+  padding: 0.8rem;
+  margin-bottom: 0.5rem;
+}
+.competitive-note-list {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+}
+.competitive-note-list li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.2rem 0;
+  font-size: 0.9rem;
+  color: #444;
+}
+.competitive-note-list li i {
+  font-size: 0.8rem;
+  min-width: 12px;
+}
 </style>
+
+<script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async function() {
+  console.log('Loading PTI history chart for player:', '{{ player_name }}');
+  
+  try {
+    // Load player history data from API for the specific player
+    console.log('Fetching data from /api/player-history/{{ player_name | urlencode }}...');
+    const playerHistoryResponse = await fetch('/api/player-history/{{ player_name | urlencode }}');
+    console.log('Response status:', playerHistoryResponse.status);
+    
+    const response = await playerHistoryResponse.json();
+    console.log('Received data:', response);
+    
+    const chartDiv = document.getElementById('ptiHistoryChart');
+    
+    if (!response.data || !Array.isArray(response.data) || response.data.length === 0) {
+      console.error('No data received or invalid format');
+      chartDiv.innerHTML = '<div class="flex items-center justify-center h-full text-gray-500"><div class="text-center"><i class="fas fa-chart-line text-4xl mb-2"></i><div>No PTI history data available</div><div class="text-sm">This player has no recorded PTI history</div></div></div>';
+      return;
+    }
+    
+    // Extract dates and PTI values
+    const dates = response.data.map(entry => {
+      // Parse the date string into a Date object
+      const [month, day, year] = entry.date.split('/');
+      return new Date(year, month - 1, day);
+    });
+    const ptiValues = response.data.map(entry => entry.end_pti);
+
+    console.log('Processed data:');
+    console.log('Dates:', dates);
+    console.log('PTI Values:', ptiValues);
+
+    // Create PTI History Chart
+    console.log('Creating chart...');
+    const layout = {
+      xaxis: {
+        title: 'Date',
+        type: 'date',
+        showticklabels: true,
+        automargin: true,
+        tickangle: -45,
+        tickformat: '%b %d',
+        nticks: 8,
+        range: [dates[0], dates[dates.length - 1]]
+      },
+      yaxis: {
+        title: 'PTI',
+        zeroline: false,
+        range: [Math.min(...ptiValues) - 2, Math.max(...ptiValues) + 2]
+      },
+      margin: {b: 60, t: 20, l: 60, r: 10},
+      font: {size: 12}
+    };
+
+    const data = [{
+      x: dates,
+      y: ptiValues,
+      type: 'scatter',
+      mode: 'lines+markers',
+      name: 'PTI History',
+      line: {
+        color: 'rgb(49, 130, 189)',
+        width: 2
+      },
+      marker: {
+        size: 6,
+        color: 'rgb(49, 130, 189)'
+      }
+    }];
+
+    const config = {
+      responsive: true,
+      displayModeBar: false,
+      staticPlot: true
+    };
+
+    Plotly.newPlot('ptiHistoryChart', data, layout, config);
+    console.log('Chart created successfully');
+    
+  } catch (error) {
+    console.error('Error creating PTI history chart:', error);
+    const chartDiv = document.getElementById('ptiHistoryChart');
+    if (chartDiv) {
+      chartDiv.innerHTML = '<div class="flex items-center justify-center h-full text-red-500"><div class="text-center"><i class="fas fa-exclamation-triangle text-4xl mb-2"></i><div>Error loading PTI history data</div></div></div>';
+    }
+  }
+});
+</script>
 {% endblock %}

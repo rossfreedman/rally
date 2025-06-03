@@ -1587,6 +1587,17 @@ def player_court_stats(player_name):
         print(f"ERROR: Failed to load match data: {e}")
         return jsonify({"error": f"Failed to load match data: {e}"}), 500
 
+    # Helper function for case-insensitive name normalization
+    def normalize_name(name):
+        return name.replace(',', '').replace('  ', ' ').strip().lower()
+    
+    # Normalize the target player name
+    player_name_normalized = normalize_name(player_name)
+    
+    # Helper function to check if player is in a match (case-insensitive)
+    def player_in_match_players(match_players, target_normalized):
+        return any(normalize_name(p) == target_normalized for p in match_players if p)
+
     # Group matches by date
     matches_by_date = defaultdict(list)
     for match in matches:
@@ -1601,8 +1612,9 @@ def player_court_stats(player_name):
     for date, day_matches in matches_by_date.items():
         for i, match in enumerate(day_matches):
             court_num = i + 1
-            # Check if player is in this match
-            if player_name in [match['Home Player 1'], match['Home Player 2'], match['Away Player 1'], match['Away Player 2']]:
+            # Check if player is in this match (case-insensitive)
+            match_players = [match['Home Player 1'], match['Home Player 2'], match['Away Player 1'], match['Away Player 2']]
+            if player_in_match_players(match_players, player_name_normalized):
                 court_matches[court_num].append(match)
                 player_match_count += 1
     
@@ -1620,21 +1632,25 @@ def player_court_stats(player_name):
         partner_results = defaultdict(lambda: {'matches': 0, 'wins': 0})
 
         for match in matches:
-            # Determine if player was home or away, and who was their partner
-            if player_name == match['Home Player 1']:
+            # Determine if player was home or away, and who was their partner (case-insensitive)
+            player_position = None
+            partner = None
+            
+            if normalize_name(match['Home Player 1']) == player_name_normalized:
                 partner = match['Home Player 2']
                 is_home = True
-            elif player_name == match['Home Player 2']:
+            elif normalize_name(match['Home Player 2']) == player_name_normalized:
                 partner = match['Home Player 1']
                 is_home = True
-            elif player_name == match['Away Player 1']:
+            elif normalize_name(match['Away Player 1']) == player_name_normalized:
                 partner = match['Away Player 2']
                 is_home = False
-            elif player_name == match['Away Player 2']:
+            elif normalize_name(match['Away Player 2']) == player_name_normalized:
                 partner = match['Away Player 1']
                 is_home = False
             else:
                 continue  # Shouldn't happen
+                
             partners.append(partner)
             partner_results[partner]['matches'] += 1
             # Determine win/loss
@@ -1821,6 +1837,57 @@ def serve_mobile_player_detail(player_id):
     from urllib.parse import unquote
     player_name = unquote(player_id)
     analyze_data = get_player_analysis_by_name(player_name)
+    
+    # Get current PTI from player history for the viewed player
+    try:
+        player_history_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'player_history.json')
+        
+        with open(player_history_path, 'r') as f:
+            player_history = json.load(f)
+            
+        # Find the player's record by matching name
+        player_record = next((p for p in player_history if p.get('name', '').lower() == player_name.lower()), None)
+        
+        if player_record and player_record.get('matches'):
+            # Sort matches by date to find most recent
+            matches = sorted(player_record['matches'], key=lambda x: datetime.strptime(x['date'], '%m/%d/%Y'), reverse=True)
+            if matches:
+                current_pti = matches[0].get('end_pti')
+                
+                # Calculate weekly PTI change
+                weekly_pti_change = None
+                if len(matches) > 1:
+                    current_date = datetime.strptime(matches[0]['date'], '%m/%d/%Y')
+                    # Find the match closest to one week ago
+                    prev_match = None
+                    for match in matches[1:]:
+                        match_date = datetime.strptime(match['date'], '%m/%d/%Y')
+                        if (current_date - match_date).days >= 5:
+                            prev_match = match
+                            break
+                    
+                    if prev_match and 'end_pti' in prev_match:
+                        prev_pti = prev_match['end_pti']
+                        weekly_pti_change = current_pti - prev_pti
+                
+                if current_pti is not None:
+                    analyze_data['current_pti'] = float(current_pti)
+                    analyze_data['weekly_pti_change'] = float(weekly_pti_change) if weekly_pti_change is not None else None
+                else:
+                    analyze_data['current_pti'] = None
+                    analyze_data['weekly_pti_change'] = None
+            else:
+                analyze_data['current_pti'] = None
+                analyze_data['weekly_pti_change'] = None
+        else:
+            analyze_data['current_pti'] = None
+            analyze_data['weekly_pti_change'] = None
+            
+    except Exception as e:
+        print(f"Error getting current PTI: {str(e)}")
+        analyze_data['current_pti'] = None
+        analyze_data['weekly_pti_change'] = None
+    
     session_data = {
         'user': session['user'],
         'authenticated': True
@@ -2081,6 +2148,8 @@ def get_player_analysis(user):
         }
     def normalize(name):
         return name.replace(',', '').replace('  ', ' ').strip().lower()
+    
+    # Normalize the target player name for case-insensitive matching
     player_name_normal = normalize(player_name)
     player_last_first = normalize(f"{user['last_name']}, {user['first_name']}")
     print(f"[DEBUG] Normalized search names: '{player_name_normal}', '{player_last_first}'")  # Debug print
@@ -2098,6 +2167,46 @@ def get_player_analysis(user):
             all_matches = json.load(f)
     except Exception as e:
         all_matches = []
+    
+    # Helper function to check if player is in a match (case-insensitive)
+    def player_in_match(match, target_player_name):
+        """Check if target_player_name is in the match, case-insensitive"""
+        match_players = [
+            match.get('Home Player 1', ''),
+            match.get('Home Player 2', ''),
+            match.get('Away Player 1', ''),
+            match.get('Away Player 2', '')
+        ]
+        target_normalized = normalize(target_player_name)
+        return any(normalize(p) == target_normalized for p in match_players if p)
+    
+    def get_player_position_in_match(match, target_player_name):
+        """Get the position (home/away and 1/2) of target player in match, case-insensitive"""
+        target_normalized = normalize(target_player_name)
+        
+        if normalize(match.get('Home Player 1', '')) == target_normalized:
+            return 'Home Player 1'
+        elif normalize(match.get('Home Player 2', '')) == target_normalized:
+            return 'Home Player 2'
+        elif normalize(match.get('Away Player 1', '')) == target_normalized:
+            return 'Away Player 1'
+        elif normalize(match.get('Away Player 2', '')) == target_normalized:
+            return 'Away Player 2'
+        return None
+    
+    def get_partner_for_player(match, target_player_name):
+        """Get the partner of target player in the match, case-insensitive"""
+        position = get_player_position_in_match(match, target_player_name)
+        if position == 'Home Player 1':
+            return match.get('Home Player 2', '')
+        elif position == 'Home Player 2':
+            return match.get('Home Player 1', '')
+        elif position == 'Away Player 1':
+            return match.get('Away Player 2', '')
+        elif position == 'Away Player 2':
+            return match.get('Away Player 1', '')
+        return None
+    
     # --- 3. Determine current season (latest in player history) ---
     current_season_info = None
     if player and player.get('seasons') and player['seasons']:
@@ -2122,7 +2231,7 @@ def get_player_analysis(user):
     player_matches = []
     if player:
         for m in all_matches:
-            if player_name in [m.get('Home Player 1'), m.get('Home Player 2'), m.get('Away Player 1'), m.get('Away Player 2')]:
+            if player_in_match(m, player_name):
                 if current_series:
                     match_series = str(m.get('Series', ''))
                     if match_series and match_series != current_series:
@@ -2152,11 +2261,15 @@ def get_player_analysis(user):
             court_num = i + 1
             if court_num > 4:
                 continue
-            # Check if player is in this match
-            if player_name not in [match.get('Home Player 1'), match.get('Home Player 2'), match.get('Away Player 1'), match.get('Away Player 2')]:
+            # Check if player is in this match (case-insensitive)
+            if not player_in_match(match, player_name):
                 continue
             total_matches += 1
-            is_home = player_name in [match.get('Home Player 1'), match.get('Home Player 2')]
+            
+            # Determine if player is home team (case-insensitive)
+            position = get_player_position_in_match(match, player_name)
+            is_home = position and position.startswith('Home')
+            
             won = (is_home and match.get('Winner') == 'home') or (not is_home and match.get('Winner') == 'away')
             if won:
                 wins += 1
@@ -2165,17 +2278,9 @@ def get_player_analysis(user):
                 losses += 1
                 court_stats[f'court{court_num}']['losses'] += 1
             court_stats[f'court{court_num}']['matches'] += 1
-            # Identify partner
-            if player_name == match.get('Home Player 1'):
-                partner = match.get('Home Player 2')
-            elif player_name == match.get('Home Player 2'):
-                partner = match.get('Home Player 1')
-            elif player_name == match.get('Away Player 1'):
-                partner = match.get('Away Player 2')
-            elif player_name == match.get('Away Player 2'):
-                partner = match.get('Away Player 1')
-            else:
-                partner = None
+            
+            # Identify partner (case-insensitive)
+            partner = get_partner_for_player(match, player_name)
             if partner:
                 court_stats[f'court{court_num}']['partners'][partner] += 1
             if 'Rating' in match:
@@ -2965,6 +3070,51 @@ def mobile_teams_players():
         team_analysis_data=team_analysis_data,
         all_teams=all_teams,
         selected_team=team
+    )
+
+@app.route('/mobile/player-search', methods=['GET'])
+@login_required
+def mobile_player_search():
+    """Mobile player search page with first name and last name inputs"""
+    first_name = request.args.get('first_name', '').strip()
+    last_name = request.args.get('last_name', '').strip()
+    search_attempted = bool(first_name or last_name)
+    player_found = False
+    player_name = None
+    search_name = None
+    
+    if search_attempted:
+        # Construct the search name
+        if first_name and last_name:
+            search_name = f"{first_name} {last_name}"
+        elif first_name:
+            search_name = first_name
+        elif last_name:
+            search_name = last_name
+        
+        # Search for the player using the existing function
+        analyze_data = get_player_analysis_by_name(search_name)
+        
+        # Check if player was found (if there's no error and we have data)
+        if not analyze_data.get('error') and (analyze_data.get('current_season') or analyze_data.get('career_stats')):
+            player_found = True
+            player_name = search_name
+        
+        # Log the search activity
+        log_user_activity(
+            session['user']['email'], 
+            'player_search',
+            details=f'Searched for player: {search_name}, found: {player_found}'
+        )
+    
+    return render_template(
+        'mobile/player_search.html',
+        first_name=first_name,
+        last_name=last_name,
+        search_attempted=search_attempted,
+        player_found=player_found,
+        player_name=player_name,
+        search_name=search_name
     )
 
 def calculate_team_analysis(team_stats, team_matches, team):
@@ -5389,6 +5539,57 @@ def get_player_history():
         
     except Exception as e:
         print(f"Error getting player history: {str(e)}")
+        return jsonify({'error': str(e), 'data': []}), 500
+
+@app.route('/api/player-history/<player_name>')
+@login_required
+def get_specific_player_history(player_name):
+    """Return the PTI history data for a specific player"""
+    try:
+        from urllib.parse import unquote
+        player_name = unquote(player_name)
+        
+        # Load player history data
+        player_history_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'player_history.json')
+        
+        with open(player_history_path, 'r') as f:
+            all_players = json.load(f)
+            
+        # Find the player's record
+        def normalize(name):
+            return name.replace(',', '').replace('  ', ' ').strip().lower()
+            
+        player_name_normal = normalize(player_name)
+        
+        player = None
+        for p in all_players:
+            n = normalize(p.get('name', ''))
+            if n == player_name_normal:
+                player = p
+                break
+                
+        if not player or not player.get('matches'):
+            return jsonify({'error': 'No match history found', 'data': []}), 404
+            
+        # Extract matches with PTI data
+        matches_with_pti = [
+            {
+                'date': m['date'],
+                'end_pti': m['end_pti']
+            }
+            for m in player['matches'] 
+            if 'end_pti' in m and 'date' in m
+        ]
+        
+        # Sort matches by date
+        matches_with_pti.sort(key=lambda m: datetime.strptime(m['date'], '%m/%d/%Y'))
+        
+        return jsonify({
+            'data': matches_with_pti
+        })
+        
+    except Exception as e:
+        print(f"Error getting specific player history: {str(e)}")
         return jsonify({'error': str(e), 'data': []}), 500
 
 @app.route('/api/paddle-insights', methods=['POST'])
