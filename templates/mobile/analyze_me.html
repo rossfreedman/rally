@@ -17,6 +17,9 @@
     {% if analyze_data.error %}
         <div class="text-red-600 text-center my-8">{{ analyze_data.error }}</div>
     {% endif %}
+    {% if not analyze_data.current_season and not analyze_data.career_stats %}
+        <div class="text-center text-gray-500 my-8">No stats available for this player.</div>
+    {% endif %}
 
     <!-- Current PTI -->
     <div class='analyze-card'>
@@ -49,7 +52,8 @@
         <div id="ptiHistoryChart" style="height:400px;"></div>
     </div>
 
-    <!-- Player Stats (tabular, two columns) -->
+    <!-- Overall Performance -->
+    {% if analyze_data.current_season and analyze_data.career_stats %}
     <div class='analyze-card'>
         <div class='analyze-card-header'><i class='fas fa-user'></i> Player Stats</div>
         <div class='w-full'>
@@ -64,48 +68,61 @@
                 <tbody>
                     <tr>
                         <td class='stat-label'><i class='fas fa-table-tennis-paddle-ball text-black'></i> Matches</td>
-                        <td class='stat-value'>{{ analyze_data.current_season.matches }}</td>
-                        <td class='stat-value'>{{ analyze_data.career_stats.matches }}</td>
+                        <td class='stat-value'>{{ analyze_data.current_season.matches or 'N/A' }}</td>
+                        <td class='stat-value'>{{ analyze_data.career_stats.matches or 'N/A' }}</td>
                     </tr>
                     <tr class="row-divider">
                         <td class='stat-label'><i class="fas fa-list-ol text-black"></i> Record</td>
                         <td class='stat-value'>
-                            {% set wins = analyze_data.current_season.wins if analyze_data.current_season.wins is defined else (analyze_data.current_season.winRate * analyze_data.current_season.matches // 100 if analyze_data.current_season.matches != 'N/A' and analyze_data.current_season.winRate != 'N/A' else 'N/A') %}
-                            {% set losses = analyze_data.current_season.matches - wins if wins != 'N/A' and analyze_data.current_season.matches != 'N/A' else 'N/A' %}
-                            {% if wins != 'N/A' and losses != 'N/A' %}
-                              {{ wins|int }} wins / {{ losses|int }} losses
+                            {% if analyze_data.current_season and analyze_data.current_season.wins is defined and analyze_data.current_season.losses is defined %}
+                                {{ analyze_data.current_season.wins|int }} wins / {{ analyze_data.current_season.losses|int }} losses
+                            {% elif analyze_data.current_season and analyze_data.current_season.winRate is defined and analyze_data.current_season.matches and analyze_data.current_season.matches != 'N/A' and analyze_data.current_season.winRate != 'N/A' %}
+                                {% set wins = (analyze_data.current_season.winRate * analyze_data.current_season.matches // 100)|int %}
+                                {% set losses = (analyze_data.current_season.matches - wins)|int %}
+                                {{ wins }} wins / {{ losses }} losses
                             {% else %}
-                              N/A
+                                N/A
                             {% endif %}
                         </td>
                         <td class='stat-value'>
-                            {% set wins = analyze_data.career_stats.wins if analyze_data.career_stats.wins is defined else (analyze_data.career_stats.winRate * analyze_data.career_stats.matches // 100 if analyze_data.career_stats.matches != 'N/A' and analyze_data.career_stats.winRate != 'N/A' else 'N/A') %}
-                            {% set losses = analyze_data.career_stats.matches - wins if wins != 'N/A' and analyze_data.career_stats.matches != 'N/A' else 'N/A' %}
-                            {% if wins != 'N/A' and losses != 'N/A' %}
-                              {{ wins|int }} wins / {{ losses|int }} losses
+                            {% if analyze_data.career_stats and analyze_data.career_stats.wins is defined and analyze_data.career_stats.losses is defined %}
+                                {{ analyze_data.career_stats.wins|int }} wins / {{ analyze_data.career_stats.losses|int }} losses
+                            {% elif analyze_data.career_stats and analyze_data.career_stats.winRate is defined and analyze_data.career_stats.matches and analyze_data.career_stats.matches != 'N/A' and analyze_data.career_stats.winRate != 'N/A' %}
+                                {% set wins = (analyze_data.career_stats.winRate * analyze_data.career_stats.matches // 100)|int %}
+                                {% set losses = (analyze_data.career_stats.matches - wins)|int %}
+                                {{ wins }} wins / {{ losses }} losses
                             {% else %}
-                              N/A
+                                N/A
                             {% endif %}
                         </td>
                     </tr>
                     <tr>
                         <td class='stat-label'><span class='text-blue-700'><i class='fas fa-percent'></i></span> Wins</td>
                         <td class='stat-value'>
+                          {% if analyze_data.current_season and analyze_data.current_season.winRate is defined %}
                           {% set winrate = analyze_data.current_season.winRate %}
                           <span class="font-bold {% if winrate is defined and winrate is not none and winrate|float >= 60 %}text-green-600{% elif winrate is defined and winrate is not none and winrate|float >= 45 %}text-yellow-600{% elif winrate is defined and winrate is not none %}text-red-600{% endif %}">
                             {{ winrate|round(1, 'common') if winrate is not string else winrate }}%
                           </span>
+                          {% else %}
+                            <span class="font-bold">N/A</span>
+                          {% endif %}
                         </td>
                         <td class='stat-value'>
+                          {% if analyze_data.career_stats and analyze_data.career_stats.winRate is defined %}
                           {% set winrate = analyze_data.career_stats.winRate %}
                           <span class="font-bold {% if winrate is defined and winrate is not none and winrate|float >= 60 %}text-green-600{% elif winrate is defined and winrate is not none and winrate|float >= 45 %}text-yellow-600{% elif winrate is defined and winrate is not none %}text-red-600{% endif %}">
                             {{ winrate|round(1, 'common') if winrate is not string else winrate }}%
                           </span>
+                          {% else %}
+                            <span class="font-bold">N/A</span>
+                          {% endif %}
                         </td>
                     </tr>
                     <tr>
                         <td class='stat-label text-center'><i class='fas fa-arrow-down text-black'></i> PTI Change</td>
                         <td class='stat-value text-center'>
+                            {% if analyze_data.current_season and analyze_data.current_season.ptiChange is defined %}
                             {% set pti = analyze_data.current_season.ptiChange %}
                             {% if pti is string or pti == 'N/A' %}
                                 <span class="text-black">{{ pti }}</span>
@@ -115,6 +132,9 @@
                                 <span class="text-green-600 font-bold flex items-center justify-center">{{ pti|round(1, 'common') }} <span aria-label="PTI Down" class="ml-1">▼</span></span>
                             {% else %}
                                 <span class="text-black">0.0</span>
+                            {% endif %}
+                            {% else %}
+                                <span class="text-black">N/A</span>
                             {% endif %}
                         </td>
                         <td class='stat-value text-center'>
@@ -134,10 +154,17 @@
             </table>
         </div>
     </div>
+    {% else %}
+        <div class='analyze-card'>
+            <div class='analyze-card-header'><i class='fas fa-user'></i> Player Stats</div>
+            <div class="text-gray-400 p-4">No player data available.</div>
+        </div>
+    {% endif %}
     
     <!-- Court Analysis (2x2 grid) -->
     <div class='analyze-card'>
         <div class='analyze-card-header'><i class='fas fa-table-tennis'></i> Court Analysis</div>
+        {% if analyze_data.court_analysis %}
         <div class='grid grid-cols-2 gap-3'>
             {% set court_order = ['court1', 'court2', 'court3', 'court4'] %}
             {% for court in court_order %}
@@ -192,12 +219,15 @@
                 </div>
             {% endfor %}
         </div>
+        {% else %}
+            <div class="text-gray-400 p-4">No court analysis available.</div>
+        {% endif %}
     </div>
 
     <!-- Previous Season History -->
     <div class='analyze-card'>
         <div class='analyze-card-header'><i class='fas fa-history'></i> Previous Season History</div>
-        {% if analyze_data.player_history.seasons %}
+        {% if analyze_data.player_history and analyze_data.player_history.seasons %}
             <div class='overflow-x-auto'><table class='min-w-full text-xs border mt-2'>
                 <thead><tr class='bg-gray-50'>
                     <th class='py-1 px-2'>Season</th><th class='py-1 px-2'>Series</th><th class='py-1 px-2'>PTI Start</th><th class='py-1 px-2'>PTI End</th><th class='py-1 px-2'>Trend</th>
@@ -476,11 +506,23 @@ document.addEventListener('DOMContentLoaded', async function() {
     const config = {
       responsive: true,
       displayModeBar: false,
-      staticPlot: true
+      staticPlot: false
     };
+
+    // Ensure proper sizing
+    const chartContainer = document.getElementById('ptiHistoryChart');
+    if (chartContainer) {
+      chartContainer.style.width = '100%';
+      chartContainer.style.height = '400px';
+    }
 
     Plotly.newPlot('ptiHistoryChart', data, layout, config);
     console.log('Chart created successfully');
+    
+    // Force resize to ensure proper rendering
+    setTimeout(() => {
+      Plotly.Plots.resize('ptiHistoryChart');
+    }, 100);
   } catch (error) {
     console.error('Error creating PTI history chart:', error);
     document.getElementById('ptiHistoryChart').innerHTML = 'Error loading PTI history data';

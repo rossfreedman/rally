@@ -2464,8 +2464,45 @@ def serve_mobile_analyze_me():
                 player_history = json.load(f)
                 print(f"Loaded {len(player_history)} player records")
                 
-            # Find the player's record using the helper function
-            player_record = find_player_in_history(user, player_history)
+            # Build full name for comparison
+            full_name = f"{user['first_name']} {user['last_name']}"
+            print(f"Looking for player with name: {full_name}")
+            
+            # Find the player's record using nickname matching
+            from utils.match_utils import normalize_name, names_match
+            
+            # Split player name to check first name nicknames
+            first_name = user['first_name']
+            last_name = user['last_name']
+            
+            player_record = None
+            for p in player_history:
+                p_name = p.get('name', '')
+                
+                # Direct match first
+                if p_name.lower() == full_name.lower():
+                    player_record = p
+                    break
+                    
+                # Check for nickname matches
+                # Parse the player's name from the data
+                if ',' in p_name:
+                    # Format: "Last, First"
+                    p_last, p_first = [part.strip() for part in p_name.split(',', 1)]
+                else:
+                    # Format: "First Last"
+                    parts = p_name.strip().split()
+                    if len(parts) >= 2:
+                        p_first = parts[0]
+                        p_last = ' '.join(parts[1:])
+                    else:
+                        continue
+                    
+                # Check if first names match (considering nicknames) and last names match exactly
+                if names_match(first_name, p_first) and normalize_name(last_name) == normalize_name(p_last):
+                    player_record = p
+                    print(f"[DEBUG] Found player using nickname matching: {p_name} matches {full_name}")
+                    break
                     
             print(f"Found player record: {player_record is not None}")
             
@@ -3103,30 +3140,36 @@ def mobile_teams_players():
 @app.route('/mobile/player-search', methods=['GET'])
 @login_required
 def mobile_player_search():
-    """Enhanced mobile player search with fuzzy matching and multiple results"""
+    """Mobile player search page with first name and last name inputs"""
     first_name = request.args.get('first_name', '').strip()
     last_name = request.args.get('last_name', '').strip()
     search_attempted = bool(first_name or last_name)
-    matching_players = []
-    search_query = None
+    player_found = False
+    player_name = None
+    search_name = None
     
     if search_attempted:
-        # Build search query description
+        # Construct the search name
         if first_name and last_name:
-            search_query = f'"{first_name} {last_name}"'
+            search_name = f"{first_name} {last_name}"
         elif first_name:
-            search_query = f'first name "{first_name}"'
+            search_name = first_name
         elif last_name:
-            search_query = f'last name "{last_name}"'
+            search_name = last_name
         
-        # Search for matching players using enhanced fuzzy logic
-        matching_players = search_players_with_fuzzy_logic(first_name, last_name)
+        # Search for the player using the existing function
+        analyze_data = get_player_analysis_by_name(search_name)
+        
+        # Check if player was found (if there's no error and we have data)
+        if not analyze_data.get('error') and (analyze_data.get('current_season') or analyze_data.get('career_stats')):
+            player_found = True
+            player_name = search_name
         
         # Log the search activity
         log_user_activity(
             session['user']['email'], 
             'player_search',
-            details=f'Searched for {search_query}, found {len(matching_players)} matches'
+            details=f'Searched for player: {search_name}, found: {player_found}'
         )
     
     return render_template(
@@ -3134,93 +3177,10 @@ def mobile_player_search():
         first_name=first_name,
         last_name=last_name,
         search_attempted=search_attempted,
-        matching_players=matching_players,
-        search_query=search_query
+        player_found=player_found,
+        player_name=player_name,
+        search_name=search_name
     )
-
-def search_players_with_fuzzy_logic(first_name_query, last_name_query):
-    """
-    Search for players using enhanced fuzzy logic from utils/match_utils.py
-    
-    Args:
-        first_name_query: First name to search for (can be empty)
-        last_name_query: Last name to search for (can be empty)
-        
-    Returns:
-        list: List of matching player dictionaries with name and basic info
-    """
-    try:
-        # Load player history data
-        player_history_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data', 'player_history.json')
-        with open(player_history_path, 'r') as f:
-            all_players = json.load(f)
-            
-        from utils.match_utils import names_match, normalize_name
-        
-        matching_players = []
-        
-        for player in all_players:
-            player_name = player.get('name', '')
-            if not player_name:
-                continue
-                
-            # Parse player name - handle both "First Last" and "Last, First" formats
-            if ',' in player_name:
-                # Format: "Last, First"
-                p_last, p_first = [part.strip() for part in player_name.split(',', 1)]
-            else:
-                # Format: "First Last"
-                parts = player_name.strip().split()
-                if len(parts) >= 2:
-                    p_first = parts[0]
-                    p_last = ' '.join(parts[1:])
-                else:
-                    # Single name - treat as last name
-                    p_first = ''
-                    p_last = player_name.strip()
-            
-            # Determine if this player matches the search criteria
-            matches = False
-            
-            if first_name_query and last_name_query:
-                # Both names provided - check both with fuzzy matching
-                first_match = names_match(first_name_query, p_first) if p_first else False
-                last_match = normalize_name(last_name_query) == normalize_name(p_last)
-                matches = first_match and last_match
-                
-            elif first_name_query and not last_name_query:
-                # Only first name provided - fuzzy match on first name
-                matches = names_match(first_name_query, p_first) if p_first else False
-                
-            elif last_name_query and not first_name_query:
-                # Only last name provided - fuzzy match on last name
-                matches = (normalize_name(last_name_query) == normalize_name(p_last) or
-                          last_name_query.lower() in p_last.lower())
-            
-            if matches:
-                # Get additional player info
-                latest_match = player.get('matches', [])[-1] if player.get('matches') else {}
-                current_pti = latest_match.get('end_pti') if latest_match else player.get('pti', 'N/A')
-                
-                matching_players.append({
-                    'name': player_name,
-                    'first_name': p_first,
-                    'last_name': p_last,
-                    'player_id': player.get('player_id', ''),
-                    'current_pti': current_pti,
-                    'total_matches': len(player.get('matches', [])),
-                    'club': latest_match.get('club') if latest_match else 'Unknown',
-                    'series': latest_match.get('series') if latest_match else 'Unknown'
-                })
-        
-        # Sort by name for consistent results
-        matching_players.sort(key=lambda x: x['name'].lower())
-        
-        return matching_players
-        
-    except Exception as e:
-        logger.error(f"Error in fuzzy player search: {str(e)}")
-        return []
 
 def calculate_team_analysis(team_stats, team_matches, team):
     # Use the same transformation as desktop for correct stats
@@ -5608,8 +5568,48 @@ def get_player_history():
         with open(player_history_path, 'r') as f:
             all_players = json.load(f)
             
-        # Find the player's record using the helper function
-        player = find_player_in_history(user, all_players)
+        # Find the player's record using nickname matching
+        from utils.match_utils import normalize_name, names_match
+        
+        def normalize(name):
+            return name.replace(',', '').replace('  ', ' ').strip().lower()
+            
+        player_name_normal = normalize(player_name)
+        player_last_first = normalize(f"{user['last_name']}, {user['first_name']}")
+        
+        # Split player name to check first name nicknames
+        first_name = user['first_name']
+        last_name = user['last_name']
+        
+        player = None
+        for p in all_players:
+            p_name = p.get('name', '')
+            n = normalize(p_name)
+            
+            # Direct match first
+            if n == player_name_normal or n == player_last_first:
+                player = p
+                break
+                
+            # Check for nickname matches
+            # Parse the player's name from the data
+            if ',' in p_name:
+                # Format: "Last, First"
+                p_last, p_first = [part.strip() for part in p_name.split(',', 1)]
+            else:
+                # Format: "First Last"
+                parts = p_name.strip().split()
+                if len(parts) >= 2:
+                    p_first = parts[0]
+                    p_last = ' '.join(parts[1:])
+                else:
+                    continue
+                    
+            # Check if first names match (considering nicknames) and last names match exactly
+            if names_match(first_name, p_first) and normalize(last_name) == normalize(p_last):
+                player = p
+                print(f"[DEBUG] Found player using nickname matching: {p_name} matches {player_name}")
+                break
                 
         if not player or not player.get('matches'):
             return jsonify({'error': 'No match history found', 'data': []}), 404
@@ -5916,71 +5916,6 @@ def debug_db_info():
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-
-def find_player_in_history(user, player_history):
-    """
-    Find a player in player_history data, searching by player_id first, then by name with fuzzy matching.
-    
-    Args:
-        user: User session data
-        player_history: List of player records
-        
-    Returns:
-        dict|None: Player record if found, None otherwise
-    """
-    # Get player ID from session if available
-    player_id = user.get('tenniscores_player_id')
-    full_name = f"{user['first_name']} {user['last_name']}"
-    print(f"[DEBUG] Looking for player with ID: '{player_id}' or name: '{full_name}'")
-    
-    player_record = None
-    
-    # Primary search: by player_id if available
-    if player_id:
-        print(f"[DEBUG] Searching by player_id: '{player_id}'")
-        for p in player_history:
-            if p.get('player_id') == player_id:
-                player_record = p
-                print(f"[DEBUG] Found player by ID: {p.get('name')}")
-                return player_record
-    
-    # Fallback search: by name with fuzzy matching if no player_id match
-    print("[DEBUG] No player found by ID, falling back to name matching")
-    print(f"Looking for player with name: {full_name}")
-    
-    # Split player name to check first name nicknames
-    first_name = user['first_name']
-    last_name = user['last_name']
-    
-    for p in player_history:
-        p_name = p.get('name', '')
-        
-        # Direct match first
-        if p_name.lower() == full_name.lower():
-            player_record = p
-            break
-            
-        # Check for nickname matches
-        # Parse the player's name from the data
-        if ',' in p_name:
-            # Format: "Last, First"
-            p_last, p_first = [part.strip() for part in p_name.split(',', 1)]
-        else:
-            # Format: "First Last"
-            parts = p_name.strip().split()
-            if len(parts) >= 2:
-                p_first = parts[0]
-                p_last = ' '.join(parts[1:])
-            else:
-                continue
-                
-        # Check if first names match (considering nicknames) and last names match exactly
-        if names_match(first_name, p_first) and normalize_name(last_name) == normalize_name(p_last):
-            player_record = p
-            print(f"[DEBUG] Found player using nickname matching: {p_name} matches {full_name}")
-            break
-            
-    return player_record
 
 if __name__ == '__main__':
     # Get port from environment variable or use default

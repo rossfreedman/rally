@@ -24,7 +24,7 @@
           name="first_name" 
           id="first_name"
           value="{{ first_name or '' }}"
-          placeholder="Enter first name..."
+          placeholder="Enter first name (optional)..."
           class="form-input w-full py-2 px-4 text-base font-medium border-2 border-primary text-gray-900 bg-white rounded-lg shadow-sm focus:ring-2 focus:ring-primary focus:border-primary transition"
         />
       </div>
@@ -36,7 +36,7 @@
           name="last_name" 
           id="last_name"
           value="{{ last_name or '' }}"
-          placeholder="Enter last name..."
+          placeholder="Enter last name (optional)..."
           class="form-input w-full py-2 px-4 text-base font-medium border-2 border-primary text-gray-900 bg-white rounded-lg shadow-sm focus:ring-2 focus:ring-primary focus:border-primary transition"
         />
       </div>
@@ -46,25 +46,68 @@
           type="submit" 
           class="w-full py-3 px-6 bg-primary text-white font-bold text-lg rounded-lg shadow-lg hover:bg-primary-dark focus:ring-2 focus:ring-primary focus:ring-offset-2 transition-all"
         >
-          <i class="fas fa-search mr-2"></i>Search Player
+          <i class="fas fa-search mr-2"></i>Search Players
         </button>
       </div>
     </div>
   </form>
   
   {% if search_attempted %}
-    {% if player_found %}
-      <!-- Redirect will happen via JavaScript -->
-      <script>
-        window.location.href = '/mobile/player-detail/{{ player_name | urlencode }}';
-      </script>
-    {% else %}
-      <!-- No Player Found Message -->
-      <div class="mb-4 p-4 rounded-xl shadow-lg bg-red-100 border-l-4 border-red-500 flex items-center">
-        <i class="fas fa-exclamation-triangle text-red-600 text-2xl mr-3"></i>
+    {% if matching_players %}
+      <!-- Search Results Header -->
+      <div class="mb-4 p-4 rounded-xl shadow-lg bg-green-100 border-l-4 border-green-500 flex items-center">
+        <i class="fas fa-check-circle text-green-600 text-2xl mr-3"></i>
         <div>
-          <div class="font-bold text-red-800 text-lg">Player Not Found</div>
-          <div class="text-red-700">No player found with the name "{{ search_name }}". Please check the spelling and try again.</div>
+          <div class="font-bold text-green-800 text-lg">{{ matching_players|length }} Player{{ 's' if matching_players|length != 1 else '' }} Found</div>
+          <div class="text-green-700">Searching for {{ search_query }}</div>
+        </div>
+      </div>
+      
+      <!-- Player Results -->
+      <div class="space-y-3 mb-4">
+        {% for player in matching_players %}
+        <div class="bg-white rounded-xl shadow-lg p-4 border border-gray-200 hover:shadow-xl transition-shadow">
+          <div class="flex items-center justify-between">
+            <div class="flex-1">
+              <div class="font-bold text-lg text-gray-900 mb-1">{{ player.name }}</div>
+              <div class="text-sm text-gray-600 space-y-1">
+                <div class="flex items-center gap-2">
+                  <i class="fas fa-chart-line text-blue-500 w-4"></i>
+                  <span>PTI: {{ player.current_pti }}</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <i class="fas fa-calendar text-green-500 w-4"></i>
+                  <span>{{ player.total_matches }} matches</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <i class="fas fa-building text-purple-500 w-4"></i>
+                  <span>{{ player.club }}</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <i class="fas fa-trophy text-yellow-500 w-4"></i>
+                  <span>{{ player.series }}</span>
+                </div>
+              </div>
+            </div>
+            <div class="ml-4">
+              <a href="/mobile/player-detail/{{ player.name | urlencode }}" 
+                 class="bg-primary text-white px-4 py-2 rounded-lg font-medium text-sm hover:bg-primary-dark transition-colors flex items-center gap-2">
+                <i class="fas fa-chart-bar"></i>
+                View
+              </a>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      
+    {% else %}
+      <!-- No Players Found Message -->
+      <div class="mb-4 p-4 rounded-xl shadow-lg bg-yellow-100 border-l-4 border-yellow-500 flex items-center">
+        <i class="fas fa-exclamation-triangle text-yellow-600 text-2xl mr-3"></i>
+        <div>
+          <div class="font-bold text-yellow-800 text-lg">No Players Found</div>
+          <div class="text-yellow-700">No players found matching {{ search_query }}. Try different spelling or partial names.</div>
         </div>
       </div>
     {% endif %}
@@ -74,11 +117,12 @@
   <div class="mb-4 p-4 rounded-xl shadow-lg bg-blue-100 border-l-4 border-blue-500 flex items-start">
     <i class="fas fa-info-circle text-blue-600 text-2xl mr-3 mt-1"></i>
     <div>
-      <div class="font-bold text-blue-800 text-lg mb-2">Search Tips</div>
+      <div class="font-bold text-blue-800 text-lg mb-2">Enhanced Search Tips</div>
       <ul class="text-blue-700 space-y-1">
-        <li>• Enter both first and last name for best results</li>
-        <li>• Use exact spelling as it appears in match records</li>
-        <li>• Player must have played matches to appear in results</li>
+        <li>• <strong>Flexible:</strong> Search by first name only, last name only, or both</li>
+        <li>• <strong>Smart matching:</strong> Finds nicknames (Mike→Michael, Jon→Jonathan)</li>
+        <li>• <strong>Typo-friendly:</strong> Handles small spelling errors automatically</li>
+        <li>• <strong>Multiple results:</strong> Shows all matching players to choose from</li>
       </ul>
     </div>
   </div>

@@ -1,4 +1,5 @@
 import os
+import sys
 from logging.config import fileConfig
 from urllib.parse import urlparse
 
@@ -6,7 +7,17 @@ from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
 from alembic import context
-from sync_railway_schema import Base  # Import your models
+
+# Add project root to path for imports
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Try to import the base model, but if it fails, use None (schema-less migrations)
+try:
+    from Helper Scripts.sync_railway_schema import Base
+    target_metadata = Base.metadata
+except ImportError:
+    # If we can't import the models, we'll use schema-less migrations
+    target_metadata = None
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -28,10 +39,6 @@ def get_url():
         return os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/rally")
 
 config.set_main_option("sqlalchemy.url", get_url())
-
-# add your model's MetaData object here
-# for 'autogenerate' support
-target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:

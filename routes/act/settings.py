@@ -32,7 +32,7 @@ def init_routes(app):
             # Get user data with club and series names
             user_data = execute_query_one('''
                 SELECT u.first_name, u.last_name, u.email, u.club_automation_password,
-                       c.name as club, s.name as series
+                       c.name as club, s.name as series, u.tenniscores_player_id
                 FROM users u
                 LEFT JOIN clubs c ON u.club_id = c.id
                 LEFT JOIN series s ON u.series_id = s.id
@@ -48,7 +48,8 @@ def init_routes(app):
                 'email': user_data['email'] or '',
                 'club_automation_password': user_data['club_automation_password'] or '',
                 'club': user_data['club'] or '',
-                'series': user_data['series'] or ''
+                'series': user_data['series'] or '',
+                'tenniscores_player_id': user_data['tenniscores_player_id'] or ''
             }
             
             return jsonify(response_data)
@@ -107,7 +108,7 @@ def init_routes(app):
             # Get updated user data to return and update session
             updated_user = execute_query_one('''
                 SELECT u.first_name, u.last_name, u.email, u.club_automation_password,
-                       c.name as club, s.name as series, u.is_admin
+                       c.name as club, s.name as series, u.is_admin, u.tenniscores_player_id
                 FROM users u
                 LEFT JOIN clubs c ON u.club_id = c.id
                 LEFT JOIN series s ON u.series_id = s.id
@@ -123,7 +124,8 @@ def init_routes(app):
                     'club': updated_user['club'],
                     'series': updated_user['series'],
                     'club_automation_password': updated_user['club_automation_password'],
-                    'is_admin': updated_user['is_admin']
+                    'is_admin': updated_user['is_admin'],
+                    'tenniscores_player_id': updated_user['tenniscores_player_id']
                 }
                 
                 return jsonify({

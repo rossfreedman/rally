@@ -43,6 +43,13 @@
     </form>
     <div id="settings-success" class="hidden mt-4 alert alert-success"></div>
     <div id="settings-error" class="hidden mt-4 alert alert-error"></div>
+    
+    <!-- Player ID Display -->
+    <div class="mt-6 pt-4 border-t border-base-300">
+      <div class="text-xs text-gray-400">
+        <span class="font-mono">Player ID: <span id="player-id-display">Loading...</span></span>
+      </div>
+    </div>
   </div>
 </div>
 <script>
@@ -85,6 +92,15 @@ toggleBtn.addEventListener('click', function() {
 fetch('/api/get-user-settings').then(r=>r.json()).then(user => {
   fillUserSettingsForm(user);
   loadClubsAndSeries(user);
+  
+  // Display player ID
+  const playerIdDisplay = document.getElementById('player-id-display');
+  if (user.tenniscores_player_id) {
+    playerIdDisplay.textContent = user.tenniscores_player_id;
+  } else {
+    playerIdDisplay.textContent = 'Not set';
+    playerIdDisplay.className = 'text-orange-500';
+  }
 });
 // Handle form submit
 const form = document.getElementById('user-settings-form');

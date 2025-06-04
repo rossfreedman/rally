@@ -6,6 +6,7 @@ import os
 from werkzeug.security import generate_password_hash, check_password_hash
 from database_utils import execute_query, execute_query_one, execute_update
 from utils.logging import log_user_activity
+from utils.match_utils import find_player_id_by_club_name
 
 logger = logging.getLogger(__name__)
 
@@ -84,11 +85,29 @@ def init_routes(app):
                 if existing_user:
                     return jsonify({'error': 'User already exists'}), 409
 
-                # Insert new user
+                # Attempt to find Tenniscores Player ID
+                tenniscores_player_id = None
+                try:
+                    tenniscores_player_id = find_player_id_by_club_name(
+                        first_name=first_name,
+                        last_name=last_name,
+                        series_mapping_id=series_name,
+                        club_name=club_name
+                    )
+                    if tenniscores_player_id:
+                        logger.info(f"Found Tenniscores Player ID for {first_name} {last_name}: {tenniscores_player_id}")
+                    else:
+                        logger.info(f"No Tenniscores Player ID found for {first_name} {last_name} ({club_name}, {series_name})")
+                except Exception as match_error:
+                    logger.warning(f"Error matching player ID for {first_name} {last_name}: {str(match_error)}")
+                    # Continue with registration even if matching fails
+                    tenniscores_player_id = None
+
+                # Insert new user with tenniscores_player_id
                 success = execute_update(
                     """
-                    INSERT INTO users (email, password_hash, first_name, last_name, club_id, series_id)
-                    VALUES (%(email)s, %(password_hash)s, %(first_name)s, %(last_name)s, %(club_id)s, %(series_id)s)
+                    INSERT INTO users (email, password_hash, first_name, last_name, club_id, series_id, tenniscores_player_id)
+                    VALUES (%(email)s, %(password_hash)s, %(first_name)s, %(last_name)s, %(club_id)s, %(series_id)s, %(tenniscores_player_id)s)
                     """,
                     {
                         'email': email,
@@ -96,7 +115,8 @@ def init_routes(app):
                         'first_name': first_name,
                         'last_name': last_name,
                         'club_id': club_id,
-                        'series_id': series_id
+                        'series_id': series_id,
+                        'tenniscores_player_id': tenniscores_player_id
                     }
                 )
 
@@ -108,7 +128,7 @@ def init_routes(app):
                 user = execute_query_one(
                     """
                     SELECT u.id, u.email, u.first_name, u.last_name,
-                           c.name as club_name, s.name as series_name
+                           c.name as club_name, s.name as series_name, u.tenniscores_player_id
                     FROM users u
                     JOIN clubs c ON u.club_id = c.id
                     JOIN series s ON u.series_id = s.id
@@ -125,12 +145,14 @@ def init_routes(app):
                     'last_name': user['last_name'],
                     'club': user['club_name'],
                     'series': user['series_name'],
+                    'tenniscores_player_id': user['tenniscores_player_id'],
                     'settings': '{}'  # Default empty settings
                 }
                 session.permanent = True
 
-                # Log successful registration
-                log_user_activity(email, 'auth', action='register', details='Registration successful')
+                # Log successful registration with player ID info
+                match_detail = f"Matched to Player ID: {tenniscores_player_id}" if tenniscores_player_id else "No Player ID match found"
+                log_user_activity(email, 'auth', action='register', details=f'Registration successful. {match_detail}')
                 
                 return jsonify({
                     'status': 'success',
@@ -161,7 +183,7 @@ def init_routes(app):
                 user = execute_query_one(
                     """
                     SELECT u.id, u.email, u.password_hash, u.first_name, u.last_name,
-                           c.name as club_name, s.name as series_name
+                           c.name as club_name, s.name as series_name, u.tenniscores_player_id
                     FROM users u
                     JOIN clubs c ON u.club_id = c.id
                     JOIN series s ON u.series_id = s.id
@@ -186,6 +208,7 @@ def init_routes(app):
                     'last_name': user['last_name'],
                     'club': user['club_name'],
                     'series': user['series_name'],
+                    'tenniscores_player_id': user['tenniscores_player_id'],
                     'settings': '{}'  # Default empty settings
                 }
                 session.permanent = True
