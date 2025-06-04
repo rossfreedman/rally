@@ -22,6 +22,36 @@ def init_find_people_to_play_routes(app):
             print(f"Error serving find people to play page: {str(e)}")
             return jsonify({'error': str(e)}), 500
 
+    @app.route('/api/debug-club-data')
+    @login_required
+    def debug_club_data():
+        """Debug endpoint to show user club and available clubs in players.json"""
+        try:
+            user_club = session['user'].get('club')
+            
+            # Load player data
+            players_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'data', 'players.json')
+            with open(players_path, 'r') as f:
+                all_players = json.load(f)
+            
+            # Get all unique clubs and series
+            clubs_in_data = set()
+            chicago_6_clubs = set()
+            for player in all_players:
+                clubs_in_data.add(player['Club'])
+                if player['Series'] == 'Chicago 6':
+                    chicago_6_clubs.add(player['Club'])
+            
+            return jsonify({
+                'user_club_in_session': user_club,
+                'all_clubs_in_players_json': sorted(list(clubs_in_data)),
+                'chicago_6_clubs': sorted(list(chicago_6_clubs)),
+                'session_user': session['user']
+            })
+        except Exception as e:
+            print(f"Debug endpoint error: {str(e)}")
+            return jsonify({'error': str(e)}), 500
+
     @app.route('/api/club-players')
     @login_required
     def get_club_players():
@@ -40,13 +70,30 @@ def init_find_people_to_play_routes(app):
             pti_max = request.args.get('pti_max', type=float)
 
             print(f"\n=== DEBUG: get_club_players ===")
-            print(f"User club: {user_club}")
+            print(f"User club: '{user_club}'")
+            print(f"User club type: {type(user_club)}")
             print(f"Filters - Series: {series_filter}, First: {first_name_filter}, Last: {last_name_filter}, PTI: {pti_min}-{pti_max}")
 
             # Load player data
             players_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'data', 'players.json')
             with open(players_path, 'r') as f:
                 all_players = json.load(f)
+
+            # Debug: Show unique clubs in data and check for Chicago 6
+            clubs_in_data = set()
+            chicago_6_count = 0
+            user_club_count = 0
+            for player in all_players:
+                clubs_in_data.add(player['Club'])
+                if player['Series'] == 'Chicago 6':
+                    chicago_6_count += 1
+                if player['Club'] == user_club:
+                    user_club_count += 1
+            
+            print(f"Total players in file: {len(all_players)}")
+            print(f"Chicago 6 players in file: {chicago_6_count}")
+            print(f"Players with user's club '{user_club}': {user_club_count}")
+            print(f"All clubs in data: {sorted(list(clubs_in_data))}")
 
             # Load real contact information from CSV
             csv_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'data', 'club_directories', 'directory_tennaqua.csv')
@@ -89,14 +136,21 @@ def init_find_people_to_play_routes(app):
             club_series = set()  # Track all series at this club
 
             for player in all_players:
+                # Debug: Log first few club comparisons
+                if len(filtered_players) < 3:
+                    print(f"Comparing: player['Club']='{player['Club']}' == user_club='{user_club}' ? {player['Club'] == user_club}")
+                
                 # Only include players from the same club as the user
                 if player['Club'] == user_club:
                     club_series.add(player['Series'])
                     
+                    # Handle PTI values - allow "N/A" and non-numeric values
                     try:
                         pti_value = float(player['PTI'])
                     except (ValueError, TypeError):
-                        continue
+                        # For "N/A" or non-numeric PTI, set a default value that won't be filtered out
+                        pti_value = 50.0  # Use middle value so it passes most PTI filters
+                        print(f"Player {player['First Name']} {player['Last Name']} has non-numeric PTI '{player['PTI']}', using default value 50.0")
 
                     # Apply filters
                     if series_filter and player['Series'] != series_filter:
@@ -124,7 +178,7 @@ def init_find_people_to_play_routes(app):
                         'firstName': player['First Name'],
                         'lastName': player['Last Name'],
                         'series': player['Series'],
-                        'pti': player['PTI'],
+                        'pti': player['PTI'],  # Keep original PTI value for display
                         'wins': player['Wins'],
                         'losses': player['Losses'],
                         'winRate': player['Win %'],
@@ -133,7 +187,14 @@ def init_find_people_to_play_routes(app):
                     })
 
             # Sort players by PTI (ascending - lower PTI is better)
-            filtered_players.sort(key=lambda x: float(x['pti']))
+            # Handle "N/A" PTI values by treating them as a high number for sorting
+            def get_sort_pti(player):
+                try:
+                    return float(player['pti'])
+                except (ValueError, TypeError):
+                    return 999.0  # Put "N/A" values at the end
+            
+            filtered_players.sort(key=get_sort_pti)
 
             print(f"Found {len(filtered_players)} players at {user_club}")
             print(f"Available series: {sorted(club_series)}")
@@ -143,7 +204,13 @@ def init_find_people_to_play_routes(app):
             return jsonify({
                 'players': filtered_players,
                 'available_series': sorted(club_series, key=lambda x: int(x.split()[-1]) if x.split()[-1].isdigit() else 999),
-                'pti_range': pti_range
+                'pti_range': pti_range,
+                'debug': {
+                    'user_club': user_club,
+                    'total_players_in_file': len(all_players),
+                    'players_at_user_club': user_club_count,
+                    'all_clubs': sorted(list(clubs_in_data))
+                }
             })
 
         except Exception as e:
