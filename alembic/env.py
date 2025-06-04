@@ -13,9 +13,14 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Try to import the base model, but if it fails, use None (schema-less migrations)
 try:
-    from Helper Scripts.sync_railway_schema import Base
-    target_metadata = Base.metadata
-except ImportError:
+    # Import from Helper Scripts folder - need to handle the space in the directory name
+    import importlib.util
+    helper_scripts_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Helper Scripts", "sync_railway_schema.py")
+    spec = importlib.util.spec_from_file_location("sync_railway_schema", helper_scripts_path)
+    sync_railway_schema = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(sync_railway_schema)
+    target_metadata = sync_railway_schema.Base.metadata
+except (ImportError, FileNotFoundError, AttributeError):
     # If we can't import the models, we'll use schema-less migrations
     target_metadata = None
 

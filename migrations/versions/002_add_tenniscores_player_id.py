@@ -1,7 +1,7 @@
 """add tenniscores_player_id to users
 
-Revision ID: 002
-Revises: 001
+Revision ID: 003_add_player_id
+Revises: 22cdc4d8bba3
 Create Date: 2024-12-18
 
 """
@@ -9,8 +9,8 @@ from alembic import op
 import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
-revision = '002'
-down_revision = '001'
+revision = '003_add_player_id'
+down_revision = '22cdc4d8bba3'
 branch_labels = None
 depends_on = None
 

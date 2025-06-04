@@ -5035,7 +5035,8 @@ def get_team_schedule_data():
                     full_name = f"{player['First Name']} {player['Last Name']}"
                     team_players.append({
                         'player_name': full_name,
-                        'club_name': club_name
+                        'club_name': club_name,
+                        'player_id': player.get('Player ID')  # Include Player ID for better matching
                     })
             
             print(f"✓ Found {len(team_players)} players in players.json for {club_name} - {series}")
@@ -5124,7 +5125,8 @@ def get_team_schedule_data():
         for player in team_players:
             availability = []
             player_name = player['player_name']
-            print(f"\nChecking availability for {player_name}")
+            player_id = player.get('player_id')
+            print(f"\nChecking availability for {player_name} (ID: {player_id})")
             
             for event_date in event_dates:
                 try:
@@ -5136,20 +5138,42 @@ def get_team_schedule_data():
                     
                     if series_record['id'] is not None:
                         try:
-                            avail_query = """
-                                SELECT availability_status
-                                FROM player_availability 
-                                WHERE player_name = %(player)s 
-                                AND series_id = %(series_id)s 
-                                AND DATE(match_date AT TIME ZONE 'UTC') = DATE(%(date)s AT TIME ZONE 'UTC')
-                            """
-                            avail_params = {
-                                'player': player_name,
-                                'series_id': series_record['id'],
-                                'date': event_date_obj
-                            }
+                            # Try player ID first, then fallback to name
+                            avail_record = None
                             
-                            avail_record = execute_query(avail_query, avail_params)
+                            if player_id:
+                                # Primary search: Use tenniscores_player_id
+                                avail_query = """
+                                    SELECT availability_status
+                                    FROM player_availability 
+                                    WHERE tenniscores_player_id = %(player_id)s 
+                                    AND series_id = %(series_id)s 
+                                    AND DATE(match_date AT TIME ZONE 'UTC') = DATE(%(date)s AT TIME ZONE 'UTC')
+                                """
+                                avail_params = {
+                                    'player_id': player_id,
+                                    'series_id': series_record['id'],
+                                    'date': event_date_obj
+                                }
+                                avail_record = execute_query(avail_query, avail_params)
+                                
+                            if not avail_record and player_name:
+                                # Fallback search: Use player_name
+                                print(f"No availability found with player ID {player_id}, falling back to name search for {player_name}")
+                                avail_query = """
+                                    SELECT availability_status
+                                    FROM player_availability 
+                                    WHERE player_name = %(player)s 
+                                    AND series_id = %(series_id)s 
+                                    AND DATE(match_date AT TIME ZONE 'UTC') = DATE(%(date)s AT TIME ZONE 'UTC')
+                                """
+                                avail_params = {
+                                    'player': player_name,
+                                    'series_id': series_record['id'],
+                                    'date': event_date_obj
+                                }
+                                avail_record = execute_query(avail_query, avail_params)
+                            
                             status = avail_record[0]['availability_status'] if avail_record and avail_record[0]['availability_status'] is not None else 0
                         except Exception as e:
                             print(f"Error querying availability for {player_name}: {e}")
@@ -5300,9 +5324,19 @@ def submit_availability():
                 print(f"Series not found: {series}")
                 return 'Series not found', 404
 
-        # Update availability using the existing function
+        # Get the user's player ID if available for enhanced matching
+        user_player_id = user.get('tenniscores_player_id')
+        player_full_name = f"{user.get('first_name', '')} {user.get('last_name', '')}"
+        
+        # Use player name from form if available, otherwise use user's full name
+        target_player_name = player_name.strip() if player_name else player_full_name.strip()
+        
+        print(f"User player ID: {user_player_id}")
+        print(f"Target player name: {target_player_name}")
+
+        # Update availability using the existing function (which now supports player ID internally)
         success = update_player_availability(
-            player_name.strip(),    # player_name (first parameter)
+            target_player_name,     # player_name (first parameter)
             match_date.strip(),     # match_date (second parameter) 
             numeric_status,         # availability_status (third parameter)
             series                  # series (fourth parameter)
@@ -5319,7 +5353,7 @@ def submit_availability():
             'away_team': match_id.split('-')[2] if len(match_id.split('-')) > 2 else ''
         }
         avail = {'status': status}  # Use string status for template
-        players = [{'name': player_name}]
+        players = [{'name': target_player_name}]
         session_data = {'user': user}
 
         return render_template(
@@ -5388,7 +5422,8 @@ def serve_all_team_availability():
                     full_name = f"{player['First Name']} {player['Last Name']}"
                     team_players.append({
                         'player_name': full_name,
-                        'club_name': club_name
+                        'club_name': club_name,
+                        'player_id': player.get('Player ID')  # Include Player ID for better matching
                     })
             
             if not team_players:
@@ -5406,6 +5441,7 @@ def serve_all_team_availability():
         for player in team_players:
             availability = []
             player_name = player['player_name']
+            player_id = player.get('player_id')
             
             try:
                 # Convert selected_date string to datetime.date object if needed
@@ -5423,21 +5459,42 @@ def serve_all_team_availability():
                     print(f"❌ Error converting selected_date {selected_date}: {e}")
                     continue
                 
-                # Get availability status for this player and date
-                avail_query = """
-                    SELECT availability_status
-                    FROM player_availability 
-                    WHERE player_name = %(player)s 
-                    AND series_id = %(series_id)s 
-                    AND DATE(match_date AT TIME ZONE 'UTC') = DATE(%(date)s AT TIME ZONE 'UTC')
-                """
-                avail_params = {
-                    'player': player_name,
-                    'series_id': series_record['id'],
-                    'date': selected_date_utc
-                }
+                # Get availability status for this player and date - Try player ID first, then fallback to name
+                avail_record = None
                 
-                avail_record = execute_query(avail_query, avail_params)
+                if player_id:
+                    # Primary search: Use tenniscores_player_id
+                    avail_query = """
+                        SELECT availability_status
+                        FROM player_availability 
+                        WHERE tenniscores_player_id = %(player_id)s 
+                        AND series_id = %(series_id)s 
+                        AND DATE(match_date AT TIME ZONE 'UTC') = DATE(%(date)s AT TIME ZONE 'UTC')
+                    """
+                    avail_params = {
+                        'player_id': player_id,
+                        'series_id': series_record['id'],
+                        'date': selected_date_utc
+                    }
+                    avail_record = execute_query(avail_query, avail_params)
+                    
+                if not avail_record and player_name:
+                    # Fallback search: Use player_name
+                    print(f"No availability found with player ID {player_id}, falling back to name search for {player_name}")
+                    avail_query = """
+                        SELECT availability_status
+                        FROM player_availability 
+                        WHERE player_name = %(player)s 
+                        AND series_id = %(series_id)s 
+                        AND DATE(match_date AT TIME ZONE 'UTC') = DATE(%(date)s AT TIME ZONE 'UTC')
+                    """
+                    avail_params = {
+                        'player': player_name,
+                        'series_id': series_record['id'],
+                        'date': selected_date_utc
+                    }
+                    avail_record = execute_query(avail_query, avail_params)
+                
                 status = avail_record[0]['availability_status'] if avail_record and avail_record[0]['availability_status'] is not None else 0
                 
                 availability.append({

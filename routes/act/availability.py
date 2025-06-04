@@ -90,28 +90,66 @@ def get_player_availability(player_name, match_date, series):
             print(f"No series found with name: {series}")
             return None
         
+        # Try to find player ID from player_name first for better matching
+        player_id = None
+        try:
+            # Look up player ID from user record if available
+            player_record = execute_query_one(
+                "SELECT tenniscores_player_id FROM users WHERE CONCAT(first_name, ' ', last_name) = %(player_name)s",
+                {'player_name': player_name.strip()}
+            )
+            if player_record and player_record['tenniscores_player_id']:
+                player_id = player_record['tenniscores_player_id']
+                print(f"Found player ID for {player_name}: {player_id}")
+        except Exception as e:
+            print(f"Could not look up player ID for {player_name}: {e}")
+        
         print(f"Querying availability with parameters:")
         print(f"  player_name: {player_name.strip()}")
+        print(f"  player_id: {player_id}")
         print(f"  match_date: {normalized_date}")
         print(f"  series_id: {series_record['id']}")
         
-        # Query the database using timezone-aware date comparison
-        # Since we now store as TIMESTAMPTZ at midnight UTC, we need to compare dates in UTC
-        result = execute_query_one(
-            """
-            SELECT availability_status, match_date
-            FROM player_availability 
-            WHERE player_name = %(player_name)s 
-            AND DATE(match_date AT TIME ZONE 'UTC') = DATE(%(match_date)s AT TIME ZONE 'UTC')
-            AND series_id = %(series_id)s
-            """,
-            {
-                'player_name': player_name.strip(),
-                'match_date': normalized_date,  # Pass timestamptz not string
-                'series_id': series_record['id']
-            }
-        )
-        print(f"Availability lookup result: {result}")
+        # Try player ID first if available
+        result = None
+        if player_id:
+            # Primary search: Use tenniscores_player_id
+            result = execute_query_one(
+                """
+                SELECT availability_status, match_date
+                FROM player_availability 
+                WHERE tenniscores_player_id = %(player_id)s 
+                AND DATE(match_date AT TIME ZONE 'UTC') = DATE(%(match_date)s AT TIME ZONE 'UTC')
+                AND series_id = %(series_id)s
+                """,
+                {
+                    'player_id': player_id,
+                    'match_date': normalized_date,
+                    'series_id': series_record['id']
+                }
+            )
+            print(f"Player ID availability lookup result: {result}")
+        
+        if not result:
+            # Fallback search: Use player_name
+            if player_id:
+                print(f"No availability found with player ID {player_id}, falling back to name search for {player_name}")
+            
+            result = execute_query_one(
+                """
+                SELECT availability_status, match_date
+                FROM player_availability 
+                WHERE player_name = %(player_name)s 
+                AND DATE(match_date AT TIME ZONE 'UTC') = DATE(%(match_date)s AT TIME ZONE 'UTC')
+                AND series_id = %(series_id)s
+                """,
+                {
+                    'player_name': player_name.strip(),
+                    'match_date': normalized_date,
+                    'series_id': series_record['id']
+                }
+            )
+            print(f"Name-based availability lookup result: {result}")
         
         if not result:
             print(f"No availability found for {player_name} on {match_date}")
@@ -342,18 +380,50 @@ def update_player_availability(player_name, match_date, availability_status, ser
                 print("Creating new availability record")
                 print(f"Inserting: player={player_name.strip()}, date={intended_date_obj}, status={availability_status}, series_id={series_id}")
                 
-                result = execute_query(
-                    """
-                    INSERT INTO player_availability (player_name, match_date, availability_status, series_id, updated_at)
-                    VALUES (%(player)s, %(date)s, %(status)s, %(series_id)s, NOW())
-                    """,
-                    {
-                        'player': player_name.strip(),
-                        'date': intended_date_obj,
-                        'status': availability_status,
-                        'series_id': series_id
-                    }
-                )
+                # Try to get the player's ID for enhanced record creation
+                player_id = None
+                try:
+                    player_record = execute_query_one(
+                        "SELECT tenniscores_player_id FROM users WHERE CONCAT(first_name, ' ', last_name) = %(player_name)s",
+                        {'player_name': player_name.strip()}
+                    )
+                    if player_record and player_record['tenniscores_player_id']:
+                        player_id = player_record['tenniscores_player_id']
+                        print(f"Found player ID for new record: {player_id}")
+                except Exception as e:
+                    print(f"Could not look up player ID for new record: {e}")
+                
+                # Create the new record with player ID if available
+                if player_id:
+                    result = execute_query(
+                        """
+                        INSERT INTO player_availability (player_name, match_date, availability_status, series_id, tenniscores_player_id, updated_at)
+                        VALUES (%(player)s, %(date)s, %(status)s, %(series_id)s, %(player_id)s, NOW())
+                        """,
+                        {
+                            'player': player_name.strip(),
+                            'date': intended_date_obj,
+                            'status': availability_status,
+                            'series_id': series_id,
+                            'player_id': player_id
+                        }
+                    )
+                    print(f"✅ Created new record with player ID: {player_id}")
+                else:
+                    # Fallback: create record without player ID
+                    result = execute_query(
+                        """
+                        INSERT INTO player_availability (player_name, match_date, availability_status, series_id, updated_at)
+                        VALUES (%(player)s, %(date)s, %(status)s, %(series_id)s, NOW())
+                        """,
+                        {
+                            'player': player_name.strip(),
+                            'date': intended_date_obj,
+                            'status': availability_status,
+                            'series_id': series_id
+                        }
+                    )
+                    print("⚠️ Created new record without player ID (not found in users table)")
         
         # Verify the record was stored correctly
         verification_record = execute_query_one(
