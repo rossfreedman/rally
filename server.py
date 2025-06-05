@@ -376,13 +376,23 @@ def internal_error(error):
 # ==========================================
 
 if __name__ == '__main__':
+    # Get port from environment variable (Railway sets this)
+    port = int(os.environ.get('PORT', 8080))
+    
+    # Determine if we're in development or production
+    is_development = os.environ.get('FLASK_ENV') == 'development'
+    
     try:
-        print("🏓 Starting Rally server locally on port 8080")
-        app.run(host='0.0.0.0', port=8080, debug=True)
+        if is_development:
+            print(f"🏓 Starting Rally server locally on port {port}")
+            app.run(host='0.0.0.0', port=port, debug=True)
+        else:
+            print(f"🏓 Starting Rally server in production mode on port {port}")
+            app.run(host='0.0.0.0', port=port, debug=False)
     except OSError as e:
         if "Address already in use" in str(e):
             print("Address already in use")
-            print("Port 8080 is in use by another program. Either identify and stop that program, or start the server with a different port.")
+            print(f"Port {port} is in use by another program. Either identify and stop that program, or start the server with a different port.")
         else:
             print(f"Failed to start server: {e}")
         sys.exit(1)
