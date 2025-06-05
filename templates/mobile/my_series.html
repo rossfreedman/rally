@@ -30,6 +30,7 @@
       <div id="pointsBarChart" style="height:260px;"></div>
       <div id="comparisonPlot" style="height:260px;"></div>
       <div id="playoffPlot" style="height:260px;"></div>
+      <!-- <div id="progressionPlot" style="height:260px;"></div> -->
     </div>
   </div>
 </div>
@@ -37,11 +38,23 @@
 <script>
 const userTeam = (window.sessionData && window.sessionData.user && window.sessionData.user.team) || '';
 
+// Locked chart configuration - prevents all user interactions
+const lockedChartConfig = {
+  staticPlot: true,              // Makes chart completely static
+  displayModeBar: false,         // Hides toolbar
+  doubleClick: false,            // Disables double-click actions
+  showTips: false,               // Disables hover tooltips
+  scrollZoom: false,             // Disables zoom with scroll
+  plotGlPixelRatio: 1,           // Prevents high-DPI scaling issues
+  responsive: true               // Still responsive to container size changes
+};
+
 document.addEventListener('DOMContentLoaded', async function() {
   // Load series stats
   const response = await fetch('/api/series-stats');
   const statsData = await response.json();
   const stats = statsData.teams || statsData;
+  const pointsProgression = statsData.pointsProgression || {};
   
   if (!Array.isArray(stats) || stats.length === 0) {
     document.getElementById('seriesTable').innerHTML = '<div class="text-center text-gray-500 p-4">No series data available.</div>';
@@ -51,38 +64,39 @@ document.addEventListener('DOMContentLoaded', async function() {
   // Sort teams by points
   stats.sort((a, b) => b.points - a.points);
 
-  // --- Points Bar Chart ---
+  // --- Points Bar Chart (LOCKED) ---
   const teams = stats.map(t => t.team);
   const points = stats.map(t => t.points);
   Plotly.newPlot('pointsBarChart', [{
     x: teams,
     y: points,
     type: 'bar',
-    marker: {color: 'rgb(49, 130, 189)'}
+    marker: {color: 'rgb(49, 130, 189)'},
+    hoverinfo: 'none'  // Disable hover information
   }], {
     title: 'Total Points by Team',
-    xaxis: {title: 'Team', tickangle: -45, automargin: true},
-    yaxis: {title: 'Points'},
+    xaxis: {title: 'Team', tickangle: -45, automargin: true, fixedrange: true}, // fixedrange prevents zooming/panning
+    yaxis: {title: 'Points', fixedrange: true}, // fixedrange prevents zooming/panning
     margin: {b: 80, t: 40, l: 40, r: 10},
     font: {size: 12}
-  }, {responsive: true, displayModeBar: false});
+  }, lockedChartConfig);
 
-  // --- Top 5 vs Bottom 5 ---
+  // --- Top 5 vs Bottom 5 (LOCKED) ---
   const top5 = stats.slice(0,5);
   const bottom5 = stats.slice(-5);
   Plotly.newPlot('comparisonPlot', [
-    {x: top5.map(t=>t.team), y: top5.map(t=>parseFloat(t.matches.percentage.replace('%',''))), type:'bar', name:'Top 5', marker:{color:'rgb(65,171,93)'}},
-    {x: bottom5.map(t=>t.team), y: bottom5.map(t=>parseFloat(t.matches.percentage.replace('%',''))), type:'bar', name:'Bottom 5', marker:{color:'rgb(239,138,98)'}}
+    {x: top5.map(t=>t.team), y: top5.map(t=>parseFloat(t.matches.percentage.replace('%',''))), type:'bar', name:'Top 5', marker:{color:'rgb(65,171,93)'}, hoverinfo: 'none'},
+    {x: bottom5.map(t=>t.team), y: bottom5.map(t=>parseFloat(t.matches.percentage.replace('%',''))), type:'bar', name:'Bottom 5', marker:{color:'rgb(239,138,98)'}, hoverinfo: 'none'}
   ], {
     title: 'Top 5 vs Bottom 5 Teams - Match Win %',
     barmode: 'group',
-    xaxis: {title:'Team', tickangle:-45, automargin:true},
-    yaxis: {title:'Match Win %', ticksuffix:'%'},
+    xaxis: {title:'Team', tickangle:-45, automargin:true, fixedrange: true},
+    yaxis: {title:'Match Win %', ticksuffix:'%', fixedrange: true},
     margin: {b: 80, t: 40, l: 40, r: 10},
     font: {size: 12}
-  }, {responsive: true, displayModeBar: false});
+  }, lockedChartConfig);
 
-  // --- Playoff Contention ---
+  // --- Playoff Contention (LOCKED) ---
   const playoffCutoff = 8;
   const playoffTeams = stats.slice(0, playoffCutoff);
   const lastPlayoffPoints = playoffTeams[playoffTeams.length-1].points;
@@ -98,10 +112,11 @@ document.addEventListener('DOMContentLoaded', async function() {
     marker:{color:allTeamsWithPointsBack.map(t=>t.isPlayoffTeam?'rgb(65,171,93)':'rgb(239,138,98)')},
     text: allTeamsWithPointsBack.map(t=>t.isPlayoffTeam?'Playoff Position':`${t.pointsBack} back`),
     textposition:'auto',
+    hoverinfo: 'none'  // Disable hover information
   }], {
     title:'Playoff Contention',
-    xaxis:{title:'Team', tickangle:-45, automargin:true},
-    yaxis:{title:'Points'},
+    xaxis:{title:'Team', tickangle:-45, automargin:true, fixedrange: true},
+    yaxis:{title:'Points', fixedrange: true},
     margin:{b:80, t:40, l:40, r:10},
     font:{size:12},
     shapes:[{
@@ -109,7 +124,63 @@ document.addEventListener('DOMContentLoaded', async function() {
       line:{color:'red', width:2, dash:'dash'}
     }],
     showlegend:false
-  }, {responsive:true, displayModeBar:false});
+  }, lockedChartConfig);
+
+  // --- Points Progression Over Time (LOCKED) ---
+  /*
+  if (pointsProgression && pointsProgression.weeks && pointsProgression.teams) {
+    const weeks = pointsProgression.weeks;
+    const progressionTraces = [];
+    
+    // Generate distinct colors for teams
+    const colors = [
+      '#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
+      '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf',
+      '#aec7e8', '#ffbb78', '#98df8a', '#ff9896', '#c5b0d5'
+    ];
+    
+    let colorIndex = 0;
+    for (const [teamName, teamPoints] of Object.entries(pointsProgression.teams)) {
+      // Only show progression if team has data
+      if (teamPoints && teamPoints.length > 0) {
+        progressionTraces.push({
+          x: weeks,
+          y: teamPoints,
+          type: 'scatter',
+          mode: 'lines+markers',
+          name: teamName,
+          line: {color: colors[colorIndex % colors.length], width: 2},
+          marker: {size: 4},
+          hoverinfo: 'none'  // Disable hover information
+        });
+        colorIndex++;
+      }
+    }
+    
+    if (progressionTraces.length > 0) {
+      Plotly.newPlot('progressionPlot', progressionTraces, {
+        title: 'Points Progression Over Time',
+        xaxis: {title: 'Match Weeks', fixedrange: true},
+        yaxis: {title: 'Cumulative Points', fixedrange: true},
+        margin: {b: 80, t: 40, l: 50, r: 10},
+        font: {size: 12},
+        showlegend: true,
+        legend: {
+          orientation: 'h',
+          y: -0.2,
+          x: 0.5,
+          xanchor: 'center'
+        }
+      }, lockedChartConfig);
+    } else {
+      // Show message if no progression data available
+      document.getElementById('progressionPlot').innerHTML = '<div class="text-center text-gray-500 p-4">Points progression data not available.</div>';
+    }
+  } else {
+    // Show message if no progression data available
+    document.getElementById('progressionPlot').innerHTML = '<div class="text-center text-gray-500 p-4">Points progression data not available.</div>';
+  }
+  */
 
   // --- Standings Table ---
   const table = document.getElementById('seriesTable');
@@ -142,7 +213,32 @@ document.addEventListener('DOMContentLoaded', async function() {
 </script>
 <style>
 /* Mobile UX best practices */
-#series-charts > div { border-radius: 12px; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.06); margin-bottom: 1.2em; }
+#series-charts > div { 
+  border-radius: 12px; 
+  background: #fff; 
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06); 
+  margin-bottom: 1.2em;
+  /* Prevent any user selection or interaction */
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  pointer-events: none; /* This prevents all mouse interactions */
+}
+
+/* Re-enable pointer events for the chart containers themselves to allow Plotly to render */
+#pointsBarChart, #comparisonPlot, #playoffPlot /* #progressionPlot */ {
+  pointer-events: auto;
+}
+
+/* But disable context menu and text selection on charts */
+#pointsBarChart *, #comparisonPlot *, #playoffPlot * /* #progressionPlot * */ {
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  user-select: none !important;
+}
+
 #seriesTable th, #seriesTable td { padding: 0.6em 0.4em; }
 #seriesTable th { background: #f3f4f6; font-weight: 700; }
 #seriesTable tr.bg-yellow-100 { background: #fffde7 !important; }

@@ -12,16 +12,18 @@ from utils.auth import login_required
 def get_user_instructions(user_email, team_id=None):
     """Get lineup instructions for a user"""
     try:
+        # Don't filter by team_id since we're storing it as NULL for now
+        # Get all instructions for the user regardless of team
         query = """
             SELECT id, instruction 
             FROM user_instructions 
             WHERE user_email = %(user_email)s AND is_active = true
+            ORDER BY created_at DESC
         """
         params = {'user_email': user_email}
         
-        if team_id:
-            query += ' AND team_id = %(team_id)s'
-            params['team_id'] = team_id
+        # Note: Not filtering by team_id since we're storing it as NULL
+        # In the future, if we implement a teams table with proper IDs, we can add filtering back
             
         instructions = execute_query(query, params)
         return [{'id': instr['id'], 'instruction': instr['instruction']} for instr in instructions]
@@ -32,6 +34,16 @@ def get_user_instructions(user_email, team_id=None):
 def add_user_instruction(user_email, instruction, team_id=None):
     """Add a new lineup instruction"""
     try:
+        # Handle team_id - if it's a string (team name), set to NULL since DB expects integer
+        # In the future, we could look up actual team IDs from a teams table
+        db_team_id = None
+        if team_id and isinstance(team_id, (int, str)):
+            try:
+                # Try to convert to int, if it fails, set to None
+                db_team_id = int(team_id) if str(team_id).isdigit() else None
+            except (ValueError, TypeError):
+                db_team_id = None
+        
         success = execute_update(
             """
             INSERT INTO user_instructions (user_email, instruction, team_id, is_active)
@@ -40,7 +52,7 @@ def add_user_instruction(user_email, instruction, team_id=None):
             {
                 'user_email': user_email,
                 'instruction': instruction,
-                'team_id': team_id
+                'team_id': db_team_id
             }
         )
         return success
@@ -51,6 +63,8 @@ def add_user_instruction(user_email, instruction, team_id=None):
 def delete_user_instruction(user_email, instruction, team_id=None):
     """Delete a lineup instruction"""
     try:
+        # For deletion, we'll match by user and instruction only, ignoring team_id
+        # since team_id might be stored as NULL but passed as string
         query = """
             UPDATE user_instructions 
             SET is_active = false 
@@ -61,9 +75,8 @@ def delete_user_instruction(user_email, instruction, team_id=None):
             'instruction': instruction
         }
         
-        if team_id:
-            query += ' AND team_id = %(team_id)s'
-            params['team_id'] = team_id
+        # Don't filter by team_id since it's likely NULL in DB but string from frontend
+        # If we need team-specific instructions in the future, we can add a teams table
             
         success = execute_update(query, params)
         return success
@@ -159,10 +172,12 @@ def init_lineup_routes(app):
         try:
             data = request.json
             selected_players = data.get('players', [])
+            instructions = data.get('instructions', [])  # Get instructions from request
             
             user_series = session['user'].get('series', '')
             display_series = normalize_series_for_display(user_series)
             
+            # Build the base prompt
             prompt = f"""Create an optimal lineup for these players from {display_series}: {', '.join([f"{p}" for p in selected_players])}
 
 Provide detailed lineup recommendations based on player stats, match history, and team dynamics. Each recommendation should include:
@@ -174,8 +189,16 @@ Court 2: Player3/Player4
 Court 3: Player5/Player6
 Court 4: Player7/Player8
 
-Strategic Explanation: For each court, provide a brief explanation of the strategic reasoning behind the player pairings, highlighting player strengths, intended roles within the pairing, and any specific matchup considerations.
-"""
+Strategic Explanation: For each court, provide a brief explanation of the strategic reasoning behind the player pairings, highlighting player strengths, intended roles within the pairing, and any specific matchup considerations."""
+
+            # Add user instructions if they exist
+            if instructions and len(instructions) > 0:
+                prompt += f"""
+
+IMPORTANT - Follow these specific lineup instructions:
+{chr(10).join([f"• {instruction}" for instruction in instructions])}
+
+Make sure to incorporate these instructions into your lineup recommendations and explain how you've addressed each one."""
             
             assistant = get_or_create_assistant()
             thread = client.beta.threads.create()
@@ -225,12 +248,17 @@ Strategic Explanation: For each court, provide a brief explanation of the strate
             processing_time = time.time() - start_time
             print(f"✅ Lineup generated in {processing_time:.1f}s with {poll_count} polls (optimized)")
             
+            # Log the instructions that were used for debugging
+            if instructions:
+                print(f"✅ Used {len(instructions)} user instructions in lineup generation")
+            
             return jsonify({
                 'suggestion': suggestion,
                 'debug': {
                     'processing_time': f"{processing_time:.1f}s",
                     'polls_required': poll_count,
-                    'optimization': f"Reduced API calls by ~{max(0, 60 - poll_count)}%"
+                    'optimization': f"Reduced API calls by ~{max(0, 60 - poll_count)}%",
+                    'instructions_used': len(instructions) if instructions else 0
                 }
             })
             

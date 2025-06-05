@@ -1,0 +1,171 @@
+{% extends "mobile/layout.html" %}
+{% set show_back_arrow = True %}
+{% block content %}
+<div class="max-w-lg mx-auto">
+  <!-- Consistent Header -->
+  <div class="flex items-center gap-3 mt-4 mb-8 px-4">
+    <div class="bg-white rounded-md flex items-center justify-center h-12 w-12">
+      <i class="fas fa-chart-line text-rally-green text-3xl"></i>
+    </div>
+    <div>
+      <div class="text-2xl font-bold leading-tight">Series Statistics</div>
+      <div class="text-base text-gray-500 mt-1">Comprehensive stats for your series</div>
+    </div>
+  </div>
+  <div class="space-y-6 px-4">
+    <!-- Standings Table -->
+    <div class="bg-white rounded-xl shadow p-3 mb-6 border border-gray-200">
+      <div class="flex items-center mb-2">
+        <i class="fas fa-list-ol text-blue-500 text-xl mr-2"></i>
+        <span class="text-lg font-bold text-rally-green">Standings</span>
+      </div>
+      <div class="overflow-x-auto">
+        <table id="seriesTable" class="min-w-full text-sm text-left">
+          <!-- Table will be populated by JS -->
+        </table>
+      </div>
+    </div>
+    <!-- Charts Section -->
+    <div id="series-charts" class="space-y-6 mb-6">
+      <div id="pointsBarChart" style="height:260px;"></div>
+      <div id="comparisonPlot" style="height:260px;"></div>
+      <div id="playoffPlot" style="height:260px;"></div>
+    </div>
+  </div>
+</div>
+<script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
+<script>
+const userTeam = (window.sessionData && window.sessionData.user && window.sessionData.user.team) || '';
+
+document.addEventListener('DOMContentLoaded', async function() {
+  // Load series stats
+  const response = await fetch('/api/series-stats');
+  const statsData = await response.json();
+  const stats = statsData.teams || statsData;
+  
+  if (!Array.isArray(stats) || stats.length === 0) {
+    document.getElementById('seriesTable').innerHTML = '<div class="text-center text-gray-500 p-4">No series data available.</div>';
+    return;
+  }
+
+  // Sort teams by points
+  stats.sort((a, b) => b.points - a.points);
+
+  // --- Points Bar Chart ---
+  const teams = stats.map(t => t.team);
+  const points = stats.map(t => t.points);
+  Plotly.newPlot('pointsBarChart', [{
+    x: teams,
+    y: points,
+    type: 'bar',
+    marker: {color: 'rgb(49, 130, 189)'}
+  }], {
+    title: 'Total Points by Team',
+    xaxis: {title: 'Team', tickangle: -45, automargin: true},
+    yaxis: {title: 'Points'},
+    margin: {b: 80, t: 40, l: 40, r: 10},
+    font: {size: 12}
+  }, {responsive: true, displayModeBar: false});
+
+  // --- Top 5 vs Bottom 5 ---
+  const top5 = stats.slice(0,5);
+  const bottom5 = stats.slice(-5);
+  Plotly.newPlot('comparisonPlot', [
+    {x: top5.map(t=>t.team), y: top5.map(t=>parseFloat(t.matches.percentage.replace('%',''))), type:'bar', name:'Top 5', marker:{color:'rgb(65,171,93)'}},
+    {x: bottom5.map(t=>t.team), y: bottom5.map(t=>parseFloat(t.matches.percentage.replace('%',''))), type:'bar', name:'Bottom 5', marker:{color:'rgb(239,138,98)'}}
+  ], {
+    title: 'Top 5 vs Bottom 5 Teams - Match Win %',
+    barmode: 'group',
+    xaxis: {title:'Team', tickangle:-45, automargin:true},
+    yaxis: {title:'Match Win %', ticksuffix:'%'},
+    margin: {b: 80, t: 40, l: 40, r: 10},
+    font: {size: 12}
+  }, {responsive: true, displayModeBar: false});
+
+  // --- Playoff Contention ---
+  const playoffCutoff = 8;
+  const playoffTeams = stats.slice(0, playoffCutoff);
+  const lastPlayoffPoints = playoffTeams[playoffTeams.length-1].points;
+  const allTeamsWithPointsBack = stats.map(t => ({
+    ...t,
+    pointsBack: t.points >= lastPlayoffPoints ? 0 : lastPlayoffPoints - t.points,
+    isPlayoffTeam: t.points >= lastPlayoffPoints
+  }));
+  Plotly.newPlot('playoffPlot', [{
+    x: allTeamsWithPointsBack.map(t=>t.team),
+    y: allTeamsWithPointsBack.map(t=>t.points),
+    type:'bar',
+    marker:{color:allTeamsWithPointsBack.map(t=>t.isPlayoffTeam?'rgb(65,171,93)':'rgb(239,138,98)')},
+    text: allTeamsWithPointsBack.map(t=>t.isPlayoffTeam?'Playoff Position':`${t.pointsBack} back`),
+    textposition:'auto',
+  }], {
+    title:'Playoff Contention',
+    xaxis:{title:'Team', tickangle:-45, automargin:true},
+    yaxis:{title:'Points'},
+    margin:{b:80, t:40, l:40, r:10},
+    font:{size:12},
+    shapes:[{
+      type:'line', x0:-0.5, x1:stats.length-0.5, y0:lastPlayoffPoints, y1:lastPlayoffPoints,
+      line:{color:'red', width:2, dash:'dash'}
+    }],
+    showlegend:false
+  }, {responsive:true, displayModeBar:false});
+
+  // --- Standings Table ---
+  const table = document.getElementById('seriesTable');
+  const firstPlacePoints = stats.length > 0 ? stats[0].points : 0;
+  let html = `<thead><tr>
+    <th>Team</th><th class='text-right' style='text-align:right;'>Record</th><th class='text-right' style='text-align:right;'>Points</th><th class='text-right' style='text-align:right;'>Avg Pts</th><th class='text-right' style='text-align:right;'>Pts Back</th>
+  </tr></thead><tbody>`;
+  stats.forEach((team, idx) => {
+    const isUserTeam = userTeam && team.team && team.team.toLowerCase() === userTeam.toLowerCase();
+    let playoffIcon = '';
+    const isPlayoffTeam = idx < playoffCutoff;
+    let rowClass = isUserTeam ? 'bg-yellow-100 font-bold' : '';
+    if (isPlayoffTeam) {
+      rowClass += ' playoff-row';
+      playoffIcon = '<span title="Playoff Contender" class="ml-1 text-green-600" style="vertical-align:middle;"><i class="fas fa-trophy"></i></span>';
+    }
+    const totalMatches = team.matches.won + team.matches.lost + (team.matches.tied || 0);
+    const avgPoints = totalMatches > 0 ? (team.points / totalMatches).toFixed(1) : '0.0';
+    html += `<tr class="${rowClass}">
+      <td>${team.team}${playoffIcon}</td>
+      <td class='text-right'>${team.matches.won}-${team.matches.lost}</td>
+      <td class='text-right'>${team.points}</td>
+      <td class='text-right'>${avgPoints}</td>
+      <td class='text-right'>${firstPlacePoints - team.points}</td>
+    </tr>`;
+  });
+  html += '</tbody>';
+  table.innerHTML = html;
+});
+</script>
+<style>
+/* Mobile UX best practices */
+#series-charts > div { border-radius: 12px; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.06); margin-bottom: 1.2em; }
+#seriesTable th, #seriesTable td { padding: 0.6em 0.4em; }
+#seriesTable th { background: #f3f4f6; font-weight: 700; }
+#seriesTable tr.bg-yellow-100 { background: #fffde7 !important; }
+#seriesTable td, #seriesTable th { font-size: 1em; }
+@media (max-width: 600px) {
+  #seriesTable th, #seriesTable td { font-size: 0.95em; }
+}
+</style>
+<style>
+.playoff-row {
+  background: #f0fdf4 !important;
+  border-left: 5px solid #22c55e !important;
+}
+.non-playoff-row {
+  background: #fff !important;
+  border-left: 5px solid #d1d5db !important;
+}
+#seriesTable th, #seriesTable td { padding: 0.6em 0.4em; }
+#seriesTable th { background: #f3f4f6; font-weight: 700; }
+#seriesTable tr.bg-yellow-100 { background: #fffde7 !important; }
+#seriesTable td, #seriesTable th { font-size: 1em; }
+@media (max-width: 600px) {
+  #seriesTable th, #seriesTable td { font-size: 0.95em; }
+}
+</style>
+{% endblock %} 

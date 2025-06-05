@@ -63,6 +63,71 @@
             `;
         }
 
+        function copyToClipboard(text) {
+            // Try using the modern Clipboard API first
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(text).then(() => {
+                    showToast('Phone number copied to clipboard!', 'success');
+                }).catch(err => {
+                    console.error('Failed to copy to clipboard:', err);
+                    // Fallback to the older method
+                    fallbackCopyToClipboard(text);
+                });
+            } else {
+                // Fallback for older browsers or non-secure contexts
+                fallbackCopyToClipboard(text);
+            }
+        }
+
+        function fallbackCopyToClipboard(text) {
+            // Create a temporary textarea element
+            const textArea = document.createElement('textarea');
+            textArea.value = text;
+            
+            // Add it to the page
+            document.body.appendChild(textArea);
+            
+            // Select the text
+            textArea.focus();
+            textArea.select();
+            
+            try {
+                // Copy the text
+                const successful = document.execCommand('copy');
+                if (successful) {
+                    showToast('Phone number copied to clipboard!', 'success');
+                } else {
+                    showToast('Failed to copy phone number', 'error');
+                }
+            } catch (err) {
+                console.error('Failed to copy to clipboard:', err);
+                showToast('Failed to copy phone number', 'error');
+            }
+            
+            // Remove the temporary element
+            document.body.removeChild(textArea);
+        }
+
+        function showToast(message, type = 'info') {
+            // Create toast element
+            const toast = document.createElement('div');
+            toast.className = `alert alert-${type} fixed top-20 left-1/2 transform -translate-x-1/2 z-50 w-80 shadow-lg`;
+            toast.innerHTML = `
+                <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-triangle'}"></i>
+                <span>${message}</span>
+            `;
+            
+            // Add to page
+            document.body.appendChild(toast);
+            
+            // Remove after 3 seconds
+            setTimeout(() => {
+                if (document.body.contains(toast)) {
+                    document.body.removeChild(toast);
+                }
+            }, 3000);
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             // Get player first and last name from URL parameters
             const urlParams = new URLSearchParams(window.location.search);
@@ -128,15 +193,19 @@
                             </div>
                         </div>
                         
-                        <div class="flex gap-3 mt-6">
-                            <a href="mailto:${data.email}" class="btn btn-primary flex-1">
+                        <div class="grid grid-cols-3 gap-2 mt-6">
+                            <a href="mailto:${data.email}" class="btn btn-primary text-white">
                                 <i class="fas fa-envelope"></i>
-                                Send Email
+                                Email
                             </a>
-                            <a href="tel:${data.phone}" class="btn btn-success flex-1">
+                            <a href="tel:${data.phone}" class="btn btn-success text-white">
                                 <i class="fas fa-phone"></i>
                                 Call
                             </a>
+                            <button onclick="copyToClipboard('${data.phone}')" class="btn btn-info text-white">
+                                <i class="fas fa-sms"></i>
+                                Text
+                            </button>
                         </div>
                     `;
                 })

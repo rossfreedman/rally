@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Rally Admin{% endblock %}</title>
+    <link rel="icon" type="image/png" href="/static/images/rally_favicon.png">
+    
+    <!-- Tailwind CSS & DaisyUI -->
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@3.9.3/dist/full.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.10" integrity="sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC" crossorigin="anonymous"></script>
+    
+    <!-- App CSS and JS -->
+    <link href="/static/mobile/css/style.css" rel="stylesheet">
+    <script src="/static/js/activity-tracker.js" defer></script>
+    <script src="/static/mobile/js/main.js" defer></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="/static/mobile/css/tailwind.css" rel="stylesheet">
+
+    <style>
+        /* Custom styles */
+        .nav-drawer {
+            transform: translateX(-100%);
+            transition: transform 0.3s ease-in-out;
+        }
+        .nav-drawer.open {
+            transform: translateX(0);
+        }
+    </style>
+    
+    <!-- Session data will be injected here -->
+    {% if session_data %}
+    <script>
+        window.sessionData = JSON.parse('{{ session_data|tojson|safe }}');
+    </script>
+    {% endif %}
+</head>
+<body class="min-h-screen bg-base-100 text-base-content">
+
+    <!-- Top Bar -->
+    <nav class="navbar bg-black shadow-md px-4 py-2 relative" style="position: fixed; top: 0; left: 0; width: 100%; z-index: 1000; height: 56px; box-shadow: 0 2px 8px rgba(0,0,0,0.08)">
+        <a href="/admin" class="back-arrow" aria-label="Refresh">
+            <i class="fas fa-sync-alt text-white text-xl"></i>
+        </a>
+        <div class="navbar-logo absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2">
+            <img src="/static/images/rallylogo.png" alt="Rally Logo" class="h-10 w-auto">
+        </div>
+        <button class="hamburger-btn" id="hamburgerToggle" aria-label="Open menu">
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+        </button>
+    </nav>
+
+    <!-- Slide-in Nav Drawer (right) -->
+    <div id="navDrawer" class="nav-drawer fixed top-0 right-0 h-full w-64 bg-white z-50 shadow-xl transform translate-x-full transition-transform duration-300 ease-in-out">
+        <div class="p-4">
+            <nav class="space-y-8">
+                <div>
+                    <div class="font-bold text-lg mb-2 flex items-center gap-2 text-black">
+                        <i class="fas fa-tools text-black"></i> Admin Tools
+                    </div>
+                    <ul class="space-y-2 ml-6">
+                        <li>
+                            <a href="/admin" class="nav-link flex items-center gap-2 text-lg text-black">
+                                <span class="inline-block w-7 text-center"><i class="fas fa-users text-black"></i></span>
+                                Users
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/admin/clubs" class="nav-link flex items-center gap-2 text-lg text-black">
+                                <span class="inline-block w-7 text-center"><i class="fas fa-building text-black"></i></span>
+                                Clubs
+                            </a>
+                        </li>
+                        <li>
+                            <a href="/admin/series" class="nav-link flex items-center gap-2 text-lg text-black">
+                                <span class="inline-block w-7 text-center"><i class="fas fa-list text-black"></i></span>
+                                Series
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <div>
+                    <div class="font-bold text-lg mb-2 flex items-center gap-2 text-black">
+                        <i class="fas fa-cog text-black"></i> Settings
+                    </div>
+                    <ul class="space-y-2 ml-6">
+                        <li>
+                            <button class="nav-link flex items-center gap-2 text-lg text-black w-full text-left" data-action="logout">
+                                <span class="inline-block w-7 text-center"><i class="fas fa-sign-out-alt text-black"></i></span>
+                                Logout
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Overlay for nav drawer -->
+    <div id="drawerOverlay" class="fixed inset-0 bg-black bg-opacity-40 z-40 hidden"></div>
+
+    <!-- Main Content Area -->
+    <main class="container mx-auto px-2 py-6" style="padding-top: 64px;">
+        {% block content %}{% endblock %}
+    </main>
+
+    <script>
+        // Initialize drawer functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const drawer = document.getElementById('navDrawer');
+            const overlay = document.getElementById('drawerOverlay');
+            const hamburger = document.getElementById('hamburgerToggle');
+            
+            if (!drawer || !overlay || !hamburger) {
+                console.error('Missing drawer elements:', { drawer: !!drawer, overlay: !!overlay, hamburger: !!hamburger });
+                return;
+            }
+
+            // Track drawer state
+            let isDrawerTransitioning = false;
+
+            // Handle drawer toggle with debounce
+            const toggleDrawer = debounce(function() {
+                console.log('Admin toggleDrawer called, transitioning:', isDrawerTransitioning);
+                if (isDrawerTransitioning) return;
+                isDrawerTransitioning = true;
+
+                const isOpen = drawer.classList.contains('translate-x-0');
+                if (isOpen) {
+                    drawer.classList.remove('translate-x-0');
+                    drawer.classList.add('translate-x-full');
+                    overlay.classList.add('hidden');
+                    hamburger.classList.remove('open');
+                } else {
+                    drawer.classList.remove('translate-x-full');
+                    drawer.classList.add('translate-x-0');
+                    overlay.classList.remove('hidden');
+                    hamburger.classList.add('open');
+                }
+
+                // Reset transition state after animation completes
+                setTimeout(() => {
+                    isDrawerTransitioning = false;
+                }, 300); // Match transition duration
+            }, 100);
+
+            // Debounce function for handlers
+            function debounce(func, wait) {
+                let timeout;
+                return function executedFunction(...args) {
+                    const later = () => {
+                        clearTimeout(timeout);
+                        func.apply(this, args);
+                    };
+                    clearTimeout(timeout);
+                    timeout = setTimeout(later, wait);
+                };
+            }
+
+            // Event delegation for drawer controls
+            document.addEventListener('click', function(e) {
+                // Stop if drawer is transitioning
+                if (isDrawerTransitioning) {
+                    e.preventDefault();
+                    return;
+                }
+
+                const target = e.target;
+
+                // Handle hamburger button
+                if (target.closest('#hamburgerToggle')) {
+                    e.preventDefault();
+                    toggleDrawer();
+                    return;
+                }
+
+                // Handle overlay click
+                if (target.matches('#drawerOverlay')) {
+                    e.preventDefault();
+                    toggleDrawer();
+                    return;
+                }
+
+                // Handle navigation links
+                const navLink = target.closest('.nav-link');
+                if (navLink) {
+                    // Check if it's a logout action
+                    if (navLink.dataset.action === 'logout') {
+                        e.preventDefault();
+                        // Handle logout
+                        fetch('/logout', { method: 'POST' })
+                            .then(() => window.location.href = '/login')
+                            .catch(error => console.error('Logout error:', error));
+                    } else {
+                        // Close the drawer and let navigation happen naturally
+                        toggleDrawer();
+                    }
+                    return;
+                }
+            });
+
+            console.log('Admin hamburger menu initialized');
+        });
+    </script>
+
+    {% block scripts %}{% endblock %}
+</body>
+</html> 

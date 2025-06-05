@@ -16,3 +16,5 @@ SQLAlchemy==2.0.27
 Flask-SQLAlchemy==3.1.1
 gunicorn==21.2.0
 alembic>=1.13.1
+fuzzywuzzy==0.18.0
+python-Levenshtein==0.21.1

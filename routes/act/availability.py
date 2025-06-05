@@ -88,7 +88,7 @@ def get_player_availability(player_name, match_date, series):
         
         if not series_record:
             print(f"No series found with name: {series}")
-            return None
+            return 0  # Return 0 instead of None for consistency
         
         # Try to find player ID from player_name first for better matching
         player_id = None
@@ -153,33 +153,17 @@ def get_player_availability(player_name, match_date, series):
         
         if not result:
             print(f"No availability found for {player_name} on {match_date}")
-            return None
+            return 0  # Return 0 instead of None for "not set"
         
-        # Verify the retrieved date for display
-        stored_date = result['match_date']
-        display_date, verification_info = verify_date_from_database(
-            stored_date=stored_date,
-            expected_display_format=None
-        )
-        
-        # Log the retrieval verification
-        log_date_operation(
-            operation="RETRIEVAL_VERIFICATION",
-            input_data=f"stored={stored_date}",
-            output_data=f"display={display_date}",
-            verification_info=verification_info
-        )
-        
-        if verification_info.get('correction_applied'):
-            print(f"⚠️ Display correction applied for retrieval")
-        
-        print(f"Found availability status: {result['availability_status']}")
-        return result['availability_status']
+        # Return the numeric status directly (like the backup)
+        status = result['availability_status']
+        print(f"Found availability status: {status}")
+        return status if status is not None else 0
         
     except Exception as e:
-        print(f"Error in get_player_availability: {str(e)}")
+        print(f"❌ Error getting player availability: {str(e)}")
         print(traceback.format_exc())
-        return None
+        return 0  # Return 0 on error
 
 def update_player_availability(player_name, match_date, availability_status, series):
     """

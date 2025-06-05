@@ -493,22 +493,58 @@ document.addEventListener('DOMContentLoaded', async function() {
     
     const response = await playerHistoryResponse.json();
     console.log('Received data:', response);
+    console.log('Response keys:', Object.keys(response));
+    console.log('Full response object:', JSON.stringify(response, null, 2));
+    console.log('Response.data:', response.data);
+    console.log('Response.matches:', response.matches);
+    console.log('Response.success:', response.success);
+    console.log('Response.message:', response.message);
+    console.log('Response.data type:', typeof response.data);
+    console.log('Is array?', Array.isArray(response.data));
+    console.log('Data length:', response.data ? response.data.length : 'undefined');
     
     const chartDiv = document.getElementById('ptiHistoryChart');
     
-    if (!response.data || !Array.isArray(response.data) || response.data.length === 0) {
-      console.error('No data received or invalid format');
+    // Handle both the expected format and the actual format being returned
+    let matchesData;
+    if (response.data && Array.isArray(response.data)) {
+      // Expected format: {success: true, data: [...], player_name: "...", total_matches: 36}
+      matchesData = response.data;
+    } else if (response.matches && Array.isArray(response.matches)) {
+      // Actual format being returned: {name: "Ross Freedman", matches: [...], ...}
+      matchesData = response.matches;
+    } else {
+      console.error('No valid matches data found');
+      console.error('Response object:', response);
       chartDiv.innerHTML = '<div class="flex items-center justify-center h-full text-gray-500"><div class="text-center"><i class="fas fa-chart-line text-4xl mb-2"></i><div>No PTI history data available</div><div class="text-sm">This player has no recorded PTI history</div></div></div>';
       return;
     }
     
-    // Extract dates and PTI values
-    const dates = response.data.map(entry => {
+    if (matchesData.length === 0) {
+      console.error('No matches found in data');
+      chartDiv.innerHTML = '<div class="flex items-center justify-center h-full text-gray-500"><div class="text-center"><i class="fas fa-chart-line text-4xl mb-2"></i><div>No PTI history data available</div><div class="text-sm">This player has no recorded PTI history</div></div></div>';
+      return;
+    }
+    
+    console.log('Using matches data:', matchesData);
+    console.log('Matches count:', matchesData.length);
+    
+    // Extract dates and PTI values, then sort by date (oldest first)
+    const dateAndPtiData = matchesData.map(entry => {
       // Parse the date string into a Date object
       const [month, day, year] = entry.date.split('/');
-      return new Date(year, month - 1, day);
+      return {
+        date: new Date(year, month - 1, day),
+        pti: entry.end_pti
+      };
     });
-    const ptiValues = response.data.map(entry => entry.end_pti);
+    
+    // Sort by date (oldest first for correct chronological order)
+    dateAndPtiData.sort((a, b) => a.date - b.date);
+    
+    // Extract sorted dates and PTI values
+    const dates = dateAndPtiData.map(item => item.date);
+    const ptiValues = dateAndPtiData.map(item => item.pti);
 
     console.log('Processed data:');
     console.log('Dates:', dates);
@@ -523,17 +559,21 @@ document.addEventListener('DOMContentLoaded', async function() {
         showticklabels: true,
         automargin: true,
         tickangle: -45,
-        tickformat: '%b %d',
+        tickformat: '%b %y',  // Changed to show Month-Year format (e.g., "Jan 24")
         nticks: 8,
-        range: [dates[0], dates[dates.length - 1]]
+        range: [dates[0], dates[dates.length - 1]],  // Now correctly oldest to newest
+        fixedrange: true  // Disable zooming/panning on x-axis
       },
       yaxis: {
         title: 'PTI',
         zeroline: false,
-        range: [Math.min(...ptiValues) - 2, Math.max(...ptiValues) + 2]
+        range: [Math.min(...ptiValues) - 2, Math.max(...ptiValues) + 2],
+        fixedrange: true  // Disable zooming/panning on y-axis
       },
       margin: {b: 60, t: 20, l: 60, r: 10},
-      font: {size: 12}
+      font: {size: 12},
+      dragmode: false,  // Disable all drag interactions
+      hovermode: 'closest'  // Allow hover on closest point
     };
 
     const data = [{
@@ -555,11 +595,28 @@ document.addEventListener('DOMContentLoaded', async function() {
     const config = {
       responsive: true,
       displayModeBar: false,
-      staticPlot: true
+      staticPlot: false,  // Allow limited interaction for data point selection
+      scrollZoom: false,
+      doubleClick: false,
+      showTips: true,     // Enable hover tooltips for data points
+      editable: false,
+      modeBarButtonsToRemove: ['pan2d', 'zoomIn2d', 'zoomOut2d', 'autoScale2d', 'resetScale2d']
     };
+
+    // Ensure proper sizing
+    const chartContainer = document.getElementById('ptiHistoryChart');
+    if (chartContainer) {
+      chartContainer.style.width = '100%';
+      chartContainer.style.height = '400px';
+    }
 
     Plotly.newPlot('ptiHistoryChart', data, layout, config);
     console.log('Chart created successfully');
+    
+    // Force resize to ensure proper rendering
+    setTimeout(() => {
+      Plotly.Plots.resize('ptiHistoryChart');
+    }, 100);
     
   } catch (error) {
     console.error('Error creating PTI history chart:', error);

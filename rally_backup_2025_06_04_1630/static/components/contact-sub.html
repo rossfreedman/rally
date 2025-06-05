@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact Sub - Rally</title>
+    <link rel="icon" type="image/png" href="/static/images/rally_favicon.png">
+    
+    <!-- Tailwind CSS & DaisyUI -->
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@3.9.3/dist/full.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- App CSS -->
+    <link href="/static/mobile/css/style.css" rel="stylesheet">
+    <link href="/static/mobile/css/tailwind.css" rel="stylesheet">
+</head>
+<body class="min-h-screen bg-base-100 text-base-content">
+
+    <!-- Top Bar -->
+    <nav class="navbar bg-black shadow-md px-4 py-2 relative" style="position: fixed; top: 0; left: 0; width: 100%; z-index: 1000; height: 56px; box-shadow: 0 2px 8px rgba(0,0,0,0.08)">
+        <a href="javascript:history.back()" class="back-arrow" aria-label="Go back">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;">
+                <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+        </a>
+        <a href="/mobile" class="navbar-logo absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2">
+            <img src="/static/images/rallylogo.png" alt="Rally Logo" class="h-10 w-auto">
+        </a>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="container mx-auto px-2 py-6" style="padding-top: 64px;">
+        <!-- Header Section -->
+        <div class="flex items-center gap-3 mt-4 mb-6 px-4">
+            <div class="bg-white rounded-md flex items-center justify-center h-12 w-12">
+                <i class="fas fa-envelope text-black text-3xl"></i>
+            </div>
+            <div>
+                <div class="text-2xl font-bold leading-tight">Player Contact</div>
+                <div class="text-base text-gray-500 mt-1">Contact information for the requested player.</div>
+            </div>
+        </div>
+
+        <!-- Contact Info Card -->
+        <div id="contactInfo" class="bg-white rounded-lg shadow p-6 mx-4">
+            <div class="flex justify-center items-center py-8">
+                <span class="loading loading-spinner loading-lg"></span>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        function showError(message) {
+            const contactDiv = document.getElementById('contactInfo');
+            contactDiv.innerHTML = `
+                <div class="alert alert-error">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span>${message}</span>
+                </div>
+            `;
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get player first and last name from URL parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            const firstName = urlParams.get('first');
+            const lastName = urlParams.get('last');
+
+            if (!firstName || !lastName) {
+                showError('No player name provided');
+                return;
+            }
+
+            // Fetch player contact info
+            fetch(`/api/player-contact?first=${encodeURIComponent(firstName)}&last=${encodeURIComponent(lastName)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        showError(data.error);
+                        return;
+                    }
+
+                    // Display contact info
+                    const contactDiv = document.getElementById('contactInfo');
+                    contactDiv.innerHTML = `
+                        <div class="text-center mb-6">
+                            <div class="avatar placeholder mb-4">
+                                <div class="bg-neutral-focus text-neutral-content rounded-full w-20">
+                                    <span class="text-2xl">${data.first_name.charAt(0)}${data.last_name.charAt(0)}</span>
+                                </div>
+                            </div>
+                            <h2 class="text-2xl font-bold text-gray-800">${data.first_name} ${data.last_name}</h2>
+                            <p class="text-lg text-gray-600 mt-1">${data.series}</p>
+                        </div>
+                        
+                        <div class="space-y-4">
+                            <div class="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-envelope text-blue-600 text-xl"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="text-sm text-gray-500 font-medium">Email</div>
+                                    <a href="mailto:${data.email}" class="text-blue-600 hover:text-blue-800 font-medium">${data.email}</a>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-phone text-green-600 text-xl"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="text-sm text-gray-500 font-medium">Phone</div>
+                                    <a href="tel:${data.phone}" class="text-green-600 hover:text-green-800 font-medium">${data.phone}</a>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-trophy text-yellow-600 text-xl"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <div class="text-sm text-gray-500 font-medium">Series</div>
+                                    <div class="text-gray-800 font-medium">${data.series}</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex gap-3 mt-6">
+                            <a href="mailto:${data.email}" class="btn btn-primary flex-1">
+                                <i class="fas fa-envelope"></i>
+                                Send Email
+                            </a>
+                            <a href="tel:${data.phone}" class="btn btn-success flex-1">
+                                <i class="fas fa-phone"></i>
+                                Call
+                            </a>
+                        </div>
+                    `;
+                })
+                .catch(error => {
+                    showError('Failed to load contact information');
+                    console.error('Error:', error);
+                });
+        });
+    </script>
+</body>
+</html>

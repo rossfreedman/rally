@@ -26,17 +26,10 @@ def get_matches_for_user_club(user):
         series_num = user_series.split()[-1] if user_series else ''
         print(f"Looking for matches for club: {user_club}, series: {series_num}")
         
-        # The team name in schedules.json uses multiple formats:
-        # 1. "Club - Series - Series" (e.g. "Tennaqua - 22 - 22")
-        # 2. "Club - Chicago - Series - Series" (e.g. "Midtown - Chicago - 6 - 6") 
-        # 3. "Club - Series" (legacy format)
-        possible_team_formats = [
-            f"{user_club} - {series_num} - {series_num}",  # Format 1
-            f"{user_club} - Chicago - {series_num} - {series_num}",  # Format 2
-            f"{user_club} - {series_num}"  # Legacy format
-        ]
-        
-        print(f"Looking for matches with team identifiers: {possible_team_formats}")
+        # The team name in schedules.json now uses the format: "Club - Series" (e.g. "Tennaqua - 22")
+        # We updated the scraper to produce this cleaner format
+        user_team_pattern = f"{user_club} - {series_num}"
+        print(f"Looking for team pattern: {user_team_pattern}")
         
         filtered_matches = []
         for match in all_matches:
@@ -59,8 +52,8 @@ def get_matches_for_user_club(user):
                         'description': f"{practice_field} Practice"
                     }
                     filtered_matches.append(normalized_practice)
-                # Check if either home or away team matches any of our possible formats (regular matches)
-                elif any(fmt in (home_team, away_team) for fmt in possible_team_formats):
+                # Check if either home or away team matches our team pattern (regular matches)
+                elif user_team_pattern in (home_team, away_team):
                     print(f"Found match: {home_team} vs {away_team}")
                     # Normalize match data to consistent format
                     normalized_match = {

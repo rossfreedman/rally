@@ -179,7 +179,7 @@
             <th class="py-2 px-2">Opponent</th>
             <th class="py-2 px-2">Wins</th>
             <th class="py-2 px-2">Losses</th>
-            <th class="py-2 px-2">Total</th>
+            <th class="py-2 px-2">W/L Ratio</th>
           </tr>
         </thead>
         <tbody>
@@ -188,7 +188,13 @@
             <td class="py-2 px-2">{{ record.opponent }}</td>
             <td class="py-2 px-2 text-green-600">{{ record.wins }}</td>
             <td class="py-2 px-2 text-red-600">{{ record.losses }}</td>
-            <td class="py-2 px-2">{{ record.total }}</td>
+            <td class="py-2 px-2 font-medium">
+              {% if record.win_loss_ratio == 'inf' %}
+                ∞
+              {% else %}
+                {{ record.win_loss_ratio }}
+              {% endif %}
+            </td>
           </tr>
           {% endfor %}
           {% if not head_to_head %}

@@ -136,7 +136,7 @@
                         </div>
                         <!-- Second grouping: view team button in its own bordered container -->
                         <div class="border-2 border-black rounded-lg p-3">
-                            <a href="{{ url_for('serve_all_team_availability', date=match.date) }}" class="btn availability-btn view-team-btn w-full py-2 rounded-lg transition-colors font-extrabold bg-blue-600 text-white hover:bg-blue-700" style="text-transform: none; text-decoration: none;">
+                            <a href="{{ url_for('mobile.serve_all_team_availability', date=match.date) }}" class="btn availability-btn view-team-btn w-full py-2 rounded-lg transition-colors font-extrabold bg-blue-600 text-white hover:bg-blue-700" style="text-transform: none; text-decoration: none;">
                                 <span>View Team Availability {{ match.date | date_to_mmdd }}</span>
                             </a>
                         </div>
