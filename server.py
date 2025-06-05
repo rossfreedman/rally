@@ -30,9 +30,6 @@ from app.routes.admin_routes import admin_bp
 from app.routes.mobile_routes import mobile_bp
 from app.routes.api_routes import api_bp
 
-# Import act routes
-from routes.act import init_act_routes
-
 # Simple database connection test
 print("=== Testing Database Connection ===")
 try:
@@ -56,9 +53,6 @@ app.register_blueprint(auth_bp)
 app.register_blueprint(admin_bp)
 app.register_blueprint(mobile_bp)
 app.register_blueprint(api_bp)
-
-# Initialize ACT routes
-init_act_routes(app)
 
 # Set secret key
 app.secret_key = os.getenv('FLASK_SECRET_KEY', secrets.token_hex(32))
