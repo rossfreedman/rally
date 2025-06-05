@@ -489,9 +489,110 @@ def get_enhanced_streaks_data():
     return jsonify({'placeholder': 'enhanced_streaks'})
 
 def find_training_video_data():
-    """Find training video data"""
-    # Placeholder - will be filled with actual implementation from server.py
-    return jsonify({'placeholder': 'find_training_video'})
+    """Find relevant training videos based on user prompt"""
+    try:
+        from flask import request, jsonify
+        import os
+        import json
+        
+        data = request.get_json()
+        if not data:
+            return jsonify({'videos': [], 'error': 'No data provided'})
+            
+        user_prompt = data.get('content', '').lower().strip()
+        
+        if not user_prompt:
+            return jsonify({'videos': [], 'video': None})
+        
+        # Load training guide data
+        try:
+            # Use current working directory since server.py runs from project root
+            guide_path = os.path.join('data', 'improve_data', 'complete_platform_tennis_training_guide.json')
+            with open(guide_path, 'r', encoding='utf-8') as f:
+                training_guide = json.load(f)
+        except Exception as e:
+            print(f"Error loading training guide: {str(e)}")
+            return jsonify({'videos': [], 'video': None, 'error': 'Could not load training guide'})
+        
+        # Search through training guide sections
+        matching_sections = []
+        
+        def search_sections(data):
+            """Search through the training guide sections"""
+            if isinstance(data, dict):
+                for key, value in data.items():
+                    if isinstance(value, dict) and 'Reference Videos' in value:
+                        # Calculate relevance based on section title
+                        relevance_score = calculate_video_relevance(user_prompt, key.lower())
+                        
+                        if relevance_score > 0:
+                            # Get all videos from Reference Videos
+                            videos = value.get('Reference Videos', [])
+                            if videos and len(videos) > 0:
+                                # Add each video with the section info
+                                for video in videos:
+                                    matching_sections.append({
+                                        'title': key.replace('_', ' ').title(),
+                                        'video': video,
+                                        'relevance_score': relevance_score
+                                    })
+        
+        def calculate_video_relevance(query, section_title):
+            """Calculate relevance score for video matching"""
+            score = 0
+            query_words = query.split()
+            
+            # Exact match in section title gets highest score
+            if query == section_title:
+                score += 200
+            
+            # Query appears as a word in the section title
+            if query in section_title.split():
+                score += 150
+            
+            # Query appears anywhere in section title
+            if query in section_title:
+                score += 100
+            
+            # Partial word matches in section title
+            for word in query_words:
+                if word in section_title:
+                    score += 50
+            
+            return score
+        
+        # Perform the search
+        search_sections(training_guide)
+        
+        # Sort by relevance score and return all relevant matches
+        if matching_sections:
+            matching_sections.sort(key=lambda x: x['relevance_score'], reverse=True)
+            
+            # Filter to only include videos with sufficient relevance
+            relevant_videos = []
+            for match in matching_sections:
+                if match['relevance_score'] >= 50:  # Minimum threshold for relevance
+                    relevant_videos.append({
+                        'title': match['video']['title'],
+                        'url': match['video']['url'],
+                        'topic': match['title'],
+                        'relevance_score': match['relevance_score']
+                    })
+            
+            # Return both formats for backward compatibility
+            response = {'videos': relevant_videos}
+            
+            # Include the best video as 'video' for backward compatibility
+            if relevant_videos:
+                response['video'] = relevant_videos[0]  # Best match (highest relevance)
+            
+            return jsonify(response)
+        
+        return jsonify({'videos': [], 'video': None})
+        
+    except Exception as e:
+        print(f"Error finding training video: {str(e)}")
+        return jsonify({'videos': [], 'video': None, 'error': str(e)})
 
 def remove_practice_times_data():
     """API endpoint to remove practice times for the user's series from the schedule"""

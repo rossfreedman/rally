@@ -1396,4 +1396,43 @@ def get_club_players_data(user, series_filter=None, first_name_filter=None, last
             'available_series': [],
             'pti_range': {'min': 0, 'max': 100},
             'error': str(e)
+        }
+
+def get_mobile_improve_data(user):
+    """Get data for the mobile improve page including paddle tips and training guide"""
+    try:
+        # Load paddle tips from JSON file
+        paddle_tips = []
+        try:
+            # Use current working directory since server.py runs from project root
+            tips_path = os.path.join('data', 'improve_data', 'paddle_tips.json')
+            with open(tips_path, 'r', encoding='utf-8') as f:
+                tips_data = json.load(f)
+                paddle_tips = tips_data.get('paddle_tips', [])
+        except Exception as tips_error:
+            print(f"Error loading paddle tips: {str(tips_error)}")
+            # Continue without tips if file can't be loaded
+        
+        # Load training guide data for video references
+        training_guide = {}
+        try:
+            # Use current working directory since server.py runs from project root
+            guide_path = os.path.join('data', 'improve_data', 'complete_platform_tennis_training_guide.json')
+            with open(guide_path, 'r', encoding='utf-8') as f:
+                training_guide = json.load(f)
+        except Exception as guide_error:
+            print(f"Error loading training guide: {str(guide_error)}")
+            # Continue without training guide if file can't be loaded
+        
+        return {
+            'paddle_tips': paddle_tips,
+            'training_guide': training_guide
+        }
+        
+    except Exception as e:
+        print(f"Error getting mobile improve data: {str(e)}")
+        return {
+            'paddle_tips': [],
+            'training_guide': {},
+            'error': str(e)
         } 

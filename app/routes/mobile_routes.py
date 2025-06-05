@@ -28,7 +28,8 @@ from app.services.mobile_service import (
     get_practice_times_data,
     get_all_team_availability_data,
     get_mobile_availability_data,
-    get_club_players_data
+    get_club_players_data,
+    get_mobile_improve_data
 )
 
 # Create mobile blueprint
@@ -503,14 +504,35 @@ def serve_mobile_player_stats():
 @mobile_bp.route('/mobile/improve')
 @login_required
 def serve_mobile_improve():
-    """Serve the mobile improve page"""
-    session_data = {
-        'user': session['user'],
-        'authenticated': True
-    }
-    
-    log_user_activity(session['user']['email'], 'page_visit', page='mobile_improve')
-    return render_template('mobile/improve.html', session_data=session_data)
+    """Serve the mobile improve page with paddle tips"""
+    try:
+        user = session.get('user')
+        if not user:
+            return redirect('/login')
+            
+        session_data = {
+            'user': user,
+            'authenticated': True
+        }
+        
+        # Load improve data using service function
+        improve_data = get_mobile_improve_data(user)
+        
+        log_user_activity(
+            user['email'], 
+            'page_visit', 
+            page='mobile_improve',
+            details='Accessed improve page'
+        )
+        
+        return render_template('mobile/improve.html', 
+                              session_data=session_data, 
+                              paddle_tips=improve_data.get('paddle_tips', []),
+                              training_guide=improve_data.get('training_guide', {}))
+        
+    except Exception as e:
+        print(f"Error serving improve page: {str(e)}")
+        return redirect('/login')
 
 @mobile_bp.route('/mobile/email-team')
 @login_required
