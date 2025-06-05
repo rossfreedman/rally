@@ -94,6 +94,320 @@ def find_training_video():
     """Find training video"""
     return find_training_video_data()
 
+@api_bp.route('/api/chat', methods=['POST'])
+@login_required
+def handle_chat():
+    """Handle chat requests for Coach Rally on mobile improve page"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+        
+        message = data.get('message', '').strip()
+        thread_id = data.get('thread_id')
+        
+        if not message:
+            return jsonify({'error': 'Message is required'}), 400
+        
+        print(f"[CHAT] User: {session.get('user', {}).get('email', 'unknown')} | Message: {message[:50]}...")
+        
+        # Generate thread ID if not provided
+        if not thread_id:
+            import uuid
+            thread_id = str(uuid.uuid4())
+        
+        # Load training guide for context-aware responses
+        response_text = generate_chat_response(message)
+        
+        return jsonify({
+            'response': response_text,
+            'thread_id': thread_id
+        })
+        
+    except Exception as e:
+        print(f"Error in chat handler: {str(e)}")
+        return jsonify({'error': 'Sorry, there was an error processing your request. Please try again.'}), 500
+
+def generate_chat_response(message):
+    """Generate a helpful response to user's paddle tennis question"""
+    try:
+        import os
+        import json
+        import random
+        
+        message_lower = message.lower()
+        
+        # Load training guide for detailed responses
+        try:
+            guide_path = os.path.join('data', 'improve_data', 'complete_platform_tennis_training_guide.json')
+            with open(guide_path, 'r', encoding='utf-8') as f:
+                training_guide = json.load(f)
+        except Exception:
+            training_guide = {}
+        
+        # Define response patterns based on common queries
+        if any(word in message_lower for word in ['serve', 'serving']):
+            return generate_serve_response(training_guide)
+        elif any(word in message_lower for word in ['volley', 'net', 'net play']):
+            return generate_volley_response(training_guide)
+        elif any(word in message_lower for word in ['return', 'returning']):
+            return generate_return_response(training_guide)
+        elif any(word in message_lower for word in ['blitz', 'blitzing', 'attack']):
+            return generate_blitz_response(training_guide)
+        elif any(word in message_lower for word in ['lob', 'lobbing', 'overhead']):
+            return generate_lob_response(training_guide)
+        elif any(word in message_lower for word in ['strategy', 'tactics', 'positioning']):
+            return generate_strategy_response(training_guide)
+        elif any(word in message_lower for word in ['footwork', 'movement', 'court position']):
+            return generate_footwork_response(training_guide)
+        elif any(word in message_lower for word in ['practice', 'drill', 'improve', 'training']):
+            return generate_practice_response(training_guide)
+        elif any(word in message_lower for word in ['beginner', 'start', 'new', 'basics']):
+            return generate_beginner_response(training_guide)
+        else:
+            return generate_general_response(message, training_guide)
+        
+    except Exception as e:
+        print(f"Error generating chat response: {str(e)}")
+        return "I'm here to help you improve your paddle tennis game! Try asking me about serves, volleys, strategy, or any specific technique you'd like to work on."
+
+def generate_serve_response(training_guide):
+    """Generate response about serving"""
+    serve_data = training_guide.get('Serve technique and consistency', {})
+    tips = [
+        "**Serve Fundamentals:**",
+        "• Keep your toss consistent - aim for the same spot every time",
+        "• Use a continental grip for better control and spin options",
+        "• Follow through towards your target after contact",
+        "• Practice hitting to different areas of the service box"
+    ]
+    
+    if serve_data.get('Coach\'s Cues'):
+        tips.extend([f"• {cue}" for cue in serve_data['Coach\'s Cues'][:2]])
+    
+    tips.append("\nWhat specific aspect of your serve would you like to work on?")
+    return "\n".join(tips)
+
+def generate_volley_response(training_guide):
+    """Generate response about volleys"""
+    return """**Volley Mastery:**
+
+• **Ready Position:** Stay on your toes with paddle up and ready
+• **Short Backswing:** Keep your swing compact - punch, don't swing
+• **Move Forward:** Step into the volley whenever possible
+• **Watch the Ball:** Keep your eye on the ball through contact
+• **Firm Wrist:** Maintain a stable wrist at contact
+
+**Common Mistakes to Avoid:**
+• Taking the paddle back too far
+• Letting the ball drop too low before contact
+• Being too passive - attack short balls!
+
+Would you like specific drills to improve your volleys?"""
+
+def generate_return_response(training_guide):
+    """Generate response about returns"""
+    return """**Return Strategy:**
+
+**1. Positioning:**
+• Stand about 2-3 feet behind the baseline
+• Split step as your opponent contacts the serve
+• Be ready to move in any direction
+
+**2. Return Goals:**
+• **Deep Returns:** Push your opponents back
+• **Low Returns:** Keep the ball below net level when possible
+• **Placement:** Aim for the corners or right at their feet
+
+**3. Mental Approach:**
+• Stay aggressive but controlled
+• Look for opportunities to take the net
+• Mix up your return patterns
+
+What type of serves are giving you the most trouble?"""
+
+def generate_blitz_response(training_guide):
+    """Generate response about blitzing"""
+    return """**Blitzing Strategy:**
+
+**When to Blitz:**
+• When your opponents hit a weak shot
+• Against players who struggle under pressure
+• When you have good court position
+
+**Execution:**
+• **Move Together:** Both players advance as a unit
+• **Stay Low:** Keep your paddle ready and knees bent
+• **Communicate:** Call out who takes which shots
+• **Be Patient:** Wait for the right opportunity to finish
+
+**Key Tips:**
+• Don't blitz every point - pick your spots
+• Watch for lobs and be ready to retreat
+• Aim for their feet or open court
+
+Ready to practice some blitzing drills?"""
+
+def generate_lob_response(training_guide):
+    """Generate response about lobs"""
+    return """**Effective Lobbing:**
+
+**Defensive Lobs:**
+• Use when under pressure at the net
+• Aim high and deep to buy time
+• Get good height to clear opponents
+
+**Offensive Lobs:**
+• Use when opponents are crowding the net
+• Lower trajectory but still over their reach
+• Aim for the corners
+
+**Overhead Response:**
+• If you hit a short lob, get ready to defend
+• Move back and prepare for the overhead
+• Sometimes it's better to concede the point than get hurt
+
+**Practice Tip:** Work on lobbing from different court positions!
+
+What situation are you finding most challenging with lobs?"""
+
+def generate_strategy_response(training_guide):
+    """Generate response about strategy"""
+    return """**Platform Tennis Strategy:**
+
+**Court Positioning:**
+• **Offense:** Both players at net when possible
+• **Defense:** One up, one back or both back
+• **Transition:** Move as a unit
+
+**Shot Selection:**
+• **High Percentage:** Aim for bigger targets when under pressure
+• **Patience:** Wait for your opportunity to attack
+• **Placement:** Use the entire court - corners, angles, and feet
+
+**Communication:**
+• Call "mine" or "yours" clearly
+• Discuss strategy between points
+• Support your partner
+
+**Adapting to Opponents:**
+• Identify their weaknesses early
+• Exploit what's working
+• Stay flexible with your game plan
+
+What type of opponents are you struggling against most?"""
+
+def generate_footwork_response(training_guide):
+    """Generate response about footwork"""
+    return """**Footwork Fundamentals:**
+
+**Ready Position:**
+• Stay on balls of your feet
+• Slight bend in knees
+• Weight slightly forward
+
+**Movement Patterns:**
+• **Split Step:** As opponent contacts ball
+• **First Step:** Explosive first step toward the ball
+• **Recovery:** Return to ready position after each shot
+
+**Court Coverage:**
+• Move as a unit with your partner
+• Communicate to avoid collisions
+• Practice specific movement patterns
+
+**Balance Tips:**
+• Keep your center of gravity low
+• Don't cross your feet when moving sideways
+• Practice stopping and starting quickly
+
+Would you like some specific footwork drills to practice?"""
+
+def generate_practice_response(training_guide):
+    """Generate response about practice"""
+    return """**Effective Practice Tips:**
+
+**Warm-Up Routine:**
+• 5-10 minutes of easy hitting
+• Work on basic strokes: forehand, backhand, volleys
+• Practice serves and returns
+
+**Skill Development:**
+• Focus on one technique at a time
+• Repeat movements until they feel natural
+• Get feedback from experienced players
+
+**Match Simulation:**
+• Practice point patterns you see in games
+• Work on specific situations (serving, returning, etc.)
+• Play practice points with purpose
+
+**Mental Training:**
+• Visualize successful shots
+• Practice staying positive after mistakes
+• Work on communication with your partner
+
+**Consistency is Key:** Regular practice beats occasional long sessions!
+
+What specific skill would you like to focus on in your next practice?"""
+
+def generate_beginner_response(training_guide):
+    """Generate response for beginners"""
+    return """**Welcome to Platform Tennis!**
+
+**Start with the Basics:**
+
+**1. Grip:**
+• Continental grip for serves and volleys
+• Eastern forehand for groundstrokes
+• Don't squeeze too tight!
+
+**2. Basic Strokes:**
+• **Forehand:** Turn shoulders, step forward, follow through
+• **Backhand:** Two hands for control and power
+• **Volley:** Short, punching motion with firm wrist
+
+**3. Court Awareness:**
+• Learn the dimensions and boundaries
+• Understand how to use the screens
+• Practice moving to the ball
+
+**4. Safety:**
+• Always warm up before playing
+• Wear appropriate footwear
+• Communicate with your partner
+
+**Next Steps:** Find a local pro for lessons or join a beginner group!
+
+What aspect of the game interests you most as you're getting started?"""
+
+def generate_general_response(message, training_guide):
+    """Generate a general helpful response"""
+    responses = [
+        f"That's a great question about '{message}'! Here are some key points to consider:",
+        f"Let me help you with '{message}'. Here's what I recommend:",
+        f"Regarding '{message}', here are some important fundamentals:"
+    ]
+    
+    tips = [
+        "**Focus on Fundamentals:** Master the basics before moving to advanced techniques",
+        "**Practice Regularly:** Consistent practice is more valuable than occasional long sessions", 
+        "**Play with Better Players:** You'll improve faster by challenging yourself",
+        "**Watch and Learn:** Observe skilled players and ask questions",
+        "**Stay Patient:** Improvement takes time - celebrate small victories!"
+    ]
+    
+    follow_ups = [
+        "What specific technique would you like to work on?",
+        "Are you looking for practice drills or match strategy?",
+        "What's the biggest challenge you're facing right now?",
+        "Would you like tips for a particular shot or situation?"
+    ]
+    
+    import random
+    response = random.choice(responses) + "\n\n" + "\n".join(tips[:3]) + "\n\n" + random.choice(follow_ups)
+    return response
+
 @api_bp.route('/api/add-practice-times', methods=['POST'])
 @login_required
 def add_practice_times():
