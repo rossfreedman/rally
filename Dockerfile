@@ -39,5 +39,4 @@ USER nobody
 # Expose port from environment variable
 EXPOSE ${PORT}
 
-# Command to run the application using gunicorn
-CMD gunicorn server:app -c gunicorn.conf.py --log-level debug --capture-output --enable-stdio-inheritance --bind 0.0.0.0:${PORT} 
+# Railway will override this with startCommand from railway.toml 
