@@ -7200,6 +7200,12 @@
         "League": "APTA_CHICAGO"
     },
     {
+        "date": "12/07/2024",
+        "time": "10:30 AM",
+        "Practice": "Tennaqua",
+        "Series": "Chicago 22"
+    },
+    {
         "date": "12/10/2024",
         "time": "06:30 pm",
         "home_team": "Lakeshore S&F - 7",
@@ -7918,6 +7924,12 @@
         "away_team": "Tennaqua - 38",
         "location": "Tennaqua",
         "League": "APTA_CHICAGO"
+    },
+    {
+        "date": "12/14/2024",
+        "time": "10:30 AM",
+        "Practice": "Tennaqua",
+        "Series": "Chicago 22"
     },
     {
         "date": "12/17/2024",
@@ -8640,6 +8652,24 @@
         "League": "APTA_CHICAGO"
     },
     {
+        "date": "12/21/2024",
+        "time": "10:30 AM",
+        "Practice": "Tennaqua",
+        "Series": "Chicago 22"
+    },
+    {
+        "date": "12/28/2024",
+        "time": "10:30 AM",
+        "Practice": "Tennaqua",
+        "Series": "Chicago 22"
+    },
+    {
+        "date": "01/04/2025",
+        "time": "10:30 AM",
+        "Practice": "Tennaqua",
+        "Series": "Chicago 22"
+    },
+    {
         "date": "01/07/2025",
         "time": "06:30 pm",
         "home_team": "Skokie - 7",
@@ -9360,6 +9390,12 @@
         "League": "APTA_CHICAGO"
     },
     {
+        "date": "01/11/2025",
+        "time": "10:30 AM",
+        "Practice": "Tennaqua",
+        "Series": "Chicago 22"
+    },
+    {
         "date": "01/14/2025",
         "time": "06:30 pm",
         "home_team": "LifeSport-Lshire - 7",
@@ -10078,6 +10114,12 @@
         "away_team": "Tennaqua - 38",
         "location": "Tennaqua",
         "League": "APTA_CHICAGO"
+    },
+    {
+        "date": "01/18/2025",
+        "time": "10:30 AM",
+        "Practice": "Tennaqua",
+        "Series": "Chicago 22"
     },
     {
         "date": "01/21/2025",
@@ -10800,6 +10842,12 @@
         "League": "APTA_CHICAGO"
     },
     {
+        "date": "01/25/2025",
+        "time": "10:30 AM",
+        "Practice": "Tennaqua",
+        "Series": "Chicago 22"
+    },
+    {
         "date": "01/28/2025",
         "time": "06:30 pm",
         "home_team": "Glen View - 7",
@@ -11518,6 +11566,12 @@
         "away_team": "Tennaqua - 38",
         "location": "Tennaqua",
         "League": "APTA_CHICAGO"
+    },
+    {
+        "date": "02/01/2025",
+        "time": "10:30 AM",
+        "Practice": "Tennaqua",
+        "Series": "Chicago 22"
     },
     {
         "date": "02/04/2025",
@@ -12240,6 +12294,12 @@
         "League": "APTA_CHICAGO"
     },
     {
+        "date": "02/08/2025",
+        "time": "10:30 AM",
+        "Practice": "Tennaqua",
+        "Series": "Chicago 22"
+    },
+    {
         "date": "02/11/2025",
         "time": "06:30 pm",
         "home_team": "Lakeshore S&F - 7",
@@ -12960,12 +13020,24 @@
         "League": "APTA_CHICAGO"
     },
     {
+        "date": "02/15/2025",
+        "time": "10:30 AM",
+        "Practice": "Tennaqua",
+        "Series": "Chicago 22"
+    },
+    {
         "date": "02/19/2025",
         "time": "06:30 pm",
         "home_team": "Glenbrook RC - 9",
         "away_team": "Lake Bluff - 9",
         "location": "Lake Bluff",
         "League": "APTA_CHICAGO"
+    },
+    {
+        "date": "02/22/2025",
+        "time": "10:30 AM",
+        "Practice": "Tennaqua",
+        "Series": "Chicago 22"
     },
     {
         "date": "02/25/2025",
@@ -13544,6 +13616,12 @@
         "League": "APTA_CHICAGO"
     },
     {
+        "date": "03/01/2025",
+        "time": "10:30 AM",
+        "Practice": "Tennaqua",
+        "Series": "Chicago 22"
+    },
+    {
         "date": "03/04/2025",
         "time": "06:30 pm",
         "home_team": "Tennaqua - 7",
@@ -13832,6 +13910,12 @@
         "League": "APTA_CHICAGO"
     },
     {
+        "date": "03/08/2025",
+        "time": "10:30 AM",
+        "Practice": "Tennaqua",
+        "Series": "Chicago 22"
+    },
+    {
         "date": "03/11/2025",
         "time": "06:30 pm",
         "home_team": "Michigan Shores - 6",
@@ -13974,5 +14058,35 @@
         "away_team": "Tennaqua - 38",
         "location": "Tennaqua",
         "League": "APTA_CHICAGO"
+    },
+    {
+        "date": "03/15/2025",
+        "time": "10:30 AM",
+        "Practice": "Tennaqua",
+        "Series": "Chicago 22"
+    },
+    {
+        "date": "03/22/2025",
+        "time": "10:30 AM",
+        "Practice": "Tennaqua",
+        "Series": "Chicago 22"
+    },
+    {
+        "date": "03/29/2025",
+        "time": "10:30 AM",
+        "Practice": "Tennaqua",
+        "Series": "Chicago 22"
+    },
+    {
+        "date": "04/05/2025",
+        "time": "10:30 AM",
+        "Practice": "Tennaqua",
+        "Series": "Chicago 22"
+    },
+    {
+        "date": "04/12/2025",
+        "time": "10:30 AM",
+        "Practice": "Tennaqua",
+        "Series": "Chicago 22"
     }
 ]

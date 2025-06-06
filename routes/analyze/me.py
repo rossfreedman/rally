@@ -112,23 +112,25 @@ def init_routes(app):
             logger.error(f"Error researching player: {str(e)}")
             return jsonify({'error': 'Failed to research player'}), 500
 
-    @app.route('/mobile/analyze-me')
-    @login_required
-    def serve_mobile_analyze_me():
-        try:
-            if 'user' not in session:
-                return jsonify({'error': 'Not authenticated'}), 401
+    # COMMENTED OUT: This route conflicts with mobile blueprint's /mobile/analyze-me route
+    # The mobile blueprint should handle /mobile/analyze-me instead
+    # @app.route('/mobile/analyze-me')
+    # @login_required
+    # def serve_mobile_analyze_me():
+    #     try:
+    #         if 'user' not in session:
+    #             return jsonify({'error': 'Not authenticated'}), 401
 
-            user = session['user']
-            analysis = get_player_analysis(user)
+    #         user = session['user']
+    #         analysis = get_player_analysis(user)
             
-            return jsonify({
-                'user': user,
-                'analysis': analysis
-            })
+    #         return jsonify({
+    #             'user': user,
+    #             'analysis': analysis
+    #         })
             
-        except Exception as e:
-            logger.error(f"Error serving mobile analysis: {str(e)}")
-            return jsonify({'error': 'Failed to serve mobile analysis'}), 500
+    #     except Exception as e:
+    #         logger.error(f"Error serving mobile analysis: {str(e)}")
+    #         return jsonify({'error': 'Failed to serve mobile analysis'}), 500
 
     return app 
