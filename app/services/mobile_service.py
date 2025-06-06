@@ -1302,17 +1302,234 @@ def get_mobile_availability_data(user):
 def get_mobile_club_data(user):
     """Get club data for mobile my club page"""
     try:
-        # TODO: Extract club data logic from server.py
+        club_name = user.get('club', '')
+        series = user.get('series', '')
+        
+        if not club_name:
+            return {
+                'team_name': 'Unknown',
+                'this_week_results': [],
+                'tennaqua_standings': [],
+                'head_to_head': [],
+                'player_streaks': [],
+                'error': 'No club information found in user profile'
+            }
+        
+        # Load match history data
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        schedules_path = os.path.join(project_root, 'data', 'schedules.json')
+        series_stats_path = os.path.join(project_root, 'data', 'series_stats.json')
+        
+        # Initialize return data
+        this_week_results = []
+        tennaqua_standings = []
+        head_to_head = []
+        player_streaks = []
+        
+        # Get recent match results
+        try:
+            with open(schedules_path, 'r') as f:
+                matches_data = json.load(f)
+            
+            # Filter matches for this club
+            club_matches = []
+            for match in matches_data:
+                home_team = match.get('home_team', '')
+                away_team = match.get('away_team', '')
+                
+                if club_name in home_team or club_name in away_team:
+                    club_matches.append(match)
+            
+            # Get this week's results (last 7 days)
+            from datetime import datetime, timedelta
+            week_ago = datetime.now() - timedelta(days=7)
+            
+            for match in club_matches:
+                match_date_str = match.get('date', '')
+                if match_date_str:
+                    try:
+                        # Try different date formats
+                        for fmt in ['%Y-%m-%d', '%m/%d/%Y', '%d-%b-%y']:
+                            try:
+                                match_date = datetime.strptime(match_date_str, fmt)
+                                break
+                            except ValueError:
+                                continue
+                        else:
+                            continue
+                        
+                        if match_date >= week_ago:
+                            result = {
+                                'date': match_date_str,
+                                'home_team': match.get('home_team', ''),
+                                'away_team': match.get('away_team', ''),
+                                'winner': match.get('winner', ''),
+                                'score': match.get('score', ''),
+                                'court': match.get('court', '')
+                            }
+                            this_week_results.append(result)
+                    except Exception as e:
+                        continue
+            
+            # Sort by date (most recent first)
+            this_week_results.sort(key=lambda x: x.get('date', ''), reverse=True)
+            
+        except Exception as e:
+            print(f"Error loading matches data: {str(e)}")
+        
+        # Get series standings if Tennaqua
+        if 'tennaqua' in club_name.lower():
+            try:
+                with open(series_stats_path, 'r') as f:
+                    stats_data = json.load(f)
+                
+                for team_stats in stats_data:
+                    if not team_stats.get('team', '').lower().startswith('tennaqua'):
+                        continue
+                    
+                    team_series = team_stats.get('series')
+                    if not team_series:
+                        continue
+                    
+                    # Get all teams in this series
+                    series_teams = [team for team in stats_data if team.get('series') == team_series]
+                    
+                    # Calculate average points
+                    for team in series_teams:
+                        total_matches = sum(team.get('matches', {}).get(k, 0) for k in ['won', 'lost', 'tied'])
+                        total_points = float(team.get('points', 0))
+                        team['avg_points'] = round(total_points / total_matches, 1) if total_matches > 0 else 0
+                    
+                    # Sort by average points
+                    series_teams.sort(key=lambda x: x.get('avg_points', 0), reverse=True)
+                    
+                    # Find Tennaqua's position
+                    for i, team in enumerate(series_teams, 1):
+                        if team.get('team', '').lower().startswith('tennaqua'):
+                            tennaqua_standings.append({
+                                'series': team_series,
+                                'place': i,
+                                'total_points': team.get('points', 0),
+                                'avg_points': team.get('avg_points', 0),
+                                'playoff_contention': i <= 8
+                            })
+                            break
+                
+                # Sort standings by place
+                tennaqua_standings.sort(key=lambda x: x['place'])
+                
+            except Exception as e:
+                print(f"Error loading series stats: {str(e)}")
+        
+        # Calculate head-to-head records
+        try:
+            head_to_head_dict = {}
+            for match in club_matches:
+                home_team = match.get('home_team', '')
+                away_team = match.get('away_team', '')
+                winner = match.get('winner', '')
+                
+                if not all([home_team, away_team, winner]):
+                    continue
+                
+                if club_name in home_team:
+                    opponent = away_team.split(' - ')[0] if ' - ' in away_team else away_team
+                    won = winner == 'home'
+                elif club_name in away_team:
+                    opponent = home_team.split(' - ')[0] if ' - ' in home_team else home_team
+                    won = winner == 'away'
+                else:
+                    continue
+                
+                if opponent not in head_to_head_dict:
+                    head_to_head_dict[opponent] = {'wins': 0, 'losses': 0, 'total': 0}
+                
+                head_to_head_dict[opponent]['total'] += 1
+                if won:
+                    head_to_head_dict[opponent]['wins'] += 1
+                else:
+                    head_to_head_dict[opponent]['losses'] += 1
+            
+            # Convert to list and sort by total matches
+            head_to_head = [
+                {
+                    'opponent': opponent,
+                    'wins': stats['wins'],
+                    'losses': stats['losses'],
+                    'total': stats['total'],
+                    'win_rate': round(stats['wins'] / stats['total'] * 100, 1) if stats['total'] > 0 else 0
+                }
+                for opponent, stats in head_to_head_dict.items()
+            ]
+            head_to_head.sort(key=lambda x: x['total'], reverse=True)
+            
+        except Exception as e:
+            print(f"Error calculating head-to-head: {str(e)}")
+        
+        # Calculate basic player streaks (simplified version)
+        try:
+            player_stats = {}
+            for match in club_matches[-20:]:  # Last 20 matches
+                # Extract players from team names or use placeholder
+                players = []
+                home_team = match.get('home_team', '')
+                away_team = match.get('away_team', '')
+                
+                # Simple extraction - this could be improved with better player data
+                if club_name in home_team:
+                    is_home = True
+                    won = match.get('winner') == 'home'
+                elif club_name in away_team:
+                    is_home = False
+                    won = match.get('winner') == 'away'
+                else:
+                    continue
+                
+                # For now, create a simplified streak entry
+                team_key = f"{club_name} Team"
+                if team_key not in player_stats:
+                    player_stats[team_key] = {'wins': 0, 'losses': 0, 'recent': []}
+                
+                player_stats[team_key]['recent'].append(won)
+                if won:
+                    player_stats[team_key]['wins'] += 1
+                else:
+                    player_stats[team_key]['losses'] += 1
+            
+            # Calculate current streaks
+            for player, stats in player_stats.items():
+                recent = stats['recent']
+                if recent:
+                    current_streak = 1
+                    last_result = recent[-1]
+                    for i in range(len(recent) - 2, -1, -1):
+                        if recent[i] == last_result:
+                            current_streak += 1
+                        else:
+                            break
+                    
+                    player_streaks.append({
+                        'player': player,
+                        'streak': current_streak,
+                        'streak_type': 'win' if last_result else 'loss',
+                        'end_date': 'Recent'
+                    })
+            
+        except Exception as e:
+            print(f"Error calculating player streaks: {str(e)}")
+        
         return {
-            'team_name': user.get('club', 'Unknown'),
-            'this_week_results': [],
-            'tennaqua_standings': [],
-            'head_to_head': [],
-            'player_streaks': [],
-            'error': 'Function not yet extracted from server.py'
+            'team_name': club_name,
+            'this_week_results': this_week_results,
+            'tennaqua_standings': tennaqua_standings,
+            'head_to_head': head_to_head,
+            'player_streaks': player_streaks
         }
+        
     except Exception as e:
         print(f"Error getting mobile club data: {str(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
         return {
             'team_name': user.get('club', 'Unknown'),
             'this_week_results': [],
