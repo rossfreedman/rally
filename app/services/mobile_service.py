@@ -12,6 +12,23 @@ import traceback
 from collections import defaultdict, Counter
 from utils.date_utils import date_to_db_timestamp, normalize_date_string
 
+def _load_players_data():
+    """Load player data fresh from JSON file - no caching"""
+    try:
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        players_path = os.path.join(project_root, 'data', 'players.json')
+        
+        # Always load fresh data
+        with open(players_path, 'r') as f:
+            players_data = json.load(f)
+        
+        print(f"Loaded fresh player data ({len(players_data)} players)")
+        return players_data
+        
+    except Exception as e:
+        print(f"Error loading player data: {e}")
+        return []
+
 def get_player_analysis_by_name(player_name):
     """
     Returns the player analysis data for the given player name, as a dict.
@@ -1303,14 +1320,13 @@ def get_mobile_availability_data(user):
 
 def get_recent_matches_for_user_club(user):
     """
-    Get the most recent matches for a user's club, including all courts.
+    Get the last 10 weeks of matches for a user's club, grouped by date.
     
     Args:
         user: User object containing club information
         
     Returns:
-        List of match dictionaries from match_history.json filtered for the user's club,
-        only including matches from the most recent date
+        Dict with matches grouped by date for the last 10 weeks
     """
     try:
         project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -1320,31 +1336,43 @@ def get_recent_matches_for_user_club(user):
             all_matches = json.load(f)
             
         if not user or not user.get('club'):
-            return []
+            return {}
             
         user_club = user['club']
         # Filter matches where user's club is either home or away team
+        # Make sure to capture ALL teams from this club across ALL series
         club_matches = []
         for match in all_matches:
-            if user_club in match.get('Home Team', '') or user_club in match.get('Away Team', ''):
+            home_team = match.get('Home Team', '')
+            away_team = match.get('Away Team', '')
+            
+            # Check if either team belongs to the user's club
+            # Use more flexible matching to catch all team variations
+            home_club_match = (user_club in home_team) if home_team else False
+            away_club_match = (user_club in away_team) if away_team else False
+            
+            if home_club_match or away_club_match:
                 # Normalize keys to snake_case
                 normalized_match = {
                     'date': match.get('Date', ''),
                     'time': match.get('Time', ''),
                     'location': match.get('Location', ''),
-                    'home_team': match.get('Home Team', ''),
-                    'away_team': match.get('Away Team', ''),
+                    'home_team': home_team,
+                    'away_team': away_team,
                     'winner': match.get('Winner', ''),
                     'scores': match.get('Scores', ''),
                     'home_player_1': match.get('Home Player 1', ''),
                     'home_player_2': match.get('Home Player 2', ''),
                     'away_player_1': match.get('Away Player 1', ''),
                     'away_player_2': match.get('Away Player 2', ''),
-                    'court': match.get('Court', '')
+                    'court': match.get('Court', ''),
+                    'series': match.get('Series', '')
                 }
                 club_matches.append(normalized_match)
         
-        # Sort matches by date to find the most recent
+        print(f"[DEBUG] Found {len(club_matches)} total matches for club '{user_club}' across all series")
+        
+        # Sort matches by date to get chronological order
         def parse_date(date_str):
             for fmt in ("%d-%b-%y", "%Y-%m-%d", "%m/%d/%Y"):
                 try:
@@ -1356,28 +1384,46 @@ def get_recent_matches_for_user_club(user):
         sorted_matches = sorted(club_matches, key=lambda x: parse_date(x['date']), reverse=True)
         
         if not sorted_matches:
-            return []
+            return {}
+        
+        # Group matches by date and get the last 10 unique dates
+        matches_by_date = {}
+        for match in sorted_matches:
+            date = match['date']
+            if date not in matches_by_date:
+                matches_by_date[date] = []
+            matches_by_date[date].append(match)
+        
+        print(f"[DEBUG] Matches grouped by date:")
+        for date, date_matches in matches_by_date.items():
+            print(f"  {date}: {len(date_matches)} matches")
+        
+        # Get the 10 most recent dates
+        recent_dates = sorted(matches_by_date.keys(), key=parse_date, reverse=True)[:10]
+        print(f"[DEBUG] Selected {len(recent_dates)} most recent dates: {recent_dates}")
+        
+        # Build the result with only the recent dates
+        recent_matches_by_date = {}
+        for date in recent_dates:
+            # Sort matches for this date by court number
+            def court_sort_key(match):
+                court = match.get('court', '')
+                if not court or not str(court).strip():
+                    return float('inf')  # Put empty courts at the end
+                try:
+                    return int(court)
+                except (ValueError, TypeError):
+                    return float('inf')  # Put non-numeric courts at the end
             
-        # Get only matches from the most recent date
-        most_recent_date = sorted_matches[0]['date']
-        recent_matches = [m for m in sorted_matches if m['date'] == most_recent_date]
+            sorted_date_matches = sorted(matches_by_date[date], key=court_sort_key)
+            recent_matches_by_date[date] = sorted_date_matches
+            print(f"[DEBUG] Date {date}: Including {len(sorted_date_matches)} matches")
         
-        # Sort by court number if available, handling empty strings and non-numeric values
-        def court_sort_key(match):
-            court = match.get('court', '')
-            if not court or not str(court).strip():
-                return float('inf')  # Put empty courts at the end
-            try:
-                return int(court)
-            except (ValueError, TypeError):
-                return float('inf')  # Put non-numeric courts at the end
-        
-        recent_matches.sort(key=court_sort_key)
-        return recent_matches
+        return recent_matches_by_date
         
     except Exception as e:
         print(f"Error getting recent matches for user club: {e}")
-        return []
+        return {}
 
 def calculate_player_streaks(club_name):
     """Calculate winning and losing streaks for players across ALL matches for the club - only show significant streaks (+5/-5)"""
@@ -1550,106 +1596,138 @@ def get_mobile_club_data(user):
         
         print(f"[DEBUG] Looking for matches from club: '{club_name}'")
         
-        # Get recent matches from match_history.json (completed matches with results)
-        matches_data = get_recent_matches_for_user_club(user)
+        # Get recent matches from match_history.json (completed matches with results) - now grouped by date
+        matches_by_date = get_recent_matches_for_user_club(user)
         
-        if not matches_data:
+        if not matches_by_date:
             print(f"[DEBUG] No recent matches found")
             return {
                 'team_name': club_name,
-                'this_week_results': [],
+                'weekly_results': [],
                 'tennaqua_standings': [],
                 'head_to_head': [],
-                'player_streaks=[]': []
+                'player_streaks': []
             }
         
-        print(f"[DEBUG] Found {len(matches_data)} recent matches")
+        print(f"[DEBUG] Found matches for {len(matches_by_date)} different dates")
         
-        # Group matches by team
-        team_matches = {}
-        for match in matches_data:
-            home_team = match['home_team']
-            away_team = match['away_team']
+        # Process each date's matches into weekly results
+        weekly_results = []
+        for date, matches_data in matches_by_date.items():
+            print(f"[DEBUG] Processing date {date} with {len(matches_data)} matches")
             
-            if club_name in home_team:
-                team = home_team
-                opponent = away_team.split(' - ')[0] if ' - ' in away_team else away_team
-                is_home = True
-            elif club_name in away_team:
-                team = away_team
-                opponent = home_team.split(' - ')[0] if ' - ' in home_team else home_team
-                is_home = False
-            else:
-                continue
+            # Group matches by team for this date
+            team_matches = {}
+            matches_processed = 0
+            matches_skipped = 0
+            
+            for match in matches_data:
+                home_team = match['home_team']
+                away_team = match['away_team']
                 
-            if team not in team_matches:
-                team_matches[team] = {
-                    'opponent': opponent,
-                    'matches': [],
-                    'team_points': 0,
-                    'opponent_points': 0,
-                    'series': team.split(' - ')[1] if ' - ' in team else team
-                }
-            
-            # Calculate points for this match based on set scores
-            scores = match['scores'].split(', ') if match['scores'] else []
-            match_team_points = 0
-            match_opponent_points = 0
-            
-            # Points for each set
-            for set_score in scores:
-                if '-' in set_score:
-                    try:
-                        our_score, their_score = map(int, set_score.split('-'))
-                        if not is_home:
-                            our_score, their_score = their_score, our_score
+                if club_name in home_team:
+                    team = home_team
+                    opponent = away_team.split(' - ')[0] if ' - ' in away_team else away_team
+                    is_home = True
+                    matches_processed += 1
+                elif club_name in away_team:
+                    team = away_team
+                    opponent = home_team.split(' - ')[0] if ' - ' in home_team else home_team
+                    is_home = False
+                    matches_processed += 1
+                else:
+                    matches_skipped += 1
+                    print(f"[DEBUG] Skipping match - home: '{home_team}', away: '{away_team}' (club '{club_name}' not found)")
+                    continue
+                    
+                if team not in team_matches:
+                    team_matches[team] = {
+                        'opponent': opponent,
+                        'matches': [],
+                        'team_points': 0,
+                        'opponent_points': 0,
+                        'series': team.split(' - ')[1] if ' - ' in team else team
+                    }
+                
+                # Calculate points for this match based on set scores
+                scores = match['scores'].split(', ') if match['scores'] else []
+                match_team_points = 0
+                match_opponent_points = 0
+                
+                # Points for each set
+                for set_score in scores:
+                    if '-' in set_score:
+                        try:
+                            our_score, their_score = map(int, set_score.split('-'))
+                            if not is_home:
+                                our_score, their_score = their_score, our_score
+                                
+                            if our_score > their_score:
+                                match_team_points += 1
+                            else:
+                                match_opponent_points += 1
+                        except (ValueError, IndexError):
+                            continue
                             
-                        if our_score > their_score:
-                            match_team_points += 1
-                        else:
-                            match_opponent_points += 1
-                    except (ValueError, IndexError):
-                        continue
-                        
-            # Bonus point for match win
-            if (is_home and match['winner'] == 'home') or (not is_home and match['winner'] == 'away'):
-                match_team_points += 1
-            else:
-                match_opponent_points += 1
+                # Bonus point for match win
+                if (is_home and match['winner'] == 'home') or (not is_home and match['winner'] == 'away'):
+                    match_team_points += 1
+                else:
+                    match_opponent_points += 1
+                    
+                # Update total points
+                team_matches[team]['team_points'] += match_team_points
+                team_matches[team]['opponent_points'] += match_opponent_points
                 
-            # Update total points
-            team_matches[team]['team_points'] += match_team_points
-            team_matches[team]['opponent_points'] += match_opponent_points
+                # Add match details
+                court = match.get('court', '')
+                try:
+                    court_num = int(court) if court and court.strip() else len(team_matches[team]['matches']) + 1
+                except (ValueError, TypeError):
+                    court_num = len(team_matches[team]['matches']) + 1
+                    
+                team_matches[team]['matches'].append({
+                    'court': court_num,
+                    'home_players': f"{match['home_player_1']}/{match['home_player_2']}" if is_home else f"{match['away_player_1']}/{match['away_player_2']}",
+                    'away_players': f"{match['away_player_1']}/{match['away_player_2']}" if is_home else f"{match['home_player_1']}/{match['home_player_2']}",
+                    'scores': match['scores'],
+                    'won': (is_home and match['winner'] == 'home') or (not is_home and match['winner'] == 'away')
+                })
             
-            # Add match details
-            court = match.get('court', '')
-            try:
-                court_num = int(court) if court and court.strip() else len(team_matches[team]['matches']) + 1
-            except (ValueError, TypeError):
-                court_num = len(team_matches[team]['matches']) + 1
+            print(f"[DEBUG] Date {date}: Processed {matches_processed} matches, skipped {matches_skipped}, found {len(team_matches)} teams")
+            for team, data in team_matches.items():
+                print(f"  Team '{team}': {len(data['matches'])} matches vs {data['opponent']}")
+            
+            # Convert this date's matches to results format
+            date_results = []
+            for team_data in team_matches.values():
+                date_results.append({
+                    'series': f"Series {team_data['series']}" if team_data['series'].isdigit() else team_data['series'],
+                    'opponent': team_data['opponent'],
+                    'score': f"{team_data['team_points']}-{team_data['opponent_points']}",
+                    'won': team_data['team_points'] > team_data['opponent_points'],
+                    'match_details': sorted(team_data['matches'], key=lambda x: x['court'])
+                })
                 
-            team_matches[team]['matches'].append({
-                'court': court_num,
-                'home_players': f"{match['home_player_1']}/{match['home_player_2']}" if is_home else f"{match['away_player_1']}/{match['away_player_2']}",
-                'away_players': f"{match['away_player_1']}/{match['away_player_2']}" if is_home else f"{match['home_player_1']}/{match['home_player_2']}",
-                'scores': match['scores'],
-                'won': (is_home and match['winner'] == 'home') or (not is_home and match['winner'] == 'away')
+            # Sort results by opponent name
+            date_results.sort(key=lambda x: x['opponent'])
+            
+            # Add this week's results to the weekly results
+            weekly_results.append({
+                'date': date,
+                'results': date_results
             })
         
-        # Convert to list format for template
-        this_week_results = []
-        for team_data in team_matches.values():
-            this_week_results.append({
-                'series': f"Series {team_data['series']}" if team_data['series'].isdigit() else team_data['series'],
-                'opponent': team_data['opponent'],
-                'score': f"{team_data['team_points']}-{team_data['opponent_points']}",
-                'won': team_data['team_points'] > team_data['opponent_points'],
-                'match_details': sorted(team_data['matches'], key=lambda x: x['court']),
-                'date': matches_data[0]['date']  # All matches are from the same date
-            })
-            
-        # Sort results by opponent name
-        this_week_results.sort(key=lambda x: x['opponent'])
+        # Sort weekly results by date (most recent first)
+        def parse_date(date_str):
+            for fmt in ("%d-%b-%y", "%Y-%m-%d", "%m/%d/%Y"):
+                try:
+                    return datetime.strptime(date_str, fmt)
+                except ValueError:
+                    continue
+            return datetime.min
+        
+        weekly_results.sort(key=lambda x: parse_date(x['date']), reverse=True)
         
         # Calculate club standings (for all teams in the club across all series)
         project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -1702,32 +1780,76 @@ def get_mobile_club_data(user):
         
         # Calculate head-to-head records
         head_to_head = {}
-        for match in matches_data:
-            home_team = match.get('home_team', '')
-            away_team = match.get('away_team', '')
-            winner = match.get('winner', '')
+        
+        # Load ALL match history for comprehensive head-to-head records
+        try:
+            project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            match_history_path = os.path.join(project_root, 'data', 'match_history.json')
             
-            if not all([home_team, away_team, winner]):
-                continue
+            with open(match_history_path, 'r') as f:
+                all_match_history = json.load(f)
+            
+            print(f"[DEBUG] Loading ALL match history for head-to-head: {len(all_match_history)} total matches")
+            
+            for match in all_match_history:
+                home_team = match.get('Home Team', '')
+                away_team = match.get('Away Team', '')
+                winner = match.get('Winner', '')
                 
-            if club_name in home_team:
-                opponent = away_team.split(' - ')[0] if ' - ' in away_team else away_team
-                won = winner == 'home'
-            elif club_name in away_team:
-                opponent = home_team.split(' - ')[0] if ' - ' in home_team else home_team
-                won = winner == 'away'
-            else:
-                continue
-                
-            if opponent not in head_to_head:
-                head_to_head[opponent] = {'wins': 0, 'losses': 0, 'total': 0}
-                
-            head_to_head[opponent]['total'] += 1
-            if won:
-                head_to_head[opponent]['wins'] += 1
-            else:
-                head_to_head[opponent]['losses'] += 1
-                
+                if not all([home_team, away_team, winner]):
+                    continue
+                    
+                # Check if this match involves our club
+                if club_name in home_team:
+                    opponent = away_team.split(' - ')[0] if ' - ' in away_team else away_team
+                    won = winner == 'home'
+                elif club_name in away_team:
+                    opponent = home_team.split(' - ')[0] if ' - ' in home_team else home_team
+                    won = winner == 'away'
+                else:
+                    continue
+                    
+                if opponent not in head_to_head:
+                    head_to_head[opponent] = {'wins': 0, 'losses': 0, 'total': 0}
+                    
+                head_to_head[opponent]['total'] += 1
+                if won:
+                    head_to_head[opponent]['wins'] += 1
+                else:
+                    head_to_head[opponent]['losses'] += 1
+            
+            print(f"[DEBUG] Found head-to-head records against {len(head_to_head)} different clubs")
+            
+        except Exception as e:
+            print(f"Error loading all match history for head-to-head: {str(e)}")
+            # Fallback to recent matches if all match history fails
+            for date, matches_data in matches_by_date.items():
+                for match in matches_data:
+                    home_team = match.get('home_team', '')
+                    away_team = match.get('away_team', '')
+                    winner = match.get('winner', '')
+                    
+                    if not all([home_team, away_team, winner]):
+                        continue
+                        
+                    if club_name in home_team:
+                        opponent = away_team.split(' - ')[0] if ' - ' in away_team else away_team
+                        won = winner == 'home'
+                    elif club_name in away_team:
+                        opponent = home_team.split(' - ')[0] if ' - ' in home_team else home_team
+                        won = winner == 'away'
+                    else:
+                        continue
+                        
+                    if opponent not in head_to_head:
+                        head_to_head[opponent] = {'wins': 0, 'losses': 0, 'total': 0}
+                        
+                    head_to_head[opponent]['total'] += 1
+                    if won:
+                        head_to_head[opponent]['wins'] += 1
+                    else:
+                        head_to_head[opponent]['losses'] += 1
+        
         # Convert head-to-head to list
         head_to_head = [
             {
@@ -1740,15 +1862,15 @@ def get_mobile_club_data(user):
             for opponent, stats in head_to_head.items()
         ]
         
-        # Sort by total matches
-        head_to_head.sort(key=lambda x: x['total'], reverse=True)
+        # Sort by win percentage (highest to lowest), then by total matches as tiebreaker
+        head_to_head.sort(key=lambda x: (x['wins'] / x['total'] if x['total'] > 0 else 0, x['total']), reverse=True)
         
         # Calculate player streaks
         player_streaks = calculate_player_streaks(club_name)
         
         return {
             'team_name': club_name,
-            'this_week_results': this_week_results,
+            'weekly_results': weekly_results,
             'tennaqua_standings': tennaqua_standings,
             'head_to_head': head_to_head,
             'player_streaks': player_streaks
@@ -1760,7 +1882,7 @@ def get_mobile_club_data(user):
         print(f"Full traceback: {traceback.format_exc()}")
         return {
             'team_name': user.get('club', 'Unknown'),
-            'this_week_results': [],
+            'weekly_results': [],
             'tennaqua_standings': [],
             'head_to_head': [],
             'player_streaks': [],
@@ -1808,16 +1930,210 @@ def get_practice_times_data(user):
         }
 
 def get_all_team_availability_data(user, selected_date=None):
-    """Get all team availability data for mobile page"""
+    """
+    Get all team availability data for mobile page - optimized for performance
+    
+    PERFORMANCE OPTIMIZATIONS IMPLEMENTED:
+    1. **Single Bulk Database Query**: Instead of N individual queries (one per player), 
+       we now use a single query with IN clause to fetch all availability data at once.
+       This reduces database round-trips from ~10 to 1, significantly improving performance.
+       
+    2. **Early Data Filtering**: We filter players by club/series before any database operations,
+       reducing the dataset size early in the process.
+       
+    3. **Optimized Data Structures**: Using dictionaries for fast O(1) lookups instead of 
+       iterating through lists.
+       
+    4. **Single Date Conversion**: The date is converted once and reused, rather than 
+       converting it for each player.
+    
+    RECOMMENDED DATABASE OPTIMIZATION:
+    For even better performance, ensure this index exists in PostgreSQL:
+    CREATE INDEX IF NOT EXISTS idx_player_availability_lookup 
+    ON player_availability (series_id, match_date, player_name);
+    
+    This index supports the bulk query's WHERE clause for optimal performance.
+    """
     try:
-        # TODO: Extract all team availability logic from server.py
+        # Handle missing parameters
+        if not selected_date:
+            return {
+                'players_schedule': {},
+                'selected_date': 'today',
+                'error': 'No date selected'
+            }
+
+        # Get user information
+        if not user:
+            return {
+                'players_schedule': {},
+                'selected_date': selected_date,
+                'error': 'User not found in session'
+            }
+            
+        club_name = user.get('club')
+        series = user.get('series')
+        
+        print(f"\n=== ALL TEAM AVAILABILITY DATA REQUEST (OPTIMIZED) ===")
+        print(f"User: {user.get('email')}")
+        print(f"Club: {club_name}")
+        print(f"Series: {series}")
+        print(f"Selected Date: {selected_date}")
+        
+        if not club_name or not series:
+            return {
+                'players_schedule': {},
+                'selected_date': selected_date,
+                'error': 'Please verify your club (Tennaqua) and series (Chicago 22) are correct in your profile settings'
+            }
+
+        # Get series ID from database
+        from database_utils import execute_query
+        from utils.date_utils import date_to_db_timestamp
+        
+        series_record = execute_query("SELECT id, name FROM series WHERE name = %s", (series,))
+        if not series_record:
+            print(f"❌ Series not found: {series}")
+            return {
+                'players_schedule': {},
+                'selected_date': selected_date,
+                'error': f'Series "{series}" not found in database'
+            }
+            
+        series_record = series_record[0]
+
+        # Convert selected_date once for all queries
+        try:
+            if '/' in selected_date:
+                # Convert MM/DD/YYYY to proper UTC timestamp
+                selected_date_utc = date_to_db_timestamp(selected_date)
+            else:
+                # Convert YYYY-MM-DD to proper UTC timestamp  
+                selected_date_utc = date_to_db_timestamp(selected_date)
+            
+            print(f"Converted selected_date {selected_date} to UTC timestamp: {selected_date_utc}")
+        except Exception as e:
+            print(f"❌ Error converting selected_date {selected_date}: {e}")
+            return {
+                'players_schedule': {},
+                'selected_date': selected_date,
+                'error': f'Invalid date format: {selected_date}'
+            }
+
+        # Load and filter players from JSON
+        try:
+            # Load fresh player data
+            all_players = _load_players_data()
+            
+            if not all_players:
+                return {
+                    'players_schedule': {},
+                    'selected_date': selected_date,
+                    'error': 'Error loading player data'
+                }
+            
+            # Filter players for this series and club - more efficient filtering
+            team_player_names = []
+            team_players_display = {}
+            
+            for player in all_players:
+                if (player.get('Series') == series and 
+                    player.get('Club') == club_name):
+                    full_name = f"{player['First Name']} {player['Last Name']}"
+                    team_player_names.append(full_name)
+                    # Store display name mapping
+                    team_players_display[full_name] = f"{full_name} ({club_name})"
+            
+            print(f"Found {len(team_player_names)} players for {club_name} - {series}")
+            
+            if not team_player_names:
+                print("❌ No players found in players.json")
+                return {
+                    'players_schedule': {},
+                    'selected_date': selected_date,
+                    'error': 'No players found for your team'
+                }
+                
+        except Exception as e:
+            print(f"❌ Error processing player data: {e}")
+            import traceback
+            print(traceback.format_exc())
+            return {
+                'players_schedule': {},
+                'selected_date': selected_date,
+                'error': 'Error loading player data'
+            }
+
+        # OPTIMIZATION: Single bulk database query instead of N individual queries
+        try:
+            # Create a single query to get all availability data at once
+            placeholders = ','.join(['%s'] * len(team_player_names))
+            bulk_query = f"""
+                SELECT player_name, availability_status
+                FROM player_availability 
+                WHERE player_name IN ({placeholders})
+                AND series_id = %s 
+                AND DATE(match_date AT TIME ZONE 'UTC') = DATE(%s AT TIME ZONE 'UTC')
+            """
+            
+            # Parameters: all player names + series_id + date
+            bulk_params = tuple(team_player_names) + (series_record['id'], selected_date_utc)
+            
+            print(f"Executing bulk availability query for {len(team_player_names)} players...")
+            availability_results = execute_query(bulk_query, bulk_params)
+            
+            # Convert results to dictionary for fast lookup
+            availability_lookup = {}
+            for result in availability_results:
+                availability_lookup[result['player_name']] = result['availability_status']
+            
+            print(f"Found availability data for {len(availability_lookup)} players")
+            
+        except Exception as e:
+            print(f"❌ Error in bulk availability query: {e}")
+            import traceback
+            print(traceback.format_exc())
+            return {
+                'players_schedule': {},
+                'selected_date': selected_date,
+                'error': 'Error querying availability data'
+            }
+
+        # Build players_schedule efficiently
+        players_schedule = {}
+        for player_name in team_player_names:
+            # Get availability status from lookup (default to 0 if not found)
+            status = availability_lookup.get(player_name, 0)
+            
+            # Create availability record
+            availability = [{
+                'date': selected_date,
+                'availability_status': status
+            }]
+            
+            # Store with display name
+            display_name = team_players_display[player_name]
+            players_schedule[display_name] = availability
+
+        if not players_schedule:
+            print("❌ No player schedules created")
+            return {
+                'players_schedule': {},
+                'selected_date': selected_date,
+                'error': 'No player schedules found for your series'
+            }
+            
+        print(f"✅ Successfully created availability schedule for {len(players_schedule)} players with optimized queries")
+        
         return {
-            'players_schedule': {},
-            'selected_date': selected_date or 'today',
-            'error': 'Function not yet extracted from server.py'
+            'players_schedule': players_schedule,
+            'selected_date': selected_date
         }
+        
     except Exception as e:
         print(f"Error getting all team availability data: {str(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
         return {
             'players_schedule': {},
             'selected_date': selected_date or 'today',
@@ -1827,15 +2143,167 @@ def get_all_team_availability_data(user, selected_date=None):
 def get_club_players_data(user, series_filter=None, first_name_filter=None, last_name_filter=None, pti_min=None, pti_max=None):
     """Get all players at the user's club with optional filtering"""
     try:
-        # TODO: Extract club players logic from server.py
+        # Get user's club from user data
+        user_club = user.get('club')
+        if not user_club:
+            return {
+                'players': [],
+                'available_series': [],
+                'pti_range': {'min': 0, 'max': 100},
+                'error': 'User club not found'
+            }
+
+        print(f"\n=== DEBUG: get_club_players_data ===")
+        print(f"User club: '{user_club}'")
+        print(f"User club type: {type(user_club)}")
+        print(f"Filters - Series: {series_filter}, First: {first_name_filter}, Last: {last_name_filter}, PTI: {pti_min}-{pti_max}")
+
+        # Load fresh player data
+        all_players = _load_players_data()
+        
+        if not all_players:
+            return {
+                'players': [],
+                'available_series': [],
+                'pti_range': {'min': 0, 'max': 100},
+                'error': 'Error loading player data'
+            }
+
+        # Debug: Show unique clubs in data and check counts
+        clubs_in_data = set()
+        user_club_count = 0
+        for player in all_players:
+            clubs_in_data.add(player['Club'])
+            if player['Club'] == user_club:
+                user_club_count += 1
+        
+        print(f"Total players in file: {len(all_players)}")
+        print(f"Players with user's club '{user_club}': {user_club_count}")
+        print(f"All clubs in data: {sorted(list(clubs_in_data))}")
+
+        # Load real contact information from CSV
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        csv_path = os.path.join(project_root, 'data', 'club_directories', 'directory_tennaqua.csv')
+        contact_info = {}
+        
+        if os.path.exists(csv_path):
+            import csv
+            with open(csv_path, 'r') as csvfile:
+                reader = csv.DictReader(csvfile)
+                for row in reader:
+                    if row['First'] and row['Last Name']:  # Skip empty rows
+                        full_name = f"{row['First'].strip()} {row['Last Name'].strip()}"
+                        contact_info[full_name.lower()] = {
+                            'phone': row['Phone'].strip(),
+                            'email': row['Email'].strip()
+                        }
+            print(f"Loaded {len(contact_info)} contact records from CSV")
+        else:
+            print(f"CSV file not found at: {csv_path}")
+
+        # Calculate PTI range from ALL players in the file (for slider bounds)
+        all_pti_values = []
+        for player in all_players:
+            try:
+                pti_value = float(player['PTI'])
+                all_pti_values.append(pti_value)
+            except (ValueError, TypeError):
+                continue
+        
+        # Set PTI range based on all players in the system
+        pti_range = {'min': 0, 'max': 100}
+        if all_pti_values:
+            pti_range = {
+                'min': min(all_pti_values),
+                'max': max(all_pti_values)
+            }
+
+        # Filter players by club and other criteria
+        filtered_players = []
+        club_series = set()  # Track all series at this club
+
+        for player in all_players:
+            # Debug: Log first few club comparisons
+            if len(filtered_players) < 3:
+                print(f"Comparing: player['Club']='{player['Club']}' == user_club='{user_club}' ? {player['Club'] == user_club}")
+            
+            # Only include players from the same club as the user (exact match)
+            if player['Club'] == user_club:
+                club_series.add(player['Series'])
+                
+                # Handle PTI values - allow "N/A" and non-numeric values
+                try:
+                    pti_value = float(player['PTI'])
+                except (ValueError, TypeError):
+                    # For "N/A" or non-numeric PTI, set a default value that won't be filtered out
+                    pti_value = 50.0  # Use middle value so it passes most PTI filters
+                    print(f"Player {player['First Name']} {player['Last Name']} has non-numeric PTI '{player['PTI']}', using default value 50.0")
+
+                # Apply filters
+                if series_filter and player['Series'] != series_filter:
+                    continue
+                
+                if first_name_filter and first_name_filter not in player['First Name'].lower():
+                    continue
+                    
+                if last_name_filter and last_name_filter not in player['Last Name'].lower():
+                    continue
+                    
+                if pti_min is not None and pti_value < pti_min:
+                    continue
+                    
+                if pti_max is not None and pti_value > pti_max:
+                    continue
+
+                # Get real contact info from CSV
+                player_name = f"{player['First Name']} {player['Last Name']}"
+                player_contact = contact_info.get(player_name.lower(), {})
+                
+                # Add player to results
+                filtered_players.append({
+                    'name': player_name,
+                    'firstName': player['First Name'],
+                    'lastName': player['Last Name'],
+                    'series': player['Series'],
+                    'pti': player['PTI'],  # Keep original PTI value for display
+                    'wins': player['Wins'],
+                    'losses': player['Losses'],
+                    'winRate': player['Win %'],
+                    'phone': player_contact.get('phone', ''),
+                    'email': player_contact.get('email', '')
+                })
+
+        # Sort players by PTI (ascending - lower PTI is better)
+        # Handle "N/A" PTI values by treating them as a high number for sorting
+        def get_sort_pti(player):
+            try:
+                return float(player['pti'])
+            except (ValueError, TypeError):
+                return 999.0  # Put "N/A" values at the end
+        
+        filtered_players.sort(key=get_sort_pti)
+
+        print(f"Found {len(filtered_players)} players at {user_club}")
+        print(f"Available series: {sorted(club_series)}")
+        print(f"PTI range (from all players): {pti_range}")
+        print("=== END DEBUG ===\n")
+
         return {
-            'players': [],
-            'available_series': [],
-            'pti_range': {'min': 0, 'max': 100},
-            'error': 'Function not yet extracted from server.py'
+            'players': filtered_players,
+            'available_series': sorted(club_series, key=lambda x: int(x.split()[-1]) if x.split()[-1].isdigit() else 999),
+            'pti_range': pti_range,
+            'debug': {
+                'user_club': user_club,
+                'total_players_in_file': len(all_players),
+                'players_at_user_club': user_club_count,
+                'all_clubs': sorted(list(clubs_in_data))
+            }
         }
+        
     except Exception as e:
         print(f"Error getting club players data: {str(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
         return {
             'players': [],
             'available_series': [],
@@ -1880,4 +2348,4 @@ def get_mobile_improve_data(user):
             'paddle_tips': [],
             'training_guide': {},
             'error': str(e)
-        } 
+        }
