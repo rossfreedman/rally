@@ -1,0 +1,496 @@
+.team-analysis-container {
+    padding: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.analysis-section {
+    margin-bottom: 30px;
+    padding: 25px;
+    background-color: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.08);
+    border: 1px solid #e9ecef;
+}
+
+.analysis-section h4 {
+    color: #2c3e50;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #3498db;
+    padding-bottom: 12px;
+    font-weight: 600;
+}
+
+.analysis-section h5 {
+    color: #34495e;
+    margin: 25px 0 20px;
+    font-weight: 600;
+}
+
+.court-analysis-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 25px;
+    margin-top: 20px;
+}
+
+.court-card {
+    background-color: #ffffff;
+    border-radius: 12px;
+    padding: 25px;
+    height: 100%;
+    border: 1px solid #e9ecef;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.court-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    border-color: #3498db;
+}
+
+.court-card h5, .court-card h6 {
+    color: #2c3e50;
+    font-size: 1.2rem;
+    margin-bottom: 1.25rem;
+    font-weight: 600;
+    text-align: center;
+    border-bottom: 2px solid #e9ecef;
+    padding-bottom: 1rem;
+}
+
+.court-card p {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 0;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid #f1f1f1;
+    color: #495057;
+    font-size: 1rem;
+    line-height: 1.5;
+}
+
+.court-card p:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.key-players-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.key-players-list li {
+    margin-bottom: 10px;
+    padding: 8px 12px;
+    background-color: #f8f9fa;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    border-left: 3px solid #3498db;
+}
+
+.player-stat {
+    background: rgba(255, 255, 255, 0.7);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 12px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.player-stat:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.player-name {
+    font-weight: 600;
+    font-size: 1.1em;
+    color: #2c3e50;
+    margin-bottom: 4px;
+}
+
+.player-record {
+    color: #34495e;
+    font-size: 0.95em;
+    margin-bottom: 8px;
+}
+
+.partner-info {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.partner-info strong {
+    display: block;
+    margin-bottom: 6px;
+    color: #2c3e50;
+    font-size: 0.9em;
+}
+
+.partner-list {
+    list-style: none;
+    padding-left: 12px;
+    margin: 0;
+}
+
+.partner-list li {
+    font-size: 0.85em;
+    color: #34495e;
+    margin-bottom: 4px;
+    padding: 4px 0;
+}
+
+.court-card .partner-list li {
+    white-space: nowrap;
+    display: block;
+}
+
+.overall-stats {
+    background-color: #ffffff;
+    padding: 25px;
+    border-radius: 12px;
+    margin-bottom: 30px;
+    border-left: 4px solid #3498db;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08);
+}
+
+.overall-stats h6 {
+    color: #2c3e50;
+    margin-bottom: 20px;
+    font-weight: 600;
+    font-size: 1.1rem;
+    border-bottom: 2px solid #e9ecef;
+    padding-bottom: 12px;
+}
+
+.overall-stats p {
+    margin-bottom: 15px;
+    font-size: 1rem;
+    color: #495057;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid #f1f1f1;
+}
+
+.overall-stats p:last-child {
+    margin-bottom: 0;
+    border-bottom: none;
+}
+
+.stat-item {
+    margin-bottom: 12px;
+    padding: 12px 16px;
+    border-radius: 8px;
+    background-color: #ffffff;
+    border: 1px solid #e9ecef;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.2s ease;
+}
+
+.stat-item:hover {
+    background-color: #f8f9fa;
+    border-color: #3498db;
+}
+
+.stat-item strong {
+    color: #2c3e50;
+    font-weight: 600;
+    font-size: 1rem;
+}
+
+.stat-label {
+    color: #495057;
+    font-weight: 500;
+    font-size: 1rem;
+}
+
+.stat-value {
+    font-weight: 600;
+    font-size: 1rem;
+    color: #2c3e50;
+}
+
+.win-rate-high {
+    color: #2ecc71;
+    font-weight: 700;
+}
+
+.win-rate-medium {
+    color: #f39c12;
+    font-weight: 700;
+}
+
+.win-rate-low {
+    color: #e74c3c;
+    font-weight: 700;
+}
+
+/* Performance-based styling */
+.strong-performance {
+    background-color: #edfbf3;
+    border-left: 4px solid #2ecc71;
+}
+
+.average-performance {
+    background-color: #fff7e6;
+    border-left: 4px solid #f39c12;
+}
+
+.needs-improvement {
+    background-color: #fdf1f0;
+    border-left: 4px solid #e74c3c;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .team-analysis-container {
+        padding: 15px;
+    }
+
+    .analysis-section {
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+
+    .court-analysis-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+
+    .court-card {
+        padding: 20px;
+    }
+
+    .court-card h5, .court-card h6 {
+        font-size: 1.1rem;
+        margin-bottom: 1rem;
+    }
+
+    .overall-stats {
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+
+    .stat-item {
+        padding: 10px 12px;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
+
+    .stat-item strong,
+    .stat-label,
+    .stat-value {
+        font-size: 0.95rem;
+    }
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+    .court-card,
+    .stat-item {
+        transition: none;
+    }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+    .court-card,
+    .overall-stats,
+    .stat-item {
+        border-width: 2px;
+    }
+
+    .win-rate-high {
+        color: #1a8d4c;
+    }
+
+    .win-rate-medium {
+        color: #b37400;
+    }
+
+    .win-rate-low {
+        color: #b91d0d;
+    }
+}
+
+/* Player Analysis Styles */
+.player-analysis {
+    padding: 20px;
+    background-color: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+#player-stats {
+    margin-top: 2rem;
+}
+
+#player-stats .player-analysis {
+    background-color: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    padding: 1.5rem;
+}
+
+#player-stats .overall-stats {
+    background-color: #f8f9fa;
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    border-left: 4px solid #0d6efd;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+#player-stats .overall-stats h6 {
+    color: #0d6efd;
+    font-size: 1.2rem;
+    margin-bottom: 1.25rem;
+    font-weight: 600;
+    border-bottom: 2px solid #e9ecef;
+    padding-bottom: 0.75rem;
+}
+
+#player-stats .overall-stats p {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    margin-bottom: 0.75rem;
+    border-bottom: 1px solid #f1f1f1;
+}
+
+#player-stats .overall-stats p:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+#player-stats .court-card {
+    background-color: #ffffff;
+    border-radius: 10px;
+    padding: 1.25rem;
+    height: 100%;
+    border: 1px solid #e9ecef;
+    transition: all 0.2s ease-in-out;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+#player-stats .court-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+}
+
+#player-stats .court-card h6 {
+    color: #2c3e50;
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+    font-weight: 600;
+    text-align: center;
+    border-bottom: 2px solid #e9ecef;
+    padding-bottom: 0.75rem;
+}
+
+#player-stats .court-card p {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    margin-bottom: 0.75rem;
+    border-bottom: 1px solid #f1f1f1;
+}
+
+#player-stats .court-card p:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+#player-stats .stat-label {
+    color: #6c757d;
+    font-weight: 500;
+    font-size: 0.95rem;
+}
+
+#player-stats .stat-value {
+    font-weight: 600;
+    font-size: 1rem;
+    color: #2c3e50;
+}
+
+#player-stats .win-rate-high {
+    color: #28a745;
+    font-weight: 700;
+}
+
+#player-stats .win-rate-medium {
+    color: #ffc107;
+    font-weight: 700;
+}
+
+#player-stats .win-rate-low {
+    color: #dc3545;
+    font-weight: 700;
+}
+
+#player-stats .row.g-3 {
+    margin: 0 -0.75rem;
+}
+
+#player-stats .row.g-3 > .col-md-6 {
+    padding: 0.75rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    #player-stats .player-analysis {
+        padding: 1rem;
+    }
+    
+    #player-stats .overall-stats,
+    #player-stats .court-card {
+        padding: 1rem;
+    }
+    
+    #player-stats .row.g-3 {
+        margin: 0 -0.5rem;
+    }
+    
+    #player-stats .row.g-3 > .col-md-6 {
+        padding: 0.5rem;
+    }
+    
+    .court-card,
+    .overall-stats {
+        padding: 15px;
+    }
+    
+    .stat-item {
+        padding: 6px;
+        font-size: 0.9rem;
+    }
+    
+    .court-card h5,
+    .court-card h6 {
+        font-size: 1rem;
+    }
+}
+
+.date-header.practice-day {
+    background: #f3f3f3 !important;
+    color: #333 !important;
+}
+
+/* Force all sidebar links to white */
+.sidebar a, .sidebar a:visited, .sidebar a:active, .sidebar a:hover {
+    color: white !important;
+} 

@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom styles for the Rally app */
+.imessage-bubble {
+  display: inline-block;
+  padding: 0.6em 1em;
+  border-radius: 1.25em;
+  max-width: 80%;
+  word-break: break-word;
+  font-size: 1rem;
+  margin-bottom: 2px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  line-height: 1.4;
+}
+
+.imessage-user {
+  align-self: flex-end;
+  background: #007aff;
+  color: #fff;
+  border-bottom-right-radius: 0.4em;
+}
+
+.imessage-ai {
+  align-self: flex-start;
+  background: #e5e5ea;
+  color: #222;
+  border-bottom-left-radius: 0.4em;
+}
+
+/* Responsive video container for YouTube embeds */
+.video-responsive {
+  position: relative;
+  width: 100%;
+  padding-bottom: 56.25%; /* 16:9 aspect ratio */
+  height: 0;
+  overflow: hidden;
+}
+
+.video-responsive iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+} 

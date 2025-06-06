@@ -1,0 +1,57 @@
+{% from 'mobile/availability.html' import safe_id %}
+
+{% set status_classes = {
+    'available': 'bg-green-500 text-white',
+    'unavailable': 'bg-red-500 text-white', 
+    'not_sure': 'bg-yellow-500 text-white',
+    'default': 'bg-gray-100 text-gray-700'
+} %}
+
+<div class="flex flex-col gap-2 min-w-[140px]">
+    <button 
+        class="btn w-full py-2 text-center rounded-lg transition-colors text-base font-extrabold {{ status_classes['available'] if avail.status == 'available' else status_classes['default'] }}"
+        hx-post="/submit_availability"
+        hx-vals='{"player_name": "{{ players[0].name }}", "match_date": "{{ match.date }}", "status": "available", "series": "{{ session_data.user.series }}", "match_id": "{{ safe_id(match) }}"}'
+        hx-target="#buttons-{{ safe_id(match) }}"
+        hx-swap="outerHTML">
+        <i class="fas fa-check mr-1"></i>Count Me In!
+    </button>
+    <button 
+        class="btn w-full py-2 text-center rounded-lg transition-colors text-base font-extrabold {{ status_classes['unavailable'] if avail.status == 'unavailable' else status_classes['default'] }}"
+        hx-post="/submit_availability"
+        hx-vals='{"player_name": "{{ players[0].name }}", "match_date": "{{ match.date }}", "status": "unavailable", "series": "{{ session_data.user.series }}", "match_id": "{{ safe_id(match) }}"}'
+        hx-target="#buttons-{{ safe_id(match) }}"
+        hx-swap="outerHTML">
+        <i class="fas fa-times mr-1"></i>Sorry, Can't
+    </button>
+    <button 
+        class="btn w-full py-2 text-center rounded-lg transition-colors text-base font-extrabold {{ status_classes['not_sure'] if avail.status == 'not_sure' else status_classes['default'] }}"
+        hx-post="/submit_availability"
+        hx-vals='{"player_name": "{{ players[0].name }}", "match_date": "{{ match.date }}", "status": "not_sure", "series": "{{ session_data.user.series }}", "match_id": "{{ safe_id(match) }}"}'
+        hx-target="#buttons-{{ safe_id(match) }}"
+        hx-swap="outerHTML">
+        <i class="fas fa-question mr-1"></i>Not Sure
+    </button>
+</div>
+
+<style>
+.htmx-indicator {
+    display: none;
+}
+.htmx-request .htmx-indicator {
+    display: block;
+}
+.spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #3498db;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 10px auto;
+}
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+</style> 

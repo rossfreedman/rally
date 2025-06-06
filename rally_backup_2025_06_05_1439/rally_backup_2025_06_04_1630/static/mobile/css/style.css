@@ -1,0 +1,647 @@
+/* Mobile-specific styles */
+
+/* Font awesome icons */
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css');
+
+/* Custom colors for daisy UI */
+:root {
+  --p: 207 90% 54%;  /* primary color: blue */
+  --s: 326 100% 74%; /* secondary color: pink */
+  --a: 141 50% 60%;  /* accent color: green */
+  --n: 218 18% 12%;  /* neutral color: dark blue-gray */
+  --rally-yellow: #FFD600;
+  --rally-black: #000000;
+  --rally-gray: #f6faf7;
+}
+
+/* Card shadow enhancement */
+.card {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  transition: all 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* Skeleton loading animation */
+.skeleton {
+  animation: skeleton-loading 1s linear infinite alternate;
+  border-radius: 4px;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-color: hsl(200, 20%, 80%);
+  }
+  100% {
+    background-color: hsl(200, 20%, 95%);
+  }
+}
+
+/* Make buttons more tappable on mobile */
+.btn {
+  min-height: 3rem;
+}
+
+/* Enhance table readability on mobile */
+@media (max-width: 640px) {
+  .table th {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+    font-size: 0.875rem;
+  }
+  
+  .table td {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+  }
+}
+
+/* Bottom navigation for very small screens */
+@media (max-width: 380px) {
+  .navbar {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+  
+  .navbar-logo {
+    height: 1.75rem;
+  }
+}
+
+/* Custom fade transitions */
+.fade-enter {
+  opacity: 0;
+}
+.fade-enter-active {
+  opacity: 1;
+  transition: opacity 200ms;
+}
+.fade-exit {
+  opacity: 1;
+}
+.fade-exit-active {
+  opacity: 0;
+  transition: opacity 200ms;
+}
+
+/* Mobile styles */
+
+/* Base styles */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background-color: #f0f2f5;
+    color: #333;
+    font-size: 1rem;
+}
+
+/* Card animations */
+.card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+/* Buttons */
+.btn {
+    transition: all 0.3s ease;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+}
+
+/* Link styling */
+a {
+    color: #2196F3;
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+a:hover {
+    color: #0d47a1;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Utility classes */
+.text-primary {
+    color: #2196F3;
+}
+
+.text-success {
+    color: #4CAF50;
+}
+
+.text-warning {
+    color: #FF9800;
+}
+
+.text-danger {
+    color: #F44336;
+}
+
+/* Loading animations */
+@keyframes pulse {
+    0% { opacity: 0.6; }
+    50% { opacity: 1; }
+    100% { opacity: 0.6; }
+}
+
+.skeleton {
+    animation: pulse 1.5s infinite ease-in-out;
+    background: #eee;
+    border-radius: 4px;
+}
+
+/* Mobile-specific adjustments */
+@media (max-width: 768px) {
+    .card {
+        padding: 15px;
+    }
+    
+    .card-title {
+        font-size: 1.25rem;
+    }
+    
+    .btn {
+        padding: 0.5rem 1rem;
+    }
+}
+
+/* Rally green for mobile top nav */
+.navbar {
+  background-color: #000000 !important; /* Changed from Rally green (#007417) to black */
+}
+
+/* Rally green for 'I can play' button */
+.btn-success {
+  background-color: #007417 !important; /* Rally green */
+  border-color: #007417 !important; /* Rally green */
+  color: #fff !important;
+}
+
+/* Rally red for 'Sorry can\'t' button */
+.btn-error {
+  background-color: #de1414 !important;
+  border-color: #de1414 !important;
+  color: #fff !important;
+}
+
+/* Prevent text wrapping and reduce font size for nav-btn-lg buttons on mobile */
+.nav-btn-lg {
+  white-space: nowrap;
+  font-size: 1.15rem;
+}
+
+@media (max-width: 400px) {
+  .nav-btn-lg {
+    font-size: 0.95rem;
+    padding: 1.2rem 0.8rem;
+  }
+}
+
+/* Force hamburger menu to never move on hover, focus, or active */
+.hamburger-btn,
+.hamburger-btn:hover,
+.hamburger-btn:focus,
+.hamburger-btn:active {
+    width: 48px !important;
+    height: 48px !important;
+    padding: 12px !important;
+    margin: 0 !important;
+    background: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    outline: none !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+    align-items: flex-end !important;
+    gap: 6px !important;
+    position: absolute !important;
+    top: 50% !important;
+    transform: translateY(calc(-50% + 3px)) !important;
+    right: 12px !important;
+    cursor: pointer !important;
+    z-index: 1001 !important;
+}
+
+.hamburger-btn .bar {
+    width: 24px;
+    height: 2px;
+    background: #fff;
+    border-radius: 2px;
+    transition: all 0.3s ease-in-out;
+    transform-origin: center;
+}
+
+.hamburger-btn.open .bar:nth-child(1) {
+    transform: translateY(8px) rotate(-45deg);
+    width: 24px;
+}
+
+.hamburger-btn.open .bar:nth-child(2) {
+    opacity: 0;
+    transform: translateX(5px);
+}
+
+.hamburger-btn.open .bar:nth-child(3) {
+    transform: translateY(-8px) rotate(45deg);
+    width: 24px;
+}
+
+/* --- Modern & Compact Schedule Card Styles --- */
+.match-card,
+.practice-card {
+  background: #fff;
+  border-radius: 1rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+  display: flex;
+  align-items: stretch;
+  min-height: 56px;
+  padding: 0.5rem 0.5rem 0.5rem 0;
+  transition: box-shadow 0.18s, transform 0.15s;
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  border-bottom-left-radius: 1rem;
+  border-bottom-right-radius: 1rem;
+  margin-bottom: 12px;
+}
+.match-card:active, .practice-card:active, .match-card:focus, .practice-card:focus {
+  transform: scale(0.98);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.13);
+}
+.match-card:hover, .practice-card:hover {
+  box-shadow: 0 4px 16px rgba(0,0,0,0.13);
+}
+.match-accent,
+.practice-accent {
+  width: 0.5rem;
+  border-radius: 0;
+  background: var(--rally-yellow);
+  margin-right: 0.7rem;
+  flex-shrink: 0;
+}
+.card-content {
+  padding: 1.2rem;
+  width: 100%;
+}
+.time-pill {
+  background: #f3f4f6;
+  color: #222;
+  font-weight: 700;
+  font-size: 0.95rem;
+  border-radius: 999px;
+  padding: 0.18rem 0.9rem;
+  display: inline-block;
+  letter-spacing: 0.01em;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+.practice-chip {
+  background: var(--rally-yellow);
+  color: var(--rally-black);
+  font-weight: 600;
+  font-size: 0.75rem;
+  border-radius: 999px;
+  padding: 0.08rem 0.6rem;
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+.vs-divider {
+  color: #bdbdbd;
+  font-size: 0.95em;
+  font-weight: 500;
+  margin: 0 0.2em;
+}
+.team-name {
+  font-weight: 700;
+  font-size: 1em;
+  line-height: 1.1;
+}
+.directions-btn {
+  color: var(--rally-yellow);
+  background: #fff;
+  border-radius: 50%;
+  padding: 0.25rem 0.35rem;
+  font-size: 1.1em;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  transition: background 0.15s;
+  margin-left: 0.5rem;
+}
+.directions-btn:hover, .directions-btn:focus {
+  background: #fffbe6;
+  color: #000;
+}
+.schedule-date-header {
+  display: block;
+  width: 100%;
+  font-size: 1.15rem;
+  font-weight: 700;
+  background: #000;
+  color: #fff;
+  border-radius: 8px; /* Rectangle with slight rounding */
+  margin: 0;
+  padding: 0.7em 1em;
+  border-bottom: 1.5px solid #e5e7eb;
+  box-shadow: none;
+  letter-spacing: 0.01em;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  margin-bottom: 0;
+}
+
+.schedule-date-group {
+  margin-bottom: 18px;
+}
+
+@media (max-width: 480px) {
+  .match-card, .practice-card {
+    min-height: 48px;
+    padding: 0.35rem 0.2rem 0.35rem 0;
+  }
+  .time-pill, .practice-chip {
+    font-size: 0.9rem;
+    padding: 0.12rem 0.7rem;
+  }
+  .card-content {
+    padding: 0.8rem;
+  }
+}
+
+/* --- Schedule Filter Bar Styles --- */
+.schedule-filter-bar {
+  margin-top: 20px;
+  margin-bottom: 40px;
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+}
+.schedule-filter-btn {
+  background: #fff;
+  color: var(--rally-black);
+  border: 2px solid var(--rally-yellow);
+  border-radius: 999px;
+  padding: 0.5rem 1.2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  transition: background 0.18s, color 0.18s, box-shadow 0.18s;
+  outline: none;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  cursor: pointer;
+}
+.schedule-filter-btn.active, .schedule-filter-btn:focus {
+  background: var(--rally-yellow);
+  color: var(--rally-black);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  border-color: var(--rally-yellow);
+}
+.schedule-filter-btn:hover {
+  background: #fffbe6;
+  color: var(--rally-black);
+}
+@media (max-width: 480px) {
+  .schedule-filter-btn {
+    font-size: 0.95rem;
+    padding: 0.45rem 0.8rem;
+  }
+}
+
+/* --- Prominent location link --- */
+.schedule-location-link {
+  text-decoration: none;
+  font-size: 1.02rem;
+  font-weight: 600;
+  color: var(--rally-yellow);
+  margin-left: 0.1em;
+  transition: color 0.15s;
+  display: inline-block;
+}
+.schedule-location-link:hover, .schedule-location-link:focus {
+  color: #000;
+  text-decoration: underline;
+}
+.schedule-location-text {
+  font-size: 1.08rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+/* --- Normal location text (not bold) --- */
+.schedule-location-text-normal {
+  font-size: 1.08rem;
+  font-weight: 400;
+  color: #222;
+  letter-spacing: 0.01em;
+  margin-right: 0.3em;
+}
+
+/* --- Date header section separation --- */
+.schedule-date-header-wrapper {
+  margin-top: 2.2rem;
+  margin-bottom: 0.7rem;
+  display: flex;
+  justify-content: flex-start;
+}
+
+/* --- Small Get Directions button --- */
+.directions-small-btn {
+  display: inline-block;
+  background: #219653; /* Green */
+  color: #fff;
+  font-size: 0.93rem;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 0.18em 0.95em;
+  margin-left: 0.4em;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  text-decoration: none;
+  border: none;
+  outline: none;
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+  vertical-align: middle;
+  cursor: pointer;
+}
+.directions-small-btn:hover, .directions-small-btn:focus {
+  background: #17643b;
+  color: #fff;
+  text-decoration: underline;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+}
+
+/* --- Match chip badge --- */
+.match-chip {
+  background: #e53935; /* Red */
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.72rem;
+  border-radius: 999px;
+  padding: 0.08rem 0.35rem;
+  display: inline-flex;
+  align-items: center;
+  margin-left: 0;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+.match-chip:hover, .match-chip:focus {
+  background: #b71c1c;
+  color: #fff;
+}
+
+/* --- More padding inside event cards --- */
+.match-card, .practice-card {
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+/* Availability button custom styles */
+.availability-btn {
+  width: 11rem !important; /* consistent width */
+  height: 2.5rem !important; /* consistent height */
+  font-size: 0.95rem !important; /* slightly smaller font */
+  text-transform: capitalize !important; /* Proper Case */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  border-radius: 0.5rem;
+  padding: 0 1rem;
+  box-sizing: border-box;
+}
+
+.practice-label {
+  background: #fffbe6;
+  color: #b59b00;
+  font-weight: 700;
+  border-radius: 6px;
+  padding: 0.1em 0.5em;
+  margin-left: 0.2em;
+  font-size: 0.95em;
+}
+.match-label {
+  background: #e3f2fd;
+  color: #1565c0;
+  font-weight: 700;
+  border-radius: 6px;
+  padding: 0.1em 0.5em;
+  margin-left: 0.2em;
+  font-size: 0.95em;
+}
+
+.back-arrow {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  text-decoration: none;
+  background: none;
+  border: none;
+  padding: 8px;
+  border-radius: 50%;
+  transition: background 0.2s;
+}
+.back-arrow:active, .back-arrow:focus {
+  background: rgba(255,255,255,0.1);
+  outline: none;
+}
+
+.schedule-card.first-in-group {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+  margin-top: 0;
+}
+
+.availability-info-message {
+  background: #fffbe6;
+  color: #b59b00;
+  font-weight: 600;
+  border-radius: 8px;
+  padding: 1.2em 1.1em;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
+  border: 1px solid #000; /* Add thin black border */
+}
+
+/* --- Match and Practice Chips --- */
+.match-chip, .practice-chip {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.875rem;
+    font-weight: 600;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    white-space: nowrap;
+}
+
+.match-chip {
+    background-color: var(--rally-yellow);
+    color: var(--rally-black);
+}
+
+.practice-chip {
+    background-color: #E5E7EB;
+    color: #374151;
+}
+
+/* Remove accent styles as they're no longer needed */
+.match-accent, .practice-accent {
+    display: none;
+}
+
+/* Update card styles to be consistent */
+.schedule-card {
+    background: white;
+    border-radius: 0.5rem;
+    margin-bottom: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.schedule-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.12);
+}
+
+.card-content {
+    padding: 1rem;
+}
+
+.btn-neutral {
+  background-color: #bdbdbd !important; /* light gray */
+  color: #fff !important;
+  border: none !important;
+} 

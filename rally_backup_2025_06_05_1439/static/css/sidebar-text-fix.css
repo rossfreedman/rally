@@ -1,0 +1,99 @@
+/* NUCLEAR SIDEBAR TEXT COLOR FIX */
+
+/* Force literally everything white */
+.sidebar * {
+    color: white !important;
+    fill: white !important;
+    stroke: white !important;
+    paint-order: stroke !important;
+    background-color: transparent !important;
+    text-shadow: 0 0 0 white !important;
+    -webkit-text-fill-color: white !important;
+    -moz-text-fill-color: white !important;
+    -webkit-text-stroke: 0 white !important;
+    -moz-text-stroke: 0 white !important;
+    box-shadow: none !important;
+    caret-color: white !important;
+    border-color: transparent !important;
+}
+
+/* !!! MAXIMUM SPECIFICITY OVERRIDE !!! */
+html body .sidebar *:not(img),
+html body div.sidebar *:not(img),
+html body div.sidebar div:not(img),
+html body div.sidebar span:not(img),
+html body div.sidebar a:not(img),
+html body div.sidebar i:not(img),
+body div.sidebar .nav-item:not(img),
+body div.sidebar *:not(img),
+div.sidebar .nav-section-header:not(img),
+div.sidebar .nav-section:not(img),
+div.sidebar .sidebar-nav *:not(img) {
+    color: white !important;
+    -webkit-text-fill-color: white !important;
+    -moz-text-fill-color: white !important;
+    text-shadow: none !important;
+}
+
+/* Disable font-smoothing that might affect color */
+.sidebar, .sidebar * {
+    -webkit-font-smoothing: antialiased !important;
+    -moz-osx-font-smoothing: grayscale !important;
+    font-smooth: always !important;
+}
+
+/* Using a filter as absolute last resort */
+.sidebar-nav {
+    filter: brightness(0) invert(1) !important;
+}
+
+/* Additional override for text nodes */
+.sidebar-nav a:after,
+.sidebar-nav a:before,
+.sidebar a:after,
+.sidebar a:before,
+.nav-section:after,
+.nav-section:before,
+.nav-section-header:after,
+.nav-section-header:before {
+    color: white !important;
+    content: "" !important;
+}
+
+/* Direct element targeting with maximum specificity */
+body #nav-home,
+body #nav-create-lineup,
+body #nav-update-availability,
+body #nav-find-sub,
+body #nav-email-captain,
+body #nav-research-me,
+body #nav-research-my-team,
+body #nav-series-stats,
+body #nav-research-team,
+body #nav-club-stats,
+body #nav-settings,
+body #act-section,
+body .nav-section,
+body .nav-section-header {
+    color: white !important;
+}
+
+/* Override browser defaults */
+:-webkit-any(article, aside, nav, section) .sidebar h1 {
+    color: white !important;
+}
+
+/* Target text selection to ensure visibility */
+.sidebar *::selection {
+    color: white !important;
+    background-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+/* Whitewash animation as final solution */
+@keyframes makeWhite {
+    0%, 100% { color: white !important; }
+}
+
+.sidebar * {
+    animation: makeWhite 0.05s infinite !important;
+} 

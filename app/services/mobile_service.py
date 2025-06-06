@@ -1301,14 +1301,241 @@ def get_mobile_availability_data(user):
             'error': str(e)
         }
 
+def get_recent_matches_for_user_club(user):
+    """
+    Get the most recent matches for a user's club, including all courts.
+    
+    Args:
+        user: User object containing club information
+        
+    Returns:
+        List of match dictionaries from match_history.json filtered for the user's club,
+        only including matches from the most recent date
+    """
+    try:
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        match_history_path = os.path.join(project_root, 'data', 'match_history.json')
+        
+        with open(match_history_path, 'r') as f:
+            all_matches = json.load(f)
+            
+        if not user or not user.get('club'):
+            return []
+            
+        user_club = user['club']
+        # Filter matches where user's club is either home or away team
+        club_matches = []
+        for match in all_matches:
+            if user_club in match.get('Home Team', '') or user_club in match.get('Away Team', ''):
+                # Normalize keys to snake_case
+                normalized_match = {
+                    'date': match.get('Date', ''),
+                    'time': match.get('Time', ''),
+                    'location': match.get('Location', ''),
+                    'home_team': match.get('Home Team', ''),
+                    'away_team': match.get('Away Team', ''),
+                    'winner': match.get('Winner', ''),
+                    'scores': match.get('Scores', ''),
+                    'home_player_1': match.get('Home Player 1', ''),
+                    'home_player_2': match.get('Home Player 2', ''),
+                    'away_player_1': match.get('Away Player 1', ''),
+                    'away_player_2': match.get('Away Player 2', ''),
+                    'court': match.get('Court', '')
+                }
+                club_matches.append(normalized_match)
+        
+        # Sort matches by date to find the most recent
+        def parse_date(date_str):
+            for fmt in ("%d-%b-%y", "%Y-%m-%d", "%m/%d/%Y"):
+                try:
+                    return datetime.strptime(date_str, fmt)
+                except ValueError:
+                    continue
+            return datetime.min
+        
+        sorted_matches = sorted(club_matches, key=lambda x: parse_date(x['date']), reverse=True)
+        
+        if not sorted_matches:
+            return []
+            
+        # Get only matches from the most recent date
+        most_recent_date = sorted_matches[0]['date']
+        recent_matches = [m for m in sorted_matches if m['date'] == most_recent_date]
+        
+        # Sort by court number if available, handling empty strings and non-numeric values
+        def court_sort_key(match):
+            court = match.get('court', '')
+            if not court or not str(court).strip():
+                return float('inf')  # Put empty courts at the end
+            try:
+                return int(court)
+            except (ValueError, TypeError):
+                return float('inf')  # Put non-numeric courts at the end
+        
+        recent_matches.sort(key=court_sort_key)
+        return recent_matches
+        
+    except Exception as e:
+        print(f"Error getting recent matches for user club: {e}")
+        return []
+
+def calculate_player_streaks(club_name):
+    """Calculate winning and losing streaks for players across ALL matches for the club - only show significant streaks (+5/-5)"""
+    try:
+        # Load ALL match history data
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        match_history_path = os.path.join(project_root, 'data', 'match_history.json')
+        
+        with open(match_history_path, 'r') as f:
+            all_matches = json.load(f)
+        
+        player_stats = {}
+        
+        # Sort matches by date, handling None values
+        def parse_date(date_str):
+            for fmt in ("%d-%b-%y", "%Y-%m-%d", "%m/%d/%Y"):
+                try:
+                    return datetime.strptime(date_str, fmt)
+                except ValueError:
+                    continue
+            return datetime.min
+        
+        def sort_key(x):
+            date = parse_date(x.get('Date', ''))
+            return date or datetime(9999, 12, 31)
+        
+        # Filter and normalize all matches for the club
+        club_matches = []
+        for match in all_matches:
+            home_team = match.get('Home Team', '')
+            away_team = match.get('Away Team', '')
+            
+            if not (home_team.startswith(club_name) or away_team.startswith(club_name)):
+                continue
+                
+            # Normalize match data
+            normalized_match = {
+                'date': match.get('Date', ''),
+                'home_team': home_team,
+                'away_team': away_team,
+                'winner': match.get('Winner', ''),
+                'home_player_1': match.get('Home Player 1', ''),
+                'home_player_2': match.get('Home Player 2', ''),
+                'away_player_1': match.get('Away Player 1', ''),
+                'away_player_2': match.get('Away Player 2', '')
+            }
+            club_matches.append(normalized_match)
+        
+        sorted_matches = sorted(club_matches, key=sort_key)
+        
+        print(f"[DEBUG] Found {len(sorted_matches)} total matches for club '{club_name}' across all time")
+        
+        for match in sorted_matches:
+            home_team = match.get('home_team', '')
+            away_team = match.get('away_team', '')
+            
+            # Get all players from the match
+            players = [
+                match.get('home_player_1', ''),
+                match.get('home_player_2', ''),
+                match.get('away_player_1', ''),
+                match.get('away_player_2', '')
+            ]
+            
+            for player in players:
+                player = player.strip()
+                if not player or player.lower() == 'bye':
+                    continue
+                    
+                if player not in player_stats:
+                    player_stats[player] = {
+                        'matches': [],  # Store all match results for this player
+                        'series': home_team.split(' - ')[1] if ' - ' in home_team and home_team.startswith(club_name) else away_team.split(' - ')[1] if ' - ' in away_team and away_team.startswith(club_name) else '',
+                    }
+                
+                # Determine if player won
+                is_home_player = player in [match.get('home_player_1', ''), match.get('home_player_2', '')]
+                won = (is_home_player and match.get('winner') == 'home') or (not is_home_player and match.get('winner') == 'away')
+                
+                # Store match result
+                player_stats[player]['matches'].append({
+                    'date': match.get('date', ''),
+                    'won': won
+                })
+        
+        # Calculate streaks for each player
+        significant_streaks = []
+        
+        for player, stats in player_stats.items():
+            if len(stats['matches']) < 5:  # Need at least 5 matches to have a significant streak
+                continue
+                
+            matches = sorted(stats['matches'], key=lambda x: parse_date(x['date']))
+            
+            current_streak = 0
+            best_win_streak = 0
+            best_loss_streak = 0
+            last_match_date = matches[-1]['date'] if matches else ''
+            
+            # Calculate current streak and best streaks
+            for i, match in enumerate(matches):
+                if i == 0:
+                    current_streak = 1 if match['won'] else -1
+                    best_win_streak = 1 if match['won'] else 0
+                    best_loss_streak = 1 if not match['won'] else 0
+                else:
+                    prev_match = matches[i-1]
+                    if match['won'] == prev_match['won']:
+                        # Streak continues
+                        if match['won']:
+                            current_streak = current_streak + 1 if current_streak > 0 else 1
+                            best_win_streak = max(best_win_streak, current_streak)
+                        else:
+                            current_streak = current_streak - 1 if current_streak < 0 else -1
+                            best_loss_streak = max(best_loss_streak, abs(current_streak))
+                    else:
+                        # Streak broken
+                        current_streak = 1 if match['won'] else -1
+                        if match['won']:
+                            best_win_streak = max(best_win_streak, 1)
+                        else:
+                            best_loss_streak = max(best_loss_streak, 1)
+            
+            # Only include players with significant streaks (current +5/-5 or best +5/-5)
+            has_significant_current = abs(current_streak) >= 5
+            has_significant_best = best_win_streak >= 5 or best_loss_streak >= 5
+            
+            if has_significant_current or has_significant_best:
+                best_streak = max(best_win_streak, best_loss_streak)
+                significant_streaks.append({
+                    'player_name': player,
+                    'current_streak': current_streak,
+                    'best_streak': best_streak,
+                    'last_match_date': last_match_date,
+                    'series': stats['series'],
+                    'total_matches': len(matches)
+                })
+        
+        # Sort by current streak (win streaks highest to lowest, then loss streaks)
+        significant_streaks.sort(key=lambda x: (-x['current_streak'], -x['best_streak']))
+        
+        print(f"[DEBUG] Found {len(significant_streaks)} players with significant streaks (+5/-5)")
+        
+        return significant_streaks
+        
+    except Exception as e:
+        print(f"Error calculating player streaks: {str(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
+        return []
+
 def get_mobile_club_data(user):
-    """Get club data for mobile my club page"""
+    """Get comprehensive club data for mobile my club page - using match_history.json for completed matches"""
     try:
         club_name = user.get('club', '')
-        series = user.get('series', '')
         
         print(f"[DEBUG] get_mobile_club_data called with user: {user}")
-        print(f"[DEBUG] club_name: '{club_name}', series: '{series}'")
+        print(f"[DEBUG] club_name: '{club_name}'")
         
         if not club_name:
             print(f"[DEBUG] No club name found, returning error")
@@ -1321,198 +1548,203 @@ def get_mobile_club_data(user):
                 'error': 'No club information found in user profile'
             }
         
-        print(f"[DEBUG] Looking for all teams from club: '{club_name}'")
+        print(f"[DEBUG] Looking for matches from club: '{club_name}'")
         
-        # Load match history data
-        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        schedules_path = os.path.join(project_root, 'data', 'schedules.json')
-        series_stats_path = os.path.join(project_root, 'data', 'series_stats.json')
+        # Get recent matches from match_history.json (completed matches with results)
+        matches_data = get_recent_matches_for_user_club(user)
         
-        print(f"[DEBUG] schedules_path: {schedules_path}")
-        print(f"[DEBUG] series_stats_path: {series_stats_path}")
-        print(f"[DEBUG] schedules exists: {os.path.exists(schedules_path)}")
-        print(f"[DEBUG] series_stats exists: {os.path.exists(series_stats_path)}")
+        if not matches_data:
+            print(f"[DEBUG] No recent matches found")
+            return {
+                'team_name': club_name,
+                'this_week_results': [],
+                'tennaqua_standings': [],
+                'head_to_head': [],
+                'player_streaks=[]': []
+            }
         
-        # Initialize return data
-        this_week_results = []
-        tennaqua_standings = []
-        head_to_head = []
-        player_streaks = []
+        print(f"[DEBUG] Found {len(matches_data)} recent matches")
         
-        # Get recent match results from schedules (these are scheduled matches, not completed ones)
-        try:
-            with open(schedules_path, 'r') as f:
-                matches_data = json.load(f)
+        # Group matches by team
+        team_matches = {}
+        for match in matches_data:
+            home_team = match['home_team']
+            away_team = match['away_team']
             
-            print(f"[DEBUG] Loaded {len(matches_data)} total matches from schedules.json")
-            
-            # Filter matches for ANY team from this club (all series)
-            club_matches = []
-            for match in matches_data:
-                home_team = match.get('home_team', '')
-                away_team = match.get('away_team', '')
+            if club_name in home_team:
+                team = home_team
+                opponent = away_team.split(' - ')[0] if ' - ' in away_team else away_team
+                is_home = True
+            elif club_name in away_team:
+                team = away_team
+                opponent = home_team.split(' - ')[0] if ' - ' in home_team else home_team
+                is_home = False
+            else:
+                continue
                 
-                # Check if club name is in either team (any series)
-                if club_name in home_team or club_name in away_team:
-                    club_matches.append(match)
-            
-            print(f"[DEBUG] Found {len(club_matches)} matches for club '{club_name}' (all series)")
-            if club_matches:
-                print(f"[DEBUG] Sample match: {club_matches[0]}")
-            
-            # Note: schedules.json contains future/scheduled matches, not completed matches with results
-            # So we'll show recent scheduled matches instead of completed results
-            from datetime import datetime, timedelta
-            week_ago = datetime.now() - timedelta(days=7)
-            week_ahead = datetime.now() + timedelta(days=7)
-            
-            for match in club_matches:
-                match_date_str = match.get('date', '')
-                if match_date_str:
-                    try:
-                        # Try different date formats
-                        for fmt in ['%m/%d/%Y', '%Y-%m-%d', '%d-%b-%y']:
-                            try:
-                                match_date = datetime.strptime(match_date_str, fmt)
-                                break
-                            except ValueError:
-                                continue
-                        else:
-                            continue
-                        
-                        # Include matches from this week (past or upcoming)
-                        if week_ago <= match_date <= week_ahead:
-                            home_team = match.get('home_team', '')
-                            away_team = match.get('away_team', '')
-                            
-                            # Determine which team is ours and who the opponent is
-                            if club_name in home_team:
-                                is_home = True
-                                our_team = home_team
-                                opponent = away_team
-                            else:
-                                is_home = False
-                                our_team = away_team
-                                opponent = home_team
-                            
-                            result = {
-                                'date': match_date_str,
-                                'our_team': our_team,
-                                'opponent': opponent,
-                                'home_team': match.get('home_team', ''),
-                                'away_team': match.get('away_team', ''),
-                                'location': match.get('location', ''),
-                                'time': match.get('time', ''),
-                                'is_home': is_home
-                            }
-                            this_week_results.append(result)
-                    except Exception as e:
-                        continue
-            
-            # Sort by date (most recent first)
-            this_week_results.sort(key=lambda x: x.get('date', ''), reverse=True)
-            
-        except Exception as e:
-            print(f"Error loading matches data: {str(e)}")
-        
-        # Get series standings for ALL club teams (not just user's series)
-        if 'tennaqua' in club_name.lower():
-            try:
-                with open(series_stats_path, 'r') as f:
-                    stats_data = json.load(f)
-                
-                print(f"[DEBUG] Loaded {len(stats_data)} team stats from series_stats.json")
-                
-                # Find ALL teams from this club across all series
-                club_teams = []
-                for team_stats in stats_data:
-                    team_name = team_stats.get('team', '')
-                    if team_name.lower().startswith(club_name.lower()):
-                        club_teams.append(team_stats)
-                
-                print(f"[DEBUG] Found {len(club_teams)} teams for club '{club_name}' across all series")
-                
-                # Group by series and calculate rankings within each series
-                series_groups = {}
-                for team in club_teams:
-                    series_name = team.get('series', 'Unknown')
-                    if series_name not in series_groups:
-                        series_groups[series_name] = []
-                    series_groups[series_name].append(team)
-                
-                # For each series, get all teams and rank our club's position
-                for series_name, club_teams_in_series in series_groups.items():
-                    # Get all teams in this series (not just our club)
-                    all_teams_in_series = [team for team in stats_data if team.get('series') == series_name]
-                    
-                    # Sort by points (highest first)
-                    all_teams_in_series.sort(key=lambda x: float(x.get('points', 0)), reverse=True)
-                    
-                    # Find where our club's teams rank
-                    for team in club_teams_in_series:
-                        team_name = team.get('team', '')
-                        place = next((i+1 for i, t in enumerate(all_teams_in_series) if t.get('team') == team_name), 0)
-                        
-                        # Calculate average points
-                        matches = team.get('matches', {})
-                        total_matches = sum(matches.get(k, 0) for k in ['won', 'lost', 'tied'])
-                        total_points = float(team.get('points', 0))
-                        avg_points = round(total_points / total_matches, 1) if total_matches > 0 else 0
-                        
-                        tennaqua_standings.append({
-                            'series': series_name,
-                            'team_name': team_name,
-                            'place': place,
-                            'total_points': team.get('points', 0),
-                            'avg_points': avg_points,
-                            'playoff_contention': place <= 8,
-                            'total_teams_in_series': len(all_teams_in_series)
-                        })
-                
-                # Sort standings by series, then by place
-                tennaqua_standings.sort(key=lambda x: (x['series'], x['place']))
-                
-            except Exception as e:
-                print(f"Error loading series stats: {str(e)}")
-                import traceback
-                print(f"Full traceback: {traceback.format_exc()}")
-        
-        # Calculate head-to-head records for the entire club
-        try:
-            opponent_counts = {}
-            for match in club_matches:
-                home_team = match.get('home_team', '')
-                away_team = match.get('away_team', '')
-                
-                if club_name in home_team:
-                    opponent = away_team.split(' - ')[0] if ' - ' in away_team else away_team
-                elif club_name in away_team:
-                    opponent = home_team.split(' - ')[0] if ' - ' in home_team else home_team
-                else:
-                    continue
-                
-                if opponent not in opponent_counts:
-                    opponent_counts[opponent] = 0
-                opponent_counts[opponent] += 1
-            
-            # Convert to list showing number of matches scheduled
-            head_to_head = [
-                {
+            if team not in team_matches:
+                team_matches[team] = {
                     'opponent': opponent,
-                    'matches_scheduled': count,
-                    'wins': 'TBD',  # To be determined from actual results
-                    'losses': 'TBD',
-                    'win_rate': 'TBD'
+                    'matches': [],
+                    'team_points': 0,
+                    'opponent_points': 0,
+                    'series': team.split(' - ')[1] if ' - ' in team else team
                 }
-                for opponent, count in opponent_counts.items()
-            ]
-            head_to_head.sort(key=lambda x: x['matches_scheduled'], reverse=True)
+            
+            # Calculate points for this match based on set scores
+            scores = match['scores'].split(', ') if match['scores'] else []
+            match_team_points = 0
+            match_opponent_points = 0
+            
+            # Points for each set
+            for set_score in scores:
+                if '-' in set_score:
+                    try:
+                        our_score, their_score = map(int, set_score.split('-'))
+                        if not is_home:
+                            our_score, their_score = their_score, our_score
+                            
+                        if our_score > their_score:
+                            match_team_points += 1
+                        else:
+                            match_opponent_points += 1
+                    except (ValueError, IndexError):
+                        continue
+                        
+            # Bonus point for match win
+            if (is_home and match['winner'] == 'home') or (not is_home and match['winner'] == 'away'):
+                match_team_points += 1
+            else:
+                match_opponent_points += 1
+                
+            # Update total points
+            team_matches[team]['team_points'] += match_team_points
+            team_matches[team]['opponent_points'] += match_opponent_points
+            
+            # Add match details
+            court = match.get('court', '')
+            try:
+                court_num = int(court) if court and court.strip() else len(team_matches[team]['matches']) + 1
+            except (ValueError, TypeError):
+                court_num = len(team_matches[team]['matches']) + 1
+                
+            team_matches[team]['matches'].append({
+                'court': court_num,
+                'home_players': f"{match['home_player_1']}/{match['home_player_2']}" if is_home else f"{match['away_player_1']}/{match['away_player_2']}",
+                'away_players': f"{match['away_player_1']}/{match['away_player_2']}" if is_home else f"{match['home_player_1']}/{match['home_player_2']}",
+                'scores': match['scores'],
+                'won': (is_home and match['winner'] == 'home') or (not is_home and match['winner'] == 'away')
+            })
+        
+        # Convert to list format for template
+        this_week_results = []
+        for team_data in team_matches.values():
+            this_week_results.append({
+                'series': f"Series {team_data['series']}" if team_data['series'].isdigit() else team_data['series'],
+                'opponent': team_data['opponent'],
+                'score': f"{team_data['team_points']}-{team_data['opponent_points']}",
+                'won': team_data['team_points'] > team_data['opponent_points'],
+                'match_details': sorted(team_data['matches'], key=lambda x: x['court']),
+                'date': matches_data[0]['date']  # All matches are from the same date
+            })
+            
+        # Sort results by opponent name
+        this_week_results.sort(key=lambda x: x['opponent'])
+        
+        # Calculate club standings (for all teams in the club across all series)
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        stats_path = os.path.join(project_root, 'data', 'series_stats.json')
+        
+        tennaqua_standings = []
+        try:
+            with open(stats_path, 'r') as f:
+                stats_data = json.load(f)
+                
+            for team_stats in stats_data:
+                if not team_stats.get('team', '').startswith(club_name):
+                    continue
+                    
+                series = team_stats.get('series')
+                if not series:
+                    continue
+                    
+                # Get all teams in this series
+                series_teams = [team for team in stats_data if team.get('series') == series]
+                
+                # Calculate average points
+                for team in series_teams:
+                    total_matches = sum(team.get('matches', {}).get(k, 0) for k in ['won', 'lost', 'tied'])
+                    total_points = float(team.get('points', 0))
+                    team['avg_points'] = round(total_points / total_matches, 1) if total_matches > 0 else 0
+                
+                # Sort by average points
+                series_teams.sort(key=lambda x: x.get('avg_points', 0), reverse=True)
+                
+                # Find our team's position in the series
+                for i, team in enumerate(series_teams, 1):
+                    if team.get('team', '').startswith(club_name) and team.get('team') == team_stats.get('team'):
+                        tennaqua_standings.append({
+                            'series': series,
+                            'team_name': team.get('team', ''),
+                            'place': i,
+                            'total_points': team.get('points', 0),
+                            'avg_points': team.get('avg_points', 0),
+                            'playoff_contention': i <= 8,
+                            'total_teams_in_series': len(series_teams)
+                        })
+                        break
+                        
+            # Sort standings by place (ascending)
+            tennaqua_standings.sort(key=lambda x: x['place'])
             
         except Exception as e:
-            print(f"Error calculating head-to-head: {str(e)}")
+            print(f"Error loading series stats: {str(e)}")
         
-        # Player streaks would need actual match results, so skip for now
-        # This would require a different data source with completed matches
+        # Calculate head-to-head records
+        head_to_head = {}
+        for match in matches_data:
+            home_team = match.get('home_team', '')
+            away_team = match.get('away_team', '')
+            winner = match.get('winner', '')
+            
+            if not all([home_team, away_team, winner]):
+                continue
+                
+            if club_name in home_team:
+                opponent = away_team.split(' - ')[0] if ' - ' in away_team else away_team
+                won = winner == 'home'
+            elif club_name in away_team:
+                opponent = home_team.split(' - ')[0] if ' - ' in home_team else home_team
+                won = winner == 'away'
+            else:
+                continue
+                
+            if opponent not in head_to_head:
+                head_to_head[opponent] = {'wins': 0, 'losses': 0, 'total': 0}
+                
+            head_to_head[opponent]['total'] += 1
+            if won:
+                head_to_head[opponent]['wins'] += 1
+            else:
+                head_to_head[opponent]['losses'] += 1
+                
+        # Convert head-to-head to list
+        head_to_head = [
+            {
+                'opponent': opponent,
+                'wins': stats['wins'],
+                'losses': stats['losses'],
+                'total': stats['total'],
+                'matches_scheduled': stats['total']  # For template compatibility
+            }
+            for opponent, stats in head_to_head.items()
+        ]
+        
+        # Sort by total matches
+        head_to_head.sort(key=lambda x: x['total'], reverse=True)
+        
+        # Calculate player streaks
+        player_streaks = calculate_player_streaks(club_name)
         
         return {
             'team_name': club_name,

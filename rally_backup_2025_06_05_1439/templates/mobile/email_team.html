@@ -1,0 +1,108 @@
+{% extends "mobile/layout.html" %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+    <h1 class="text-2xl font-bold mb-6">Email Team</h1>
+
+    <!-- Email Form -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <form id="emailForm" class="space-y-6">
+            <!-- Subject -->
+            <div>
+                <label for="subject" class="block text-sm font-medium text-gray-700 mb-1">Subject</label>
+                <input type="text" id="subject" name="subject" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Enter email subject">
+            </div>
+
+            <!-- Recipients -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Recipients</label>
+                <div class="space-y-2">
+                    <label class="inline-flex items-center">
+                        <input type="checkbox" class="form-checkbox text-blue-600" checked>
+                        <span class="ml-2">All Team Members</span>
+                    </label>
+                    <div class="pl-6 space-y-2">
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" class="form-checkbox text-blue-600" checked>
+                            <span class="ml-2">Regular Players</span>
+                        </label>
+                        <label class="inline-flex items-center">
+                            <input type="checkbox" class="form-checkbox text-blue-600" checked>
+                            <span class="ml-2">Substitute Players</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Message -->
+            <div>
+                <label for="message" class="block text-sm font-medium text-gray-700 mb-1">Message</label>
+                <textarea id="message" name="message" rows="6" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Type your message here..."></textarea>
+            </div>
+
+            <!-- Quick Templates -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">Quick Templates</label>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <button type="button" class="text-left px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50" onclick="insertTemplate('availability')">
+                        Request Availability Update
+                    </button>
+                    <button type="button" class="text-left px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50" onclick="insertTemplate('lineup')">
+                        Share Lineup
+                    </button>
+                    <button type="button" class="text-left px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50" onclick="insertTemplate('practice')">
+                        Schedule Practice
+                    </button>
+                    <button type="button" class="text-left px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-50" onclick="insertTemplate('match')">
+                        Match Reminder
+                    </button>
+                </div>
+            </div>
+
+            <!-- Send Button -->
+            <div class="pt-4">
+                <button type="submit" class="w-full bg-blue-600 text-white px-4 py-3 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                    Send Email
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function insertTemplate(type) {
+    const messageField = document.getElementById('message');
+    const subjectField = document.getElementById('subject');
+    
+    const templates = {
+        availability: {
+            subject: "Please Update Your Availability",
+            message: "Hi team,\n\nPlease update your availability for the upcoming matches in the Rally app. This helps us plan the lineup effectively.\n\nDeadline: Sunday night\n\nThanks!"
+        },
+        lineup: {
+            subject: "Team Lineup for Next Match",
+            message: "Hi team,\n\nThe lineup for our next match has been posted. Please check the Rally app for your court and time.\n\nIf you need to make any changes, please let me know ASAP.\n\nGood luck!"
+        },
+        practice: {
+            subject: "Team Practice Session",
+            message: "Hi team,\n\nI'd like to schedule a team practice session. Please check your availability for the following times:\n\n[Insert proposed dates/times]\n\nLet me know what works best for you."
+        },
+        match: {
+            subject: "Match Day Reminder",
+            message: "Hi team,\n\nThis is a reminder about our match tomorrow. Please arrive 15 minutes before your scheduled court time.\n\nLocation: [Insert venue]\nFirst court time: [Insert time]\n\nGood luck everyone!"
+        }
+    };
+
+    if (templates[type]) {
+        subjectField.value = templates[type].subject;
+        messageField.value = templates[type].message;
+    }
+}
+
+document.getElementById('emailForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    // Add your email sending logic here
+    alert('Email sending feature coming soon!');
+});
+</script>
+{% endblock %} 

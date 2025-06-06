@@ -1,0 +1,392 @@
+{% extends "mobile/layout.html" %}
+{% set show_back_arrow = True %}
+{% block content %}
+<!-- iMessage-style chat CSS -->
+<style>
+#ai-chat-messages {
+  min-height: 300px;
+  max-height: 400px;
+  overflow-y: auto;
+  background: #f5f5f7;
+  border-radius: 1.5rem;
+  padding: 1rem 0.5rem;
+  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.imessage-bubble {
+  display: inline-block;
+  padding: 0.6em 1em;
+  border-radius: 1.25em;
+  max-width: 80%;
+  word-break: break-word;
+  font-size: 1rem;
+  margin-bottom: 2px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+  line-height: 1.4;
+}
+.imessage-bubble ul {
+  margin: 0.5em 0;
+  padding-left: 1em;
+}
+.imessage-bubble li {
+  margin: 0.2em 0;
+}
+.imessage-user {
+  align-self: flex-end;
+  background: #007aff;
+  color: #fff;
+  border-bottom-right-radius: 0.4em;
+  border-bottom-left-radius: 1.25em;
+  border-top-left-radius: 1.25em;
+  border-top-right-radius: 1.25em;
+}
+.imessage-ai {
+  align-self: flex-start;
+  background: #e5e5ea;
+  color: #222;
+  border-bottom-left-radius: 0.4em;
+  border-bottom-right-radius: 1.25em;
+  border-top-left-radius: 1.25em;
+  border-top-right-radius: 1.25em;
+}
+#ai-chat-form {
+  background: #fff;
+  border-radius: 2em;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  padding: 0.5em 0.75em;
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+}
+#ai-chat-input {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 1rem;
+  flex: 1;
+  padding: 0.5em 0.2em;
+}
+#ai-chat-input::placeholder {
+  color: #aaa;
+}
+#ai-chat-form button {
+  background: #007aff;
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 2.5em;
+  height: 2.5em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2em;
+  transition: background 0.2s;
+}
+#ai-chat-form button:hover {
+  background: #005ecb;
+}
+
+/* Video bubble styles for AI chat */
+.video-container {
+  position: relative;
+  width: 100%;
+  height: 0;
+  padding-bottom: 56.25%;
+  overflow: hidden;
+  border-radius: 8px;
+  margin: 10px 0;
+}
+
+.video-container iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.video-bubble {
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%) !important;
+  color: white !important;
+}
+
+.video-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 12px;
+  background: rgba(255,255,255,0.2);
+  color: white;
+  text-decoration: none;
+  border-radius: 6px;
+  font-size: 0.85em;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.video-link:hover {
+  background: rgba(255,255,255,0.3);
+  color: white;
+  text-decoration: none;
+}
+</style>
+
+<!-- Consistent mobile header -->
+<div class="flex items-center gap-3 mt-4 mb-2 px-4">
+  <div class="bg-white rounded-md flex items-center justify-center h-12 w-12">
+    <i class="fas fa-robot text-black text-3xl"></i>
+  </div>
+  <div>
+    <div class="text-2xl font-bold leading-tight">Rally AI Assistant</div>
+    <div class="text-base text-gray-500 mt-1">Ask anything about paddle tennis, lineups, stats, or your team.</div>
+  </div>
+</div>
+
+<div class="max-w-lg mx-auto">
+    <div class="bg-white rounded-xl shadow p-4 mt-2 mb-6">
+        <div id="ai-chat-messages" class="mb-3 space-y-2" style="min-height:180px; background:#f5f5f7; border-radius:1.5rem; padding:1rem 0.5rem; display:flex; flex-direction:column; gap:0.5rem; align-items:stretch;"></div>
+        <form id="ai-chat-form" class="flex gap-2">
+            <input type="text" id="ai-chat-input" class="flex-1 border rounded px-3 py-2" placeholder="Ask me anything about paddle tennis..." autocomplete="off" required>
+            <button type="submit" class="bg-[#007aff] hover:bg-[#005ecb] text-white px-4 py-2 rounded-full">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </form>
+    </div>
+</div>
+<script>
+// iMessage-style chat rendering with improved formatting
+const messages = document.getElementById('ai-chat-messages');
+
+function formatAIResponse(text) {
+    // Clean up the text first - remove formatting remnants
+    let formatted = text.replace(/--+/g, ''); // Remove -- remnants
+    formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'); // Bold text
+    formatted = formatted.replace(/\*(.*?)\*/g, '<em>$1</em>'); // Italic text
+    
+    // Simple YouTube URL replacement - much simpler approach
+    formatted = formatted.replace(/https:\/\/[^\s]*youtube[^\s]*/gi, function(url) {
+        console.log('Found YouTube URL:', url);
+        // Use the hard-coded video for now
+        const videoId = 'tTZem6cPIEo';
+        return `
+            <div style="margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 8px; border: 1px solid #dee2e6;">
+                <div style="position: relative; width: 100%; height: 0; padding-bottom: 56.25%; overflow: hidden; border-radius: 4px;">
+                    <iframe 
+                        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"
+                        src="https://www.youtube.com/embed/${videoId}" 
+                        frameborder="0" 
+                        allowfullscreen>
+                    </iframe>
+                </div>
+                <div style="text-align: center; margin-top: 10px;">
+                    <a href="https://www.youtube.com/watch?v=${videoId}" target="_blank" style="color: #007bff; text-decoration: none; font-size: 14px;">
+                        ▶ Watch on YouTube
+                    </a>
+                </div>
+            </div>
+        `;
+    });
+    
+    // Handle line breaks for regular text
+    formatted = formatted.replace(/\n\n/g, '<br><br>').replace(/\n/g, '<br>');
+    
+    // Format player stats if present
+    if (formatted.includes('PTI') || formatted.includes('win percentage') || formatted.includes('wins and') || formatted.includes('losses')) {
+        formatted = formatted.replace(/(PTI[:\s]*[\d.]+)/gi, '<span class="font-semibold text-blue-600">$1</span>');
+        formatted = formatted.replace(/(win percentage[:\s]*[\d.]+%)/gi, '<span class="font-semibold text-green-600">$1</span>');
+        formatted = formatted.replace(/(\d+ wins? and \d+ losses?)/gi, '<span class="font-semibold">$1</span>');
+    }
+    
+    return formatted;
+}
+
+function appendMessage(text, sender) {
+    const div = document.createElement('div');
+    div.className = 'imessage-bubble ' + (sender === 'user' ? 'imessage-user' : 'imessage-ai');
+    
+    // Always set innerHTML directly - formatting should be done before calling this function
+    div.innerHTML = text;
+    
+    messages.appendChild(div);
+    messages.scrollTop = messages.scrollHeight;
+}
+// On page load, show the AI intro as conversation bubbles
+window.addEventListener('DOMContentLoaded', function() {
+    appendMessage("👋 Hello! I'm your Rally Assistant.", 'ai');
+    appendMessage("Ask me about a specific player", 'ai');
+    appendMessage("Request stats on a team", 'ai');
+    appendMessage("Ask me anything about league rules", 'ai');
+});
+// Track conversation thread
+let threadId = null;
+
+// Helper function to extract YouTube video ID
+function extractYouTubeId(url) {
+    if (!url) return null;
+    const match = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/);
+    return match ? match[1] : null;
+}
+
+// Helper function to escape HTML
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Function to search for and add training videos
+function searchAndAddTrainingVideo(message) {
+    // Check if message contains paddle tennis technique keywords
+    const techniqueKeywords = ['serve', 'volley', 'overhead', 'lob', 'backhand', 'forehand', 'return', 'net play', 'strategy', 'footwork', 'positioning'];
+    const messageWords = message.toLowerCase().split(/\s+/);
+    const hasKeyword = techniqueKeywords.some(keyword => 
+        messageWords.some(word => word.includes(keyword) || keyword.includes(word))
+    );
+    
+    if (!hasKeyword) return; // Don't search for videos if no technique keywords
+    
+    // Call API to find relevant training video
+    fetch('/api/find-training-video', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            content: message
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.video) {
+            // Add video bubble with delay for natural feel
+            setTimeout(() => {
+                const videoBubble = document.createElement('div');
+                videoBubble.className = 'imessage-bubble imessage-ai';
+                videoBubble.style.maxWidth = '90%';
+                videoBubble.style.background = 'linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%)';
+                videoBubble.style.color = 'white';
+                videoBubble.style.marginBottom = '0.5rem';
+                
+                // Extract YouTube video ID for embedding
+                const videoId = extractYouTubeId(data.video.url);
+                
+                videoBubble.innerHTML = `
+                    <div style="margin-bottom: 10px;">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                            <i class="fas fa-play" style="color: white;"></i>
+                            <span style="font-weight: 600; font-size: 0.9em;">Training Video</span>
+                        </div>
+                        <div style="font-weight: 500; margin-bottom: 4px;">${escapeHtml(data.video.title)}</div>
+                        <div style="font-size: 0.8em; opacity: 0.9;">Related to: ${escapeHtml(data.video.topic)}</div>
+                    </div>
+                    ${videoId ? `
+                        <div style="position: relative; width: 100%; height: 0; padding-bottom: 56.25%; overflow: hidden; border-radius: 8px; margin-bottom: 10px;">
+                            <iframe 
+                                style="position: absolute; top: 0; left: 0; width: 100%; height: 100%;"
+                                src="https://www.youtube.com/embed/${videoId}" 
+                                frameborder="0" 
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                allowfullscreen>
+                            </iframe>
+                        </div>
+                    ` : ''}
+                    <div style="text-align: center;">
+                        <a href="${data.video.url}" target="_blank" 
+                           style="display: inline-flex; align-items: center; padding: 8px 12px; background: rgba(255,255,255,0.2); color: white; text-decoration: none; border-radius: 6px; font-size: 0.85em; font-weight: 500;">
+                            <i class="fas fa-external-link-alt" style="margin-right: 6px;"></i> Watch on YouTube
+                        </a>
+                    </div>
+                `;
+                
+                messages.appendChild(videoBubble);
+                messages.scrollTop = messages.scrollHeight;
+            }, 800);
+        }
+    })
+    .catch(error => {
+        console.error('Error finding training video:', error);
+    });
+}
+
+document.getElementById('ai-chat-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const input = document.getElementById('ai-chat-input');
+    const userMsg = input.value.trim();
+    if (!userMsg) return;
+    appendMessage(`<strong class="text-white">You:</strong> ${userMsg}`, 'user');
+    input.value = '';
+    appendMessage('One moment. Rally AI is thinking...', 'ai');
+    
+    // Minimal debug info (only in development)
+    if (window.location.hostname === 'localhost') {
+        console.log(`Chat: "${userMsg}" (${userMsg.length} chars, thread: ${threadId || 'new'})`);
+    }
+    
+    try {
+        const resp = await fetch('/api/chat', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                message: userMsg,
+                thread_id: threadId
+            })
+        });
+        const data = await resp.json();
+        
+        // Minimal response logging
+        if (window.location.hostname === 'localhost') {
+            console.log(`Response: ${data.response ? data.response.length : 0} chars, ${data.debug?.context_percentage?.toFixed(1) || 0}% context used`);
+        }
+        
+        // Store thread ID for conversation continuity
+        if (data.thread_id) {
+            threadId = data.thread_id;
+        }
+        
+        // Remove the typing indicator (last AI message)
+        const last = messages.lastChild;
+        if (last && last.classList.contains('imessage-ai') && last.innerText === 'One moment. Rally AI is thinking...') {
+            messages.removeChild(last);
+        }
+        if (data.response) {
+            // Display AI response with improved formatting
+            const formattedResponse = formatAIResponse(data.response);
+            console.log('Final formatted response:', formattedResponse);
+            appendMessage(`<div class="mb-1"><strong class="text-blue-700">Rally AI:</strong></div>${formattedResponse}`, 'ai');
+            
+            // Search for and add relevant training video
+            searchAndAddTrainingVideo(userMsg);
+            
+            // Show debug info if available (only in development)
+            if (data.debug && window.location.hostname === 'localhost') {
+                const contextWarning = data.debug.approaching_limit ? ' ⚠️' : '';
+                const debugInfo = `<small style="color: #666; font-size: 0.8em; opacity: 0.7;">
+                    [${data.debug.message_count} msgs, ${data.debug.context_size} chars (${data.debug.context_percentage.toFixed(1)}%)${contextWarning}]
+                </small>`;
+                appendMessage(debugInfo, 'ai');
+                
+                // Warn if approaching context limit
+                if (data.debug.approaching_limit) {
+                    appendMessage('<small style="color: #ff6b35; font-size: 0.8em;">⚠️ Conversation is getting long. Consider refreshing to start fresh.</small>', 'ai');
+                }
+            }
+        } else {
+            appendMessage('<div><strong class="text-red-600">Rally AI:</strong> Sorry, something went wrong.</div>', 'ai');
+        }
+    } catch (error) {
+        console.error('Chat error:', error);
+        const last = messages.lastChild;
+        if (last && last.classList.contains('imessage-ai') && last.innerText === 'One moment. Rally AI is thinking...') {
+            messages.removeChild(last);
+        }
+        appendMessage('<div><strong class="text-red-600">Rally AI:</strong> Sorry, something went wrong.</div>', 'ai');
+    }
+});
+
+
+</script>
+{% endblock %} 
