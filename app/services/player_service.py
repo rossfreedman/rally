@@ -4,7 +4,7 @@ import re
 from datetime import datetime
 from collections import defaultdict, Counter
 import pandas as pd
-from fuzzywuzzy import fuzz
+from rapidfuzz import fuzz
 from utils.match_utils import normalize_name, names_match
 
 def get_player_analysis_by_name(player_name):
