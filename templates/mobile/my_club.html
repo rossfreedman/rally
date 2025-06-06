@@ -21,41 +21,34 @@
     <div class="flex items-center mb-3">
       <i class="fas fa-flag-checkered text-blue-600 text-xl mr-2"></i>
       <span class="text-lg font-bold text-blue-700">
-        {% if this_week_results and this_week_results[0].date %}
-          Club Results ({{ this_week_results[0].date }})
+        {% if this_week_results %}
+          Upcoming Matches This Week
         {% else %}
-          Club Results This Week
+          Club Schedule This Week
         {% endif %}
       </span>
     </div>
     <div class="overflow-x-auto">
       {% for result in this_week_results %}
-      <div class="mb-6 last:mb-0">
+      <div class="mb-4 last:mb-0 p-3 bg-gray-50 rounded-lg">
         <div class="flex items-center justify-between mb-2">
-          <div class="text-base font-semibold">{{ result.series }} vs {{ result.opponent }}</div>
-          <div class="font-bold {% if result.won %}text-green-600{% else %}text-red-600{% endif %}">
-            {{ result.score }}
+          <div class="text-base font-semibold">
+            {% if result.is_home %}
+              vs {{ result.opponent }}
+            {% else %}
+              @ {{ result.opponent }}
+            {% endif %}
+          </div>
+          <div class="text-sm text-gray-600">
+            {{ result.date }}
           </div>
         </div>
         
-        <!-- Match Details -->
-        <div class="bg-gray-50 rounded-lg p-3">
-          {% for match in result.match_details %}
-          <div class="mb-3 last:mb-0">
-            <div class="flex items-center gap-2 mb-1">
-              <span class="text-sm font-medium text-gray-700">Court {{ match.court }}</span>
-              <span class="text-xs px-2 py-0.5 rounded-full {% if match.won %}bg-green-100 text-green-700{% else %}bg-red-100 text-red-700{% endif %}">
-                {{ "Won" if match.won else "Lost" }}
-              </span>
-            </div>
-            <div class="text-sm text-gray-600">
-              {{ match.home_players }} vs {{ match.away_players }}
-            </div>
-            <div class="text-sm font-medium text-gray-800">
-              {{ match.scores }}
-            </div>
-          </div>
-          {% endfor %}
+        <div class="text-sm text-gray-600">
+          <div>📍 {{ result.location }}</div>
+          {% if result.time %}
+          <div>🕕 {{ result.time }}</div>
+          {% endif %}
         </div>
       </div>
       {% endfor %}
@@ -75,7 +68,7 @@
       <table class="w-full">
         <thead>
           <tr class="bg-gray-50">
-            <th class="py-2 px-2 text-left">Series</th>
+            <th class="py-2 px-2 text-left">Team</th>
             <th class="py-2 px-2 text-left">Place</th>
             <th class="py-2 px-2 text-left">Points</th>
           </tr>
@@ -84,10 +77,16 @@
           {% if tennaqua_standings %}
             {% for row in tennaqua_standings %}
               <tr class="{% if loop.index0 % 2 == 0 %}bg-white{% else %}bg-gray-50{% endif %}">
-                <td class="py-2 px-2">{{ row.series }}</td>
+                <td class="py-2 px-2">
+                  <div class="font-medium">{{ row.team_name }}</div>
+                  <div class="text-xs text-gray-500">{{ row.series }}</div>
+                </td>
                 <td class="py-2 px-2">{{ row.place }}</td>
                 <td class="py-2 px-2 flex items-center">
-                  {{ row.total_points }} ({{ row.avg_points }} ppw)
+                  {{ row.total_points }} 
+                  {% if row.avg_points %}
+                    ({{ row.avg_points }} avg)
+                  {% endif %}
                   {% if row.playoff_contention %}
                     <span class="ml-2 text-xs text-green-600 font-medium">
                       <i class="fas fa-star"></i>
@@ -170,31 +169,25 @@
   <div class="bg-white rounded-xl shadow p-4 mb-6 border border-gray-200">
     <div class="flex items-center mb-3">
       <i class="fas fa-handshake text-purple-500 text-xl mr-2"></i>
-      <span class="text-lg font-bold text-purple-700">Head-to-Head vs. Other Clubs</span>
+      <span class="text-lg font-bold text-purple-700">Matchups vs. Other Clubs</span>
     </div>
     <div class="overflow-x-auto">
       <table class="min-w-full text-sm">
         <thead>
           <tr class="bg-gray-100 text-gray-700">
             <th class="py-2 px-2">Opponent</th>
+            <th class="py-2 px-2">Matches</th>
             <th class="py-2 px-2">Wins</th>
             <th class="py-2 px-2">Losses</th>
-            <th class="py-2 px-2">W/L Ratio</th>
           </tr>
         </thead>
         <tbody>
           {% for record in head_to_head %}
           <tr class="{% if loop.index0 % 2 == 0 %}bg-white{% else %}bg-gray-50{% endif %}">
             <td class="py-2 px-2">{{ record.opponent }}</td>
+            <td class="py-2 px-2">{{ record.matches_scheduled }}</td>
             <td class="py-2 px-2 text-green-600">{{ record.wins }}</td>
             <td class="py-2 px-2 text-red-600">{{ record.losses }}</td>
-            <td class="py-2 px-2 font-medium">
-              {% if record.win_loss_ratio == 'inf' %}
-                ∞
-              {% else %}
-                {{ record.win_loss_ratio }}
-              {% endif %}
-            </td>
           </tr>
           {% endfor %}
           {% if not head_to_head %}
