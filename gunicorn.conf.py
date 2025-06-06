@@ -3,7 +3,7 @@ import os
 
 # Server socket settings
 port = int(os.environ.get("PORT", os.environ.get("RAILWAY_PORT", 8080)))
-bind = f"0.0.0.0:{port}"  # Simplified binding
+bind = f"0.0.0.0:{port}"
 backlog = 2048
 
 # Worker processes
@@ -20,10 +20,6 @@ enable_stdio_inheritance = True
 
 # Process naming
 proc_name = "rally"
-
-# SSL (if needed)
-keyfile = None
-certfile = None
 
 # Server mechanics
 daemon = False
@@ -43,24 +39,10 @@ graceful_timeout = 60
 preload_app = True
 reload = False  # Disable auto-reload in production
 
-# Server mechanics
-daemon = False
-pidfile = None
-umask = 0
-user = None
-group = None
-
-# Performance tuning
-keepalive = 65
-forwarded_allow_ips = '*'  # Allow forwarded requests
-
 # Restart workers periodically to prevent memory leaks
 max_requests = 1000
 max_requests_jitter = 50
 
-# Prevent long-running requests from blocking workers
-graceful_timeout = 60
-
-# Ensure proper proxy handling
-proxy_protocol = True
-proxy_allow_ips = '*' 
+# SSL (if needed)
+keyfile = None
+certfile = None 
