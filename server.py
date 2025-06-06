@@ -54,6 +54,11 @@ app.register_blueprint(admin_bp)
 app.register_blueprint(mobile_bp)
 app.register_blueprint(api_bp)
 
+# Initialize Rally AI routes (Enhanced OpenAI Assistant with user context)
+from routes.act.rally_ai import init_rally_ai_routes
+init_rally_ai_routes(app)
+print("✅ Rally AI routes initialized - Enhanced OpenAI Assistant with personalized user context enabled")
+
 # Set secret key
 app.secret_key = os.getenv('FLASK_SECRET_KEY', secrets.token_hex(32))
 
@@ -331,7 +336,7 @@ def healthcheck():
         'message': 'Rally server is running',
         'blueprints_registered': [
             'player_routes', 'auth_routes', 'admin_routes', 
-            'mobile_routes', 'api_routes'
+            'mobile_routes', 'api_routes', 'rally_ai_routes'
         ]
     })
 

@@ -94,39 +94,40 @@ def find_training_video():
     """Find training video"""
     return find_training_video_data()
 
-@api_bp.route('/api/chat', methods=['POST'])
-@login_required
-def handle_chat():
-    """Handle chat requests for Coach Rally on mobile improve page"""
-    try:
-        data = request.get_json()
-        if not data:
-            return jsonify({'error': 'No data provided'}), 400
-        
-        message = data.get('message', '').strip()
-        thread_id = data.get('thread_id')
-        
-        if not message:
-            return jsonify({'error': 'Message is required'}), 400
-        
-        print(f"[CHAT] User: {session.get('user', {}).get('email', 'unknown')} | Message: {message[:50]}...")
-        
-        # Generate thread ID if not provided
-        if not thread_id:
-            import uuid
-            thread_id = str(uuid.uuid4())
-        
-        # Load training guide for context-aware responses
-        response_text = generate_chat_response(message)
-        
-        return jsonify({
-            'response': response_text,
-            'thread_id': thread_id
-        })
-        
-    except Exception as e:
-        print(f"Error in chat handler: {str(e)}")
-        return jsonify({'error': 'Sorry, there was an error processing your request. Please try again.'}), 500
+# COMMENTED OUT: Using enhanced OpenAI Assistant from rally_ai.py instead
+# @api_bp.route('/api/chat', methods=['POST'])
+# @login_required
+# def handle_chat():
+#     """Handle chat requests for Coach Rally on mobile improve page"""
+#     try:
+#         data = request.get_json()
+#         if not data:
+#             return jsonify({'error': 'No data provided'}), 400
+#         
+#         message = data.get('message', '').strip()
+#         thread_id = data.get('thread_id')
+#         
+#         if not message:
+#             return jsonify({'error': 'Message is required'}), 400
+#         
+#         print(f"[CHAT] User: {session.get('user', {}).get('email', 'unknown')} | Message: {message[:50]}...")
+#         
+#         # Generate thread ID if not provided
+#         if not thread_id:
+#             import uuid
+#             thread_id = str(uuid.uuid4())
+#         
+#         # Load training guide for context-aware responses
+#         response_text = generate_chat_response(message)
+#         
+#         return jsonify({
+#             'response': response_text,
+#             'thread_id': thread_id
+#         })
+#         
+#     except Exception as e:
+#         print(f"Error in chat handler: {str(e)}")
+#         return jsonify({'error': 'Sorry, there was an error processing your request. Please try again.'}), 500
 
 def generate_chat_response(message):
     """Generate a helpful response to user's paddle tennis question"""
