@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-Rally Flask Application - Clean Modular Version
+Rally Flask Application
 
 This is the main server file for the Rally platform tennis management application.
 Most routes have been moved to blueprints for better organization.
@@ -30,6 +30,9 @@ from app.routes.admin_routes import admin_bp
 from app.routes.mobile_routes import mobile_bp
 from app.routes.api_routes import api_bp
 
+# Import act routes initialization
+from routes.act import init_act_routes
+
 # Simple database connection test
 print("=== Testing Database Connection ===")
 try:
@@ -54,10 +57,9 @@ app.register_blueprint(admin_bp)
 app.register_blueprint(mobile_bp)
 app.register_blueprint(api_bp)
 
-# Initialize Rally AI routes (Enhanced OpenAI Assistant with user context)
-from routes.act.rally_ai import init_rally_ai_routes
-init_rally_ai_routes(app)
-print("✅ Rally AI routes initialized - Enhanced OpenAI Assistant with personalized user context enabled")
+# Initialize act routes (includes find-subs, availability, schedule, rally_ai, etc.)
+init_act_routes(app)
+print("✅ Act routes initialized - Find Sub, Availability, Schedule, Rally AI routes enabled")
 
 # Set secret key
 app.secret_key = os.getenv('FLASK_SECRET_KEY', secrets.token_hex(32))

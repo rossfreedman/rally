@@ -150,10 +150,10 @@ def get_player_analysis(user):
     and player_history.json for career stats and player history.
     Always returns all expected keys, even if some are None or empty.
     """
-    # Use tenniscores_player_id as primary search method, fallback to name if not available
+    # Use tenniscores_player_id as primary search method
     tenniscores_player_id = user.get('tenniscores_player_id')
-    player_name = f"{user['first_name']} {user['last_name']}"
-    print(f"[DEBUG] Looking for player with ID: '{tenniscores_player_id}' or name: '{player_name}'")
+    session_player_name = f"{user['first_name']} {user['last_name']}"
+    print(f"[DEBUG] Looking for player with ID: '{tenniscores_player_id}' (session name: '{session_player_name}')")
     
     # Fix path construction to point to project root data directory
     project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -185,29 +185,30 @@ def get_player_analysis(user):
         return name.replace(',', '').replace('  ', ' ').strip().lower()
     
     player = None
+    actual_player_name = None  # This will store the actual name from the player record
     
-    # First try to find by tenniscores_player_id (most reliable)
+    # Search by tenniscores_player_id (most reliable)
     if tenniscores_player_id:
         print(f"[DEBUG] Searching by player_id: '{tenniscores_player_id}'")
-        player = next((p for p in all_players if p.get('player_id') == tenniscores_player_id), None)
-        print(f"[DEBUG] Found player by ID: {player.get('name') if player else 'None'}")
-    
-    # Fallback to name matching if ID search failed
-    if not player:
-        print(f"[DEBUG] Player not found by ID, falling back to name search")
-        # Normalize the target player name for case-insensitive matching
-        player_name_normal = normalize(player_name)
-        player_last_first = normalize(f"{user['last_name']}, {user['first_name']}")
-        print(f"[DEBUG] Normalized search names: '{player_name_normal}', '{player_last_first}'")
         
-        for p in all_players:
-            n = normalize(p.get('name', ''))
-            if n == player_name_normal or n == player_last_first:
-                print(f"[DEBUG] Match found for player: '{p.get('name')}'")
-                player = p
-                break
+        # Debug: Print first few player records to see what IDs are available
+        print(f"[DEBUG] Sample player IDs in data: {[p.get('player_id', 'None') for p in all_players[:5]]}")
+        
+        player = next((p for p in all_players if p.get('player_id') == tenniscores_player_id), None)
+        if player:
+            actual_player_name = player.get('name', session_player_name)
+            print(f"[DEBUG] Found player by ID: '{actual_player_name}' (ID: {tenniscores_player_id})")
+        else:
+            print(f"[DEBUG] No player found with ID: '{tenniscores_player_id}'")
+            # Debug: Check if any players have similar IDs
+            similar_ids = [p.get('player_id') for p in all_players if p.get('player_id') and tenniscores_player_id.lower() in p.get('player_id', '').lower()]
+            print(f"[DEBUG] Similar player IDs found: {similar_ids[:5]}")
+    else:
+        print(f"[DEBUG] No tenniscores_player_id provided in user session")
     
+    # If we don't have a player ID or it failed, return error instead of falling back to name matching
     if not player:
+        print(f"[DEBUG] Player not found by reliable ID lookup - no fallback to name matching")
         return {
             'current_season': None,
             'court_analysis': {},
@@ -218,7 +219,7 @@ def get_player_analysis(user):
             'career_pti_change': 'N/A',
             'current_pti': None,
             'weekly_pti_change': None,
-            'error': 'Player not found'
+            'error': f'Player not found with ID: {tenniscores_player_id}' if tenniscores_player_id else 'No player ID available'
         }
     
     # --- 2. Load all matches for this player ---
@@ -228,35 +229,55 @@ def get_player_analysis(user):
     except Exception as e:
         all_matches = []
     
-    # Helper function to check if player is in a match (case-insensitive)
-    def player_in_match(match, target_player_name):
-        """Check if target_player_name is in the match, case-insensitive"""
+    # --- 2.5. Create name-to-ID mapping from player data for match filtering ---
+    name_to_id_mapping = {}
+    for p in all_players:
+        player_name = p.get('name', '')
+        player_id = p.get('player_id', '')
+        if player_name and player_id:
+            name_to_id_mapping[normalize(player_name)] = player_id
+    
+    print(f"[DEBUG] Created name-to-ID mapping for {len(name_to_id_mapping)} players")
+
+    # Helper function to check if target player ID is in a match
+    def player_id_in_match(match, target_player_id):
+        """Check if target_player_id is in the match by converting player names to IDs"""
         match_players = [
             match.get('Home Player 1', ''),
             match.get('Home Player 2', ''),
             match.get('Away Player 1', ''),
             match.get('Away Player 2', '')
         ]
-        target_normalized = normalize(target_player_name)
-        return any(normalize(p) == target_normalized for p in match_players if p)
-    
-    def get_player_position_in_match(match, target_player_name):
-        """Get the position (home/away and 1/2) of target player in match, case-insensitive"""
-        target_normalized = normalize(target_player_name)
         
-        if normalize(match.get('Home Player 1', '')) == target_normalized:
-            return 'Home Player 1'
-        elif normalize(match.get('Home Player 2', '')) == target_normalized:
-            return 'Home Player 2'
-        elif normalize(match.get('Away Player 1', '')) == target_normalized:
-            return 'Away Player 1'
-        elif normalize(match.get('Away Player 2', '')) == target_normalized:
-            return 'Away Player 2'
+        # Convert match player names to IDs and check if target ID is present
+        for match_player_name in match_players:
+            if match_player_name:
+                normalized_name = normalize(match_player_name)
+                match_player_id = name_to_id_mapping.get(normalized_name)
+                if match_player_id == target_player_id:
+                    return True
+        return False
+    
+    def get_player_position_in_match_by_id(match, target_player_id):
+        """Get the position (home/away and 1/2) of target player in match using ID"""
+        match_players = [
+            ('Home Player 1', match.get('Home Player 1', '')),
+            ('Home Player 2', match.get('Home Player 2', '')),
+            ('Away Player 1', match.get('Away Player 1', '')),
+            ('Away Player 2', match.get('Away Player 2', ''))
+        ]
+        
+        for position, match_player_name in match_players:
+            if match_player_name:
+                normalized_name = normalize(match_player_name)
+                match_player_id = name_to_id_mapping.get(normalized_name)
+                if match_player_id == target_player_id:
+                    return position
         return None
     
-    def get_partner_for_player(match, target_player_name):
-        """Get the partner of target player in the match, case-insensitive"""
-        position = get_player_position_in_match(match, target_player_name)
+    def get_partner_for_player_by_id(match, target_player_id):
+        """Get the partner of target player in the match using ID"""
+        position = get_player_position_in_match_by_id(match, target_player_id)
         if position == 'Home Player 1':
             return match.get('Home Player 2', '')
         elif position == 'Home Player 2':
@@ -287,16 +308,19 @@ def get_player_analysis(user):
         else:
             current_series = None
     
-    # --- 4. Filter matches for current season/series ---
+    # --- 4. Filter matches for current season/series using ACTUAL player name ---
     player_matches = []
-    if player:
+    if player and actual_player_name:
+        print(f"[DEBUG] Filtering matches for actual player name: '{actual_player_name}'")
         for m in all_matches:
-            if player_in_match(m, player_name):
+            # Use actual_player_name instead of session-constructed name
+            if player_id_in_match(m, tenniscores_player_id):
                 if current_series:
                     match_series = str(m.get('Series', ''))
                     if match_series and match_series != current_series:
                         continue
                 player_matches.append(m)
+        print(f"[DEBUG] Found {len(player_matches)} matches for player using actual name")
     
     # --- 5. Assign matches to courts 1-4 by date and team pairing ---
     matches_by_group = defaultdict(list)
@@ -322,15 +346,13 @@ def get_player_analysis(user):
             court_num = i + 1
             if court_num > 4:
                 continue
-            # Check if player is in this match (case-insensitive)
-            # Use actual player name from player record instead of session name for reliable matching
-            actual_player_name = player.get('name', player_name) if player else player_name
-            if not player_in_match(match, actual_player_name):
+            # Check if player is in this match using ACTUAL player name
+            if not player_id_in_match(match, tenniscores_player_id):
                 continue
             total_matches += 1
             
-            # Determine if player is home team (case-insensitive)
-            position = get_player_position_in_match(match, player_name)
+            # Determine if player is home team (using actual player name)
+            position = get_player_position_in_match_by_id(match, tenniscores_player_id)
             is_home = position and position.startswith('Home')
             
             won = (is_home and match.get('Winner') == 'home') or (not is_home and match.get('Winner') == 'away')
@@ -342,8 +364,8 @@ def get_player_analysis(user):
                 court_stats[f'court{court_num}']['losses'] += 1
             court_stats[f'court{court_num}']['matches'] += 1
             
-            # Identify partner (case-insensitive)
-            partner = get_partner_for_player(match, player_name)
+            # Identify partner (using actual player name)
+            partner = get_partner_for_player_by_id(match, tenniscores_player_id)
             if partner:
                 court_stats[f'court{court_num}']['partners'][partner] += 1
             
