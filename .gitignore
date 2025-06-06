@@ -62,3 +62,16 @@ reference_code/
 # Ignore the SQLite database file
 /data/paddlepro.db
 /paddlepro.db
+
+# macOS system files
+.DS_Store
+*/.DS_Store
+
+# Large log files
+scraper.log
+*.log
+
+# Backup files
+*.backup
+*.bak
+server_backup*.py

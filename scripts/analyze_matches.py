@@ -1,7 +1,7 @@
 import json
 
 def analyze_birchwood_matches():
-    with open('data/match_history.json', 'r') as f:
+    with open('data/leagues/apta/match_history.json', 'r') as f:
         matches = json.load(f)
     
     total_matches = 0

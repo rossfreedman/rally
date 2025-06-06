@@ -21,7 +21,8 @@
         <div class="text-center text-gray-500 my-8">No stats available for this player.</div>
     {% endif %}
 
-    <!-- Current PTI -->
+    <!-- Current PTI (only show if PTI data is available) -->
+    {% if analyze_data.pti_data_available %}
     <div class='analyze-card'>
         <div class='analyze-card-header'><i class='fas fa-gauge-high'></i> My PTI</div>
         <div class='w-full flex justify-center items-center py-4'>
@@ -46,11 +47,12 @@
         </div>
     </div>
     
-    <!-- PTI History Chart -->
+    <!-- PTI History Chart (only show if PTI data is available) -->
     <div class='analyze-card'>
         <div class='analyze-card-header'><i class='fas fa-chart-line'></i> PTI History</div>
         <div id="ptiHistoryChart" style="height:400px;"></div>
     </div>
+    {% endif %}
 
     <!-- Overall Performance -->
     {% if analyze_data.current_season and analyze_data.career_stats %}
@@ -436,6 +438,8 @@
 <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', async function() {
+  // Only load PTI chart if PTI data is available
+  {% if analyze_data.pti_data_available %}
   console.log('Loading PTI history chart...');
   
   try {
@@ -443,6 +447,13 @@ document.addEventListener('DOMContentLoaded', async function() {
     console.log('Fetching data from /api/player-history...');
     const playerHistoryResponse = await fetch('/api/player-history');
     console.log('Response status:', playerHistoryResponse.status);
+    
+    // Handle case where player history is not available
+    if (playerHistoryResponse.status === 404) {
+      console.log('Player history data not available - PTI chart will not be displayed');
+      document.getElementById('ptiHistoryChart').innerHTML = '<div class="text-center text-gray-500 py-8">PTI history data not available</div>';
+      return;
+    }
     
     const response = await playerHistoryResponse.json();
     console.log('Received data:', response);
@@ -572,6 +583,9 @@ document.addEventListener('DOMContentLoaded', async function() {
     console.error('Error creating PTI history chart:', error);
     document.getElementById('ptiHistoryChart').innerHTML = 'Error loading PTI history data';
   }
+  {% else %}
+  console.log('PTI data not available - skipping PTI chart');
+  {% endif %}
 });
 </script>
 {% endblock %} 

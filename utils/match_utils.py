@@ -11,7 +11,7 @@ def load_nickname_mappings():
     """Load nickname mappings from JSON file and build bidirectional lookup."""
     current_dir = os.path.dirname(os.path.abspath(__file__))
     project_root = os.path.dirname(current_dir)  # Go up one level from utils/
-    nickname_file = os.path.join(project_root, "data", "nickname_mappings.json")
+    nickname_file = os.path.join(project_root, "data", "leagues", "apta", "nickname_mappings.json")
     
     try:
         with open(nickname_file, 'r') as f:

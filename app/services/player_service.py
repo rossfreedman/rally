@@ -151,8 +151,8 @@ def search_players_with_fuzzy_logic(first_name_query, last_name_query):
         app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         
         # Load all player data
-        players_path = os.path.join(app_dir, 'data', 'players.json')
-        player_history_path = os.path.join(app_dir, 'data', 'player_history.json')
+        players_path = os.path.join(app_dir, 'data', 'leagues', 'apta', 'players.json')
+        player_history_path = os.path.join(app_dir, 'data', 'leagues', 'apta', 'player_history.json')
         
         results = []
         

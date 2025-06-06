@@ -33,7 +33,7 @@ def init_find_sub_routes(app):
                 return jsonify({'error': 'First and last name parameters are required'}), 400
             
             # Read from CSV file (go up to project root)
-            csv_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'data', 'club_directories', 'directory_tennaqua.csv')
+            csv_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'data', 'leagues', 'apta', 'club_directories', 'directory_tennaqua.csv')
             
             print(f"Looking for CSV file at: {csv_path}")
             if not os.path.exists(csv_path):

@@ -9,7 +9,7 @@ def get_matches_for_user_club(user):
     """Get upcoming matches and practices for a user's club from schedules.json"""
     try:
         # Use schedules.json for upcoming matches (availability system)
-        file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../data', 'schedules.json')
+        file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../data', 'leagues', 'apta', 'schedules.json')
         print(f"Looking for schedule file at: {file_path}")
         
         with open(file_path, 'r') as f:
@@ -93,7 +93,7 @@ def init_schedule_routes(app):
     def serve_schedule():
         """Serve the schedule data"""
         try:
-            file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../data', 'match_history.json')
+            file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../data', 'leagues', 'apta', 'match_history.json')
             with open(file_path, 'r') as f:
                 data = json.load(f)
             return jsonify(data)
@@ -106,7 +106,7 @@ def init_schedule_routes(app):
     def get_team_matches():
         """Get matches for a team"""
         try:
-            file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../data', 'match_history.json')
+            file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../data', 'leagues', 'apta', 'match_history.json')
             with open(file_path, 'r') as f:
                 matches = json.load(f)
             return jsonify(matches)

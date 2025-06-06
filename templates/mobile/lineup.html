@@ -19,7 +19,7 @@
     <!-- Step 1 -->
     <div class="flex flex-col items-center flex-1">
       <div class="bg-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold text-blue-600 shadow-md mb-2 border-2 border-blue-300">1</div>
-      <div id="step1-card" class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-4 shadow-lg transform transition-all duration-300 scale-105 border-2 border-blue-300 w-16 h-16 flex items-center justify-center">
+      <div id="step1-card" class="bg-blue-500 rounded-xl p-4 shadow-lg transform transition-all duration-300 scale-105 border-2 border-blue-300 w-16 h-16 flex items-center justify-center">
         <i class="fas fa-users text-white text-2xl"></i>
       </div>
       <div class="text-xs text-center mt-2 font-semibold text-blue-600 max-w-20">
@@ -109,7 +109,7 @@
   
   <div class="card bg-base-100 shadow-xl mb-4">
     <div class="card-body">
-      <h2 class="card-title text-xl mb-4">Saved Lineup Instructions</h2>
+      <h2 class="card-title text-xl mb-4">Update Saved Lineup Instructions</h2>
       <p class="text-gray-600 mb-4">Add any specific instructions for the AI to consider:</p>
       
       <ul id="instructions-list" class="mb-4 flex flex-col gap-2">
@@ -129,7 +129,7 @@
   <!-- Navigation Buttons at Top -->
   <div class="flex justify-between px-4 mb-4">
     <button id="page3-prev" class="btn bg-black hover:bg-gray-800 active:bg-gray-900 focus:bg-gray-800 text-white hover:text-white active:text-white focus:text-white px-8">← Previous</button>
-    <button id="page3-next" class="btn bg-black hover:bg-gray-800 active:bg-gray-900 focus:bg-gray-800 border-black text-white hover:text-white active:text-white focus:text-white px-8 hidden">Next →</button>
+    <button id="generate-lineup-btn" class="btn bg-black hover:bg-gray-800 active:bg-gray-900 focus:bg-gray-800 border-black text-white hover:text-white active:text-white focus:text-white px-8">Generate Lineup →</button>
   </div>
   
   <div class="card bg-base-100 shadow-xl mb-4">
@@ -145,7 +145,6 @@
             <div>Instructions: <span id="summary-instructions-count">0</span> added</div>
           </div>
         </div>
-        <button id="generate-lineup-btn" class="btn btn-primary w-full mb-4">🤖 Generate Lineup with AI</button>
       </div>
       
       <div id="loading-indicator" class="hidden text-center py-8">
@@ -154,9 +153,12 @@
       </div>
       
       <div id="generated-lineup-container" class="hidden">
-        <h3 class="font-semibold mb-3">Generated Lineup:</h3>
-        <div class="bg-gray-50 p-4 rounded-lg">
-          <pre id="generated-lineup" class="whitespace-pre-wrap text-sm"></pre>
+        <h3 class="font-semibold mb-3 text-lg">🏓 Your Generated Lineup</h3>
+        <div class="bg-white border-2 border-green-300 p-6 rounded-lg shadow-sm">
+          <pre id="generated-lineup" class="whitespace-pre-wrap text-base leading-relaxed"></pre>
+        </div>
+        <div class="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
+          <p class="text-sm text-green-700 font-medium">✅ Lineup successfully generated! Click "Send to Team" to share with your players.</p>
         </div>
       </div>
     </div>
@@ -168,7 +170,7 @@
   <!-- Navigation Buttons at Top -->
   <div class="flex justify-between px-4 mb-4">
     <button id="page4-prev" class="btn bg-black hover:bg-gray-800 active:bg-gray-900 focus:bg-gray-800 text-white hover:text-white active:text-white focus:text-white px-8">← Previous</button>
-    <button id="start-over" class="btn bg-black hover:bg-gray-800 active:bg-gray-900 focus:bg-gray-800 text-white hover:text-white active:text-white focus:text-white px-8">🔄 Start Over</button>
+    <button id="send-to-team" class="btn bg-black hover:bg-gray-800 active:bg-gray-900 focus:bg-gray-800 text-white hover:text-white active:text-white focus:text-white px-8">Send to Team →</button>
   </div>
   
   <div class="card bg-base-100 shadow-xl mb-4">
@@ -276,8 +278,8 @@ function updateProgressIndicators(pageNumber) {
     
     if (i < pageNumber) {
       // Completed steps - green with checkmark
-      card.className = 'bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl p-4 shadow-lg transform transition-all duration-300 scale-105 border-2 border-green-300 w-16 h-16 flex items-center justify-center';
-      card.innerHTML = '<i class="fas fa-check text-green-900 text-2xl"></i>';
+      card.className = 'bg-green-500 rounded-xl p-4 shadow-lg transform transition-all duration-300 scale-105 border-2 border-green-300 w-16 h-16 flex items-center justify-center';
+      card.innerHTML = '<i class="fas fa-check text-white text-2xl"></i>';
       numberBadge.className = 'bg-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold text-green-600 shadow-md mb-2 border-2 border-green-300';
       numberBadge.textContent = '✓';
       labels.className = 'text-xs text-center mt-2 font-semibold text-green-600 max-w-20';
@@ -287,21 +289,22 @@ function updateProgressIndicators(pageNumber) {
         if (chevron) chevron.className = 'fas fa-chevron-right text-green-400 text-lg';
       }
     } else if (i === pageNumber) {
-      // Current step - colorful gradient with pulse and scale
-      const gradients = [
-        'bg-gradient-to-br from-blue-500 to-blue-600 border-blue-300',
-        'bg-gradient-to-br from-purple-500 to-purple-600 border-purple-300', 
-        'bg-gradient-to-br from-pink-500 to-pink-600 border-pink-300',
-        'bg-gradient-to-br from-orange-500 to-orange-600 border-orange-300'
+      // Current step - solid colors with pulse and scale
+      const solidColors = [
+        'bg-blue-500 border-blue-300',
+        'bg-purple-500 border-purple-300', 
+        'bg-pink-500 border-pink-300',
+        'bg-orange-500 border-orange-300'
       ];
       const colors = ['text-blue-600', 'text-purple-600', 'text-pink-600', 'text-orange-600'];
       const borderColors = ['border-blue-300', 'border-purple-300', 'border-pink-300', 'border-orange-300'];
       const arrowColors = ['text-blue-400', 'text-purple-400', 'text-pink-400', 'text-orange-400'];
-      const iconColors = ['text-blue-900', 'text-purple-900', 'text-pink-900', 'text-orange-900'];
       
-      card.className = `${gradients[i-1]} rounded-xl p-4 shadow-lg transform transition-all duration-300 scale-105 border-2 animate-pulse w-16 h-16 flex items-center justify-center`;
+      card.className = `${solidColors[i-1]} rounded-xl p-4 shadow-lg transform transition-all duration-300 scale-105 border-2 animate-pulse w-16 h-16 flex items-center justify-center`;
       numberBadge.className = `bg-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold ${colors[i-1]} shadow-md mb-2 border-2 ${borderColors[i-1]}`;
       numberBadge.textContent = i;
+      
+      const iconColors = ['text-blue-900', 'text-purple-900', 'text-pink-900', 'text-orange-900'];
       
       switch(i) {
         case 1: card.innerHTML = `<i class="fas fa-users ${iconColors[i-1]} text-2xl"></i>`; break;
@@ -436,7 +439,7 @@ function renderInstructions() {
   list.innerHTML = '';
   instructions.forEach(instr => {
     const li = document.createElement('li');
-    li.className = 'flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2';
+    li.className = 'flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2 border-2 border-black';
     li.innerHTML = `
       <span class="flex-1">${instr}</span>
       <button class="btn btn-xs btn-error ml-2"><i class="fas fa-trash text-white"></i></button>
@@ -526,18 +529,47 @@ function generateLineup() {
         generatedLineup = data.suggestion;
         document.getElementById('generated-lineup').textContent = data.suggestion;
         document.getElementById('generated-lineup-container').classList.remove('hidden');
-        document.getElementById('page3-next').classList.remove('hidden');
-        updateMessagePreview();
+        // Change the button to "Send to Team" after successful generation
+        document.getElementById('generate-lineup-btn').textContent = 'Send to Team →';
+        document.getElementById('generate-lineup-btn').onclick = () => {
+          updateMessagePreview();
+          showPage(4);
+        };
       } else {
-        document.getElementById('generated-lineup').textContent = data.error || 'No lineup generated.';
-        document.getElementById('generated-lineup-container').classList.remove('hidden');
+        // Handle case where API responds but without a successful lineup
+        const container = document.getElementById('generated-lineup-container');
+        container.innerHTML = `
+          <h3 class="font-semibold mb-3 text-lg text-red-600">❌ Lineup Generation Failed</h3>
+          <div class="bg-red-50 border-2 border-red-300 p-6 rounded-lg shadow-sm">
+            <p class="text-red-700 text-base">${data.error || 'No lineup generated.'}</p>
+          </div>
+          <div class="mt-4 p-3 bg-red-50 rounded-lg border border-red-200">
+            <p class="text-sm text-red-700 font-medium">❌ Please check your selections and try generating the lineup again.</p>
+          </div>
+        `;
+        container.classList.remove('hidden');
       }
     })
-    .catch(() => {
+    .catch((error) => {
       document.getElementById('loading-indicator').classList.add('hidden');
       document.getElementById('generation-controls').classList.remove('hidden');
+      // Show error message without the success container styling
       document.getElementById('generated-lineup').textContent = 'Error generating lineup.';
       document.getElementById('generated-lineup-container').classList.remove('hidden');
+      
+      // Remove the success styling and show error styling instead
+      const container = document.getElementById('generated-lineup-container');
+      container.innerHTML = `
+        <h3 class="font-semibold mb-3 text-lg text-red-600">❌ Lineup Generation Failed</h3>
+        <div class="bg-red-50 border-2 border-red-300 p-6 rounded-lg shadow-sm">
+          <p class="text-red-700 text-base">Error generating lineup. Please try again.</p>
+        </div>
+        <div class="mt-4 p-3 bg-red-50 rounded-lg border border-red-200">
+          <p class="text-sm text-red-700 font-medium">❌ Please check your selections and try generating the lineup again.</p>
+        </div>
+      `;
+      
+      console.error('Error generating lineup:', error);
     });
 }
 
@@ -585,7 +617,6 @@ document.addEventListener('DOMContentLoaded', () => {
   };
   
   document.getElementById('page3-prev').onclick = () => showPage(2);
-  document.getElementById('page3-next').onclick = () => showPage(4);
   
   document.getElementById('page4-prev').onclick = () => showPage(3);
   
@@ -619,14 +650,10 @@ document.addEventListener('DOMContentLoaded', () => {
     alert('Save functionality coming soon!');
   };
   
-  document.getElementById('start-over').onclick = () => {
-    if (confirm('Are you sure you want to start over? This will reset all your selections.')) {
-      selectedPlayers = new Set(players.map(p => p.name));
-      renderPlayers();
-      document.getElementById('generated-lineup-container').classList.add('hidden');
-      document.getElementById('page3-next').classList.add('hidden');
-      showPage(1);
-    }
+  document.getElementById('send-to-team').onclick = () => {
+    // For now, show the email option since it's the main sending method
+    // This could be enhanced to show a menu of sending options
+    document.getElementById('send-email').click();
   };
   
   // Initialize wizard

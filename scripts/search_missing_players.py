@@ -2,7 +2,7 @@
 
 import json
 
-with open('data/players.json', 'r') as f:
+with open('data/leagues/apta/players.json', 'r') as f:
     players = json.load(f)
 
 print('🔍 Searching for similar names to the unmatched users...')

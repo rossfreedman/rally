@@ -176,7 +176,7 @@ async function loadResearchMe() {
         
         // Get all players
         console.log("Fetching player history data...");
-        const resp = await fetch('/data/match_history.json');
+        const resp = await fetch('/data/leagues/apta/match_history.json');
         const data = await resp.json();
         console.log("Received player history data for", data.length, "players");
         
@@ -387,7 +387,7 @@ async function buildCourtsFromTennisMatches(player) {
     
     try {
         // Fetch tennis_matches data
-        const resp = await fetch('/data/match_history.json');
+        const resp = await fetch('/data/leagues/apta/match_history.json');
         const allMatches = await resp.json();
         
         // Utility function to normalize player names

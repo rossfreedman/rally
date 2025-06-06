@@ -113,8 +113,8 @@ def get_series_stats_data():
     try:
         # Get the project root directory for file paths
         project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        stats_path = os.path.join(project_root, 'data', 'series_stats.json')
-        matches_path = os.path.join(project_root, 'data', 'match_history.json')
+        stats_path = os.path.join(project_root, 'data', 'leagues', 'apta', 'series_stats.json')
+        matches_path = os.path.join(project_root, 'data', 'leagues', 'apta', 'match_history.json')
         
         if not os.path.exists(stats_path):
             return jsonify({'error': 'Stats file not found'}), 404
@@ -363,8 +363,8 @@ def get_players_by_series_data():
         current_dir = os.path.dirname(os.path.abspath(__file__))
         app_dir = os.path.dirname(current_dir)  # app directory
         project_root = os.path.dirname(app_dir)  # rally directory
-        players_path = os.path.join(project_root, 'data', 'players.json')
-        matches_path = os.path.join(project_root, 'data', 'match_history.json')  # Use correct filename
+        players_path = os.path.join(project_root, 'data', 'leagues', 'apta', 'players.json')
+        matches_path = os.path.join(project_root, 'data', 'leagues', 'apta', 'match_history.json')  # Use correct filename
         
         print(f"Players path: {players_path}")
         print(f"Matches path: {matches_path}")
@@ -507,7 +507,7 @@ def find_training_video_data():
         # Load training guide data
         try:
             # Use current working directory since server.py runs from project root
-            guide_path = os.path.join('data', 'improve_data', 'complete_platform_tennis_training_guide.json')
+            guide_path = os.path.join('data', 'leagues', 'apta', 'improve_data', 'complete_platform_tennis_training_guide.json')
             with open(guide_path, 'r', encoding='utf-8') as f:
                 training_guide = json.load(f)
         except Exception as e:
@@ -621,7 +621,7 @@ def remove_practice_times_data():
         
         # Load the current schedule
         project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        schedule_file = os.path.join(project_root, "data", "schedules.json")
+        schedule_file = os.path.join(project_root, "data", "leagues", "apta", "schedules.json")
         try:
             with open(schedule_file, 'r') as f:
                 schedule = json.load(f)
@@ -737,7 +737,7 @@ def get_team_schedule_data_data():
         # Load all players from players.json
         try:
             project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-            players_path = os.path.join(project_root, 'data', 'players.json')
+            players_path = os.path.join(project_root, 'data', 'leagues', 'apta', 'players.json')
             with open(players_path, 'r') as f:
                 all_players = json.load(f)
             

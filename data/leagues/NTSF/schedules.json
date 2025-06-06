@@ -1,0 +1,882 @@
+[
+    {
+        "date": "05/29/2025",
+        "time": "06:00 pm",
+        "home_team": "Birchwood S1 - Series 1",
+        "away_team": "Lake Forest  S1 - Series 1",
+        "location": "Lake Forest",
+        "League": "NTSF"
+    },
+    {
+        "date": "05/29/2025",
+        "time": "06:00 pm",
+        "home_team": "Wilmette S1 T2 - Series 1",
+        "away_team": "Tennaqua S1 - Series 1",
+        "location": "Tennaqua",
+        "League": "NTSF"
+    },
+    {
+        "date": "06/05/2025",
+        "time": "06:00 pm",
+        "home_team": "Wilmette S1 T1 - Series 1",
+        "away_team": "Birchwood S1 - Series 1",
+        "location": "Birchwood",
+        "League": "NTSF"
+    },
+    {
+        "date": "06/05/2025",
+        "time": "06:00 pm",
+        "home_team": "Wilmette S1 T2 - Series 1",
+        "away_team": "Lake Forest  S1 - Series 1",
+        "location": "Lake Forest",
+        "League": "NTSF"
+    },
+    {
+        "date": "06/12/2025",
+        "time": "06:00 pm",
+        "home_team": "Wilmette S1 T2 - Series 1",
+        "away_team": "Birchwood S1 - Series 1",
+        "location": "Birchwood",
+        "League": "NTSF"
+    },
+    {
+        "date": "06/12/2025",
+        "time": "06:00 pm",
+        "home_team": "Wilmette S1 T1 - Series 1",
+        "away_team": "Tennaqua S1 - Series 1",
+        "location": "Tennaqua",
+        "League": "NTSF"
+    },
+    {
+        "date": "06/19/2025",
+        "time": "06:00 pm",
+        "home_team": "Tennaqua S1 - Series 1",
+        "away_team": "Birchwood S1 - Series 1",
+        "location": "Birchwood",
+        "League": "NTSF"
+    },
+    {
+        "date": "06/19/2025",
+        "time": "06:00 pm",
+        "home_team": "Wilmette S1 T1 - Series 1",
+        "away_team": "Lake Forest  S1 - Series 1",
+        "location": "Lake Forest",
+        "League": "NTSF"
+    },
+    {
+        "date": "06/26/2025",
+        "time": "06:00 pm",
+        "home_team": "Lake Forest  S1 - Series 1",
+        "away_team": "Tennaqua S1 - Series 1",
+        "location": "Tennaqua",
+        "League": "NTSF"
+    },
+    {
+        "date": "06/26/2025",
+        "time": "06:00 pm",
+        "home_team": "Wilmette S1 T2 - Series 1",
+        "away_team": "Wilmette S1 T1 - Series 1",
+        "location": "Wilmette",
+        "League": "NTSF"
+    },
+    {
+        "date": "07/10/2025",
+        "time": "06:00 pm",
+        "home_team": "Lake Forest  S1 - Series 1",
+        "away_team": "Birchwood S1 - Series 1",
+        "location": "Birchwood",
+        "League": "NTSF"
+    },
+    {
+        "date": "07/10/2025",
+        "time": "06:00 pm",
+        "home_team": "Wilmette S1 T2 - Series 1",
+        "away_team": "Tennaqua S1 - Series 1",
+        "location": "Tennaqua",
+        "League": "NTSF"
+    },
+    {
+        "date": "07/17/2025",
+        "time": "06:00 pm",
+        "home_team": "Tennaqua S1 - Series 1",
+        "away_team": "Lake Forest  S1 - Series 1",
+        "location": "Lake Forest",
+        "League": "NTSF"
+    },
+    {
+        "date": "07/17/2025",
+        "time": "06:00 pm",
+        "home_team": "Wilmette S1 T1 - Series 1",
+        "away_team": "Wilmette S1 T2 - Series 1",
+        "location": "Wilmette",
+        "League": "NTSF"
+    },
+    {
+        "date": "07/24/2025",
+        "time": "06:00 pm",
+        "home_team": "Wilmette S1 T2 - Series 1",
+        "away_team": "Birchwood S1 - Series 1",
+        "location": "Birchwood",
+        "League": "NTSF"
+    },
+    {
+        "date": "07/24/2025",
+        "time": "06:00 pm",
+        "home_team": "Wilmette S1 T1 - Series 1",
+        "away_team": "Tennaqua S1 - Series 1",
+        "location": "Tennaqua",
+        "League": "NTSF"
+    },
+    {
+        "date": "07/31/2025",
+        "time": "06:00 pm",
+        "home_team": "Wilmette S1 T1 - Series 1",
+        "away_team": "Lake Forest  S1 - Series 1",
+        "location": "Lake Forest",
+        "League": "NTSF"
+    },
+    {
+        "date": "07/31/2025",
+        "time": "06:00 pm",
+        "home_team": "Birchwood S1 - Series 1",
+        "away_team": "Tennaqua S1 - Series 1",
+        "location": "Tennaqua",
+        "League": "NTSF"
+    },
+    {
+        "date": "08/07/2025",
+        "time": "06:00 pm",
+        "home_team": "Wilmette S1 T1 - Series 1",
+        "away_team": "Birchwood S1 - Series 1",
+        "location": "Birchwood",
+        "League": "NTSF"
+    },
+    {
+        "date": "08/07/2025",
+        "time": "06:00 pm",
+        "home_team": "Wilmette S1 T2 - Series 1",
+        "away_team": "Lake Forest  S1 - Series 1",
+        "location": "Lake Forest",
+        "League": "NTSF"
+    },
+    {
+        "date": "05/29/2025",
+        "time": "06:00 pm",
+        "home_team": "Old Willow S2A - Series 2A",
+        "away_team": "Exmoor S2A - Series 2A",
+        "location": "Exmoor",
+        "League": "NTSF"
+    },
+    {
+        "date": "05/29/2025",
+        "time": "06:00 pm",
+        "home_team": "Skokie S2A - Series 2A",
+        "away_team": "Midtown S2A - Series 2A",
+        "location": "Midtown-Bannockburn",
+        "League": "NTSF"
+    },
+    {
+        "date": "05/29/2025",
+        "time": "06:00 pm",
+        "home_team": "Northmoor S2A - Series 2A",
+        "away_team": "Tennaqua S2A - Series 2A",
+        "location": "Tennaqua",
+        "League": "NTSF"
+    },
+    {
+        "date": "06/05/2025",
+        "time": "06:00 pm",
+        "home_team": "Exmoor S2A - Series 2A",
+        "away_team": "Northmoor S2A - Series 2A",
+        "location": "Northmoor",
+        "League": "NTSF"
+    },
+    {
+        "date": "06/05/2025",
+        "time": "06:00 pm",
+        "home_team": "Midtown S2A - Series 2A",
+        "away_team": "Old Willow S2A - Series 2A",
+        "location": "Old Willow",
+        "League": "NTSF"
+    },
+    {
+        "date": "06/05/2025",
+        "time": "06:00 pm",
+        "home_team": "Tennaqua S2A - Series 2A",
+        "away_team": "Skokie S2A - Series 2A",
+        "location": "Skokie",
+        "League": "NTSF"
+    },
+    {
+        "date": "06/12/2025",
+        "time": "06:00 pm",
+        "home_team": "Tennaqua S2A - Series 2A",
+        "away_team": "Exmoor S2A - Series 2A",
+        "location": "Exmoor",
+        "League": "NTSF"
+    },
+    {
+        "date": "06/12/2025",
+        "time": "06:00 pm",
+        "home_team": "Northmoor S2A - Series 2A",
+        "away_team": "Midtown S2A - Series 2A",
+        "location": "Midtown-Bannockburn",
+        "League": "NTSF"
+    },
+    {
+        "date": "06/12/2025",
+        "time": "06:00 pm",
+        "home_team": "Skokie S2A - Series 2A",
+        "away_team": "Old Willow S2A - Series 2A",
+        "location": "Old Willow",
+        "League": "NTSF"
+    },
+    {
+        "date": "06/19/2025",
+        "time": "06:00 pm",
+        "home_team": "Skokie S2A - Series 2A",
+        "away_team": "Exmoor S2A - Series 2A",
+        "location": "Exmoor",
+        "League": "NTSF"
+    },
+    {
+        "date": "06/19/2025",
+        "time": "06:00 pm",
+        "home_team": "Old Willow S2A - Series 2A",
+        "away_team": "Northmoor S2A - Series 2A",
+        "location": "Northmoor",
+        "League": "NTSF"
+    },
+    {
+        "date": "06/19/2025",
+        "time": "06:00 pm",
+        "home_team": "Midtown S2A - Series 2A",
+        "away_team": "Tennaqua S2A - Series 2A",
+        "location": "Tennaqua",
+        "League": "NTSF"
+    },
+    {
+        "date": "06/26/2025",
+        "time": "06:00 pm",
+        "home_team": "Exmoor S2A - Series 2A",
+        "away_team": "Midtown S2A - Series 2A",
+        "location": "Midtown-Bannockburn",
+        "League": "NTSF"
+    },
+    {
+        "date": "06/26/2025",
+        "time": "06:00 pm",
+        "home_team": "Tennaqua S2A - Series 2A",
+        "away_team": "Old Willow S2A - Series 2A",
+        "location": "Old Willow",
+        "League": "NTSF"
+    },
+    {
+        "date": "06/26/2025",
+        "time": "06:00 pm",
+        "home_team": "Northmoor S2A - Series 2A",
+        "away_team": "Skokie S2A - Series 2A",
+        "location": "Skokie",
+        "League": "NTSF"
+    },
+    {
+        "date": "07/10/2025",
+        "time": "06:00 pm",
+        "home_team": "Tennaqua S2A - Series 2A",
+        "away_team": "Northmoor S2A - Series 2A",
+        "location": "Northmoor",
+        "League": "NTSF"
+    },
+    {
+        "date": "07/10/2025",
+        "time": "06:00 pm",
+        "home_team": "Exmoor S2A - Series 2A",
+        "away_team": "Old Willow S2A - Series 2A",
+        "location": "Old Willow",
+        "League": "NTSF"
+    },
+    {
+        "date": "07/10/2025",
+        "time": "06:00 pm",
+        "home_team": "Midtown S2A - Series 2A",
+        "away_team": "Skokie S2A - Series 2A",
+        "location": "Skokie",
+        "League": "NTSF"
+    },
+    {
+        "date": "07/17/2025",
+        "time": "06:00 pm",
+        "home_team": "Northmoor S2A - Series 2A",
+        "away_team": "Exmoor S2A - Series 2A",
+        "location": "Exmoor",
+        "League": "NTSF"
+    },
+    {
+        "date": "07/17/2025",
+        "time": "06:00 pm",
+        "home_team": "Old Willow S2A - Series 2A",
+        "away_team": "Midtown S2A - Series 2A",
+        "location": "Midtown-Bannockburn",
+        "League": "NTSF"
+    },
+    {
+        "date": "07/17/2025",
+        "time": "06:00 pm",
+        "home_team": "Skokie S2A - Series 2A",
+        "away_team": "Tennaqua S2A - Series 2A",
+        "location": "Tennaqua",
+        "League": "NTSF"
+    },
+    {
+        "date": "07/24/2025",
+        "time": "06:00 pm",
+        "home_team": "Tennaqua S2A - Series 2A",
+        "away_team": "Exmoor S2A - Series 2A",
+        "location": "Exmoor",
+        "League": "NTSF"
+    },
+    {
+        "date": "07/24/2025",
+        "time": "06:00 pm",
+        "home_team": "Midtown S2A - Series 2A",
+        "away_team": "Northmoor S2A - Series 2A",
+        "location": "Northmoor",
+        "League": "NTSF"
+    },
+    {
+        "date": "07/24/2025",
+        "time": "06:00 pm",
+        "home_team": "Old Willow S2A - Series 2A",
+        "away_team": "Skokie S2A - Series 2A",
+        "location": "Skokie",
+        "League": "NTSF"
+    },
+    {
+        "date": "07/31/2025",
+        "time": "06:00 pm",
+        "home_team": "Skokie S2A - Series 2A",
+        "away_team": "Exmoor S2A - Series 2A",
+        "location": "Exmoor",
+        "League": "NTSF"
+    },
+    {
+        "date": "07/31/2025",
+        "time": "06:00 pm",
+        "home_team": "Tennaqua S2A - Series 2A",
+        "away_team": "Midtown S2A - Series 2A",
+        "location": "Midtown-Bannockburn",
+        "League": "NTSF"
+    },
+    {
+        "date": "07/31/2025",
+        "time": "06:00 pm",
+        "home_team": "Northmoor S2A - Series 2A",
+        "away_team": "Old Willow S2A - Series 2A",
+        "location": "Old Willow",
+        "League": "NTSF"
+    },
+    {
+        "date": "08/07/2025",
+        "time": "06:00 pm",
+        "home_team": "Midtown S2A - Series 2A",
+        "away_team": "Exmoor S2A - Series 2A",
+        "location": "Exmoor",
+        "League": "NTSF"
+    },
+    {
+        "date": "08/07/2025",
+        "time": "06:00 pm",
+        "home_team": "Skokie S2A - Series 2A",
+        "away_team": "Northmoor S2A - Series 2A",
+        "location": "Northmoor",
+        "League": "NTSF"
+    },
+    {
+        "date": "08/07/2025",
+        "time": "06:00 pm",
+        "home_team": "Tennaqua S2A - Series 2A",
+        "away_team": "Old Willow S2A - Series 2A",
+        "location": "Old Willow",
+        "League": "NTSF"
+    },
+    {
+        "date": "05/29/2025",
+        "time": "06:00 am",
+        "home_team": "Wilmette S2B - Series 2B",
+        "away_team": "Lake Forest S2B - Series 2B",
+        "location": "Lake Forest",
+        "League": "NTSF"
+    },
+    {
+        "date": "05/29/2025",
+        "time": "06:00 pm",
+        "home_team": "Winnetka S2B - Series 2B",
+        "away_team": "Birchwood S2B - Series 2B",
+        "location": "Birchwood",
+        "League": "NTSF"
+    },
+    {
+        "date": "05/29/2025",
+        "time": "06:00 pm",
+        "home_team": "Tennaqua S2B - Series 2B",
+        "away_team": "Ravinia Green S2B - Series 2B",
+        "location": "Ravinia Green",
+        "League": "NTSF"
+    },
+    {
+        "date": "06/05/2025",
+        "time": "06:00 am",
+        "home_team": "Wilmette S2B - Series 2B",
+        "away_team": "Birchwood S2B - Series 2B",
+        "location": "Birchwood",
+        "League": "NTSF"
+    },
+    {
+        "date": "06/05/2025",
+        "time": "06:00 pm",
+        "home_team": "Ravinia Green S2B - Series 2B",
+        "away_team": "Lake Forest S2B - Series 2B",
+        "location": "Lake Forest",
+        "League": "NTSF"
+    },
+    {
+        "date": "06/05/2025",
+        "time": "06:00 pm",
+        "home_team": "Tennaqua S2B - Series 2B",
+        "away_team": "Winnetka S2B - Series 2B",
+        "location": "Winnetka",
+        "League": "NTSF"
+    },
+    {
+        "date": "06/12/2025",
+        "time": "06:00 am",
+        "home_team": "Wilmette S2B - Series 2B",
+        "away_team": "Winnetka S2B - Series 2B",
+        "location": "Winnetka",
+        "League": "NTSF"
+    },
+    {
+        "date": "06/12/2025",
+        "time": "06:00 pm",
+        "home_team": "Birchwood S2B - Series 2B",
+        "away_team": "Ravinia Green S2B - Series 2B",
+        "location": "Ravinia Green",
+        "League": "NTSF"
+    },
+    {
+        "date": "06/12/2025",
+        "time": "06:00 pm",
+        "home_team": "Lake Forest S2B - Series 2B",
+        "away_team": "Tennaqua S2B - Series 2B",
+        "location": "Tennaqua",
+        "League": "NTSF"
+    },
+    {
+        "date": "06/19/2025",
+        "time": "06:00 am",
+        "home_team": "Wilmette S2B - Series 2B",
+        "away_team": "Ravinia Green S2B - Series 2B",
+        "location": "Ravinia Green",
+        "League": "NTSF"
+    },
+    {
+        "date": "06/19/2025",
+        "time": "06:00 pm",
+        "home_team": "Tennaqua S2B - Series 2B",
+        "away_team": "Birchwood S2B - Series 2B",
+        "location": "Birchwood",
+        "League": "NTSF"
+    },
+    {
+        "date": "06/19/2025",
+        "time": "06:00 pm",
+        "home_team": "Lake Forest S2B - Series 2B",
+        "away_team": "Winnetka S2B - Series 2B",
+        "location": "Winnetka",
+        "League": "NTSF"
+    },
+    {
+        "date": "06/26/2025",
+        "time": "06:00 am",
+        "home_team": "Wilmette S2B - Series 2B",
+        "away_team": "Tennaqua S2B - Series 2B",
+        "location": "Tennaqua",
+        "League": "NTSF"
+    },
+    {
+        "date": "06/26/2025",
+        "time": "06:00 pm",
+        "home_team": "Birchwood S2B - Series 2B",
+        "away_team": "Lake Forest S2B - Series 2B",
+        "location": "Lake Forest",
+        "League": "NTSF"
+    },
+    {
+        "date": "06/26/2025",
+        "time": "06:00 pm",
+        "home_team": "Ravinia Green S2B - Series 2B",
+        "away_team": "Winnetka S2B - Series 2B",
+        "location": "Winnetka",
+        "League": "NTSF"
+    },
+    {
+        "date": "07/10/2025",
+        "time": "06:00 am",
+        "home_team": "Wilmette S2B - Series 2B",
+        "away_team": "Lake Forest S2B - Series 2B",
+        "location": "Lake Forest",
+        "League": "NTSF"
+    },
+    {
+        "date": "07/10/2025",
+        "time": "06:00 pm",
+        "home_team": "Tennaqua S2B - Series 2B",
+        "away_team": "Ravinia Green S2B - Series 2B",
+        "location": "Ravinia Green",
+        "League": "NTSF"
+    },
+    {
+        "date": "07/10/2025",
+        "time": "06:00 pm",
+        "home_team": "Birchwood S2B - Series 2B",
+        "away_team": "Winnetka S2B - Series 2B",
+        "location": "Winnetka",
+        "League": "NTSF"
+    },
+    {
+        "date": "07/17/2025",
+        "time": "06:00 am",
+        "home_team": "Wilmette S2B - Series 2B",
+        "away_team": "Birchwood S2B - Series 2B",
+        "location": "Birchwood",
+        "League": "NTSF"
+    },
+    {
+        "date": "07/17/2025",
+        "time": "06:00 pm",
+        "home_team": "Lake Forest S2B - Series 2B",
+        "away_team": "Ravinia Green S2B - Series 2B",
+        "location": "Ravinia Green",
+        "League": "NTSF"
+    },
+    {
+        "date": "07/17/2025",
+        "time": "06:00 pm",
+        "home_team": "Tennaqua S2B - Series 2B",
+        "away_team": "Winnetka S2B - Series 2B",
+        "location": "Winnetka",
+        "League": "NTSF"
+    },
+    {
+        "date": "07/24/2025",
+        "time": "06:00 am",
+        "home_team": "Wilmette S2B - Series 2B",
+        "away_team": "Ravinia Green S2B - Series 2B",
+        "location": "Ravinia Green",
+        "League": "NTSF"
+    },
+    {
+        "date": "07/24/2025",
+        "time": "06:00 pm",
+        "home_team": "Tennaqua S2B - Series 2B",
+        "away_team": "Birchwood S2B - Series 2B",
+        "location": "Birchwood",
+        "League": "NTSF"
+    },
+    {
+        "date": "07/24/2025",
+        "time": "06:00 pm",
+        "home_team": "Lake Forest S2B - Series 2B",
+        "away_team": "Winnetka S2B - Series 2B",
+        "location": "Winnetka",
+        "League": "NTSF"
+    },
+    {
+        "date": "07/31/2025",
+        "time": "06:00 am",
+        "home_team": "Wilmette S2B - Series 2B",
+        "away_team": "Winnetka S2B - Series 2B",
+        "location": "Winnetka",
+        "League": "NTSF"
+    },
+    {
+        "date": "07/31/2025",
+        "time": "06:00 pm",
+        "home_team": "Ravinia Green S2B - Series 2B",
+        "away_team": "Birchwood S2B - Series 2B",
+        "location": "Birchwood",
+        "League": "NTSF"
+    },
+    {
+        "date": "07/31/2025",
+        "time": "06:00 pm",
+        "home_team": "Tennaqua S2B - Series 2B",
+        "away_team": "Lake Forest S2B - Series 2B",
+        "location": "Lake Forest",
+        "League": "NTSF"
+    },
+    {
+        "date": "08/07/2025",
+        "time": "06:00 am",
+        "home_team": "Wilmette S2B - Series 2B",
+        "away_team": "Tennaqua S2B - Series 2B",
+        "location": "Tennaqua",
+        "League": "NTSF"
+    },
+    {
+        "date": "08/07/2025",
+        "time": "06:00 pm",
+        "home_team": "Lake Forest S2B - Series 2B",
+        "away_team": "Birchwood S2B - Series 2B",
+        "location": "Birchwood",
+        "League": "NTSF"
+    },
+    {
+        "date": "08/07/2025",
+        "time": "06:00 pm",
+        "home_team": "Winnetka S2B - Series 2B",
+        "away_team": "Ravinia Green S2B - Series 2B",
+        "location": "Ravinia Green",
+        "League": "NTSF"
+    },
+    {
+        "date": "05/29/2025",
+        "time": "06:00 pm",
+        "home_team": "Valley Lo S3 - Series 3",
+        "away_team": "Birchwood S3 - Series 3",
+        "location": "Birchwood",
+        "League": "NTSF"
+    },
+    {
+        "date": "05/29/2025",
+        "time": "06:00 pm",
+        "home_team": "Old Willow S3 - Series 3",
+        "away_team": "Lake Forest S3 - Series 3",
+        "location": "Lake Forest",
+        "League": "NTSF"
+    },
+    {
+        "date": "05/29/2025",
+        "time": "06:00 pm",
+        "home_team": "Tennaqua S3 - Series 3",
+        "away_team": "Skokie S3 - Series 3",
+        "location": "Skokie",
+        "League": "NTSF"
+    },
+    {
+        "date": "06/05/2025",
+        "time": "06:00 pm",
+        "home_team": "Birchwood S3 - Series 3",
+        "away_team": "Old Willow S3 - Series 3",
+        "location": "Old Willow",
+        "League": "NTSF"
+    },
+    {
+        "date": "06/05/2025",
+        "time": "06:00 pm",
+        "home_team": "Lake Forest S3 - Series 3",
+        "away_team": "Tennaqua S3 - Series 3",
+        "location": "Tennaqua",
+        "League": "NTSF"
+    },
+    {
+        "date": "06/05/2025",
+        "time": "06:00 pm",
+        "home_team": "Skokie S3 - Series 3",
+        "away_team": "Valley Lo S3 - Series 3",
+        "location": "Valley Lo",
+        "League": "NTSF"
+    },
+    {
+        "date": "06/12/2025",
+        "time": "06:00 pm",
+        "home_team": "Tennaqua S3 - Series 3",
+        "away_team": "Birchwood S3 - Series 3",
+        "location": "Birchwood",
+        "League": "NTSF"
+    },
+    {
+        "date": "06/12/2025",
+        "time": "06:00 pm",
+        "home_team": "Lake Forest S3 - Series 3",
+        "away_team": "Skokie S3 - Series 3",
+        "location": "Skokie",
+        "League": "NTSF"
+    },
+    {
+        "date": "06/12/2025",
+        "time": "06:00 pm",
+        "home_team": "Old Willow S3 - Series 3",
+        "away_team": "Valley Lo S3 - Series 3",
+        "location": "Valley Lo",
+        "League": "NTSF"
+    },
+    {
+        "date": "06/19/2025",
+        "time": "06:00 pm",
+        "home_team": "Birchwood S3 - Series 3",
+        "away_team": "Lake Forest S3 - Series 3",
+        "location": "Lake Forest",
+        "League": "NTSF"
+    },
+    {
+        "date": "06/19/2025",
+        "time": "06:00 pm",
+        "home_team": "Old Willow S3 - Series 3",
+        "away_team": "Skokie S3 - Series 3",
+        "location": "Skokie",
+        "League": "NTSF"
+    },
+    {
+        "date": "06/19/2025",
+        "time": "06:00 pm",
+        "home_team": "Valley Lo S3 - Series 3",
+        "away_team": "Tennaqua S3 - Series 3",
+        "location": "Tennaqua",
+        "League": "NTSF"
+    },
+    {
+        "date": "06/26/2025",
+        "time": "06:00 pm",
+        "home_team": "Skokie S3 - Series 3",
+        "away_team": "Birchwood S3 - Series 3",
+        "location": "Birchwood",
+        "League": "NTSF"
+    },
+    {
+        "date": "06/26/2025",
+        "time": "06:00 pm",
+        "home_team": "Tennaqua S3 - Series 3",
+        "away_team": "Old Willow S3 - Series 3",
+        "location": "Old Willow",
+        "League": "NTSF"
+    },
+    {
+        "date": "06/26/2025",
+        "time": "06:00 pm",
+        "home_team": "Lake Forest S3 - Series 3",
+        "away_team": "Valley Lo S3 - Series 3",
+        "location": "Valley Lo",
+        "League": "NTSF"
+    },
+    {
+        "date": "07/10/2025",
+        "time": "06:00 pm",
+        "home_team": "Lake Forest S3 - Series 3",
+        "away_team": "Old Willow S3 - Series 3",
+        "location": "Old Willow",
+        "League": "NTSF"
+    },
+    {
+        "date": "07/10/2025",
+        "time": "06:00 pm",
+        "home_team": "Skokie S3 - Series 3",
+        "away_team": "Tennaqua S3 - Series 3",
+        "location": "Tennaqua",
+        "League": "NTSF"
+    },
+    {
+        "date": "07/10/2025",
+        "time": "06:00 pm",
+        "home_team": "Birchwood S3 - Series 3",
+        "away_team": "Valley Lo S3 - Series 3",
+        "location": "Valley Lo",
+        "League": "NTSF"
+    },
+    {
+        "date": "07/17/2025",
+        "time": "06:00 pm",
+        "home_team": "Old Willow S3 - Series 3",
+        "away_team": "Birchwood S3 - Series 3",
+        "location": "Birchwood",
+        "League": "NTSF"
+    },
+    {
+        "date": "07/17/2025",
+        "time": "06:00 pm",
+        "home_team": "Tennaqua S3 - Series 3",
+        "away_team": "Lake Forest S3 - Series 3",
+        "location": "Lake Forest",
+        "League": "NTSF"
+    },
+    {
+        "date": "07/17/2025",
+        "time": "06:00 pm",
+        "home_team": "Valley Lo S3 - Series 3",
+        "away_team": "Skokie S3 - Series 3",
+        "location": "Skokie",
+        "League": "NTSF"
+    },
+    {
+        "date": "07/24/2025",
+        "time": "06:00 pm",
+        "home_team": "Skokie S3 - Series 3",
+        "away_team": "Lake Forest S3 - Series 3",
+        "location": "Lake Forest",
+        "League": "NTSF"
+    },
+    {
+        "date": "07/24/2025",
+        "time": "06:00 pm",
+        "home_team": "Valley Lo S3 - Series 3",
+        "away_team": "Old Willow S3 - Series 3",
+        "location": "Old Willow",
+        "League": "NTSF"
+    },
+    {
+        "date": "07/24/2025",
+        "time": "06:00 pm",
+        "home_team": "Birchwood S3 - Series 3",
+        "away_team": "Tennaqua S3 - Series 3",
+        "location": "Tennaqua",
+        "League": "NTSF"
+    },
+    {
+        "date": "07/31/2025",
+        "time": "06:00 pm",
+        "home_team": "Lake Forest S3 - Series 3",
+        "away_team": "Birchwood S3 - Series 3",
+        "location": "Birchwood",
+        "League": "NTSF"
+    },
+    {
+        "date": "07/31/2025",
+        "time": "06:00 pm",
+        "home_team": "Skokie S3 - Series 3",
+        "away_team": "Old Willow S3 - Series 3",
+        "location": "Old Willow",
+        "League": "NTSF"
+    },
+    {
+        "date": "07/31/2025",
+        "time": "06:00 pm",
+        "home_team": "Tennaqua S3 - Series 3",
+        "away_team": "Valley Lo S3 - Series 3",
+        "location": "Valley Lo",
+        "League": "NTSF"
+    },
+    {
+        "date": "08/07/2025",
+        "time": "06:00 pm",
+        "home_team": "Valley Lo S3 - Series 3",
+        "away_team": "Lake Forest S3 - Series 3",
+        "location": "Lake Forest",
+        "League": "NTSF"
+    },
+    {
+        "date": "08/07/2025",
+        "time": "06:00 pm",
+        "home_team": "Birchwood S3 - Series 3",
+        "away_team": "Skokie S3 - Series 3",
+        "location": "Skokie",
+        "League": "NTSF"
+    },
+    {
+        "date": "08/07/2025",
+        "time": "06:00 pm",
+        "home_team": "Old Willow S3 - Series 3",
+        "away_team": "Tennaqua S3 - Series 3",
+        "location": "Tennaqua",
+        "League": "NTSF"
+    }
+]

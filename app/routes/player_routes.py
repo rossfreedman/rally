@@ -33,13 +33,13 @@ def get_players_by_series():
             
         # Load player data
         app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        players_path = os.path.join(app_dir, 'data', 'players.json')
+        players_path = os.path.join(app_dir, 'data', 'leagues', 'apta', 'players.json')
         
         with open(players_path, 'r') as f:
             all_players = json.load(f)
             
         # Load matches data if team filtering is needed
-        matches_path = os.path.join(app_dir, 'data', 'match_history.json')
+        matches_path = os.path.join(app_dir, 'data', 'leagues', 'apta', 'match_history.json')
         team_players = set()
         if team_id and os.path.exists(matches_path):
             try:
@@ -99,7 +99,7 @@ def get_team_players(team_id):
         app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         
         # Load player PTI data from JSON
-        players_path = os.path.join(app_dir, 'data', 'players.json')
+        players_path = os.path.join(app_dir, 'data', 'leagues', 'apta', 'players.json')
         with open(players_path, 'r') as f:
             all_players = json.load(f)
         
@@ -108,7 +108,7 @@ def get_team_players(team_id):
             player_name = f"{player['Last Name']} {player['First Name']}"
             pti_dict[player_name] = float(player['PTI'])
         
-        matches_path = os.path.join(app_dir, 'data', 'match_history.json')
+        matches_path = os.path.join(app_dir, 'data', 'leagues', 'apta', 'match_history.json')
         with open(matches_path, 'r') as f:
             matches = json.load(f)
             
@@ -243,7 +243,7 @@ def player_court_stats(player_name):
     print(f"=== /api/player-court-stats called for player: {player_name} ===")
     
     app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    json_path = os.path.join(app_dir, 'data', 'match_history.json')
+    json_path = os.path.join(app_dir, 'data', 'leagues', 'apta', 'match_history.json')
     print(f"Loading match data from: {json_path}")
     
     try:
@@ -376,7 +376,7 @@ def get_player_streaks():
     """Get current win/loss streaks for all players"""
     try:
         app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        matches_path = os.path.join(app_dir, 'data', 'match_history.json')
+        matches_path = os.path.join(app_dir, 'data', 'leagues', 'apta', 'match_history.json')
         
         with open(matches_path, 'r') as f:
             matches = json.load(f)
@@ -492,7 +492,11 @@ def get_player_history():
             return jsonify({'error': 'Not authenticated'}), 401
             
         app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        player_history_path = os.path.join(app_dir, 'data', 'player_history.json')
+        player_history_path = os.path.join(app_dir, 'data', 'leagues', 'apta', 'player_history.json')
+        
+        # Check if file exists before trying to open it
+        if not os.path.exists(player_history_path):
+            return jsonify({'error': 'Player history data not available'}), 404
         
         with open(player_history_path, 'r') as f:
             player_history = json.load(f)
@@ -508,6 +512,8 @@ def get_player_history():
             
         return jsonify(player_record)
         
+    except FileNotFoundError:
+        return jsonify({'error': 'Player history data not available'}), 404
     except Exception as e:
         print(f"Error getting player history: {str(e)}")
         print(traceback.format_exc())
@@ -519,7 +525,7 @@ def get_specific_player_history(player_name):
     """Get history for a specific player"""
     try:
         app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        player_history_path = os.path.join(app_dir, 'data', 'player_history.json')
+        player_history_path = os.path.join(app_dir, 'data', 'leagues', 'apta', 'player_history.json')
         
         with open(player_history_path, 'r') as f:
             player_history = json.load(f)
