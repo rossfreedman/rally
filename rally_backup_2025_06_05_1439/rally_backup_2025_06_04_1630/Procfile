@@ -1,1 +1,0 @@
-web: gunicorn server:app -c gunicorn.conf.py --log-level debug --capture-output --enable-stdio-inheritance 
