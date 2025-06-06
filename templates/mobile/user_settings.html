@@ -72,7 +72,7 @@ function loadClubsAndSeries(user) {
   });
   fetch('/api/get-series').then(r=>r.json()).then(data => {
     const seriesSel = document.getElementById('series');
-    seriesSel.innerHTML = data.series.map(s => `<option value="${s}">${s}</option>`).join('');
+    seriesSel.innerHTML = data.all_series.map(s => `<option value="${s}">${s}</option>`).join('');
     if (user.series) seriesSel.value = user.series;
   });
 }
