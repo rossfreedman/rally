@@ -16,7 +16,7 @@ def _load_players_data():
     """Load player data fresh from JSON file - no caching"""
     try:
         project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        players_path = os.path.join(project_root, 'data', 'players.json')
+        players_path = os.path.join(project_root, 'data', 'leagues', 'apta', 'players.json')
         
         # Always load fresh data
         with open(players_path, 'r') as f:
@@ -54,7 +54,7 @@ def get_player_analysis_by_name(player_name):
     # Load player history to find the exact player record first
     try:
         project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        player_history_path = os.path.join(project_root, 'data', 'player_history.json')
+        player_history_path = os.path.join(project_root, 'data', 'leagues', 'apta', 'player_history.json')
         
         with open(player_history_path, 'r') as f:
             all_players = json.load(f)
@@ -157,29 +157,22 @@ def get_player_analysis(user):
     
     # Fix path construction to point to project root data directory
     project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    player_history_path = os.path.join(project_root, 'data', 'player_history.json')
-    matches_path = os.path.join(project_root, 'data', 'match_history.json')
+    player_history_path = os.path.join(project_root, 'data', 'leagues', 'apta', 'player_history.json')
+    matches_path = os.path.join(project_root, 'data', 'leagues', 'apta', 'match_history.json')
     
     print(f"[DEBUG] Looking for player_history.json at: {player_history_path}")
     print(f"[DEBUG] Looking for match_history.json at: {matches_path}")
 
     # --- 1. Load player history for career stats and previous seasons ---
+    all_players = []
+    pti_data_available = False
     try:
         with open(player_history_path, 'r') as f:
             all_players = json.load(f)
+            pti_data_available = True
     except Exception as e:
-        return {
-            'current_season': None,
-            'court_analysis': {},
-            'career_stats': None,
-            'player_history': None,
-            'videos': {'match': [], 'practice': []},
-            'trends': {},
-            'career_pti_change': 'N/A',
-            'current_pti': None,
-            'weekly_pti_change': None,
-            'error': f'Could not load player history: {e}'
-        }
+        print(f"[INFO] Player history file not available: {e}")
+        print(f"[INFO] Continuing without PTI data - PTI sections will be hidden")
     
     def normalize(name):
         return name.replace(',', '').replace('  ', ' ').strip().lower()
@@ -187,40 +180,28 @@ def get_player_analysis(user):
     player = None
     actual_player_name = None  # This will store the actual name from the player record
     
-    # Search by tenniscores_player_id (most reliable)
-    if tenniscores_player_id:
-        print(f"[DEBUG] Searching by player_id: '{tenniscores_player_id}'")
-        
-        # Debug: Print first few player records to see what IDs are available
-        print(f"[DEBUG] Sample player IDs in data: {[p.get('player_id', 'None') for p in all_players[:5]]}")
-        
-        player = next((p for p in all_players if p.get('player_id') == tenniscores_player_id), None)
-        if player:
-            actual_player_name = player.get('name', session_player_name)
-            print(f"[DEBUG] Found player by ID: '{actual_player_name}' (ID: {tenniscores_player_id})")
+    # Only search for player if PTI data is available
+    if pti_data_available:
+        # Search by tenniscores_player_id (most reliable)
+        if tenniscores_player_id:
+            print(f"[DEBUG] Searching by player_id: '{tenniscores_player_id}'")
+            
+            # Debug: Print first few player records to see what IDs are available
+            print(f"[DEBUG] Sample player IDs in data: {[p.get('player_id', 'None') for p in all_players[:5]]}")
+            
+            player = next((p for p in all_players if p.get('player_id') == tenniscores_player_id), None)
+            if player:
+                actual_player_name = player.get('name', session_player_name)
+                print(f"[DEBUG] Found player by ID: '{actual_player_name}' (ID: {tenniscores_player_id})")
+            else:
+                print(f"[DEBUG] No player found with ID: '{tenniscores_player_id}'")
+                # Debug: Check if any players have similar IDs
+                similar_ids = [p.get('player_id') for p in all_players if p.get('player_id') and tenniscores_player_id.lower() in p.get('player_id', '').lower()]
+                print(f"[DEBUG] Similar player IDs found: {similar_ids[:5]}")
         else:
-            print(f"[DEBUG] No player found with ID: '{tenniscores_player_id}'")
-            # Debug: Check if any players have similar IDs
-            similar_ids = [p.get('player_id') for p in all_players if p.get('player_id') and tenniscores_player_id.lower() in p.get('player_id', '').lower()]
-            print(f"[DEBUG] Similar player IDs found: {similar_ids[:5]}")
+            print(f"[DEBUG] No tenniscores_player_id provided in user session")
     else:
-        print(f"[DEBUG] No tenniscores_player_id provided in user session")
-    
-    # If we don't have a player ID or it failed, return error instead of falling back to name matching
-    if not player:
-        print(f"[DEBUG] Player not found by reliable ID lookup - no fallback to name matching")
-        return {
-            'current_season': None,
-            'court_analysis': {},
-            'career_stats': None,
-            'player_history': None,
-            'videos': {'match': [], 'practice': []},
-            'trends': {},
-            'career_pti_change': 'N/A',
-            'current_pti': None,
-            'weekly_pti_change': None,
-            'error': f'Player not found with ID: {tenniscores_player_id}' if tenniscores_player_id else 'No player ID available'
-        }
+        print(f"[INFO] Skipping player lookup since PTI data is not available")
     
     # --- 2. Load all matches for this player ---
     try:
@@ -310,6 +291,22 @@ def get_player_analysis(user):
     
     # --- 4. Filter matches for current season/series using ACTUAL player name ---
     player_matches = []
+    
+    # Helper function to check if player is in match by name (fallback when no PTI data)
+    def player_name_in_match(match, player_name):
+        """Check if player_name is in the match by name matching"""
+        match_players = [
+            match.get('Home Player 1', ''),
+            match.get('Home Player 2', ''),
+            match.get('Away Player 1', ''),
+            match.get('Away Player 2', '')
+        ]
+        
+        for match_player_name in match_players:
+            if match_player_name and normalize(match_player_name) == normalize(player_name):
+                return True
+        return False
+    
     if player and actual_player_name:
         print(f"[DEBUG] Filtering matches for actual player name: '{actual_player_name}'")
         for m in all_matches:
@@ -321,6 +318,14 @@ def get_player_analysis(user):
                         continue
                 player_matches.append(m)
         print(f"[DEBUG] Found {len(player_matches)} matches for player using actual name")
+    elif not pti_data_available and tenniscores_player_id:
+        # Fallback: use name matching when PTI data is not available
+        fallback_player_name = f"{user['first_name']} {user['last_name']}"
+        print(f"[DEBUG] PTI data not available, using name matching for: '{fallback_player_name}'")
+        for m in all_matches:
+            if player_name_in_match(m, fallback_player_name):
+                player_matches.append(m)
+        print(f"[DEBUG] Found {len(player_matches)} matches using name matching")
     
     # --- 5. Assign matches to courts 1-4 by date and team pairing ---
     matches_by_group = defaultdict(list)
@@ -338,6 +343,34 @@ def get_player_analysis(user):
     pti_start = None
     pti_end = None
 
+    # Helper functions for name-based matching (when PTI data not available)
+    def get_player_position_in_match_by_name(match, player_name):
+        """Get the position (home/away and 1/2) of target player in match using name"""
+        match_players = [
+            ('Home Player 1', match.get('Home Player 1', '')),
+            ('Home Player 2', match.get('Home Player 2', '')),
+            ('Away Player 1', match.get('Away Player 1', '')),
+            ('Away Player 2', match.get('Away Player 2', ''))
+        ]
+        
+        for position, match_player_name in match_players:
+            if match_player_name and normalize(match_player_name) == normalize(player_name):
+                return position
+        return None
+
+    def get_partner_for_player_by_name(match, player_name):
+        """Get the partner of target player in the match using name"""
+        position = get_player_position_in_match_by_name(match, player_name)
+        if position == 'Home Player 1':
+            return match.get('Home Player 2', '')
+        elif position == 'Home Player 2':
+            return match.get('Home Player 1', '')
+        elif position == 'Away Player 1':
+            return match.get('Away Player 2', '')
+        elif position == 'Away Player 2':
+            return match.get('Away Player 1', '')
+        return None
+
     for group_key in sorted(matches_by_group.keys()):
         day_matches = matches_by_group[group_key]
         # Sort all matches for this group for deterministic court assignment
@@ -346,13 +379,32 @@ def get_player_analysis(user):
             court_num = i + 1
             if court_num > 4:
                 continue
-            # Check if player is in this match using ACTUAL player name
-            if not player_id_in_match(match, tenniscores_player_id):
+            
+            # Check if player is in this match - use appropriate method based on data availability
+            player_in_match = False
+            position = None
+            partner = None
+            
+            if pti_data_available and player and tenniscores_player_id:
+                # Use ID-based matching when PTI data is available
+                player_in_match = player_id_in_match(match, tenniscores_player_id)
+                if player_in_match:
+                    position = get_player_position_in_match_by_id(match, tenniscores_player_id)
+                    partner = get_partner_for_player_by_id(match, tenniscores_player_id)
+            elif not pti_data_available:
+                # Use name-based matching when PTI data is not available
+                fallback_player_name = f"{user['first_name']} {user['last_name']}"
+                player_in_match = player_name_in_match(match, fallback_player_name)
+                if player_in_match:
+                    position = get_player_position_in_match_by_name(match, fallback_player_name)
+                    partner = get_partner_for_player_by_name(match, fallback_player_name)
+            
+            if not player_in_match:
                 continue
+                
             total_matches += 1
             
-            # Determine if player is home team (using actual player name)
-            position = get_player_position_in_match_by_id(match, tenniscores_player_id)
+            # Determine if player is home team
             is_home = position and position.startswith('Home')
             
             won = (is_home and match.get('Winner') == 'home') or (not is_home and match.get('Winner') == 'away')
@@ -364,8 +416,7 @@ def get_player_analysis(user):
                 court_stats[f'court{court_num}']['losses'] += 1
             court_stats[f'court{court_num}']['matches'] += 1
             
-            # Identify partner (using actual player name)
-            partner = get_partner_for_player_by_id(match, tenniscores_player_id)
+            # Identify partner
             if partner:
                 court_stats[f'court{court_num}']['partners'][partner] += 1
             
@@ -518,17 +569,21 @@ def get_player_analysis(user):
             career_pti_change = round(latest_pti - earliest_pti, 1)
     
     # --- Defensive: always return all keys, even if player not found ---
+    # When PTI data is not available, we can still provide current season and court analysis from match data
+    has_match_data = total_matches > 0
+    
     response = {
-        'current_season': current_season if player else None,
-        'court_analysis': court_analysis if player else {},
+        'current_season': current_season if (player or has_match_data) else None,
+        'court_analysis': court_analysis if (player or has_match_data) else {},
         'career_stats': career_stats if player else None,
         'player_history': player_history if player else None,
         'videos': {'match': [], 'practice': []},
         'trends': {},
         'career_pti_change': career_pti_change if player else 'N/A',
-        'current_pti': float(current_pti) if current_pti is not None else None,
-        'weekly_pti_change': float(weekly_pti_change) if weekly_pti_change is not None else None,
-        'error': None if player else 'No analysis data available for this player.'
+        'current_pti': float(current_pti) if current_pti is not None and pti_data_available else None,
+        'weekly_pti_change': float(weekly_pti_change) if weekly_pti_change is not None and pti_data_available else None,
+        'pti_data_available': pti_data_available,
+        'error': None if (player or has_match_data or not pti_data_available) else 'No analysis data available for this player.'
     }
     return response
 
@@ -620,8 +675,8 @@ def get_mobile_team_data(user):
         
         # Load team stats and matches data
         project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        stats_path = os.path.join(project_root, 'data', 'series_stats.json')
-        matches_path = os.path.join(project_root, 'data', 'match_history.json')
+        stats_path = os.path.join(project_root, 'data', 'leagues', 'apta', 'series_stats.json')
+        matches_path = os.path.join(project_root, 'data', 'leagues', 'apta', 'match_history.json')
         
         with open(stats_path, 'r') as f:
             all_stats = json.load(f)
@@ -796,8 +851,8 @@ def get_teams_players_data(user):
         
         # Load data files
         project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        stats_path = os.path.join(project_root, 'data', 'series_stats.json')
-        matches_path = os.path.join(project_root, 'data', 'match_history.json')
+        stats_path = os.path.join(project_root, 'data', 'leagues', 'apta', 'series_stats.json')
+        matches_path = os.path.join(project_root, 'data', 'leagues', 'apta', 'match_history.json')
         
         with open(stats_path, 'r') as f:
             all_stats = json.load(f)
@@ -1132,7 +1187,7 @@ def search_players_with_fuzzy_logic_mobile(first_name_query, last_name_query):
     try:
         # Load player history data
         project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        player_history_path = os.path.join(project_root, 'data', 'player_history.json')
+        player_history_path = os.path.join(project_root, 'data', 'leagues', 'apta', 'player_history.json')
         
         with open(player_history_path, 'r') as f:
             all_players = json.load(f)
@@ -1251,7 +1306,7 @@ def get_mobile_availability_data(user):
         try:
             # Fix path construction to use project root
             project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-            schedules_path = os.path.join(project_root, 'data', 'schedules.json')
+            schedules_path = os.path.join(project_root, 'data', 'leagues', 'apta', 'schedules.json')
             
             with open(schedules_path, 'r') as f:
                 all_matches = json.load(f)
@@ -1352,7 +1407,7 @@ def get_recent_matches_for_user_club(user):
     """
     try:
         project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        match_history_path = os.path.join(project_root, 'data', 'match_history.json')
+        match_history_path = os.path.join(project_root, 'data', 'leagues', 'apta', 'match_history.json')
         
         with open(match_history_path, 'r') as f:
             all_matches = json.load(f)
@@ -1452,7 +1507,7 @@ def calculate_player_streaks(club_name):
     try:
         # Load ALL match history data
         project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        match_history_path = os.path.join(project_root, 'data', 'match_history.json')
+        match_history_path = os.path.join(project_root, 'data', 'leagues', 'apta', 'match_history.json')
         
         with open(match_history_path, 'r') as f:
             all_matches = json.load(f)
@@ -1753,7 +1808,7 @@ def get_mobile_club_data(user):
         
         # Calculate club standings (for all teams in the club across all series)
         project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        stats_path = os.path.join(project_root, 'data', 'series_stats.json')
+        stats_path = os.path.join(project_root, 'data', 'leagues', 'apta', 'series_stats.json')
         
         tennaqua_standings = []
         try:
@@ -1806,7 +1861,7 @@ def get_mobile_club_data(user):
         # Load ALL match history for comprehensive head-to-head records
         try:
             project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-            match_history_path = os.path.join(project_root, 'data', 'match_history.json')
+            match_history_path = os.path.join(project_root, 'data', 'leagues', 'apta', 'match_history.json')
             
             with open(match_history_path, 'r') as f:
                 all_match_history = json.load(f)
@@ -2205,7 +2260,7 @@ def get_club_players_data(user, series_filter=None, first_name_filter=None, last
 
         # Load real contact information from CSV
         project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        csv_path = os.path.join(project_root, 'data', 'club_directories', 'directory_tennaqua.csv')
+        csv_path = os.path.join(project_root, 'data', 'leagues', 'apta', 'club_directories', 'directory_tennaqua.csv')
         contact_info = {}
         
         if os.path.exists(csv_path):
@@ -2340,7 +2395,7 @@ def get_mobile_improve_data(user):
         paddle_tips = []
         try:
             # Use current working directory since server.py runs from project root
-            tips_path = os.path.join('data', 'improve_data', 'paddle_tips.json')
+            tips_path = os.path.join('data', 'leagues', 'apta', 'improve_data', 'paddle_tips.json')
             with open(tips_path, 'r', encoding='utf-8') as f:
                 tips_data = json.load(f)
                 paddle_tips = tips_data.get('paddle_tips', [])
@@ -2352,7 +2407,7 @@ def get_mobile_improve_data(user):
         training_guide = {}
         try:
             # Use current working directory since server.py runs from project root
-            guide_path = os.path.join('data', 'improve_data', 'complete_platform_tennis_training_guide.json')
+            guide_path = os.path.join('data', 'leagues', 'apta', 'improve_data', 'complete_platform_tennis_training_guide.json')
             with open(guide_path, 'r', encoding='utf-8') as f:
                 training_guide = json.load(f)
         except Exception as guide_error:

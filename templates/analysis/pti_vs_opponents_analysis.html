@@ -235,9 +235,9 @@
                 console.log('Loading data files...');
                 
                 const [playerHistoryResponse, matchHistoryResponse, playersResponse] = await Promise.all([
-                    fetch('/data/player_history.json'),
-                    fetch('/data/match_history.json'),
-                    fetch('/data/players.json')
+                            fetch('/data/leagues/apta/player_history.json'),
+        fetch('/data/leagues/apta/match_history.json'),
+        fetch('/data/leagues/apta/players.json')
                 ]);
 
                 if (!playerHistoryResponse.ok || !matchHistoryResponse.ok || !playersResponse.ok) {

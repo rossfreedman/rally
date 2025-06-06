@@ -140,7 +140,7 @@ def generate_chat_response(message):
         
         # Load training guide for detailed responses
         try:
-            guide_path = os.path.join('data', 'improve_data', 'complete_platform_tennis_training_guide.json')
+            guide_path = os.path.join('data', 'leagues', 'apta', 'improve_data', 'complete_platform_tennis_training_guide.json')
             with open(guide_path, 'r', encoding='utf-8') as f:
                 training_guide = json.load(f)
         except Exception:
@@ -469,7 +469,7 @@ def add_practice_times():
         
         # Load the current schedule
         project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        schedule_file = os.path.join(project_root, "data", "schedules.json")
+        schedule_file = os.path.join(project_root, "data", "leagues", "apta", "schedules.json")
         try:
             with open(schedule_file, 'r') as f:
                 schedule = json.load(f)
@@ -909,7 +909,7 @@ def get_player_history():
         project_root = os.path.dirname(os.path.dirname(current_dir))
         
         # Load player history data
-        player_history_path = os.path.join(project_root, 'data', 'player_history.json')
+        player_history_path = os.path.join(project_root, 'data', 'leagues', 'apta', 'player_history.json')
         print(f"[DEBUG] Loading data from: {player_history_path}")
         
         with open(player_history_path, 'r') as f:

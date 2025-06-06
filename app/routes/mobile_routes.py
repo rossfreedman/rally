@@ -131,7 +131,7 @@ def serve_mobile_player_detail(player_id):
     # Get current PTI from player history for the viewed player
     try:
         project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        player_history_path = os.path.join(project_root, 'data', 'player_history.json')
+        player_history_path = os.path.join(project_root, 'data', 'leagues', 'apta', 'player_history.json')
         
         with open(player_history_path, 'r') as f:
             player_history = json.load(f)

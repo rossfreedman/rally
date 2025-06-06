@@ -9,7 +9,7 @@ from database_utils import execute_query, execute_query_one
 
 def get_real_series():
     """Extract real series names from series_stats.json"""
-    with open('data/series_stats.json', 'r') as f:
+    with open('data/leagues/apta/series_stats.json', 'r') as f:
         data = json.load(f)
     
     series_names = set()
@@ -20,7 +20,7 @@ def get_real_series():
 
 def get_real_clubs():
     """Extract real club names from series_stats.json"""
-    with open('data/series_stats.json', 'r') as f:
+    with open('data/leagues/apta/series_stats.json', 'r') as f:
         data = json.load(f)
     
     club_names = set()

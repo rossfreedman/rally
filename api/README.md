@@ -191,7 +191,7 @@ app.register_blueprint(training_data_bp)
 
 ## Data Source
 
-The API reads from: `data/complete_platform_tennis_training_guide.json`
+The API reads from: `data/leagues/apta/improve_data/complete_platform_tennis_training_guide.json`
 
 This file contains 65 training topics with structured data including:
 - Step-by-step recommendations
@@ -214,7 +214,7 @@ This file contains 65 training topics with structured data including:
 ### Common Issues
 
 **"Training guide data file not found"**
-- Ensure `data/complete_platform_tennis_training_guide.json` exists
+- Ensure `data/leagues/apta/improve_data/complete_platform_tennis_training_guide.json` exists
 - Check file permissions
 
 **"Topic not found"**

@@ -1,7 +1,7 @@
 import json
 
 # Read the current schedule
-with open('data/schedules.json', 'r') as f:
+with open('data/leagues/apta/schedules.json', 'r') as f:
     schedule = json.load(f)
 
 print(f'Original schedule has {len(schedule)} entries')
@@ -16,7 +16,7 @@ filtered_schedule = [entry for entry in schedule if 'Practice' not in entry]
 print(f'After removal: {len(filtered_schedule)} entries remaining')
 
 # Save the updated schedule
-with open('data/schedules.json', 'w') as f:
+with open('data/leagues/apta/schedules.json', 'w') as f:
     json.dump(filtered_schedule, f, indent=4)
 
 print('Successfully removed all practice times from schedules.json') 

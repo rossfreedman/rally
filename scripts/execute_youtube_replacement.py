@@ -14,7 +14,7 @@ def show_current_status():
     print("=" * 30)
     
     # Check JSON file
-    json_file = 'data/complete_platform_tennis_training_guide.json'
+    json_file = 'data/leagues/apta/improve_data/complete_platform_tennis_training_guide.json'
     if os.path.exists(json_file):
         print("✅ JSON file: Found")
         try:
