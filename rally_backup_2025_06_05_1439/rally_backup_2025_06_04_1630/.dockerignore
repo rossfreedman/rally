@@ -1,0 +1,2 @@
+# Ignore the SQLite database file in Docker builds
+# data/paddlepro.db 

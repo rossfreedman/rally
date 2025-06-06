@@ -1,0 +1,163 @@
+{% extends "mobile/layout.html" %}
+{% set show_back_arrow = True %}
+
+{% block content %}
+<div class="max-w-lg mx-auto">
+    <!-- Header -->
+    <div class="flex items-center gap-3 mt-4 mb-2 px-4">
+        <div class="bg-white rounded-md flex items-center justify-center h-12 w-12">
+            <i class="fas fa-chart-line text-black text-3xl"></i>
+        </div>
+        <div>
+            <div class="text-2xl font-bold leading-tight">Player Statistics</div>
+            <div class="text-base text-gray-500 mt-1">{{ player_name }}</div>
+        </div>
+    </div>
+
+    <!-- Current Streaks -->
+    <div class="bg-white rounded-xl shadow p-4 mb-4">
+        <div class="flex items-center mb-3">
+            <i class="fas fa-fire text-orange-500 mr-2"></i>
+            <span class="text-lg font-bold">Current Streaks</span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full">
+                <thead>
+                    <tr>
+                        <th class="px-4 py-2 text-left">Rank</th>
+                        <th class="px-4 py-2 text-left">Player</th>
+                        <th class="px-4 py-2 text-left">Current Streak</th>
+                        <th class="px-4 py-2 text-left">Stats</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for streak in current_streaks %}
+                    <tr class="border-t">
+                        <td class="px-4 py-2">{{ loop.index }}</td>
+                        <td class="px-4 py-2">
+                            <div class="font-medium">{{ streak.player }}</div>
+                            <div class="text-xs text-gray-500">{{ streak.club }}</div>
+                        </td>
+                        <td class="px-4 py-2">
+                            <span class="px-2 py-1 rounded-full {% if streak.current_streak >= 5 %}bg-orange-100 text-orange-700{% else %}bg-blue-100 text-blue-700{% endif %}">
+                                {{ streak.current_streak }} wins
+                            </span>
+                        </td>
+                        <td class="px-4 py-2">
+                            <div>
+                                <span class="text-green-600 font-medium">{{ streak.total_wins }}W</span>
+                                <span class="text-gray-400 mx-1">/</span>
+                                <span class="text-gray-600">{{ streak.total_matches }} total</span>
+                            </div>
+                            <div class="text-sm text-gray-500">{{ streak.win_rate }}% win rate</div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- All-Time Best -->
+    <div class="bg-white rounded-xl shadow p-4 mb-4">
+        <div class="flex items-center mb-3">
+            <i class="fas fa-trophy text-yellow-500 mr-2"></i>
+            <span class="text-lg font-bold">All-Time Best</span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full">
+                <thead>
+                    <tr>
+                        <th class="px-4 py-2 text-left">Rank</th>
+                        <th class="px-4 py-2 text-left">Player</th>
+                        <th class="px-4 py-2 text-left">Best Streak</th>
+                        <th class="px-4 py-2 text-left">Stats</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for streak in all_time_streaks %}
+                    <tr class="border-t">
+                        <td class="px-4 py-2">{{ loop.index }}</td>
+                        <td class="px-4 py-2">
+                            <div class="font-medium">{{ streak.player }}</div>
+                            <div class="text-xs text-gray-500">{{ streak.club }}</div>
+                        </td>
+                        <td class="px-4 py-2">
+                            <span class="px-2 py-1 rounded-full bg-yellow-100 text-yellow-700">
+                                {{ streak.best_streak }} wins
+                            </span>
+                        </td>
+                        <td class="px-4 py-2">
+                            <div>
+                                <span class="text-green-600 font-medium">{{ streak.total_wins }}W</span>
+                                <span class="text-gray-400 mx-1">/</span>
+                                <span class="text-gray-600">{{ streak.total_matches }} total</span>
+                            </div>
+                            <div class="text-sm text-gray-500">{{ streak.win_rate }}% win rate</div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Win Rates -->
+    <div class="bg-white rounded-xl shadow p-4 mb-4">
+        <div class="flex items-center mb-3">
+            <i class="fas fa-percentage text-blue-500 mr-2"></i>
+            <span class="text-lg font-bold">Top Win Rates</span>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full">
+                <thead>
+                    <tr>
+                        <th class="px-4 py-2 text-left">Rank</th>
+                        <th class="px-4 py-2 text-left">Player</th>
+                        <th class="px-4 py-2 text-left">Win Rate</th>
+                        <th class="px-4 py-2 text-left">Record</th>
+                        <th class="px-4 py-2 text-left">Best Court</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for player in win_rates %}
+                    <tr class="border-t">
+                        <td class="px-4 py-2">{{ loop.index }}</td>
+                        <td class="px-4 py-2">
+                            <div class="font-medium">{{ player.player }}</div>
+                            <div class="text-xs text-gray-500">{{ player.club }}</div>
+                        </td>
+                        <td class="px-4 py-2">
+                            <div class="relative pt-1">
+                                <div class="flex mb-2 items-center justify-between">
+                                    <div>
+                                        <span class="text-xs font-semibold inline-block py-1 px-2 uppercase rounded-full {% if player.win_rate >= 60 %}bg-green-200 text-green-800{% elif player.win_rate >= 45 %}bg-blue-200 text-blue-800{% else %}bg-red-200 text-red-800{% endif %}">
+                                            {{ player.win_rate }}%
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-4 py-2">
+                            <span class="text-green-600 font-medium">{{ player.total_wins }}W</span>
+                            <span class="text-gray-400 mx-1">-</span>
+                            <span class="text-red-600 font-medium">{{ player.total_losses }}L</span>
+                        </td>
+                        <td class="px-4 py-2">
+                            <div class="font-medium">{{ player.best_court.name }}</div>
+                            <div class="text-xs text-gray-500">{{ player.best_court.win_rate }}% win rate</div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+.rounded-full {
+    border-radius: 9999px;
+}
+</style>
+{% endblock %} 

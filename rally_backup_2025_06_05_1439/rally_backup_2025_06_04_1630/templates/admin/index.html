@@ -1,0 +1,302 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<!-- Tab content -->
+<div class="space-y-6">
+    <!-- Users Tab -->
+    <div id="users-content" class="tab-content">
+        <div class="card bg-white shadow-sm rounded-xl overflow-hidden">
+            <div class="p-4 border-b">
+                <h2 class="text-2xl font-bold text-gray-800">Users</h2>
+            </div>
+            <div class="p-4">
+                <div class="overflow-x-auto">
+                    <div class="grid grid-cols-1 gap-3 md:hidden">
+                        <!-- Mobile cards for users -->
+                        <div id="usersMobileView"></div>
+                    </div>
+                    <table class="table table-zebra table-compact w-full hidden md:table">
+                        <thead>
+                            <tr>
+                                <th class="py-2">Name</th>
+                                <th class="py-2">Email</th>
+                                <th class="py-2">Club</th>
+                                <th class="py-2">Series</th>
+                                <th class="py-2">Last Login</th>
+                                <th class="py-2 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Clubs Tab -->
+    <div id="clubs-content" class="tab-content hidden">
+        <div class="card bg-white shadow-sm rounded-xl overflow-hidden">
+            <div class="p-4 border-b">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <h2 class="text-2xl font-bold text-gray-800">Clubs</h2>
+                    <button class="btn bg-black hover:bg-gray-800 text-yellow-400 w-full sm:w-auto" onclick="showAddClubModal()">
+                        <i class="fas fa-plus mr-2"></i> Add Club
+                    </button>
+                </div>
+            </div>
+            <div class="p-4">
+                <div class="overflow-x-auto">
+                    <div class="grid grid-cols-1 gap-3 md:hidden">
+                        <!-- Mobile cards for clubs -->
+                        <div id="clubsMobileView"></div>
+                    </div>
+                    <table class="table table-zebra table-compact w-full hidden md:table">
+                        <thead>
+                            <tr>
+                                <th class="py-2">ID</th>
+                                <th class="py-2">Name</th>
+                                <th class="py-2">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="clubsTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Series Tab -->
+    <div id="series-content" class="tab-content hidden">
+        <div class="card bg-white shadow-sm rounded-xl overflow-hidden">
+            <div class="p-4 border-b">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <h2 class="text-2xl font-bold text-gray-800">Series</h2>
+                    <button class="btn bg-black hover:bg-gray-800 text-yellow-400 w-full sm:w-auto" onclick="showAddSeriesModal()">
+                        <i class="fas fa-plus mr-2"></i> Add Series
+                    </button>
+                </div>
+            </div>
+            <div class="p-4">
+                <div class="overflow-x-auto">
+                    <div class="grid grid-cols-1 gap-3 md:hidden">
+                        <!-- Mobile cards for series -->
+                        <div id="seriesMobileView"></div>
+                    </div>
+                    <table class="table table-zebra table-compact w-full hidden md:table">
+                        <thead>
+                            <tr>
+                                <th class="py-2">ID</th>
+                                <th class="py-2">Name</th>
+                                <th class="py-2">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="seriesTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block modals %}
+<!-- Edit User Modal -->
+<dialog id="editUserModal" class="modal">
+    <div class="modal-box w-11/12 max-w-2xl">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="font-bold text-2xl text-gray-800">Edit User</h3>
+            <button class="btn btn-ghost btn-sm btn-circle" onclick="closeModal('editUserModal')">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <form onsubmit="event.preventDefault(); saveUserChanges();" class="space-y-4">
+            <input type="hidden" id="editUserId">
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text font-semibold">First Name</span>
+                </label>
+                <input type="text" id="editFirstName" class="input input-bordered w-full">
+            </div>
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text font-semibold">Last Name</span>
+                </label>
+                <input type="text" id="editLastName" class="input input-bordered w-full">
+            </div>
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text font-semibold">Email</span>
+                </label>
+                <input type="email" id="editEmail" class="input input-bordered w-full" readonly>
+            </div>
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text font-semibold">Club</span>
+                </label>
+                <select id="editClub" class="select select-bordered w-full"></select>
+            </div>
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text font-semibold">Series</span>
+                </label>
+                <select id="editSeries" class="select select-bordered w-full"></select>
+            </div>
+            <div class="modal-action flex justify-end gap-2 mt-6">
+                <button type="button" class="btn btn-ghost" onclick="closeModal('editUserModal')">Cancel</button>
+                <button type="submit" class="btn bg-black hover:bg-gray-800 text-yellow-400">Save</button>
+            </div>
+        </form>
+    </div>
+</dialog>
+
+<!-- Club Modal -->
+<dialog id="clubModal" class="modal">
+    <div class="modal-box w-11/12 max-w-lg">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="font-bold text-2xl text-gray-800">Club</h3>
+            <button class="btn btn-ghost btn-sm btn-circle" onclick="closeModal('clubModal')">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <form onsubmit="event.preventDefault(); saveClub();" class="space-y-4">
+            <input type="hidden" id="clubId">
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text font-semibold">Name</span>
+                </label>
+                <input type="text" id="clubName" class="input input-bordered w-full">
+            </div>
+            <div class="modal-action flex justify-end gap-2 mt-6">
+                <button type="button" class="btn btn-ghost" onclick="closeModal('clubModal')">Cancel</button>
+                <button type="submit" class="btn bg-black hover:bg-gray-800 text-yellow-400">Save</button>
+            </div>
+        </form>
+    </div>
+</dialog>
+
+<!-- Series Modal -->
+<dialog id="seriesModal" class="modal">
+    <div class="modal-box w-11/12 max-w-lg">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="font-bold text-2xl text-gray-800">Series</h3>
+            <button class="btn btn-ghost btn-sm btn-circle" onclick="closeModal('seriesModal')">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <form onsubmit="event.preventDefault(); saveSeries();" class="space-y-4">
+            <input type="hidden" id="seriesId">
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text font-semibold">Name</span>
+                </label>
+                <input type="text" id="seriesName" class="input input-bordered w-full">
+            </div>
+            <div class="modal-action flex justify-end gap-2 mt-6">
+                <button type="button" class="btn btn-ghost" onclick="closeModal('seriesModal')">Cancel</button>
+                <button type="submit" class="btn bg-black hover:bg-gray-800 text-yellow-400">Save</button>
+            </div>
+        </form>
+    </div>
+</dialog>
+
+<!-- Delete User Modal -->
+<dialog id="deleteUserModal" class="modal">
+    <div class="modal-box w-11/12 max-w-md">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="font-bold text-2xl text-red-600">Delete User</h3>
+            <button class="btn btn-ghost btn-sm btn-circle" onclick="closeModal('deleteUserModal')">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="space-y-4">
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle"></i>
+                <div>
+                    <h4 class="font-bold">Are you sure you want to delete this user?</h4>
+                    <p class="text-sm">This action cannot be undone. All user data including activity logs, instructions, and availability will be permanently deleted.</p>
+                </div>
+            </div>
+            <div class="modal-action flex justify-end gap-2 mt-6">
+                <button type="button" class="btn btn-ghost" onclick="closeModal('deleteUserModal')">Cancel</button>
+                <button type="button" class="btn bg-red-600 hover:bg-red-700 text-white" onclick="confirmDeleteUser()">
+                    <i class="fas fa-trash mr-2"></i>Delete User
+                </button>
+            </div>
+        </div>
+    </div>
+</dialog>
+
+<!-- Activity Modal -->
+<dialog id="activityModal" class="modal">
+    <div class="modal-box w-11/12 max-w-5xl">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="font-bold text-2xl text-gray-800">User Activity History</h3>
+            <button class="btn btn-ghost btn-sm btn-circle" onclick="closeModal('activityModal')">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <!-- User Information -->
+        <div class="bg-gray-50 rounded-lg p-6 mb-6">
+            <h4 class="text-xl font-bold mb-4">User Information</h4>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="userInfo">
+                <div>
+                    <p class="text-sm text-gray-600">Name</p>
+                    <p class="font-medium user-name"></p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-600">Email</p>
+                    <p class="font-medium user-email"></p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-600">Last Login</p>
+                    <p class="font-medium user-last-login"></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activities -->
+        <div>
+            <h4 class="text-xl font-bold mb-4">Recent Activities</h4>
+            
+            <!-- Mobile View -->
+            <div class="grid grid-cols-1 gap-4 md:hidden" id="activityMobileView"></div>
+            
+            <!-- Desktop View -->
+            <div class="overflow-x-auto hidden md:block">
+                <table class="table table-zebra table-compact w-full">
+                    <thead>
+                        <tr>
+                            <th class="py-2">Timestamp</th>
+                            <th class="py-2">Type</th>
+                            <th class="py-2">Page</th>
+                            <th class="py-2">Action</th>
+                            <th class="py-2">Details</th>
+                            <th class="py-2">IP Address</th>
+                        </tr>
+                    </thead>
+                    <tbody id="activityTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</dialog>
+
+<!-- Delete Confirmation Modal -->
+<dialog id="deleteUserModal" class="modal">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg text-red-600">Delete User</h3>
+        <p class="py-4">Are you sure you want to delete this user? This action cannot be undone.</p>
+        <div class="modal-action">
+            <button class="btn btn-ghost" onclick="closeModal('deleteUserModal')">Cancel</button>
+            <button class="btn bg-red-600 hover:bg-red-700 text-white" onclick="confirmDeleteUser()">Delete</button>
+        </div>
+    </div>
+</dialog>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/admin.js"></script>
+{% endblock %} 

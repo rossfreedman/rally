@@ -1,0 +1,15 @@
+{
+  "name": "rally",
+  "version": "1.0.0",
+  "description": "Rally tennis club management system",
+  "scripts": {
+    "build-css": "tailwindcss -i ./static/mobile/css/tailwind.css -o ./static/dist/tailwind.css --watch",
+    "build-css-prod": "tailwindcss -i ./static/mobile/css/tailwind.css -o ./static/dist/tailwind.css --minify"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@tailwindcss/forms": "^0.5.7",
+    "tailwindcss": "^3.4.1",
+    "daisyui": "^3.9.3"
+  }
+} 

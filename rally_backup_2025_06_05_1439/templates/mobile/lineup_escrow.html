@@ -1,0 +1,49 @@
+{% extends "mobile/layout.html" %}
+{% set show_back_arrow = True %}
+
+{% block title %}Lineup Escrow™ | Rally{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="flex items-center gap-3 mt-4 mb-6 px-4">
+  <div class="bg-white rounded-md flex items-center justify-center h-12 w-12">
+    <i class="fas fa-lock text-black text-3xl"></i>
+  </div>
+  <div>
+    <div class="text-2xl font-bold leading-tight">Lineup Escrow<span class="align-super text-xs ml-1">™</span></div>
+    <div class="text-base text-gray-500 mt-1">Send lineup to opposing captain</div>
+  </div>
+</div>
+
+<!-- Explanatory paragraph under header with extra margin -->
+<div class="px-4 mt-6 mb-2">
+  <div class="text-base font-medium text-gray-700">
+    Lineup Escrow™ is designed for each captain to send their lineup before a match, with both lineups being disclosed at the same time. This ensures fairness and transparency for both teams.
+  </div>
+</div>
+
+<!-- Card: Lineup Escrow Info & Form -->
+<div class="card bg-base-100 shadow-xl mb-6">
+  <div class="card-body">
+    <!-- New input fields -->
+    <input type="text" class="input input-bordered w-full mb-3" placeholder="Captain Name" />
+    <input type="email" class="input input-bordered w-full mb-3" placeholder="Captain Email" />
+    <input type="text" class="input input-bordered w-full mb-4" placeholder="Lineup Escrow for Tomorrow's Match" />
+    <textarea id="sample-lineup" class="textarea textarea-bordered w-full min-h-[270px] text-base font-mono" style="resize:vertical;" placeholder="Name:\nLineup Escrow™ is designed for each captain to send their lineup before a match, with both lineups being disclosed at the same time. This ensures fairness and transparency for both teams.\n\nHere is our lineup for tomorrow night:\n\nCourt 1: Player1/Player3\nCourt 2: Player3/Player4\nCourt 3: Player5/Player6\nCourt 4: Player7/Player8\n\nLooking forward to the match tomorrow!">Name:
+
+Lineup Escrow™ is designed for each captain to send their lineup before a match, with both lineups being disclosed at the same time. This ensures fairness and transparency for both teams.
+
+Here is our lineup for tomorrow night:
+
+Court 1: Player1/Player3
+Court 2: Player3/Player4
+Court 3: Player5/Player6
+Court 4: Player7/Player8
+
+Looking forward to the match tomorrow!</textarea>
+    <div class="flex justify-end mt-4">
+      <button class="btn btn-primary px-6" disabled>Send Lineup</button>
+    </div>
+  </div>
+</div>
+{% endblock %} 

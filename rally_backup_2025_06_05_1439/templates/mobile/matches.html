@@ -1,0 +1,164 @@
+{% extends "mobile/layout.html" %}
+{% set show_back_arrow = True %}
+
+{% block content %}
+<div class="relative w-full" style="height: 56px; background: #000;">
+  {% include "mobile/_back_arrow.html" %}
+</div>
+
+<div class="flex items-center gap-3 mt-4 mb-2 px-4">
+  <div class="bg-white rounded-md flex items-center justify-center h-12 w-12">
+    <i class="fas fa-calendar text-green-700 text-3xl"></i>
+  </div>
+  <div>
+    <div class="text-2xl font-bold leading-tight">My Matches</div>
+    <div class="text-base text-gray-500 mt-1">View your upcoming and past matches.</div>
+  </div>
+</div>
+
+<h1 class="text-2xl font-bold mb-4">My Matches</h1>
+
+<div class="tabs tabs-boxed mb-4">
+    <a class="tab tab-active" id="tab-upcoming" onclick="switchTab('upcoming')">Upcoming</a>
+    <a class="tab" id="tab-past" onclick="switchTab('past')">Past</a>
+</div>
+
+<div id="upcoming-matches">
+    <div class="match-list">
+        <div class="skeleton h-32 w-full mb-4"></div>
+        <div class="skeleton h-32 w-full mb-4"></div>
+        <div class="skeleton h-32 w-full"></div>
+    </div>
+</div>
+
+<div id="past-matches" class="hidden">
+    <div class="match-list">
+        <div class="skeleton h-32 w-full mb-4"></div>
+        <div class="skeleton h-32 w-full mb-4"></div>
+        <div class="skeleton h-32 w-full"></div>
+    </div>
+</div>
+
+<template id="match-template">
+    <div class="card bg-base-100 shadow-lg mb-4">
+        <div class="card-body p-4">
+            <div class="flex justify-between items-center">
+                <span class="text-sm font-semibold match-date"></span>
+                <span class="badge badge-primary match-time"></span>
+            </div>
+            <h2 class="card-title text-lg mt-2">
+                <span class="match-team-home"></span> vs <span class="match-team-away"></span>
+            </h2>
+            <div class="flex justify-between items-center mt-2">
+                <span class="text-sm match-location"></span>
+                <span class="match-status"></span>
+            </div>
+        </div>
+    </div>
+</template>
+
+<script>
+    function switchTab(tab) {
+        // Update tab active states
+        document.getElementById('tab-upcoming').classList.remove('tab-active');
+        document.getElementById('tab-past').classList.remove('tab-active');
+        document.getElementById('tab-' + tab).classList.add('tab-active');
+        
+        // Show/hide content
+        document.getElementById('upcoming-matches').classList.add('hidden');
+        document.getElementById('past-matches').classList.add('hidden');
+        document.getElementById(tab + '-matches').classList.remove('hidden');
+    }
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        // Fetch matches from the API
+        if (window.sessionData && window.sessionData.user) {
+            const userId = window.sessionData.user.id;
+            
+            // Fetch user's matches
+            fetch('/api/team-matches')
+                .then(response => response.json())
+                .then(data => {
+                    renderMatches(data);
+                })
+                .catch(error => {
+                    console.error('Error fetching matches:', error);
+                });
+        }
+    });
+    
+    function renderMatches(matches) {
+        // Clear loading skeletons
+        document.querySelector('#upcoming-matches .match-list').innerHTML = '';
+        document.querySelector('#past-matches .match-list').innerHTML = '';
+        
+        // Sort matches
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        
+        const upcomingMatches = [];
+        const pastMatches = [];
+        
+        matches.forEach(match => {
+            const matchDate = new Date(match.date);
+            if (matchDate >= today) {
+                upcomingMatches.push(match);
+            } else {
+                pastMatches.push(match);
+            }
+        });
+        
+        // Sort upcoming matches by date (ascending)
+        upcomingMatches.sort((a, b) => new Date(a.date) - new Date(b.date));
+        
+        // Sort past matches by date (descending)
+        pastMatches.sort((a, b) => new Date(b.date) - new Date(a.date));
+        
+        // Render matches
+        renderMatchList(upcomingMatches, '#upcoming-matches .match-list');
+        renderMatchList(pastMatches, '#past-matches .match-list');
+    }
+    
+    function renderMatchList(matches, selector) {
+        const container = document.querySelector(selector);
+        const template = document.getElementById('match-template');
+        
+        if (matches.length === 0) {
+            container.innerHTML = '<div class="text-center py-8 text-gray-500">No matches found</div>';
+            return;
+        }
+        
+        matches.forEach(match => {
+            const clone = template.content.cloneNode(true);
+            
+            // Format date
+            const matchDate = new Date(match.date);
+            const formattedDate = matchDate.toLocaleDateString('en-US', { 
+                weekday: 'short', 
+                month: 'short', 
+                day: 'numeric' 
+            });
+            
+            // Set match details
+            clone.querySelector('.match-date').textContent = formattedDate;
+            clone.querySelector('.match-time').textContent = match.time || 'TBD';
+            clone.querySelector('.match-team-home').textContent = match.home_team || 'Home Team';
+            clone.querySelector('.match-team-away').textContent = match.away_team || 'Away Team';
+            clone.querySelector('.match-location').textContent = match.location || 'TBD';
+            
+            // Set status
+            const statusEl = clone.querySelector('.match-status');
+            if (new Date(match.date) < new Date()) {
+                const result = match.result || 'No result';
+                statusEl.textContent = result;
+                statusEl.classList.add('badge', 'badge-ghost');
+            } else {
+                statusEl.textContent = 'Upcoming';
+                statusEl.classList.add('badge', 'badge-success');
+            }
+            
+            container.appendChild(clone);
+        });
+    }
+</script>
+{% endblock %} 

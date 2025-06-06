@@ -1,0 +1,39 @@
+/* SIDEBAR TEXT COLOR OVERRIDE */
+html body .sidebar *:not(img),
+.sidebar .sidebar-nav *:not(img),
+.sidebar .nav-item:not(img),
+.sidebar .nav-section-header:not(img),
+.sidebar a:not(img),
+.sidebar div:not(img),
+.sidebar span:not(img),
+.sidebar i:not(img),
+.sidebar .nav-section:not(img),
+.sidebar .nav-section *:not(img) {
+    color: white !important;
+    -webkit-text-fill-color: white !important;
+    text-shadow: none !important;
+    -webkit-text-stroke: 0 !important;
+    fill: white !important;
+    stroke: white !important;
+}
+
+/* Target the exact elements */
+.sidebar-nav .nav-item,
+.sidebar-nav .nav-section-header,
+.sidebar-nav a,
+.sidebar-nav div,
+.sidebar-nav span,
+.sidebar-nav i {
+    color: white !important;
+}
+
+/* Target text nodes directly */
+.nav-section-header::text,
+.nav-item::text {
+    color: white !important;
+}
+
+/* Specific targeting for "Act", "Analyze", etc. section headers */
+.nav-section-header {
+    color: white !important;
+} 
