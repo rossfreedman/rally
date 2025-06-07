@@ -56,8 +56,8 @@
         <span class="text-lg font-bold text-rally-green">Court Analysis</span>
       </div>
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {% for court_num in range(1,5) %}
-          {% set court = court_analysis['court' ~ court_num] %}
+        {% for court_key, court in court_analysis.items() %}
+          {% set court_num = court_key.replace('court', '') %}
           <div class="bg-gray-50 rounded-lg p-3 border border-gray-100">
             <div class="flex items-center mb-1">
               <i class="fas fa-table-tennis-paddle-ball text-green-600 mr-2"></i>

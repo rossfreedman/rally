@@ -16,7 +16,7 @@ def _load_players_data():
     """Load player data fresh from JSON file - no caching"""
     try:
         project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        players_path = os.path.join(project_root, 'data', 'leagues', 'apta', 'players.json')
+        players_path = os.path.join(project_root, 'data', 'leagues', 'all', 'players.json')
         
         # Always load fresh data
         with open(players_path, 'r') as f:
@@ -52,12 +52,26 @@ def get_player_analysis_by_name(player_name):
         }
     
     # Load player history to find the exact player record first
+    # Note: For get_player_analysis_by_name, we don't have user league context, so we should try to find the player across leagues
     try:
         project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        player_history_path = os.path.join(project_root, 'data', 'leagues', 'apta', 'player_history.json')
         
-        with open(player_history_path, 'r') as f:
-            all_players = json.load(f)
+        # Try to find player across different leagues
+        leagues_to_check = ['all', 'NSTF', 'apta']  # Add more leagues as needed
+        all_players = []
+        
+        for league in leagues_to_check:
+            try:
+                player_history_path = os.path.join(project_root, 'data', 'leagues', league, 'player_history.json')
+                with open(player_history_path, 'r') as f:
+                    league_players = json.load(f)
+                    # Add league info to each player for context
+                    for player in league_players:
+                        if isinstance(player, dict):
+                            player['source_league'] = league
+                    all_players.extend(league_players)
+            except FileNotFoundError:
+                continue  # Skip leagues that don't have player history files
         
         def normalize(name):
             return name.replace(',', '').replace('  ', ' ').strip().lower()
@@ -86,7 +100,10 @@ def get_player_analysis_by_name(player_name):
             user_dict = {
                 'first_name': first_name,
                 'last_name': last_name,
-                'tenniscores_player_id': found_player.get('player_id')  # Include player_id if available
+                'tenniscores_player_id': found_player.get('player_id'),  # Include player_id if available
+                'league_id': found_player.get('league', found_player.get('source_league', 'all')),  # Use source_league if league field is empty
+                'club': found_player.get('club', ''),
+                'series': found_player.get('series', '')
             }
             
             print(f"[DEBUG] Found player record for '{player_name}': {found_player.get('name')} with ID {found_player.get('player_id')}")
@@ -150,58 +167,81 @@ def get_player_analysis(user):
     and player_history.json for career stats and player history.
     Always returns all expected keys, even if some are None or empty.
     """
+    print(f"[DEBUG] get_player_analysis - user type: {type(user)}")
+    print(f"[DEBUG] get_player_analysis - user data: {user}")
+    
+    # Check if user is actually a dict before calling .get()
+    if not isinstance(user, dict):
+        print(f"[ERROR] User is not a dict! Type: {type(user)}, Value: {user}")
+        return {
+            'current_season': None,
+            'court_analysis': {},
+            'career_stats': None,
+            'player_history': None,
+            'videos': {'match': [], 'practice': []},
+            'trends': {},
+            'career_pti_change': 'N/A',
+            'current_pti': None,
+            'weekly_pti_change': None,
+            'pti_data_available': False,
+            'error': f'Invalid user data format: expected dict, got {type(user)}'
+        }
+    
     # Use tenniscores_player_id as primary search method
     tenniscores_player_id = user.get('tenniscores_player_id')
     session_player_name = f"{user['first_name']} {user['last_name']}"
+    print(f"[DEBUG] ==================== PLAYER ANALYSIS DEBUG ====================")
     print(f"[DEBUG] Looking for player with ID: '{tenniscores_player_id}' (session name: '{session_player_name}')")
+    print(f"[DEBUG] User object keys: {list(user.keys())}")
+    print(f"[DEBUG] Full user object: {user}")
     
-    # Fix path construction to point to project root data directory
+    # Use the user's league directory for data
+    user_league_id = user.get('league_id', 'all')
     project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    player_history_path = os.path.join(project_root, 'data', 'leagues', 'apta', 'player_history.json')
-    matches_path = os.path.join(project_root, 'data', 'leagues', 'apta', 'match_history.json')
     
+    # Always use 'all' directory as it contains consolidated data from all leagues
+    player_history_path = os.path.join(project_root, 'data', 'leagues', 'all', 'player_history.json')
+    matches_path = os.path.join(project_root, 'data', 'leagues', 'all', 'match_history.json')
+    print(f"[DEBUG] Looking for player data in: {player_history_path}")
+    print(f"[DEBUG] Looking for match data in: {matches_path}")
     print(f"[DEBUG] Looking for player_history.json at: {player_history_path}")
     print(f"[DEBUG] Looking for match_history.json at: {matches_path}")
+    print(f"[DEBUG] Files exist - player_history: {os.path.exists(player_history_path)}, matches: {os.path.exists(matches_path)}")
 
     # --- 1. Load player history for career stats and previous seasons ---
     all_players = []
     pti_data_available = False
+    
     try:
         with open(player_history_path, 'r') as f:
             all_players = json.load(f)
             pti_data_available = True
+            print(f"[INFO] Loaded {len(all_players)} players from player_history.json")
     except Exception as e:
         print(f"[INFO] Player history file not available: {e}")
-        print(f"[INFO] Continuing without PTI data - PTI sections will be hidden")
+        print(f"[INFO] PTI and career stats will be hidden")
     
     def normalize(name):
         return name.replace(',', '').replace('  ', ' ').strip().lower()
     
     player = None
-    actual_player_name = None  # This will store the actual name from the player record
+    actual_player_name = session_player_name  # Use session name as fallback
     
-    # Only search for player if PTI data is available
-    if pti_data_available:
-        # Search by tenniscores_player_id (most reliable)
-        if tenniscores_player_id:
-            print(f"[DEBUG] Searching by player_id: '{tenniscores_player_id}'")
-            
-            # Debug: Print first few player records to see what IDs are available
-            print(f"[DEBUG] Sample player IDs in data: {[p.get('player_id', 'None') for p in all_players[:5]]}")
-            
-            player = next((p for p in all_players if p.get('player_id') == tenniscores_player_id), None)
-            if player:
-                actual_player_name = player.get('name', session_player_name)
-                print(f"[DEBUG] Found player by ID: '{actual_player_name}' (ID: {tenniscores_player_id})")
-            else:
-                print(f"[DEBUG] No player found with ID: '{tenniscores_player_id}'")
-                # Debug: Check if any players have similar IDs
-                similar_ids = [p.get('player_id') for p in all_players if p.get('player_id') and tenniscores_player_id.lower() in p.get('player_id', '').lower()]
-                print(f"[DEBUG] Similar player IDs found: {similar_ids[:5]}")
+    # Search for player in PTI data (only if available)
+    if pti_data_available and tenniscores_player_id:
+        print(f"[DEBUG] Searching for player_id: '{tenniscores_player_id}' in PTI data")
+        
+        player = next((p for p in all_players if p.get('player_id') == tenniscores_player_id), None)
+        if player:
+            actual_player_name = player.get('name', session_player_name)
+            print(f"[DEBUG] Found player in PTI data: '{actual_player_name}' (ID: {tenniscores_player_id})")
         else:
-            print(f"[DEBUG] No tenniscores_player_id provided in user session")
-    else:
-        print(f"[INFO] Skipping player lookup since PTI data is not available")
+            print(f"[DEBUG] Player ID '{tenniscores_player_id}' not found in PTI data")
+            print(f"[DEBUG] This means their league data hasn't been added to 'all' directory yet")
+    elif not pti_data_available:
+        print(f"[INFO] No PTI data available - will show match analysis only")
+    elif not tenniscores_player_id:
+        print(f"[DEBUG] No tenniscores_player_id in session")
     
     # --- 2. Load all matches for this player ---
     try:
@@ -212,48 +252,59 @@ def get_player_analysis(user):
     
     # --- 2.5. Create name-to-ID mapping from player data for match filtering ---
     name_to_id_mapping = {}
+    
+    # Add mappings from player_history.json (if available)
     for p in all_players:
         player_name = p.get('name', '')
         player_id = p.get('player_id', '')
         if player_name and player_id:
             name_to_id_mapping[normalize(player_name)] = player_id
     
+    # Also load from players.json to include players not in player_history.json (like NSTF players)
+    try:
+        players_json_path = os.path.join(project_root, 'data', 'leagues', 'all', 'players.json')
+        with open(players_json_path, 'r') as f:
+            players_json_data = json.load(f)
+            
+        for p in players_json_data:
+            first_name = p.get('First Name', '')
+            last_name = p.get('Last Name', '')
+            player_id = p.get('Player ID', '')
+            if first_name and last_name and player_id:
+                full_name = f"{first_name} {last_name}"
+                name_to_id_mapping[normalize(full_name)] = player_id
+                
+        print(f"[DEBUG] Enhanced name-to-ID mapping with players.json data")
+    except Exception as e:
+        print(f"[DEBUG] Could not load players.json for enhanced mapping: {e}")
+    
     print(f"[DEBUG] Created name-to-ID mapping for {len(name_to_id_mapping)} players")
 
     # Helper function to check if target player ID is in a match
     def player_id_in_match(match, target_player_id):
-        """Check if target_player_id is in the match by converting player names to IDs"""
-        match_players = [
-            match.get('Home Player 1', ''),
-            match.get('Home Player 2', ''),
-            match.get('Away Player 1', ''),
-            match.get('Away Player 2', '')
+        """Check if target_player_id is in the match by checking player ID fields directly"""
+        match_player_ids = [
+            match.get('Home Player 1 ID', ''),
+            match.get('Home Player 2 ID', ''),
+            match.get('Away Player 1 ID', ''),
+            match.get('Away Player 2 ID', '')
         ]
         
-        # Convert match player names to IDs and check if target ID is present
-        for match_player_name in match_players:
-            if match_player_name:
-                normalized_name = normalize(match_player_name)
-                match_player_id = name_to_id_mapping.get(normalized_name)
-                if match_player_id == target_player_id:
-                    return True
-        return False
+        # Check if target ID is directly present in the match
+        return target_player_id in match_player_ids
     
     def get_player_position_in_match_by_id(match, target_player_id):
         """Get the position (home/away and 1/2) of target player in match using ID"""
-        match_players = [
-            ('Home Player 1', match.get('Home Player 1', '')),
-            ('Home Player 2', match.get('Home Player 2', '')),
-            ('Away Player 1', match.get('Away Player 1', '')),
-            ('Away Player 2', match.get('Away Player 2', ''))
+        match_player_ids = [
+            ('Home Player 1', match.get('Home Player 1 ID', '')),
+            ('Home Player 2', match.get('Home Player 2 ID', '')),
+            ('Away Player 1', match.get('Away Player 1 ID', '')),
+            ('Away Player 2', match.get('Away Player 2 ID', ''))
         ]
         
-        for position, match_player_name in match_players:
-            if match_player_name:
-                normalized_name = normalize(match_player_name)
-                match_player_id = name_to_id_mapping.get(normalized_name)
-                if match_player_id == target_player_id:
-                    return position
+        for position, match_player_id in match_player_ids:
+            if match_player_id == target_player_id:
+                return position
         return None
     
     def get_partner_for_player_by_id(match, target_player_id):
@@ -289,45 +340,29 @@ def get_player_analysis(user):
         else:
             current_series = None
     
-    # --- 4. Filter matches for current season/series using ACTUAL player name ---
+    # --- 4. Filter matches by league and player ID ---
     player_matches = []
+    user_league_id = user.get('league_id')
     
-    # Helper function to check if player is in match by name (fallback when no PTI data)
-    def player_name_in_match(match, player_name):
-        """Check if player_name is in the match by name matching"""
-        match_players = [
-            match.get('Home Player 1', ''),
-            match.get('Home Player 2', ''),
-            match.get('Away Player 1', ''),
-            match.get('Away Player 2', '')
-        ]
-        
-        for match_player_name in match_players:
-            if match_player_name and normalize(match_player_name) == normalize(player_name):
-                return True
-        return False
-    
-    if player and actual_player_name:
-        print(f"[DEBUG] Filtering matches for actual player name: '{actual_player_name}'")
+    if tenniscores_player_id:
+        print(f"[DEBUG] Filtering matches for player ID: '{tenniscores_player_id}' in league: '{user_league_id}'")
         for m in all_matches:
-            # Use actual_player_name instead of session-constructed name
+            # Filter by league first
+            match_league = m.get('league_id', m.get('League', ''))
+            if user_league_id and match_league != user_league_id:
+                continue
+                
+            # Then check if player is in the match
             if player_id_in_match(m, tenniscores_player_id):
                 if current_series:
                     match_series = str(m.get('Series', ''))
                     if match_series and match_series != current_series:
                         continue
                 player_matches.append(m)
-        print(f"[DEBUG] Found {len(player_matches)} matches for player using actual name")
-    elif not pti_data_available and tenniscores_player_id:
-        # Fallback: use name matching when PTI data is not available
-        fallback_player_name = f"{user['first_name']} {user['last_name']}"
-        print(f"[DEBUG] PTI data not available, using name matching for: '{fallback_player_name}'")
-        for m in all_matches:
-            if player_name_in_match(m, fallback_player_name):
-                player_matches.append(m)
-        print(f"[DEBUG] Found {len(player_matches)} matches using name matching")
+        print(f"[DEBUG] Found {len(player_matches)} matches for player in league '{user_league_id}'")
     
-    # --- 5. Assign matches to courts 1-4 by date and team pairing ---
+    # --- 5. Dynamically determine number of courts and assign matches ---
+    # First, determine the maximum number of courts by analyzing match patterns
     matches_by_group = defaultdict(list)
     for match in all_matches:
         date = match.get('Date') or match.get('date')
@@ -336,40 +371,20 @@ def get_player_analysis(user):
         group_key = (date, home_team, away_team)
         matches_by_group[group_key].append(match)
 
-    court_stats = {f'court{i}': {'matches': 0, 'wins': 0, 'losses': 0, 'partners': Counter()} for i in range(1, 5)}
+    # Determine max courts by finding the largest group of matches on the same date
+    max_courts = 4  # Default to 4 courts as fallback
+    for group_matches in matches_by_group.values():
+        max_courts = max(max_courts, len(group_matches))
+    
+    print(f"[DEBUG] Detected {max_courts} courts for this league")
+    
+    # Initialize court stats dynamically based on detected court count
+    court_stats = {f'court{i}': {'matches': 0, 'wins': 0, 'losses': 0, 'partners': Counter()} for i in range(1, max_courts + 1)}
     total_matches = 0
     wins = 0
     losses = 0
     pti_start = None
     pti_end = None
-
-    # Helper functions for name-based matching (when PTI data not available)
-    def get_player_position_in_match_by_name(match, player_name):
-        """Get the position (home/away and 1/2) of target player in match using name"""
-        match_players = [
-            ('Home Player 1', match.get('Home Player 1', '')),
-            ('Home Player 2', match.get('Home Player 2', '')),
-            ('Away Player 1', match.get('Away Player 1', '')),
-            ('Away Player 2', match.get('Away Player 2', ''))
-        ]
-        
-        for position, match_player_name in match_players:
-            if match_player_name and normalize(match_player_name) == normalize(player_name):
-                return position
-        return None
-
-    def get_partner_for_player_by_name(match, player_name):
-        """Get the partner of target player in the match using name"""
-        position = get_player_position_in_match_by_name(match, player_name)
-        if position == 'Home Player 1':
-            return match.get('Home Player 2', '')
-        elif position == 'Home Player 2':
-            return match.get('Home Player 1', '')
-        elif position == 'Away Player 1':
-            return match.get('Away Player 2', '')
-        elif position == 'Away Player 2':
-            return match.get('Away Player 1', '')
-        return None
 
     for group_key in sorted(matches_by_group.keys()):
         day_matches = matches_by_group[group_key]
@@ -377,27 +392,25 @@ def get_player_analysis(user):
         day_matches_sorted = sorted(day_matches, key=lambda m: (m.get('Home Team', ''), m.get('Away Team', '')))
         for i, match in enumerate(day_matches_sorted):
             court_num = i + 1
-            if court_num > 4:
+            if court_num > max_courts:
                 continue
             
-            # Check if player is in this match - use appropriate method based on data availability
+            # Check if player is in this match using player ID and filter by league
             player_in_match = False
             position = None
             partner = None
             
-            if pti_data_available and player and tenniscores_player_id:
-                # Use ID-based matching when PTI data is available
+            # Filter by league first
+            match_league = match.get('league_id', match.get('League', ''))
+            if user_league_id and match_league != user_league_id:
+                continue
+            
+            if tenniscores_player_id:
+                # Use ID-based matching
                 player_in_match = player_id_in_match(match, tenniscores_player_id)
                 if player_in_match:
                     position = get_player_position_in_match_by_id(match, tenniscores_player_id)
                     partner = get_partner_for_player_by_id(match, tenniscores_player_id)
-            elif not pti_data_available:
-                # Use name-based matching when PTI data is not available
-                fallback_player_name = f"{user['first_name']} {user['last_name']}"
-                player_in_match = player_name_in_match(match, fallback_player_name)
-                if player_in_match:
-                    position = get_player_position_in_match_by_name(match, fallback_player_name)
-                    partner = get_partner_for_player_by_name(match, fallback_player_name)
             
             if not player_in_match:
                 continue
@@ -519,8 +532,13 @@ def get_player_analysis(user):
         if not seasons:
             seasons = build_season_history(player)
         for s in seasons:
-            trend_val = s.get('trend', '')
-            progression.append(f"{s.get('season', '')}: PTI {s.get('ptiStart', '')}→{s.get('ptiEnd', '')} ({trend_val})")
+            # Defensive programming: ensure s is a dict before calling .get()
+            if isinstance(s, dict):
+                trend_val = s.get('trend', '')
+                progression.append(f"{s.get('season', '')}: PTI {s.get('ptiStart', '')}→{s.get('ptiEnd', '')} ({trend_val})")
+            else:
+                print(f"[WARNING] Season item is not a dict: {type(s)} - {s}")
+                continue
         player_history = {
             'progression': ' | '.join(progression),
             'seasons': seasons
@@ -530,9 +548,13 @@ def get_player_analysis(user):
     current_pti = None
     weekly_pti_change = None
     
-    if player and player.get('matches'):
+    if player and player.get('matches') and isinstance(player.get('matches'), list):
         # Sort matches by date to find most recent
-        matches = sorted(player['matches'], key=lambda x: datetime.strptime(x['date'], '%m/%d/%Y'), reverse=True)
+        try:
+            matches = sorted(player['matches'], key=lambda x: datetime.strptime(x['date'], '%m/%d/%Y'), reverse=True)
+        except (KeyError, ValueError, TypeError) as e:
+            print(f"[WARNING] Error sorting matches: {e}")
+            matches = []
         if matches:
             current_pti = matches[0].get('end_pti')
             
@@ -553,7 +575,7 @@ def get_player_analysis(user):
 
     # --- 10. Compose response ---
     career_pti_change = 'N/A'
-    if player and 'matches' in player:
+    if player and 'matches' in player and isinstance(player.get('matches'), list):
         def parse_date(d):
             for fmt in ("%m/%d/%Y", "%Y-%m-%d"):
                 try:
@@ -561,7 +583,7 @@ def get_player_analysis(user):
                 except Exception:
                     continue
             return None
-        matches_with_pti = [m for m in player['matches'] if 'end_pti' in m and 'date' in m]
+        matches_with_pti = [m for m in player['matches'] if isinstance(m, dict) and 'end_pti' in m and 'date' in m]
         if len(matches_with_pti) >= 2:
             matches_with_pti_sorted = sorted(matches_with_pti, key=lambda m: parse_date(m['date']))
             earliest_pti = matches_with_pti_sorted[0]['end_pti']
@@ -572,6 +594,9 @@ def get_player_analysis(user):
     # When PTI data is not available, we can still provide current season and court analysis from match data
     has_match_data = total_matches > 0
     
+    # PTI data is available only if this specific player has PTI data (not just if file exists)
+    player_has_pti_data = player is not None and pti_data_available
+    
     response = {
         'current_season': current_season if (player or has_match_data) else None,
         'court_analysis': court_analysis if (player or has_match_data) else {},
@@ -580,9 +605,9 @@ def get_player_analysis(user):
         'videos': {'match': [], 'practice': []},
         'trends': {},
         'career_pti_change': career_pti_change if player else 'N/A',
-        'current_pti': float(current_pti) if current_pti is not None and pti_data_available else None,
-        'weekly_pti_change': float(weekly_pti_change) if weekly_pti_change is not None and pti_data_available else None,
-        'pti_data_available': pti_data_available,
+        'current_pti': float(current_pti) if current_pti is not None and player_has_pti_data else None,
+        'weekly_pti_change': float(weekly_pti_change) if weekly_pti_change is not None and player_has_pti_data else None,
+        'pti_data_available': player_has_pti_data,
         'error': None if (player or has_match_data or not pti_data_available) else 'No analysis data available for this player.'
     }
     return response
@@ -610,7 +635,7 @@ def get_season_from_date(date_str):
 def build_season_history(player):
     from collections import defaultdict
     matches = player.get('matches', [])
-    if not matches:
+    if not matches or not isinstance(matches, list):
         return []
     # Helper to parse date robustly
     def parse_date(d):
@@ -623,9 +648,13 @@ def build_season_history(player):
     # Group matches by season
     season_matches = defaultdict(list)
     for m in matches:
-        season = get_season_from_date(m.get('date', ''))
-        if season:
-            season_matches[season].append(m)
+        if isinstance(m, dict):
+            season = get_season_from_date(m.get('date', ''))
+            if season:
+                season_matches[season].append(m)
+        else:
+            print(f"[WARNING] Match item is not a dict: {type(m)} - {m}")
+            continue
     seasons = []
     for season, ms in season_matches.items():
         ms_sorted = sorted(ms, key=lambda x: parse_date(x.get('date', '')))
@@ -665,45 +694,171 @@ def get_mobile_team_data(user):
                 'error': 'User club or series not found'
             }
         
-        # Extract series number from series string (e.g. "Chicago 22" -> "22")
-        import re
-        m = re.search(r'(\d+)', series)
-        series_num = m.group(1) if m else ''
+        # Handle different team naming conventions based on league
+        league_id = user.get('league_id', '')
         
-        # Construct team name in format "Club - SeriesNum"
-        team = f"{club} - {series_num}"
+        if league_id == 'NSTF':
+            # NSTF format: "Tennaqua S2B" from series "Series 2B"
+            import re
+            # Extract the series suffix (e.g., "2B" from "Series 2B")
+            series_match = re.search(r'Series\s+(.+)', series)
+            if series_match:
+                series_suffix = series_match.group(1)
+                team = f"{club} S{series_suffix}"
+            else:
+                # Fallback: try to extract any suffix after "Series"
+                series_suffix = series.replace('Series', '').strip()
+                team = f"{club} S{series_suffix}" if series_suffix else f"{club} S1"
+        else:
+            # Other leagues format: "Tennaqua - 22" from series with number
+            import re
+            m = re.search(r'(\d+)', series)
+            series_num = m.group(1) if m else ''
+            team = f"{club} - {series_num}"
         
         # Load team stats and matches data
         project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        stats_path = os.path.join(project_root, 'data', 'leagues', 'apta', 'series_stats.json')
-        matches_path = os.path.join(project_root, 'data', 'leagues', 'apta', 'match_history.json')
+        stats_path = os.path.join(project_root, 'data', 'leagues', 'all', 'series_stats.json')
+        matches_path = os.path.join(project_root, 'data', 'leagues', 'all', 'match_history.json')
         
         with open(stats_path, 'r') as f:
             all_stats = json.load(f)
         
-        # Find the team's stats
-        team_stats = next((stats for stats in all_stats if stats.get('team') == team), None)
+        # Find the team's stats from series_stats.json for reference
+        team_stats_reference = next((stats for stats in all_stats if stats.get('team') == team), None)
         
         print(f"[DEBUG] Looking for team: {team}")
-        print(f"[DEBUG] Found team stats: {team_stats is not None}")
+        print(f"[DEBUG] Found team stats reference: {team_stats_reference is not None}")
         
-        # Compute court analysis and top players from match_history.json
+        # Load matches and calculate actual team stats from match data
         court_analysis = {}
         top_players = []
+        team_stats = None
         
         if os.path.exists(matches_path):
             with open(matches_path, 'r') as f:
                 matches = json.load(f)
             
-            # Group matches by date for court assignment
+            # Get team matches and calculate real stats
+            team_matches = [m for m in matches if m.get('Home Team') == team or m.get('Away Team') == team]
+            
+            if team_matches:
+                # Calculate actual team statistics from match data
+                total_matches = len(team_matches)
+                matches_won = 0
+                matches_lost = 0
+                lines_won = 0
+                lines_lost = 0
+                sets_won = 0
+                sets_lost = 0
+                games_won = 0
+                games_lost = 0
+                total_points = 0
+                
+                for match in team_matches:
+                    is_home = match.get('Home Team') == team
+                    winner_is_home = match.get('Winner') == 'home'
+                    team_won = (is_home and winner_is_home) or (not is_home and not winner_is_home)
+                    
+                    if team_won:
+                        matches_won += 1
+                        # Winner gets 2 points, loser gets 0 or 1 based on sets won
+                        total_points += 2
+                    else:
+                        matches_lost += 1
+                        # Check if team won at least one set for 1 point
+                        scores = match.get('Scores', '').split(', ')
+                        if len(scores) >= 2:  # At least 2 sets played
+                            team_won_a_set = False
+                            for score in scores:
+                                if '-' in score:
+                                    home_score, away_score = score.split('-')
+                                    try:
+                                        home_score, away_score = int(home_score.strip()), int(away_score.strip())
+                                        if (is_home and home_score > away_score) or (not is_home and away_score > home_score):
+                                            team_won_a_set = True
+                                            break
+                                    except ValueError:
+                                        pass
+                            if team_won_a_set:
+                                total_points += 1
+                    
+                    # Count lines (4 lines per match)
+                    if team_won:
+                        lines_won += 4  # Winner gets all 4 lines
+                    else:
+                        lines_lost += 4  # Loser loses all 4 lines
+                    
+                    # Count sets and games from scores
+                    scores = match.get('Scores', '').split(', ')
+                    for score in scores:
+                        if '-' in score:
+                            try:
+                                home_score, away_score = score.split('-')
+                                home_score, away_score = int(home_score.strip()), int(away_score.strip())
+                                
+                                if is_home:
+                                    games_won += home_score
+                                    games_lost += away_score
+                                    if home_score > away_score:
+                                        sets_won += 1
+                                    else:
+                                        sets_lost += 1
+                                else:
+                                    games_won += away_score
+                                    games_lost += home_score
+                                    if away_score > home_score:
+                                        sets_won += 1
+                                    else:
+                                        sets_lost += 1
+                            except ValueError:
+                                pass
+                
+                # Calculate percentages
+                match_percentage = f"{round((matches_won / total_matches) * 100, 1)}%" if total_matches > 0 else "0%"
+                line_percentage = f"{round((lines_won / (lines_won + lines_lost)) * 100, 1)}%" if (lines_won + lines_lost) > 0 else "0%"
+                set_percentage = f"{round((sets_won / (sets_won + sets_lost)) * 100, 1)}%" if (sets_won + sets_lost) > 0 else "0%"
+                game_percentage = f"{round((games_won / (games_won + games_lost)) * 100, 1)}%" if (games_won + games_lost) > 0 else "0%"
+                
+                # Build calculated team stats
+                team_stats = {
+                    'team': team,
+                    'points': total_points,
+                    'matches': {
+                        'won': matches_won,
+                        'lost': matches_lost,
+                        'percentage': match_percentage
+                    },
+                    'lines': {
+                        'won': lines_won,
+                        'lost': lines_lost,
+                        'percentage': line_percentage
+                    },
+                    'sets': {
+                        'won': sets_won,
+                        'lost': sets_lost,
+                        'percentage': set_percentage
+                    },
+                    'games': {
+                        'won': games_won,
+                        'lost': games_lost,
+                        'percentage': game_percentage
+                    }
+                }
+            
+            # Group team matches by date for court assignment
             from collections import defaultdict, Counter
             matches_by_date = defaultdict(list)
-            for match in matches:
-                if match.get('Home Team') == team or match.get('Away Team') == team:
-                    matches_by_date[match['Date']].append(match)
+            for match in team_matches:
+                matches_by_date[match['Date']].append(match)
             
-            # Court stats and player stats
-            court_stats = {f'court{i}': {'matches': 0, 'wins': 0, 'losses': 0, 'players': Counter()} for i in range(1, 5)}
+            # Determine max courts dynamically
+            max_courts = 4  # Default to 4 courts as fallback
+            for day_matches in matches_by_date.values():
+                max_courts = max(max_courts, len(day_matches))
+            
+            # Court stats and player stats with dynamic court count
+            court_stats = {f'court{i}': {'matches': 0, 'wins': 0, 'losses': 0, 'players': Counter()} for i in range(1, max_courts + 1)}
             player_stats = {}
             
             for date, day_matches in matches_by_date.items():
@@ -711,7 +866,7 @@ def get_mobile_team_data(user):
                 day_matches_sorted = sorted(day_matches, key=lambda m: (m.get('Home Team', ''), m.get('Away Team', '')))
                 for i, match in enumerate(day_matches_sorted):
                     court_num = i + 1
-                    if court_num > 4:
+                    if court_num > max_courts:
                         continue
                     court_key = f'court{court_num}'
                     is_home = match.get('Home Team') == team
@@ -750,8 +905,8 @@ def get_mobile_team_data(user):
                         player_stats[players[0]]['partners'][players[1]] += 1
                         player_stats[players[1]]['partners'][players[0]] += 1
             
-            # Build court_analysis
-            for i in range(1, 5):
+            # Build court_analysis with dynamic court count
+            for i in range(1, max_courts + 1):
                 court_key = f'court{i}'
                 stat = court_stats[court_key]
                 matches = stat['matches']
@@ -962,11 +1117,25 @@ def calculate_team_analysis_mobile(team_stats, team_matches, team):
             'comeback_wins': comeback_wins
         }
         
-        # Court Analysis
+        # Court Analysis - Dynamic court detection
+        # Determine number of courts by analyzing match patterns
+        matches_by_group = defaultdict(list)
+        for match in team_matches:
+            date = match.get('Date') or match.get('date')
+            home_team = match.get('Home Team', '')
+            away_team = match.get('Away Team', '')
+            group_key = (date, home_team, away_team)
+            matches_by_group[group_key].append(match)
+        
+        # Determine max courts by finding the largest group of matches on the same date
+        max_courts = 4  # Default to 4 courts as fallback
+        for group_matches in matches_by_group.values():
+            max_courts = max(max_courts, len(group_matches))
+        
         court_analysis = {}
-        for i in range(1, 5):
+        for i in range(1, max_courts + 1):
             court_name = f'Court {i}'
-            court_matches = [m for idx, m in enumerate(team_matches) if (idx % 4) + 1 == i]
+            court_matches = [m for idx, m in enumerate(team_matches) if (idx % max_courts) + 1 == i]
             wins = losses = 0
             player_win_counts = {}
             
@@ -1041,8 +1210,8 @@ def calculate_team_analysis_mobile(team_stats, team_matches, team):
                 if team_won:
                     player_stats[player]['wins'] += 1
                 
-                # Court
-                court_idx = team_matches.index(match) % 4 + 1
+                # Court - Use dynamic court count
+                court_idx = team_matches.index(match) % max_courts + 1
                 court = f'Court {court_idx}'
                 if court not in player_stats[player]['courts']:
                     player_stats[player]['courts'][court] = {'matches': 0, 'wins': 0}
