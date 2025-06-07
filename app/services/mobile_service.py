@@ -1397,6 +1397,7 @@ def search_players_with_fuzzy_logic_mobile(first_name_query, last_name_query):
     """
     Search for players using enhanced fuzzy logic from the backup implementation.
     This is the mobile-specific version that returns data in the format expected by the template.
+    Searches across both APTA and NSTF leagues.
     
     Args:
         first_name_query: First name to search for (can be empty)
@@ -1406,12 +1407,50 @@ def search_players_with_fuzzy_logic_mobile(first_name_query, last_name_query):
         list: List of matching player dictionaries with name and basic info
     """
     try:
-        # Load player history data
         project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        player_history_path = os.path.join(project_root, 'data', 'leagues', 'all', 'player_history.json')
+        all_players = []
         
-        with open(player_history_path, 'r') as f:
-            all_players = json.load(f)
+        # Load APTA player history data
+        apta_player_history_path = os.path.join(project_root, 'data', 'leagues', 'all', 'player_history.json')
+        try:
+            with open(apta_player_history_path, 'r') as f:
+                apta_players = json.load(f)
+                all_players.extend(apta_players)
+                print(f"Loaded {len(apta_players)} APTA players")
+        except Exception as e:
+            print(f"Error loading APTA players: {e}")
+        
+        # Load NSTF players data
+        nstf_players_path = os.path.join(project_root, 'data', 'leagues', 'NSTF', 'players.json')
+        try:
+            with open(nstf_players_path, 'r') as f:
+                nstf_players_raw = json.load(f)
+                # Convert NSTF format to match APTA format
+                for player in nstf_players_raw:
+                    first_name = player.get('First Name', '')
+                    last_name = player.get('Last Name', '')
+                    full_name = f"{first_name} {last_name}".strip()
+                    
+                    # Convert NSTF player to common format
+                    converted_player = {
+                        'name': full_name,
+                        'first_name': first_name,
+                        'last_name': last_name,
+                        'player_id': player.get('Player ID', ''),
+                        'league_id': 'NSTF',
+                        'series': player.get('Series', ''),
+                        'club': player.get('Club', ''),
+                        'pti': player.get('PTI', 'N/A'),
+                        'wins': int(player.get('Wins', 0)) if player.get('Wins', '').isdigit() else 0,
+                        'losses': int(player.get('Losses', 0)) if player.get('Losses', '').isdigit() else 0,
+                        'matches': []  # NSTF doesn't have detailed match history in this format
+                    }
+                    all_players.append(converted_player)
+                print(f"Loaded {len(nstf_players_raw)} NSTF players")
+        except Exception as e:
+            print(f"Error loading NSTF players: {e}")
+        
+        print(f"Total players loaded: {len(all_players)}")
             
         from utils.match_utils import names_match, normalize_name
         
@@ -1456,9 +1495,20 @@ def search_players_with_fuzzy_logic_mobile(first_name_query, last_name_query):
                           last_name_query.lower() in p_last.lower())
             
             if matches:
-                # Get additional player info
+                # Get additional player info - handle both APTA and NSTF formats
                 latest_match = player.get('matches', [])[-1] if player.get('matches') else {}
-                current_pti = latest_match.get('end_pti') if latest_match else player.get('pti', 'N/A')
+                
+                # Get PTI - different sources for APTA vs NSTF
+                if latest_match:
+                    # APTA format with match history
+                    current_pti = latest_match.get('end_pti', player.get('pti', 'N/A'))
+                    club = latest_match.get('club', player.get('club', 'Unknown'))
+                    series = latest_match.get('series', player.get('series', 'Unknown'))
+                else:
+                    # NSTF format or APTA without matches
+                    current_pti = player.get('pti', 'N/A')
+                    club = player.get('club', 'Unknown')
+                    series = player.get('series', 'Unknown')
                 
                 # Format current_pti for display
                 if current_pti == 'N/A' or current_pti is None:
@@ -1469,15 +1519,23 @@ def search_players_with_fuzzy_logic_mobile(first_name_query, last_name_query):
                     except (ValueError, TypeError):
                         current_pti_display = 'N/A'
                 
+                # Calculate total matches
+                total_matches = len(player.get('matches', []))
+                if total_matches == 0:
+                    # For NSTF or players without match history, use wins + losses
+                    wins = player.get('wins', 0)
+                    losses = player.get('losses', 0)
+                    total_matches = wins + losses
+                
                 matching_players.append({
                     'name': player_name,
                     'first_name': p_first,
                     'last_name': p_last,
                     'player_id': player.get('player_id', ''),
                     'current_pti': current_pti_display,
-                    'total_matches': len(player.get('matches', [])),
-                    'club': latest_match.get('club') if latest_match else 'Unknown',
-                    'series': latest_match.get('series') if latest_match else 'Unknown'
+                    'total_matches': total_matches,
+                    'club': club,
+                    'series': series
                 })
         
         # Sort by name for consistent results
