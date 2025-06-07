@@ -2493,8 +2493,30 @@ def get_club_players_data(user, series_filter=None, first_name_filter=None, last
                 'players': [],
                 'available_series': [],
                 'pti_range': {'min': 0, 'max': 100},
+                'pti_filters_available': False,
                 'error': 'Error loading player data'
             }
+
+        # Check if players in this league have valid PTI values
+        valid_pti_count = 0
+        total_players_checked = 0
+        for player in all_players:
+            total_players_checked += 1
+            try:
+                pti_str = str(player.get('PTI', 'N/A')).strip()
+                if pti_str and pti_str != 'N/A' and pti_str != '':
+                    float(pti_str)  # Test if it's a valid number
+                    valid_pti_count += 1
+            except (ValueError, TypeError):
+                continue
+                
+        # Determine if PTI filters should be available
+        # Show PTI filters only if at least 10% of players have valid PTI values
+        pti_percentage = (valid_pti_count / total_players_checked * 100) if total_players_checked > 0 else 0
+        pti_filters_available = pti_percentage >= 10.0
+        
+        print(f"[DEBUG] PTI analysis: {valid_pti_count}/{total_players_checked} players have valid PTI ({pti_percentage:.1f}%)")
+        print(f"[DEBUG] PTI filters available: {pti_filters_available}")
 
         # Debug: Show unique clubs in data and check counts
         clubs_in_data = set()
@@ -2620,6 +2642,7 @@ def get_club_players_data(user, series_filter=None, first_name_filter=None, last
             'players': filtered_players,
             'available_series': sorted(club_series, key=lambda x: int(x.split()[-1]) if x.split()[-1].isdigit() else 999),
             'pti_range': pti_range,
+            'pti_filters_available': pti_filters_available,
             'debug': {
                 'user_club': user_club,
                 'total_players_in_file': len(all_players),
@@ -2636,6 +2659,7 @@ def get_club_players_data(user, series_filter=None, first_name_filter=None, last
             'players': [],
             'available_series': [],
             'pti_range': {'min': 0, 'max': 100},
+            'pti_filters_available': False,
             'error': str(e)
         }
 
