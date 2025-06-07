@@ -33,32 +33,44 @@ def run_migration():
     print("Creating leagues tables...")
     
     # Create leagues table
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS leagues (
-        id SERIAL PRIMARY KEY,
-        league_id VARCHAR(255) NOT NULL UNIQUE,
-        league_name VARCHAR(255) NOT NULL,
-        league_url VARCHAR(512),
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-    ''')
+    try:
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS leagues (
+            id SERIAL PRIMARY KEY,
+            league_id VARCHAR(255) NOT NULL UNIQUE,
+            league_name VARCHAR(255) NOT NULL,
+            league_url VARCHAR(512),
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+        ''')
+        print("✓ Leagues table created/verified")
+    except Exception as e:
+        print(f"Note: Leagues table issue (continuing): {e}")
     
     # Create club_leagues junction table for many-to-many relationship
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS club_leagues (
-        id SERIAL PRIMARY KEY,
-        club_id INTEGER NOT NULL REFERENCES clubs(id) ON DELETE CASCADE,
-        league_id INTEGER NOT NULL REFERENCES leagues(id) ON DELETE CASCADE,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE(club_id, league_id)
-    )
-    ''')
+    try:
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS club_leagues (
+            id SERIAL PRIMARY KEY,
+            club_id INTEGER NOT NULL REFERENCES clubs(id) ON DELETE CASCADE,
+            league_id INTEGER NOT NULL REFERENCES leagues(id) ON DELETE CASCADE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(club_id, league_id)
+        )
+        ''')
+        print("✓ Club_leagues table created/verified")
+    except Exception as e:
+        print(f"Note: Club_leagues table issue (continuing): {e}")
     
     # Add league_id column to users table if it doesn't exist
-    cursor.execute('''
-    ALTER TABLE users 
-    ADD COLUMN IF NOT EXISTS league_id INTEGER REFERENCES leagues(id)
-    ''')
+    try:
+        cursor.execute('''
+        ALTER TABLE users 
+        ADD COLUMN IF NOT EXISTS league_id INTEGER REFERENCES leagues(id)
+        ''')
+        print("✓ League_id column added to users table")
+    except Exception as e:
+        print(f"Note: League_id column issue (continuing): {e}")
     
     print("Inserting default leagues...")
     
@@ -69,12 +81,16 @@ def run_migration():
         ('NSTF', 'North Shore Tennis Foundation', 'https://nstf.org/'),
     ]
     
-    for league_id, league_name, league_url in default_leagues:
-        cursor.execute('''
-        INSERT INTO leagues (league_id, league_name, league_url) 
-        VALUES (%s, %s, %s) 
-        ON CONFLICT (league_id) DO NOTHING
-        ''', (league_id, league_name, league_url))
+    try:
+        for league_id, league_name, league_url in default_leagues:
+            cursor.execute('''
+            INSERT INTO leagues (league_id, league_name, league_url) 
+            VALUES (%s, %s, %s) 
+            ON CONFLICT (league_id) DO NOTHING
+            ''', (league_id, league_name, league_url))
+        print("✓ Default leagues inserted/verified")
+    except Exception as e:
+        print(f"Note: Default leagues issue (continuing): {e}")
     
     print("Setting up default club-league relationships...")
     
