@@ -26,7 +26,7 @@
     </div>
 
     <!-- PTI Range Filter -->
-    <div class="mb-4">
+    <div id="ptiFiltersSection" class="mb-4" style="display: none;">
       <label class="block text-sm font-medium text-gray-700 mb-2">PTI Filters</label>
       <div class="space-y-3">
         <div>
@@ -273,6 +273,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const data = await response.json();
         availableSeries = data.available_series || [];
         ptiRange = data.pti_range || { min: 0, max: 100 };
+        const ptiFiltersAvailable = data.pti_filters_available || false;
         
         // Populate series dropdown
         seriesFilter.innerHTML = '<option value="">All Series</option>';
@@ -283,8 +284,16 @@ document.addEventListener('DOMContentLoaded', function() {
             seriesFilter.appendChild(option);
         });
         
-        // Set up PTI sliders
-        setupPTISliders();
+        // Show/hide PTI filters based on availability
+        const ptiFiltersSection = document.getElementById('ptiFiltersSection');
+        if (ptiFiltersAvailable) {
+            ptiFiltersSection.style.display = 'block';
+            // Set up PTI sliders only if PTI data is available
+            setupPTISliders();
+        } else {
+            ptiFiltersSection.style.display = 'none';
+            console.log('PTI filters hidden - no valid PTI data available for this league');
+        }
     }
 
     // Setup PTI slider fields
@@ -315,31 +324,34 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         // PTI slider events with real-time value updates
-        ptiMinSlider.addEventListener('input', function() {
-            let minVal = parseFloat(this.value);
-            let maxVal = parseFloat(ptiMaxSlider.value);
+        const ptiFiltersSection = document.getElementById('ptiFiltersSection');
+        if (ptiFiltersSection.style.display !== 'none') {
+            ptiMinSlider.addEventListener('input', function() {
+                let minVal = parseFloat(this.value);
+                let maxVal = parseFloat(ptiMaxSlider.value);
+                
+                // Ensure min doesn't exceed max
+                if (minVal > maxVal) {
+                    minVal = maxVal;
+                    this.value = minVal;
+                }
+                
+                ptiMinValue.textContent = minVal.toFixed(1);
+            });
             
-            // Ensure min doesn't exceed max
-            if (minVal > maxVal) {
-                minVal = maxVal;
-                this.value = minVal;
-            }
-            
-            ptiMinValue.textContent = minVal.toFixed(1);
-        });
-        
-        ptiMaxSlider.addEventListener('input', function() {
-            let maxVal = parseFloat(this.value);
-            let minVal = parseFloat(ptiMinSlider.value);
-            
-            // Ensure max doesn't go below min
-            if (maxVal < minVal) {
-                maxVal = minVal;
-                this.value = maxVal;
-            }
-            
-            ptiMaxValue.textContent = maxVal.toFixed(1);
-        });
+            ptiMaxSlider.addEventListener('input', function() {
+                let maxVal = parseFloat(this.value);
+                let minVal = parseFloat(ptiMinSlider.value);
+                
+                // Ensure max doesn't go below min
+                if (maxVal < minVal) {
+                    maxVal = minVal;
+                    this.value = maxVal;
+                }
+                
+                ptiMaxValue.textContent = maxVal.toFixed(1);
+            });
+        }
         
         // Selection events
         messageSelectedBtn.addEventListener('click', showSelectedPlayersModal);
@@ -365,10 +377,14 @@ document.addEventListener('DOMContentLoaded', function() {
             if (firstNameFilter.value.trim()) params.append('first_name', firstNameFilter.value.trim());
             if (lastNameFilter.value.trim()) params.append('last_name', lastNameFilter.value.trim());
             
-            const ptiMin = parseFloat(ptiMinSlider.value);
-            const ptiMax = parseFloat(ptiMaxSlider.value);
-            if (!isNaN(ptiMin) && ptiMin >= ptiRange.min) params.append('pti_min', ptiMin);
-            if (!isNaN(ptiMax) && ptiMax <= ptiRange.max) params.append('pti_max', ptiMax);
+            // Only add PTI filters if PTI filters section is visible
+            const ptiFiltersSection = document.getElementById('ptiFiltersSection');
+            if (ptiFiltersSection.style.display !== 'none') {
+                const ptiMin = parseFloat(ptiMinSlider.value);
+                const ptiMax = parseFloat(ptiMaxSlider.value);
+                if (!isNaN(ptiMin) && ptiMin >= ptiRange.min) params.append('pti_min', ptiMin);
+                if (!isNaN(ptiMax) && ptiMax <= ptiRange.max) params.append('pti_max', ptiMax);
+            }
             
             const response = await fetch('/api/club-players?' + params.toString());
             if (!response.ok) throw new Error('Failed to fetch players');
@@ -431,7 +447,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                     <div class="grid grid-cols-2 gap-4 text-sm">
                         <div class="space-y-1">
-                            <div><span class="font-semibold text-gray-600">PTI:</span> <span class="text-blue-600 font-medium">${player.pti}</span></div>
+                            ${player.pti !== 'N/A' ? `<div><span class="font-semibold text-gray-600">PTI:</span> <span class="text-blue-600 font-medium">${player.pti}</span></div>` : ''}
                             <div><span class="font-semibold text-gray-600">Wins:</span> ${player.wins}</div>
                         </div>
                         <div class="space-y-1">
@@ -659,21 +675,20 @@ document.addEventListener('DOMContentLoaded', function() {
         selectedPlayersModal.classList.add('hidden');
     }
 
-    // Reset filters
+    // Reset all filters
     function resetFilters() {
         seriesFilter.value = '';
         firstNameFilter.value = '';
         lastNameFilter.value = '';
         
-        ptiMinSlider.value = ptiRange.min;
-        ptiMaxSlider.value = ptiRange.max;
-        ptiMinValue.textContent = ptiRange.min;
-        ptiMaxValue.textContent = ptiRange.max;
-        ptiRangeDisplay.textContent = `${ptiRange.min} - ${ptiRange.max}`;
-        
-        // Clear selections when resetting filters
-        selectedPlayers.clear();
-        updateSelectionUI();
+        // Only reset PTI filters if they are visible
+        const ptiFiltersSection = document.getElementById('ptiFiltersSection');
+        if (ptiFiltersSection.style.display !== 'none') {
+            ptiMinSlider.value = ptiRange.min;
+            ptiMaxSlider.value = ptiRange.max;
+            ptiMinValue.textContent = ptiRange.min;
+            ptiMaxValue.textContent = ptiRange.max;
+        }
         
         loadPlayers();
     }
