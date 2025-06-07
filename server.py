@@ -33,6 +33,17 @@ from app.routes.api_routes import api_bp
 # Import act routes initialization
 from routes.act import init_act_routes
 
+# Run database migrations before starting the application
+print("=== Running Database Migrations ===")
+try:
+    from run_migrations import run_all_migrations
+    migration_success = run_all_migrations()
+    if not migration_success:
+        print("❌ Database migrations failed - application may not function correctly")
+except Exception as e:
+    print(f"Migration error: {e}")
+    print("⚠️ Continuing with application startup...")
+
 # Simple database connection test
 print("=== Testing Database Connection ===")
 try:
