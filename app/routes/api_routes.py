@@ -793,10 +793,20 @@ def update_settings():
             if league_result:
                 league_id = league_result['id']
         
-        # Attempt to find Tenniscores Player ID using the same logic as registration/login
+        # Check if league has changed - if so, we need to find new player ID for the new league
+        current_user = execute_query_one('SELECT l.league_id FROM users u LEFT JOIN leagues l ON u.league_id = l.id WHERE u.email = %s', (user_email,))
+        current_league_id = current_user['league_id'] if current_user else None
+        new_league_id = data.get('league_id')
+        
+        league_changed = current_league_id != new_league_id
+        logger.info(f"Settings update: League change check - Current: {current_league_id}, New: {new_league_id}, Changed: {league_changed}")
+        
+        # Only re-compute player ID if league has changed
         tenniscores_player_id = None
-        if data.get('firstName') and data.get('lastName') and data.get('club') and data.get('series'):
+        if league_changed and data.get('firstName') and data.get('lastName') and data.get('club') and data.get('series'):
             try:
+                logger.info(f"Settings update: League changed from {current_league_id} to {new_league_id}, finding new player ID")
+                
                 # Convert series name to mapping ID format for player lookup
                 series_mapping_id = convert_series_to_mapping_id(data['series'], data['club'], data.get('league_id'))
                 logger.info(f"Settings update: Looking up player with mapping ID: {series_mapping_id}")
@@ -818,32 +828,55 @@ def update_settings():
                     league=league_filter
                 )
                 if tenniscores_player_id:
-                    logger.info(f"Settings update: Found Player ID for {data['firstName']} {data['lastName']}: {tenniscores_player_id}")
+                    logger.info(f"Settings update: Found NEW Player ID for {data['firstName']} {data['lastName']} in {new_league_id}: {tenniscores_player_id}")
                 else:
-                    logger.info(f"Settings update: No Player ID found for {data['firstName']} {data['lastName']} ({data['club']}, {series_mapping_id})")
+                    logger.info(f"Settings update: No Player ID found for {data['firstName']} {data['lastName']} in {new_league_id} ({data['club']}, {series_mapping_id})")
             except Exception as match_error:
                 logger.warning(f"Settings update: Error matching player ID for {data['firstName']} {data['lastName']}: {str(match_error)}")
                 # Continue with update even if matching fails
                 tenniscores_player_id = None
+        elif not league_changed:
+            logger.info(f"Settings update: League unchanged ({current_league_id}), keeping existing player ID")
         
-        # Update user data including the new player ID
-        success = execute_update('''
-            UPDATE users 
-            SET first_name = %s, last_name = %s, email = %s, 
-                club_id = %s, series_id = %s, league_id = %s, club_automation_password = %s,
-                tenniscores_player_id = %s
-            WHERE email = %s
-        ''', (
-            data['firstName'], 
-            data['lastName'], 
-            data['email'],
-            club_id,
-            series_id,
-            league_id,
-            data.get('clubAutomationPassword', ''),
-            tenniscores_player_id,
-            user_email
-        ))
+        # Update user data - only update player ID if league changed and we found a new one
+        if league_changed and tenniscores_player_id:
+            # League changed and we found a new player ID
+            success = execute_update('''
+                UPDATE users 
+                SET first_name = %s, last_name = %s, email = %s, 
+                    club_id = %s, series_id = %s, league_id = %s, club_automation_password = %s,
+                    tenniscores_player_id = %s
+                WHERE email = %s
+            ''', (
+                data['firstName'], 
+                data['lastName'], 
+                data['email'],
+                club_id,
+                series_id,
+                league_id,
+                data.get('clubAutomationPassword', ''),
+                tenniscores_player_id,
+                user_email
+            ))
+            logger.info(f"Settings update: Updated user with NEW player ID: {tenniscores_player_id}")
+        else:
+            # League didn't change or no new player ID found - keep existing player ID
+            success = execute_update('''
+                UPDATE users 
+                SET first_name = %s, last_name = %s, email = %s, 
+                    club_id = %s, series_id = %s, league_id = %s, club_automation_password = %s
+                WHERE email = %s
+            ''', (
+                data['firstName'], 
+                data['lastName'], 
+                data['email'],
+                club_id,
+                series_id,
+                league_id,
+                data.get('clubAutomationPassword', ''),
+                user_email
+            ))
+            logger.info(f"Settings update: Updated user, keeping existing player ID")
         
         if not success:
             return jsonify({'error': 'Failed to update user data'}), 500
@@ -881,18 +914,23 @@ def update_settings():
             # Explicitly mark session as modified to ensure persistence
             session.modified = True
             
-            # Log the player ID update for tracking
-            if tenniscores_player_id and tenniscores_player_id != updated_user['tenniscores_player_id']:
-                logger.info(f"Player ID could be updated: computed={tenniscores_player_id}, stored={updated_user['tenniscores_player_id']}")
-            logger.info(f"Settings updated for {updated_user['email']}: Using stored player ID {updated_user['tenniscores_player_id']}")
+            # Log the player ID handling for tracking
+            if league_changed:
+                if tenniscores_player_id:
+                    logger.info(f"League changed: Updated player ID from stored value to new ID: {updated_user['tenniscores_player_id']}")
+                else:
+                    logger.info(f"League changed but no new player ID found - kept existing: {updated_user['tenniscores_player_id']}")
+            else:
+                logger.info(f"League unchanged: Using stored player ID {updated_user['tenniscores_player_id']}")
             logger.info(f"Session player ID set to: {session['user']['tenniscores_player_id']}")
             
             return jsonify({
                 'success': True,
                 'message': 'Settings updated successfully',
                 'user': session['user'],
-                'player_id_updated': updated_user['tenniscores_player_id'] is not None,
-                'player_id': updated_user['tenniscores_player_id']
+                'player_id_updated': league_changed and tenniscores_player_id is not None,
+                'player_id': updated_user['tenniscores_player_id'],
+                'league_changed': league_changed
             })
         else:
             return jsonify({'error': 'Failed to retrieve updated user data'}), 500
