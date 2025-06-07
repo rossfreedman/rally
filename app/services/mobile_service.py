@@ -735,14 +735,45 @@ def get_mobile_team_data(user):
         top_players = []
         team_stats = None
         
+        # Prioritize using pre-calculated stats from series_stats.json
+        if team_stats_reference:
+            print(f"[DEBUG] Using pre-calculated stats for {team}")
+            team_stats = {
+                'team': team,
+                'points': team_stats_reference.get('points', 0),
+                'matches': {
+                    'won': team_stats_reference.get('matches', {}).get('won', 0),
+                    'lost': team_stats_reference.get('matches', {}).get('lost', 0),
+                    'percentage': team_stats_reference.get('matches', {}).get('percentage', '0%')
+                },
+                'lines': {
+                    'won': team_stats_reference.get('lines', {}).get('won', 0),
+                    'lost': team_stats_reference.get('lines', {}).get('lost', 0),
+                    'percentage': team_stats_reference.get('lines', {}).get('percentage', '0%')
+                },
+                'sets': {
+                    'won': team_stats_reference.get('sets', {}).get('won', 0),
+                    'lost': team_stats_reference.get('sets', {}).get('lost', 0),
+                    'percentage': team_stats_reference.get('sets', {}).get('percentage', '0%')
+                },
+                'games': {
+                    'won': team_stats_reference.get('games', {}).get('won', 0),
+                    'lost': team_stats_reference.get('games', {}).get('lost', 0),
+                    'percentage': team_stats_reference.get('games', {}).get('percentage', '0%')
+                }
+            }
+        
+        # If no pre-calculated stats found, fall back to calculating from match data
         if os.path.exists(matches_path):
             with open(matches_path, 'r') as f:
                 matches = json.load(f)
             
-            # Get team matches and calculate real stats
+            # Get team matches for court analysis and player stats (regardless of pre-calculated stats availability)
             team_matches = [m for m in matches if m.get('Home Team') == team or m.get('Away Team') == team]
             
-            if team_matches:
+            # Only calculate team stats from match data if no pre-calculated stats were found
+            if not team_stats and team_matches:
+                print(f"[DEBUG] No pre-calculated stats found, calculating from match data for {team}")
                 # Calculate actual team statistics from match data
                 total_matches = len(team_matches)
                 matches_won = 0
@@ -772,14 +803,35 @@ def get_mobile_team_data(user):
                             team_won_a_set = False
                             for score in scores:
                                 if '-' in score:
-                                    home_score, away_score = score.split('-')
-                                    try:
-                                        home_score, away_score = int(home_score.strip()), int(away_score.strip())
-                                        if (is_home and home_score > away_score) or (not is_home and away_score > home_score):
-                                            team_won_a_set = True
-                                            break
-                                    except ValueError:
-                                        pass
+                                    # Handle tiebreak notation like "6-7 [3-6]" or "1-0 [10-7]"
+                                    main_score = score.split(' [')[0]  # Get main score part
+                                    if '-' in main_score:
+                                        try:
+                                            home_score, away_score = main_score.split('-')
+                                            home_score, away_score = int(home_score.strip()), int(away_score.strip())
+                                            
+                                            # Determine if this is a regular set or match tiebreak
+                                            if home_score <= 1 and away_score <= 1:
+                                                # This is likely a match tiebreak (1-0 format)
+                                                # Check the tiebreak score in brackets if available
+                                                if '[' in score and ']' in score:
+                                                    tiebreak_part = score[score.find('[')+1:score.find(']')]
+                                                    if '-' in tiebreak_part:
+                                                        tb_home, tb_away = tiebreak_part.split('-')
+                                                        try:
+                                                            tb_home, tb_away = int(tb_home.strip()), int(tb_away.strip())
+                                                            if (is_home and tb_home > tb_away) or (not is_home and tb_away > tb_home):
+                                                                team_won_a_set = True
+                                                                break
+                                                        except ValueError:
+                                                            pass
+                                            else:
+                                                # Regular set scoring (6-4, 7-5, etc.)
+                                                if (is_home and home_score > away_score) or (not is_home and away_score > home_score):
+                                                    team_won_a_set = True
+                                                    break
+                                        except ValueError:
+                                            pass
                             if team_won_a_set:
                                 total_points += 1
                     
