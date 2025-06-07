@@ -4,7 +4,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import logging
-from .auth import login_required
+from utils.auth import login_required
 
 logger = logging.getLogger(__name__)
 

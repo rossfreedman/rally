@@ -35,7 +35,7 @@ async function loadResearchMePage() {
         // Get match data directly (fallback if player-specific data doesn't work)
         let matchesData = [];
         try {
-            const matchesResp = await fetch('/data/leagues/apta/match_history.json');
+            const matchesResp = await fetch('/data/leagues/all/match_history.json');
             matchesData = await matchesResp.json();
             console.log(`Loaded ${matchesData.length} matches from match_history.json`);
         } catch (err) {
@@ -838,7 +838,7 @@ function renderCurrentSeasonStats(player, matchesData) {
     let ptiDataPromise = null;
     
     // Fetch player history data from player_history.json for PTI calculations
-                ptiDataPromise = fetch('/data/leagues/apta/player_history.json')
+                ptiDataPromise = fetch('/data/leagues/all/player_history.json')
         .then(response => response.json())
         .then(data => {
             console.log(`Loaded player history data for ${data.length} players`);
@@ -895,7 +895,7 @@ function renderCurrentSeasonStats(player, matchesData) {
     if (!matchesData || matchesData.length === 0) {
         console.log("No matches data provided, attempting to fetch it");
         // This is an async operation but we'll handle it in a simplified way for this fix
-        fetch('/data/leagues/apta/match_history.json')
+        fetch('/data/leagues/all/match_history.json')
             .then(response => response.json())
             .then(data => {
                 console.log(`Loaded ${data.length} matches from match_history.json`);

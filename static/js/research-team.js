@@ -99,7 +99,7 @@ async function loadTeamData() {
 // Function to load matches data from local files when API fails
 async function loadLocalMatchesData(teamId) {
     try {
-        const response = await fetch('/data/leagues/apta/match_history.json');
+        const response = await fetch('/data/leagues/all/match_history.json');
         if (!response.ok) {
             throw new Error('Could not load local matches data');
         }
@@ -119,7 +119,7 @@ async function loadLocalMatchesData(teamId) {
 // Function to load stats data from local files when API fails
 async function loadLocalStatsData(teamId) {
     try {
-        const response = await fetch('/data/leagues/apta/series_stats.json');
+        const response = await fetch('/data/leagues/all/series_stats.json');
         if (!response.ok) {
             throw new Error('Could not load local stats data');
         }

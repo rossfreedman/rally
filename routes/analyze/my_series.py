@@ -3,7 +3,7 @@ import pandas as pd
 from database import get_db
 from datetime import datetime
 import logging
-from ..act.auth import login_required
+from utils.auth import login_required
 
 logger = logging.getLogger(__name__)
 

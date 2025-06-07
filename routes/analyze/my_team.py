@@ -2,7 +2,7 @@ from flask import jsonify, session
 import pandas as pd
 from database import get_db
 import logging
-from ..act.auth import login_required
+from utils.auth import login_required
 
 logger = logging.getLogger(__name__)
 
