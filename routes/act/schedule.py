@@ -9,7 +9,7 @@ def get_matches_for_user_club(user):
     """Get upcoming matches and practices for a user's club from schedules.json"""
     try:
         # Use schedules.json for upcoming matches (availability system)
-        file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../data', 'leagues', 'apta', 'schedules.json')
+        file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../data', 'leagues', 'all', 'schedules.json')
         print(f"Looking for schedule file at: {file_path}")
         
         with open(file_path, 'r') as f:
@@ -21,14 +21,22 @@ def get_matches_for_user_club(user):
         if not user_club or not user_series:
             print("Missing club or series in user data")
             return []
-            
-        # Extract series number (e.g., "22" from "Series 22")
-        series_num = user_series.split()[-1] if user_series else ''
-        print(f"Looking for matches for club: {user_club}, series: {series_num}")
         
-        # The team name in schedules.json now uses the format: "Club - Series" (e.g. "Tennaqua - 22")
-        # We updated the scraper to produce this cleaner format
-        user_team_pattern = f"{user_club} - {series_num}"
+        print(f"Looking for matches for club: {user_club}, series: {user_series}")
+        
+        # Handle different series name formats
+        # For NSTF: "Series 2B" -> "Tennaqua S2B - Series 2B"
+        # For APTA: "Chicago 22" -> "Tennaqua - 22"
+        
+        if 'Series' in user_series:
+            # NSTF format: "Series 2B" -> "S2B"
+            series_code = user_series.replace('Series ', 'S')
+            user_team_pattern = f"{user_club} {series_code} - {user_series}"
+        else:
+            # APTA format: "Chicago 22" -> extract number
+            series_num = user_series.split()[-1] if user_series else ''
+            user_team_pattern = f"{user_club} - {series_num}"
+        
         print(f"Looking for team pattern: {user_team_pattern}")
         
         filtered_matches = []
@@ -93,7 +101,7 @@ def init_schedule_routes(app):
     def serve_schedule():
         """Serve the schedule data"""
         try:
-            file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../data', 'leagues', 'apta', 'match_history.json')
+            file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../data', 'leagues', 'all', 'match_history.json')
             with open(file_path, 'r') as f:
                 data = json.load(f)
             return jsonify(data)
@@ -106,7 +114,7 @@ def init_schedule_routes(app):
     def get_team_matches():
         """Get matches for a team"""
         try:
-            file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../data', 'leagues', 'apta', 'match_history.json')
+            file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../data', 'leagues', 'all', 'match_history.json')
             with open(file_path, 'r') as f:
                 matches = json.load(f)
             return jsonify(matches)
