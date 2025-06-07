@@ -627,9 +627,9 @@ def remove_practice_times_data():
                 'message': 'User series not found'
             }), 400
         
-        # Load the current schedule
+        # Load the current schedule (use the same file as the availability system)
         project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        schedule_file = os.path.join(project_root, "data", "leagues", "apta", "schedules.json")
+        schedule_file = os.path.join(project_root, "data", "leagues", "all", "schedules.json")
         try:
             with open(schedule_file, 'r') as f:
                 schedule = json.load(f)

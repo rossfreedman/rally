@@ -46,20 +46,25 @@ def get_matches_for_user_club(user):
                 away_team = match.get('away_team', '')
                 practice_field = match.get('Practice', '')
                 
-                # Check if this is a practice entry for the user's club
+                # Check if this is a practice entry for the user's club AND series
                 if practice_field and practice_field == user_club:
-                    print(f"Found practice: {practice_field} on {match.get('date', '')}")
-                    # Normalize practice data to consistent format
-                    normalized_practice = {
-                        'date': match.get('date', ''),
-                        'time': match.get('time', ''),
-                        'location': practice_field,
-                        'home_team': '',
-                        'away_team': '',
-                        'type': 'practice',
-                        'description': f"{practice_field} Practice"
-                    }
-                    filtered_matches.append(normalized_practice)
+                    # Also filter by series to ensure we only show practices for the user's specific series
+                    practice_series = match.get('Series', '')
+                    if practice_series == user_series:
+                        print(f"Found practice: {practice_field} on {match.get('date', '')} for series {practice_series}")
+                        # Normalize practice data to consistent format
+                        normalized_practice = {
+                            'date': match.get('date', ''),
+                            'time': match.get('time', ''),
+                            'location': practice_field,
+                            'home_team': '',
+                            'away_team': '',
+                            'type': 'practice',
+                            'description': f"{practice_field} Practice"
+                        }
+                        filtered_matches.append(normalized_practice)
+                    else:
+                        print(f"Skipping practice: {practice_field} on {match.get('date', '')} - wrong series ({practice_series} != {user_series})")
                 # Check if either home or away team matches our team pattern (regular matches)
                 elif user_team_pattern in (home_team, away_team):
                     print(f"Found match: {home_team} vs {away_team}")

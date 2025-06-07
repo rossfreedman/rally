@@ -467,9 +467,9 @@ def add_practice_times():
                 'message': 'Invalid time format'
             }), 400
         
-        # Load the current schedule
+        # Load the current schedule (use the same file as the availability system)
         project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        schedule_file = os.path.join(project_root, "data", "leagues", "apta", "schedules.json")
+        schedule_file = os.path.join(project_root, "data", "leagues", "all", "schedules.json")
         try:
             with open(schedule_file, 'r') as f:
                 schedule = json.load(f)
@@ -484,9 +484,9 @@ def add_practice_times():
                 'message': 'Invalid schedule file format'
             }), 500
         
-        # Determine end date - set to end of current season (April 18, 2025)
+        # Determine end date - set to end of current season (December 31, 2025)
         # You may want to make this configurable
-        end_date = datetime(2025, 4, 18)
+        end_date = datetime(2025, 12, 31)
         
         # Convert day name to number (0=Monday, 6=Sunday)
         day_map = {
