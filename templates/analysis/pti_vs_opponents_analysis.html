@@ -235,9 +235,9 @@
                 console.log('Loading data files...');
                 
                 const [playerHistoryResponse, matchHistoryResponse, playersResponse] = await Promise.all([
-                            fetch('/data/leagues/apta/player_history.json'),
-        fetch('/data/leagues/apta/match_history.json'),
-        fetch('/data/leagues/apta/players.json')
+                                            fetch('/data/leagues/all/player_history.json'),
+                fetch('/data/leagues/all/match_history.json'),
+                fetch('/data/leagues/all/players.json')
                 ]);
 
                 if (!playerHistoryResponse.ok || !matchHistoryResponse.ok || !playersResponse.ok) {
@@ -336,7 +336,7 @@
             return player ? parseFloat(player.PTI) : null;
         }
 
-        function getOpponentsFromMatch(match, targetPlayer) {
+        function getOpponensftromMatch(match, targetPlayer) {
             const homePlayer1 = match['Home Player 1'] || '';
             const homePlayer2 = match['Home Player 2'] || '';
             const awayPlayer1 = match['Away Player 1'] || '';
@@ -417,7 +417,7 @@
                 }
                 
                 // Get opponents
-                const opponents = getOpponentsFromMatch(correspondingMatch, playerName);
+                const opponents = getOpponensftromMatch(correspondingMatch, playerName);
                 if (opponents.length < 2) {
                     console.warn(`Could not find 2 opponents for match on ${matchDateStr}`);
                     continue;

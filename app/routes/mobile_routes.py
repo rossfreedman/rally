@@ -231,6 +231,8 @@ def serve_mobile_view_schedule():
 def serve_mobile_analyze_me():
     """Serve the mobile Analyze Me page"""
     try:
+        print(f"[DEBUG] Session user type: {type(session['user'])}")
+        print(f"[DEBUG] Session user data: {session['user']}")
         analyze_data = get_player_analysis(session['user'])
         
         session_data = {

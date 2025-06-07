@@ -2,7 +2,7 @@ from flask import jsonify, session
 import pandas as pd
 from datetime import datetime
 import logging
-from ..act.auth import login_required
+from utils.auth import login_required
 from database_utils import execute_query
 
 logger = logging.getLogger(__name__)

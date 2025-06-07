@@ -34,7 +34,7 @@ def test_youtube_api():
         print("✅ YouTube API connection successful")
         
         # Load JSON file
-        with open('data/leagues/apta/improve_data/complete_platform_tennis_training_guide.json', 'r') as f:
+        with open('data/leagues/all/improve_data/complete_platform_tennis_training_guide.json', 'r') as f:
             data = json.load(f)
         
         print(f"\n📊 Found {len(data)} techniques in JSON")

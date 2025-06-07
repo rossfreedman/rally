@@ -1006,8 +1006,8 @@ def get_teams_players_data(user):
         
         # Load data files
         project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        stats_path = os.path.join(project_root, 'data', 'leagues', 'apta', 'series_stats.json')
-        matches_path = os.path.join(project_root, 'data', 'leagues', 'apta', 'match_history.json')
+        stats_path = os.path.join(project_root, 'data', 'leagues', 'all', 'series_stats.json')
+        matches_path = os.path.join(project_root, 'data', 'leagues', 'all', 'match_history.json')
         
         with open(stats_path, 'r') as f:
             all_stats = json.load(f)
@@ -1356,7 +1356,7 @@ def search_players_with_fuzzy_logic_mobile(first_name_query, last_name_query):
     try:
         # Load player history data
         project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        player_history_path = os.path.join(project_root, 'data', 'leagues', 'apta', 'player_history.json')
+        player_history_path = os.path.join(project_root, 'data', 'leagues', 'all', 'player_history.json')
         
         with open(player_history_path, 'r') as f:
             all_players = json.load(f)
@@ -1475,7 +1475,7 @@ def get_mobile_availability_data(user):
         try:
             # Fix path construction to use project root
             project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-            schedules_path = os.path.join(project_root, 'data', 'leagues', 'apta', 'schedules.json')
+            schedules_path = os.path.join(project_root, 'data', 'leagues', 'all', 'schedules.json')
             
             with open(schedules_path, 'r') as f:
                 all_matches = json.load(f)
@@ -1576,7 +1576,7 @@ def get_recent_matches_for_user_club(user):
     """
     try:
         project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        match_history_path = os.path.join(project_root, 'data', 'leagues', 'apta', 'match_history.json')
+        match_history_path = os.path.join(project_root, 'data', 'leagues', 'all', 'match_history.json')
         
         with open(match_history_path, 'r') as f:
             all_matches = json.load(f)
@@ -1585,10 +1585,25 @@ def get_recent_matches_for_user_club(user):
             return {}
             
         user_club = user['club']
+        user_league_id = user.get('league_id', '')
+        
+        # Filter matches by user's league first
+        def is_match_in_user_league(match):
+            match_league_id = match.get('league_id')
+            if user_league_id.startswith('APTA'):
+                # For APTA users, match exact APTA league ID
+                return match_league_id == user_league_id
+            else:
+                # For other leagues, match the league_id
+                return match_league_id == user_league_id
+        
+        league_filtered_matches = [match for match in all_matches if is_match_in_user_league(match)]
+        print(f"[DEBUG] get_recent_matches_for_user_club: Filtered from {len(all_matches)} to {len(league_filtered_matches)} matches for user's league")
+        
         # Filter matches where user's club is either home or away team
         # Make sure to capture ALL teams from this club across ALL series
         club_matches = []
-        for match in all_matches:
+        for match in league_filtered_matches:
             home_team = match.get('Home Team', '')
             away_team = match.get('Away Team', '')
             
@@ -1671,15 +1686,30 @@ def get_recent_matches_for_user_club(user):
         print(f"Error getting recent matches for user club: {e}")
         return {}
 
-def calculate_player_streaks(club_name):
+def calculate_player_streaks(club_name, user_league_id=''):
     """Calculate winning and losing streaks for players across ALL matches for the club - only show significant streaks (+5/-5)"""
     try:
         # Load ALL match history data
         project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        match_history_path = os.path.join(project_root, 'data', 'leagues', 'apta', 'match_history.json')
+        match_history_path = os.path.join(project_root, 'data', 'leagues', 'all', 'match_history.json')
         
         with open(match_history_path, 'r') as f:
             all_matches = json.load(f)
+        
+        # Filter matches by user's league if provided
+        if user_league_id:
+            def is_match_in_user_league(match):
+                match_league_id = match.get('league_id')
+                if user_league_id.startswith('APTA'):
+                    # For APTA users, match exact APTA league ID
+                    return match_league_id == user_league_id
+                else:
+                    # For other leagues, match the league_id
+                    return match_league_id == user_league_id
+            
+            league_filtered_matches = [match for match in all_matches if is_match_in_user_league(match)]
+            print(f"[DEBUG] calculate_player_streaks: Filtered from {len(all_matches)} to {len(league_filtered_matches)} matches for user's league")
+            all_matches = league_filtered_matches
         
         player_stats = {}
         
@@ -1825,9 +1855,10 @@ def get_mobile_club_data(user):
     """Get comprehensive club data for mobile my club page - using match_history.json for completed matches"""
     try:
         club_name = user.get('club', '')
+        user_league_id = user.get('league_id', '')
         
         print(f"[DEBUG] get_mobile_club_data called with user: {user}")
-        print(f"[DEBUG] club_name: '{club_name}'")
+        print(f"[DEBUG] club_name: '{club_name}', league_id: '{user_league_id}'")
         
         if not club_name:
             print(f"[DEBUG] No club name found, returning error")
@@ -1975,16 +2006,30 @@ def get_mobile_club_data(user):
         
         weekly_results.sort(key=lambda x: parse_date(x['date']), reverse=True)
         
-        # Calculate club standings (for all teams in the club across all series)
+        # Calculate club standings (for all teams in the club across all series) - filtered by user's league
         project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        stats_path = os.path.join(project_root, 'data', 'leagues', 'apta', 'series_stats.json')
+        stats_path = os.path.join(project_root, 'data', 'leagues', 'all', 'series_stats.json')
         
         tennaqua_standings = []
         try:
             with open(stats_path, 'r') as f:
                 stats_data = json.load(f)
+            
+            # Filter stats_data by user's league
+            # Check if this is the series_stats format (APTA teams don't have league_id field, NSTF teams do)
+            def is_user_league(team_data):
+                team_league_id = team_data.get('league_id')
+                if user_league_id.startswith('APTA'):
+                    # For APTA users, only include teams without league_id field (APTA teams)
+                    return team_league_id is None
+                else:
+                    # For other leagues, match the league_id
+                    return team_league_id == user_league_id
+            
+            league_filtered_stats = [team for team in stats_data if is_user_league(team)]
+            print(f"[DEBUG] Filtered from {len(stats_data)} total teams to {len(league_filtered_stats)} teams in user's league")
                 
-            for team_stats in stats_data:
+            for team_stats in league_filtered_stats:
                 if not team_stats.get('team', '').startswith(club_name):
                     continue
                     
@@ -1992,8 +2037,8 @@ def get_mobile_club_data(user):
                 if not series:
                     continue
                     
-                # Get all teams in this series
-                series_teams = [team for team in stats_data if team.get('series') == series]
+                # Get all teams in this series (from the league-filtered data)
+                series_teams = [team for team in league_filtered_stats if team.get('series') == series]
                 
                 # Calculate average points
                 for team in series_teams:
@@ -2024,20 +2069,31 @@ def get_mobile_club_data(user):
         except Exception as e:
             print(f"Error loading series stats: {str(e)}")
         
-        # Calculate head-to-head records
+        # Calculate head-to-head records (filtered by user's league)
         head_to_head = {}
         
         # Load ALL match history for comprehensive head-to-head records
         try:
             project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-            match_history_path = os.path.join(project_root, 'data', 'leagues', 'apta', 'match_history.json')
+            match_history_path = os.path.join(project_root, 'data', 'leagues', 'all', 'match_history.json')
             
             with open(match_history_path, 'r') as f:
                 all_match_history = json.load(f)
             
-            print(f"[DEBUG] Loading ALL match history for head-to-head: {len(all_match_history)} total matches")
+            # Filter match history by user's league
+            def is_match_in_user_league(match):
+                match_league_id = match.get('league_id')
+                if user_league_id.startswith('APTA'):
+                    # For APTA users, match exact APTA league ID
+                    return match_league_id == user_league_id
+                else:
+                    # For other leagues, match the league_id
+                    return match_league_id == user_league_id
             
-            for match in all_match_history:
+            league_filtered_matches = [match for match in all_match_history if is_match_in_user_league(match)]
+            print(f"[DEBUG] Filtered from {len(all_match_history)} total matches to {len(league_filtered_matches)} matches in user's league")
+            
+            for match in league_filtered_matches:
                 home_team = match.get('Home Team', '')
                 away_team = match.get('Away Team', '')
                 winner = match.get('Winner', '')
@@ -2111,8 +2167,8 @@ def get_mobile_club_data(user):
         # Sort by win percentage (highest to lowest), then by total matches as tiebreaker
         head_to_head.sort(key=lambda x: (x['wins'] / x['total'] if x['total'] > 0 else 0, x['total']), reverse=True)
         
-        # Calculate player streaks
-        player_streaks = calculate_player_streaks(club_name)
+        # Calculate player streaks (filtered by user's league)
+        player_streaks = calculate_player_streaks(club_name, user_league_id)
         
         return {
             'team_name': club_name,
@@ -2387,10 +2443,12 @@ def get_all_team_availability_data(user, selected_date=None):
         }
 
 def get_club_players_data(user, series_filter=None, first_name_filter=None, last_name_filter=None, pti_min=None, pti_max=None):
-    """Get all players at the user's club with optional filtering"""
+    """Get all players at the user's club with optional filtering (filtered by user's league)"""
     try:
-        # Get user's club from user data
+        # Get user's club and league from user data
         user_club = user.get('club')
+        user_league_id = user.get('league_id', '')
+        
         if not user_club:
             return {
                 'players': [],
@@ -2400,12 +2458,35 @@ def get_club_players_data(user, series_filter=None, first_name_filter=None, last
             }
 
         print(f"\n=== DEBUG: get_club_players_data ===")
-        print(f"User club: '{user_club}'")
-        print(f"User club type: {type(user_club)}")
+        print(f"User club: '{user_club}', league_id: '{user_league_id}'")
         print(f"Filters - Series: {series_filter}, First: {first_name_filter}, Last: {last_name_filter}, PTI: {pti_min}-{pti_max}")
 
         # Load fresh player data
         all_players = _load_players_data()
+        
+        if not all_players:
+            return {
+                'players': [],
+                'available_series': [],
+                'pti_range': {'min': 0, 'max': 100},
+                'error': 'Error loading player data'
+            }
+
+        # Filter players by user's league first
+        def is_player_in_user_league(player):
+            player_league = player.get('League')
+            if user_league_id.startswith('APTA'):
+                # For APTA users, match exact APTA league ID
+                return player_league == user_league_id
+            else:
+                # For other leagues, match the league_id
+                return player_league == user_league_id
+        
+        league_filtered_players = [player for player in all_players if is_player_in_user_league(player)]
+        print(f"Filtered from {len(all_players)} total players to {len(league_filtered_players)} players in user's league")
+        
+        # Use the league-filtered players for all subsequent processing
+        all_players = league_filtered_players
         
         if not all_players:
             return {
@@ -2427,9 +2508,10 @@ def get_club_players_data(user, series_filter=None, first_name_filter=None, last
         print(f"Players with user's club '{user_club}': {user_club_count}")
         print(f"All clubs in data: {sorted(list(clubs_in_data))}")
 
-        # Load real contact information from CSV
+        # Load real contact information from CSV - use dynamic path based on club
         project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        csv_path = os.path.join(project_root, 'data', 'leagues', 'apta', 'club_directories', 'directory_tennaqua.csv')
+        club_name_lower = user_club.lower().replace(' ', '_')
+        csv_path = os.path.join(project_root, 'data', 'leagues', 'all', 'club_directories', f'directory_{club_name_lower}.csv')
         contact_info = {}
         
         if os.path.exists(csv_path):
@@ -2564,7 +2646,7 @@ def get_mobile_improve_data(user):
         paddle_tips = []
         try:
             # Use current working directory since server.py runs from project root
-            tips_path = os.path.join('data', 'leagues', 'apta', 'improve_data', 'paddle_tips.json')
+            tips_path = os.path.join('data', 'leagues', 'all', 'improve_data', 'paddle_tips.json')
             with open(tips_path, 'r', encoding='utf-8') as f:
                 tips_data = json.load(f)
                 paddle_tips = tips_data.get('paddle_tips', [])
@@ -2576,7 +2658,7 @@ def get_mobile_improve_data(user):
         training_guide = {}
         try:
             # Use current working directory since server.py runs from project root
-            guide_path = os.path.join('data', 'leagues', 'apta', 'improve_data', 'complete_platform_tennis_training_guide.json')
+            guide_path = os.path.join('data', 'leagues', 'all', 'improve_data', 'complete_platform_tennis_training_guide.json')
             with open(guide_path, 'r', encoding='utf-8') as f:
                 training_guide = json.load(f)
         except Exception as guide_error:

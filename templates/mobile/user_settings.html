@@ -22,6 +22,10 @@
         <input type="email" id="email" name="email" class="input input-bordered w-full" required>
       </div>
       <div>
+        <label class="block font-semibold mb-1" for="league">League</label>
+        <select id="league" name="league" class="select select-bordered w-full" required></select>
+      </div>
+      <div>
         <label class="block font-semibold mb-1" for="club">Club</label>
         <select id="club" name="club" class="select select-bordered w-full" required></select>
       </div>
@@ -49,6 +53,12 @@
       <div class="text-xs text-gray-400">
         <span class="font-mono">Player ID: <span id="player-id-display">Loading...</span></span>
       </div>
+      
+      <!-- Session Debug Info -->
+      <div class="mt-4 p-3 bg-base-200 rounded-lg">
+        <div class="text-xs font-semibold text-gray-600 mb-2">Session Variables Debug:</div>
+        <div id="session-debug" class="text-xs font-mono text-gray-500 whitespace-pre-wrap">Loading session data...</div>
+      </div>
     </div>
   </div>
 </div>
@@ -58,24 +68,88 @@ function fillUserSettingsForm(user) {
   document.getElementById('firstName').value = user.first_name || '';
   document.getElementById('lastName').value = user.last_name || '';
   document.getElementById('email').value = user.email || '';
-  // Club/series will be set after dropdowns are loaded
+  // League/club/series will be set after dropdowns are loaded
   if (user.club_automation_password !== undefined) {
     document.getElementById('clubAutomationPassword').value = user.club_automation_password || '';
   }
 }
-// Fetch clubs and series for dropdowns
-function loadClubsAndSeries(user) {
-  fetch('/api/get-clubs').then(r=>r.json()).then(data => {
-    const clubSel = document.getElementById('club');
-    clubSel.innerHTML = data.clubs.map(c => `<option value="${c}">${c}</option>`).join('');
-    if (user.club) clubSel.value = user.club;
-  });
-  fetch('/api/get-series').then(r=>r.json()).then(data => {
-    const seriesSel = document.getElementById('series');
-    seriesSel.innerHTML = data.all_series.map(s => `<option value="${s}">${s}</option>`).join('');
-    if (user.series) seriesSel.value = user.series;
+// Fetch leagues, clubs and series for dropdowns
+function loadLeaguesClubsAndSeries(user) {
+  // Load leagues first
+  fetch('/api/get-leagues').then(r=>r.json()).then(data => {
+    const leagueSel = document.getElementById('league');
+    leagueSel.innerHTML = '<option value="">Select a league...</option>' + 
+      data.leagues.map(l => `<option value="${l.league_id}">${l.league_name}</option>`).join('');
+    
+    // Set user's current league
+    if (user.league_id) {
+      leagueSel.value = user.league_id;
+    }
+    
+    // Load clubs and series based on selected league
+    loadClubsByLeague(user.league_id, user.club);
+    loadSeriesByLeague(user.league_id, user.series);
+    
+    // Add event listener for league changes
+    leagueSel.addEventListener('change', function() {
+      const selectedLeague = this.value;
+      loadClubsByLeague(selectedLeague);
+      loadSeriesByLeague(selectedLeague);
+      // Clear club and series selections when league changes
+      document.getElementById('club').value = '';
+      document.getElementById('series').value = '';
+    });
   });
 }
+
+// Load clubs filtered by league
+function loadClubsByLeague(leagueId, selectedClub = null) {
+  const url = leagueId ? `/api/get-clubs-by-league?league_id=${leagueId}` : '/api/get-clubs-by-league';
+  
+  fetch(url).then(r=>r.json()).then(data => {
+    const clubSel = document.getElementById('club');
+    clubSel.innerHTML = '<option value="">Select a club...</option>' + 
+      data.clubs.map(c => `<option value="${c}">${c}</option>`).join('');
+    
+    // Set selected club if provided
+    if (selectedClub) {
+      clubSel.value = selectedClub;
+    }
+  }).catch(error => {
+    console.error('Error loading clubs:', error);
+    // Fallback to all clubs
+    fetch('/api/get-clubs').then(r=>r.json()).then(data => {
+      const clubSel = document.getElementById('club');
+      clubSel.innerHTML = data.clubs.map(c => `<option value="${c}">${c}</option>`).join('');
+      if (selectedClub) clubSel.value = selectedClub;
+    });
+  });
+}
+
+// Load series filtered by league
+function loadSeriesByLeague(leagueId, selectedSeries = null) {
+  const url = leagueId ? `/api/get-series-by-league?league_id=${leagueId}` : '/api/get-series-by-league';
+  
+  fetch(url).then(r=>r.json()).then(data => {
+    const seriesSel = document.getElementById('series');
+    seriesSel.innerHTML = '<option value="">Select a series...</option>' + 
+      data.series.map(s => `<option value="${s}">${s}</option>`).join('');
+    
+    // Set selected series if provided
+    if (selectedSeries) {
+      seriesSel.value = selectedSeries;
+    }
+  }).catch(error => {
+    console.error('Error loading series:', error);
+    // Fallback to all series
+    fetch('/api/get-series').then(r=>r.json()).then(data => {
+      const seriesSel = document.getElementById('series');
+      seriesSel.innerHTML = data.all_series.map(s => `<option value="${s}">${s}</option>`).join('');
+      if (selectedSeries) seriesSel.value = selectedSeries;
+    });
+  });
+}
+
 // Show/hide password
 const toggleBtn = document.getElementById('togglePassword');
 toggleBtn.addEventListener('click', function() {
@@ -91,7 +165,7 @@ toggleBtn.addEventListener('click', function() {
 // On page load, fetch user settings
 fetch('/api/get-user-settings').then(r=>r.json()).then(user => {
   fillUserSettingsForm(user);
-  loadClubsAndSeries(user);
+  loadLeaguesClubsAndSeries(user);
   
   // Display player ID
   const playerIdDisplay = document.getElementById('player-id-display');
@@ -101,6 +175,14 @@ fetch('/api/get-user-settings').then(r=>r.json()).then(user => {
     playerIdDisplay.textContent = 'Not set';
     playerIdDisplay.className = 'text-orange-500';
   }
+  
+  // Display session debug info
+  const sessionDebug = document.getElementById('session-debug');
+  const sessionInfo = {
+    user_data_from_api: user,
+    timestamp: new Date().toISOString()
+  };
+  sessionDebug.textContent = JSON.stringify(sessionInfo, null, 2);
 });
 // Handle form submit
 const form = document.getElementById('user-settings-form');
@@ -110,6 +192,7 @@ form.addEventListener('submit', function(e) {
     firstName: form.firstName.value,
     lastName: form.lastName.value,
     email: form.email.value,
+    league_id: form.league.value,
     club: form.club.value,
     series: form.series.value,
     clubAutomationPassword: form.clubAutomationPassword.value
@@ -131,6 +214,24 @@ form.addEventListener('submit', function(e) {
             authenticated: true
           }
         };
+        
+        // Update session debug display immediately
+        const sessionDebug = document.getElementById('session-debug');
+        const updatedSessionInfo = {
+          updated_user_data_from_response: resp.user,
+          player_id_updated: resp.player_id_updated,
+          new_player_id: resp.player_id,
+          timestamp: new Date().toISOString()
+        };
+        sessionDebug.textContent = JSON.stringify(updatedSessionInfo, null, 2);
+        
+        // Update Player ID display
+        const playerIdDisplay = document.getElementById('player-id-display');
+        if (resp.player_id) {
+          playerIdDisplay.textContent = resp.player_id;
+          playerIdDisplay.className = '';
+        }
+        
         // Update UI with new session data
         window.sessionUtils && window.sessionUtils.updateUI(sessionData);
         // Reload page after a short delay to ensure all components are updated

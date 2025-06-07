@@ -54,7 +54,7 @@ def analyze_json_urls():
     
     # Load JSON file
     try:
-        with open('data/leagues/apta/improve_data/complete_platform_tennis_training_guide.json', 'r') as f:
+        with open('data/leagues/all/improve_data/complete_platform_tennis_training_guide.json', 'r') as f:
             data = json.load(f)
         print(f"✅ JSON file loaded successfully")
         print(f"📊 Found {len(data)} techniques")

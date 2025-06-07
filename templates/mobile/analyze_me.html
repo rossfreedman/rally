@@ -55,23 +55,30 @@
     {% endif %}
 
     <!-- Overall Performance -->
-    {% if analyze_data.current_season and analyze_data.career_stats %}
+    {% if analyze_data.current_season %}
     <div class='analyze-card'>
         <div class='analyze-card-header'><i class='fas fa-user'></i> Player Stats</div>
         <div class='w-full'>
             <table class='player-stats-table w-full'>
                 <thead>
                     <tr>
+                        {% if analyze_data.career_stats %}
                         <th class='w-1/3'></th>
                         <th class='w-1/3 text-black text-lg font-bold pb-2'>Current Season</th>
                         <th class='w-1/3 text-black text-lg font-bold pb-2'>Career</th>
+                        {% else %}
+                        <th class='w-1/2'></th>
+                        <th class='w-1/2 text-black text-lg font-bold pb-2'>Current Season</th>
+                        {% endif %}
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
                         <td class='stat-label'><i class='fas fa-table-tennis-paddle-ball text-black'></i> Matches</td>
                         <td class='stat-value'>{{ analyze_data.current_season.matches or 'N/A' }}</td>
+                        {% if analyze_data.career_stats %}
                         <td class='stat-value'>{{ analyze_data.career_stats.matches or 'N/A' }}</td>
+                        {% endif %}
                     </tr>
                     <tr class="row-divider">
                         <td class='stat-label'><i class="fas fa-list-ol text-black"></i> Record</td>
@@ -86,6 +93,7 @@
                                 N/A
                             {% endif %}
                         </td>
+                        {% if analyze_data.career_stats %}
                         <td class='stat-value'>
                             {% if analyze_data.career_stats and analyze_data.career_stats.wins is defined and analyze_data.career_stats.losses is defined %}
                                 {{ analyze_data.career_stats.wins|int }} wins / {{ analyze_data.career_stats.losses|int }} losses
@@ -97,6 +105,7 @@
                                 N/A
                             {% endif %}
                         </td>
+                        {% endif %}
                     </tr>
                     <tr>
                         <td class='stat-label'><span class='text-blue-700'><i class='fas fa-percent'></i></span> Wins</td>
@@ -110,6 +119,7 @@
                             <span class="font-bold">N/A</span>
                           {% endif %}
                         </td>
+                        {% if analyze_data.career_stats %}
                         <td class='stat-value'>
                           {% if analyze_data.career_stats and analyze_data.career_stats.winRate is defined %}
                           {% set winrate = analyze_data.career_stats.winRate %}
@@ -120,7 +130,9 @@
                             <span class="font-bold">N/A</span>
                           {% endif %}
                         </td>
+                        {% endif %}
                     </tr>
+                    {% if analyze_data.pti_data_available %}
                     <tr>
                         <td class='stat-label text-center'><i class='fas fa-arrow-down text-black'></i> PTI Change</td>
                         <td class='stat-value text-center'>
@@ -139,6 +151,7 @@
                                 <span class="text-black">N/A</span>
                             {% endif %}
                         </td>
+                        {% if analyze_data.career_stats %}
                         <td class='stat-value text-center'>
                             {% set pti = analyze_data.career_pti_change %}
                             {% if pti is string or pti == 'N/A' %}
@@ -151,7 +164,9 @@
                                 <span class="text-black">0.0</span>
                             {% endif %}
                         </td>
+                        {% endif %}
                     </tr>
+                    {% endif %}
                 </tbody>
             </table>
         </div>
@@ -226,39 +241,37 @@
         {% endif %}
     </div>
 
-    <!-- Previous Season History -->
+    <!-- Previous Season History (only show if player has history data) -->
+    {% if analyze_data.player_history and analyze_data.player_history.seasons %}
     <div class='analyze-card'>
         <div class='analyze-card-header'><i class='fas fa-history'></i> Previous Season History</div>
-        {% if analyze_data.player_history and analyze_data.player_history.seasons %}
-            <div class='overflow-x-auto'><table class='min-w-full text-xs border mt-2'>
-                <thead><tr class='bg-gray-50'>
-                    <th class='py-1 px-2'>Season</th><th class='py-1 px-2'>Series</th><th class='py-1 px-2'>PTI Start</th><th class='py-1 px-2'>PTI End</th><th class='py-1 px-2'>Trend</th>
-                </tr></thead>
-                <tbody>
-                    {% for row in analyze_data.player_history.seasons %}
-                        <tr>
-                            <td class='py-1 px-2 text-center'>{{ row.season }}</td>
-                            <td class='py-1 px-2 text-center'>{{ row.series }}</td>
-                            <td class='py-1 px-2 text-center'>{{ row.ptiStart }}</td>
-                            <td class='py-1 px-2 text-center'>{{ row.ptiEnd }}</td>
-                            <td class='py-1 px-2 text-center'>
-                                {% set trend = row.trend %}
-                                {% if trend is string and trend.startswith('+') %}
-                                    <span class="text-red-600 font-bold flex items-center justify-center">{{ trend }} <span aria-label="PTI Up" class="ml-1">▲</span></span>
-                                {% elif trend is string and trend.startswith('-') %}
-                                    <span class="text-green-600 font-bold flex items-center justify-center">{{ trend }} <span aria-label="PTI Down" class="ml-1">▼</span></span>
-                                {% else %}
-                                    <span class="text-gray-500">{{ trend }}</span>
-                                {% endif %}
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table></div>
-        {% else %}
-            <div class="text-gray-400 p-2">No season history available.</div>
-        {% endif %}
+        <div class='overflow-x-auto'><table class='min-w-full text-xs border mt-2'>
+            <thead><tr class='bg-gray-50'>
+                <th class='py-1 px-2'>Season</th><th class='py-1 px-2'>Series</th><th class='py-1 px-2'>PTI Start</th><th class='py-1 px-2'>PTI End</th><th class='py-1 px-2'>Trend</th>
+            </tr></thead>
+            <tbody>
+                {% for row in analyze_data.player_history.seasons %}
+                    <tr>
+                        <td class='py-1 px-2 text-center'>{{ row.season }}</td>
+                        <td class='py-1 px-2 text-center'>{{ row.series }}</td>
+                        <td class='py-1 px-2 text-center'>{{ row.ptiStart }}</td>
+                        <td class='py-1 px-2 text-center'>{{ row.ptiEnd }}</td>
+                        <td class='py-1 px-2 text-center'>
+                            {% set trend = row.trend %}
+                            {% if trend is string and trend.startswith('+') %}
+                                <span class="text-red-600 font-bold flex items-center justify-center">{{ trend }} <span aria-label="PTI Up" class="ml-1">▲</span></span>
+                            {% elif trend is string and trend.startswith('-') %}
+                                <span class="text-green-600 font-bold flex items-center justify-center">{{ trend }} <span aria-label="PTI Down" class="ml-1">▼</span></span>
+                            {% else %}
+                                <span class="text-gray-500">{{ trend }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table></div>
     </div>
+    {% endif %}
 </div>
 
 <style>

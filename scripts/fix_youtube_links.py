@@ -236,14 +236,14 @@ def calculate_video_score(title, description, technique_name, search_term):
 def fix_youtube_links_enhanced():
     """Enhanced version with better technique-specific matching."""
     # Load the JSON file
-    json_file = 'data/leagues/apta/improve_data/complete_platform_tennis_training_guide.json'
+    json_file = 'data/leagues/all/improve_data/complete_platform_tennis_training_guide.json'
     
     if not os.path.exists(json_file):
         print(f"Error: {json_file} not found!")
         return
     
     # Create backup
-    backup_file = f'data/leagues/apta/improve_data/complete_platform_tennis_training_guide_backup_{datetime.now().strftime("%Y%m%d_%H%M%S")}.json'
+    backup_file = f'data/leagues/all/improve_data/complete_platform_tennis_training_guide_backup_{datetime.now().strftime("%Y%m%d_%H%M%S")}.json'
     shutil.copy2(json_file, backup_file)
     print(f"Created backup: {backup_file}")
     
@@ -423,7 +423,7 @@ def manual_curation_helper():
     print("\n🎯 Manual Curation Helper")
     print("=" * 50)
     
-    json_file = 'data/leagues/apta/improve_data/complete_platform_tennis_training_guide.json'
+    json_file = 'data/leagues/all/improve_data/complete_platform_tennis_training_guide.json'
     if not os.path.exists(json_file):
         print(f"Error: {json_file} not found!")
         return

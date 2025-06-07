@@ -110,7 +110,7 @@ def normalize_location_id_to_club_name(location_id: str) -> str:
     Convert a Location ID from players.json to a club name for database matching.
     
     Args:
-        location_id: Location ID like "APTA_BILTMORE_CC"
+        location_id: Location ID like "BILTMORE_CC" or legacy "APTA_BILTMORE_CC"
         
     Returns:
         str: Club name like "Biltmore CC"
@@ -118,7 +118,7 @@ def normalize_location_id_to_club_name(location_id: str) -> str:
     if not location_id:
         return ""
     
-    # Remove APTA_ prefix
+    # Handle legacy APTA_ prefix (for backward compatibility)
     if location_id.startswith("APTA_"):
         club_part = location_id[5:]  # Remove "APTA_"
     else:
@@ -158,12 +158,13 @@ def normalize_location_id_to_club_name(location_id: str) -> str:
     
     return club_name
 
-def load_players_data(players_json_path: str = None) -> List[Dict]:
+def load_players_data(players_json_path: str = None, league: str = None) -> List[Dict]:
     """
     Load players data from JSON file.
     
     Args:
         players_json_path: Path to players.json file. If None, uses default path
+        league: League identifier to determine which league's data to load
         
     Returns:
         list: List of player dictionaries
@@ -172,11 +173,37 @@ def load_players_data(players_json_path: str = None) -> List[Dict]:
         # Default path relative to project root
         current_dir = os.path.dirname(os.path.abspath(__file__))
         project_root = os.path.dirname(current_dir)  # Go up one level from utils/
-        players_json_path = os.path.join(project_root, "data", "players.json")
+        
+        # Determine league directory based on league parameter
+        if league == 'NSTF':
+            league_dir = "NSTF"
+        elif league == 'APTA_CHICAGO':
+            league_dir = "apta"
+        elif league == 'APTA_NATIONAL':
+            league_dir = "apta_national"
+        else:
+            # Default to all leagues data if no specific league or unknown league
+            league_dir = "all"
+            
+        players_json_path = os.path.join(project_root, "data", "leagues", league_dir, "players.json")
     
     try:
         with open(players_json_path, 'r') as f:
-            players_data = json.load(f)
+            raw_data = json.load(f)
+        
+        # Flatten the data structure - handle mixed list/dict structure
+        players_data = []
+        for item in raw_data:
+            if isinstance(item, list):
+                # It's a sublist, extend with all items in the sublist
+                players_data.extend(item)
+            elif isinstance(item, dict):
+                # It's a single player record, append it directly
+                players_data.append(item)
+            else:
+                # Skip unknown data types
+                continue
+            
         logger.info(f"Loaded {len(players_data)} players from {players_json_path}")
         return players_data
     except FileNotFoundError:
@@ -187,7 +214,7 @@ def load_players_data(players_json_path: str = None) -> List[Dict]:
         raise
 
 def find_player_id(first_name: str, last_name: str, series_mapping_id: str, 
-                   location_id: str, players_data: List[Dict] = None) -> Optional[str]:
+                   location_id: str, players_data: List[Dict] = None, league: str = None) -> Optional[str]:
     """
     Find a Player ID by matching first name, last name, series mapping ID, and location ID.
     
@@ -201,12 +228,13 @@ def find_player_id(first_name: str, last_name: str, series_mapping_id: str,
         series_mapping_id: Series like "Chicago 19"
         location_id: Location ID like "APTA_BILTMORE_CC" OR club name like "Biltmore CC"
         players_data: List of player dictionaries. If None, loads from default path
+        league: League identifier to determine which league's data to load
         
     Returns:
         str|None: Player ID if exactly one match found, None otherwise
     """
     if players_data is None:
-        players_data = load_players_data()
+        players_data = load_players_data(league=league)
     
     # Normalize inputs
     norm_first = normalize_name(first_name)
@@ -214,8 +242,8 @@ def find_player_id(first_name: str, last_name: str, series_mapping_id: str,
     norm_series = series_mapping_id.strip() if series_mapping_id else ""
     
     # Handle location_id - it could be a Location ID or club name
-    if location_id and location_id.startswith("APTA_"):
-        # It's a Location ID, convert to club name
+    if location_id and (location_id.startswith("APTA_") or "_" in location_id):
+        # It's a Location ID (legacy APTA_ or raw format), convert to club name
         target_club = normalize_location_id_to_club_name(location_id)
     else:
         # It's already a club name
@@ -226,6 +254,10 @@ def find_player_id(first_name: str, last_name: str, series_mapping_id: str,
     matches = []
     
     for player in players_data:
+        # Skip non-dictionary items (defensive programming)
+        if not isinstance(player, dict):
+            continue
+            
         # Normalize player data
         player_first = player.get("First Name", "")
         player_last = normalize_name(player.get("Last Name", ""))
@@ -254,25 +286,39 @@ def find_player_id(first_name: str, last_name: str, series_mapping_id: str,
         return None
 
 def find_player_id_by_club_name(first_name: str, last_name: str, series_mapping_id: str, 
-                                 club_name: str, players_data: List[Dict] = None) -> Optional[str]:
+                                 club_name: str, players_data: List[Dict] = None, league: str = None) -> Optional[str]:
     """
     Convenience function to find Player ID using club name directly.
     Uses a multi-tier search strategy:
-    1. Primary: first name (with nicknames/fuzzy) + last name + series + club
-    2. Fallback: last name + series + club (ignores first name variations)
+    1. Primary: first name (with nicknames/fuzzy) + last name + series + club + league
+    2. Fallback: last name + series + club + league (ignores first name variations)
     
     Args:
         first_name: Player's first name
         last_name: Player's last name  
-        series_mapping_id: Series like "Chicago 19"
+        series_mapping_id: Series like "Chicago 19" or "Tennaqua - 6"
         club_name: Club name like "Biltmore CC"
         players_data: List of player dictionaries. If None, loads from default path
+        league: League identifier like "APTA_CHICAGO" or "nsft" to disambiguate multi-league players
         
     Returns:
         str|None: Player ID if exactly one match found, None otherwise
     """
+    # Load players data if not provided
+    if players_data is None:
+        players_data = load_players_data(league=league)
+    
+    # Filter by league first if provided (to handle multi-league players)
+    if league:
+        league_filtered_data = [p for p in players_data if isinstance(p, dict) and p.get("League") == league]
+        if league_filtered_data:
+            logger.info(f"Filtering {len(players_data)} players to {len(league_filtered_data)} for league {league}")
+            players_data = league_filtered_data
+        else:
+            logger.warning(f"No players found for league {league}. Available leagues: {set(p.get('League', 'None') for p in players_data if isinstance(p, dict))}")
+    
     # Try primary search first (includes first name matching with nicknames/fuzzy)
-    player_id = find_player_id(first_name, last_name, series_mapping_id, club_name, players_data)
+    player_id = find_player_id(first_name, last_name, series_mapping_id, club_name, players_data, league)
     
     if player_id:
         logger.info(f"Found match using primary search (with first name): {player_id}")
@@ -280,9 +326,6 @@ def find_player_id_by_club_name(first_name: str, last_name: str, series_mapping_
     
     # Fallback: Search by last name + club + series only
     logger.info(f"Primary search failed, trying fallback search by last name + club + series for {first_name} {last_name}")
-    
-    if players_data is None:
-        players_data = load_players_data()
     
     # Normalize inputs for fallback search
     norm_last = normalize_name(last_name)
@@ -292,6 +335,10 @@ def find_player_id_by_club_name(first_name: str, last_name: str, series_mapping_
     fallback_matches = []
     
     for player in players_data:
+        # Skip non-dictionary items (defensive programming)
+        if not isinstance(player, dict):
+            continue
+            
         # Normalize player data
         player_last = normalize_name(player.get("Last Name", ""))
         player_series = player.get("Series Mapping ID", "").strip()
@@ -328,7 +375,7 @@ def find_player_id_by_location_id(first_name: str, last_name: str, series_mappin
         first_name: Player's first name
         last_name: Player's last name  
         series_mapping_id: Series like "Chicago 19"
-        location_id: Location ID like "APTA_BILTMORE_CC"
+        location_id: Location ID like "BILTMORE_CC" or legacy "APTA_BILTMORE_CC"
         players_data: List of player dictionaries. If None, loads from default path
         
     Returns:

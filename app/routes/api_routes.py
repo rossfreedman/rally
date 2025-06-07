@@ -695,13 +695,15 @@ def get_user_settings():
     try:
         user_email = session['user']['email']
         
-        # Get user data with club and series names
+        # Get user data with club, series, and league names
         user_data = execute_query_one('''
             SELECT u.first_name, u.last_name, u.email, u.club_automation_password,
-                   c.name as club, s.name as series, u.tenniscores_player_id
+                   c.name as club, s.name as series, u.tenniscores_player_id,
+                   l.league_id, l.league_name
             FROM users u
             LEFT JOIN clubs c ON u.club_id = c.id
             LEFT JOIN series s ON u.series_id = s.id
+            LEFT JOIN leagues l ON u.league_id = l.id
             WHERE u.email = %s
         ''', (user_email,))
         
@@ -715,6 +717,8 @@ def get_user_settings():
             'club_automation_password': user_data['club_automation_password'] or '',
             'club': user_data['club'] or '',
             'series': user_data['series'] or '',
+            'league_id': user_data['league_id'] or '',
+            'league_name': user_data['league_name'] or '',
             'tenniscores_player_id': user_data['tenniscores_player_id'] or ''
         }
         
@@ -724,11 +728,44 @@ def get_user_settings():
         print(f"Error getting user settings: {str(e)}")
         return jsonify({'error': 'Failed to get user settings'}), 500
 
+def convert_series_to_mapping_id(series_name, club_name, league_id=None):
+    """
+    Convert database series name to the format used in player data.
+    APTA Chicago: 'Chicago 19' + 'Tennaqua' -> 'Tennaqua - 19'
+    NSTF: 'Series 2B' + 'Tennaqua' -> 'Tennaqua S2B'
+    """
+    import re
+    
+    # For NSTF leagues, use different format
+    if league_id == 'NSTF':
+        # Extract series info: 'Series 2B' -> 'S2B'
+        if series_name.startswith('Series '):
+            series_part = series_name.replace('Series ', 'S')
+            return f"{club_name} {series_part}"
+        else:
+            # Fallback for NSTF
+            return f"{club_name} {series_name}"
+    
+    # For APTA leagues, use the dash format
+    else:
+        # Extract the series number from series name
+        numbers = re.findall(r'\d+', series_name)
+        if numbers:
+            series_number = numbers[-1]  # Take the last number found
+            return f"{club_name} - {series_number}"
+        else:
+            # Fallback: return the original series name
+            return series_name
+
 @api_bp.route('/api/update-settings', methods=['POST'])
 @login_required
 def update_settings():
     """Update user settings"""
     try:
+        from utils.match_utils import find_player_id_by_club_name
+        import logging
+        
+        logger = logging.getLogger(__name__)
         data = request.get_json()
         user_email = session['user']['email']
         
@@ -736,9 +773,10 @@ def update_settings():
         if not data.get('firstName') or not data.get('lastName') or not data.get('email'):
             return jsonify({'error': 'First name, last name, and email are required'}), 400
         
-        # Get club_id and series_id from names
+        # Get club_id, series_id, and league_id from names/ids
         club_id = None
         series_id = None
+        league_id = None
         
         if data.get('club'):
             club_result = execute_query_one('SELECT id FROM clubs WHERE name = %s', (data['club'],))
@@ -750,11 +788,50 @@ def update_settings():
             if series_result:
                 series_id = series_result['id']
         
-        # Update user data
+        if data.get('league_id'):
+            league_result = execute_query_one('SELECT id FROM leagues WHERE league_id = %s', (data['league_id'],))
+            if league_result:
+                league_id = league_result['id']
+        
+        # Attempt to find Tenniscores Player ID using the same logic as registration/login
+        tenniscores_player_id = None
+        if data.get('firstName') and data.get('lastName') and data.get('club') and data.get('series'):
+            try:
+                # Convert series name to mapping ID format for player lookup
+                series_mapping_id = convert_series_to_mapping_id(data['series'], data['club'], data.get('league_id'))
+                logger.info(f"Settings update: Looking up player with mapping ID: {series_mapping_id}")
+                
+                # Convert league_id to the format used in player data
+                league_filter = None
+                if data.get('league_id') == 'APTA_CHICAGO':
+                    league_filter = 'APTA_CHICAGO'
+                elif data.get('league_id') == 'NSTF':
+                    league_filter = 'NSTF'  # Player data uses NSTF
+                elif data.get('league_id') == 'APTA_NATIONAL':
+                    league_filter = 'APTA_NATIONAL'
+                
+                tenniscores_player_id = find_player_id_by_club_name(
+                    first_name=data['firstName'],
+                    last_name=data['lastName'],
+                    series_mapping_id=series_mapping_id,
+                    club_name=data['club'],
+                    league=league_filter
+                )
+                if tenniscores_player_id:
+                    logger.info(f"Settings update: Found Player ID for {data['firstName']} {data['lastName']}: {tenniscores_player_id}")
+                else:
+                    logger.info(f"Settings update: No Player ID found for {data['firstName']} {data['lastName']} ({data['club']}, {series_mapping_id})")
+            except Exception as match_error:
+                logger.warning(f"Settings update: Error matching player ID for {data['firstName']} {data['lastName']}: {str(match_error)}")
+                # Continue with update even if matching fails
+                tenniscores_player_id = None
+        
+        # Update user data including the new player ID
         success = execute_update('''
             UPDATE users 
             SET first_name = %s, last_name = %s, email = %s, 
-                club_id = %s, series_id = %s, club_automation_password = %s
+                club_id = %s, series_id = %s, league_id = %s, club_automation_password = %s,
+                tenniscores_player_id = %s
             WHERE email = %s
         ''', (
             data['firstName'], 
@@ -762,7 +839,9 @@ def update_settings():
             data['email'],
             club_id,
             series_id,
+            league_id,
             data.get('clubAutomationPassword', ''),
+            tenniscores_player_id,
             user_email
         ))
         
@@ -771,31 +850,50 @@ def update_settings():
         
         # Get updated user data to return and update session
         updated_user = execute_query_one('''
-            SELECT u.first_name, u.last_name, u.email, u.club_automation_password,
-                   c.name as club, s.name as series, u.is_admin, u.tenniscores_player_id
+            SELECT u.id, u.first_name, u.last_name, u.email, u.club_automation_password,
+                   c.name as club, s.name as series, u.is_admin, u.tenniscores_player_id,
+                   l.league_id, l.league_name
             FROM users u
             LEFT JOIN clubs c ON u.club_id = c.id
             LEFT JOIN series s ON u.series_id = s.id
+            LEFT JOIN leagues l ON u.league_id = l.id
             WHERE u.email = %s
         ''', (data['email'],))  # Use new email in case it was changed
         
         if updated_user:
             # Update session with new user data
+            # Use the computed tenniscores_player_id instead of the database value to ensure consistency
             session['user'] = {
+                'id': updated_user['id'],
                 'email': updated_user['email'],
                 'first_name': updated_user['first_name'],
                 'last_name': updated_user['last_name'],
                 'club': updated_user['club'],
                 'series': updated_user['series'],
+                'league_id': updated_user['league_id'],
+                'league_name': updated_user['league_name'],
                 'club_automation_password': updated_user['club_automation_password'],
                 'is_admin': updated_user['is_admin'],
-                'tenniscores_player_id': updated_user['tenniscores_player_id']
+                'tenniscores_player_id': tenniscores_player_id,  # Use computed value directly
+                'settings': '{}'  # Default empty settings for consistency with auth
             }
+            
+            # Explicitly mark session as modified to ensure persistence
+            session.modified = True
+            
+            # Log the player ID update for tracking
+            player_id_message = f"Player ID updated to: {tenniscores_player_id}" if tenniscores_player_id else "No Player ID match found"
+            logger.info(f"Settings updated for {updated_user['email']}: {player_id_message}")
+            logger.info(f"Session player ID set to: {session['user']['tenniscores_player_id']}")
+            logger.info(f"Database player ID value: {updated_user['tenniscores_player_id']}")
+            logger.info(f"Computed player ID value: {tenniscores_player_id}")
             
             return jsonify({
                 'success': True,
                 'message': 'Settings updated successfully',
-                'user': session['user']
+                'user': session['user'],
+                'player_id_updated': tenniscores_player_id is not None,
+                'player_id': tenniscores_player_id
             })
         else:
             return jsonify({'error': 'Failed to retrieve updated user data'}), 500
@@ -803,6 +901,104 @@ def update_settings():
     except Exception as e:
         print(f"Error updating settings: {str(e)}")
         return jsonify({'error': 'Failed to update settings'}), 500
+
+@api_bp.route('/api/get-leagues')
+def get_leagues():
+    """Get all available leagues"""
+    try:
+        query = """
+            SELECT league_id, league_name, league_url
+            FROM leagues
+            ORDER BY league_name
+        """
+        
+        leagues_data = execute_query(query)
+        
+        return jsonify({
+            'leagues': leagues_data
+        })
+        
+    except Exception as e:
+        print(f"Error getting leagues: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@api_bp.route('/api/get-clubs-by-league')
+def get_clubs_by_league():
+    """Get clubs filtered by league"""
+    try:
+        league_id = request.args.get('league_id')
+        
+        if not league_id:
+            # Return all clubs if no league specified
+            query = "SELECT name FROM clubs ORDER BY name"
+            clubs_data = execute_query(query)
+        else:
+            # Get clubs for specific league
+            query = """
+                SELECT c.name
+                FROM clubs c
+                JOIN club_leagues cl ON c.id = cl.club_id
+                JOIN leagues l ON cl.league_id = l.id
+                WHERE l.league_id = %s
+                ORDER BY c.name
+            """
+            clubs_data = execute_query(query, (league_id,))
+        
+        clubs_list = [club['name'] for club in clubs_data]
+        
+        return jsonify({
+            'clubs': clubs_list
+        })
+        
+    except Exception as e:
+        print(f"Error getting clubs by league: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@api_bp.route('/api/get-series-by-league')
+def get_series_by_league():
+    """Get series filtered by league"""
+    try:
+        league_id = request.args.get('league_id')
+        
+        if not league_id:
+            # Return all series if no league specified
+            query = """
+                SELECT DISTINCT s.name as series_name
+                FROM series s
+                ORDER BY s.name
+            """
+            series_data = execute_query(query)
+        else:
+            # Get series for specific league
+            query = """
+                SELECT s.name as series_name
+                FROM series s
+                JOIN series_leagues sl ON s.id = sl.series_id
+                JOIN leagues l ON sl.league_id = l.id
+                WHERE l.league_id = %s
+                ORDER BY s.name
+            """
+            series_data = execute_query(query, (league_id,))
+        
+        # Process the series data to extract numbers and sort properly
+        def extract_series_number(series_name):
+            import re
+            numbers = re.findall(r'\d+', series_name)
+            if numbers:
+                return int(numbers[-1])
+            else:
+                return 999
+        
+        series_data.sort(key=lambda x: extract_series_number(x['series_name']))
+        series_names = [item['series_name'] for item in series_data]
+        
+        return jsonify({
+            'series': series_names
+        })
+        
+    except Exception as e:
+        print(f"Error getting series by league: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 @api_bp.route('/api/get-series')
 def get_series():

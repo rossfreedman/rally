@@ -113,8 +113,8 @@ def get_series_stats_data():
     try:
         # Get the project root directory for file paths
         project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        stats_path = os.path.join(project_root, 'data', 'leagues', 'apta', 'series_stats.json')
-        matches_path = os.path.join(project_root, 'data', 'leagues', 'apta', 'match_history.json')
+        stats_path = os.path.join(project_root, 'data', 'leagues', 'all', 'series_stats.json')
+        matches_path = os.path.join(project_root, 'data', 'leagues', 'all', 'match_history.json')
         
         if not os.path.exists(stats_path):
             return jsonify({'error': 'Stats file not found'}), 404
@@ -304,7 +304,7 @@ def get_series_stats_data():
                     'wins': team_stats['matches']['won'],
                     'losses': team_stats['matches']['lost'],
                     'winRate': win_rate,
-                    'avgPointsFor': avg_points_for,
+                    'avgPoinsftor': avg_points_for,
                     'avgPointsAgainst': avg_points_against,
                     'consistencyRating': consistency_rating,
                     'strengthIndex': strength_index,
@@ -363,8 +363,16 @@ def get_players_by_series_data():
         current_dir = os.path.dirname(os.path.abspath(__file__))
         app_dir = os.path.dirname(current_dir)  # app directory
         project_root = os.path.dirname(app_dir)  # rally directory
-        players_path = os.path.join(project_root, 'data', 'leagues', 'apta', 'players.json')
-        matches_path = os.path.join(project_root, 'data', 'leagues', 'apta', 'match_history.json')  # Use correct filename
+        
+        # Use the user's league to determine the correct data path
+        user_league = session['user'].get('league_id', 'APTA').upper()
+        if user_league == 'NSTF':
+            players_path = os.path.join(project_root, 'data', 'leagues', 'NSTF', 'players.json')
+            matches_path = os.path.join(project_root, 'data', 'leagues', 'NSTF', 'match_history.json')
+        else:
+            # Default to 'all' directory which contains consolidated data
+            players_path = os.path.join(project_root, 'data', 'leagues', 'all', 'players.json')
+            matches_path = os.path.join(project_root, 'data', 'leagues', 'all', 'match_history.json')
         
         print(f"Players path: {players_path}")
         print(f"Matches path: {matches_path}")

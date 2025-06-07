@@ -11,7 +11,7 @@ def test_json_file():
     """Test if the JSON file can be loaded and has the expected structure."""
     print("🧪 Testing JSON file...")
     
-    json_file = 'data/leagues/apta/improve_data/complete_platform_tennis_training_guide.json'
+    json_file = 'data/leagues/all/improve_data/complete_platform_tennis_training_guide.json'
     
     if not os.path.exists(json_file):
         print(f"❌ JSON file not found: {json_file}")
