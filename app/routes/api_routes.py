@@ -862,7 +862,7 @@ def update_settings():
         
         if updated_user:
             # Update session with new user data
-            # Use the computed tenniscores_player_id instead of the database value to ensure consistency
+            # Use the database value for player ID to maintain consistency
             session['user'] = {
                 'id': updated_user['id'],
                 'email': updated_user['email'],
@@ -874,7 +874,7 @@ def update_settings():
                 'league_name': updated_user['league_name'],
                 'club_automation_password': updated_user['club_automation_password'],
                 'is_admin': updated_user['is_admin'],
-                'tenniscores_player_id': tenniscores_player_id,  # Use computed value directly
+                'tenniscores_player_id': updated_user['tenniscores_player_id'],  # Use database value
                 'settings': '{}'  # Default empty settings for consistency with auth
             }
             
@@ -882,18 +882,17 @@ def update_settings():
             session.modified = True
             
             # Log the player ID update for tracking
-            player_id_message = f"Player ID updated to: {tenniscores_player_id}" if tenniscores_player_id else "No Player ID match found"
-            logger.info(f"Settings updated for {updated_user['email']}: {player_id_message}")
+            if tenniscores_player_id and tenniscores_player_id != updated_user['tenniscores_player_id']:
+                logger.info(f"Player ID could be updated: computed={tenniscores_player_id}, stored={updated_user['tenniscores_player_id']}")
+            logger.info(f"Settings updated for {updated_user['email']}: Using stored player ID {updated_user['tenniscores_player_id']}")
             logger.info(f"Session player ID set to: {session['user']['tenniscores_player_id']}")
-            logger.info(f"Database player ID value: {updated_user['tenniscores_player_id']}")
-            logger.info(f"Computed player ID value: {tenniscores_player_id}")
             
             return jsonify({
                 'success': True,
                 'message': 'Settings updated successfully',
                 'user': session['user'],
-                'player_id_updated': tenniscores_player_id is not None,
-                'player_id': tenniscores_player_id
+                'player_id_updated': updated_user['tenniscores_player_id'] is not None,
+                'player_id': updated_user['tenniscores_player_id']
             })
         else:
             return jsonify({'error': 'Failed to retrieve updated user data'}), 500
