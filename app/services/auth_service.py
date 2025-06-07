@@ -70,6 +70,7 @@ def register_user(email, password, first_name, last_name, club_name, series_name
         if not league_id:
             league_id = 'APTA_CHICAGO'
         
+        # Get league ID
         league_db_id = execute_query_one(
             "SELECT id FROM leagues WHERE league_id = %(league_id)s",
             {'league_id': league_id}
@@ -148,7 +149,7 @@ def register_user(email, password, first_name, last_name, club_name, series_name
             FROM users u
             JOIN clubs c ON u.club_id = c.id
             JOIN series s ON u.series_id = s.id
-            JOIN leagues l ON u.league_id = l.id
+            LEFT JOIN leagues l ON u.league_id = l.id
             WHERE LOWER(u.email) = LOWER(%(email)s)
             """,
             {'email': email}
