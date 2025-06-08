@@ -50,8 +50,20 @@
     
     <!-- Player ID Display -->
     <div class="mt-6 pt-4 border-t border-base-300">
-      <div class="text-xs text-gray-400">
-        <span class="font-mono">Player ID: <span id="player-id-display">Loading...</span></span>
+      <div class="flex items-center justify-between mb-3">
+        <div class="text-xs text-gray-400">
+          <span class="font-mono">Player ID: <span id="player-id-display">Loading...</span></span>
+        </div>
+        <button id="retry-player-id-btn" class="btn btn-xs btn-outline btn-info" type="button">
+          <i class="fas fa-sync-alt mr-1"></i>
+          Retry Lookup
+        </button>
+      </div>
+      
+      <!-- Player ID Status -->
+      <div id="player-id-status" class="text-xs text-gray-500 mb-2 hidden">
+        <i class="fas fa-info-circle mr-1"></i>
+        <span id="player-id-status-text"></span>
       </div>
       
       <!-- Session Debug Info -->
@@ -162,6 +174,61 @@ toggleBtn.addEventListener('click', function() {
     this.innerHTML = '<i class="fas fa-eye"></i>';
   }
 });
+// Player ID retry functionality
+function retryPlayerIdLookup() {
+  const retryBtn = document.getElementById('retry-player-id-btn');
+  const statusDiv = document.getElementById('player-id-status');
+  const statusText = document.getElementById('player-id-status-text');
+  const playerIdDisplay = document.getElementById('player-id-display');
+  
+  // Show loading state
+  retryBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Searching...';
+  retryBtn.disabled = true;
+  
+  statusDiv.classList.remove('hidden');
+  statusText.textContent = 'Using enhanced multi-tier matching strategy...';
+  statusDiv.className = 'text-xs text-blue-500 mb-2';
+  
+  fetch('/api/retry-player-id', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' }
+  })
+  .then(r => r.json())
+  .then(resp => {
+    if (resp.success) {
+      // Success - player ID found
+      playerIdDisplay.textContent = resp.player_id;
+      playerIdDisplay.className = resp.changed ? 'text-green-600 font-semibold' : '';
+      
+      if (resp.changed) {
+        statusText.textContent = `Player ID updated: ${resp.previous_player_id || 'None'} → ${resp.player_id}`;
+        statusDiv.className = 'text-xs text-green-600 mb-2';
+        window.app && window.app.showToast && window.app.showToast('Player ID found and updated!', 'success');
+      } else {
+        statusText.textContent = 'Player ID confirmed (no change needed)';
+        statusDiv.className = 'text-xs text-green-600 mb-2';
+        window.app && window.app.showToast && window.app.showToast('Player ID confirmed!', 'info');
+      }
+    } else {
+      // Failed to find player ID
+      statusText.textContent = resp.message || 'No matching player found';
+      statusDiv.className = 'text-xs text-orange-500 mb-2';
+      window.app && window.app.showToast && window.app.showToast(resp.message || 'No player found', 'warning');
+    }
+  })
+  .catch(err => {
+    console.error('Player ID retry error:', err);
+    statusText.textContent = 'Error during player lookup';
+    statusDiv.className = 'text-xs text-red-500 mb-2';
+    window.app && window.app.showToast && window.app.showToast('Lookup failed', 'error');
+  })
+  .finally(() => {
+    // Reset button state
+    retryBtn.innerHTML = '<i class="fas fa-sync-alt mr-1"></i>Retry Lookup';
+    retryBtn.disabled = false;
+  });
+}
+
 // On page load, fetch user settings
 fetch('/api/get-user-settings').then(r=>r.json()).then(user => {
   fillUserSettingsForm(user);
@@ -183,6 +250,9 @@ fetch('/api/get-user-settings').then(r=>r.json()).then(user => {
     timestamp: new Date().toISOString()
   };
   sessionDebug.textContent = JSON.stringify(sessionInfo, null, 2);
+  
+  // Add retry button event listener
+  document.getElementById('retry-player-id-btn').addEventListener('click', retryPlayerIdLookup);
 });
 // Handle form submit
 const form = document.getElementById('user-settings-form');
@@ -225,11 +295,26 @@ form.addEventListener('submit', function(e) {
         };
         sessionDebug.textContent = JSON.stringify(updatedSessionInfo, null, 2);
         
-        // Update Player ID display
+        // Update Player ID display with enhanced feedback
         const playerIdDisplay = document.getElementById('player-id-display');
+        const statusDiv = document.getElementById('player-id-status');
+        const statusText = document.getElementById('player-id-status-text');
+        
         if (resp.player_id) {
           playerIdDisplay.textContent = resp.player_id;
-          playerIdDisplay.className = '';
+          playerIdDisplay.className = resp.player_id_updated ? 'text-green-600 font-semibold' : '';
+          
+          // Show player ID status if there was a retry or update
+          if (resp.player_id_retry_attempted) {
+            statusDiv.classList.remove('hidden');
+            if (resp.player_id_retry_successful) {
+              statusText.textContent = `Player ID ${resp.player_id_updated ? 'updated' : 'confirmed'} during settings save`;
+              statusDiv.className = 'text-xs text-green-600 mb-2';
+            } else {
+              statusText.textContent = 'Player ID lookup attempted but no match found';
+              statusDiv.className = 'text-xs text-orange-500 mb-2';
+            }
+          }
         }
         
         // Update UI with new session data

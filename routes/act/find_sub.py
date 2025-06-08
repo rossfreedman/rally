@@ -32,8 +32,21 @@ def init_find_sub_routes(app):
             if not first_name or not last_name:
                 return jsonify({'error': 'First and last name parameters are required'}), 400
             
-            # Read from CSV file (go up to project root)
-            csv_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'data', 'leagues', 'apta', 'club_directories', 'directory_tennaqua.csv')
+            # Load club directory data
+            try:
+                # Get user's league for dynamic path
+                user_league_id = session.get('user', {}).get('league_id', '')
+                
+                # Use dynamic path based on league
+                if user_league_id and not user_league_id.startswith('APTA'):
+                    # For non-APTA leagues, use league-specific path
+                    csv_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'data', 'leagues', user_league_id, 'club_directories', 'directory_tennaqua.csv')
+                else:
+                    # For APTA leagues, use the main directory
+                    csv_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), 'data', 'leagues', 'all', 'club_directories', 'directory_tennaqua.csv')
+            except Exception as e:
+                print(f"Error loading club directory data: {str(e)}")
+                return jsonify({'error': str(e)}), 500
             
             print(f"Looking for CSV file at: {csv_path}")
             if not os.path.exists(csv_path):

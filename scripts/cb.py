@@ -25,11 +25,14 @@ import time
 def list_backups():
     """List all existing backups without creating a new one"""
     try:
-        # Get current directory (assuming script is in rally folder)
+        # Get current directory (script is in rally/scripts/)
         current_dir = os.path.dirname(os.path.abspath(__file__))
         
+        # Get rally root directory (parent of scripts directory)
+        rally_root = os.path.dirname(current_dir)
+        
         # Get parent directory (where rally and rally_backups should both be located)
-        parent_dir = os.path.dirname(current_dir)
+        parent_dir = os.path.dirname(rally_root)
         
         # Check if backup directory exists
         backup_dir = os.path.join(parent_dir, 'rally_backups')
@@ -83,12 +86,15 @@ def create_backup(max_backups=10, exclude_patterns=None, no_confirm=False):
     try:
         start_time = time.time()
         
-        # Get current directory (assuming script is in rally folder)
+        # Get current directory (script is in rally/scripts/)
         current_dir = os.path.dirname(os.path.abspath(__file__))
-        rally_dir_name = os.path.basename(current_dir)
+        
+        # Get rally root directory (parent of scripts directory)
+        rally_root = os.path.dirname(current_dir)
+        rally_dir_name = os.path.basename(rally_root)
         
         # Get parent directory (where rally and rally_backups should both be located)
-        parent_dir = os.path.dirname(current_dir)
+        parent_dir = os.path.dirname(rally_root)
         
         # Create backup directory as a sibling to rally folder
         backup_dir = os.path.join(parent_dir, 'rally_backups')
@@ -115,7 +121,7 @@ def create_backup(max_backups=10, exclude_patterns=None, no_confirm=False):
         
         # Create the backup
         print(f"\n🔄 Creating backup: {backup_name}")
-        print(f"Rally folder: {current_dir}")
+        print(f"Rally folder: {rally_root}")
         print(f"Backup destination: {backup_path}")
         print(f"Excluding patterns: {exclude_patterns}")
         
@@ -159,7 +165,7 @@ def create_backup(max_backups=10, exclude_patterns=None, no_confirm=False):
             return ignored
         
         # Copy the entire directory with progress
-        copy_with_progress(current_dir, backup_path, ignore=ignore_patterns)
+        copy_with_progress(rally_root, backup_path, ignore=ignore_patterns)
         
         # Calculate the backup size
         backup_size = get_dir_size(backup_path)

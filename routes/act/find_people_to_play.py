@@ -64,37 +64,7 @@ def init_find_people_to_play_routes(app):
             print(f"Debug endpoint error: {str(e)}")
             return jsonify({'error': str(e)}), 500
 
-    @app.route('/api/club-players')
-    @login_required
-    def get_club_players():
-        """Get all players at the user's club with optional filtering"""
-        try:
-            # Get filter parameters
-            series_filter = request.args.get('series', '').strip()
-            first_name_filter = request.args.get('first_name', '').strip().lower()
-            last_name_filter = request.args.get('last_name', '').strip().lower()
-            pti_min = request.args.get('pti_min', type=float)
-            pti_max = request.args.get('pti_max', type=float)
-
-            # Use the mobile service to get club players data
-            from app.services.mobile_service import get_club_players_data
-            
-            result = get_club_players_data(
-                user=session['user'],
-                series_filter=series_filter if series_filter else None,
-                first_name_filter=first_name_filter if first_name_filter else None,
-                last_name_filter=last_name_filter if last_name_filter else None,
-                pti_min=pti_min,
-                pti_max=pti_max
-            )
-            
-            return jsonify(result)
-
-        except Exception as e:
-            print(f"\nERROR getting club players: {str(e)}")
-            import traceback
-            print(traceback.format_exc())
-            return jsonify({'error': str(e)}), 500
+    # Removed duplicate /api/club-players endpoint - now handled by api_bp blueprint
 
     @app.route('/api/test-tennaqua-players')
     def test_tennaqua_players():

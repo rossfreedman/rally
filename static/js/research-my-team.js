@@ -114,7 +114,7 @@ async function showMyTeamPlayerStats(playerName, players) {
     // Fetch player history for more details
     let playerHistory = null;
     try {
-        const resp = await fetch('/api/player-history');
+        const resp = await fetch('/api/player-history-chart');
         const data = await resp.json();
         playerHistory = data.find(p => p.name && p.name.trim().toLowerCase() === playerName.trim().toLowerCase());
     } catch (e) {}

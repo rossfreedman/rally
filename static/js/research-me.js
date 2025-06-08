@@ -565,7 +565,7 @@ async function renderPlayerHistory(playerName) {
     container.innerHTML = '<div>Loading player history...</div>';
     
     try {
-        const resp = await fetch('/api/player-history');
+        const resp = await fetch('/api/player-history-chart');
         const data = await resp.json();
         
         // Use case-insensitive, trimmed match

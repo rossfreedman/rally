@@ -43,7 +43,7 @@ async function loadResearchMePage() {
         }
         
         // Get player data
-        const playersResp = await fetch('/api/player-history');
+        const playersResp = await fetch('/api/player-history-chart');
         const playersData = await playersResp.json();
         console.log(`Loaded ${playersData.length} players from player history`);
         
