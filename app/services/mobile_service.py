@@ -216,6 +216,28 @@ def get_player_analysis(user):
     print(f"[DEBUG] Looking for match_history.json at: {matches_path}")
     print(f"[DEBUG] Files exist - player_history: {os.path.exists(player_history_path)}, matches: {os.path.exists(matches_path)}")
 
+    # SPECIFIC DEBUG FOR Jeffrey Condren
+    if tenniscores_player_id == 'nndz-WkMrOXliejhoZz09':
+        print(f"[JEFFREY_DEBUG] ===== SPECIFIC DEBUG FOR JEFFREY CONDREN =====")
+        print(f"[JEFFREY_DEBUG] Project root: {project_root}")
+        print(f"[JEFFREY_DEBUG] Player history path: {player_history_path}")
+        print(f"[JEFFREY_DEBUG] Matches path: {matches_path}")
+        if os.path.exists(player_history_path):
+            with open(player_history_path, 'r') as f:
+                data = json.load(f)
+                jeffrey_in_history = any(p.get('player_id') == 'nndz-WkMrOXliejhoZz09' for p in data)
+                print(f"[JEFFREY_DEBUG] Jeffrey in player_history.json: {jeffrey_in_history}")
+        if os.path.exists(matches_path):
+            with open(matches_path, 'r') as f:
+                matches = json.load(f)
+                jeffrey_matches = [m for m in matches if 'nndz-WkMrOXliejhoZz09' in [
+                    m.get('Home Player 1 ID', ''), m.get('Home Player 2 ID', ''), 
+                    m.get('Away Player 1 ID', ''), m.get('Away Player 2 ID', '')
+                ]]
+                print(f"[JEFFREY_DEBUG] Jeffrey matches found: {len(jeffrey_matches)}")
+                if jeffrey_matches:
+                    print(f"[JEFFREY_DEBUG] First match: {jeffrey_matches[0]}")
+
     # --- 1. Load player history for career stats and previous seasons ---
     all_players = []
     pti_data_available = False
