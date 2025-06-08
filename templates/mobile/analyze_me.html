@@ -457,8 +457,8 @@ document.addEventListener('DOMContentLoaded', async function() {
   
   try {
     // Load player history data from API
-    console.log('Fetching data from /api/player-history...');
-    const playerHistoryResponse = await fetch('/api/player-history');
+                    console.log('Fetching data from /api/player-history-chart...');
+                const playerHistoryResponse = await fetch('/api/player-history-chart');
     console.log('Response status:', playerHistoryResponse.status);
     
     // Handle case where player history is not available

@@ -232,8 +232,43 @@ def search_players_with_fuzzy_logic(first_name_query, last_name_query):
         print(f"Error in fuzzy player search: {str(e)}")
         return []
 
-def find_player_in_history(user, player_history):
-    """Find a player's record in the player history data"""
+def find_player_in_history(user, player_history=None):
+    """
+    Find a player in the player history data based on user information.
+    Enhanced to handle multiple name formats and fuzzy matching.
+    """
+    if player_history is None:
+        # Load player history data if not provided
+        try:
+            app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            user_league_id = user.get('league_id', '')
+            
+            # Use dynamic path based on league
+            if user_league_id and not user_league_id.startswith('APTA'):
+                players_path = os.path.join(app_dir, 'data', 'leagues', user_league_id, 'player_history.json')
+            else:
+                players_path = os.path.join(app_dir, 'data', 'leagues', 'all', 'player_history.json')
+                
+            with open(players_path, 'r') as f:
+                all_player_history = json.load(f)
+                
+            # Filter player history by league
+            player_history = []
+            for player in all_player_history:
+                player_league = player.get('League', player.get('league_id'))
+                if user_league_id.startswith('APTA'):
+                    # For APTA users, only include players from the same APTA league
+                    if player_league == user_league_id:
+                        player_history.append(player)
+                else:
+                    # For other leagues, match the league_id
+                    if player_league == user_league_id:
+                        player_history.append(player)
+                        
+        except Exception as e:
+            print(f"Error loading player history for find_player_in_history: {e}")
+            return None
+    
     try:
         # Build possible name variations for the user
         first_name = user.get('first_name', '').strip()

@@ -30,16 +30,29 @@ def get_players_by_series():
         print(f"Requested team: {team_id}")
         print(f"User series: {session['user'].get('series')}")
         print(f"User club: {session['user'].get('club')}")
+        print(f"User league: {session['user'].get('league_id')}")
             
-        # Load player data
+        # Load player data with league filtering
         app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        players_path = os.path.join(app_dir, 'data', 'leagues', 'apta', 'players.json')
+        user_league_id = session['user'].get('league_id', '')
+        
+        # Use dynamic path based on league
+        if user_league_id and not user_league_id.startswith('APTA'):
+            # For non-APTA leagues, use league-specific path
+            players_path = os.path.join(app_dir, 'data', 'leagues', user_league_id, 'players.json')
+        else:
+            # For APTA leagues, use the main players file with filtering
+            players_path = os.path.join(app_dir, 'data', 'leagues', 'all', 'players.json')
         
         with open(players_path, 'r') as f:
             all_players = json.load(f)
             
         # Load matches data if team filtering is needed
-        matches_path = os.path.join(app_dir, 'data', 'leagues', 'apta', 'match_history.json')
+        if user_league_id and not user_league_id.startswith('APTA'):
+            matches_path = os.path.join(app_dir, 'data', 'leagues', user_league_id, 'match_history.json')
+        else:
+            matches_path = os.path.join(app_dir, 'data', 'leagues', 'all', 'match_history.json')
+        
         team_players = set()
         if team_id and os.path.exists(matches_path):
             try:
@@ -47,6 +60,17 @@ def get_players_by_series():
                     matches = json.load(f)
                 # Get all players who have played for this team
                 for match in matches:
+                    # Add league filtering for matches
+                    match_league_id = match.get('league_id')
+                    if user_league_id.startswith('APTA'):
+                        # For APTA users, match exact APTA league ID
+                        if match_league_id != user_league_id:
+                            continue
+                    else:
+                        # For other leagues, match the league_id
+                        if match_league_id != user_league_id:
+                            continue
+                            
                     if match['Home Team'] == team_id:
                         team_players.add(match['Home Player 1'])
                         team_players.add(match['Home Player 2'])
@@ -61,9 +85,20 @@ def get_players_by_series():
         # Get user's club from session
         user_club = session['user'].get('club')
         
-        # Filter players by series, team if specified, and club
+        # Filter players by series, team if specified, club, and league
         players = []
         for player in all_players:
+            # Check league filtering first
+            player_league = player.get('League', player.get('league_id'))
+            if user_league_id.startswith('APTA'):
+                # For APTA users, only include players from the same APTA league
+                if player_league != user_league_id:
+                    continue
+            else:
+                # For other leagues, match the league_id
+                if player_league != user_league_id:
+                    continue
+            
             # Use our new series matching functionality
             if series_match(player['Series'], series):
                 # Create player name in the same format as match data
@@ -97,18 +132,41 @@ def get_team_players(team_id):
     """Get all players for a specific team"""
     try:
         app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        user_league_id = session['user'].get('league_id', '')
         
-        # Load player PTI data from JSON
-        players_path = os.path.join(app_dir, 'data', 'leagues', 'apta', 'players.json')
+        # Load player PTI data from JSON with dynamic path
+        if user_league_id and not user_league_id.startswith('APTA'):
+            # For non-APTA leagues, use league-specific path
+            players_path = os.path.join(app_dir, 'data', 'leagues', user_league_id, 'players.json')
+        else:
+            # For APTA leagues, use the main players file
+            players_path = os.path.join(app_dir, 'data', 'leagues', 'all', 'players.json')
+            
         with open(players_path, 'r') as f:
             all_players = json.load(f)
         
         pti_dict = {}
         for player in all_players:
+            # Check league filtering for PTI data
+            player_league = player.get('League', player.get('league_id'))
+            if user_league_id.startswith('APTA'):
+                # For APTA users, only include players from the same APTA league
+                if player_league != user_league_id:
+                    continue
+            else:
+                # For other leagues, match the league_id
+                if player_league != user_league_id:
+                    continue
+                    
             player_name = f"{player['Last Name']} {player['First Name']}"
             pti_dict[player_name] = float(player['PTI'])
-        
-        matches_path = os.path.join(app_dir, 'data', 'leagues', 'apta', 'match_history.json')
+
+        # Use dynamic path for matches
+        if user_league_id and not user_league_id.startswith('APTA'):
+            matches_path = os.path.join(app_dir, 'data', 'leagues', user_league_id, 'match_history.json')
+        else:
+            matches_path = os.path.join(app_dir, 'data', 'leagues', 'all', 'match_history.json')
+            
         with open(matches_path, 'r') as f:
             matches = json.load(f)
             
@@ -118,6 +176,17 @@ def get_team_players(team_id):
         # Group matches by date to determine court numbers
         date_matches = {}
         for match in matches:
+            # Add league filtering for matches
+            match_league_id = match.get('league_id')
+            if user_league_id.startswith('APTA'):
+                # For APTA users, match exact APTA league ID
+                if match_league_id != user_league_id:
+                    continue
+            else:
+                # For other leagues, match the league_id
+                if match_league_id != user_league_id:
+                    continue
+                    
             if match['Home Team'] == team_id or match['Away Team'] == team_id:
                 date = match['Date']
                 if date not in date_matches:
@@ -243,7 +312,18 @@ def player_court_stats(player_name):
     print(f"=== /api/player-court-stats called for player: {player_name} ===")
     
     app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    json_path = os.path.join(app_dir, 'data', 'leagues', 'apta', 'match_history.json')
+    
+    # Check if user is authenticated and get league info
+    user_league_id = ''
+    if 'user' in session:
+        user_league_id = session['user'].get('league_id', '')
+    
+    # Use dynamic path based on league
+    if user_league_id and not user_league_id.startswith('APTA'):
+        json_path = os.path.join(app_dir, 'data', 'leagues', user_league_id, 'match_history.json')
+    else:
+        json_path = os.path.join(app_dir, 'data', 'leagues', 'all', 'match_history.json')
+        
     print(f"Loading match data from: {json_path}")
     
     try:
@@ -268,6 +348,18 @@ def player_court_stats(player_name):
     # Group matches by date
     matches_by_date = defaultdict(list)
     for match in matches:
+        # Add league filtering for matches
+        if user_league_id:
+            match_league_id = match.get('league_id')
+            if user_league_id.startswith('APTA'):
+                # For APTA users, match exact APTA league ID
+                if match_league_id != user_league_id:
+                    continue
+            else:
+                # For other leagues, match the league_id
+                if match_league_id != user_league_id:
+                    continue
+                    
         matches_by_date[match['Date']].append(match)
     
     print(f"Grouped matches for {len(matches_by_date)} different dates")
@@ -376,7 +468,17 @@ def get_player_streaks():
     """Get current win/loss streaks for all players"""
     try:
         app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        matches_path = os.path.join(app_dir, 'data', 'leagues', 'apta', 'match_history.json')
+        
+        # Check if user is authenticated and get league info
+        user_league_id = ''
+        if 'user' in session:
+            user_league_id = session['user'].get('league_id', '')
+        
+        # Use dynamic path based on league
+        if user_league_id and not user_league_id.startswith('APTA'):
+            matches_path = os.path.join(app_dir, 'data', 'leagues', user_league_id, 'match_history.json')
+        else:
+            matches_path = os.path.join(app_dir, 'data', 'leagues', 'all', 'match_history.json')
         
         with open(matches_path, 'r') as f:
             matches = json.load(f)
@@ -399,8 +501,23 @@ def get_player_streaks():
             except:
                 return datetime.min
         
-        # Sort matches by date (oldest first)
-        sorted_matches = sorted(matches, key=lambda x: parse_date(x.get('Date', '')))
+        # Sort matches by date (oldest first) and filter by league
+        filtered_matches = []
+        for match in matches:
+            # Add league filtering for matches
+            if user_league_id:
+                match_league_id = match.get('league_id')
+                if user_league_id.startswith('APTA'):
+                    # For APTA users, match exact APTA league ID
+                    if match_league_id != user_league_id:
+                        continue
+                else:
+                    # For other leagues, match the league_id
+                    if match_league_id != user_league_id:
+                        continue
+            filtered_matches.append(match)
+            
+        sorted_matches = sorted(filtered_matches, key=lambda x: parse_date(x.get('Date', '')))
         
         for match in sorted_matches:
             # Process all players in the match
@@ -492,14 +609,33 @@ def get_player_history():
             return jsonify({'error': 'Not authenticated'}), 401
             
         app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        player_history_path = os.path.join(app_dir, 'data', 'leagues', 'apta', 'player_history.json')
+        user_league_id = user.get('league_id', '')
+        
+        # Use dynamic path based on league
+        if user_league_id and not user_league_id.startswith('APTA'):
+            player_history_path = os.path.join(app_dir, 'data', 'leagues', user_league_id, 'player_history.json')
+        else:
+            player_history_path = os.path.join(app_dir, 'data', 'leagues', 'all', 'player_history.json')
         
         # Check if file exists before trying to open it
         if not os.path.exists(player_history_path):
             return jsonify({'error': 'Player history data not available'}), 404
         
         with open(player_history_path, 'r') as f:
-            player_history = json.load(f)
+            all_player_history = json.load(f)
+            
+        # Filter player history by league
+        player_history = []
+        for player in all_player_history:
+            player_league = player.get('League', player.get('league_id'))
+            if user_league_id.startswith('APTA'):
+                # For APTA users, only include players from the same APTA league
+                if player_league == user_league_id:
+                    player_history.append(player)
+            else:
+                # For other leagues, match the league_id
+                if player_league == user_league_id:
+                    player_history.append(player)
             
         # Find the current user's player record
         user_name = f"{user['first_name']} {user['last_name']}"
@@ -525,10 +661,29 @@ def get_specific_player_history(player_name):
     """Get history for a specific player"""
     try:
         app_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        player_history_path = os.path.join(app_dir, 'data', 'leagues', 'apta', 'player_history.json')
+        user_league_id = session['user'].get('league_id', '')
+        
+        # Use dynamic path based on league
+        if user_league_id and not user_league_id.startswith('APTA'):
+            player_history_path = os.path.join(app_dir, 'data', 'leagues', user_league_id, 'player_history.json')
+        else:
+            player_history_path = os.path.join(app_dir, 'data', 'leagues', 'all', 'player_history.json')
         
         with open(player_history_path, 'r') as f:
-            player_history = json.load(f)
+            all_player_history = json.load(f)
+            
+        # Filter player history by league
+        player_history = []
+        for player in all_player_history:
+            player_league = player.get('League', player.get('league_id'))
+            if user_league_id.startswith('APTA'):
+                # For APTA users, only include players from the same APTA league
+                if player_league == user_league_id:
+                    player_history.append(player)
+            else:
+                # For other leagues, match the league_id
+                if player_league == user_league_id:
+                    player_history.append(player)
             
         # Helper function to normalize names for comparison
         def normalize(name):

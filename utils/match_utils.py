@@ -288,10 +288,13 @@ def find_player_id(first_name: str, last_name: str, series_mapping_id: str,
 def find_player_id_by_club_name(first_name: str, last_name: str, series_mapping_id: str, 
                                  club_name: str, players_data: List[Dict] = None, league: str = None) -> Optional[str]:
     """
-    Convenience function to find Player ID using club name directly.
-    Uses a multi-tier search strategy:
+    Enhanced multi-tier player ID lookup with progressive fallback strategy.
+    
+    Search Strategy:
     1. Primary: first name (with nicknames/fuzzy) + last name + series + club + league
-    2. Fallback: last name + series + club + league (ignores first name variations)
+    2. Fallback 1: last name + series + league (drop club and first name)
+    3. Fallback 2: last name + series + club + league (drop first name only)
+    4. Fallback 3: last name + club + league (drop series and first name)
     
     Args:
         first_name: Player's first name
@@ -299,7 +302,7 @@ def find_player_id_by_club_name(first_name: str, last_name: str, series_mapping_
         series_mapping_id: Series like "Chicago 19" or "Tennaqua - 6"
         club_name: Club name like "Biltmore CC"
         players_data: List of player dictionaries. If None, loads from default path
-        league: League identifier like "APTA_CHICAGO" or "nsft" to disambiguate multi-league players
+        league: League identifier like "APTA_CHICAGO" or "NSTF" to disambiguate multi-league players
         
     Returns:
         str|None: Player ID if exactly one match found, None otherwise
@@ -317,54 +320,117 @@ def find_player_id_by_club_name(first_name: str, last_name: str, series_mapping_
         else:
             logger.warning(f"No players found for league {league}. Available leagues: {set(p.get('League', 'None') for p in players_data if isinstance(p, dict))}")
     
-    # Try primary search first (includes first name matching with nicknames/fuzzy)
+    # ==========================================
+    # PRIMARY SEARCH: All fields with first name matching
+    # ==========================================
+    logger.info(f"Starting primary search for {first_name} {last_name} ({club_name}, {series_mapping_id}, {league})")
     player_id = find_player_id(first_name, last_name, series_mapping_id, club_name, players_data, league)
     
     if player_id:
-        logger.info(f"Found match using primary search (with first name): {player_id}")
+        logger.info(f"✅ PRIMARY: Found match using full search: {player_id}")
         return player_id
     
-    # Fallback: Search by last name + club + series only
-    logger.info(f"Primary search failed, trying fallback search by last name + club + series for {first_name} {last_name}")
-    
-    # Normalize inputs for fallback search
+    # Normalize inputs for fallback searches
     norm_last = normalize_name(last_name)
     norm_series = series_mapping_id.strip() if series_mapping_id else ""
     norm_club = normalize_name(club_name)
     
-    fallback_matches = []
+    # ==========================================
+    # FALLBACK 1: last name + series + league (drop club and first name)
+    # ==========================================
+    logger.info(f"PRIMARY failed, trying FALLBACK 1: last name + series + league for {first_name} {last_name}")
     
+    fallback1_matches = []
     for player in players_data:
-        # Skip non-dictionary items (defensive programming)
         if not isinstance(player, dict):
             continue
             
-        # Normalize player data
+        player_last = normalize_name(player.get("Last Name", ""))
+        player_series = player.get("Series Mapping ID", "").strip()
+        
+        # Match: last name + series (ignore club and first name)
+        if (player_last == norm_last and player_series == norm_series):
+            fallback1_matches.append(player)
+    
+    if len(fallback1_matches) == 1:
+        player_id = fallback1_matches[0].get("Player ID")
+        player_first = fallback1_matches[0].get("First Name", "")
+        player_club = fallback1_matches[0].get("Club", "")
+        logger.info(f"✅ FALLBACK 1: Found unique match {first_name} {last_name} → {player_first} {last_name} ({player_club}, {series_mapping_id}): {player_id}")
+        return player_id
+    elif len(fallback1_matches) > 1:
+        player_names = [f"{m.get('First Name', '')} {m.get('Last Name', '')} ({m.get('Club', '')})" for m in fallback1_matches]
+        logger.info(f"⚠️ FALLBACK 1: Multiple matches found for {last_name} + {series_mapping_id}: {player_names}")
+    else:
+        logger.info(f"❌ FALLBACK 1: No matches found for {last_name} + {series_mapping_id}")
+    
+    # ==========================================
+    # FALLBACK 2: last name + series + club + league (drop first name only)
+    # ==========================================
+    logger.info(f"FALLBACK 1 failed, trying FALLBACK 2: last name + series + club + league for {first_name} {last_name}")
+    
+    fallback2_matches = []
+    for player in players_data:
+        if not isinstance(player, dict):
+            continue
+            
         player_last = normalize_name(player.get("Last Name", ""))
         player_series = player.get("Series Mapping ID", "").strip()
         player_club = normalize_name(player.get("Club", ""))
         
-        # Check last name, series, and club (ignore first name)
+        # Match: last name + series + club (ignore first name)  
         if (player_last == norm_last and 
             player_series == norm_series and 
             player_club == norm_club):
-            
-            fallback_matches.append(player)
+            fallback2_matches.append(player)
     
-    if len(fallback_matches) == 1:
-        player_id = fallback_matches[0].get("Player ID")
-        player_first = fallback_matches[0].get("First Name", "")
-        logger.info(f"Found unique fallback match for {first_name} {last_name} → {player_first} {last_name} ({club_name}, {series_mapping_id}): {player_id}")
+    if len(fallback2_matches) == 1:
+        player_id = fallback2_matches[0].get("Player ID")
+        player_first = fallback2_matches[0].get("First Name", "")
+        logger.info(f"✅ FALLBACK 2: Found unique match {first_name} {last_name} → {player_first} {last_name} ({club_name}, {series_mapping_id}): {player_id}")
         return player_id
-    elif len(fallback_matches) == 0:
-        logger.warning(f"No fallback match found for {last_name} ({club_name}, {series_mapping_id})")
-        return None
+    elif len(fallback2_matches) > 1:
+        player_names = [f"{m.get('First Name', '')} {m.get('Last Name', '')}" for m in fallback2_matches]
+        player_ids = [m.get("Player ID") for m in fallback2_matches]
+        logger.info(f"⚠️ FALLBACK 2: Multiple matches found for {last_name} ({club_name}, {series_mapping_id}): {player_names} → {player_ids}")
     else:
-        # Multiple matches even with fallback - log for review
-        player_ids = [m.get("Player ID") for m in fallback_matches]
-        player_names = [f"{m.get('First Name', '')} {m.get('Last Name', '')}" for m in fallback_matches]
-        logger.warning(f"Multiple fallback matches found for {last_name} ({club_name}, {series_mapping_id}): {player_names} → {player_ids}")
-        return None
+        logger.info(f"❌ FALLBACK 2: No matches found for {last_name} ({club_name}, {series_mapping_id})")
+    
+    # ==========================================
+    # FALLBACK 3: last name + club + league (drop series and first name)  
+    # ==========================================
+    logger.info(f"FALLBACK 2 failed, trying FALLBACK 3: last name + club + league for {first_name} {last_name}")
+    
+    fallback3_matches = []
+    for player in players_data:
+        if not isinstance(player, dict):
+            continue
+            
+        player_last = normalize_name(player.get("Last Name", ""))
+        player_club = normalize_name(player.get("Club", ""))
+        
+        # Match: last name + club (ignore series and first name)
+        if (player_last == norm_last and player_club == norm_club):
+            fallback3_matches.append(player)
+    
+    if len(fallback3_matches) == 1:
+        player_id = fallback3_matches[0].get("Player ID")
+        player_first = fallback3_matches[0].get("First Name", "")
+        player_series = fallback3_matches[0].get("Series Mapping ID", "")
+        logger.info(f"✅ FALLBACK 3: Found unique match {first_name} {last_name} → {player_first} {last_name} ({club_name}, {player_series}): {player_id}")
+        return player_id
+    elif len(fallback3_matches) > 1:
+        player_names = [f"{m.get('First Name', '')} {m.get('Last Name', '')} ({m.get('Series Mapping ID', '')})" for m in fallback3_matches]
+        player_ids = [m.get("Player ID") for m in fallback3_matches]
+        logger.info(f"⚠️ FALLBACK 3: Multiple matches found for {last_name} ({club_name}): {player_names} → {player_ids}")
+    else:
+        logger.info(f"❌ FALLBACK 3: No matches found for {last_name} ({club_name})")
+    
+    # ==========================================
+    # ALL FALLBACKS EXHAUSTED
+    # ==========================================
+    logger.warning(f"❌ ALL SEARCHES FAILED: No unique player ID found for {first_name} {last_name} ({club_name}, {series_mapping_id}, {league})")
+    return None
 
 def find_player_id_by_location_id(first_name: str, last_name: str, series_mapping_id: str, 
                                   location_id: str, players_data: List[Dict] = None) -> Optional[str]:

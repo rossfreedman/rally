@@ -745,13 +745,31 @@ def get_team_schedule_data_data():
         # Load all players from players.json
         try:
             project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-            players_path = os.path.join(project_root, 'data', 'leagues', 'apta', 'players.json')
-            with open(players_path, 'r') as f:
-                all_players = json.load(f)
             
-            # Filter players for this series and club
+            # Use dynamic path based on league
+            if user.get('league_id') and not user['league_id'].startswith('APTA'):
+                players_path = os.path.join(project_root, 'data', 'leagues', user['league_id'], 'players.json')
+            else:
+                players_path = os.path.join(project_root, 'data', 'leagues', 'all', 'players.json')
+                
+            with open(players_path, 'r') as f:
+                all_players_data = json.load(f)
+            
+            # Filter players for this series and club and league
             team_players = []
-            for player in all_players:
+            user_league_id = user.get('league_id', '')
+            for player in all_players_data:
+                # Check league filtering first
+                player_league = player.get('League', player.get('league_id'))
+                if user_league_id.startswith('APTA'):
+                    # For APTA users, only include players from the same APTA league
+                    if player_league != user_league_id:
+                        continue
+                else:
+                    # For other leagues, match the league_id
+                    if player_league != user_league_id:
+                        continue
+                        
                 if (player.get('Series') == series and 
                     player.get('Club') == club_name):
                     full_name = f"{player['First Name']} {player['Last Name']}"

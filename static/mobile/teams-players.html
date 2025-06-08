@@ -371,7 +371,7 @@
             if (!playerName) return;
             playerStatsCard.classList.remove('d-none');
             playerStatsDiv.innerHTML = '<div class="text-center">Loading player stats...</div>';
-            fetch('/api/player-history')
+                                fetch('/api/player-history-chart')
                 .then(r => r.json())
                 .then(data => {
                     const player = data.find(p => p.name && p.name.trim().toLowerCase() === playerName.trim().toLowerCase());

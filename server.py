@@ -33,6 +33,9 @@ from app.routes.api_routes import api_bp
 # Import act routes initialization
 from routes.act import init_act_routes
 
+# Import route validation utilities
+from utils.route_validation import validate_routes_on_startup
+
 # Run database migrations before starting the application
 print("=== Running Database Migrations ===")
 try:
@@ -71,6 +74,15 @@ app.register_blueprint(api_bp)
 # Initialize act routes (includes find-subs, availability, schedule, rally_ai, etc.)
 init_act_routes(app)
 print("✅ Act routes initialized - Find Sub, Availability, Schedule, Rally AI routes enabled")
+
+# Validate routes to detect conflicts
+print("=== Validating Routes for Conflicts ===")
+has_no_conflicts = validate_routes_on_startup(app)
+if not has_no_conflicts:
+    print("⚠️  Route conflicts detected! Check logs above for details.")
+    print("⚠️  Application will continue but may have unexpected behavior.")
+else:
+    print("✅ Route validation passed - no conflicts detected")
 
 # Set secret key
 app.secret_key = os.getenv('FLASK_SECRET_KEY', secrets.token_hex(32))
@@ -351,6 +363,21 @@ def healthcheck():
             'player_routes', 'auth_routes', 'admin_routes', 
             'mobile_routes', 'api_routes', 'rally_ai_routes'
         ]
+    })
+
+@app.route('/health/routes')
+def routes_info():
+    """Route information endpoint for debugging"""
+    from utils.route_validation import RouteConflictDetector
+    
+    detector = RouteConflictDetector()
+    analysis = detector.analyze_app_routes(app)
+    
+    return jsonify({
+        'total_routes': analysis['total_routes'],
+        'conflicts': len(analysis['conflicts']),
+        'routes_by_blueprint': analysis['routes_by_blueprint'],
+        'conflict_details': analysis['conflicts'] if analysis['conflicts'] else None
     })
 
 @app.route('/player-detail/<player_name>')

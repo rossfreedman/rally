@@ -801,11 +801,28 @@ def update_settings():
         league_changed = current_league_id != new_league_id
         logger.info(f"Settings update: League change check - Current: {current_league_id}, New: {new_league_id}, Changed: {league_changed}")
         
-        # Only re-compute player ID if league has changed
+        # Enhanced player ID lookup logic:
+        # 1. Always retry if user requests it OR they don't have a player ID
+        # 2. Always retry if league has changed
+        # 3. Use improved multi-tier matching strategy
+        force_player_id_retry = data.get('forcePlayerIdRetry', False)
+        current_player_id = session['user'].get('tenniscores_player_id')
+        should_retry_player_id = (force_player_id_retry or 
+                                  league_changed or 
+                                  not current_player_id)
+        
         tenniscores_player_id = None
-        if league_changed and data.get('firstName') and data.get('lastName') and data.get('club') and data.get('series'):
+        if should_retry_player_id and data.get('firstName') and data.get('lastName') and data.get('club') and data.get('series'):
             try:
-                logger.info(f"Settings update: League changed from {current_league_id} to {new_league_id}, finding new player ID")
+                reason = []
+                if force_player_id_retry:
+                    reason.append("user requested retry")
+                if league_changed:
+                    reason.append(f"league changed from {current_league_id} to {new_league_id}")
+                if not current_player_id:
+                    reason.append("no existing player ID")
+                
+                logger.info(f"Settings update: Retrying player ID lookup because: {', '.join(reason)}")
                 
                 # Convert series name to mapping ID format for player lookup
                 series_mapping_id = convert_series_to_mapping_id(data['series'], data['club'], data.get('league_id'))
@@ -820,6 +837,7 @@ def update_settings():
                 elif data.get('league_id') == 'APTA_NATIONAL':
                     league_filter = 'APTA_NATIONAL'
                 
+                # Use enhanced multi-tier lookup strategy
                 tenniscores_player_id = find_player_id_by_club_name(
                     first_name=data['firstName'],
                     last_name=data['lastName'],
@@ -828,19 +846,19 @@ def update_settings():
                     league=league_filter
                 )
                 if tenniscores_player_id:
-                    logger.info(f"Settings update: Found NEW Player ID for {data['firstName']} {data['lastName']} in {new_league_id}: {tenniscores_player_id}")
+                    logger.info(f"Settings update: Found Player ID for {data['firstName']} {data['lastName']}: {tenniscores_player_id}")
                 else:
-                    logger.info(f"Settings update: No Player ID found for {data['firstName']} {data['lastName']} in {new_league_id} ({data['club']}, {series_mapping_id})")
+                    logger.info(f"Settings update: No Player ID found for {data['firstName']} {data['lastName']} ({data['club']}, {series_mapping_id})")
             except Exception as match_error:
                 logger.warning(f"Settings update: Error matching player ID for {data['firstName']} {data['lastName']}: {str(match_error)}")
                 # Continue with update even if matching fails
                 tenniscores_player_id = None
-        elif not league_changed:
-            logger.info(f"Settings update: League unchanged ({current_league_id}), keeping existing player ID")
+        elif not should_retry_player_id:
+            logger.info(f"Settings update: No player ID retry needed (league unchanged, existing ID: {current_player_id})")
         
-        # Update user data - only update player ID if league changed and we found a new one
-        if league_changed and tenniscores_player_id:
-            # League changed and we found a new player ID
+        # Update user data - update player ID if we retried and found one
+        if should_retry_player_id and tenniscores_player_id:
+            # We retried player ID lookup and found one - update it
             success = execute_update('''
                 UPDATE users 
                 SET first_name = %s, last_name = %s, email = %s, 
@@ -858,9 +876,9 @@ def update_settings():
                 tenniscores_player_id,
                 user_email
             ))
-            logger.info(f"Settings update: Updated user with NEW player ID: {tenniscores_player_id}")
+            logger.info(f"Settings update: Updated user with found player ID: {tenniscores_player_id}")
         else:
-            # League didn't change or no new player ID found - keep existing player ID
+            # No retry needed or no player ID found - keep existing player ID
             success = execute_update('''
                 UPDATE users 
                 SET first_name = %s, last_name = %s, email = %s, 
@@ -876,7 +894,10 @@ def update_settings():
                 data.get('clubAutomationPassword', ''),
                 user_email
             ))
-            logger.info(f"Settings update: Updated user, keeping existing player ID")
+            if should_retry_player_id and not tenniscores_player_id:
+                logger.info(f"Settings update: Updated user, but no player ID found despite retry")
+            else:
+                logger.info(f"Settings update: Updated user, keeping existing player ID")
         
         if not success:
             return jsonify({'error': 'Failed to update user data'}), 500
@@ -914,23 +935,31 @@ def update_settings():
             # Explicitly mark session as modified to ensure persistence
             session.modified = True
             
-            # Log the player ID handling for tracking
-            if league_changed:
+            # Log the player ID handling for tracking  
+            previous_player_id = current_player_id
+            final_player_id = updated_user['tenniscores_player_id']
+            player_id_changed = previous_player_id != final_player_id
+            
+            if should_retry_player_id:
                 if tenniscores_player_id:
-                    logger.info(f"League changed: Updated player ID from stored value to new ID: {updated_user['tenniscores_player_id']}")
+                    logger.info(f"Player ID lookup successful: {previous_player_id} → {final_player_id}")
                 else:
-                    logger.info(f"League changed but no new player ID found - kept existing: {updated_user['tenniscores_player_id']}")
+                    logger.info(f"Player ID lookup attempted but failed - kept existing: {final_player_id}")
             else:
-                logger.info(f"League unchanged: Using stored player ID {updated_user['tenniscores_player_id']}")
+                logger.info(f"No player ID retry needed: {final_player_id}")
             logger.info(f"Session player ID set to: {session['user']['tenniscores_player_id']}")
             
             return jsonify({
                 'success': True,
                 'message': 'Settings updated successfully',
                 'user': session['user'],
-                'player_id_updated': league_changed and tenniscores_player_id is not None,
-                'player_id': updated_user['tenniscores_player_id'],
-                'league_changed': league_changed
+                'player_id_updated': player_id_changed,
+                'player_id': final_player_id,
+                'previous_player_id': previous_player_id,
+                'player_id_retry_attempted': should_retry_player_id,
+                'player_id_retry_successful': should_retry_player_id and tenniscores_player_id is not None,
+                'league_changed': league_changed,
+                'force_retry_requested': force_player_id_retry
             })
         else:
             return jsonify({'error': 'Failed to retrieve updated user data'}), 500
@@ -938,6 +967,108 @@ def update_settings():
     except Exception as e:
         print(f"Error updating settings: {str(e)}")
         return jsonify({'error': 'Failed to update settings'}), 500
+
+@api_bp.route('/api/retry-player-id', methods=['POST'])
+@login_required  
+def retry_player_id_lookup():
+    """
+    Standalone endpoint to retry player ID lookup without changing other settings.
+    Uses the enhanced multi-tier matching strategy.
+    """
+    try:
+        user = session['user']
+        current_player_id = user.get('tenniscores_player_id')
+        
+        logger.info(f"Manual player ID retry requested for {user['first_name']} {user['last_name']} (current ID: {current_player_id})")
+        
+        # Get current user data
+        first_name = user['first_name']
+        last_name = user['last_name']
+        club_name = user['club']
+        series_name = user['series']
+        league_id = user.get('league_id', 'APTA_CHICAGO')
+        
+        if not all([first_name, last_name, club_name, series_name]):
+            return jsonify({
+                'success': False,
+                'error': 'Missing required user information for player ID lookup'
+            }), 400
+        
+        try:
+            # Convert series name to mapping ID format for player lookup
+            series_mapping_id = convert_series_to_mapping_id(series_name, club_name, league_id)
+            logger.info(f"Manual retry: Looking up player with mapping ID: {series_mapping_id}")
+            
+            # Convert league_id to the format used in player data
+            league_filter = None
+            if league_id == 'APTA_CHICAGO':
+                league_filter = 'APTA_CHICAGO'
+            elif league_id == 'NSTF':
+                league_filter = 'NSTF'
+            elif league_id == 'APTA_NATIONAL':
+                league_filter = 'APTA_NATIONAL'
+            
+            # Use enhanced multi-tier lookup strategy
+            found_player_id = find_player_id_by_club_name(
+                first_name=first_name,
+                last_name=last_name,
+                series_mapping_id=series_mapping_id,
+                club_name=club_name,
+                league=league_filter
+            )
+            
+            if found_player_id:
+                # Update the user's player ID in database
+                success = execute_update('''
+                    UPDATE users SET tenniscores_player_id = %s WHERE email = %s
+                ''', (found_player_id, user['email']))
+                
+                if success:
+                    # Update session
+                    session['user']['tenniscores_player_id'] = found_player_id
+                    session.modified = True
+                    
+                    logger.info(f"Manual retry: Successfully updated player ID {current_player_id} → {found_player_id}")
+                    
+                    return jsonify({
+                        'success': True,
+                        'message': f'Player ID successfully found and updated!',
+                        'player_id': found_player_id,
+                        'previous_player_id': current_player_id,
+                        'changed': current_player_id != found_player_id
+                    })
+                else:
+                    logger.error(f"Manual retry: Database update failed for player ID {found_player_id}")
+                    return jsonify({
+                        'success': False,
+                        'error': 'Failed to update player ID in database'
+                    }), 500
+            else:
+                logger.info(f"Manual retry: No player ID found for {first_name} {last_name} ({club_name}, {series_mapping_id})")
+                return jsonify({
+                    'success': False,
+                    'message': f'No matching player found for {first_name} {last_name} in {club_name}, {series_name}',
+                    'player_id': current_player_id,
+                    'search_details': {
+                        'series_mapping_id': series_mapping_id,
+                        'league_filter': league_filter,
+                        'club': club_name
+                    }
+                })
+                
+        except Exception as lookup_error:
+            logger.error(f"Manual retry: Error during player lookup: {str(lookup_error)}")
+            return jsonify({
+                'success': False,
+                'error': f'Player lookup failed: {str(lookup_error)}'
+            }), 500
+            
+    except Exception as e:
+        logger.error(f"Manual player ID retry error: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': 'Failed to retry player ID lookup'
+        }), 500
 
 @api_bp.route('/api/get-leagues')
 def get_leagues():
@@ -1037,46 +1168,51 @@ def get_series_by_league():
         print(f"Error getting series by league: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-@api_bp.route('/api/get-series')
-def get_series():
-    """Get all available series from database and current user's series"""
+
+
+@api_bp.route('/api/teams')
+@login_required
+def get_teams():
+    """Get teams filtered by user's league"""
     try:
-        from flask import session
+        # Get user's league for filtering
+        user = session.get('user')
+        if not user:
+            return jsonify({'error': 'Not authenticated'}), 401
+            
+        user_league_id = user.get('league_id', '')
+        print(f"[DEBUG] /api/teams: User league_id: '{user_league_id}'")
         
-        query = """
-            SELECT DISTINCT s.name as series_name
-            FROM series s
-            ORDER BY s.name
-        """
+        # Load stats data to get team names
+        import os
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        stats_path = os.path.join(project_root, 'data', 'leagues', 'all', 'series_stats.json')
         
-        series_data = execute_query(query)
+        with open(stats_path, 'r') as f:
+            all_stats = json.load(f)
         
-        # Process the series data to extract numbers and sort properly
-        def extract_series_number(series_name):
-            import re
-            # Look for numbers in the series name
-            numbers = re.findall(r'\d+', series_name)
-            if numbers:
-                return int(numbers[-1])  # Return the last number as an integer
+        # Filter stats data by user's league
+        def is_user_league_team(team_data):
+            team_league_id = team_data.get('league_id')
+            if user_league_id.startswith('APTA'):
+                # For APTA users, only include teams without league_id field (APTA teams)
+                return team_league_id is None
             else:
-                return 999  # Put non-numeric series at the end
+                # For other leagues, match the league_id
+                return team_league_id == user_league_id
         
-        # Sort by extracted number
-        series_data.sort(key=lambda x: extract_series_number(x['series_name']))
+        league_filtered_stats = [team for team in all_stats if is_user_league_team(team)]
+        print(f"[DEBUG] Filtered from {len(all_stats)} total teams to {len(league_filtered_stats)} teams in user's league")
         
-        # Extract just the series names
-        series_names = [item['series_name'] for item in series_data]
-        
-        # Get current user's series from session
-        current_user_series = session.get('user', {}).get('series', '')
+        # Extract team names and filter out BYE teams
+        teams = sorted({s['team'] for s in league_filtered_stats if 'BYE' not in s['team'].upper()})
         
         return jsonify({
-            'series': current_user_series,  # Current user's series
-            'all_series': series_names      # All available series
+            'teams': teams
         })
         
     except Exception as e:
-        print(f"Error getting series: {str(e)}")
+        print(f"Error getting teams: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @api_bp.route('/api/club-players')
@@ -1129,10 +1265,10 @@ def debug_club_data():
         print(f"Debug endpoint error: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-@api_bp.route('/api/player-history')
+@api_bp.route('/api/player-history-chart')
 @login_required
-def get_player_history():
-    """Get player PTI history for charts"""
+def get_player_history_chart():
+    """Get player PTI history data formatted for charts"""
     try:
         user = session['user']
         print(f"[DEBUG] API called for user: {user}")
@@ -1140,15 +1276,33 @@ def get_player_history():
         # Get current directory
         current_dir = os.path.dirname(os.path.abspath(__file__))
         project_root = os.path.dirname(os.path.dirname(current_dir))
+        user_league_id = user.get('league_id', '')
         
-        # Load player history data
-        player_history_path = os.path.join(project_root, 'data', 'leagues', 'apta', 'player_history.json')
+        # Use dynamic path based on league
+        if user_league_id and not user_league_id.startswith('APTA'):
+            player_history_path = os.path.join(project_root, 'data', 'leagues', user_league_id, 'player_history.json')
+        else:
+            player_history_path = os.path.join(project_root, 'data', 'leagues', 'all', 'player_history.json')
+            
         print(f"[DEBUG] Loading data from: {player_history_path}")
         
         with open(player_history_path, 'r') as f:
-            all_players = json.load(f)
+            all_players_data = json.load(f)
         
-        print(f"[DEBUG] Loaded {len(all_players)} players")
+        # Filter players by league
+        all_players = []
+        for player in all_players_data:
+            player_league = player.get('League', player.get('league_id'))
+            if user_league_id.startswith('APTA'):
+                # For APTA users, only include players from the same APTA league
+                if player_league == user_league_id:
+                    all_players.append(player)
+            else:
+                # For other leagues, match the league_id
+                if player_league == user_league_id:
+                    all_players.append(player)
+        
+        print(f"[DEBUG] Loaded {len(all_players)} players for league {user_league_id}")
         
         # Find the current user's player data
         user_player = None

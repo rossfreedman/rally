@@ -32,11 +32,11 @@ def load_training_data():
         FileNotFoundError: If the training guide file is not found
         json.JSONDecodeError: If the JSON file is malformed
     """
-    # Get the path to the training guide file
-    # Assuming this module is in api/ and data/ is at the root level
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    project_root = os.path.dirname(current_dir)
-    training_guide_path = os.path.join(project_root, 'data', 'leagues', 'apta', 'improve_data', 'complete_platform_tennis_training_guide.json')
+    # Get the project root directory
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    
+    # Use the main training guide path that works for all leagues
+    training_guide_path = os.path.join(project_root, 'data', 'leagues', 'all', 'improve_data', 'complete_platform_tennis_training_guide.json')
     
     with open(training_guide_path, 'r', encoding='utf-8') as f:
         return json.load(f)
