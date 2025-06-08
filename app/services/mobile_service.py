@@ -29,12 +29,16 @@ def _load_players_data():
         print(f"Error loading player data: {e}")
         return []
 
-def get_player_analysis_by_name(player_name):
+def get_player_analysis_by_name(player_name, viewing_user=None):
     """
     Returns the player analysis data for the given player name, as a dict.
     This function parses the player_name string into first and last name (if possible),
     then calls get_player_analysis with a constructed user dict.
     Handles single-word names gracefully.
+    
+    Args:
+        player_name: Name of the player to analyze
+        viewing_user: User object containing league_id for filtering data by league
     """
     # Defensive: handle empty or None
     if not player_name or not isinstance(player_name, str):
@@ -51,27 +55,33 @@ def get_player_analysis_by_name(player_name):
             'error': 'Invalid player name.'
         }
     
-    # Load player history to find the exact player record first
-    # Note: For get_player_analysis_by_name, we don't have user league context, so we should try to find the player across leagues
+    # Load player data based on viewing user's league for proper filtering
     try:
         project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         
-        # Try to find player across different leagues
-        leagues_to_check = ['all', 'NSTF', 'apta']  # Add more leagues as needed
-        all_players = []
+        # Get viewing user's league for filtering
+        viewing_user_league = viewing_user.get('league_id', '') if viewing_user else ''
         
-        for league in leagues_to_check:
-            try:
-                player_history_path = os.path.join(project_root, 'data', 'leagues', league, 'player_history.json')
-                with open(player_history_path, 'r') as f:
-                    league_players = json.load(f)
-                    # Add league info to each player for context
-                    for player in league_players:
-                        if isinstance(player, dict):
-                            player['source_league'] = league
-                    all_players.extend(league_players)
-            except FileNotFoundError:
-                continue  # Skip leagues that don't have player history files
+        # Use main players.json file which has proper League field
+        players_path = os.path.join(project_root, 'data', 'leagues', 'all', 'players.json')
+        all_players_data = []
+        
+        try:
+            with open(players_path, 'r') as f:
+                all_players_raw = json.load(f)
+                
+            # Filter players by viewing user's league if provided
+            if viewing_user_league:
+                for player in all_players_raw:
+                    player_league = player.get('League', player.get('league_id'))
+                    # Use generic league matching instead of hardcoded APTA logic
+                    if player_league == viewing_user_league:
+                        all_players_data.append(player)
+            else:
+                all_players_data = all_players_raw
+        except FileNotFoundError:
+            print(f"[ERROR] Players file not found: {players_path}")
+            all_players_data = []
         
         def normalize(name):
             return name.replace(',', '').replace('  ', ' ').strip().lower()
@@ -80,8 +90,13 @@ def get_player_analysis_by_name(player_name):
         player_name_normalized = normalize(player_name)
         found_player = None
         
-        for p in all_players:
-            player_record_name = normalize(p.get('name', ''))
+        for p in all_players_data:
+            # Construct full name from First Name and Last Name fields
+            first_name = p.get('First Name', '')
+            last_name = p.get('Last Name', '')
+            full_name = f"{first_name} {last_name}".strip()
+            player_record_name = normalize(full_name)
+            
             if player_record_name == player_name_normalized:
                 found_player = p
                 break
@@ -100,13 +115,13 @@ def get_player_analysis_by_name(player_name):
             user_dict = {
                 'first_name': first_name,
                 'last_name': last_name,
-                'tenniscores_player_id': found_player.get('player_id'),  # Include player_id if available
-                'league_id': found_player.get('league', found_player.get('source_league', 'all')),  # Use source_league if league field is empty
-                'club': found_player.get('club', ''),
-                'series': found_player.get('series', '')
+                'tenniscores_player_id': found_player.get('Player ID'),  # Include player_id if available
+                'league_id': found_player.get('League', 'all'),  # Use League field
+                'club': found_player.get('Club', ''),
+                'series': found_player.get('Series', '')
             }
             
-            print(f"[DEBUG] Found player record for '{player_name}': {found_player.get('name')} with ID {found_player.get('player_id')}")
+
             
         else:
             # Fallback to basic name parsing if no exact match found
@@ -119,7 +134,6 @@ def get_player_analysis_by_name(player_name):
                 last_name = parts[0]
             
             user_dict = {'first_name': first_name, 'last_name': last_name}
-            print(f"[DEBUG] No exact match found for '{player_name}', using fallback user dict")
         
     except Exception as e:
         print(f"Error loading player history for better matching: {str(e)}")
@@ -136,12 +150,6 @@ def get_player_analysis_by_name(player_name):
     
     # Call get_player_analysis with constructed user dict
     result = get_player_analysis(user_dict)
-    
-    # Debug output for career stats
-    if result.get('career_stats'):
-        print(f"[DEBUG] Career stats for {player_name}: {result['career_stats']}")
-    else:
-        print(f"[DEBUG] No career stats found for {player_name}")
     
     return result
 
@@ -1048,13 +1056,17 @@ def get_mobile_series_data(user):
         }
 
 def get_teams_players_data(user):
-    """Get teams and players data for mobile interface"""
+    """Get teams and players data for mobile interface - filtered by user's league"""
     try:
         from flask import request
         import os
         
         # Get team parameter from request
         team = request.args.get('team')
+        
+        # Get user's league for filtering
+        user_league_id = user.get('league_id', '')
+        print(f"[DEBUG] get_teams_players_data: User league_id: '{user_league_id}'")
         
         # Load data files
         project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -1066,8 +1078,26 @@ def get_teams_players_data(user):
         with open(matches_path, 'r') as f:
             all_matches = json.load(f)
         
-        # Filter out BYE teams
-        all_teams = sorted({s['team'] for s in all_stats if 'BYE' not in s['team'].upper()})
+        # Filter stats data by user's league
+        def is_user_league_team(team_data):
+            team_league_id = team_data.get('league_id')
+            # Use generic league matching instead of hardcoded APTA logic
+            return team_league_id == user_league_id or (not team_league_id and user_league_id.startswith('APTA'))
+        
+        league_filtered_stats = [team for team in all_stats if is_user_league_team(team)]
+        print(f"[DEBUG] Filtered from {len(all_stats)} total teams to {len(league_filtered_stats)} teams in user's league")
+        
+        # Filter matches by user's league
+        def is_match_in_user_league(match):
+            match_league_id = match.get('league_id')
+            # Use generic league matching instead of hardcoded APTA logic
+            return match_league_id == user_league_id or (not match_league_id and user_league_id.startswith('APTA'))
+        
+        league_filtered_matches = [match for match in all_matches if is_match_in_user_league(match)]
+        print(f"[DEBUG] Filtered from {len(all_matches)} total matches to {len(league_filtered_matches)} matches in user's league")
+        
+        # Filter out BYE teams from league-filtered data
+        all_teams = sorted({s['team'] for s in league_filtered_stats if 'BYE' not in s['team'].upper()})
         
         if not team or team not in all_teams:
             # No team selected or invalid team
@@ -1077,9 +1107,11 @@ def get_teams_players_data(user):
                 'selected_team': None
             }
         
-        # Get team stats and matches
-        team_stats = next((s for s in all_stats if s.get('team') == team), {})
-        team_matches = [m for m in all_matches if m.get('Home Team') == team or m.get('Away Team') == team]
+        # Get team stats and matches from league-filtered data
+        team_stats = next((s for s in league_filtered_stats if s.get('team') == team), {})
+        team_matches = [m for m in league_filtered_matches if m.get('Home Team') == team or m.get('Away Team') == team]
+        
+        print(f"[DEBUG] Found {len(team_matches)} matches for team '{team}' in user's league")
         
         # Calculate team analysis using the helper function
         team_analysis_data = calculate_team_analysis_mobile(team_stats, team_matches, team)
@@ -1214,10 +1246,10 @@ def calculate_team_analysis_mobile(team_stats, team_matches, team):
             win_rate = round((wins / (wins + losses) * 100), 1) if (wins + losses) > 0 else 0
             record = f"{wins}-{losses} ({win_rate}%)"
             
-            # Top players by win rate (min 2 matches)
+            # Top players by win rate (show all players for this court)
             key_players = sorted([
                 {'name': p, 'win_rate': round((d['wins']/d['matches'])*100, 1), 'matches': d['matches']}
-                for p, d in player_win_counts.items() if d['matches'] >= 2
+                for p, d in player_win_counts.items()
             ], key=lambda x: -x['win_rate'])[:2]
             
             # Summary sentence
@@ -1282,29 +1314,26 @@ def calculate_team_analysis_mobile(team_stats, team_matches, team):
         
         top_players = []
         for name, stats in player_stats.items():
-            if stats['matches'] < 3: 
-                continue
+            # Show all players regardless of match count
             win_rate = round((stats['wins']/stats['matches'])*100, 1) if stats['matches'] > 0 else 0
             
             # Best court
             best_court = None
             best_court_rate = 0
             for court, cstats in stats['courts'].items():
-                if cstats['matches'] >= 2:
-                    rate = round((cstats['wins']/cstats['matches'])*100, 1)
-                    if rate > best_court_rate:
-                        best_court_rate = rate
-                        best_court = f"{court} ({rate}%)"
+                rate = round((cstats['wins']/cstats['matches'])*100, 1)
+                if rate > best_court_rate or (rate == best_court_rate and cstats['matches'] > 0):
+                    best_court_rate = rate
+                    best_court = f"{court} ({rate}%)"
             
             # Best partner
             best_partner = None
             best_partner_rate = 0
             for partner, pstats in stats['partners'].items():
-                if pstats['matches'] >= 2:
-                    rate = round((pstats['wins']/pstats['matches'])*100, 1)
-                    if rate > best_partner_rate:
-                        best_partner_rate = rate
-                        best_partner = f"{partner} ({rate}%)"
+                rate = round((pstats['wins']/pstats['matches'])*100, 1)
+                if rate > best_partner_rate or (rate == best_partner_rate and pstats['matches'] > 0):
+                    best_partner_rate = rate
+                    best_partner = f"{partner} ({rate}%)"
             
             top_players.append({
                 'name': name,
@@ -1372,7 +1401,7 @@ def get_player_search_data(user):
                 search_query = f'last name "{last_name}"'
             
             # Search for matching players using enhanced fuzzy logic
-            matching_players = search_players_with_fuzzy_logic_mobile(first_name, last_name)
+            matching_players = search_players_with_fuzzy_logic_mobile(first_name, last_name, user)
         
         return {
             'first_name': first_name,
@@ -1393,62 +1422,69 @@ def get_player_search_data(user):
             'error': str(e)
         }
 
-def search_players_with_fuzzy_logic_mobile(first_name_query, last_name_query):
+def search_players_with_fuzzy_logic_mobile(first_name_query, last_name_query, user):
     """
     Search for players using enhanced fuzzy logic from the backup implementation.
     This is the mobile-specific version that returns data in the format expected by the template.
-    Searches across both APTA and NSTF leagues.
+    Searches only within the user's league for security and relevance.
     
     Args:
         first_name_query: First name to search for (can be empty)
         last_name_query: Last name to search for (can be empty)
+        user: User object containing league_id for filtering
         
     Returns:
         list: List of matching player dictionaries with name and basic info
     """
     try:
+        # Get user's league for filtering
+        user_league_id = user.get('league_id', '')
+        print(f"[DEBUG] search_players_with_fuzzy_logic_mobile: User league_id: '{user_league_id}'")
+        
         project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        
+        # Load the main players.json file which contains all players with League field
+        players_path = os.path.join(project_root, 'data', 'leagues', 'all', 'players.json')
         all_players = []
         
-        # Load APTA player history data
-        apta_player_history_path = os.path.join(project_root, 'data', 'leagues', 'all', 'player_history.json')
         try:
-            with open(apta_player_history_path, 'r') as f:
-                apta_players = json.load(f)
-                all_players.extend(apta_players)
-                print(f"Loaded {len(apta_players)} APTA players")
-        except Exception as e:
-            print(f"Error loading APTA players: {e}")
-        
-        # Load NSTF players data
-        nstf_players_path = os.path.join(project_root, 'data', 'leagues', 'NSTF', 'players.json')
-        try:
-            with open(nstf_players_path, 'r') as f:
-                nstf_players_raw = json.load(f)
-                # Convert NSTF format to match APTA format
-                for player in nstf_players_raw:
+            with open(players_path, 'r') as f:
+                all_players_data = json.load(f)
+                
+            # Filter players by user's league
+            for player in all_players_data:
+                player_league = player.get('League', '')
+                
+                # Include player if their league matches user's league
+                should_include = False
+                if player_league == user_league_id:
+                    should_include = True
+                
+                if should_include:
+                    # Convert to common format
                     first_name = player.get('First Name', '')
                     last_name = player.get('Last Name', '')
                     full_name = f"{first_name} {last_name}".strip()
                     
-                    # Convert NSTF player to common format
                     converted_player = {
                         'name': full_name,
                         'first_name': first_name,
                         'last_name': last_name,
                         'player_id': player.get('Player ID', ''),
-                        'league_id': 'NSTF',
+                        'league_id': player_league,
                         'series': player.get('Series', ''),
                         'club': player.get('Club', ''),
                         'pti': player.get('PTI', 'N/A'),
-                        'wins': int(player.get('Wins', 0)) if player.get('Wins', '').isdigit() else 0,
-                        'losses': int(player.get('Losses', 0)) if player.get('Losses', '').isdigit() else 0,
-                        'matches': []  # NSTF doesn't have detailed match history in this format
+                        'wins': int(player.get('Wins', 0)) if str(player.get('Wins', '')).isdigit() else 0,
+                        'losses': int(player.get('Losses', 0)) if str(player.get('Losses', '')).isdigit() else 0,
+                        'matches': []  # This data doesn't have detailed match history
                     }
                     all_players.append(converted_player)
-                print(f"Loaded {len(nstf_players_raw)} NSTF players")
+            
+            print(f"Loaded {len(all_players)} players for league '{user_league_id}' from main players.json")
+            
         except Exception as e:
-            print(f"Error loading NSTF players: {e}")
+            print(f"Error loading players from main players.json: {e}")
         
         print(f"Total players loaded: {len(all_players)}")
             
@@ -1700,12 +1736,8 @@ def get_recent_matches_for_user_club(user):
         # Filter matches by user's league first
         def is_match_in_user_league(match):
             match_league_id = match.get('league_id')
-            if user_league_id.startswith('APTA'):
-                # For APTA users, match exact APTA league ID
-                return match_league_id == user_league_id
-            else:
-                # For other leagues, match the league_id
-                return match_league_id == user_league_id
+            # Use generic league matching
+            return match_league_id == user_league_id or (not match_league_id and user_league_id.startswith('APTA'))
         
         league_filtered_matches = [match for match in all_matches if is_match_in_user_league(match)]
         print(f"[DEBUG] get_recent_matches_for_user_club: Filtered from {len(all_matches)} to {len(league_filtered_matches)} matches for user's league")
@@ -1810,12 +1842,8 @@ def calculate_player_streaks(club_name, user_league_id=''):
         if user_league_id:
             def is_match_in_user_league(match):
                 match_league_id = match.get('league_id')
-                if user_league_id.startswith('APTA'):
-                    # For APTA users, match exact APTA league ID
-                    return match_league_id == user_league_id
-                else:
-                    # For other leagues, match the league_id
-                    return match_league_id == user_league_id
+                # Use generic league matching
+                return match_league_id == user_league_id or (not match_league_id and user_league_id.startswith('APTA'))
             
             league_filtered_matches = [match for match in all_matches if is_match_in_user_league(match)]
             print(f"[DEBUG] calculate_player_streaks: Filtered from {len(all_matches)} to {len(league_filtered_matches)} matches for user's league")
@@ -2129,12 +2157,8 @@ def get_mobile_club_data(user):
             # Check if this is the series_stats format (APTA teams don't have league_id field, NSTF teams do)
             def is_user_league(team_data):
                 team_league_id = team_data.get('league_id')
-                if user_league_id.startswith('APTA'):
-                    # For APTA users, only include teams without league_id field (APTA teams)
-                    return team_league_id is None
-                else:
-                    # For other leagues, match the league_id
-                    return team_league_id == user_league_id
+                # Use generic league matching
+                return team_league_id == user_league_id or (not team_league_id and user_league_id.startswith('APTA'))
             
             league_filtered_stats = [team for team in stats_data if is_user_league(team)]
             print(f"[DEBUG] Filtered from {len(stats_data)} total teams to {len(league_filtered_stats)} teams in user's league")
@@ -2193,12 +2217,8 @@ def get_mobile_club_data(user):
             # Filter match history by user's league
             def is_match_in_user_league(match):
                 match_league_id = match.get('league_id')
-                if user_league_id.startswith('APTA'):
-                    # For APTA users, match exact APTA league ID
-                    return match_league_id == user_league_id
-                else:
-                    # For other leagues, match the league_id
-                    return match_league_id == user_league_id
+                # Use generic league matching
+                return match_league_id == user_league_id or (not match_league_id and user_league_id.startswith('APTA'))
             
             league_filtered_matches = [match for match in all_match_history if is_match_in_user_league(match)]
             print(f"[DEBUG] Filtered from {len(all_match_history)} total matches to {len(league_filtered_matches)} matches in user's league")
@@ -2585,12 +2605,8 @@ def get_club_players_data(user, series_filter=None, first_name_filter=None, last
         # Filter players by user's league first
         def is_player_in_user_league(player):
             player_league = player.get('League')
-            if user_league_id.startswith('APTA'):
-                # For APTA users, match exact APTA league ID
-                return player_league == user_league_id
-            else:
-                # For other leagues, match the league_id
-                return player_league == user_league_id
+            # Use generic league matching
+            return player_league == user_league_id
         
         league_filtered_players = [player for player in all_players if is_player_in_user_league(player)]
         print(f"Filtered from {len(all_players)} total players to {len(league_filtered_players)} players in user's league")
