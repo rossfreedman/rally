@@ -606,17 +606,37 @@ def get_player_analysis(user):
     player_has_pti_data = player is not None and pti_data_available
     
     response = {
-        'current_season': current_season if (player or has_match_data) else None,
-        'court_analysis': court_analysis if (player or has_match_data) else {},
-        'career_stats': career_stats if player else None,
-        'player_history': player_history if player else None,
+        'current_season': current_season if (player or has_match_data) else {
+            'winRate': 0,
+            'matches': 0,
+            'wins': 0,
+            'losses': 0,
+            'ptiChange': 'N/A'
+        },
+        'court_analysis': court_analysis if (player or has_match_data) else {
+            'court1': {'winRate': 0, 'record': '0-0', 'topPartners': []},
+            'court2': {'winRate': 0, 'record': '0-0', 'topPartners': []},
+            'court3': {'winRate': 0, 'record': '0-0', 'topPartners': []},
+            'court4': {'winRate': 0, 'record': '0-0', 'topPartners': []}
+        },
+        'career_stats': career_stats if player else {
+            'winRate': 0,
+            'matches': 0,
+            'wins': 0,
+            'losses': 0,
+            'pti': 'N/A'
+        },
+        'player_history': player_history if player else {
+            'progression': '',
+            'seasons': []
+        },
         'videos': {'match': [], 'practice': []},
         'trends': {},
         'career_pti_change': career_pti_change if player else 'N/A',
         'current_pti': float(current_pti) if current_pti is not None and player_has_pti_data else None,
         'weekly_pti_change': float(weekly_pti_change) if weekly_pti_change is not None and player_has_pti_data else None,
         'pti_data_available': player_has_pti_data,
-        'error': None if (player or has_match_data or not pti_data_available) else 'No analysis data available for this player.'
+        'error': None
     }
     return response
 

@@ -248,6 +248,13 @@
                     </div>
                     
                     <div class="form-floating">
+                        <select class="form-control" id="league" required>
+                            <option value="">Select your league</option>
+                        </select>
+                        <label for="league">League</label>
+                    </div>
+                    
+                    <div class="form-floating">
                         <select class="form-control" id="club" required>
                             <option value="">Select your club</option>
                         </select>
@@ -273,53 +280,127 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Load clubs and series on page load
+        // Load leagues, clubs and series on page load with filtering
         document.addEventListener('DOMContentLoaded', async () => {
             try {
-                const [clubsResponse, seriesResponse] = await Promise.all([
-                    fetch('/api/get-clubs', { credentials: 'include' }),
-                    fetch('/api/get-series', { credentials: 'include' })
-                ]);
+                await loadLeaguesAndFilters();
+            } catch (error) {
+                console.error('Error loading registration data:', error);
+            }
+        });
+
+        // Load leagues first, then set up filtering
+        async function loadLeaguesAndFilters() {
+            try {
+                // Load leagues first
+                const leaguesResponse = await fetch('/api/get-leagues');
+                if (!leaguesResponse.ok) {
+                    throw new Error('Failed to load leagues');
+                }
                 
-                if (clubsResponse.ok && seriesResponse.ok) {
-                    const clubs = await clubsResponse.json();
-                    const series = await seriesResponse.json();
-                    
+                const leagues = await leaguesResponse.json();
+                const leagueSelect = document.getElementById('league');
+                
+                leagueSelect.innerHTML = '<option value="">Select your league</option>';
+                
+                if (leagues.leagues && Array.isArray(leagues.leagues)) {
+                    leagues.leagues.forEach(league => {
+                        const option = document.createElement('option');
+                        option.value = league.league_id;
+                        option.textContent = league.league_name;
+                        leagueSelect.appendChild(option);
+                    });
+                }
+                
+                // Add event listener for league changes
+                leagueSelect.addEventListener('change', function() {
+                    const selectedLeague = this.value;
+                    loadClubsByLeague(selectedLeague);
+                    loadSeriesByLeague(selectedLeague);
+                    // Clear club and series selections when league changes
+                    document.getElementById('club').value = '';
+                    document.getElementById('series').value = '';
+                });
+                
+                // Load all clubs and series initially (no league filter)
+                loadClubsByLeague();
+                loadSeriesByLeague();
+                
+            } catch (error) {
+                console.error('Error loading leagues:', error);
+                // Fallback to loading all clubs and series without league filtering
+                loadClubsByLeague();
+                loadSeriesByLeague();
+            }
+        }
+
+        // Load clubs filtered by league
+        function loadClubsByLeague(leagueId = null) {
+            const url = leagueId ? `/api/get-clubs-by-league?league_id=${leagueId}` : '/api/get-clubs-by-league';
+            
+            fetch(url).then(r => r.json()).then(data => {
+                const clubSelect = document.getElementById('club');
+                clubSelect.innerHTML = '<option value="">Select your club</option>';
+                
+                if (data.clubs && Array.isArray(data.clubs)) {
+                    data.clubs.forEach(club => {
+                        const option = document.createElement('option');
+                        option.value = club;
+                        option.textContent = club;
+                        clubSelect.appendChild(option);
+                    });
+                }
+            }).catch(error => {
+                console.error('Error loading clubs:', error);
+                // Fallback to all clubs
+                fetch('/api/get-clubs').then(r => r.json()).then(data => {
                     const clubSelect = document.getElementById('club');
-                    const seriesSelect = document.getElementById('series');
-                    
-                    // Add placeholder options
-                    clubSelect.innerHTML = '<option value="" disabled selected>Select Club</option>';
-                    seriesSelect.innerHTML = '<option value="" disabled selected>Select Series/Division</option>';
-                    
-                    // Add club options
-                    if (clubs.clubs && Array.isArray(clubs.clubs)) {
-                        clubs.clubs.forEach(club => {
+                    clubSelect.innerHTML = '<option value="">Select your club</option>';
+                    if (data.clubs && Array.isArray(data.clubs)) {
+                        data.clubs.forEach(club => {
                             const option = document.createElement('option');
                             option.value = club;
                             option.textContent = club;
                             clubSelect.appendChild(option);
                         });
                     }
-                    
-                    // Add series options
-                    if (series.all_series && Array.isArray(series.all_series)) {
-                        series.all_series.forEach(s => {
+                });
+            });
+        }
+
+        // Load series filtered by league
+        function loadSeriesByLeague(leagueId = null) {
+            const url = leagueId ? `/api/get-series-by-league?league_id=${leagueId}` : '/api/get-series-by-league';
+            
+            fetch(url).then(r => r.json()).then(data => {
+                const seriesSelect = document.getElementById('series');
+                seriesSelect.innerHTML = '<option value="">Select your series</option>';
+                
+                if (data.series && Array.isArray(data.series)) {
+                    data.series.forEach(series => {
+                        const option = document.createElement('option');
+                        option.value = series;
+                        option.textContent = series;
+                        seriesSelect.appendChild(option);
+                    });
+                }
+            }).catch(error => {
+                console.error('Error loading series:', error);
+                // Fallback to all series
+                fetch('/api/get-series').then(r => r.json()).then(data => {
+                    const seriesSelect = document.getElementById('series');
+                    seriesSelect.innerHTML = '<option value="">Select your series</option>';
+                    if (data.all_series && Array.isArray(data.all_series)) {
+                        data.all_series.forEach(series => {
                             const option = document.createElement('option');
-                            option.value = s;
-                            option.textContent = s;
+                            option.value = series;
+                            option.textContent = series;
                             seriesSelect.appendChild(option);
                         });
                     }
-                } else {
-                    console.error('Failed to load clubs or series');
-                    console.log('Clubs response:', clubsResponse.status);
-                    console.log('Series response:', seriesResponse.status);
-                }
-            } catch (error) {
-                console.error('Error loading clubs and series:', error);
-            }
-        });
+                });
+            });
+        }
 
         function showForm(formType) {
             document.querySelectorAll('.auth-tab').forEach(tab => {
@@ -378,11 +459,19 @@
             const password = document.getElementById('registerPassword').value;
             const firstName = document.getElementById('firstName').value;
             const lastName = document.getElementById('lastName').value;
+            const league = document.getElementById('league').value;
             const club = document.getElementById('club').value;
             const series = document.getElementById('series').value;
             const errorMessage = document.getElementById('registerErrorMessage');
             const authErrorContainer = document.getElementById('authErrorContainer');
             const authErrorMessage = document.getElementById('authErrorMessage');
+            
+            // Validate that league is selected
+            if (!league) {
+                authErrorMessage.textContent = 'Please select a league';
+                authErrorContainer.classList.add('active');
+                return;
+            }
             
             try {
                 const response = await fetch('/api/register', {
@@ -396,6 +485,7 @@
                         password,
                         firstName,
                         lastName,
+                        league,
                         club,
                         series
                     })

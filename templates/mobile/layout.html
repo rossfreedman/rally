@@ -171,7 +171,19 @@
     <div id="drawerOverlay" class="fixed inset-0 bg-black bg-opacity-40 z-40 hidden"></div>
 
     <!-- Main Content Area -->
-    <main class="container mx-auto px-2 py-6" style="padding-top: 64px;">
+    <main class="container mx-auto px-2 py-6" style="padding-top: 72px;">
+        <!-- Player ID Missing Alert -->
+        {% if session_data and session_data.user and session_data.authenticated and not session_data.user.tenniscores_player_id %}
+        <div class="mb-4 p-3 rounded-lg shadow-sm" style="background-color: #F5C842; border: 1px solid #E5B332;">
+            <div class="flex items-center gap-2">
+                <i class="fas fa-exclamation-triangle text-amber-800"></i>
+                <span class="text-sm text-gray-800">
+                    <span class="font-bold">Alert:</span> <a href="/mobile/settings" class="link link-hover underline font-medium text-gray-900">click here</a> to update your profile with your correct club and/or series.
+                </span>
+            </div>
+        </div>
+        {% endif %}
+        
         {% block content %}{% endblock %}
     </main>
 
