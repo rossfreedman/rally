@@ -45,6 +45,14 @@
       </div>
       <button type="submit" class="btn btn-success w-full mt-4">Save Changes</button>
     </form>
+    
+    <!-- Retry Player ID Button -->
+    <div class="mt-4">
+      <button type="button" id="retry-player-id-btn" class="btn btn-outline btn-sm w-full">
+        <i class="fas fa-sync-alt mr-2"></i>Retry Player ID Lookup
+      </button>
+    </div>
+    
     <div id="settings-success" class="hidden mt-4 alert alert-success"></div>
     <div id="settings-error" class="hidden mt-4 alert alert-error"></div>
     
@@ -172,6 +180,48 @@ fetch('/api/get-user-settings').then(r=>r.json()).then(user => {
   }
 });
 
+// Handle retry player ID button
+const retryBtn = document.getElementById('retry-player-id-btn');
+retryBtn.addEventListener('click', function() {
+  const btn = this;
+  const originalText = btn.innerHTML;
+  
+  // Show loading state
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Retrying...';
+  btn.disabled = true;
+  
+  fetch('/api/retry-player-id', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' }
+  })
+  .then(r => r.json())
+  .then(resp => {
+    if (resp.success) {
+      // Update Player ID display
+      const playerIdDisplay = document.getElementById('player-id-display');
+      playerIdDisplay.textContent = resp.player_id || 'Not found';
+      playerIdDisplay.className = resp.player_id ? '' : 'text-orange-500';
+      
+      // Show success message
+      const message = resp.changed ? 
+        `Player ID updated: ${resp.previous_player_id || 'None'} → ${resp.player_id}` :
+        `Player ID confirmed: ${resp.player_id}`;
+      window.app && window.app.showToast && window.app.showToast(message, 'success');
+    } else {
+      window.app && window.app.showToast && window.app.showToast(resp.message || 'Player ID lookup failed', 'error');
+    }
+  })
+  .catch(error => {
+    console.error('Error retrying player ID:', error);
+    window.app && window.app.showToast && window.app.showToast('Error retrying player ID lookup', 'error');
+  })
+  .finally(() => {
+    // Restore button state
+    btn.innerHTML = originalText;
+    btn.disabled = false;
+  });
+});
+
 // Handle form submit
 const form = document.getElementById('user-settings-form');
 form.addEventListener('submit', function(e) {
@@ -183,7 +233,8 @@ form.addEventListener('submit', function(e) {
     league_id: form.league.value,
     club: form.club.value,
     series: form.series.value,
-    clubAutomationPassword: form.clubAutomationPassword.value
+    clubAutomationPassword: form.clubAutomationPassword.value,
+    forcePlayerIdRetry: true  // Always retry Player ID when saving settings
   };
   fetch('/api/update-settings', {
     method: 'POST',
