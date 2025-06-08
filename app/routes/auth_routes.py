@@ -22,22 +22,24 @@ def handle_register():
         password = data.get('password', '')
         first_name = data.get('firstName', '')
         last_name = data.get('lastName', '')
+        league_id = data.get('league', '')
         club_name = data.get('club', '')
         series_name = data.get('series', '')
 
         # Validate required fields
-        if not all([email, password, first_name, last_name, club_name, series_name]):
+        if not all([email, password, first_name, last_name, league_id, club_name, series_name]):
             missing = []
             if not email: missing.append('email')
             if not password: missing.append('password')
             if not first_name: missing.append('firstName')
             if not last_name: missing.append('lastName')
+            if not league_id: missing.append('league')
             if not club_name: missing.append('club')
             if not series_name: missing.append('series')
             return jsonify({'error': f'Missing required fields: {", ".join(missing)}'}), 400
 
-        # Use service to register user
-        result = register_user(email, password, first_name, last_name, club_name, series_name)
+        # Use service to register user with league
+        result = register_user(email, password, first_name, last_name, club_name, series_name, league_id)
         
         if not result['success']:
             if 'already exists' in result['error']:
