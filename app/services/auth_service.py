@@ -9,32 +9,81 @@ logger = logging.getLogger(__name__)
 
 def convert_series_to_mapping_id(series_name, club_name, league_id=None):
     """
-    Convert database series name to the format used in player data.
-    APTA Chicago: 'Chicago 19' + 'Tennaqua' -> 'Tennaqua - 19'
-    NSTF: 'Series 2B' + 'Tennaqua' -> 'Tennaqua S2B'
+    Enhanced series name conversion to handle multiple formats and edge cases.
+    
+    APTA Chicago formats:
+    - 'Chicago 19' + 'Tennaqua' -> 'Tennaqua - 19'  
+    - 'Series 19' + 'Tennaqua' -> 'Tennaqua - 19'
+    - 'Division 19' + 'Tennaqua' -> 'Tennaqua - 19'
+    - '19' + 'Tennaqua' -> 'Tennaqua - 19'
+    
+    NSTF formats:
+    - 'Series 2B' + 'Tennaqua' -> 'Tennaqua S2B'
+    - '2B' + 'Tennaqua' -> 'Tennaqua S2B'
+    
+    Args:
+        series_name: Database series name
+        club_name: Club name
+        league_id: League identifier (APTA_CHICAGO, NSTF, etc.)
+        
+    Returns:
+        str: Formatted series mapping ID
     """
     import re
     
+    # Clean inputs
+    series_clean = series_name.strip() if series_name else ""
+    club_clean = club_name.strip() if club_name else ""
+    
+    logger.info(f"Converting series: '{series_name}' + '{club_name}' (league: {league_id})")
+    
     # For NSTF leagues, use different format
     if league_id == 'NSTF':
-        # Extract series info: 'Series 2B' -> 'S2B'
-        if series_name.startswith('Series '):
-            series_part = series_name.replace('Series ', 'S')
-            return f"{club_name} {series_part}"
+        # Extract series info: 'Series 2B' -> 'S2B' or '2B' -> 'S2B'
+        if series_clean.startswith('Series '):
+            series_part = series_clean.replace('Series ', 'S')
+            result = f"{club_clean} {series_part}"
+        elif re.match(r'^[0-9]+[A-Z]*$', series_clean):  # Direct format like '2B'
+            result = f"{club_clean} S{series_clean}"
         else:
-            # Fallback for NSTF
-            return f"{club_name} {series_name}"
+            # Fallback for NSTF - prefix with S if no clear pattern
+            result = f"{club_clean} S{series_clean}"
+        
+        logger.info(f"NSTF conversion result: '{result}'")
+        return result
     
     # For APTA leagues, use the dash format
     else:
-        # Extract the series number from series name
-        numbers = re.findall(r'\d+', series_name)
-        if numbers:
-            series_number = numbers[-1]  # Take the last number found
-            return f"{club_name} - {series_number}"
+        # Try multiple extraction patterns for flexibility
+        series_number = None
+        
+        # Pattern 1: Extract from formats like 'Chicago 19', 'Series 19', 'Division 19'  
+        prefixed_match = re.search(r'(?:Chicago|Series|Division)\s+(\d+[A-Z]*)', series_clean, re.IGNORECASE)
+        if prefixed_match:
+            series_number = prefixed_match.group(1)
+            logger.info(f"Extracted from prefixed format: '{series_number}'")
+        
+        # Pattern 2: Extract any standalone number/letter combo (e.g., '19', '19A')
+        elif re.match(r'^(\d+[A-Z]*)$', series_clean):
+            series_number = series_clean
+            logger.info(f"Direct number format: '{series_number}'")
+        
+        # Pattern 3: Extract last number found in the string
         else:
-            # Fallback: return the original series name
-            return series_name
+            numbers = re.findall(r'\d+[A-Z]*', series_clean)
+            if numbers:
+                series_number = numbers[-1]  # Take the last number found
+                logger.info(f"Extracted last number: '{series_number}'")
+        
+        if series_number:
+            result = f"{club_clean} - {series_number}"
+            logger.info(f"APTA conversion result: '{result}'")
+            return result
+        else:
+            # Last resort: use original series name with club
+            result = f"{club_clean} - {series_clean}"
+            logger.warning(f"No number found, using fallback: '{result}'")
+            return result
 
 def hash_password(password):
     """Hash a password using Werkzeug's secure method"""

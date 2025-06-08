@@ -125,59 +125,10 @@ def serve_mobile_player_detail(player_id):
     """Serve the mobile player detail page (server-rendered, consistent with other mobile pages)"""
     player_name = unquote(player_id)
     
-    # Use the mobile service function that we just implemented
-    analyze_data = get_player_analysis_by_name(player_name)
+    # Use the mobile service function with user context for league filtering
+    analyze_data = get_player_analysis_by_name(player_name, session['user'])
     
-    # Get current PTI from player history for the viewed player
-    try:
-        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        player_history_path = os.path.join(project_root, 'data', 'leagues', 'apta', 'player_history.json')
-        
-        with open(player_history_path, 'r') as f:
-            player_history = json.load(f)
-            
-        # Find the player's record by matching name
-        player_record = next((p for p in player_history if p.get('name', '').lower() == player_name.lower()), None)
-        
-        if player_record and player_record.get('matches'):
-            # Sort matches by date to find most recent
-            matches = sorted(player_record['matches'], key=lambda x: datetime.strptime(x['date'], '%m/%d/%Y'), reverse=True)
-            if matches:
-                current_pti = matches[0].get('end_pti')
-                
-                # Calculate weekly PTI change
-                weekly_pti_change = None
-                if len(matches) > 1:
-                    current_date = datetime.strptime(matches[0]['date'], '%m/%d/%Y')
-                    # Find the match closest to one week ago
-                    prev_match = None
-                    for match in matches[1:]:
-                        match_date = datetime.strptime(match['date'], '%m/%d/%Y')
-                        if (current_date - match_date).days >= 5:
-                            prev_match = match
-                            break
-                    
-                    if prev_match and 'end_pti' in prev_match:
-                        prev_pti = prev_match['end_pti']
-                        weekly_pti_change = current_pti - prev_pti
-                
-                if current_pti is not None:
-                    analyze_data['current_pti'] = float(current_pti)
-                    analyze_data['weekly_pti_change'] = float(weekly_pti_change) if weekly_pti_change is not None else None
-                else:
-                    analyze_data['current_pti'] = None
-                    analyze_data['weekly_pti_change'] = None
-            else:
-                analyze_data['current_pti'] = None
-                analyze_data['weekly_pti_change'] = None
-        else:
-            analyze_data['current_pti'] = None
-            analyze_data['weekly_pti_change'] = None
-            
-    except Exception as e:
-        print(f"Error getting current PTI: {str(e)}")
-        analyze_data['current_pti'] = None
-        analyze_data['weekly_pti_change'] = None
+    # PTI data is now handled within the service function with proper league filtering
     
     session_data = {
         'user': session['user'],
