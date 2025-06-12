@@ -26,6 +26,7 @@
 - When working with React, prioritize composability and avoid deeply nested components.
 - When suggesting backend changes, consider compatibility with Railway deployment (e.g., environment variables, file structure).
 - Use `.env` for sensitive configuration and remind me if hardcoding is detected.
+- Use Alembic for all database related management tasks (migrations, cloning, table updates, field updates, etc.)
 
 # Communication Style
 - Ask clarifying questions when unsure about instructions.
