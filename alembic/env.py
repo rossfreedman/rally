@@ -11,17 +11,14 @@ from alembic import context
 # Add project root to path for imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Try to import the base model, but if it fails, use None (schema-less migrations)
+# Import the SQLAlchemy models and Base from your app
 try:
-    # Import from Helper Scripts folder - need to handle the space in the directory name
-    import importlib.util
-    helper_scripts_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Helper Scripts", "sync_railway_schema.py")
-    spec = importlib.util.spec_from_file_location("sync_railway_schema", helper_scripts_path)
-    sync_railway_schema = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(sync_railway_schema)
-    target_metadata = sync_railway_schema.Base.metadata
-except (ImportError, FileNotFoundError, AttributeError):
-    # If we can't import the models, we'll use schema-less migrations
+    from app.models.database_models import Base
+    target_metadata = Base.metadata
+    print(f"✅ Successfully imported SQLAlchemy models. Found {len(target_metadata.tables)} tables in metadata.")
+except (ImportError, AttributeError) as e:
+    print(f"⚠️  Could not import SQLAlchemy models: {e}")
+    print("Using schema-less migrations (manual SQL only)")
     target_metadata = None
 
 # this is the Alembic Config object, which provides

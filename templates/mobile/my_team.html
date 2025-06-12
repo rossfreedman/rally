@@ -2,124 +2,310 @@
 {% set show_back_arrow = True %}
 
 {% block content %}
-<div class="container mx-auto px-2 py-2">
-
-  <!-- Header with icon and subtitle -->
-  <div class="flex items-center mt-4 mb-2">
-    <i class="fas fa-users text-rally-green text-3xl mr-3"></i>
-    <div>
-      <div class="text-2xl font-bold text-rally-green leading-tight">My Team Analysis</div>
-      <div class="text-gray-500 text-base font-medium">{{ team_data.team }}</div>
-    </div>
-  </div>
-
-  {% if team_data and team_data.team %}
-    <!-- Team Overview Card -->
-    <div class="bg-white rounded-xl shadow p-4 mb-6 border border-gray-200">
-      <div class="flex items-center mb-3">
-        <i class="fas fa-trophy text-yellow-500 text-xl mr-2"></i>
-        <span class="text-lg font-bold text-rally-green">Team Stats</span>
-      </div>
-      <div class="grid grid-cols-2 gap-4">
-        <div>
-          <div class="text-gray-500 text-sm">Total Points</div>
-          <div class="text-xl font-bold text-yellow-600">{{ team_data.points or 'N/A' }}</div>
-        </div>
-        <div>
-          <div class="text-gray-500 text-sm">Record</div>
-          <div class="text-xl font-bold">{{ team_data.matches.won }}-{{ team_data.matches.lost }}</div>
-        </div>
-        <div>
-          <div class="text-gray-500 text-sm">Win Rate</div>
-          <span class="inline-block bg-green-100 text-green-800 font-semibold rounded px-2 py-1 text-lg">{{ team_data.matches.percentage or 'N/A' }}</span>
-        </div>
-        <div>
-          <div class="text-gray-500 text-sm">Line Win Rate</div>
-          <span class="inline-block bg-blue-100 text-blue-800 font-semibold rounded px-2 py-1 text-lg">{{ team_data.lines.percentage or 'N/A' }}</span>
-        </div>
-        <div>
-          <div class="text-gray-500 text-sm">Set Win Rate</div>
-          <span class="inline-block bg-gray-100 text-gray-800 font-semibold rounded px-2 py-1 text-lg">{{ team_data.sets.percentage or 'N/A' }}</span>
-        </div>
-        <div>
-          <div class="text-gray-500 text-sm">Game Win Rate</div>
-          <span class="inline-block bg-gray-100 text-gray-800 font-semibold rounded px-2 py-1 text-lg">{{ team_data.games.percentage or 'N/A' }}</span>
-        </div>
-      </div>
-    </div>
-
-    {% if court_analysis %}
-    <!-- Court Analysis Card -->
-    <div class="bg-white rounded-xl shadow p-4 mb-6 border border-gray-200">
-      <div class="flex items-center mb-3">
-        <i class="fas fa-table-tennis-paddle-ball text-rally-green text-xl mr-2"></i>
-        <span class="text-lg font-bold text-rally-green">Court Analysis</span>
-      </div>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        {% for court_key, court in court_analysis.items() %}
-          {% set court_num = court_key.replace('court', '') %}
-          <div class="bg-gray-50 rounded-lg p-3 border border-gray-100">
-            <div class="flex items-center mb-1">
-              <i class="fas fa-table-tennis-paddle-ball text-green-600 mr-2"></i>
-              <span class="font-semibold text-gray-700">Court {{ court_num }}</span>
+<div class="min-h-screen bg-gray-50">
+    
+    <!-- Header -->
+    <div class="bg-white border-b border-gray-100">
+        <div class="flex items-center px-4 py-6">
+            <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center shadow-sm">
+                <i class="fas fa-users text-white text-lg"></i>
             </div>
-            <div class="flex items-center gap-2 mb-1">
-              <span class="badge bg-green-100 text-green-800 font-semibold">Win Rate: {{ court.win_rate or 'N/A' }}%</span>
-              <span class="badge bg-blue-100 text-blue-800 font-semibold">Record: {{ court.wins or 0 }}-{{ court.losses or 0 }}</span>
+            <div class="ml-4">
+                <h1 class="text-xl font-bold text-gray-900">My Team Analysis</h1>
+                <p class="text-sm text-gray-500">{{ team_data.team if team_data else 'Team Analysis' }}</p>
             </div>
-            <div class="text-sm text-gray-600">
-              <span class="font-semibold">Top Players:</span>
-              {% if court.top_players %}
-                {% for player in court.top_players %}
-                  <span class="inline-block bg-yellow-100 text-yellow-800 rounded px-2 py-1 mr-1 mb-1">{{ player.name }} <span class="font-semibold">({{ player.matches }})</span></span>
-                {% endfor %}
-              {% else %}
-                <span class="text-gray-400">N/A</span>
-              {% endif %}
-            </div>
-          </div>
-        {% endfor %}
-      </div>
+        </div>
     </div>
-    {% endif %}
 
-    {% if top_players %}
-    <!-- Team Roster Card -->
-    <div class="bg-white rounded-xl shadow p-4 mb-6 border border-gray-200">
-      <div class="flex items-center mb-3">
-        <i class="fas fa-star text-yellow-500 text-xl mr-2"></i>
-        <span class="text-lg font-bold text-yellow-600">Team Roster</span>
-      </div>
-      <div class="overflow-x-auto">
-        <table class="min-w-full text-sm">
-          <thead>
-            <tr class="bg-gray-100 text-gray-700">
-              <th class="py-2 px-2 text-left">Player</th>
-              <th class="py-2 px-2 text-left">Matches</th>
-              <th class="py-2 px-2 text-left">Win Rate</th>
-              <th class="py-2 px-2 text-left">Best Court</th>
-              <th class="py-2 px-2 text-left">Best Partner</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for player in top_players %}
-            <tr class="{% if loop.index0 % 2 == 0 %}bg-white{% else %}bg-gray-50{% endif %}">
-              <td class="py-2 px-2 font-semibold">{{ player.name }}</td>
-              <td class="py-2 px-2">{{ player.matches }}</td>
-              <td class="py-2 px-2">
-                <span class="badge bg-green-100 text-green-800 font-semibold">{{ player.win_rate }}%</span>
-              </td>
-              <td class="py-2 px-2">{{ player.best_court|replace('court', 'Court ') }}</td>
-              <td class="py-2 px-2">{{ player.best_partner }}</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
+    <!-- Content -->
+    <div class="px-4 py-6 space-y-6">
+        
+        {% if team_data and team_data.team %}
+        <!-- Team Overview Card -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-trophy text-yellow-500 mr-2"></i>
+                    Team Stats
+                </h2>
+            </div>
+            
+            <div class="p-6">
+                <!-- Points and Record -->
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-yellow-600 mb-1">{{ team_data.points or 'N/A' }}</div>
+                        <div class="text-sm text-gray-500 uppercase tracking-wide">Total Points</div>
+                    </div>
+                    
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-gray-900 mb-1">{{ team_data.matches.won }}-{{ team_data.matches.lost }}</div>
+                        <div class="text-sm text-gray-500 uppercase tracking-wide">Match Record</div>
+                    </div>
+                </div>
+                
+                <!-- Win Rates Grid -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="text-center">
+                        <div class="text-2xl font-bold mb-1
+                            {% set match_pct = team_data.matches.percentage|replace('%', '')|float %}
+                            {% if match_pct >= 60 %}text-green-500
+                            {% elif match_pct >= 45 %}text-yellow-500
+                            {% else %}text-red-500
+                            {% endif %}">
+                            {{ team_data.matches.percentage or 'N/A' }}
+                        </div>
+                        <div class="text-xs text-gray-500 uppercase tracking-wider">Match Win Rate</div>
+                    </div>
+                    
+                    <div class="text-center">
+                        <div class="text-2xl font-bold mb-1
+                            {% set line_pct = team_data.lines.percentage|replace('%', '')|float %}
+                            {% if line_pct >= 60 %}text-green-500
+                            {% elif line_pct >= 45 %}text-yellow-500
+                            {% else %}text-red-500
+                            {% endif %}">
+                            {{ team_data.lines.percentage or 'N/A' }}
+                        </div>
+                        <div class="text-xs text-gray-500 uppercase tracking-wider">Line Win Rate</div>
+                    </div>
+                    
+                    <div class="text-center">
+                        <div class="text-2xl font-bold mb-1
+                            {% set set_pct = team_data.sets.percentage|replace('%', '')|float %}
+                            {% if set_pct >= 60 %}text-green-500
+                            {% elif set_pct >= 45 %}text-yellow-500
+                            {% else %}text-red-500
+                            {% endif %}">
+                            {{ team_data.sets.percentage or 'N/A' }}
+                        </div>
+                        <div class="text-xs text-gray-500 uppercase tracking-wider">Set Win Rate</div>
+                    </div>
+                    
+                    <div class="text-center">
+                        <div class="text-2xl font-bold mb-1
+                            {% set game_pct = team_data.games.percentage|replace('%', '')|float %}
+                            {% if game_pct >= 60 %}text-green-500
+                            {% elif game_pct >= 45 %}text-yellow-500
+                            {% else %}text-red-500
+                            {% endif %}">
+                            {{ team_data.games.percentage or 'N/A' }}
+                        </div>
+                        <div class="text-xs text-gray-500 uppercase tracking-wider">Game Win Rate</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if top_players %}
+        <!-- Team Roster Card -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-star text-yellow-500 mr-2"></i>
+                    Team Roster
+                </h2>
+            </div>
+            
+            <div class="p-6">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full text-xs">
+                        <thead>
+                            <tr class="border-b border-gray-100">
+                                <th class="text-left py-2 px-2 font-semibold text-gray-700 whitespace-nowrap">Player</th>
+                                <th class="text-center py-2 px-2 font-semibold text-gray-700 whitespace-nowrap">Matches</th>
+                                <th class="text-center py-2 px-2 font-semibold text-gray-700 whitespace-nowrap">Win Rate</th>
+                                <th class="text-left py-2 px-2 font-semibold text-gray-700 whitespace-nowrap">Best Court</th>
+                                <th class="text-left py-2 px-2 font-semibold text-gray-700 whitespace-nowrap">Best Partner</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for player in top_players %}
+                            <tr class="border-b border-gray-50 {% if loop.index0 % 2 == 0 %}bg-white{% else %}bg-gray-50{% endif %}">
+                                <td class="py-3 px-2 font-semibold text-gray-900">{{ player.name }}</td>
+                                <td class="py-3 px-2 text-center text-gray-700">{{ player.matches }}</td>
+                                <td class="py-3 px-2 text-center">
+                                    <span class="px-2 py-1 rounded-full text-xs font-medium
+                                        {% if player.win_rate >= 60 %}bg-green-100 text-green-700
+                                        {% elif player.win_rate >= 45 %}bg-yellow-100 text-yellow-700
+                                        {% else %}bg-red-100 text-red-700
+                                        {% endif %}">
+                                        {{ player.win_rate }}%
+                                    </span>
+                                </td>
+                                <td class="py-3 px-2 text-gray-700">{{ player.best_court|replace('court', 'Court ') }}</td>
+                                <td class="py-3 px-2 text-gray-700">{{ player.best_partner }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if court_analysis %}
+        <!-- Court Analysis Card -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-table-tennis text-blue-500 mr-2"></i>
+                    Court Performance
+                </h2>
+            </div>
+            
+            <div class="p-6">
+                <div class="space-y-4">
+                    {% for court_key, court in court_analysis.items()|sort %}
+                    {% set court_num = court_key.replace('court', '') %}
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <!-- Court Header -->
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold text-gray-900">Court {{ court_num }}</h3>
+                            <div class="flex items-center gap-3">
+                                <!-- Record -->
+                                <span class="text-sm font-medium text-gray-700">{{ court.wins or 0 }}-{{ court.losses or 0 }}</span>
+                                <!-- Win Rate Badge -->
+                                {% if court.wins or court.losses %}
+                                <div class="px-3 py-1 rounded-full text-sm font-medium
+                                    {% if court.win_rate >= 60 %}bg-green-100 text-green-700
+                                    {% elif court.win_rate >= 45 %}bg-yellow-100 text-yellow-700
+                                    {% else %}bg-red-100 text-red-700
+                                    {% endif %}">
+                                    {{ court.win_rate|round(0)|int }}%
+                                </div>
+                                {% else %}
+                                <div class="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-500">
+                                    0%
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- Top Players Section -->
+                        {% if court.top_players %}
+                        <div>
+                            <p class="text-sm font-medium text-gray-700 mb-3">Top Players</p>
+                            <div class="space-y-2">
+                                {% for player in court.top_players[:3] %}
+                                <div class="flex items-center justify-between py-2 px-3 bg-white rounded-lg">
+                                    <div class="flex-1">
+                                        <div class="font-medium text-gray-900">{{ player.name }}</div>
+                                        <div class="text-sm text-gray-600">{{ player.matches }} match{{ 'es' if player.matches != 1 else '' }}</div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="text-center py-4">
+                            <div class="text-gray-400 text-sm italic">No matches played on this court</div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        {% else %}
+        <!-- Empty State -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
+            <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-users text-gray-400 text-2xl"></i>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">No Team Data</h3>
+            <p class="text-gray-500">Team data will appear here once your team starts playing matches.</p>
+        </div>
+        {% endif %}
+
     </div>
-    {% endif %}
-  {% else %}
-    <div class="alert alert-warning mt-6 text-center text-lg font-semibold">No team data available.</div>
-  {% endif %}
 </div>
+
+<style>
+/* Custom styles for modern mobile design */
+.min-h-screen {
+    min-height: 100vh;
+}
+
+/* Grid responsive */
+@media (max-width: 640px) {
+    .grid-cols-2 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+/* Shadow utilities */
+.shadow-sm {
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+/* Border utilities */
+.border-gray-50 { border-color: #f9fafb; }
+.border-gray-100 { border-color: #f3f4f6; }
+
+/* Background utilities */
+.bg-gray-50 { background-color: #f9fafb; }
+.bg-white { background-color: #ffffff; }
+.bg-green-100 { background-color: #dcfce7; }
+.bg-yellow-100 { background-color: #fef3c7; }
+.bg-red-100 { background-color: #fee2e2; }
+.bg-gray-100 { background-color: #f3f4f6; }
+
+/* Text colors */
+.text-gray-900 { color: #111827; }
+.text-gray-700 { color: #374151; }
+.text-gray-600 { color: #4b5563; }
+.text-gray-500 { color: #6b7280; }
+.text-gray-400 { color: #9ca3af; }
+.text-green-500 { color: #10b981; }
+.text-green-700 { color: #047857; }
+.text-yellow-500 { color: #f59e0b; }
+.text-yellow-600 { color: #d97706; }
+.text-yellow-700 { color: #b45309; }
+.text-red-500 { color: #ef4444; }
+.text-red-700 { color: #b91c1c; }
+.text-blue-500 { color: #3b82f6; }
+.text-white { color: #ffffff; }
+
+/* Gradient backgrounds */
+.bg-gradient-to-br {
+    background-image: linear-gradient(to bottom right, var(--tw-gradient-stops));
+}
+.from-blue-500 {
+    --tw-gradient-from: #3b82f6;
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(59, 130, 246, 0));
+}
+.to-blue-600 {
+    --tw-gradient-to: #2563eb;
+}
+
+/* Spacing utilities */
+.space-y-6 > * + * { margin-top: 1.5rem; }
+.space-y-4 > * + * { margin-top: 1rem; }
+.space-y-2 > * + * { margin-top: 0.5rem; }
+
+/* Border radius utilities */
+.rounded-xl { border-radius: 0.75rem; }
+.rounded-lg { border-radius: 0.5rem; }
+.rounded-full { border-radius: 9999px; }
+
+/* Text utilities */
+.uppercase { text-transform: uppercase; }
+.tracking-wide { letter-spacing: 0.025em; }
+.tracking-wider { letter-spacing: 0.05em; }
+.whitespace-nowrap { white-space: nowrap; }
+
+/* Overflow utilities */
+.overflow-hidden { overflow: hidden; }
+.overflow-x-auto { overflow-x: auto; }
+
+/* Responsive design */
+@media (max-width: 640px) {
+    .px-6 { padding-left: 1rem; padding-right: 1rem; }
+    .py-4 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+    .text-3xl { font-size: 1.875rem; line-height: 2.25rem; }
+    .text-2xl { font-size: 1.5rem; line-height: 2rem; }
+}
+</style>
 {% endblock %} 

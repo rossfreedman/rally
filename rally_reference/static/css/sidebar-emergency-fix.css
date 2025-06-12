@@ -1,0 +1,160 @@
+/* ULTRA EXTREME SIDEBAR TEXT COLOR FIX */
+
+/* Target ALL text in the sidebar with maximum specificity */
+html body .sidebar,
+html body .sidebar *,
+html body .sidebar *:not(img),
+html body .sidebar a,
+html body .sidebar a:link,
+html body .sidebar a:visited,
+html body .sidebar a:hover,
+html body .sidebar a:active,
+html body .sidebar span,
+html body .sidebar div,
+html body .sidebar i,
+html body .sidebar .nav-item,
+html body .sidebar .nav-section-header,
+html body .sidebar .nav-section,
+html body div.sidebar,
+html body div.sidebar *,
+html body div.sidebar a,
+html body div.sidebar span,
+html body div.sidebar .nav-item,
+html body div.sidebar .nav-section-header,
+html body div.sidebar i,
+.sidebar .nav-item *,
+.sidebar .nav-section-header *,
+.sidebar .nav-section * {
+    color: white !important;
+    -webkit-text-fill-color: white !important;
+    -moz-text-fill-color: white !important;
+    text-fill-color: white !important;
+    text-shadow: none !important;
+    -webkit-text-stroke: 0 !important;
+    caret-color: white !important;
+    border-color: transparent !important;
+    text-decoration-color: white !important;
+    background-image: none !important;
+    filter: grayscale(100%) brightness(100%) !important;
+}
+
+/* Force white on pseudo-elements */
+html body .sidebar *::before,
+html body .sidebar *::after,
+html body .sidebar a::before,
+html body .sidebar a::after,
+html body .sidebar i::before,
+html body .sidebar i::after {
+    color: white !important;
+    -webkit-text-fill-color: white !important;
+    content: attr(data-text);
+    text-shadow: none !important;
+}
+
+/* Target specifically nested elements */
+html body .sidebar .nav-item i,
+html body .sidebar .nav-section-header i,
+html body .sidebar a i,
+html body .sidebar .nav-item span,
+html body .sidebar .nav-section-header span,
+html body .sidebar a span {
+    color: white !important;
+    -webkit-text-fill-color: white !important;
+}
+
+/* Use attribute selectors to catch inline styles */
+[class*="sidebar"] *:not(img),
+[class*="nav-item"],
+[class*="nav-section"] {
+    color: white !important;
+    -webkit-text-fill-color: white !important;
+}
+
+/* Apply to inline styled elements */
+[style*="color"] {
+    color: white !important;
+    -webkit-text-fill-color: white !important;
+}
+
+/* Ensure links are white in all states */
+.sidebar a:link,
+.sidebar a:visited,
+.sidebar a:hover,
+.sidebar a:active,
+.sidebar a:focus {
+    color: white !important;
+    -webkit-text-fill-color: white !important;
+    text-decoration-color: white !important;
+}
+
+/* Target by element type */
+.sidebar a, 
+.sidebar div, 
+.sidebar span,
+.sidebar p,
+.sidebar i,
+.sidebar nav {
+    color: white !important;
+    -webkit-text-fill-color: white !important;
+}
+
+/* Add !important with HTML attribute */
+font[color="white"] {
+    color: white !important;
+}
+
+/* Ensure text selection is visible */
+.sidebar *::selection {
+    background-color: rgba(255,255,255,0.3) !important;
+    color: white !important;
+}
+
+/* Override any theme colors */
+.sidebar {
+    --text-color: white !important;
+    --color: white !important;
+    --link-color: white !important;
+    --icon-color: white !important;
+}
+
+/* Print debugging information */
+.sidebar * {
+    debug: "FORCE-WHITE-TEXT" !important;
+}
+
+/* SUPER AGGRESSIVE SELECTOR FOR GRAY TEXT */
+/* This addresses specifically gray text by targeting common gray hex codes */
+[style*="color: #"] {
+    color: white !important;
+    -webkit-text-fill-color: white !important;
+}
+
+[style*="color:#"] {
+    color: white !important;
+    -webkit-text-fill-color: white !important;
+}
+
+/* Target common gray colors by hex code and RGB */
+[style*="color: #6"], 
+[style*="color: #7"], 
+[style*="color: #8"], 
+[style*="color: #9"],
+[style*="color: rgb(100"],
+[style*="color: rgb(110"],
+[style*="color: rgb(120"],
+[style*="color: rgb(130"],
+[style*="color: rgb(140"],
+[style*="color: rgb(150"],
+[style*="color: rgb(160"],
+[style*="color: rgb(170"] {
+    color: white !important;
+    -webkit-text-fill-color: white !important;
+}
+
+/* !!! LAST RESORT !!! */
+/* Reset ALL color inheritance */
+.sidebar, .sidebar * {
+    all: revert;
+    color: white !important;
+    -webkit-text-fill-color: white !important;
+} 

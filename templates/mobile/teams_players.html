@@ -1,173 +1,366 @@
 {% extends "mobile/layout.html" %}
 {% set show_back_arrow = True %}
 
-{# Converted from static/mobile/teams-players.html to Jinja template for consistent mobile header/navigation #}
 {% block content %}
-<div class="max-w-lg mx-auto px-2 bg-gray-50 min-h-screen pb-8">
-  <!-- Consistent Header -->
-  <div class="flex items-center gap-3 mt-4 mb-2 px-4">
-    <div class="bg-white rounded-md flex items-center justify-center h-12 w-12 mr-3">
-      <i class="fas fa-users-cog text-black text-3xl"></i>
-    </div>
-    <div>
-      <div class="text-2xl font-bold leading-tight">Team Analysis</div>
-      <div class="text-base text-gray-500 mt-1">View stats, match patterns, and top players for each team</div>
-    </div>
-  </div>
-    <form method="get" class="mb-4">
-      <label for="team" class="block font-bold mb-2 text-lg text-primary">Select Team</label>
-      <div class="relative">
-        <select name="team" id="team"
-          class="form-select w-full py-2 px-4 text-base font-medium border-2 border-primary text-gray-900 bg-white rounded-lg shadow-sm focus:ring-2 focus:ring-primary focus:border-primary transition"
-          onchange="this.form.submit()">
-          <option value="" {% if not selected_team %}selected{% endif %} disabled hidden>Select a team...</option>
-          {% for t in all_teams %}
-            <option value="{{ t }}" {% if t == selected_team %}selected{% endif %}>{{ t }}</option>
-          {% endfor %}
-        </select>
-        <i class="fas fa-chevron-down absolute right-4 top-1/2 transform -translate-y-1/2 text-primary pointer-events-none"></i>
-      </div>
-    </form>
-    {% if not team_analysis_data %}
-    {% else %}
-    <!-- Analysis Summary Card -->
-    <div class="analyze-card mb-6 shadow-lg rounded-xl p-5 bg-white border-l-4 border-blue-400">
-      <div class="analyze-card-header text-xl font-bold mb-2 flex items-center gap-2"><i class="fas fa-lightbulb text-blue-400"></i> Analysis</div>
-      <div class="text-base text-gray-700">
-        {{ team_analysis_data.summary | default('No summary available.') }}
-      </div>
-    </div>
-    <!-- Team Stats Card -->
-    <div class="analyze-card mb-6 shadow-lg rounded-xl p-5 bg-white border-l-4 border-green-400">
-        <div class="analyze-card-header text-xl font-bold mb-2 flex items-center gap-2"><i class="fas fa-chart-bar text-green-400"></i> Team Stats</div>
-        <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-base">
-            <div class="font-semibold text-gray-600">Points</div>
-            <div class="font-bold text-primary">{{ team_analysis_data.overview.points }}</div>
-            <div class="font-semibold text-gray-600">Match Record</div>
-            <div class="font-bold">{{ team_analysis_data.overview.match_record }}</div>
-            <div class="font-semibold text-gray-600">Match Win Rate</div>
-            <div class="font-bold">{{ team_analysis_data.overview.match_win_rate }}%</div>
-            <div class="font-semibold text-gray-600">Line Win Rate</div>
-            <div class="font-bold">{{ team_analysis_data.overview.line_win_rate }}%</div>
-            <div class="font-semibold text-gray-600">Set Win Rate</div>
-            <div class="font-bold">{{ team_analysis_data.overview.set_win_rate }}%</div>
-            <div class="font-semibold text-gray-600">Game Win Rate</div>
-            <div class="font-bold">{{ team_analysis_data.overview.game_win_rate }}%</div>
+<div class="min-h-screen bg-gray-50">
+    
+    <!-- Header -->
+    <div class="bg-white border-b border-gray-100">
+        <div class="flex items-center px-4 py-6">
+            <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center shadow-sm">
+                <i class="fas fa-users-cog text-white text-lg"></i>
+            </div>
+            <div class="ml-4">
+                <h1 class="text-xl font-bold text-gray-900">Team Analysis</h1>
+                <p class="text-sm text-gray-500">View stats, match patterns, and top players for each team</p>
+            </div>
         </div>
     </div>
-    <!-- Match Patterns + Court Analysis Card (Desktop Style) -->
-    <div class="card mb-6 shadow-lg rounded-xl p-5 bg-white border-l-4 border-yellow-400">
-      <div class="card-header flex items-center gap-2">
-        <i class="fas fa-random text-yellow-400"></i>
-        <h5 class="mb-0 text-lg font-bold">Match Patterns</h5>
-      </div>
-      <div class="mt-4">
-        <h6 class="text-base font-semibold mb-2">Overall Performance</h6>
-        <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-base">
-          <div class="font-semibold text-gray-600">Total Matches</div>
-          <div class="font-bold">{{ team_analysis_data.match_patterns.total_matches }}</div>
-          <div class="font-semibold text-gray-600">Set Win Rate</div>
-          <div class="font-bold">{{ team_analysis_data.match_patterns.set_win_rate }}%</div>
-          <div class="font-semibold text-gray-600">Three-Set Record</div>
-          <div class="font-bold">{{ team_analysis_data.match_patterns.three_set_record }}</div>
-          <div class="font-semibold text-gray-600">Straight Set Wins</div>
-          <div class="font-bold">{{ team_analysis_data.match_patterns.straight_set_wins }}</div>
-          <div class="font-semibold text-gray-600">Comeback Wins</div>
-          <div class="font-bold">{{ team_analysis_data.match_patterns.comeback_wins }}</div>
+
+    <!-- Content -->
+    <div class="px-4 py-6 space-y-6">
+        
+        <!-- Team Selection Card -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-search text-purple-500 mr-2"></i>
+                    Select Team
+                </h2>
+            </div>
+            
+            <div class="p-6">
+                <form method="get">
+                    <div class="relative">
+                        <select name="team" id="team"
+                          class="w-full py-3 px-4 text-base border border-gray-300 text-gray-900 bg-white rounded-lg shadow-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition appearance-none"
+                          onchange="this.form.submit()">
+                          <option value="" {% if not selected_team %}selected{% endif %} disabled hidden>Select a team...</option>
+                          {% for t in all_teams %}
+                            <option value="{{ t }}" {% if t == selected_team %}selected{% endif %}>{{ t }}</option>
+                          {% endfor %}
+                        </select>
+                        <i class="fas fa-chevron-down absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+                    </div>
+                </form>
+            </div>
         </div>
-        <h6 class="text-base font-semibold mt-6 mb-2">Court Analysis</h6>
-        <div class='grid grid-cols-2 gap-3'>
-          {% set court_colors = ['border-blue-400', 'border-green-400', 'border-yellow-400', 'border-red-400'] %}
-          {% for court, stats in team_analysis_data.court_analysis.items() %}
-              {% set court_idx = loop.index0 %}
-              {# Color-code win rate #}
-              {% set win_rate = stats.win_rate|default(stats.winRate) %}
-              {% if win_rate is not string and win_rate >= 60 %}
-                {% set win_color = 'text-green-600' %}
-                {% set badge_bg = 'bg-green-100' %}
-              {% elif win_rate is not string and win_rate >= 45 %}
-                {% set win_color = 'text-yellow-600' %}
-                {% set badge_bg = 'bg-yellow-100' %}
-              {% else %}
-                {% set win_color = 'text-red-600' %}
-                {% set badge_bg = 'bg-red-100' %}
-              {% endif %}
-              <div class="court-analysis-card flex flex-col items-start p-4 mb-3 bg-gray-50 rounded-xl shadow border-l-4 {{ court_colors[court_idx % 4] }}">
-                <div class="flex items-center gap-2 mb-2 w-full">
-                  <i class="fas fa-table-tennis text-xl {{ court_colors[court_idx % 4] }}"></i>
-                  <span class="font-bold text-lg text-black">{{ court|capitalize }}</span>
+
+        {% if team_analysis_data %}
+        
+        <!-- Analysis Summary Card -->
+        {% if team_analysis_data.summary %}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-lightbulb text-blue-500 mr-2"></i>
+                    Analysis Summary
+                </h2>
+            </div>
+            
+            <div class="p-6">
+                <p class="text-gray-700">{{ team_analysis_data.summary }}</p>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Team Stats Card -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-chart-bar text-green-500 mr-2"></i>
+                    Team Statistics
+                </h2>
+            </div>
+            
+            <div class="p-6">
+                <!-- Points and Record -->
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-green-600 mb-1">{{ team_analysis_data.overview.points }}</div>
+                        <div class="text-sm text-gray-500 uppercase tracking-wide">Total Points</div>
+                    </div>
+                    
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-gray-900 mb-1">{{ team_analysis_data.overview.match_record }}</div>
+                        <div class="text-sm text-gray-500 uppercase tracking-wide">Match Record</div>
+                    </div>
                 </div>
-                <div class="w-full mb-2">
-                  <div class="flex justify-between items-center mb-1">
-                    <span class="font-semibold text-gray-700">Win Rate</span>
-                    <span class="font-bold text-xl analyze-badge px-2 py-1 rounded {{ win_color }} {{ badge_bg }}">{{ win_rate|round(1, 'common') if win_rate is not string else win_rate }}%</span>
-                  </div>
-                  <div class="flex justify-between items-center mb-1">
-                    <span class="font-semibold text-gray-700">Record</span>
-                    <span class="text-gray-900">{{ stats.record if stats and stats.record is defined else 'N/A' }}</span>
-                  </div>
+                
+                <!-- Win Rates Grid -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-gray-50 rounded-lg p-4 text-center">
+                        <div class="text-xl font-bold text-gray-900 mb-1">{{ team_analysis_data.overview.match_win_rate }}%</div>
+                        <div class="text-xs text-gray-500 uppercase tracking-wide">Match Win Rate</div>
+                    </div>
+                    
+                    <div class="bg-gray-50 rounded-lg p-4 text-center">
+                        <div class="text-xl font-bold text-gray-900 mb-1">{{ team_analysis_data.overview.line_win_rate }}%</div>
+                        <div class="text-xs text-gray-500 uppercase tracking-wide">Line Win Rate</div>
+                    </div>
+                    
+                    <div class="bg-gray-50 rounded-lg p-4 text-center">
+                        <div class="text-xl font-bold text-gray-900 mb-1">{{ team_analysis_data.overview.set_win_rate }}%</div>
+                        <div class="text-xs text-gray-500 uppercase tracking-wide">Set Win Rate</div>
+                    </div>
+                    
+                    <div class="bg-gray-50 rounded-lg p-4 text-center">
+                        <div class="text-xl font-bold text-gray-900 mb-1">{{ team_analysis_data.overview.game_win_rate }}%</div>
+                        <div class="text-xs text-gray-500 uppercase tracking-wide">Game Win Rate</div>
+                    </div>
                 </div>
-                <div class="w-full mt-2">
-                  <span class="font-semibold text-gray-700 block mb-1">Key Players</span>
-                  <ul class="partner-list space-y-1">
-                    {% if stats and stats.key_players %}
-                      {% for p in stats.key_players %}
-                        <li class="flex flex-col items-start">
-                          <a href="/mobile/player-detail/{{ p.name | urlencode }}" class="partner-name font-medium text-gray-800 flex items-center gap-1 hover:underline">
-                            <i class="fas fa-user-circle text-primary"></i> {{ p.name }}
-                          </a>
-                          <span class="analyze-badge mt-1 text-xs px-2 py-0.5 rounded bg-blue-50 text-blue-700">{{ p.win_rate|default(p.winRate)|round(1, 'common') if p.win_rate is defined or p.winRate is defined else '' }}% in {{ p.matches }} matches</span>
-                        </li>
-                      {% endfor %}
-                    {% else %}
-                      <li class="text-gray-400">None</li>
-                    {% endif %}
-                  </ul>
+            </div>
+        </div>
+
+        <!-- Match Patterns Card -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-random text-yellow-500 mr-2"></i>
+                    Match Patterns
+                </h2>
+            </div>
+            
+            <div class="p-6">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-gray-50 rounded-lg p-4 text-center">
+                        <div class="text-xl font-bold text-gray-900 mb-1">{{ team_analysis_data.match_patterns.total_matches }}</div>
+                        <div class="text-xs text-gray-500 uppercase tracking-wide">Total Matches</div>
+                    </div>
+                    
+                    <div class="bg-gray-50 rounded-lg p-4 text-center">
+                        <div class="text-xl font-bold text-gray-900 mb-1">{{ team_analysis_data.match_patterns.three_set_record }}</div>
+                        <div class="text-xs text-gray-500 uppercase tracking-wide">Three-Set Record</div>
+                    </div>
+                    
+                    <div class="bg-gray-50 rounded-lg p-4 text-center">
+                        <div class="text-xl font-bold text-gray-900 mb-1">{{ team_analysis_data.match_patterns.straight_set_wins }}</div>
+                        <div class="text-xs text-gray-500 uppercase tracking-wide">Straight Set Wins</div>
+                    </div>
+                    
+                    <div class="bg-gray-50 rounded-lg p-4 text-center">
+                        <div class="text-xl font-bold text-gray-900 mb-1">{{ team_analysis_data.match_patterns.comeback_wins }}</div>
+                        <div class="text-xs text-gray-500 uppercase tracking-wide">Comeback Wins</div>
+                    </div>
                 </div>
-              </div>
-          {% endfor %}
+            </div>
         </div>
-      </div>
-    </div>
-    <!-- Instruction Card -->
-    <div class="mb-4 p-4 rounded-xl shadow-lg bg-yellow-200 border-l-4 border-yellow-500 flex items-center">
-      <i class="fas fa-info-circle text-black text-2xl mr-3"></i>
-      <span class="font-bold text-black text-lg">Click on a player below to view details.</span>
-    </div>
-    <!-- Top Players Card -->
-    <div class="analyze-card mb-4 shadow-lg rounded-xl p-5 bg-white border-l-4 border-red-400">
-        <div class="analyze-card-header text-xl font-bold mb-2 flex items-center gap-2">
-          <i class="fas fa-users text-red-400"></i> {{ club_name }} Players
+
+        <!-- Court Analysis Card -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-table-tennis text-blue-500 mr-2"></i>
+                    Court Performance
+                </h2>
+            </div>
+            
+            <div class="p-6">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {% for court, stats in team_analysis_data.court_analysis.items() %}
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <!-- Court Header -->
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold text-gray-900">{{ court|capitalize }}</h3>
+                            {% set win_rate = stats.win_rate|default(stats.winRate) %}
+                            <span class="px-3 py-1 rounded-full text-sm font-medium
+                                {% if win_rate is not string and win_rate >= 60 %}bg-green-100 text-green-800
+                                {% elif win_rate is not string and win_rate >= 45 %}bg-yellow-100 text-yellow-800
+                                {% else %}bg-red-100 text-red-800
+                                {% endif %}">
+                                {{ win_rate|round(1, 'common') if win_rate is not string else win_rate }}%
+                            </span>
+                        </div>
+                        
+                        <!-- Court Stats -->
+                        <div class="space-y-2 mb-4">
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-600">Record:</span>
+                                <span class="font-medium text-gray-900">{{ stats.record if stats.record else 'N/A' }}</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Key Players -->
+                        {% if stats.key_players %}
+                        <div>
+                            <p class="text-sm font-medium text-gray-700 mb-3">Key Players</p>
+                            <div class="space-y-2">
+                                {% for player in stats.key_players[:3] %}
+                                <div class="flex items-center justify-between py-2 px-3 bg-white rounded-lg">
+                                    <div class="flex-1">
+                                        <a href="/mobile/player-detail/{{ player.name | urlencode }}" class="font-medium text-gray-900 hover:text-blue-600">{{ player.name }}</a>
+                                        <div class="text-sm text-gray-600">{{ player.matches }} match{{ 'es' if player.matches != 1 else '' }}</div>
+                                    </div>
+                                    <span class="text-sm font-medium text-gray-700">{{ player.win_rate|default(player.winRate)|round(1, 'common') if player.win_rate is defined or player.winRate is defined else 'N/A' }}%</span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
         </div>
-        <div class='table-responsive'>
-        <table class='table table-sm w-full text-sm rounded-lg overflow-hidden'>
-            <thead>
-                <tr class="bg-gray-100">
-                    <th class="py-1 px-2 font-semibold text-left">Name</th>
-                    <th class="py-1 px-2 font-semibold text-left">Matches</th>
-                    <th class="py-1 px-2 font-semibold text-left">Win Rate</th>
-                    <th class="py-1 px-2 font-semibold text-left">Best Court</th>
-                    <th class="py-1 px-2 font-semibold text-left">Best Partner</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for player in team_analysis_data.top_players %}
-                    <tr class="border-b last:border-b-0 hover:bg-yellow-50 {% if loop.index0 % 2 == 0 %}bg-gray-50{% endif %}">
-                        <td class="py-1 px-1 text-xs">
-                          <a href="/mobile/player-detail/{{ player.name | urlencode }}" class="font-medium text-primary hover:underline">
-                            {{ player.name }}
-                          </a>
-                        </td>
-                        <td class="py-1 px-1 text-xs">{{ player.matches }}</td>
-                        <td class="py-1 px-1 text-xs font-bold {% if player.win_rate >= 60 %}text-green-600{% elif player.win_rate >= 45 %}text-yellow-600{% else %}text-red-600{% endif %}">{{ player.win_rate }}%</td>
-                        <td class="py-1 px-1 text-xs">{{ player.best_court }}</td>
-                        <td class="py-1 px-1 text-xs">{{ player.best_partner }}</td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+
+        <!-- Team Players Card -->
+        {% if team_analysis_data.top_players %}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-users text-red-500 mr-2"></i>
+                    Team Players
+                </h2>
+            </div>
+            
+            <div class="p-6">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full text-xs">
+                        <thead>
+                            <tr class="border-b border-gray-100">
+                                <th class="text-left py-2 px-2 font-semibold text-gray-700 whitespace-nowrap">Player</th>
+                                <th class="text-center py-2 px-2 font-semibold text-gray-700 whitespace-nowrap">Matches</th>
+                                <th class="text-center py-2 px-2 font-semibold text-gray-700 whitespace-nowrap">Win Rate</th>
+                                <th class="text-left py-2 px-2 font-semibold text-gray-700 whitespace-nowrap">Best Court</th>
+                                <th class="text-left py-2 px-2 font-semibold text-gray-700 whitespace-nowrap">Best Partner</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for player in team_analysis_data.top_players %}
+                            <tr class="border-b border-gray-50 hover:bg-gray-50">
+                                <td class="py-2 px-2">
+                                    <a href="/mobile/player-detail/{{ player.name | urlencode }}" class="font-medium text-blue-600 hover:text-blue-800">
+                                        {{ player.name }}
+                                    </a>
+                                </td>
+                                <td class="py-2 px-2 text-center">{{ player.matches }}</td>
+                                <td class="py-2 px-2 text-center">
+                                    <span class="px-2 py-1 rounded text-xs font-medium
+                                        {% if player.win_rate >= 60 %}bg-green-100 text-green-800
+                                        {% elif player.win_rate >= 45 %}bg-yellow-100 text-yellow-800
+                                        {% else %}bg-red-100 text-red-800
+                                        {% endif %}">
+                                        {{ player.win_rate }}%
+                                    </span>
+                                </td>
+                                <td class="py-2 px-2">{{ player.best_court }}</td>
+                                <td class="py-2 px-2">{{ player.best_partner }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
+        {% endif %}
+
+        {% else %}
+        <!-- Empty State -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
+            <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-users-cog text-gray-400 text-2xl"></i>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">Select a Team</h3>
+            <p class="text-gray-500">Choose a team from the dropdown above to view detailed analysis and statistics.</p>
+        </div>
+        {% endif %}
+
     </div>
-    {% endif %}
 </div>
+
+<style>
+/* Custom styles for modern mobile design */
+.min-h-screen {
+    min-height: 100vh;
+}
+
+/* Grid responsive */
+@media (max-width: 640px) {
+    .grid-cols-2 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+/* Shadow utilities */
+.shadow-sm {
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+/* Border utilities */
+.border-gray-50 { border-color: #f9fafb; }
+.border-gray-100 { border-color: #f3f4f6; }
+
+/* Background utilities */
+.bg-gray-50 { background-color: #f9fafb; }
+.bg-white { background-color: #ffffff; }
+.bg-green-50 { background-color: #f0fdf4; }
+.bg-green-100 { background-color: #dcfce7; }
+.bg-yellow-100 { background-color: #fef3c7; }
+.bg-red-50 { background-color: #fef2f2; }
+.bg-red-100 { background-color: #fee2e2; }
+.bg-blue-100 { background-color: #dbeafe; }
+
+/* Text colors */
+.text-gray-900 { color: #111827; }
+.text-gray-700 { color: #374151; }
+.text-gray-600 { color: #4b5563; }
+.text-gray-500 { color: #6b7280; }
+.text-gray-400 { color: #9ca3af; }
+.text-green-500 { color: #10b981; }
+.text-green-600 { color: #059669; }
+.text-green-700 { color: #047857; }
+.text-green-800 { color: #065f46; }
+.text-yellow-500 { color: #f59e0b; }
+.text-yellow-700 { color: #b45309; }
+.text-yellow-800 { color: #92400e; }
+.text-red-500 { color: #ef4444; }
+.text-red-700 { color: #b91c1c; }
+.text-red-800 { color: #991b1b; }
+.text-blue-500 { color: #3b82f6; }
+.text-blue-600 { color: #2563eb; }
+.text-blue-800 { color: #1e40af; }
+.text-purple-500 { color: #8b5cf6; }
+.text-white { color: #ffffff; }
+
+/* Gradient backgrounds */
+.bg-gradient-to-br {
+    background-image: linear-gradient(to bottom right, var(--tw-gradient-stops));
+}
+.from-purple-500 {
+    --tw-gradient-from: #8b5cf6;
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(139, 92, 246, 0));
+}
+.to-purple-600 {
+    --tw-gradient-to: #7c3aed;
+}
+
+/* Remove default select arrow */
+.appearance-none {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+}
+
+/* Hover effects */
+.hover\:bg-gray-50:hover { background-color: #f9fafb; }
+.hover\:text-blue-600:hover { color: #2563eb; }
+.hover\:text-blue-800:hover { color: #1e40af; }
+
+/* Table styling */
+.whitespace-nowrap { white-space: nowrap; }
+.overflow-x-auto { overflow-x: auto; }
+
+/* Responsive design */
+@media (max-width: 640px) {
+    .px-6 { padding-left: 1rem; padding-right: 1rem; }
+    .py-4 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+    .text-3xl { font-size: 1.875rem; line-height: 2.25rem; }
+    .text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+    .sm\:grid-cols-2 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+}
+
+@media (min-width: 640px) {
+    .sm\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+</style>
 {% endblock %} 

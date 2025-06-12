@@ -2,28 +2,165 @@
 {% set show_back_arrow = True %}
 
 {% block content %}
-<div class="flex items-center gap-3 mt-4 mb-2 px-4">
-  <div class="bg-white rounded-md flex items-center justify-center h-12 w-12">
-    <i class="fas fa-user-plus text-black text-3xl"></i>
-  </div>
-  <div>
-    <div class="text-2xl font-bold leading-tight">Find a Sub</div>
-    <div class="text-base text-gray-500 mt-1">Find available players from higher series at {{ session_data.user.club }} to substitute for your team.</div>
-  </div>
-</div>
+<div class="min-h-screen bg-gray-50">
+    
+    <!-- Header -->
+    <div class="bg-white border-b border-gray-100">
+        <div class="flex items-center px-4 py-6">
+            <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center shadow-sm">
+                <i class="fas fa-user-plus text-white text-lg"></i>
+            </div>
+            <div class="ml-4">
+                <h1 class="text-xl font-bold text-gray-900">Find a Sub</h1>
+                <p class="text-sm text-gray-500">Find available players from higher series at {{ session_data.user.club }} to substitute for your team</p>
+            </div>
+        </div>
+    </div>
 
-<div id="subsLoading" class="flex justify-center items-center py-8">
-    <span class="loading loading-spinner loading-lg"></span>
+    <!-- Content -->
+    <div class="px-4 py-6 space-y-6">
+        
+        <!-- Loading State -->
+        <div id="subsLoading" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="p-6">
+                <div class="text-center py-8">
+                    <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <div class="loading loading-spinner loading-lg text-blue-600"></div>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Finding Available Subs</h3>
+                    <p class="text-gray-500">Searching for players in higher series at {{ session_data.user.club }}...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Container -->
+        <div id="subsResults" class="hidden space-y-6">
+            <!-- Algorithm Header -->
+            <div id="algorithmHeader" class="bg-black rounded-xl shadow-sm border border-gray-700 overflow-hidden">
+                <div class="p-6">
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 bg-white rounded-full flex items-center justify-center mr-3">
+                            <i class="fas fa-robot text-black text-lg"></i>
+                        </div>
+                        <div>
+                            <div class="font-bold text-white text-lg">Recommended subs at {{ session_data.user.club }}</div>
+                            <div class="text-white text-sm">based upon Rally's algorithm</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Players List -->
+            <div id="subsList" class="space-y-4"></div>
+        </div>
+
+        <!-- No Results State -->
+        <div id="noResults" class="hidden bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-info-circle text-blue-500 mr-2"></i>
+                    No Subs Available
+                </h2>
+            </div>
+            
+            <div class="p-6">
+                <div class="text-center py-8">
+                    <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-user-slash text-blue-500 text-2xl"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">No Higher Series Found</h3>
+                    <p class="text-gray-500">No subs found in higher series at {{ session_data.user.club }}. You might already be in the highest series available!</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Error State -->
+        <div id="errorState" class="hidden bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-exclamation-triangle text-red-500 mr-2"></i>
+                    Error Loading Subs
+                </h2>
+            </div>
+            
+            <div class="p-6">
+                <div class="text-center py-8">
+                    <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-exclamation-triangle text-red-500 text-2xl"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Something Went Wrong</h3>
+                    <p id="errorMessage" class="text-gray-500 mb-4">Failed to load substitute players.</p>
+                    <button onclick="fetchAndRenderSubsMobile()" 
+                            class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium text-sm transition-colors">
+                        <i class="fas fa-refresh mr-2"></i>Try Again
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Help Card -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-lightbulb text-yellow-500 mr-2"></i>
+                    About Rally's Algorithm
+                </h2>
+            </div>
+            
+            <div class="p-6">
+                <div class="space-y-3">
+                    <div class="flex items-start gap-3">
+                        <div class="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <i class="fas fa-chart-line text-blue-600 text-xs"></i>
+                        </div>
+                        <div>
+                            <div class="font-medium text-gray-900">PTI Analysis</div>
+                            <div class="text-sm text-gray-600">Considers Performance Tracking Index for skill assessment</div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-start gap-3">
+                        <div class="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <i class="fas fa-percentage text-green-600 text-xs"></i>
+                        </div>
+                        <div>
+                            <div class="font-medium text-gray-900">Win Rate Factor</div>
+                            <div class="text-sm text-gray-600">Evaluates recent performance and consistency</div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-start gap-3">
+                        <div class="w-6 h-6 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <i class="fas fa-layer-group text-purple-600 text-xs"></i>
+                        </div>
+                        <div>
+                            <div class="font-medium text-gray-900">Series Advantage</div>
+                            <div class="text-sm text-gray-600">Prioritizes players from higher competitive series</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
 </div>
-<div id="subsList" class="space-y-4"></div>
 
 <script>
-// Mobile Find Sub logic: match desktop behavior
+// Mobile Find Sub logic with modern UI
 async function fetchAndRenderSubsMobile() {
     const loadingDiv = document.getElementById('subsLoading');
+    const resultsDiv = document.getElementById('subsResults');
     const subsList = document.getElementById('subsList');
-    loadingDiv.style.display = 'flex';
-    subsList.innerHTML = '';
+    const noResultsDiv = document.getElementById('noResults');
+    const errorDiv = document.getElementById('errorState');
+    const errorMessage = document.getElementById('errorMessage');
+    
+    // Show loading, hide others
+    loadingDiv.classList.remove('hidden');
+    resultsDiv.classList.add('hidden');
+    noResultsDiv.classList.add('hidden');
+    errorDiv.classList.add('hidden');
+    
     try {
         // 1. Get current series and all series
         const seriesResp = await fetch('/api/get-series');
@@ -31,26 +168,27 @@ async function fetchAndRenderSubsMobile() {
         const seriesData = await seriesResp.json();
         const currentSeries = seriesData.series;
         const allSeries = seriesData.all_series;
+        
         // Extract the series number (e.g., 22 from 'Chicago 22')
         let currentNum = null;
         if (typeof currentSeries === 'string') {
             currentNum = parseInt(currentSeries.split(' ').pop());
         } else {
-            console.error('currentSeries is not a string:', currentSeries);
-            loadingDiv.style.display = 'none';
-            subsList.innerHTML = '<div class="text-center text-red-500">Error: current series is not a string.</div>';
-            return;
+            throw new Error('Current series is not available. Please set your series in settings.');
         }
+        
         // 2. Find all higher series
         const higherSeries = allSeries.filter(s => {
             const num = parseInt(s.split(' ').pop());
             return num > currentNum;
         });
+        
         if (higherSeries.length === 0) {
-            loadingDiv.style.display = 'none';
-            subsList.innerHTML = '<div class="text-center text-gray-500">No higher series found at {{ session_data.user.club }}.</div>';
+            loadingDiv.classList.add('hidden');
+            noResultsDiv.classList.remove('hidden');
             return;
         }
+        
         // 3. Fetch players for each higher series
         const promises = higherSeries.map(series =>
             fetch(`/api/players?series=${encodeURIComponent(series)}`)
@@ -58,6 +196,7 @@ async function fetchAndRenderSubsMobile() {
                 .then(players => ({ series, players }))
         );
         const results = await Promise.all(promises);
+        
         // 4. Aggregate all players
         const allPlayers = results.flatMap(result =>
             result.players.map(player => ({
@@ -65,66 +204,267 @@ async function fetchAndRenderSubsMobile() {
                 series: result.series
             }))
         );
+        
         if (allPlayers.length === 0) {
-            loadingDiv.style.display = 'none';
-            subsList.innerHTML = '<div class="text-center text-gray-500">No subs found in higher series at {{ session_data.user.club }}.</div>';
+            loadingDiv.classList.add('hidden');
+            noResultsDiv.classList.remove('hidden');
             return;
         }
-        // 5. Calculate composite score (match desktop)
+        
+        // 5. Calculate composite score
         function calculateCompositeScore(pti, winRate, series) {
             const winRateDecimal = parseFloat((winRate + '').replace('%', '')) / 100;
-            const normalizedPTI = (100 - parseFloat(pti)) / 100;
+            const normalizedPTI = (100 - parseFloat(pti || 50)) / 100;
             const seriesNum = parseInt(series.split(' ').pop());
             const normalizedSeries = (40 - seriesNum) / 40;
             return (normalizedPTI * 0.7) + (winRateDecimal * 0.2) + (normalizedSeries * 0.1);
         }
+        
         const playersWithScores = allPlayers.map(player => ({
             ...player,
             compositeScore: calculateCompositeScore(player.pti || player.rating, player.winRate, player.series)
         }));
+        
         // 6. Sort by composite score (highest to lowest)
         playersWithScores.sort((a, b) => b.compositeScore - a.compositeScore);
-        // 7. Render cards, with a label for top 3
-        loadingDiv.style.display = 'none';
+        
+        // 7. Show results and render player cards
+        loadingDiv.classList.add('hidden');
+        resultsDiv.classList.remove('hidden');
         subsList.innerHTML = '';
-        if (playersWithScores.length > 0) {
-            // Label for top 3
-            const label = document.createElement('div');
-            label.className = 'text-center font-bold rounded px-2 py-2 mb-2';
-            label.style.background = '#ffde5a';
-            label.style.color = '#000000';
-            label.innerHTML = `Recommended subs at {{ session_data.user.club }} based upon Rally's algorithm`;
-            subsList.appendChild(label);
-        }
+        
         playersWithScores.forEach((player, idx) => {
+            const isTopThree = idx < 3;
             const card = document.createElement('div');
-            card.className = 'bg-white rounded-lg shadow p-4 flex flex-col gap-2' + (idx < 3 ? ' border-2 border-gray-700' : '');
+            card.className = `bg-white rounded-xl shadow-sm border ${isTopThree ? 'border-yellow-300 bg-yellow-50' : 'border-gray-100'} overflow-hidden hover:shadow-md transition-shadow`;
+            
             card.innerHTML = `
-                <div class="flex items-center justify-between">
-                    <div>
-                        <div class="font-bold text-lg">${player.name}</div>
-                        <div class="text-sm text-gray-500">${player.series}</div>
+                <div class="p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-3 mb-2">
+                                <h3 class="text-lg font-bold text-gray-900">${player.name}</h3>
+                                ${isTopThree ? '<div class="bg-yellow-400 text-yellow-900 px-3 py-1 rounded-md text-xs font-medium">TOP PICK</div>' : ''}
+                            </div>
+                            <div class="text-sm text-gray-600 flex items-center gap-2">
+                                <i class="fas fa-trophy text-yellow-500 w-4"></i>
+                                <span>${player.series}</span>
+                            </div>
+                        </div>
+                        <div class="ml-4">
+                            <button onclick="window.location.href='/contact-sub?first=${encodeURIComponent(player.name.split(' ')[0])}&last=${encodeURIComponent(player.name.split(' ').slice(1).join(' '))}'" 
+                                    class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium text-sm transition-colors flex items-center gap-2">
+                                <i class="fas fa-envelope"></i>
+                                CONTACT
+                            </button>
+                        </div>
                     </div>
-                    <button class="btn btn-success btn-sm" onclick="window.location.href='/contact-sub?first=${encodeURIComponent(player.name.split(' ')[0])}&last=${encodeURIComponent(player.name.split(' ').slice(1).join(' '))}'">
-                        <i class="fas fa-envelope"></i> Contact
-                    </button>
-                </div>
-                <div class="flex gap-4 text-sm mt-2">
-                    <div><span class="font-semibold">PTI:</span> ${player.pti || player.rating}</div>
-                    <div><span class="font-semibold">Wins:</span> ${player.wins}</div>
-                    <div><span class="font-semibold">Losses:</span> ${player.losses}</div>
-                    <div><span class="font-semibold">Win Rate:</span> ${player.winRate}</div>
-                    <div><span class="font-semibold">Score:</span> <span class="composite-score">${(player.compositeScore * 100).toFixed(1)}</span></div>
+                    
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-trophy text-green-500 w-4"></i>
+                            <div>
+                                <div class="text-gray-500">Wins</div>
+                                <div class="font-semibold text-gray-900">${player.wins || 0}</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-times text-red-500 w-4"></i>
+                            <div>
+                                <div class="text-gray-500">Losses</div>
+                                <div class="font-semibold text-gray-900">${player.losses || 0}</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-percentage text-purple-500 w-4"></i>
+                            <div>
+                                <div class="text-gray-500">Win Rate</div>
+                                <div class="font-semibold text-gray-900">${player.winRate || '0%'}</div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-chart-line text-blue-500 w-4"></i>
+                            <div>
+                                <div class="text-gray-500">PTI</div>
+                                <div class="font-semibold text-gray-900">${player.pti || player.rating || 'N/A'}</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             `;
             subsList.appendChild(card);
         });
+        
     } catch (err) {
-        loadingDiv.style.display = 'none';
-        subsList.innerHTML = `<div class="text-center text-red-500">Error loading subs: ${err.message}</div>`;
+        loadingDiv.classList.add('hidden');
+        errorDiv.classList.remove('hidden');
+        errorMessage.textContent = err.message;
+        console.error('Error loading subs:', err);
     }
 }
+
 // Run on page load
 fetchAndRenderSubsMobile();
 </script>
+
+<style>
+/* Modern design styles matching player-search */
+.min-h-screen {
+    min-height: 100vh;
+}
+
+/* Grid responsive */
+@media (max-width: 768px) {
+    .grid-cols-2 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .md\:grid-cols-4 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 768px) {
+    .md\:grid-cols-4 {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
+
+/* Shadow utilities */
+.shadow-sm {
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.shadow-md {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Border utilities */
+.border-gray-50 { border-color: #f9fafb; }
+.border-gray-100 { border-color: #f3f4f6; }
+.border-gray-700 { border-color: #374151; }
+.border-yellow-200 { border-color: #fef08a; }
+.border-yellow-300 { border-color: #fde047; }
+
+/* Background utilities */
+.bg-gray-50 { background-color: #f9fafb; }
+.bg-gray-100 { background-color: #f3f4f6; }
+.bg-white { background-color: #ffffff; }
+.bg-black { background-color: #000000; }
+.bg-blue-100 { background-color: #dbeafe; }
+.bg-green-100 { background-color: #dcfce7; }
+.bg-purple-100 { background-color: #e9d5ff; }
+.bg-red-100 { background-color: #fee2e2; }
+.bg-yellow-50 { background-color: #fefce8; }
+.bg-yellow-100 { background-color: #fef3c7; }
+.bg-yellow-400 { background-color: #facc15; }
+.bg-yellow-500 { background-color: #eab308; }
+.bg-blue-600 { background-color: #2563eb; }
+.bg-blue-700 { background-color: #1d4ed8; }
+.bg-green-600 { background-color: #16a34a; }
+.bg-green-700 { background-color: #15803d; }
+
+/* Text colors */
+.text-gray-900 { color: #111827; }
+.text-gray-600 { color: #4b5563; }
+.text-gray-500 { color: #6b7280; }
+.text-blue-500 { color: #3b82f6; }
+.text-blue-600 { color: #2563eb; }
+.text-green-500 { color: #10b981; }
+.text-green-600 { color: #059669; }
+.text-purple-500 { color: #8b5cf6; }
+.text-purple-600 { color: #7c3aed; }
+.text-yellow-500 { color: #f59e0b; }
+.text-yellow-100 { color: #fef3c7; }
+.text-yellow-900 { color: #78350f; }
+.text-red-500 { color: #ef4444; }
+.text-white { color: #ffffff; }
+.text-black { color: #000000; }
+
+/* Gradient backgrounds */
+.bg-gradient-to-br {
+    background-image: linear-gradient(to bottom right, var(--tw-gradient-stops));
+}
+.bg-gradient-to-r {
+    background-image: linear-gradient(to right, var(--tw-gradient-stops));
+}
+.from-green-500 {
+    --tw-gradient-from: #10b981;
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(16, 185, 129, 0));
+}
+.to-green-600 {
+    --tw-gradient-to: #059669;
+}
+.from-yellow-400 {
+    --tw-gradient-from: #facc15;
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(250, 204, 21, 0));
+}
+.to-yellow-500 {
+    --tw-gradient-to: #eab308;
+}
+
+/* Spacing utilities */
+.space-y-6 > * + * { margin-top: 1.5rem; }
+.space-y-4 > * + * { margin-top: 1rem; }
+.space-y-3 > * + * { margin-top: 0.75rem; }
+
+/* Margin utilities */
+.ml-4 { margin-left: 1rem; }
+.mr-3 { margin-right: 0.75rem; }
+.mb-4 { margin-bottom: 1rem; }
+.mb-2 { margin-bottom: 0.5rem; }
+.mx-auto { margin-left: auto; margin-right: auto; }
+.mt-0\.5 { margin-top: 0.125rem; }
+
+/* Padding utilities */
+.px-4 { padding-left: 1rem; padding-right: 1rem; }
+.py-6 { padding-top: 1.5rem; padding-bottom: 1.5rem; }
+.px-6 { padding-left: 1.5rem; padding-right: 1.5rem; }
+.py-4 { padding-top: 1rem; padding-bottom: 1rem; }
+.p-6 { padding: 1.5rem; }
+.px-3 { padding-left: 0.75rem; padding-right: 0.75rem; }
+.py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
+
+/* Width and height utilities */
+.w-12 { width: 3rem; }
+.h-12 { height: 3rem; }
+.w-16 { width: 4rem; }
+.h-16 { height: 4rem; }
+.w-10 { width: 2.5rem; }
+.h-10 { height: 2.5rem; }
+.w-6 { width: 1.5rem; }
+.h-6 { height: 1.5rem; }
+.w-4 { width: 1rem; }
+
+/* Border radius utilities */
+.rounded-xl { border-radius: 0.75rem; }
+.rounded-lg { border-radius: 0.5rem; }
+.rounded-md { border-radius: 0.375rem; }
+.rounded { border-radius: 0.25rem; }
+.rounded-full { border-radius: 9999px; }
+
+/* Overflow utilities */
+.overflow-hidden { overflow: hidden; }
+
+/* Transition utilities */
+.transition-colors { transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out; }
+.transition-shadow { transition: box-shadow 0.15s ease-in-out; }
+
+/* Flex utilities */
+.flex { display: flex; }
+.items-center { align-items: center; }
+.justify-center { justify-content: center; }
+.justify-between { justify-content: space-between; }
+.flex-1 { flex: 1 1 0%; }
+.flex-col { flex-direction: column; }
+.flex-shrink-0 { flex-shrink: 0; }
+
+/* Visibility utilities */
+.hidden { display: none; }
+
+/* Responsive design adjustments */
+@media (max-width: 640px) {
+    .px-6 { padding-left: 1rem; padding-right: 1rem; }
+    .py-4 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+}
+</style>
 {% endblock %} 

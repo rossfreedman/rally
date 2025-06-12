@@ -13,6 +13,7 @@
 - Prefer functional React components with hooks over class-based components.
 - Use clear naming conventions: avoid abbreviations, use snake_case in Python, camelCase in JS/React.
 - Don't use bootstrap. Use Flask + Jinja + Tailwind CSS + DaisyUI for the Rally application.
+- Aside from ETL commands, do not let the front end application query JSON files. All queries should access the Postgres database
 
 # Documentation & Comments
 - Verbosely document all new functions, components, and complex logic.

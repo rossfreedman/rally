@@ -6,6 +6,11 @@ from collections import defaultdict, Counter
 import pandas as pd
 from rapidfuzz import fuzz
 from utils.match_utils import normalize_name, names_match
+from database_utils import execute_query, execute_query_one
+from utils.logging import log_user_activity
+import logging
+
+logger = logging.getLogger(__name__)
 
 def get_player_analysis_by_name(player_name):
     """
@@ -319,3 +324,217 @@ def find_player_in_history(user, player_history=None):
     except Exception as e:
         print(f"Error finding player in history: {str(e)}")
         return None 
+
+def get_players_by_league_and_series(league_id, series_name, club_name=None):
+    """
+    Get players for a specific league and series, optionally filtered by club
+    
+    Args:
+        league_id (str): League identifier (e.g., 'APTA_CHICAGO', 'NSTF')
+        series_name (str): Series name for filtering
+        club_name (str, optional): Club name for additional filtering
+    
+    Returns:
+        list: List of player dictionaries with stats
+    """
+    try:
+        base_query = """
+            SELECT DISTINCT p.tenniscores_player_id, p.first_name, p.last_name,
+                   p.club_id, p.series_id, c.name as club_name, s.name as series_name,
+                   l.league_name, l.league_id, p.pti, p.wins, p.losses, p.win_percentage
+            FROM players p
+            JOIN leagues l ON p.league_id = l.id
+            LEFT JOIN clubs c ON p.club_id = c.id
+            LEFT JOIN series s ON p.series_id = s.id
+            WHERE l.league_id = %(league_id)s 
+            AND p.is_active = true
+        """
+        
+        params = {'league_id': league_id}
+        
+        # Add series filter if provided
+        if series_name:
+            base_query += " AND s.name = %(series_name)s"
+            params['series_name'] = series_name
+            
+        # Add club filter if provided
+        if club_name:
+            base_query += " AND c.name = %(club_name)s"
+            params['club_name'] = club_name
+            
+        base_query += " ORDER BY p.last_name, p.first_name"
+        
+        players = execute_query(base_query, params)
+        
+        # Format for API response
+        formatted_players = []
+        for player in players:
+            # Calculate win rate
+            wins = player.get('wins', 0) or 0
+            losses = player.get('losses', 0) or 0
+            total_matches = wins + losses
+            win_rate = f"{(wins / total_matches * 100):.1f}%" if total_matches > 0 else "0.0%"
+            
+            formatted_players.append({
+                'name': f"{player['first_name']} {player['last_name']}",
+                'player_id': player['tenniscores_player_id'],
+                'series': player['series_name'],
+                'club': player['club_name'],
+                'league': player['league_id'],
+                'pti': player.get('pti'),
+                'rating': player.get('pti'),  # Alias for pti
+                'wins': wins,
+                'losses': losses,
+                'winRate': win_rate
+            })
+            
+        return formatted_players
+        
+    except Exception as e:
+        logger.error(f"Error fetching players for league {league_id}, series {series_name}: {e}")
+        return []
+
+def get_player_by_tenniscores_id(tenniscores_player_id, league_id=None):
+    """
+    Get player information by Tenniscores Player ID
+    
+    Args:
+        tenniscores_player_id (str): Tenniscores Player ID
+        league_id (str, optional): League to filter by for multi-league players
+    
+    Returns:
+        dict|None: Player information or None if not found
+    """
+    try:
+        query = """
+            SELECT p.id, p.tenniscores_player_id, p.first_name, p.last_name,
+                   p.club_id, p.series_id, c.name as club_name, 
+                   s.name as series_name, l.league_name, l.league_id
+            FROM players p
+            JOIN leagues l ON p.league_id = l.id
+            LEFT JOIN clubs c ON p.club_id = c.id
+            LEFT JOIN series s ON p.series_id = s.id
+            WHERE p.tenniscores_player_id = %(player_id)s
+            AND p.is_active = true
+        """
+        
+        params = {'player_id': tenniscores_player_id}
+        
+        if league_id:
+            query += " AND l.league_id = %(league_id)s"
+            params['league_id'] = league_id
+            
+        result = execute_query_one(query, params)
+        
+        if result:
+            return {
+                'id': result['id'],
+                'tenniscores_player_id': result['tenniscores_player_id'],
+                'first_name': result['first_name'],
+                'last_name': result['last_name'],
+                'club_name': result['club_name'],
+                'series_name': result['series_name'],
+                'league_id': result['league_id'],
+                'league_name': result['league_name']
+            }
+        return None
+        
+    except Exception as e:
+        logger.error(f"Error fetching player {tenniscores_player_id}: {e}")
+        return None
+
+def find_player_in_history(user, player_history_data):
+    """
+    Find a user's player record in the player history data
+    
+    Args:
+        user (dict): User session data with first_name, last_name, league_id
+        player_history_data (list): List of player history records
+    
+    Returns:
+        dict|None: Player history record or None if not found
+    """
+    user_name = f"{user['first_name']} {user['last_name']}"
+    user_league_id = user.get('league_id')
+    
+    # Helper function to normalize names for comparison
+    def normalize(name):
+        return name.lower().strip().replace(',', '').replace('.', '')
+    
+    target_normalized = normalize(user_name)
+    
+    for player in player_history_data:
+        # Check league match first
+        player_league = player.get('League', player.get('league_id'))
+        if user_league_id and player_league != user_league_id:
+            continue
+            
+        # Check name match
+        if normalize(player.get('name', '')) == target_normalized:
+            return player
+    
+    return None
+
+def get_team_players_by_team_id(team_id, user_league_id):
+    """
+    Get all players for a specific team using match history and database
+    
+    Args:
+        team_id (str): Team identifier
+        user_league_id (str): User's league for filtering
+    
+    Returns:
+        list: List of team players with stats
+    """
+    # This would require loading match history to find team players
+    # For now, return empty list - this needs match history integration
+    logger.warning(f"get_team_players_by_team_id not fully implemented for team {team_id}")
+    return []
+
+def search_players_by_name(search_term, league_id=None, limit=20):
+    """
+    Search players by name across leagues
+    
+    Args:
+        search_term (str): Name search term
+        league_id (str, optional): Limit to specific league
+        limit (int): Maximum number of results
+    
+    Returns:
+        list: Matching players
+    """
+    try:
+        query = """
+            SELECT DISTINCT p.tenniscores_player_id, p.first_name, p.last_name,
+                   c.name as club_name, s.name as series_name, l.league_id
+            FROM players p
+            JOIN leagues l ON p.league_id = l.id
+            LEFT JOIN clubs c ON p.club_id = c.id
+            LEFT JOIN series s ON p.series_id = s.id
+            WHERE p.is_active = true
+            AND (LOWER(p.first_name || ' ' || p.last_name) LIKE LOWER(%(search)s)
+                 OR LOWER(p.last_name || ' ' || p.first_name) LIKE LOWER(%(search)s))
+        """
+        
+        params = {'search': f'%{search_term}%'}
+        
+        if league_id:
+            query += " AND l.league_id = %(league_id)s"
+            params['league_id'] = league_id
+            
+        query += " ORDER BY p.last_name, p.first_name LIMIT %(limit)s"
+        params['limit'] = limit
+        
+        results = execute_query(query, params)
+        
+        return [{
+            'name': f"{r['first_name']} {r['last_name']}",
+            'player_id': r['tenniscores_player_id'],
+            'club': r['club_name'],
+            'series': r['series_name'],
+            'league': r['league_id']
+        } for r in results]
+        
+    except Exception as e:
+        logger.error(f"Error searching players: {e}")
+        return [] 

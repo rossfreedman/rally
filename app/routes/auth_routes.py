@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request, session, redirect, url_for, render_template
 import logging
-from app.services.auth_service import register_user, authenticate_user, create_session_data, get_clubs_list
+from app.services.auth_service_refactored import register_user, authenticate_user, create_session_data, get_clubs_list
 
 # Create Blueprint
 auth_bp = Blueprint('auth', __name__)
@@ -39,7 +39,7 @@ def handle_register():
             return jsonify({'error': f'Missing required fields: {", ".join(missing)}'}), 400
 
         # Use service to register user with league
-        result = register_user(email, password, first_name, last_name, club_name, series_name, league_id)
+        result = register_user(email, password, first_name, last_name, league_id, club_name, series_name)
         
         if not result['success']:
             if 'already exists' in result['error']:
@@ -47,8 +47,43 @@ def handle_register():
             else:
                 return jsonify({'error': result['error']}), 500
 
-        # Set session data to automatically log in the user
-        session['user'] = create_session_data(result['user'])
+        # Set session data using same approach as settings (direct SQL to avoid SQLAlchemy relationship issues)
+        from database_utils import execute_query_one
+        
+        # Get updated user data using same query as settings update
+        updated_user = execute_query_one('''
+            SELECT u.id, u.first_name, u.last_name, u.email, u.club_automation_password,
+                   c.name as club, s.name as series, u.is_admin, u.tenniscores_player_id,
+                   l.league_id, l.league_name
+            FROM users u
+            LEFT JOIN clubs c ON u.club_id = c.id
+            LEFT JOIN series s ON u.series_id = s.id
+            LEFT JOIN leagues l ON u.league_id = l.id
+            WHERE u.email = %s
+        ''', (email,))
+        
+        if updated_user:
+            # Create session data exactly like settings update does
+            session['user'] = {
+                'id': updated_user['id'],
+                'email': updated_user['email'],
+                'first_name': updated_user['first_name'],
+                'last_name': updated_user['last_name'],
+                'club': updated_user['club'],
+                'series': updated_user['series'],
+                'league_id': updated_user['league_id'],
+                'league_name': updated_user['league_name'],
+                'club_automation_password': updated_user['club_automation_password'] or '',
+                'is_admin': updated_user['is_admin'],
+                'tenniscores_player_id': updated_user['tenniscores_player_id'],  # This should now be set!
+                'settings': '{}'  # Default empty settings for consistency
+            }
+            logger.info(f"Registration: Session created with player ID: {updated_user['tenniscores_player_id']}")
+        else:
+            # Fallback to original approach if SQL query fails
+            session['user'] = create_session_data(result['user'])
+            logger.warning("Registration: Fell back to create_session_data due to SQL query failure")
+        
         session.permanent = True
         
         return jsonify({
@@ -121,16 +156,29 @@ def handle_login():
             logger.error(f"Session creation error: {session_error}")
             return jsonify({'error': 'Session creation failed'}), 500
 
+        # Extract club and series from primary player or session data
+        user_data = result['user']
+        primary_player = user_data.get('primary_player')
+        session_user = session.get('user', {})
+        
+        # Get club and series from primary player if available, otherwise from session
+        if primary_player:
+            club = primary_player.get('club', {}).get('name') if isinstance(primary_player.get('club'), dict) else primary_player.get('club', '')
+            series = primary_player.get('series', {}).get('name') if isinstance(primary_player.get('series'), dict) else primary_player.get('series', '')
+        else:
+            club = session_user.get('club', '')
+            series = session_user.get('series', '')
+
         return jsonify({
             'status': 'success',
             'message': result['message'],
             'redirect': '/mobile',
             'user': {
-                'email': result['user']['email'],
-                'first_name': result['user']['first_name'],
-                'last_name': result['user']['last_name'],
-                'club': result['user']['club_name'],
-                'series': result['user']['series_name']
+                'email': user_data['email'],
+                'first_name': user_data['first_name'],
+                'last_name': user_data['last_name'],
+                'club': club,
+                'series': series
             }
         })
 

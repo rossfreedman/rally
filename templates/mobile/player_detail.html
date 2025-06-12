@@ -10,666 +10,706 @@
 {% endmacro %}
 
 {% block content %}
-<div class="max-w-lg mx-auto">
-    <!-- Consistent Header (matches Analyze Me page) -->
-    <div class="flex items-center gap-3 mt-4 mb-2 px-4">
-        <div class="bg-white rounded-md flex items-center justify-center h-12 w-12">
-            <i class="fas fa-user text-black text-3xl"></i>
-        </div>
-        <div>
-            <div class="text-2xl font-bold leading-tight">Player Details</div>
-            <div class="text-base text-gray-500 mt-1">{{ player_name }}</div>
-        </div>
-    </div>
-    {% if analyze_data.error %}
-        <div class="text-red-600 text-center my-8">{{ analyze_data.error }}</div>
-    {% endif %}
-    {% if not analyze_data.current_season and not analyze_data.career_stats %}
-        <div class="text-center text-gray-500 my-8">No stats available for this player.</div>
-    {% endif %}
+<div class="min-h-screen bg-gray-50">
     
-    <!-- Current PTI (only show if PTI data is available) -->
-    {% if analyze_data.pti_data_available %}
-    <div class='analyze-card'>
-        <div class='analyze-card-header'><i class='fas fa-gauge-high'></i> Current PTI</div>
-        <div class='w-full flex justify-center items-center py-4'>
-            {% if analyze_data.current_pti is not none %}
-                <div class="text-4xl font-bold text-black">
-                    {{ analyze_data.current_pti|round(1, 'common') }}
-                    {% if analyze_data.weekly_pti_change is not none %}
-                        <span class="text-xl ml-2">
-                            {% if analyze_data.weekly_pti_change > 0 %}
-                                <span class="text-red-600">(+{{ analyze_data.weekly_pti_change|round(1, 'common') }} ↑ since last match)</span>
-                            {% elif analyze_data.weekly_pti_change < 0 %}
-                                <span class="text-green-600">({{ analyze_data.weekly_pti_change|round(1, 'common') }} ↓ since last match)</span>
-                            {% else %}
-                                <span class="text-gray-500">(0.0 since last match)</span>
-                            {% endif %}
-                        </span>
-                    {% endif %}
-                </div>
-            {% else %}
-                <div class="text-2xl text-gray-400">No PTI data available</div>
-            {% endif %}
+    <!-- Header -->
+    <div class="bg-white border-b border-gray-100">
+        <div class="flex items-center px-4 py-6">
+            <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center shadow-sm">
+                <i class="fas fa-user text-white text-lg"></i>
+            </div>
+            <div class="ml-4">
+                <h1 class="text-xl font-bold text-gray-900">Player Details</h1>
+                <p class="text-sm text-gray-500">{{ player_name }}</p>
+            </div>
         </div>
-    </div>
-    
-    <!-- PTI History Chart (only show if PTI data is available) -->
-    <div class='analyze-card'>
-        <div class='analyze-card-header'><i class='fas fa-chart-line'></i> PTI History</div>
-        <div id="ptiHistoryChart" style="height:400px;"></div>
-    </div>
-    {% endif %}
-
-    <!-- Player Stats -->
-    {% if analyze_data.current_season %}
-    <div class='analyze-card'>
-        <div class='analyze-card-header'><i class='fas fa-user'></i> Player Stats</div>
-        <div class='w-full'>
-            <table class='player-stats-table w-full'>
-                <thead>
-                    <tr>
-                        {% if analyze_data.career_stats %}
-                        <th class='w-1/3'></th>
-                        <th class='w-1/3 text-black text-lg font-bold pb-2'>Current Season</th>
-                        <th class='w-1/3 text-black text-lg font-bold pb-2'>Career</th>
-                        {% else %}
-                        <th class='w-1/2'></th>
-                        <th class='w-1/2 text-black text-lg font-bold pb-2'>Current Season</th>
-                        {% endif %}
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td class='stat-label'><i class='fas fa-table-tennis-paddle-ball text-black'></i> Matches</td>
-                        <td class='stat-value'>{{ analyze_data.current_season.matches or 'N/A' }}</td>
-                        {% if analyze_data.career_stats %}
-                        <td class='stat-value'>{{ analyze_data.career_stats.matches or 'N/A' }}</td>
-                        {% endif %}
-                    </tr>
-                    <tr class="row-divider">
-                        <td class='stat-label'><i class="fas fa-list-ol text-black"></i> Record</td>
-                        <td class='stat-value'>
-                            {% if analyze_data.current_season and analyze_data.current_season.wins is defined and analyze_data.current_season.losses is defined %}
-                                {{ analyze_data.current_season.wins|int }} wins / {{ analyze_data.current_season.losses|int }} losses
-                            {% elif analyze_data.current_season and analyze_data.current_season.winRate is defined and analyze_data.current_season.matches and analyze_data.current_season.matches != 'N/A' and analyze_data.current_season.winRate != 'N/A' %}
-                                {% set wins = (analyze_data.current_season.winRate * analyze_data.current_season.matches // 100)|int %}
-                                {% set losses = (analyze_data.current_season.matches - wins)|int %}
-                                {{ wins }} wins / {{ losses }} losses
-                            {% else %}
-                                N/A
-                            {% endif %}
-                        </td>
-                        {% if analyze_data.career_stats %}
-                        <td class='stat-value'>
-                            {% if analyze_data.career_stats and analyze_data.career_stats.wins is defined and analyze_data.career_stats.losses is defined %}
-                                {{ analyze_data.career_stats.wins|int }} wins / {{ analyze_data.career_stats.losses|int }} losses
-                            {% elif analyze_data.career_stats and analyze_data.career_stats.winRate is defined and analyze_data.career_stats.matches and analyze_data.career_stats.matches != 'N/A' and analyze_data.career_stats.winRate != 'N/A' %}
-                                {% set wins = (analyze_data.career_stats.winRate * analyze_data.career_stats.matches // 100)|int %}
-                                {% set losses = (analyze_data.career_stats.matches - wins)|int %}
-                                {{ wins }} wins / {{ losses }} losses
-                            {% else %}
-                                N/A
-                            {% endif %}
-                        </td>
-                        {% endif %}
-                    </tr>
-                    <tr>
-                        <td class='stat-label'><span class='text-blue-700'><i class='fas fa-percent'></i></span> Wins</td>
-                        <td class='stat-value'>
-                          {% if analyze_data.current_season and analyze_data.current_season.winRate is defined %}
-                          {% set winrate = analyze_data.current_season.winRate %}
-                          <span class="font-bold {% if winrate is defined and winrate is not none and winrate|float >= 60 %}text-green-600{% elif winrate is defined and winrate is not none and winrate|float >= 45 %}text-yellow-600{% elif winrate is defined and winrate is not none %}text-red-600{% endif %}">
-                            {{ winrate|round(1, 'common') if winrate is not string else winrate }}%
-                          </span>
-                          {% else %}
-                            <span class="font-bold">N/A</span>
-                          {% endif %}
-                        </td>
-                        {% if analyze_data.career_stats %}
-                        <td class='stat-value'>
-                          {% if analyze_data.career_stats and analyze_data.career_stats.winRate is defined %}
-                          {% set winrate = analyze_data.career_stats.winRate %}
-                          <span class="font-bold {% if winrate is defined and winrate is not none and winrate|float >= 60 %}text-green-600{% elif winrate is defined and winrate is not none and winrate|float >= 45 %}text-yellow-600{% elif winrate is defined and winrate is not none %}text-red-600{% endif %}">
-                            {{ winrate|round(1, 'common') if winrate is not string else winrate }}%
-                          </span>
-                          {% else %}
-                            <span class="font-bold">N/A</span>
-                          {% endif %}
-                        </td>
-                        {% endif %}
-                    </tr>
-                    {% if analyze_data.pti_data_available %}
-                    <tr>
-                        <td class='stat-label text-center'><i class='fas fa-arrow-down text-black'></i> PTI Change</td>
-                        <td class='stat-value text-center'>
-                            {% if analyze_data.current_season and analyze_data.current_season.ptiChange is defined %}
-                            {% set pti = analyze_data.current_season.ptiChange %}
-                            {% if pti is string or pti == 'N/A' %}
-                                <span class="text-black">{{ pti }}</span>
-                            {% elif pti|float > 0 %}
-                                <span class="text-red-600 font-bold flex items-center justify-center">{{ pti|round(1, 'common') }} <span aria-label="PTI Up" class="ml-1">▲</span></span>
-                            {% elif pti|float < 0 %}
-                                <span class="text-green-600 font-bold flex items-center justify-center">{{ pti|round(1, 'common') }} <span aria-label="PTI Down" class="ml-1">▼</span></span>
-                            {% else %}
-                                <span class="text-black">0.0</span>
-                            {% endif %}
-                            {% else %}
-                                <span class="text-black">N/A</span>
-                            {% endif %}
-                        </td>
-                        {% if analyze_data.career_stats %}
-                        <td class='stat-value text-center'>
-                            {% set pti = analyze_data.career_pti_change %}
-                            {% if pti is string or pti == 'N/A' %}
-                                <span class="text-black">{{ pti }}</span>
-                            {% elif pti|float > 0 %}
-                                <span class="text-red-600 font-bold flex items-center justify-center">{{ pti|round(1, 'common') }} <span aria-label="PTI Up" class="ml-1">▲</span></span>
-                            {% elif pti|float < 0 %}
-                                <span class="text-green-600 font-bold flex items-center justify-center">{{ pti|round(1, 'common') }} <span aria-label="PTI Down" class="ml-1">▼</span></span>
-                            {% else %}
-                                <span class="text-black">0.0</span>
-                            {% endif %}
-                        </td>
-                        {% endif %}
-                    </tr>
-                    {% endif %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-    {% else %}
-        <div class='analyze-card'>
-            <div class='analyze-card-header'><i class='fas fa-user'></i> Player Stats</div>
-            <div class="text-gray-400 p-4">No player data available.</div>
-        </div>
-    {% endif %}
-
-    <!-- Court Analysis -->
-    <div class='analyze-card'>
-        <div class='analyze-card-header'><i class='fas fa-table-tennis'></i> Court Analysis</div>
-        {% if analyze_data.court_analysis %}
-        <div class='grid grid-cols-2 gap-3'>
-            {% set court_order = ['court1', 'court2', 'court3', 'court4'] %}
-            {% for court in court_order %}
-                {% set stats = analyze_data.court_analysis.get(court) %}
-                <div class="court-analysis-card flex flex-col items-start p-4 mb-3">
-                  <div class="flex items-center gap-2 mb-2 w-full">
-                    <i class="fas fa-table-tennis text-black"></i>
-                    <span class="font-bold text-lg text-black">{{ court|capitalize }}</span>
-                  </div>
-                  <div class="w-full mb-2">
-                    <div class="flex justify-between items-center mb-1">
-                      <span class="font-semibold text-gray-700">Win Rate</span>
-                      <span class="font-bold text-xl analyze-badge
-                        {% if stats and stats.winRate is defined and stats.winRate is not none and stats.winRate|float >= 60 %}bg-green-100 text-green-700
-                        {% elif stats and stats.winRate is defined and stats.winRate is not none and stats.winRate|float >= 45 %}bg-yellow-100 text-yellow-700
-                        {% elif stats and stats.winRate is defined and stats.winRate is not none %}bg-red-100 text-red-700
-                        {% else %}bg-gray-200 text-gray-500
-                        {% endif %}">
-                        {{ stats.winRate|round(1, 'common') if stats and stats.winRate is not string else stats.winRate if stats else 'N/A' }}%
-                      </span>
-                    </div>
-                    <div class="flex justify-between items-center mb-1">
-                      <span class="font-semibold text-gray-700">Record</span>
-                      <span class="text-gray-900 font-semibold">{{ stats.record if stats else 'N/A' }}</span>
-                    </div>
-                  </div>
-                  <div class="w-full mt-2">
-                    <span class="font-semibold text-gray-700 block mb-1">Top Partners</span>
-                    <ul class="partner-list space-y-1">
-                      {% if stats and stats.topPartners %}
-                        {% for p in stats.topPartners %}
-                          <li class="flex flex-col items-start">
-                            <a href="/mobile/player-detail/{{ p.name | urlencode }}" class="partner-name hover:underline">{{ p.name }}</a>
-                            {% if p.winRate is defined and p.winRate is not none and p.winRate is number %}
-                              <span class="analyze-badge mt-1 font-bold
-                                {% if p.winRate >= 60 %}bg-green-100 text-green-700
-                                {% elif p.winRate >= 45 %}bg-yellow-100 text-yellow-700
-                                {% else %}bg-red-100 text-red-700
-                                {% endif %}">
-                                {{ p.winRate|round(1, 'common') }}% {{ p.record }}
-                              </span>
-                            {% else %}
-                              <span class="analyze-badge mt-1">{{ p.winRate }} {{ p.record }}</span>
-                            {% endif %}
-                          </li>
-                        {% endfor %}
-                      {% else %}
-                        <li class="text-gray-400">None</li>
-                      {% endif %}
-                    </ul>
-                  </div>
-                </div>
-            {% endfor %}
-        </div>
-        {% else %}
-            <div class="text-gray-400 p-4">No court analysis available.</div>
-        {% endif %}
     </div>
 
-    <!-- Previous Season History (only show if player has history data) -->
-    {% if analyze_data.player_history and analyze_data.player_history.seasons %}
-    <div class='analyze-card'>
-        <div class='analyze-card-header'><i class='fas fa-history'></i> Previous Season History</div>
-        <div class='overflow-x-auto'><table class='min-w-full text-xs border mt-2'>
-            <thead><tr class='bg-gray-50'>
-                <th class='py-1 px-2'>Season</th><th class='py-1 px-2'>Series</th><th class='py-1 px-2'>PTI Start</th><th class='py-1 px-2'>PTI End</th><th class='py-1 px-2'>Trend</th>
-            </tr></thead>
-            <tbody>
-                {% for row in analyze_data.player_history.seasons %}
-                    <tr>
-                        <td class='py-1 px-2 text-center'>{{ row.season }}</td>
-                        <td class='py-1 px-2 text-center'>{{ row.series }}</td>
-                        <td class='py-1 px-2 text-center'>{{ row.ptiStart }}</td>
-                        <td class='py-1 px-2 text-center'>{{ row.ptiEnd }}</td>
-                        <td class='py-1 px-2 text-center'>
-                            {% set trend = row.trend %}
-                            {% if trend is string and trend.startswith('+') %}
-                                <span class="text-red-600 font-bold flex items-center justify-center">{{ trend }} <span aria-label="PTI Up" class="ml-1">▲</span></span>
-                            {% elif trend is string and trend.startswith('-') %}
-                                <span class="text-green-600 font-bold flex items-center justify-center">{{ trend }} <span aria-label="PTI Down" class="ml-1">▼</span></span>
-                            {% else %}
-                                <span class="text-gray-500">{{ trend }}</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table></div>
-    </div>
-    {% endif %}
-
-    <!-- Competitive Player Notes -->
-    <div class='analyze-card'>
-        <div class='analyze-card-header'>
-            <i class='fas fa-clipboard-list'></i> Competitive Player Notes
-            <span class="ml-2 px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full font-medium">Coming Soon</span>
-        </div>
+    <!-- Content -->
+    <div class="px-4 py-6 space-y-6">
         
-        <!-- Mock Data -->
-        <div class="space-y-3 mb-4">
-            <div class="competitive-note-item">
-                <div class="flex items-center justify-between mb-1">
-                    <span class="font-semibold text-sm text-gray-700">Tactical Notes</span>
-                    <span class="text-xs text-gray-500">Mike Tracy • Nov 15</span>
-                </div>
-                <ul class="competitive-note-list">
-                    <li><i class="fas fa-arrow-right text-blue-600"></i> Pick on his backhand</li>
-                    <li><i class="fas fa-arrow-right text-blue-600"></i> Strong spin serve</li>
-                    <li><i class="fas fa-arrow-right text-blue-600"></i> Watch out for his blitz</li>
-                </ul>
+        <!-- Error State -->
+        {% if analyze_data.error %}
+        <div class="bg-red-50 border border-red-100 rounded-xl p-4">
+            <div class="flex items-center">
+                <i class="fas fa-exclamation-triangle text-red-500 mr-3"></i>
+                <p class="text-red-700 text-sm">{{ analyze_data.error }}</p>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Current PTI (only show if PTI data is available) -->
+        {% if analyze_data.pti_data_available %}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-gauge-high text-purple-500 mr-2"></i>
+                    Current PTI
+                </h2>
             </div>
             
-            <div class="competitive-note-item">
-                <div class="flex items-center justify-between mb-1">
-                    <span class="font-semibold text-sm text-gray-700">Positioning</span>
-                    <span class="text-xs text-gray-500">Dean Thuente • Oct 28</span>
+            <div class="p-6">
+                <div class="text-center">
+                    {% if analyze_data.current_pti is defined and analyze_data.current_pti is not none %}
+                    <div class="mb-2">
+                        <span class="text-4xl font-bold text-gray-900">{{ (analyze_data.current_pti or 0)|round(1, 'common') }}</span>
+                        {% if analyze_data.weekly_pti_change is defined and analyze_data.weekly_pti_change is not none %}
+                        <span class="ml-2 text-lg font-medium
+                            {% if analyze_data.weekly_pti_change > 0 %}text-red-500
+                            {% elif analyze_data.weekly_pti_change < 0 %}text-green-500
+                            {% else %}text-gray-500
+                            {% endif %}">
+                            ({{ "{:+.1f}".format(analyze_data.weekly_pti_change) }} 
+                            {% if analyze_data.weekly_pti_change > 0 %}↑{% elif analyze_data.weekly_pti_change < 0 %}↓{% endif %} 
+                            since last match)
+                        </span>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <div class="text-2xl text-gray-400">No PTI data available</div>
+                    {% endif %}
                 </div>
-                <ul class="competitive-note-list">
-                    <li><i class="fas fa-arrow-right text-green-600"></i> Ad side player</li>
-                    <li><i class="fas fa-arrow-right text-green-600"></i> Struggles with low balls</li>
-                </ul>
             </div>
         </div>
         
-        <!-- Add Note Button -->
-        <div class="border-t pt-3">
-            <button class="w-full py-2 px-4 bg-blue-50 border border-blue-200 text-blue-700 font-medium rounded-lg hover:bg-blue-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                <i class="fas fa-plus mr-2"></i>Add Player Note
-            </button>
-            <p class="text-xs text-gray-500 mt-2 text-center">
-                Club members will be able to share competitive insights about opponents
-            </p>
+        <!-- PTI History Chart (only show if PTI data is available) -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-chart-line text-green-500 mr-2"></i>
+                    PTI History
+                </h2>
+            </div>
+            
+            <div class="p-6">
+                <div id="ptiHistoryChart" style="height:400px;"></div>
+            </div>
         </div>
+        {% endif %}
+
+        <!-- Current Season Stats -->
+        {% if analyze_data.current_season %}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-calendar-alt text-blue-500 mr-2"></i>
+                    Current Season Stats
+                </h2>
+            </div>
+            
+            <!-- Stats Grid -->
+            <div class="p-6">
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <!-- Matches -->
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-gray-900 mb-1">{{ analyze_data.current_season.matches or 'N/A' }}</div>
+                        <div class="text-sm text-gray-500 uppercase tracking-wide">Matches</div>
+                    </div>
+                    
+                    <!-- Win Rate -->
+                    <div class="text-center">
+                        <div class="text-3xl font-bold mb-1
+                            {% if analyze_data.current_season.winRate is defined and analyze_data.current_season.winRate is not none and analyze_data.current_season.winRate|float >= 60 %}text-green-500
+                            {% elif analyze_data.current_season.winRate is defined and analyze_data.current_season.winRate is not none and analyze_data.current_season.winRate|float >= 45 %}text-yellow-500
+                            {% else %}text-red-500
+                            {% endif %}">
+                            {% if analyze_data.current_season.winRate is defined %}
+                            {{ analyze_data.current_season.winRate|round(0)|int }}%
+                            {% else %}
+                            N/A
+                            {% endif %}
+                        </div>
+                        <div class="text-sm text-gray-500 uppercase tracking-wide">Win Rate</div>
+                    </div>
+                </div>
+                
+                <!-- W-L Record -->
+                <div class="flex items-center justify-center space-x-8 py-4 bg-gray-50 rounded-lg mb-4">
+                    <div class="text-center">
+                        {% if analyze_data.current_season and analyze_data.current_season.wins is defined %}
+                        <div class="text-2xl font-bold text-green-500">{{ analyze_data.current_season.wins|int }}</div>
+                        {% elif analyze_data.current_season and analyze_data.current_season.winRate is defined and analyze_data.current_season.matches and analyze_data.current_season.matches != 'N/A' %}
+                        <div class="text-2xl font-bold text-green-500">{{ (analyze_data.current_season.winRate * analyze_data.current_season.matches // 100)|int }}</div>
+                        {% else %}
+                        <div class="text-2xl font-bold text-green-500">0</div>
+                        {% endif %}
+                        <div class="text-xs text-gray-500 uppercase tracking-wider">Wins</div>
+                    </div>
+                    <div class="w-px h-8 bg-gray-300"></div>
+                    <div class="text-center">
+                        {% if analyze_data.current_season and analyze_data.current_season.losses is defined %}
+                        <div class="text-2xl font-bold text-red-500">{{ analyze_data.current_season.losses|int }}</div>
+                        {% elif analyze_data.current_season and analyze_data.current_season.winRate is defined and analyze_data.current_season.matches and analyze_data.current_season.matches != 'N/A' %}
+                        {% set wins = (analyze_data.current_season.winRate * analyze_data.current_season.matches // 100)|int %}
+                        <div class="text-2xl font-bold text-red-500">{{ (analyze_data.current_season.matches - wins)|int }}</div>
+                        {% else %}
+                        <div class="text-2xl font-bold text-red-500">0</div>
+                        {% endif %}
+                        <div class="text-xs text-gray-500 uppercase tracking-wider">Losses</div>
+                    </div>
+                </div>
+
+                {% if analyze_data.pti_data_available and analyze_data.current_season.ptiChange is defined %}
+                <!-- PTI Change -->
+                <div class="bg-purple-50 rounded-lg p-4 text-center">
+                    <div class="text-sm text-gray-600 mb-1">PTI Change This Season</div>
+                    {% set pti = analyze_data.current_season.ptiChange %}
+                    {% if pti is string or pti == 'N/A' %}
+                    <div class="text-xl font-bold text-gray-900">{{ pti }}</div>
+                    {% elif pti|float > 0 %}
+                    <div class="text-xl font-bold text-red-500 flex items-center justify-center">
+                        +{{ pti|round(1, 'common') }} <span class="ml-1">▲</span>
+                    </div>
+                    {% elif pti|float < 0 %}
+                    <div class="text-xl font-bold text-green-500 flex items-center justify-center">
+                        {{ pti|round(1, 'common') }} <span class="ml-1">▼</span>
+                    </div>
+                    {% else %}
+                    <div class="text-xl font-bold text-gray-900">0.0</div>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% else %}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
+            <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-calendar-alt text-gray-400 text-2xl"></i>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">No Current Season Data</h3>
+            <p class="text-gray-500">This player has no current season stats available.</p>
+        </div>
+        {% endif %}
+
+        <!-- Career Stats -->
+        {% if analyze_data.career_stats %}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-history text-purple-500 mr-2"></i>
+                    Career Stats
+                </h2>
+            </div>
+            
+            <!-- Career Stats Grid -->
+            <div class="p-6">
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <!-- Career Matches -->
+                    <div class="text-center">
+                        <div class="text-3xl font-bold text-gray-900 mb-1">{{ analyze_data.career_stats.matches or 'N/A' }}</div>
+                        <div class="text-sm text-gray-500 uppercase tracking-wide">Career Matches</div>
+                    </div>
+                    
+                    <!-- Career Win Rate -->
+                    <div class="text-center">
+                        <div class="text-3xl font-bold mb-1
+                            {% if analyze_data.career_stats.winRate is defined and analyze_data.career_stats.winRate is not none and analyze_data.career_stats.winRate|float >= 60 %}text-green-500
+                            {% elif analyze_data.career_stats.winRate is defined and analyze_data.career_stats.winRate is not none and analyze_data.career_stats.winRate|float >= 45 %}text-yellow-500
+                            {% else %}text-red-500
+                            {% endif %}">
+                            {% if analyze_data.career_stats.winRate is defined %}
+                            {{ analyze_data.career_stats.winRate|round(0)|int }}%
+                            {% else %}
+                            N/A
+                            {% endif %}
+                        </div>
+                        <div class="text-sm text-gray-500 uppercase tracking-wide">Career Win Rate</div>
+                    </div>
+                </div>
+                
+                <!-- Career W-L Record -->
+                <div class="flex items-center justify-center space-x-8 py-4 bg-purple-50 rounded-lg">
+                    <div class="text-center">
+                        {% if analyze_data.career_stats and analyze_data.career_stats.wins is defined %}
+                        <div class="text-2xl font-bold text-green-500">{{ analyze_data.career_stats.wins|int }}</div>
+                        {% elif analyze_data.career_stats and analyze_data.career_stats.winRate is defined and analyze_data.career_stats.matches and analyze_data.career_stats.matches != 'N/A' %}
+                        <div class="text-2xl font-bold text-green-500">{{ (analyze_data.career_stats.winRate * analyze_data.career_stats.matches // 100)|int }}</div>
+                        {% else %}
+                        <div class="text-2xl font-bold text-green-500">0</div>
+                        {% endif %}
+                        <div class="text-xs text-gray-500 uppercase tracking-wider">Career Wins</div>
+                    </div>
+                    <div class="w-px h-8 bg-gray-300"></div>
+                    <div class="text-center">
+                        {% if analyze_data.career_stats and analyze_data.career_stats.losses is defined %}
+                        <div class="text-2xl font-bold text-red-500">{{ analyze_data.career_stats.losses|int }}</div>
+                        {% elif analyze_data.career_stats and analyze_data.career_stats.winRate is defined and analyze_data.career_stats.matches and analyze_data.career_stats.matches != 'N/A' %}
+                        {% set wins = (analyze_data.career_stats.winRate * analyze_data.career_stats.matches // 100)|int %}
+                        <div class="text-2xl font-bold text-red-500">{{ (analyze_data.career_stats.matches - wins)|int }}</div>
+                        {% else %}
+                        <div class="text-2xl font-bold text-red-500">0</div>
+                        {% endif %}
+                        <div class="text-xs text-gray-500 uppercase tracking-wider">Career Losses</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Court Performance -->
+        {% if analyze_data.court_analysis %}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-table-tennis text-blue-500 mr-2"></i>
+                    Court Performance
+                </h2>
+            </div>
+            
+            <div class="p-6">
+                <!-- Courts Stack - Show all courts vertically full width -->
+                <div class="space-y-4">
+                    {% set court_order = ['court1', 'court2', 'court3', 'court4'] %}
+                    {% for court in court_order %}
+                    {% set stats = analyze_data.court_analysis.get(court) %}
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <!-- Court Header -->
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold text-gray-900">{{ court|capitalize }}</h3>
+                            <div class="flex items-center gap-3">
+                                <!-- Record -->
+                                <span class="text-sm font-medium text-gray-700">{{ stats.record if stats else 'N/A' }}</span>
+                                <!-- Win Rate Badge -->
+                                {% if stats and stats.winRate is defined and stats.winRate is not none and stats.record != '0-0' %}
+                                <div class="px-3 py-1 rounded-full text-sm font-medium
+                                    {% if stats.winRate|float >= 60 %}bg-green-100 text-green-700
+                                    {% elif stats.winRate|float >= 45 %}bg-yellow-100 text-yellow-700
+                                    {% else %}bg-red-100 text-red-700
+                                    {% endif %}">
+                                    {{ stats.winRate|round(0)|int }}%
+                                </div>
+                                {% else %}
+                                <div class="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-500">
+                                    0%
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- Partners Section -->
+                        {% if stats and stats.topPartners %}
+                        <div>
+                            <p class="text-sm font-medium text-gray-700 mb-3">Top Partners</p>
+                            <div class="space-y-2">
+                                {% for p in stats.topPartners[:3] %}
+                                <div class="flex items-center justify-between py-2 px-3 bg-white rounded-lg">
+                                    <div class="flex-1">
+                                        <a href="/mobile/player-detail/{{ p.name | urlencode }}" class="font-medium text-gray-900 hover:underline">{{ p.name }}</a>
+                                        <div class="text-sm text-gray-600">{{ p.matches|default(0) }} match{{ 'es' if p.matches != 1 else '' }}</div>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <!-- Wins -->
+                                        <div class="flex items-center gap-1">
+                                            <div class="w-2 h-2 bg-green-500 rounded-full"></div>
+                                            <span class="text-sm font-medium text-green-700">{{ p.wins|default(0) }}</span>
+                                        </div>
+                                        <!-- Losses -->
+                                        <div class="flex items-center gap-1">
+                                            <div class="w-2 h-2 bg-red-500 rounded-full"></div>
+                                            <span class="text-sm font-medium text-red-700">{{ p.losses|default(0) }}</span>
+                                        </div>
+                                        <!-- Win Rate -->
+                                        {% if p.winRate is defined and p.winRate is not none and p.winRate is number and p.matches|default(0) > 0 %}
+                                        <div class="ml-2 px-2 py-1 rounded text-xs font-medium
+                                            {% if p.winRate >= 60 %}bg-green-100 text-green-700
+                                            {% elif p.winRate >= 45 %}bg-yellow-100 text-yellow-700
+                                            {% else %}bg-red-100 text-red-700
+                                            {% endif %}">
+                                            {{ p.winRate|round(0)|int }}%
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="text-center py-4">
+                            <div class="text-gray-400 text-sm italic">No matches played on this court</div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
+            <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-table-tennis text-gray-400 text-2xl"></i>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">No Court Analysis</h3>
+            <p class="text-gray-500">This player has no court performance data available.</p>
+        </div>
+        {% endif %}
+
+        <!-- Previous Season History -->
+        {% if analyze_data.player_history and analyze_data.player_history.seasons %}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-history text-blue-500 mr-2"></i>
+                    Previous Season History
+                </h2>
+            </div>
+            
+            <div class="p-6">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full text-xs">
+                        <thead>
+                            <tr class="border-b border-gray-100">
+                                <th class="text-left py-2 px-2 font-semibold text-gray-700 whitespace-nowrap">Season</th>
+                                <th class="text-left py-2 px-2 font-semibold text-gray-700 whitespace-nowrap">Series</th>
+                                <th class="text-center py-2 px-2 font-semibold text-gray-700 whitespace-nowrap">PTI Start</th>
+                                <th class="text-center py-2 px-2 font-semibold text-gray-700 whitespace-nowrap">PTI End</th>
+                                <th class="text-center py-2 px-2 font-semibold text-gray-700 whitespace-nowrap">Trend</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in analyze_data.player_history.seasons %}
+                            <tr class="border-b border-gray-50">
+                                <td class="py-2 px-2 text-center">{{ row.season }}</td>
+                                <td class="py-2 px-2 text-center">{{ row.series }}</td>
+                                <td class="py-2 px-2 text-center">{{ row.ptiStart }}</td>
+                                <td class="py-2 px-2 text-center">{{ row.ptiEnd }}</td>
+                                <td class="py-2 px-2 text-center">
+                                    {% set trend = row.trend %}
+                                    {% if trend is string and trend.startswith('+') %}
+                                    <span class="text-red-600 font-bold flex items-center justify-center">{{ trend }} <span class="ml-1">▲</span></span>
+                                    {% elif trend is string and trend.startswith('-') %}
+                                    <span class="text-green-600 font-bold flex items-center justify-center">{{ trend }} <span class="ml-1">▼</span></span>
+                                    {% else %}
+                                    <span class="text-gray-500">{{ trend }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Competitive Player Notes -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-clipboard-list text-orange-500 mr-2"></i>
+                    Competitive Player Notes
+                    <span class="ml-2 px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full font-medium">Coming Soon</span>
+                </h2>
+            </div>
+            
+            <div class="p-6">
+                <!-- Mock Data -->
+                <div class="space-y-3 mb-4">
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="font-semibold text-sm text-gray-700">Tactical Notes</span>
+                            <span class="text-xs text-gray-500">Mike Tracy • Nov 15</span>
+                        </div>
+                        <ul class="space-y-1">
+                            <li class="flex items-center gap-2 text-sm text-gray-600">
+                                <i class="fas fa-arrow-right text-blue-500 text-xs"></i>
+                                Pick on his backhand
+                            </li>
+                            <li class="flex items-center gap-2 text-sm text-gray-600">
+                                <i class="fas fa-arrow-right text-blue-500 text-xs"></i>
+                                Strong spin serve
+                            </li>
+                            <li class="flex items-center gap-2 text-sm text-gray-600">
+                                <i class="fas fa-arrow-right text-blue-500 text-xs"></i>
+                                Watch out for his blitz
+                            </li>
+                        </ul>
+                    </div>
+                    
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="font-semibold text-sm text-gray-700">Positioning</span>
+                            <span class="text-xs text-gray-500">Dean Thuente • Oct 28</span>
+                        </div>
+                        <ul class="space-y-1">
+                            <li class="flex items-center gap-2 text-sm text-gray-600">
+                                <i class="fas fa-arrow-right text-green-500 text-xs"></i>
+                                Ad side player
+                            </li>
+                            <li class="flex items-center gap-2 text-sm text-gray-600">
+                                <i class="fas fa-arrow-right text-green-500 text-xs"></i>
+                                Struggles with low balls
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <!-- Add Note Button -->
+                <div class="border-t border-gray-100 pt-4">
+                    <button class="w-full py-2 px-4 bg-blue-50 border border-blue-200 text-blue-700 font-medium rounded-lg hover:bg-blue-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                        <i class="fas fa-plus mr-2"></i>Add Player Note
+                    </button>
+                    <p class="text-xs text-gray-500 mt-2 text-center">
+                        Club members will be able to share competitive insights about opponents
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Empty State -->
+        {% if not analyze_data.current_season and not analyze_data.career_stats and not analyze_data.error %}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
+            <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-chart-bar text-gray-400 text-2xl"></i>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">No Player Data</h3>
+            <p class="text-gray-500">This player has no match data available.</p>
+        </div>
+        {% endif %}
+
     </div>
 </div>
 
 <style>
-.analyze-card {
-  background: #fff;
-  border-radius: 1.1rem;
-  box-shadow: 0 2px 10px 0 rgba(0,0,0,0.06);
-  border: 1.5px solid #e0e7e3;
-  margin-bottom: 1.5rem;
-  padding: 1.1rem 1rem 1.2rem 1rem;
-}
-.analyze-card-header {
-  display: flex;
-  align-items: center;
-  gap: 0.6em;
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: #000000;
-  border-bottom: 2px solid #f3f3f3;
-  margin-bottom: 0.7em;
-  padding-bottom: 0.3em;
-}
-.analyze-badge {
-  border-radius: 0.5em;
-  padding: 0.1em 0.6em;
-  font-size: 0.93em;
-  margin-left: 0.4em;
-  font-weight: 500;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+/* Custom styles for modern mobile design */
+.min-h-screen {
+    min-height: 100vh;
 }
 
-.analyze-badge.bg-green-100 { background-color: #dcfce7; }
-.analyze-badge.bg-yellow-100 { background-color: #fef9c3; }
-.analyze-badge.bg-red-100 { background-color: #fee2e2; }
-.analyze-badge.bg-gray-200 { background-color: #e5e7eb; }
-.analyze-badge.text-green-700 { color: #15803d; }
-.analyze-badge.text-yellow-700 { color: #a16207; }
-.analyze-badge.text-red-700 { color: #b91c1c; }
-.analyze-badge.text-gray-500 { color: #6b7280; }
-.stat-card {
-  min-width: 110px;
-  min-height: 120px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-.analyze-video-section-header {
-  font-size: 1.05rem;
-  font-weight: 600;
-  margin-bottom: 0.7em;
-  color: #000000;
-}
-.video-card {
-  background: #f9fafb;
-  border-radius: 0.7em;
-  box-shadow: 0 1px 4px 0 rgba(0,0,0,0.04);
-  padding: 0.7em 0.7em 0.9em 0.7em;
-  margin-bottom: 0.5em;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-}
+/* Grid responsive */
 @media (max-width: 640px) {
-  .grid-cols-2, .sm\:grid-cols-2 { grid-template-columns: 1fr 1fr !important; }
-  .mini-stat-card { min-width: 0; width: 100%; }
+    .grid-cols-2 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
 }
-.player-stats-section {
-  background: #f8fafc;
-  border: 2px solid #e0e7e3;
-  border-radius: 1rem;
-  padding: 1.1rem 0.7rem 1.2rem 0.7rem;
-  margin-bottom: 0.5rem;
-  box-shadow: 0 1px 4px 0 rgba(0,0,0,0.04);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+
+/* Shadow utilities */
+.shadow-sm {
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 }
-.mini-stat-card {
-  background: #fff;
-  border: 1.5px solid #e0e7e3;
-  border-radius: 0.8rem;
-  box-shadow: 0 1px 4px 0 rgba(0,0,0,0.04);
-  padding: 1rem 1.1rem 1rem 1.1rem;
-  margin-bottom: 0.5rem;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  min-width: 90px;
-  flex: 1 1 0;
+
+/* Border utilities */
+.border-gray-50 { border-color: #f9fafb; }
+.border-gray-100 { border-color: #f3f4f6; }
+
+/* Background utilities */
+.bg-gray-50 { background-color: #f9fafb; }
+.bg-white { background-color: #ffffff; }
+.bg-green-50 { background-color: #f0fdf4; }
+.bg-green-100 { background-color: #dcfce7; }
+.bg-yellow-100 { background-color: #fef3c7; }
+.bg-red-50 { background-color: #fef2f2; }
+.bg-red-100 { background-color: #fee2e2; }
+.bg-blue-100 { background-color: #dbeafe; }
+.bg-purple-50 { background-color: #faf5ff; }
+
+/* Text colors */
+.text-gray-900 { color: #111827; }
+.text-gray-700 { color: #374151; }
+.text-gray-600 { color: #4b5563; }
+.text-gray-500 { color: #6b7280; }
+.text-gray-400 { color: #9ca3af; }
+.text-green-500 { color: #10b981; }
+.text-green-700 { color: #047857; }
+.text-yellow-500 { color: #f59e0b; }
+.text-yellow-700 { color: #b45309; }
+.text-red-500 { color: #ef4444; }
+.text-red-700 { color: #b91c1c; }
+.text-blue-500 { color: #3b82f6; }
+.text-purple-500 { color: #8b5cf6; }
+.text-purple-600 { color: #7c3aed; }
+.text-orange-500 { color: #f97316; }
+.text-white { color: #ffffff; }
+
+/* Gradient backgrounds */
+.bg-gradient-to-br {
+    background-image: linear-gradient(to bottom right, var(--tw-gradient-stops));
 }
-.player-stats-table {
-  border-collapse: separate;
-  border-spacing: 0;
-  width: 100%;
-  background: #fff;
-  border: 2px solid #e0e7e3;
-  border-radius: 1em;
-  overflow: hidden;
+.from-purple-500 {
+    --tw-gradient-from: #8b5cf6;
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(139, 92, 246, 0));
 }
-.player-stats-table th, .player-stats-table td {
-  text-align: center;
-  padding: 0.7em 0.3em;
-  font-size: 1.1em;
-  border-bottom: 1.5px solid #e0e7e3;
+.to-purple-600 {
+    --tw-gradient-to: #7c3aed;
 }
-.player-stats-table th {
-  font-weight: 700;
-}
-.player-stats-table .stat-label {
-  text-align: left;
-  font-weight: 700;
-  color: #444;
-  font-size: 1em;
-  white-space: nowrap;
-}
-.player-stats-table .stat-label i {
-  padding-left: 12px;
-}
-.player-stats-table .stat-value {
-  font-size: 15px !important;
-  font-weight: 400;
-}
-.player-stats-table .row-divider {
-  border-top: 2px solid #b6c2b7;
-}
+
+/* Spacing utilities */
+.space-y-6 > * + * { margin-top: 1.5rem; }
+.space-y-4 > * + * { margin-top: 1rem; }
+.space-y-3 > * + * { margin-top: 0.75rem; }
+.space-y-2 > * + * { margin-top: 0.5rem; }
+.space-y-1 > * + * { margin-top: 0.25rem; }
+.space-x-8 > * + * { margin-left: 2rem; }
+
+/* Border radius utilities */
+.rounded-xl { border-radius: 0.75rem; }
+.rounded-lg { border-radius: 0.5rem; }
+.rounded-full { border-radius: 9999px; }
+
+/* Text utilities */
+.uppercase { text-transform: uppercase; }
+.tracking-wide { letter-spacing: 0.025em; }
+.tracking-wider { letter-spacing: 0.05em; }
+
+/* Overflow utilities */
+.overflow-hidden { overflow: hidden; }
+.overflow-x-auto { overflow-x: auto; }
+
+/* Responsive design */
 @media (max-width: 640px) {
-  .player-stats-table th, .player-stats-table td {
-    font-size: 1em;
-    padding: 0.5em 0.2em;
-  }
-  .player-stats-table .stat-value {
-    font-size: 1.2em;
-  }
-}
-.court-analysis-card {
-  background: #fff;
-  border-radius: 1.1rem;
-  box-shadow: 0 2px 10px 0 rgba(0,0,0,0.06);
-  border: 1.5px solid #e0e7e3;
-  margin-bottom: 1.5rem;
-  padding: 1.1rem 1rem 1.2rem 1rem;
-}
-.court-stat-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-.court-stat-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  margin-bottom: 0.5em;
-}
-.court-stat-label {
-  font-weight: 700;
-  color: #444;
-  font-size: 1em;
-}
-.court-stat-value {
-  font-size: 15px !important;
-  font-weight: 400;
-}
-.partner-list {
-  list-style: none;
-  padding-left: 0;
-}
-.partner-name {
-  font-weight: 700;
-  color: #444;
-  font-size: 1em;
-}
-.competitive-note-item {
-  background: #f8fafc;
-  border: 1.5px solid #e0e7e3;
-  border-radius: 0.8rem;
-  padding: 0.8rem;
-  margin-bottom: 0.5rem;
-}
-.competitive-note-list {
-  list-style: none;
-  padding-left: 0;
-  margin: 0;
-}
-.competitive-note-list li {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.2rem 0;
-  font-size: 0.9rem;
-  color: #444;
-}
-.competitive-note-list li i {
-  font-size: 0.8rem;
-  min-width: 12px;
+    .px-6 { padding-left: 1rem; padding-right: 1rem; }
+    .py-4 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+    .text-3xl { font-size: 1.875rem; line-height: 2.25rem; }
+    .text-2xl { font-size: 1.5rem; line-height: 2rem; }
 }
 </style>
 
+<!-- PTI Chart JavaScript -->
 <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', async function() {
-  console.log('Loading PTI history chart for player:', '{{ player_name }}');
-  
-  try {
-    // Load player history data from API for the specific player
-    console.log('Fetching data from /api/player-history/{{ player_name | urlencode }}...');
-    const playerHistoryResponse = await fetch('/api/player-history/{{ player_name | urlencode }}');
-    console.log('Response status:', playerHistoryResponse.status);
+    // Only load PTI chart if PTI data is available
+    {% if analyze_data.pti_data_available %}
+    console.log('Loading PTI history chart for player:', '{{ player_name }}');
     
-    const response = await playerHistoryResponse.json();
-    console.log('Received data:', response);
-    console.log('Response keys:', Object.keys(response));
-    console.log('Full response object:', JSON.stringify(response, null, 2));
-    console.log('Response.data:', response.data);
-    console.log('Response.matches:', response.matches);
-    console.log('Response.success:', response.success);
-    console.log('Response.message:', response.message);
-    console.log('Response.data type:', typeof response.data);
-    console.log('Is array?', Array.isArray(response.data));
-    console.log('Data length:', response.data ? response.data.length : 'undefined');
-    
-    const chartDiv = document.getElementById('ptiHistoryChart');
-    
-    // Handle both the expected format and the actual format being returned
-    let matchesData;
-    if (response.data && Array.isArray(response.data)) {
-      // Expected format: {success: true, data: [...], player_name: "...", total_matches: 36}
-      matchesData = response.data;
-    } else if (response.matches && Array.isArray(response.matches)) {
-      // Actual format being returned: {name: "Ross Freedman", matches: [...], ...}
-      matchesData = response.matches;
-    } else {
-      console.error('No valid matches data found');
-      console.error('Response object:', response);
-      chartDiv.innerHTML = '<div class="flex items-center justify-center h-full text-gray-500"><div class="text-center"><i class="fas fa-chart-line text-4xl mb-2"></i><div>No PTI history data available</div><div class="text-sm">This player has no recorded PTI history</div></div></div>';
-      return;
+    try {
+        // Load player history data from API for the specific player
+        console.log('Fetching data from /api/player-history/{{ player_name | urlencode }}...');
+        const playerHistoryResponse = await fetch('/api/player-history/{{ player_name | urlencode }}');
+        console.log('Response status:', playerHistoryResponse.status);
+        
+        // Handle case where player history is not available
+        if (playerHistoryResponse.status === 404) {
+            console.log('Player history data not available - PTI chart will not be displayed');
+            document.getElementById('ptiHistoryChart').innerHTML = '<div class="flex items-center justify-center h-full text-gray-500"><div class="text-center"><i class="fas fa-chart-line text-4xl mb-2"></i><div>No PTI history data available</div><div class="text-sm">This player has no recorded PTI history</div></div></div>';
+            return;
+        }
+        
+        const response = await playerHistoryResponse.json();
+        console.log('Received data:', response);
+        
+        // Handle both the expected format and the actual format being returned
+        let matchesData;
+        if (response.data && Array.isArray(response.data)) {
+            // Expected format: {success: true, data: [...], player_name: "...", total_matches: 36}
+            matchesData = response.data;
+        } else if (response.matches && Array.isArray(response.matches)) {
+            // Actual format being returned: {name: "...", matches: [...], ...}
+            matchesData = response.matches;
+        } else {
+            console.error('No valid matches data found');
+            console.error('Response object:', response);
+            const chartDiv = document.getElementById('ptiHistoryChart');
+            chartDiv.innerHTML = '<div class="flex items-center justify-center h-full text-gray-500"><div class="text-center"><i class="fas fa-chart-line text-4xl mb-2"></i><div>No PTI history data available</div><div class="text-sm">This player has no recorded PTI history</div></div></div>';
+            return;
+        }
+        
+        if (matchesData.length === 0) {
+            console.error('No matches found in data');
+            const chartDiv = document.getElementById('ptiHistoryChart');
+            chartDiv.innerHTML = '<div class="flex items-center justify-center h-full text-gray-500"><div class="text-center"><i class="fas fa-chart-line text-4xl mb-2"></i><div>No PTI history data available</div><div class="text-sm">This player has no recorded PTI history</div></div></div>';
+            return;
+        }
+        
+        console.log('Using matches data:', matchesData);
+        console.log('Matches count:', matchesData.length);
+        
+        // Extract dates and PTI values, then sort by date (oldest first)
+        const dateAndPtiData = matchesData.map(entry => {
+            // Parse the date string into a Date object
+            const [month, day, year] = entry.date.split('/');
+            return {
+                date: new Date(year, month - 1, day),
+                pti: entry.end_pti
+            };
+        });
+        
+        // Sort by date (oldest first for correct chronological order)
+        dateAndPtiData.sort((a, b) => a.date - b.date);
+        
+        // Extract sorted dates and PTI values
+        const dates = dateAndPtiData.map(item => item.date);
+        const ptiValues = dateAndPtiData.map(item => item.pti);
+
+        console.log('Processed data:');
+        console.log('Dates:', dates);
+        console.log('PTI Values:', ptiValues);
+
+        // Create PTI History Chart
+        console.log('Creating chart...');
+        const layout = {
+            xaxis: {
+                title: 'Date',
+                type: 'date',
+                showticklabels: true,
+                automargin: true,
+                tickangle: -45,
+                tickformat: '%b %y',
+                nticks: 8,
+                range: [dates[0], dates[dates.length - 1]],
+                fixedrange: true
+            },
+            yaxis: {
+                title: 'PTI',
+                zeroline: false,
+                range: [Math.min(...ptiValues) - 2, Math.max(...ptiValues) + 2],
+                fixedrange: true
+            },
+            margin: {b: 60, t: 20, l: 60, r: 10},
+            font: {size: 12},
+            dragmode: false,
+            hovermode: 'closest'
+        };
+
+        const data = [{
+            x: dates,
+            y: ptiValues,
+            type: 'scatter',
+            mode: 'lines+markers',
+            name: 'PTI History',
+            line: {
+                color: 'rgb(49, 130, 189)',
+                width: 2
+            },
+            marker: {
+                size: 6,
+                color: 'rgb(49, 130, 189)'
+            }
+        }];
+
+        const config = {
+            responsive: true,
+            displayModeBar: false,
+            staticPlot: false,
+            scrollZoom: false,
+            doubleClick: false,
+            showTips: true,
+            editable: false,
+            modeBarButtonsToRemove: ['pan2d', 'zoomIn2d', 'zoomOut2d', 'autoScale2d', 'resetScale2d']
+        };
+
+        // Ensure proper sizing
+        const chartContainer = document.getElementById('ptiHistoryChart');
+        if (chartContainer) {
+            chartContainer.style.width = '100%';
+            chartContainer.style.height = '400px';
+        }
+
+        Plotly.newPlot('ptiHistoryChart', data, layout, config);
+        console.log('Chart created successfully');
+        
+        // Force resize to ensure proper rendering
+        setTimeout(() => {
+            Plotly.Plots.resize('ptiHistoryChart');
+        }, 100);
+        
+    } catch (error) {
+        console.error('Error creating PTI history chart:', error);
+        const chartDiv = document.getElementById('ptiHistoryChart');
+        if (chartDiv) {
+            chartDiv.innerHTML = '<div class="flex items-center justify-center h-full text-red-500"><div class="text-center"><i class="fas fa-exclamation-triangle text-4xl mb-2"></i><div>Error loading PTI history data</div></div></div>';
+        }
     }
-    
-    if (matchesData.length === 0) {
-      console.error('No matches found in data');
-      chartDiv.innerHTML = '<div class="flex items-center justify-center h-full text-gray-500"><div class="text-center"><i class="fas fa-chart-line text-4xl mb-2"></i><div>No PTI history data available</div><div class="text-sm">This player has no recorded PTI history</div></div></div>';
-      return;
-    }
-    
-    console.log('Using matches data:', matchesData);
-    console.log('Matches count:', matchesData.length);
-    
-    // Extract dates and PTI values, then sort by date (oldest first)
-    const dateAndPtiData = matchesData.map(entry => {
-      // Parse the date string into a Date object
-      const [month, day, year] = entry.date.split('/');
-      return {
-        date: new Date(year, month - 1, day),
-        pti: entry.end_pti
-      };
-    });
-    
-    // Sort by date (oldest first for correct chronological order)
-    dateAndPtiData.sort((a, b) => a.date - b.date);
-    
-    // Extract sorted dates and PTI values
-    const dates = dateAndPtiData.map(item => item.date);
-    const ptiValues = dateAndPtiData.map(item => item.pti);
-
-    console.log('Processed data:');
-    console.log('Dates:', dates);
-    console.log('PTI Values:', ptiValues);
-
-    // Create PTI History Chart
-    console.log('Creating chart...');
-    const layout = {
-      xaxis: {
-        title: 'Date',
-        type: 'date',
-        showticklabels: true,
-        automargin: true,
-        tickangle: -45,
-        tickformat: '%b %y',  // Changed to show Month-Year format (e.g., "Jan 24")
-        nticks: 8,
-        range: [dates[0], dates[dates.length - 1]],  // Now correctly oldest to newest
-        fixedrange: true  // Disable zooming/panning on x-axis
-      },
-      yaxis: {
-        title: 'PTI',
-        zeroline: false,
-        range: [Math.min(...ptiValues) - 2, Math.max(...ptiValues) + 2],
-        fixedrange: true  // Disable zooming/panning on y-axis
-      },
-      margin: {b: 60, t: 20, l: 60, r: 10},
-      font: {size: 12},
-      dragmode: false,  // Disable all drag interactions
-      hovermode: 'closest'  // Allow hover on closest point
-    };
-
-    const data = [{
-      x: dates,
-      y: ptiValues,
-      type: 'scatter',
-      mode: 'lines+markers',
-      name: 'PTI History',
-      line: {
-        color: 'rgb(49, 130, 189)',
-        width: 2
-      },
-      marker: {
-        size: 6,
-        color: 'rgb(49, 130, 189)'
-      }
-    }];
-
-    const config = {
-      responsive: true,
-      displayModeBar: false,
-      staticPlot: false,  // Allow limited interaction for data point selection
-      scrollZoom: false,
-      doubleClick: false,
-      showTips: true,     // Enable hover tooltips for data points
-      editable: false,
-      modeBarButtonsToRemove: ['pan2d', 'zoomIn2d', 'zoomOut2d', 'autoScale2d', 'resetScale2d']
-    };
-
-    // Ensure proper sizing
-    const chartContainer = document.getElementById('ptiHistoryChart');
-    if (chartContainer) {
-      chartContainer.style.width = '100%';
-      chartContainer.style.height = '400px';
-    }
-
-    Plotly.newPlot('ptiHistoryChart', data, layout, config);
-    console.log('Chart created successfully');
-    
-    // Force resize to ensure proper rendering
-    setTimeout(() => {
-      Plotly.Plots.resize('ptiHistoryChart');
-    }, 100);
-    
-  } catch (error) {
-    console.error('Error creating PTI history chart:', error);
-    const chartDiv = document.getElementById('ptiHistoryChart');
-    if (chartDiv) {
-      chartDiv.innerHTML = '<div class="flex items-center justify-center h-full text-red-500"><div class="text-center"><i class="fas fa-exclamation-triangle text-4xl mb-2"></i><div>Error loading PTI history data</div></div></div>';
-    }
-  }
+    {% endif %}
 });
 </script>
 {% endblock %}
