@@ -34,9 +34,9 @@ class User(Base):
     club_id = Column(Integer, ForeignKey('clubs.id'), nullable=True)
     tenniscores_player_id = Column(String(255), nullable=True)  # Deprecated: use player associations
     
-    # Relationships
+    # Relationships - fixed overlapping warnings
     player_associations = relationship("UserPlayerAssociation", back_populates="user", cascade="all, delete-orphan")
-    players = relationship("Player", secondary="user_player_associations", back_populates="associated_users")
+    players = relationship("Player", secondary="user_player_associations", back_populates="associated_users", overlaps="player_associations")
     
     # Legacy relationships (deprecated)
     legacy_series = relationship("Series", foreign_keys=[series_id])
@@ -137,12 +137,12 @@ class Player(Base):
     created_at = Column(DateTime(timezone=True), default=func.now())
     updated_at = Column(DateTime(timezone=True), default=func.now(), onupdate=func.now())
     
-    # Relationships
+    # Relationships - fixed overlapping warnings
     league = relationship("League", back_populates="players")
     club = relationship("Club", back_populates="players")
     series = relationship("Series", back_populates="players")
     user_associations = relationship("UserPlayerAssociation", back_populates="player", cascade="all, delete-orphan")
-    associated_users = relationship("User", secondary="user_player_associations", back_populates="players")
+    associated_users = relationship("User", secondary="user_player_associations", back_populates="players", overlaps="user_associations")
     
     # Constraints  
     __table_args__ = (
@@ -168,9 +168,9 @@ class UserPlayerAssociation(Base):
     is_primary = Column(Boolean, default=False)  # Mark primary player association
     created_at = Column(DateTime(timezone=True), default=func.now())
     
-    # Relationships
-    user = relationship("User", back_populates="player_associations")
-    player = relationship("Player", back_populates="user_associations")
+    # Relationships - fixed overlapping warnings
+    user = relationship("User", back_populates="player_associations", overlaps="associated_users,players")
+    player = relationship("Player", back_populates="user_associations", overlaps="associated_users,players")
     
     def __repr__(self):
         return f"<UserPlayerAssociation(user_id={self.user_id}, player_id={self.player_id}, primary={self.is_primary})>"
