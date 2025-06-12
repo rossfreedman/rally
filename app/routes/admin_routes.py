@@ -64,19 +64,65 @@ def serve_admin():
     
     log_user_activity(session['user']['email'], 'page_visit', page='admin')
     
-    # Check if request is from mobile but ALWAYS use admin template
-    user_agent = request.headers.get('User-Agent', '').lower()
-    is_mobile = any(device in user_agent for device in ['mobile', 'android', 'iphone', 'ipad'])
+    # Always use the mobile admin template since it's responsive and works on all devices
+    print("Rendering mobile admin template (responsive design)")
+    return render_template('mobile/admin.html', session_data={'user': session['user']})
+
+@admin_bp.route('/admin/users')
+@login_required
+@admin_required
+def serve_admin_users():
+    """Serve the admin users management page"""
+    print(f"=== SERVE_ADMIN_USERS FUNCTION CALLED ===")
     
-    print(f"Is mobile: {is_mobile}")
-    print(f"About to render template...")
+    log_user_activity(session['user']['email'], 'page_visit', page='admin_users')
     
-    if is_mobile:
-        print("Rendering mobile admin template")
-        return render_template('mobile/admin.html', session_data={'user': session['user']})
+    # Always use the mobile admin template since it's responsive and works on all devices
+    return render_template('mobile/admin_users.html', session_data={'user': session['user']})
+
+@admin_bp.route('/admin/leagues')
+@login_required
+@admin_required
+def serve_admin_leagues():
+    """Serve the admin leagues management page"""
+    log_user_activity(session['user']['email'], 'page_visit', page='admin_leagues')
     
-    print("Rendering desktop admin template")
-    return render_template('admin/index.html', session_data={'user': session['user']})
+    return render_template('mobile/admin_leagues.html', session_data={'user': session['user']})
+
+@admin_bp.route('/admin/clubs')
+@login_required
+@admin_required
+def serve_admin_clubs():
+    """Serve the admin clubs management page"""
+    log_user_activity(session['user']['email'], 'page_visit', page='admin_clubs')
+    
+    return render_template('mobile/admin_clubs.html', session_data={'user': session['user']})
+
+@admin_bp.route('/admin/series')
+@login_required
+@admin_required
+def serve_admin_series():
+    """Serve the admin series management page"""
+    log_user_activity(session['user']['email'], 'page_visit', page='admin_series')
+    
+    return render_template('mobile/admin_series.html', session_data={'user': session['user']})
+
+@admin_bp.route('/admin/etl')
+@login_required
+@admin_required
+def serve_admin_etl():
+    """Serve the admin ETL management page"""
+    log_user_activity(session['user']['email'], 'page_visit', page='admin_etl')
+    
+    return render_template('mobile/admin_etl.html', session_data={'user': session['user']})
+
+@admin_bp.route('/admin/user-activity')
+@login_required
+@admin_required
+def serve_admin_user_activity():
+    """Serve the admin user activity page"""
+    log_user_activity(session['user']['email'], 'page_visit', page='admin_user_activity')
+    return render_template('mobile/admin_user_activity.html', session_data={'user': session['user']})
 
 @admin_bp.route('/api/admin/users')
 @login_required

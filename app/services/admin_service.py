@@ -266,15 +266,15 @@ def is_user_admin(user_email):
     """Check if a user has admin privileges"""
     try:
         user = execute_query_one(
-            "SELECT id, email FROM users WHERE email = %(email)s",
+            "SELECT id, email, is_admin FROM users WHERE email = %(email)s",
             {'email': user_email}
         )
         
         if not user:
             return False
             
-        # TODO: Implement proper admin roles table instead of hardcoded IDs
-        return user['id'] in [1, 7]
+        # Check the is_admin column from the database
+        return bool(user.get('is_admin', False))
         
     except Exception as e:
         print(f"Error checking admin status: {str(e)}")

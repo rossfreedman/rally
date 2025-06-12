@@ -89,7 +89,7 @@
     <!-- Top Bar -->
     <nav class="navbar bg-black shadow-md px-4 py-2 relative" style="position: fixed; top: 0; left: 0; width: 100%; z-index: 1000; height: 56px; box-shadow: 0 2px 8px rgba(0,0,0,0.08)">
         {% if show_back_arrow %}
-            <a href="javascript:history.back()" class="back-arrow" aria-label="Go back">
+            <a href="javascript:history.back()" class="back-arrow" aria-label="<">
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;">
                     <polyline points="15 18 9 12 15 6"></polyline>
                 </svg>
@@ -159,6 +159,15 @@
                         <li><a href="/mobile/email-team" class="nav-link flex items-center gap-2 text-lg text-black"><span class="inline-block w-7 text-center"><i class="fas fa-envelope text-black"></i></span> Email Team</a></li>
                     </ul>
                 </div>
+                <!-- Admin Section - Only show for admin users -->
+                {% if session_data and session_data.user and session_data.user.is_admin %}
+                <div>
+                    <div class="font-bold text-lg mb-2 flex items-center gap-2 text-black"><i class="fas fa-shield-alt text-black"></i> Admin</div>
+                    <ul class="space-y-2 ml-6">
+                        <li><a href="/admin" class="nav-link flex items-center gap-2 text-lg text-black"><span class="inline-block w-7 text-center"><i class="fas fa-cog text-black"></i></span> Admin Panel</a></li>
+                    </ul>
+                </div>
+                {% endif %}
                 <!-- Settings Section -->
                 <div>
                     <div class="font-bold text-lg mb-2 flex items-center gap-2 text-black"><i class="fas fa-cog text-black"></i> Settings</div>

@@ -1,0 +1,533 @@
+{
+  "clubs": {
+    "mapped": 42,
+    "missing": 12,
+    "ambiguous": 0,
+    "details": [
+      {
+        "local_id": 102,
+        "railway_id": 109,
+        "name": "Aronimink Golf Club",
+        "status": "mapped"
+      },
+      {
+        "local_id": 97,
+        "railway_id": null,
+        "name": "BYE",
+        "status": "missing"
+      },
+      {
+        "local_id": 9,
+        "railway_id": 38,
+        "name": "Barrington Hills CC",
+        "status": "mapped"
+      },
+      {
+        "local_id": 10,
+        "railway_id": null,
+        "name": "Biltmore CC",
+        "status": "missing"
+      },
+      {
+        "local_id": 11,
+        "railway_id": 16,
+        "name": "Birchwood",
+        "status": "mapped"
+      },
+      {
+        "local_id": 12,
+        "railway_id": 15,
+        "name": "Briarwood",
+        "status": "mapped"
+      },
+      {
+        "local_id": 13,
+        "railway_id": 45,
+        "name": "Bryn Mawr",
+        "status": "mapped"
+      },
+      {
+        "local_id": 14,
+        "railway_id": 13,
+        "name": "Evanston",
+        "status": "mapped"
+      },
+      {
+        "local_id": 15,
+        "railway_id": 5,
+        "name": "Exmoor",
+        "status": "mapped"
+      },
+      {
+        "local_id": 98,
+        "railway_id": 105,
+        "name": "Germantown Cricket Club",
+        "status": "mapped"
+      },
+      {
+        "local_id": 16,
+        "railway_id": 10,
+        "name": "Glen View",
+        "status": "mapped"
+      },
+      {
+        "local_id": 17,
+        "railway_id": 35,
+        "name": "Glenbrook RC",
+        "status": "mapped"
+      },
+      {
+        "local_id": 18,
+        "railway_id": 36,
+        "name": "Hawthorn Woods",
+        "status": "mapped"
+      },
+      {
+        "local_id": 19,
+        "railway_id": 34,
+        "name": "Indian Hill",
+        "status": "mapped"
+      },
+      {
+        "local_id": 20,
+        "railway_id": 47,
+        "name": "Inverness",
+        "status": "mapped"
+      },
+      {
+        "local_id": 21,
+        "railway_id": 33,
+        "name": "Knollwood",
+        "status": "mapped"
+      },
+      {
+        "local_id": 22,
+        "railway_id": 37,
+        "name": "Lake Bluff",
+        "status": "mapped"
+      },
+      {
+        "local_id": 23,
+        "railway_id": 12,
+        "name": "Lake Forest",
+        "status": "mapped"
+      },
+      {
+        "local_id": 24,
+        "railway_id": 32,
+        "name": "Lake Shore CC",
+        "status": "mapped"
+      },
+      {
+        "local_id": 25,
+        "railway_id": 9,
+        "name": "Lakeshore S&F",
+        "status": "mapped"
+      },
+      {
+        "local_id": 26,
+        "railway_id": null,
+        "name": "LifeSport-Lshire",
+        "status": "missing"
+      },
+      {
+        "local_id": 27,
+        "railway_id": null,
+        "name": "Lifesport-Lshire",
+        "status": "missing"
+      },
+      {
+        "local_id": 100,
+        "railway_id": 107,
+        "name": "Merion Cricket Club",
+        "status": "mapped"
+      },
+      {
+        "local_id": 28,
+        "railway_id": 31,
+        "name": "Michigan Shores",
+        "status": "mapped"
+      },
+      {
+        "local_id": 29,
+        "railway_id": 14,
+        "name": "Midt-Bannockburn",
+        "status": "mapped"
+      },
+      {
+        "local_id": 91,
+        "railway_id": null,
+        "name": "Midtown",
+        "status": "missing",
+        "potential_matches": [
+          "midtown - chicago"
+        ]
+      },
+      {
+        "local_id": 30,
+        "railway_id": 30,
+        "name": "Midtown - Chicago",
+        "status": "mapped"
+      },
+      {
+        "local_id": 31,
+        "railway_id": 29,
+        "name": "North Shore",
+        "status": "mapped"
+      },
+      {
+        "local_id": 32,
+        "railway_id": 28,
+        "name": "Northmoor",
+        "status": "mapped"
+      },
+      {
+        "local_id": 92,
+        "railway_id": null,
+        "name": "Old Willow",
+        "status": "missing"
+      },
+      {
+        "local_id": 33,
+        "railway_id": 7,
+        "name": "Onwentsia",
+        "status": "mapped"
+      },
+      {
+        "local_id": 103,
+        "railway_id": 110,
+        "name": "Overbrook Golf Club",
+        "status": "mapped"
+      },
+      {
+        "local_id": 34,
+        "railway_id": 41,
+        "name": "Park Ridge CC",
+        "status": "mapped"
+      },
+      {
+        "local_id": 99,
+        "railway_id": 106,
+        "name": "Philadelphia Cricket Club",
+        "status": "mapped"
+      },
+      {
+        "local_id": 35,
+        "railway_id": 11,
+        "name": "Prairie Club",
+        "status": "mapped"
+      },
+      {
+        "local_id": 104,
+        "railway_id": 111,
+        "name": "Radnor Valley Country Club",
+        "status": "mapped"
+      },
+      {
+        "local_id": 93,
+        "railway_id": null,
+        "name": "Ravinia Green",
+        "status": "missing"
+      },
+      {
+        "local_id": 36,
+        "railway_id": 26,
+        "name": "Saddle & Cycle",
+        "status": "mapped"
+      },
+      {
+        "local_id": 37,
+        "railway_id": 21,
+        "name": "Skokie",
+        "status": "mapped"
+      },
+      {
+        "local_id": 38,
+        "railway_id": 25,
+        "name": "South Barrington",
+        "status": "mapped"
+      },
+      {
+        "local_id": 39,
+        "railway_id": 3,
+        "name": "Sunset Ridge",
+        "status": "mapped"
+      },
+      {
+        "local_id": 40,
+        "railway_id": 1,
+        "name": "Tennaqua",
+        "status": "mapped"
+      },
+      {
+        "local_id": 41,
+        "railway_id": 24,
+        "name": "Valley Lo",
+        "status": "mapped"
+      },
+      {
+        "local_id": 101,
+        "railway_id": 108,
+        "name": "Waynesborough Country Club",
+        "status": "mapped"
+      },
+      {
+        "local_id": 42,
+        "railway_id": 23,
+        "name": "Westmoreland",
+        "status": "mapped"
+      },
+      {
+        "local_id": 105,
+        "railway_id": 112,
+        "name": "White Manor Country Club",
+        "status": "mapped"
+      },
+      {
+        "local_id": 94,
+        "railway_id": null,
+        "name": "Wilmette",
+        "status": "missing",
+        "potential_matches": [
+          "wilmette pd"
+        ]
+      },
+      {
+        "local_id": 43,
+        "railway_id": 2,
+        "name": "Wilmette PD",
+        "status": "mapped"
+      },
+      {
+        "local_id": 44,
+        "railway_id": null,
+        "name": "Wilmette PD I",
+        "status": "missing",
+        "potential_matches": [
+          "wilmette pd"
+        ]
+      },
+      {
+        "local_id": 45,
+        "railway_id": null,
+        "name": "Wilmette PD II",
+        "status": "missing",
+        "potential_matches": [
+          "wilmette pd"
+        ]
+      },
+      {
+        "local_id": 46,
+        "railway_id": 4,
+        "name": "Winnetka",
+        "status": "mapped"
+      },
+      {
+        "local_id": 47,
+        "railway_id": null,
+        "name": "Winnetka I",
+        "status": "missing",
+        "potential_matches": [
+          "winnetka"
+        ]
+      },
+      {
+        "local_id": 48,
+        "railway_id": null,
+        "name": "Winnetka II",
+        "status": "missing",
+        "potential_matches": [
+          "winnetka"
+        ]
+      },
+      {
+        "local_id": 49,
+        "railway_id": 22,
+        "name": "Winter Club",
+        "status": "mapped"
+      }
+    ]
+  },
+  "series": {
+    "mapped": 28,
+    "missing": 1,
+    "ambiguous": 0,
+    "details": [
+      {
+        "local_id": 9,
+        "railway_id": 11,
+        "name": "Chicago 11",
+        "status": "mapped"
+      },
+      {
+        "local_id": 10,
+        "railway_id": 13,
+        "name": "Chicago 13",
+        "status": "mapped"
+      },
+      {
+        "local_id": 11,
+        "railway_id": 15,
+        "name": "Chicago 15",
+        "status": "mapped"
+      },
+      {
+        "local_id": 12,
+        "railway_id": 17,
+        "name": "Chicago 17",
+        "status": "mapped"
+      },
+      {
+        "local_id": 13,
+        "railway_id": 19,
+        "name": "Chicago 19",
+        "status": "mapped"
+      },
+      {
+        "local_id": 14,
+        "railway_id": 21,
+        "name": "Chicago 21",
+        "status": "mapped"
+      },
+      {
+        "local_id": 15,
+        "railway_id": 22,
+        "name": "Chicago 22",
+        "status": "mapped"
+      },
+      {
+        "local_id": 16,
+        "railway_id": 23,
+        "name": "Chicago 23",
+        "status": "mapped"
+      },
+      {
+        "local_id": 17,
+        "railway_id": 27,
+        "name": "Chicago 27",
+        "status": "mapped"
+      },
+      {
+        "local_id": 18,
+        "railway_id": 29,
+        "name": "Chicago 29",
+        "status": "mapped"
+      },
+      {
+        "local_id": 19,
+        "railway_id": 31,
+        "name": "Chicago 31",
+        "status": "mapped"
+      },
+      {
+        "local_id": 20,
+        "railway_id": 33,
+        "name": "Chicago 33",
+        "status": "mapped"
+      },
+      {
+        "local_id": 21,
+        "railway_id": 35,
+        "name": "Chicago 35",
+        "status": "mapped"
+      },
+      {
+        "local_id": 22,
+        "railway_id": 37,
+        "name": "Chicago 37",
+        "status": "mapped"
+      },
+      {
+        "local_id": 23,
+        "railway_id": 38,
+        "name": "Chicago 38",
+        "status": "mapped"
+      },
+      {
+        "local_id": 24,
+        "railway_id": 6,
+        "name": "Chicago 6",
+        "status": "mapped"
+      },
+      {
+        "local_id": 25,
+        "railway_id": 7,
+        "name": "Chicago 7",
+        "status": "mapped"
+      },
+      {
+        "local_id": 26,
+        "railway_id": 9,
+        "name": "Chicago 9",
+        "status": "mapped"
+      },
+      {
+        "local_id": 45,
+        "railway_id": 105,
+        "name": "Series 1",
+        "status": "mapped"
+      },
+      {
+        "local_id": 53,
+        "railway_id": 106,
+        "name": "Series 2",
+        "status": "mapped"
+      },
+      {
+        "local_id": 46,
+        "railway_id": 113,
+        "name": "Series 2A",
+        "status": "mapped"
+      },
+      {
+        "local_id": 47,
+        "railway_id": 114,
+        "name": "Series 2B",
+        "status": "mapped"
+      },
+      {
+        "local_id": 48,
+        "railway_id": 107,
+        "name": "Series 3",
+        "status": "mapped"
+      },
+      {
+        "local_id": 55,
+        "railway_id": 108,
+        "name": "Series 4",
+        "status": "mapped"
+      },
+      {
+        "local_id": 56,
+        "railway_id": 109,
+        "name": "Series 5",
+        "status": "mapped"
+      },
+      {
+        "local_id": 57,
+        "railway_id": 110,
+        "name": "Series 6",
+        "status": "mapped"
+      },
+      {
+        "local_id": 58,
+        "railway_id": 111,
+        "name": "Series 7",
+        "status": "mapped"
+      },
+      {
+        "local_id": 59,
+        "railway_id": 112,
+        "name": "Series 8",
+        "status": "mapped"
+      },
+      {
+        "local_id": 51,
+        "railway_id": null,
+        "name": "Series A",
+        "status": "missing"
+      }
+    ]
+  },
+  "created_timestamp": "2025-06-12T07:55:50.477487"
+}
