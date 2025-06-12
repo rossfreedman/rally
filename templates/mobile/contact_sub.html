@@ -2,63 +2,451 @@
 {% set show_back_arrow = True %}
 
 {% block content %}
-<div class="flex items-center gap-3 mt-4 mb-2 px-4">
-    <div class="bg-white rounded-md flex items-center justify-center h-12 w-12">
-        <i class="fas fa-envelope text-black text-3xl"></i>
-    </div>
-    <div>
-        <div class="text-2xl font-bold leading-tight">Contact Sub</div>
-        <div class="text-base text-gray-500 mt-1">Contact information for {{ session_data.first_name }} {{ session_data.last_name }}</div>
-    </div>
-</div>
-
-<div class="p-4">
-    <div id="contactInfo" class="bg-white rounded-lg shadow p-4">
-        <div class="flex justify-center">
-            <span class="loading loading-spinner loading-lg"></span>
+<div class="min-h-screen bg-gray-50">
+    
+    <!-- Header -->
+    <div class="bg-white border-b border-gray-100">
+        <div class="flex items-center px-4 py-6">
+            <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center shadow-sm">
+                <i class="fas fa-envelope text-white text-lg"></i>
+            </div>
+            <div class="ml-4">
+                <h1 class="text-xl font-bold text-gray-900">Player Contact</h1>
+                <p class="text-sm text-gray-500">Contact information for the requested player</p>
+            </div>
         </div>
     </div>
+
+    <!-- Content -->
+    <div class="px-4 py-6 space-y-6">
+        
+        <!-- Loading State -->
+        <div id="contactLoading" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="p-6">
+                <div class="text-center py-8">
+                    <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <div class="loading loading-spinner loading-lg text-blue-600"></div>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Loading Contact Info</h3>
+                    <p class="text-gray-500">Fetching player contact information...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contact Info Card -->
+        <div id="contactCard" class="hidden bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div id="contactInfo">
+                <!-- Content will be populated by JavaScript -->
+            </div>
+        </div>
+
+        <!-- Error State -->
+        <div id="errorState" class="hidden bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-exclamation-triangle text-red-500 mr-2"></i>
+                    Contact Information Unavailable
+                </h2>
+            </div>
+            
+            <div class="p-6">
+                <div class="text-center py-8">
+                    <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-exclamation-triangle text-red-500 text-2xl"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Unable to Load Contact Info</h3>
+                    <p id="errorMessage" class="text-gray-500 mb-4">Failed to load player contact information.</p>
+                    <button onclick="loadContactInfo()" 
+                            class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium text-sm transition-colors">
+                        <i class="fas fa-refresh mr-2"></i>Try Again
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
 </div>
 
+<!-- Toast Container -->
+<div id="toastContainer" class="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 space-y-2"></div>
+
 <script>
-    document.addEventListener('DOMContentLoaded', async function() {
-        const firstName = '{{ session_data.first_name }}';
-        const lastName = '{{ session_data.last_name }}';
-        const contactDiv = document.getElementById('contactInfo');
+// Global variables for player info
+let playerFirstName = '';
+let playerLastName = '';
 
-        if (!firstName || !lastName) {
-            contactDiv.innerHTML = '<div class="text-center text-red-500">No player name provided</div>';
-            return;
+function showError(message) {
+    const loadingDiv = document.getElementById('contactLoading');
+    const contactCard = document.getElementById('contactCard');
+    const errorDiv = document.getElementById('errorState');
+    const errorMessage = document.getElementById('errorMessage');
+    
+    loadingDiv.classList.add('hidden');
+    contactCard.classList.add('hidden');
+    errorDiv.classList.remove('hidden');
+    errorMessage.textContent = message;
+}
+
+function copyToClipboard(text, playerName) {
+    // Try using the modern Clipboard API first
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(() => {
+            showCopyModal(playerName, text);
+        }).catch(err => {
+            console.error('Failed to copy to clipboard:', err);
+            // Fallback to the older method
+            fallbackCopyToClipboard(text, playerName);
+        });
+    } else {
+        // Fallback for older browsers or non-secure contexts
+        fallbackCopyToClipboard(text, playerName);
+    }
+}
+
+function fallbackCopyToClipboard(text, playerName) {
+    // Create a temporary textarea element
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    
+    // Add it to the page
+    document.body.appendChild(textArea);
+    
+    // Select the text
+    textArea.focus();
+    textArea.select();
+    
+    try {
+        // Copy the text
+        const successful = document.execCommand('copy');
+        if (successful) {
+            showCopyModal(playerName, text);
+        } else {
+            showToast('Failed to copy phone number', 'error');
         }
+    } catch (err) {
+        console.error('Failed to copy to clipboard:', err);
+        showToast('Failed to copy phone number', 'error');
+    }
+    
+    // Remove the temporary element
+    document.body.removeChild(textArea);
+}
 
-        try {
-            const response = await fetch(`/api/player-contact?firstName=${encodeURIComponent(firstName)}&lastName=${encodeURIComponent(lastName)}`);
-            const data = await response.json();
-
-            if (response.ok) {
-                contactDiv.innerHTML = `
-                    <div class="text-center space-y-4">
-                        <div class="text-xl font-bold">${firstName} ${lastName}</div>
-                        <div class="space-y-3">
-                            <div><span class="font-semibold">Email:</span> ${data.email || 'Not available'}</div>
-                            <div><span class="font-semibold">Phone:</span> ${data.phone || 'Not available'}</div>
-                        </div>
-                    </div>
-                `;
-            } else {
-                contactDiv.innerHTML = `
-                    <div class="text-center text-red-500">
-                        ${data.error || 'Failed to load contact information'}
-                    </div>
-                `;
-            }
-        } catch (error) {
-            contactDiv.innerHTML = `
-                <div class="text-center text-red-500">
-                    Error loading contact information. Please try again.
-                </div>
-            `;
+function showCopyModal(playerName, phoneNumber) {
+    // Create modal backdrop
+    const modalBackdrop = document.createElement('div');
+    modalBackdrop.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4';
+    modalBackdrop.id = 'copyModal';
+    
+    // Create modal content
+    const modalContent = document.createElement('div');
+    modalContent.className = 'bg-white rounded-xl shadow-xl max-w-sm w-full p-6';
+    
+    // Extract first name from full name
+    const firstName = playerName.split(' ')[0];
+    
+    modalContent.innerHTML = `
+        <div class="text-center">
+            <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-check text-green-600 text-2xl"></i>
+            </div>
+            <h3 class="text-lg font-bold text-gray-900 mb-3">Phone Number Copied!</h3>
+            <p class="text-gray-600 mb-6">
+                ${playerName}'s phone number <span class="font-medium">${phoneNumber}</span> was copied to the clipboard. You can now paste it into the To: line in your text messaging app to message ${firstName}.
+            </p>
+            <button onclick="closeCopyModal()" 
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 px-4 rounded-lg font-medium transition-colors">
+                Got it!
+            </button>
+        </div>
+    `;
+    
+    modalBackdrop.appendChild(modalContent);
+    document.body.appendChild(modalBackdrop);
+    
+    // Add click outside to close
+    modalBackdrop.addEventListener('click', function(e) {
+        if (e.target === modalBackdrop) {
+            closeCopyModal();
         }
     });
+    
+    // Add escape key to close
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeCopyModal();
+        }
+    });
+}
+
+function closeCopyModal() {
+    const modal = document.getElementById('copyModal');
+    if (modal) {
+        document.body.removeChild(modal);
+    }
+}
+
+function showToast(message, type = 'info') {
+    const toastContainer = document.getElementById('toastContainer');
+    
+    // Create toast element
+    const toast = document.createElement('div');
+    const bgColor = type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500';
+    const icon = type === 'success' ? 'fa-check-circle' : type === 'error' ? 'fa-exclamation-triangle' : 'fa-info-circle';
+    
+    toast.className = `${bgColor} text-white px-4 py-3 rounded-lg shadow-lg flex items-center gap-3 max-w-sm transform transition-all duration-300 opacity-0 translate-y-2`;
+    toast.innerHTML = `
+        <i class="fas ${icon}"></i>
+        <span class="font-medium">${message}</span>
+    `;
+    
+    // Add to container
+    toastContainer.appendChild(toast);
+    
+    // Animate in
+    setTimeout(() => {
+        toast.classList.remove('opacity-0', 'translate-y-2');
+    }, 10);
+    
+    // Remove after 3 seconds
+    setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => {
+            if (toastContainer.contains(toast)) {
+                toastContainer.removeChild(toast);
+            }
+        }, 300);
+    }, 3000);
+}
+
+function loadContactInfo() {
+    const loadingDiv = document.getElementById('contactLoading');
+    const contactCard = document.getElementById('contactCard');
+    const errorDiv = document.getElementById('errorState');
+    
+    // Show loading, hide others
+    loadingDiv.classList.remove('hidden');
+    contactCard.classList.add('hidden');
+    errorDiv.classList.add('hidden');
+
+    if (!playerFirstName || !playerLastName) {
+        showError('No player name provided');
+        return;
+    }
+
+    // Fetch player contact info
+    fetch(`/api/player-contact?first=${encodeURIComponent(playerFirstName)}&last=${encodeURIComponent(playerLastName)}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                showError(data.error);
+                return;
+            }
+
+            // Show contact card and populate with data
+            loadingDiv.classList.add('hidden');
+            contactCard.classList.remove('hidden');
+            
+            const contactInfo = document.getElementById('contactInfo');
+            contactInfo.innerHTML = `
+                <!-- Player Header -->
+                <div class="px-6 py-6 border-b border-gray-50 text-center">
+                    <div class="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span class="text-2xl font-bold text-white">${data.first_name.charAt(0)}${data.last_name.charAt(0)}</span>
+                    </div>
+                    <h2 class="text-2xl font-bold text-gray-900">${data.first_name} ${data.last_name}</h2>
+                    <p class="text-lg text-gray-600 mt-1 flex items-center justify-center gap-2">
+                        <i class="fas fa-trophy text-yellow-500"></i>
+                        ${data.series}
+                    </p>
+                </div>
+                
+                <!-- Contact Information -->
+                <div class="p-6 space-y-4">
+                    <div class="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors">
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                                <i class="fas fa-envelope text-blue-600"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="text-sm font-medium text-gray-500">Email Address</div>
+                                <a href="mailto:${data.email}" class="text-blue-600 hover:text-blue-800 font-medium">${data.email}</a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors">
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                                <i class="fas fa-phone text-green-600"></i>
+                            </div>
+                            <div class="flex-1">
+                                <div class="text-sm font-medium text-gray-500">Phone Number</div>
+                                <a href="tel:${data.phone}" class="text-green-600 hover:text-green-800 font-medium">${data.phone}</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="px-6 pb-6">
+                    <div class="grid grid-cols-3 gap-3">
+                        <button onclick="copyToClipboard('${data.phone}', '${data.first_name} ${data.last_name}')" 
+                                class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-3 rounded-lg font-medium text-sm transition-colors flex flex-col items-center gap-1">
+                            <i class="fas fa-sms"></i>
+                            <span>Text</span>
+                        </button>
+                        <a href="tel:${data.phone}" 
+                           class="bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg font-medium text-sm transition-colors flex flex-col items-center gap-1">
+                            <i class="fas fa-phone"></i>
+                            <span>Call</span>
+                        </a>
+                        <a href="mailto:${data.email}" 
+                           class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg font-medium text-sm transition-colors flex flex-col items-center gap-1">
+                            <i class="fas fa-envelope"></i>
+                            <span>Email</span>
+                        </a>
+                    </div>
+                </div>
+            `;
+        })
+        .catch(error => {
+            showError('Failed to load contact information');
+            console.error('Error:', error);
+        });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Get player first and last name from URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    playerFirstName = urlParams.get('first');
+    playerLastName = urlParams.get('last');
+
+    // Load contact info
+    loadContactInfo();
+});
 </script>
+
+<style>
+/* Modern design styles matching other mobile pages */
+.min-h-screen {
+    min-height: 100vh;
+}
+
+/* Shadow utilities */
+.shadow-sm {
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.shadow-lg {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* Border utilities */
+.border-gray-50 { border-color: #f9fafb; }
+.border-gray-100 { border-color: #f3f4f6; }
+
+/* Background utilities */
+.bg-gray-50 { background-color: #f9fafb; }
+.bg-gray-100 { background-color: #f3f4f6; }
+.bg-white { background-color: #ffffff; }
+.bg-black { background-color: #000000; }
+.bg-blue-100 { background-color: #dbeafe; }
+.bg-green-100 { background-color: #dcfce7; }
+.bg-purple-100 { background-color: #e9d5ff; }
+.bg-yellow-100 { background-color: #fef3c7; }
+.bg-red-100 { background-color: #fee2e2; }
+.bg-blue-600 { background-color: #2563eb; }
+.bg-blue-700 { background-color: #1d4ed8; }
+.bg-green-600 { background-color: #16a34a; }
+.bg-green-700 { background-color: #15803d; }
+.bg-purple-600 { background-color: #9333ea; }
+.bg-purple-700 { background-color: #7c3aed; }
+.bg-red-500 { background-color: #ef4444; }
+.bg-green-500 { background-color: #10b981; }
+
+/* Text colors */
+.text-gray-900 { color: #111827; }
+.text-gray-800 { color: #1f2937; }
+.text-gray-600 { color: #4b5563; }
+.text-gray-500 { color: #6b7280; }
+.text-blue-500 { color: #3b82f6; }
+.text-blue-600 { color: #2563eb; }
+.text-blue-800 { color: #1e40af; }
+.text-green-600 { color: #059669; }
+.text-green-800 { color: #065f46; }
+.text-yellow-500 { color: #f59e0b; }
+.text-yellow-600 { color: #d97706; }
+.text-red-500 { color: #ef4444; }
+.text-purple-600 { color: #7c3aed; }
+.text-white { color: #ffffff; }
+
+/* Gradient backgrounds */
+.bg-gradient-to-br {
+    background-image: linear-gradient(to bottom right, var(--tw-gradient-stops));
+}
+.from-blue-500 {
+    --tw-gradient-from: #3b82f6;
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(59, 130, 246, 0));
+}
+.to-blue-600 {
+    --tw-gradient-to: #2563eb;
+}
+.to-purple-600 {
+    --tw-gradient-to: #7c3aed;
+}
+
+/* Spacing utilities */
+.space-y-6 > * + * { margin-top: 1.5rem; }
+.space-y-4 > * + * { margin-top: 1rem; }
+.space-y-3 > * + * { margin-top: 0.75rem; }
+.space-y-2 > * + * { margin-top: 0.5rem; }
+
+/* Border radius utilities */
+.rounded-xl { border-radius: 0.75rem; }
+.rounded-lg { border-radius: 0.5rem; }
+.rounded-full { border-radius: 9999px; }
+
+/* Overflow utilities */
+.overflow-hidden { overflow: hidden; }
+
+/* Transition utilities */
+.transition-colors { transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out; }
+.transition-all { transition: all 0.15s ease-in-out; }
+
+/* Transform utilities */
+.transform { transform: translateX(var(--tw-translate-x, 0)) translateY(var(--tw-translate-y, 0)) rotate(var(--tw-rotate, 0)) skewX(var(--tw-skew-x, 0)) skewY(var(--tw-skew-y, 0)) scaleX(var(--tw-scale-x, 1)) scaleY(var(--tw-scale-y, 1)); }
+.-translate-x-1\/2 { --tw-translate-x: -50%; }
+.-translate-y-1\/2 { --tw-translate-y: -50%; }
+.translate-y-2 { --tw-translate-y: 0.5rem; }
+
+/* Opacity utilities */
+.opacity-0 { opacity: 0; }
+
+/* Visibility utilities */
+.hidden { display: none; }
+
+/* Modal utilities */
+.fixed { position: fixed; }
+.inset-0 { top: 0; right: 0; bottom: 0; left: 0; }
+.z-50 { z-index: 50; }
+.bg-opacity-50 { background-color: rgba(0, 0, 0, 0.5); }
+.max-w-sm { max-width: 24rem; }
+.w-full { width: 100%; }
+.shadow-xl { box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); }
+
+/* Flexbox utilities */
+.flex { display: flex; }
+.items-center { align-items: center; }
+.justify-center { justify-content: center; }
+
+/* Grid utilities */
+.grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+/* Responsive design adjustments */
+@media (max-width: 640px) {
+    .px-6 { padding-left: 1rem; padding-right: 1rem; }
+    .py-4 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+}
+</style>
 {% endblock %} 

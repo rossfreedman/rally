@@ -627,48 +627,67 @@ def remove_practice_times_data():
                 'message': 'User series not found'
             }), 400
         
-        # Load the current schedule (use the same file as the availability system)
-        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        schedule_file = os.path.join(project_root, "data", "leagues", "all", "schedules.json")
+        # Get league ID for the user
+        from database_utils import execute_query, execute_query_one
+        
+        league_id = None
         try:
-            with open(schedule_file, 'r') as f:
-                schedule = json.load(f)
-        except FileNotFoundError:
-            return jsonify({
-                'success': False, 
-                'message': 'Schedule file not found'
-            }), 500
-        except json.JSONDecodeError:
-            return jsonify({
-                'success': False, 
-                'message': 'Invalid schedule file format'
-            }), 500
+            user_league = execute_query_one("""
+                SELECT l.id 
+                FROM users u 
+                LEFT JOIN leagues l ON u.league_id = l.id 
+                WHERE u.email = %(email)s
+            """, {'email': user['email']})
+            
+            if user_league:
+                league_id = user_league['id']
+        except Exception as e:
+            print(f"Could not get league ID for user: {e}")
         
-        print(f'Original schedule has {len(schedule)} entries')
+        # Count practice entries before removal from database
+        practice_description = f"{user_club} Practice - {user_series}"
         
-        # Count practice entries before removal
-        practice_count = sum(1 for entry in schedule 
-                           if 'Practice' in entry 
-                           and entry.get('Practice') == user_club 
-                           and entry.get('Series') == user_series)
-        print(f'Found {practice_count} practice entries for {user_club} - {user_series} to remove')
+        practice_count_query = """
+            SELECT COUNT(*) as count
+            FROM schedule 
+            WHERE home_team = %(practice_desc)s
+            AND location = %(club)s
+            AND (league_id = %(league_id)s OR %(league_id)s IS NULL)
+        """
         
-        # Filter out practice entries that match the user's club and series
-        filtered_schedule = [entry for entry in schedule 
-                           if not ('Practice' in entry 
-                                 and entry.get('Practice') == user_club 
-                                 and entry.get('Series') == user_series)]
-        
-        print(f'After removal: {len(filtered_schedule)} entries remaining')
-        
-        # Save the updated schedule
         try:
-            with open(schedule_file, 'w') as f:
-                json.dump(filtered_schedule, f, indent=4)
+            practice_count_result = execute_query_one(practice_count_query, {
+                'practice_desc': practice_description,
+                'club': user_club,
+                'league_id': league_id
+            })
+            practice_count = practice_count_result['count'] if practice_count_result else 0
+            print(f'Found {practice_count} practice entries for {user_club} - {user_series} to remove')
+        except Exception as e:
+            print(f"Error counting practice entries: {e}")
+            practice_count = 0
+        
+        # Remove practice entries from database
+        try:
+            delete_query = """
+                DELETE FROM schedule 
+                WHERE home_team = %(practice_desc)s
+                AND location = %(club)s
+                AND (league_id = %(league_id)s OR %(league_id)s IS NULL)
+            """
+            
+            execute_query(delete_query, {
+                'practice_desc': practice_description,
+                'club': user_club,
+                'league_id': league_id
+            })
+            
+            print(f'Successfully removed {practice_count} practice entries from database')
+            
         except Exception as e:
             return jsonify({
                 'success': False, 
-                'message': f'Failed to save schedule: {str(e)}'
+                'message': f'Failed to remove practices from database: {str(e)}'
             }), 500
         
         # Log the activity
@@ -882,20 +901,31 @@ def get_team_schedule_data_data():
                             avail_record = None
                             
                             if player_id:
-                                # Primary search: Use tenniscores_player_id
-                                avail_query = """
-                                    SELECT availability_status
-                                    FROM player_availability 
-                                    WHERE tenniscores_player_id = %(player_id)s 
-                                    AND series_id = %(series_id)s 
-                                    AND DATE(match_date AT TIME ZONE 'UTC') = DATE(%(date)s AT TIME ZONE 'UTC')
-                                """
-                                avail_params = {
-                                    'player_id': player_id,
-                                    'series_id': series_record['id'],
-                                    'date': event_date_obj
-                                }
-                                avail_record = execute_query(avail_query, avail_params)
+                                # First, get the internal player_id from the players table using tenniscores_player_id
+                                player_db_record = execute_query(
+                                    "SELECT id FROM players WHERE tenniscores_player_id = %(tenniscores_id)s",
+                                    {'tenniscores_id': player_id}
+                                )
+                                
+                                if player_db_record:
+                                    internal_player_id = player_db_record[0]['id']
+                                    # Primary search: Use player_id (foreign key)
+                                    avail_query = """
+                                        SELECT availability_status
+                                        FROM player_availability 
+                                        WHERE player_id = %(player_id)s 
+                                        AND series_id = %(series_id)s 
+                                        AND DATE(match_date AT TIME ZONE 'UTC') = DATE(%(date)s AT TIME ZONE 'UTC')
+                                    """
+                                    avail_params = {
+                                        'player_id': internal_player_id,
+                                        'series_id': series_record['id'],
+                                        'date': event_date_obj
+                                    }
+                                    avail_record = execute_query(avail_query, avail_params)
+                                else:
+                                    print(f"No player found in players table with tenniscores_player_id: {player_id}")
+                                    avail_record = None
                                 
                             if not avail_record and player_name:
                                 # Fallback search: Use player_name

@@ -1,0 +1,10 @@
+# Ignore the SQLite database file in Docker builds
+# data/paddlepro.db
+
+# Exclude reference code from deployments
+reference_code/
+*.bak
+*.tmp
+rally_backups/
+scrapers/
+scrapers_backups/ 

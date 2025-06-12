@@ -15,6 +15,7 @@ from datetime import datetime
 import pytz
 import json
 import os
+from utils.database_player_lookup import find_player_by_database_lookup
 
 api_bp = Blueprint('api', __name__)
 
@@ -416,14 +417,15 @@ def add_practice_times():
     try:
         # Get form data
         first_date = request.form.get('first_date')
+        last_date = request.form.get('last_date')
         day = request.form.get('day')
         time = request.form.get('time')
         
         # Validate required fields
-        if not all([first_date, day, time]):
+        if not all([first_date, last_date, day, time]):
             return jsonify({
                 'success': False, 
-                'message': 'All fields are required'
+                'message': 'All fields are required (first date, last date, day, and time)'
             }), 400
         
         # Get user's club to determine which team schedule to update
@@ -448,13 +450,29 @@ def add_practice_times():
         import json
         import os
         
-        # Parse the first date
+        # Parse the dates
         try:
             first_date_obj = datetime.strptime(first_date, "%Y-%m-%d")
+            last_date_obj = datetime.strptime(last_date, "%Y-%m-%d")
         except ValueError:
             return jsonify({
                 'success': False, 
                 'message': 'Invalid date format'
+            }), 400
+        
+        # Validate date range
+        if last_date_obj < first_date_obj:
+            return jsonify({
+                'success': False, 
+                'message': 'Last practice date must be after or equal to first practice date'
+            }), 400
+        
+        # Check for reasonable date range (not more than 2 years)
+        date_diff = (last_date_obj - first_date_obj).days
+        if date_diff > 730:  # 2 years
+            return jsonify({
+                'success': False, 
+                'message': 'Date range too large. Please select a range of 2 years or less.'
             }), 400
         
         # Convert 24-hour time to 12-hour format
@@ -467,26 +485,20 @@ def add_practice_times():
                 'message': 'Invalid time format'
             }), 400
         
-        # Load the current schedule (use the same file as the availability system)
-        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        schedule_file = os.path.join(project_root, "data", "leagues", "all", "schedules.json")
+        # Get league ID for the user
+        league_id = None
         try:
-            with open(schedule_file, 'r') as f:
-                schedule = json.load(f)
-        except FileNotFoundError:
-            return jsonify({
-                'success': False, 
-                'message': 'Schedule file not found'
-            }), 500
-        except json.JSONDecodeError:
-            return jsonify({
-                'success': False, 
-                'message': 'Invalid schedule file format'
-            }), 500
-        
-        # Determine end date - set to end of current season (December 31, 2025)
-        # You may want to make this configurable
-        end_date = datetime(2025, 12, 31)
+            user_league = execute_query_one("""
+                SELECT l.id 
+                FROM users u 
+                LEFT JOIN leagues l ON u.league_id = l.id 
+                WHERE u.email = %(email)s
+            """, {'email': user['email']})
+            
+            if user_league:
+                league_id = user_league['id']
+        except Exception as e:
+            print(f"Could not get league ID for user: {e}")
         
         # Convert day name to number (0=Monday, 6=Sunday)
         day_map = {
@@ -505,52 +517,86 @@ def add_practice_times():
         current_date = first_date_obj
         practices_added = 0
         added_practices = []  # Track the specific practices added
+        failed_practices = []  # Track any failures
         
-        # Add practice entries until end of season
-        while current_date <= end_date:
+        # Check for existing practices to avoid duplicates
+        practice_description = f"{user_club} Practice - {user_series}"
+        existing_query = """
+            SELECT match_date FROM schedule 
+            WHERE league_id = %(league_id)s 
+            AND home_team = %(practice_desc)s
+            AND match_date BETWEEN %(start_date)s AND %(end_date)s
+        """
+        
+        try:
+            existing_practices = execute_query(existing_query, {
+                'league_id': league_id,
+                'practice_desc': practice_description,
+                'start_date': first_date_obj.date(),
+                'end_date': last_date_obj.date()
+            })
+            existing_dates = {practice['match_date'] for practice in existing_practices}
+            
+            if existing_dates:
+                return jsonify({
+                    'success': False,
+                    'message': f'Some practice dates already exist in the schedule. Please remove existing practices first or choose different dates.'
+                }), 400
+                
+        except Exception as e:
+            print(f"Error checking existing practices: {e}")
+            # Continue anyway - we'll handle duplicates during insertion
+        
+        # Add practice entries to database for the specified date range
+        while current_date <= last_date_obj:
             # If current date is the target weekday, add practice
             if current_date.weekday() == target_weekday:
-                # Create practice entry - using "Practice" field to match original script
-                practice_entry = {
-                    "date": current_date.strftime("%m/%d/%Y"),
-                    "time": formatted_time,
-                    "Practice": user_club,  # Use the user's club as the practice location
-                    "Series": user_series   # Add the user's series from session
-                }
-                # Insert at the beginning of the schedule
-                schedule.insert(0, practice_entry)
-                practices_added += 1
-                
-                # Add to our tracking list for the response
-                added_practices.append({
-                    "date": current_date.strftime("%m/%d/%Y"),
-                    "time": formatted_time,
-                    "day": day
-                })
+                try:
+                    # Parse formatted time back to time object for database storage
+                    time_obj = datetime.strptime(formatted_time, '%I:%M %p').time()
+                    
+                    # Insert practice into schedule table
+                    execute_query("""
+                        INSERT INTO schedule (league_id, match_date, match_time, home_team, away_team, location)
+                        VALUES (%(league_id)s, %(match_date)s, %(match_time)s, %(practice_desc)s, '', %(location)s)
+                    """, {
+                        'league_id': league_id,
+                        'match_date': current_date.date(),
+                        'match_time': time_obj,
+                        'practice_desc': practice_description,
+                        'location': user_club
+                    })
+                    
+                    practices_added += 1
+                    
+                    # Add to our tracking list for the response
+                    added_practices.append({
+                        "date": current_date.strftime("%m/%d/%Y"),
+                        "time": formatted_time,
+                        "day": day
+                    })
+                    
+                except Exception as e:
+                    print(f"Error inserting practice for {current_date}: {e}")
+                    failed_practices.append({
+                        "date": current_date.strftime("%m/%d/%Y"),
+                        "error": str(e)
+                    })
+                    # Continue with other dates even if one fails
             
             # Move to next day
             current_date += timedelta(days=1)
         
-        # Sort the schedule by date and time
-        def sort_key(x):
-            try:
-                date_obj = datetime.strptime(x['date'], "%m/%d/%Y")
-                time_obj = datetime.strptime(x['time'], "%I:%M %p")
-                return (date_obj, time_obj)
-            except ValueError:
-                # If parsing fails, put it at the end
-                return (datetime.max, datetime.max)
-        
-        schedule.sort(key=sort_key)
-        
-        # Save updated schedule
-        try:
-            with open(schedule_file, 'w') as f:
-                json.dump(schedule, f, indent=4)
-        except Exception as e:
+        # Check if we had any successes
+        if practices_added == 0:
+            error_msg = 'No practices were added.'
+            if failed_practices:
+                error_msg += f' {len(failed_practices)} practices failed to add due to errors.'
+            else:
+                error_msg += f' No {day}s found between {first_date} and {last_date}.'
             return jsonify({
-                'success': False, 
-                'message': f'Failed to save schedule: {str(e)}'
+                'success': False,
+                'message': error_msg
             }), 500
         
         # Log the activity
@@ -558,24 +604,33 @@ def add_practice_times():
         log_user_activity(
             user['email'], 
             'practice_times_added',
-            details=f'Added {practices_added} practice times for {user_series} {day}s at {formatted_time} starting {first_date}'
+            details=f'Added {practices_added} practice times for {user_series} {day}s at {formatted_time} from {first_date} to {last_date}'
         )
+        
+        success_message = f'Successfully added {practices_added} practice times to the schedule!'
+        if failed_practices:
+            success_message += f' ({len(failed_practices)} practices failed to add)'
         
         return jsonify({
             'success': True, 
-            'message': f'Successfully added {practices_added} practice times to the schedule!',
+            'message': success_message,
             'practices_added': added_practices,
             'count': practices_added,
             'series': user_series,
             'day': day,
-            'time': formatted_time
+            'time': formatted_time,
+            'first_date': first_date,
+            'last_date': last_date,
+            'failed_count': len(failed_practices)
         })
         
     except Exception as e:
         print(f"Error adding practice times: {str(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
         return jsonify({
             'success': False, 
-            'message': 'An unexpected error occurred'
+            'message': 'An unexpected error occurred while adding practice times'
         }), 500
 
 @api_bp.route('/api/remove-practice-times', methods=['POST'])
@@ -730,39 +785,20 @@ def get_user_settings():
 
 def convert_series_to_mapping_id(series_name, club_name, league_id=None):
     """
-    Convert database series name to the format used in player data.
-    APTA Chicago: 'Chicago 19' + 'Tennaqua' -> 'Tennaqua - 19'
-    NSTF: 'Series 2B' + 'Tennaqua' -> 'Tennaqua S2B'
+    DEPRECATED: This function was used for JSON file lookups.
+    Database lookups now use series names directly.
+    Keeping for backward compatibility but marked for removal.
     """
-    import re
-    
-    # For NSTF leagues, use different format
-    if league_id == 'NSTF':
-        # Extract series info: 'Series 2B' -> 'S2B'
-        if series_name.startswith('Series '):
-            series_part = series_name.replace('Series ', 'S')
-            return f"{club_name} {series_part}"
-        else:
-            # Fallback for NSTF
-            return f"{club_name} {series_name}"
-    
-    # For APTA leagues, use the dash format
-    else:
-        # Extract the series number from series name
-        numbers = re.findall(r'\d+', series_name)
-        if numbers:
-            series_number = numbers[-1]  # Take the last number found
-            return f"{club_name} - {series_number}"
-        else:
-            # Fallback: return the original series name
-            return series_name
+    # This function is no longer needed for database-only lookups
+    # but keeping for any legacy code that might still reference it
+    logger.warning("convert_series_to_mapping_id is deprecated - use database lookups instead")
+    return f"{club_name} {series_name}"  # Simple fallback
 
 @api_bp.route('/api/update-settings', methods=['POST'])
 @login_required
 def update_settings():
     """Update user settings"""
     try:
-        from utils.match_utils import find_player_id_by_club_name
         import logging
         
         logger = logging.getLogger(__name__)
@@ -804,7 +840,7 @@ def update_settings():
         # Enhanced player ID lookup logic:
         # 1. Always retry if user requests it OR they don't have a player ID
         # 2. Always retry if league has changed
-        # 3. Use improved multi-tier matching strategy
+        # 3. Use database-only lookup strategy
         force_player_id_retry = data.get('forcePlayerIdRetry', False)
         current_player_id = session['user'].get('tenniscores_player_id')
         should_retry_player_id = (force_player_id_retry or 
@@ -824,37 +860,23 @@ def update_settings():
                 
                 logger.info(f"Settings update: Retrying player ID lookup because: {', '.join(reason)}")
                 
-                # Convert series name to mapping ID format for player lookup
-                series_mapping_id = convert_series_to_mapping_id(data['series'], data['club'], data.get('league_id'))
-                logger.info(f"Settings update: Looking up player with mapping ID: {series_mapping_id}")
-                
-                # Convert league_id to the format used in player data
-                league_filter = None
-                if data.get('league_id') == 'APTA_CHICAGO':
-                    league_filter = 'APTA_CHICAGO'
-                elif data.get('league_id') == 'NSTF':
-                    league_filter = 'NSTF'  # Player data uses NSTF
-                elif data.get('league_id') == 'APTA_NATIONAL':
-                    league_filter = 'APTA_NATIONAL'
-                
-                # Use enhanced multi-tier lookup strategy
-                tenniscores_player_id = find_player_id_by_club_name(
+                # Use database-only lookup - NO MORE JSON FILES
+                tenniscores_player_id = find_player_by_database_lookup(
                     first_name=data['firstName'],
                     last_name=data['lastName'],
-                    series_mapping_id=series_mapping_id,
                     club_name=data['club'],
-                    league=league_filter
+                    series_name=data['series'],
+                    league_id=data.get('league_id')
                 )
+                
                 if tenniscores_player_id:
-                    logger.info(f"Settings update: Found Player ID for {data['firstName']} {data['lastName']}: {tenniscores_player_id}")
+                    logger.info(f"Settings update: Found player ID via database lookup: {tenniscores_player_id}")
                 else:
-                    logger.info(f"Settings update: No Player ID found for {data['firstName']} {data['lastName']} ({data['club']}, {series_mapping_id})")
-            except Exception as match_error:
-                logger.warning(f"Settings update: Error matching player ID for {data['firstName']} {data['lastName']}: {str(match_error)}")
-                # Continue with update even if matching fails
+                    logger.info(f"Settings update: No player ID found via database lookup")
+                    
+            except Exception as lookup_error:
+                logger.warning(f"Settings update: Player ID lookup error: {str(lookup_error)}")
                 tenniscores_player_id = None
-        elif not should_retry_player_id:
-            logger.info(f"Settings update: No player ID retry needed (league unchanged, existing ID: {current_player_id})")
         
         # Update user data - update player ID if we retried and found one
         if should_retry_player_id and tenniscores_player_id:
@@ -971,103 +993,102 @@ def update_settings():
 @api_bp.route('/api/retry-player-id', methods=['POST'])
 @login_required  
 def retry_player_id_lookup():
-    """
-    Standalone endpoint to retry player ID lookup without changing other settings.
-    Uses the enhanced multi-tier matching strategy.
-    """
+    """Manual retry of player ID lookup for current user"""
     try:
-        user = session['user']
-        current_player_id = user.get('tenniscores_player_id')
+        from utils.database_player_lookup import find_player_by_database_lookup
+        import logging
         
-        logger.info(f"Manual player ID retry requested for {user['first_name']} {user['last_name']} (current ID: {current_player_id})")
+        logger = logging.getLogger(__name__)
+        user_email = session['user']['email']
         
         # Get current user data
-        first_name = user['first_name']
-        last_name = user['last_name']
-        club_name = user['club']
-        series_name = user['series']
-        league_id = user.get('league_id', 'APTA_CHICAGO')
+        user_data = execute_query_one('''
+            SELECT u.first_name, u.last_name, u.email,
+                   c.name as club, s.name as series, l.league_id
+            FROM users u
+            LEFT JOIN clubs c ON u.club_id = c.id
+            LEFT JOIN series s ON u.series_id = s.id
+            LEFT JOIN leagues l ON u.league_id = l.id
+            WHERE u.email = %s
+        ''', (user_email,))
         
-        if not all([first_name, last_name, club_name, series_name]):
+        if not user_data:
+            return jsonify({'success': False, 'message': 'User not found'}), 404
+        
+        first_name = user_data['first_name']
+        last_name = user_data['last_name']
+        club_name = user_data['club']
+        series_name = user_data['series']
+        league_id = user_data['league_id']
+        
+        if not all([first_name, last_name, club_name, series_name, league_id]):
+            missing = []
+            if not first_name: missing.append('first name')
+            if not last_name: missing.append('last name')
+            if not club_name: missing.append('club')
+            if not series_name: missing.append('series')
+            if not league_id: missing.append('league')
             return jsonify({
-                'success': False,
-                'error': 'Missing required user information for player ID lookup'
+                'success': False, 
+                'message': f'Missing required data: {", ".join(missing)}'
             }), 400
         
         try:
-            # Convert series name to mapping ID format for player lookup
-            series_mapping_id = convert_series_to_mapping_id(series_name, club_name, league_id)
-            logger.info(f"Manual retry: Looking up player with mapping ID: {series_mapping_id}")
+            logger.info(f"Manual retry: Looking up player via database")
             
-            # Convert league_id to the format used in player data
-            league_filter = None
-            if league_id == 'APTA_CHICAGO':
-                league_filter = 'APTA_CHICAGO'
-            elif league_id == 'NSTF':
-                league_filter = 'NSTF'
-            elif league_id == 'APTA_NATIONAL':
-                league_filter = 'APTA_NATIONAL'
-            
-            # Use enhanced multi-tier lookup strategy
-            found_player_id = find_player_id_by_club_name(
+            # Use database-only lookup - NO MORE JSON FILES
+            found_player_id = find_player_by_database_lookup(
                 first_name=first_name,
                 last_name=last_name,
-                series_mapping_id=series_mapping_id,
                 club_name=club_name,
-                league=league_filter
+                series_name=series_name,
+                league_id=league_id
             )
             
             if found_player_id:
-                # Update the user's player ID in database
-                success = execute_update('''
-                    UPDATE users SET tenniscores_player_id = %s WHERE email = %s
-                ''', (found_player_id, user['email']))
+                # Update user record with found player ID
+                success = execute_update(
+                    'UPDATE users SET tenniscores_player_id = %s WHERE email = %s',
+                    (found_player_id, user_email)
+                )
                 
                 if success:
                     # Update session
                     session['user']['tenniscores_player_id'] = found_player_id
                     session.modified = True
                     
-                    logger.info(f"Manual retry: Successfully updated player ID {current_player_id} → {found_player_id}")
+                    logger.info(f"Manual retry: Successfully updated player ID to {found_player_id}")
                     
                     return jsonify({
                         'success': True,
-                        'message': f'Player ID successfully found and updated!',
                         'player_id': found_player_id,
-                        'previous_player_id': current_player_id,
-                        'changed': current_player_id != found_player_id
+                        'message': f'Player ID found and updated: {found_player_id}'
                     })
                 else:
-                    logger.error(f"Manual retry: Database update failed for player ID {found_player_id}")
+                    logger.error(f"Manual retry: Failed to update database with player ID {found_player_id}")
                     return jsonify({
                         'success': False,
-                        'error': 'Failed to update player ID in database'
+                        'message': 'Found player ID but failed to update database'
                     }), 500
             else:
-                logger.info(f"Manual retry: No player ID found for {first_name} {last_name} ({club_name}, {series_mapping_id})")
+                logger.info(f"Manual retry: No player match found for {first_name} {last_name}")
                 return jsonify({
                     'success': False,
-                    'message': f'No matching player found for {first_name} {last_name} in {club_name}, {series_name}',
-                    'player_id': current_player_id,
-                    'search_details': {
-                        'series_mapping_id': series_mapping_id,
-                        'league_filter': league_filter,
-                        'club': club_name
-                    }
+                    'message': f'No matching player found for {first_name} {last_name} ({club_name}, {series_name})'
                 })
                 
         except Exception as lookup_error:
-            logger.error(f"Manual retry: Error during player lookup: {str(lookup_error)}")
+            logger.error(f"Manual retry: Database lookup error: {str(lookup_error)}")
             return jsonify({
                 'success': False,
-                'error': f'Player lookup failed: {str(lookup_error)}'
+                'message': 'Player lookup failed due to database error'
             }), 500
             
     except Exception as e:
-        logger.error(f"Manual player ID retry error: {str(e)}")
+        logger.error(f"Manual retry endpoint error: {str(e)}")
         return jsonify({
             'success': False,
-            'error': 'Failed to retry player ID lookup'
+            'message': 'Retry failed due to server error'
         }), 500
 
 @api_bp.route('/api/get-leagues')
@@ -1265,112 +1286,5 @@ def debug_club_data():
         print(f"Debug endpoint error: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-@api_bp.route('/api/player-history-chart')
-@login_required
-def get_player_history_chart():
-    """Get player PTI history data formatted for charts"""
-    try:
-        user = session['user']
-        print(f"[DEBUG] API called for user: {user}")
-        
-        # Get current directory
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        project_root = os.path.dirname(os.path.dirname(current_dir))
-        user_league_id = user.get('league_id', '')
-        
-        # Use dynamic path based on league
-        if user_league_id and not user_league_id.startswith('APTA'):
-            player_history_path = os.path.join(project_root, 'data', 'leagues', user_league_id, 'player_history.json')
-        else:
-            player_history_path = os.path.join(project_root, 'data', 'leagues', 'all', 'player_history.json')
-            
-        print(f"[DEBUG] Loading data from: {player_history_path}")
-        
-        with open(player_history_path, 'r') as f:
-            all_players_data = json.load(f)
-        
-        # Filter players by league
-        all_players = []
-        for player in all_players_data:
-            player_league = player.get('League', player.get('league_id'))
-            if user_league_id.startswith('APTA'):
-                # For APTA users, only include players from the same APTA league
-                if player_league == user_league_id:
-                    all_players.append(player)
-            else:
-                # For other leagues, match the league_id
-                if player_league == user_league_id:
-                    all_players.append(player)
-        
-        print(f"[DEBUG] Loaded {len(all_players)} players for league {user_league_id}")
-        
-        # Find the current user's player data
-        user_player = None
-        
-        # First try to match by tenniscores_player_id if available
-        if user.get('tenniscores_player_id'):
-            print(f"[DEBUG] Looking for player ID: {user.get('tenniscores_player_id')}")
-            for player in all_players:
-                if player.get('player_id') == user['tenniscores_player_id']:
-                    user_player = player
-                    print(f"[DEBUG] Found player by ID: {player.get('name')}")
-                    break
-        
-        # If not found by ID, try to match by name
-        if not user_player:
-            user_full_name = f"{user['first_name']} {user['last_name']}"
-            print(f"[DEBUG] Looking for player name: {user_full_name}")
-            for player in all_players:
-                if player.get('name') == user_full_name:
-                    user_player = player
-                    print(f"[DEBUG] Found player by name: {player.get('name')}")
-                    break
-        
-        if not user_player:
-            print(f"[DEBUG] No player found for user: {user}")
-            return jsonify({
-                'success': False, 
-                'message': 'No player found for this user',
-                'data': []
-            })
-        
-        if not user_player.get('matches'):
-            print(f"[DEBUG] Player has no matches: {user_player.get('name')}")
-            return jsonify({
-                'success': False, 
-                'message': 'No PTI history found for this player',
-                'data': []
-            })
-        
-        # Sort matches by date (most recent first for chart display)
-        matches = user_player['matches']
-        sorted_matches = sorted(matches, key=lambda x: x['date'], reverse=False)
-        
-        print(f"[DEBUG] Returning {len(sorted_matches)} matches for {user_player.get('name')}")
-        
-        # Return the match data for the chart
-        response_data = {
-            'success': True,
-            'data': sorted_matches,
-            'player_name': user_player.get('name'),
-            'total_matches': len(sorted_matches)
-        }
-        print(f"[DEBUG] Response data keys: {list(response_data.keys())}")
-        print(f"[DEBUG] Data type: {type(response_data['data'])}")
-        print(f"[DEBUG] Data length: {len(response_data['data'])}")
-        
-        return jsonify(response_data)
-        
-    except FileNotFoundError:
-        return jsonify({
-            'success': False,
-            'message': 'Player history data not found',
-            'data': []
-        })
-    except Exception as e:
-        print(f"Error getting player history: {str(e)}")
-        return jsonify({
-            'success': False,
-            'message': f'Error loading player history: {str(e)}',
-            'data': []
-        }) 
+# Route moved to mobile_routes.py to avoid conflicts
+# The mobile blueprint now handles /api/player-history-chart with database queries 

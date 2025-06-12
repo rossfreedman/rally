@@ -149,49 +149,7 @@ def init_routes(app):
             logger.error(f"Error researching team: {str(e)}")
             return jsonify({'error': 'Failed to research team'}), 500
 
-    @app.route('/mobile/my-team')
-    @login_required
-    def serve_mobile_my_team():
-        try:
-            if 'user' not in session:
-                return jsonify({'error': 'Not authenticated'}), 401
-
-            # Get user's team
-            with get_db() as conn:
-                cursor = conn.cursor()
-                
-                cursor.execute('''
-                    SELECT t.* FROM teams t
-                    JOIN team_players tp ON t.id = tp.team_id
-                    WHERE tp.player_email = %s
-                ''', (session['user']['email'],))
-                
-                team = cursor.fetchone()
-            
-            if not team:
-                return jsonify({'error': 'No team found'}), 404
-                
-            team_dict = {
-                'id': team[0],
-                'name': team[1],
-                'club': team[2],
-                'series': team[3]
-            }
-            
-            # Get team matches and stats
-            team_matches = get_team_matches(team_dict['id'])
-            team_stats = get_team_stats(team_dict['id'])
-            
-            # Calculate analysis
-            analysis = calculate_team_analysis(team_stats, team_matches, team_dict)
-            
-            return jsonify({
-                'team': team_dict,
-                'analysis': analysis
-            })
-            
-        except Exception as e:
-            logger.error(f"Error serving mobile team analysis: {str(e)}")
-            return jsonify({'error': 'Failed to serve mobile team analysis'}), 500
+    # Note: /mobile/my-team route moved to mobile_routes.py blueprint
+    # This avoids route conflicts and uses proper template rendering
 
     return app 

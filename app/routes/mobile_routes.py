@@ -6,6 +6,7 @@ This module contains routes for mobile-specific pages and user interactions.
 from flask import Blueprint, render_template, request, jsonify, session, redirect, url_for, send_from_directory
 from utils.auth import login_required
 from utils.logging import log_user_activity
+from database_utils import execute_query, execute_query_one
 from datetime import datetime
 import json
 import os
@@ -184,7 +185,58 @@ def serve_mobile_analyze_me():
     try:
         print(f"[DEBUG] Session user type: {type(session['user'])}")
         print(f"[DEBUG] Session user data: {session['user']}")
-        analyze_data = get_player_analysis(session['user'])
+        
+        # Get the session user
+        session_user = session['user']
+        
+        # Check if session already has a tenniscores_player_id (set by league switching)
+        if session_user.get('tenniscores_player_id'):
+            print(f"[DEBUG] Using session player ID: {session_user.get('tenniscores_player_id')}")
+            # Use the session data directly since it already has the correct player ID for current league
+            analyze_data = get_player_analysis(session_user)
+        else:
+            # Fallback: Look up player data from database using name matching
+            print(f"[DEBUG] No player ID in session, looking up from database")
+            
+            player_query = '''
+                SELECT 
+                    first_name,
+                    last_name,
+                    email,
+                    tenniscores_player_id,
+                    club_id,
+                    series_id,
+                    league_id
+                FROM players 
+                WHERE first_name = %s AND last_name = %s
+            '''
+            
+            player_data = execute_query_one(player_query, [
+                session_user.get('first_name'), 
+                session_user.get('last_name')
+            ])
+            
+            if player_data:
+                # Create a complete user object with both session and database data
+                complete_user = {
+                    'email': session_user.get('email'),
+                    'first_name': player_data['first_name'],
+                    'last_name': player_data['last_name'],
+                    'tenniscores_player_id': player_data['tenniscores_player_id'],
+                    'club_id': player_data['club_id'],
+                    'series_id': player_data['series_id'],
+                    'league_id': player_data['league_id']
+                }
+                print(f"[DEBUG] Complete user data from DB lookup: {complete_user}")
+                analyze_data = get_player_analysis(complete_user)
+            else:
+                print(f"[DEBUG] No player data found for {session_user.get('first_name')} {session_user.get('last_name')}")
+                analyze_data = {
+                    'error': 'Player data not found in database',
+                    'current_season': None,
+                    'court_analysis': {},
+                    'career_stats': None
+                }
         
         session_data = {
             'user': session['user'],
@@ -221,6 +273,387 @@ def serve_mobile_analyze_me():
         return render_template('mobile/analyze_me.html', 
                              session_data=session_data,
                              analyze_data=analyze_data)
+
+@mobile_bp.route('/api/player-history-chart')
+@login_required
+def get_player_history_chart():
+    """API endpoint to get player history data for PTI chart - matches rally_reference format"""
+    try:
+        if 'user' not in session:
+            return jsonify({'error': 'Not authenticated'}), 401
+        
+        user = session['user']
+        player_id = user.get('tenniscores_player_id')
+        player_name = f"{user.get('first_name', '')} {user.get('last_name', '')}".strip()
+        
+        if not player_id:
+            return jsonify({'error': 'Player ID not found'}), 400
+        
+        # Get player's database ID first
+        player_query = '''
+            SELECT 
+                p.id,
+                p.pti as current_pti,
+                p.series_id,
+                s.name as series_name
+            FROM players p
+            LEFT JOIN series s ON p.series_id = s.id
+            WHERE p.tenniscores_player_id = %s
+        '''
+        player_data = execute_query_one(player_query, [player_id])
+        
+        if not player_data:
+            return jsonify({'error': 'Player not found'}), 404
+        
+        player_db_id = player_data['id']
+        
+        # Get PTI history from player_history table
+        pti_history_query = '''
+            SELECT 
+                date,
+                end_pti,
+                series,
+                TO_CHAR(date, 'MM/DD/YYYY') as formatted_date
+            FROM player_history
+            WHERE player_id = %s
+            ORDER BY date ASC
+        '''
+        
+        pti_records = execute_query(pti_history_query, [player_db_id])
+        
+        if not pti_records:
+            # If no records found by player_id, try series matching as fallback
+            series_name = player_data.get('series_name', '')
+            if series_name:
+                series_patterns = [
+                    f'%{series_name}%',
+                    f'%{series_name.split()[0]}%' if ' ' in series_name else f'%{series_name}%'
+                ]
+                
+                for pattern in series_patterns:
+                    series_history_query = '''
+                        SELECT 
+                            date,
+                            end_pti,
+                            series,
+                            TO_CHAR(date, 'MM/DD/YYYY') as formatted_date
+                        FROM player_history
+                        WHERE series ILIKE %s
+                        ORDER BY date ASC
+                    '''
+                    
+                    pti_records = execute_query(series_history_query, [pattern])
+                    if pti_records:
+                        break
+        
+        if not pti_records:
+            return jsonify({'error': 'No PTI history found'}), 404
+        
+        # Format matches data to match rally_reference format
+        matches_data = []
+        for record in pti_records:
+            matches_data.append({
+                'date': record['formatted_date'],  # MM/DD/YYYY format
+                'end_pti': float(record['end_pti'])
+            })
+        
+        # Return data in the format expected by rally_reference JavaScript
+        response_data = {
+            'name': player_name,
+            'matches': matches_data,
+            'success': True,
+            'data': matches_data,  # Include both formats for compatibility
+            'player_name': player_name,
+            'total_matches': len(matches_data)
+        }
+        
+        return jsonify(response_data)
+        
+    except Exception as e:
+        print(f"Error fetching player history chart: {str(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
+        return jsonify({'error': 'Failed to fetch player history chart'}), 500
+
+@mobile_bp.route('/api/season-history')
+@login_required
+def get_season_history():
+    """API endpoint to get previous season history data"""
+    try:
+        if 'user' not in session:
+            return jsonify({'error': 'Not authenticated'}), 401
+        
+        user = session['user']
+        player_id = user.get('tenniscores_player_id')
+        
+        if not player_id:
+            return jsonify({'error': 'Player ID not found'}), 400
+        
+        # Get player's database ID first
+        player_query = '''
+            SELECT 
+                p.id,
+                p.pti as current_pti,
+                p.series_id,
+                s.name as series_name
+            FROM players p
+            LEFT JOIN series s ON p.series_id = s.id
+            WHERE p.tenniscores_player_id = %s
+        '''
+        player_data = execute_query_one(player_query, [player_id])
+        
+        if not player_data:
+            return jsonify({'error': 'Player not found'}), 404
+        
+        player_db_id = player_data['id']
+        
+        # Debug logging
+        print(f"[DEBUG] Season History - Player ID: {player_id}")
+        print(f"[DEBUG] Season History - Player DB ID: {player_db_id}")  
+        print(f"[DEBUG] Season History - Player Series: {player_data.get('series_name')}")
+        print(f"[DEBUG] Season History - Player Current PTI: {player_data.get('current_pti')}")
+        
+        # Debug: Check all player_history records for this player
+        debug_query = '''
+            SELECT series, date, end_pti 
+            FROM player_history 
+            WHERE player_id = %s 
+            ORDER BY date DESC 
+        '''
+        debug_records = execute_query(debug_query, [player_db_id])
+        print(f"[DEBUG] Season History - ALL {len(debug_records)} player_history records for player_id {player_db_id}:")
+        
+        # Group by series to see what series this player actually has
+        series_counts = {}
+        for record in debug_records:
+            series = record['series']
+            if series not in series_counts:
+                series_counts[series] = 0
+            series_counts[series] += 1
+            
+        print(f"[DEBUG] Season History - Series breakdown:")
+        for series, count in series_counts.items():
+            print(f"  {series}: {count} records")
+        
+        # Show first few records from each series
+        print(f"[DEBUG] Season History - Sample records:")
+        for record in debug_records[:10]:
+            print(f"  Date: {record['date']}, Series: {record['series']}, PTI: {record['end_pti']}")
+        
+        # Get season history data aggregated by series and tennis season (Aug-May)
+        season_history_query = '''
+            WITH season_data AS (
+                SELECT 
+                    series,
+                    -- Calculate tennis season year (Aug-May spans two calendar years)
+                    -- If month >= 8 (Aug-Dec), season starts that year
+                    -- If month < 8 (Jan-Jul), season started previous year
+                    CASE 
+                        WHEN EXTRACT(MONTH FROM date) >= 8 THEN EXTRACT(YEAR FROM date)
+                        ELSE EXTRACT(YEAR FROM date) - 1
+                    END as season_year,
+                    date,
+                    end_pti,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY series, 
+                        CASE 
+                            WHEN EXTRACT(MONTH FROM date) >= 8 THEN EXTRACT(YEAR FROM date)
+                            ELSE EXTRACT(YEAR FROM date) - 1
+                        END 
+                        ORDER BY date ASC
+                    ) as rn_start,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY series, 
+                        CASE 
+                            WHEN EXTRACT(MONTH FROM date) >= 8 THEN EXTRACT(YEAR FROM date)
+                            ELSE EXTRACT(YEAR FROM date) - 1
+                        END 
+                        ORDER BY date DESC
+                    ) as rn_end
+                FROM player_history
+                WHERE player_id = %s
+                ORDER BY date DESC
+            ),
+            season_summary AS (
+                SELECT 
+                    series,
+                    season_year,
+                    MAX(CASE WHEN rn_start = 1 THEN end_pti END) as pti_start,
+                    MAX(CASE WHEN rn_end = 1 THEN end_pti END) as pti_end,
+                    COUNT(*) as matches_count
+                FROM season_data
+                GROUP BY series, season_year
+                HAVING COUNT(*) >= 3  -- Only show seasons with at least 3 matches
+            )
+            SELECT 
+                series,
+                season_year,
+                pti_start,
+                pti_end,
+                (pti_end - pti_start) as trend,
+                matches_count
+            FROM season_summary
+            ORDER BY season_year ASC, series
+            LIMIT 10
+        '''
+        
+        # Debug: Let's also run the inner query to see what raw data the aggregation is working with
+        debug_season_query = '''
+            SELECT 
+                series,
+                CASE 
+                    WHEN EXTRACT(MONTH FROM date) >= 8 THEN EXTRACT(YEAR FROM date)
+                    ELSE EXTRACT(YEAR FROM date) - 1
+                END as season_year,
+                date,
+                end_pti
+            FROM player_history
+            WHERE player_id = %s
+            ORDER BY season_year, series, date
+        '''
+        debug_season_records = execute_query(debug_season_query, [player_db_id])
+        print(f"[DEBUG] Season History - Raw records going into season aggregation:")
+        for record in debug_season_records:
+            print(f"  Season: {record['season_year']}, Series: {record['series']}, Date: {record['date']}, PTI: {record['end_pti']}")
+        
+        season_records = execute_query(season_history_query, [player_db_id])
+        
+        print(f"[DEBUG] Season History - Direct player_id query returned {len(season_records) if season_records else 0} records")
+        if season_records:
+            print(f"[DEBUG] Season History - Direct query results (showing ALL series this player has participated in):")
+            for record in season_records:
+                print(f"  Series: {record['series']}, Season: {record['season_year']}, PTI: {record['pti_start']} -> {record['pti_end']}, Matches: {record['matches_count']}")
+        
+        if not season_records:
+            # Try series matching as fallback
+            series_name = player_data.get('series_name', '')
+            print(f"[DEBUG] Season History - No direct results, trying series fallback with: '{series_name}'")
+            if series_name:
+                # Create more precise series patterns to avoid false matches
+                series_patterns = [f'%{series_name}%']  # Exact series name match only
+                
+                # Only add first-word pattern if series name is very specific (has colon or numbers)
+                if ':' in series_name or any(char.isdigit() for char in series_name):
+                    first_part = series_name.split()[0] if ' ' in series_name else series_name
+                    # Add pattern with colon to match "Chicago:" vs "Chicago 34"
+                    if ':' not in first_part:
+                        series_patterns.append(f'%{first_part}:%')
+                    series_patterns.append(f'%{first_part}%')
+                
+                print(f"[DEBUG] Season History - Trying series patterns: {series_patterns}")
+                
+                for pattern in series_patterns:
+                    print(f"[DEBUG] Season History - Trying pattern: '{pattern}'")
+                    fallback_query = '''
+                        WITH season_data AS (
+                            SELECT 
+                                series,
+                                -- Calculate tennis season year (Aug-May spans two calendar years)
+                                CASE 
+                                    WHEN EXTRACT(MONTH FROM date) >= 8 THEN EXTRACT(YEAR FROM date)
+                                    ELSE EXTRACT(YEAR FROM date) - 1
+                                END as season_year,
+                                date,
+                                end_pti,
+                                ROW_NUMBER() OVER (
+                                    PARTITION BY series, 
+                                    CASE 
+                                        WHEN EXTRACT(MONTH FROM date) >= 8 THEN EXTRACT(YEAR FROM date)
+                                        ELSE EXTRACT(YEAR FROM date) - 1
+                                    END 
+                                    ORDER BY date ASC
+                                ) as rn_start,
+                                ROW_NUMBER() OVER (
+                                    PARTITION BY series, 
+                                    CASE 
+                                        WHEN EXTRACT(MONTH FROM date) >= 8 THEN EXTRACT(YEAR FROM date)
+                                        ELSE EXTRACT(YEAR FROM date) - 1
+                                    END 
+                                    ORDER BY date DESC
+                                ) as rn_end
+                            FROM player_history
+                            WHERE series ILIKE %s
+                            ORDER BY date DESC
+                        ),
+                        season_summary AS (
+                            SELECT 
+                                series,
+                                season_year,
+                                MAX(CASE WHEN rn_start = 1 THEN end_pti END) as pti_start,
+                                MAX(CASE WHEN rn_end = 1 THEN end_pti END) as pti_end,
+                                COUNT(*) as matches_count
+                            FROM season_data
+                            GROUP BY series, season_year
+                            HAVING COUNT(*) >= 3  -- Only show seasons with at least 3 matches
+                        )
+                        SELECT 
+                            series,
+                            season_year,
+                            pti_start,
+                            pti_end,
+                            (pti_end - pti_start) as trend,
+                            matches_count
+                        FROM season_summary
+                        ORDER BY season_year ASC, series
+                        LIMIT 10
+                    '''
+                    
+                    season_records = execute_query(fallback_query, [pattern])
+                    print(f"[DEBUG] Season History - Pattern '{pattern}' returned {len(season_records) if season_records else 0} records")
+                    if season_records:
+                        print(f"[DEBUG] Season History - Fallback query results:")
+                        for record in season_records:
+                            print(f"  Series: {record['series']}, Season: {record['season_year']}, PTI: {record['pti_start']} -> {record['pti_end']}")
+                        break
+        
+        if not season_records:
+            print(f"[DEBUG] Season History - No season records found for player {player_id}")
+            return jsonify({'error': 'No season history found'}), 404
+        
+        print(f"[DEBUG] Season History - Final results: {len(season_records)} records found")
+        
+        # Format season data
+        seasons = []
+        for record in season_records:
+            # Create season string (e.g., "2024-2025" for tennis season)
+            season_year = int(record['season_year'])
+            next_year = season_year + 1
+            season_str = f"{season_year}-{next_year}"
+            
+            # Format trend with arrow (positive PTI change = worse performance = red)
+            trend_value = float(record['trend'])
+            if trend_value > 0:
+                trend_display = f"+{trend_value:.1f} ▲"
+                trend_class = "text-red-600"  # Positive = PTI went up = worse performance = red
+            elif trend_value < 0:
+                trend_display = f"{trend_value:.1f} ▼"
+                trend_class = "text-green-600"  # Negative = PTI went down = better performance = green
+            else:
+                trend_display = "0.0 ─"
+                trend_class = "text-gray-500"
+            
+            seasons.append({
+                'season': season_str,
+                'series': record['series'],
+                'pti_start': round(float(record['pti_start']), 1),
+                'pti_end': round(float(record['pti_end']), 1),
+                'trend': trend_value,
+                'trend_display': trend_display,
+                'trend_class': trend_class,
+                'matches_count': record['matches_count']
+            })
+        
+        return jsonify({
+            'success': True,
+            'seasons': seasons,
+            'player_name': f"{user.get('first_name', '')} {user.get('last_name', '')}".strip()
+        })
+        
+    except Exception as e:
+        print(f"Error fetching season history: {str(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
+        return jsonify({'error': 'Failed to fetch season history'}), 500
 
 @mobile_bp.route('/mobile/my-team')
 @login_required

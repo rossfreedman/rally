@@ -13,22 +13,21 @@
     {% if analyze_data.error %}
         <div class="text-red-600 text-center my-8">{{ analyze_data.error }}</div>
     {% endif %}
+    <!-- Current Season Stats -->
     <div class='analyze-card'>
-        <div class='analyze-card-header'><i class='fas fa-user'></i> Player Stats</div>
+        <div class='analyze-card-header'><i class='fas fa-user'></i> Current Season Stats</div>
         <div class='w-full'>
             <table class='player-stats-table w-full'>
                 <thead>
                     <tr>
-                        <th class='w-1/3'></th>
-                        <th class='w-1/3 text-black text-lg font-bold pb-2'>Current Season</th>
-                        <th class='w-1/3 text-black text-lg font-bold pb-2'>Career</th>
+                        <th class='w-1/2'></th>
+                        <th class='w-1/2 text-black text-lg font-bold pb-2'>Current Season</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
                         <td class='stat-label'><i class='fas fa-table-tennis-paddle-ball text-black'></i> Matches</td>
-                        <td class='stat-value text-black'>{{ analyze_data.current_season.matches }}</td>
-                        <td class='stat-value text-black'>{{ analyze_data.career_stats.matches }}</td>
+                        <td class='stat-value text-black'>{{ analyze_data.current_season.matches or 'N/A' }}</td>
                     </tr>
                     <tr class="row-divider">
                         <td class='stat-label'><i class="fas fa-list-ol text-black"></i> Record</td>
@@ -41,20 +40,10 @@
                               N/A
                             {% endif %}
                         </td>
-                        <td class='stat-value text-black'>
-                            {% set wins = analyze_data.career_stats.wins if analyze_data.career_stats.wins is defined else (analyze_data.career_stats.winRate * analyze_data.career_stats.matches // 100 if analyze_data.career_stats.matches != 'N/A' and analyze_data.career_stats.winRate != 'N/A' else 'N/A') %}
-                            {% set losses = analyze_data.career_stats.matches - wins if wins != 'N/A' and analyze_data.career_stats.matches != 'N/A' else 'N/A' %}
-                            {% if wins != 'N/A' and losses != 'N/A' %}
-                              {{ wins|int }} wins / {{ losses|int }} losses
-                            {% else %}
-                              N/A
-                            {% endif %}
-                        </td>
                     </tr>
                     <tr>
                         <td class='stat-label'><span class='text-blue-700'><i class='fas fa-percent'></i></span> Wins</td>
                         <td class='stat-value text-black'>{{ analyze_data.current_season.winRate|round(1, 'common') if analyze_data.current_season.winRate is not string else analyze_data.current_season.winRate }}%</td>
-                        <td class='stat-value text-black'>{{ analyze_data.career_stats.winRate|round(1, 'common') if analyze_data.career_stats.winRate is not string else analyze_data.career_stats.winRate }}%</td>
                     </tr>
                     <tr>
                         <td class='stat-label text-center'><i class='fas fa-arrow-down text-black'></i> PTI Change</td>
@@ -70,23 +59,54 @@
                                 <span class="text-black">0.0</span>
                             {% endif %}
                         </td>
-                        <td class='stat-value text-center'>
-                            {% set pti = analyze_data.career_pti_change %}
-                            {% if pti is string or pti == 'N/A' %}
-                                <span class="text-black">{{ pti }}</span>
-                            {% elif pti|float > 0 %}
-                                <span class="text-red-600 font-bold flex items-center justify-center">{{ pti|round(1, 'common') }} <span aria-label="PTI Up" class="ml-1">▲</span></span>
-                            {% elif pti|float < 0 %}
-                                <span class="text-gray-700 font-bold flex items-center justify-center">{{ pti|round(1, 'common') }} <span aria-label="PTI Down" class="ml-1">▼</span></span>
-                            {% else %}
-                                <span class="text-black">0.0</span>
-                            {% endif %}
-                        </td>
                     </tr>
                 </tbody>
             </table>
         </div>
     </div>
+
+    <!-- Career Stats (only show if career stats exist beyond current season) -->
+    {% if analyze_data.career_stats %}
+    <div class='analyze-card'>
+        <div class='analyze-card-header'><i class='fas fa-history'></i> Career Stats</div>
+        <div class='w-full'>
+            <table class='player-stats-table w-full'>
+                <thead>
+                    <tr>
+                        <th class='w-1/2'></th>
+                        <th class='w-1/2 text-black text-lg font-bold pb-2'>Career</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class='stat-label'><i class='fas fa-table-tennis-paddle-ball text-black'></i> Matches</td>
+                        <td class='stat-value text-black'>{{ analyze_data.career_stats.matches or 'N/A' }}</td>
+                    </tr>
+                    <tr class="row-divider">
+                        <td class='stat-label'><i class="fas fa-list-ol text-black"></i> Record</td>
+                        <td class='stat-value text-black'>
+                            {% set wins = analyze_data.career_stats.wins if analyze_data.career_stats.wins is defined else (analyze_data.career_stats.winRate * analyze_data.career_stats.matches // 100 if analyze_data.career_stats.matches != 'N/A' and analyze_data.career_stats.winRate != 'N/A' else 'N/A') %}
+                            {% set losses = analyze_data.career_stats.matches - wins if wins != 'N/A' and analyze_data.career_stats.matches != 'N/A' else 'N/A' %}
+                            {% if wins != 'N/A' and losses != 'N/A' %}
+                              {{ wins|int }} wins / {{ losses|int }} losses
+                            {% else %}
+                              N/A
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class='stat-label'><span class='text-blue-700'><i class='fas fa-percent'></i></span> Wins</td>
+                        <td class='stat-value text-black'>{{ analyze_data.career_stats.winRate|round(1, 'common') if analyze_data.career_stats.winRate is not string else analyze_data.career_stats.winRate }}%</td>
+                    </tr>
+                    <tr>
+                        <td class='stat-label'><i class='fas fa-trophy text-black'></i> Career PTI</td>
+                        <td class='stat-value text-black'>{{ analyze_data.career_stats.pti or 'N/A' }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
     <div class='analyze-card'>
         <div class='analyze-card-header'><i class='fas fa-table-tennis'></i> Court Analysis</div>
         <div class='grid grid-cols-2 gap-3'>

@@ -1,0 +1,64 @@
+/**
+ * DIRECT WHITE TEXT OVERRIDES
+ * This file contains emergency fixes to force white text in the sidebar
+ */
+
+:root {
+  --text-color-override: white !important;
+}
+
+/* Apply to all possible elements directly */
+[id^="nav-"] {
+  color: var(--text-color-override);
+}
+
+/* Apply important color using custom property hack to increase specificity */
+.sidebar, 
+.sidebar *, 
+.sidebar *:not(img),
+.sidebar a,
+.sidebar i,
+.sidebar span,
+.sidebar div {
+  color: var(--text-color-override);
+  color: white !important;
+}
+
+/* Set all possible text color to white */
+.nav-item, 
+.nav-section-header, 
+.nav-section {
+  color: white !important;
+}
+
+/* Target potentially problematic elements */
+.sidebar-nav *:not(svg):not(img),
+.sidebar *:not(svg):not(img) {
+  color: white !important;
+}
+
+/* Add !important to all color-related properties */
+.sidebar {
+  --text-color: white !important;
+  --color: white !important;
+  --foreground-color: white !important;
+  color: white !important;
+}
+
+/* Last resort - use inline CSS via attribute selector */
+[style*="color:"] {
+  color: white !important;
+}
+
+/* Force all font related customizations */
+.sidebar, .sidebar * {
+  -webkit-text-fill-color: white !important;
+  text-fill-color: white !important;
+  text-decoration-color: white !important;
+  text-emphasis-color: white !important;
+}
+
+/* Add custom style attribute to each text element */
+font[color], span[style], a[style] {
+  color: white !important;
+} 

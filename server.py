@@ -317,8 +317,13 @@ def redirect_index_html():
 @app.route('/contact-sub')
 @login_required
 def serve_contact_sub():
-    """Serve the contact sub page"""
-    return send_from_directory('static/components', 'contact-sub.html')
+    """Serve the modern contact sub page"""
+    session_data = {
+        'user': session['user'],
+        'authenticated': True
+    }
+    log_user_activity(session['user']['email'], 'page_visit', page='contact_sub')
+    return render_template('mobile/contact_sub.html', session_data=session_data)
 
 @app.route('/<path:path>')
 @login_required
@@ -380,29 +385,7 @@ def routes_info():
         'conflict_details': analysis['conflicts'] if analysis['conflicts'] else None
     })
 
-@app.route('/player-detail/<player_name>')
-@login_required
-def serve_player_detail(player_name):
-    """Serve the player detail page"""
-    try:
-        session_data = {
-            'user': session['user'],
-            'authenticated': True
-        }
-        
-        log_user_activity(
-            session['user']['email'], 
-            'page_visit',
-            page='player_detail',
-            details=f'Viewed player detail for {player_name}'
-        )
-        
-        return render_template('player_detail.html', 
-                             player_name=player_name,
-                             session_data=session_data)
-    except Exception as e:
-        print(f"Error serving player detail: {str(e)}")
-        return f"Error loading player detail: {str(e)}", 500
+# Removed duplicate route - this is now handled by player_routes.py blueprint
 
 # ==========================================
 # ERROR HANDLERS

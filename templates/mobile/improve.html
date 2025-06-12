@@ -2,307 +2,333 @@
 {% set show_back_arrow = True %}
 
 {% block content %}
-<div class="max-w-lg mx-auto">
-    <!-- Consistent Header -->
-    <div class="flex items-center gap-3 mt-4 mb-2 px-4">
-        <div class="bg-white rounded-md flex items-center justify-center h-12 w-12">
-            <i class="fas fa-chart-line text-black text-3xl"></i>
-        </div>
-        <div>
-            <div class="text-2xl font-bold leading-tight">Improve My Game</div>
-            <div class="text-base text-gray-500 mt-1">Training resources and performance analysis</div>
+<div class="min-h-screen bg-gray-50">
+    
+    <!-- Header -->
+    <div class="bg-white border-b border-gray-100">
+        <div class="flex items-center px-4 py-6">
+            <div class="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-full flex items-center justify-center shadow-sm">
+                <i class="fas fa-chart-line text-white text-lg"></i>
+            </div>
+            <div class="ml-4">
+                <h1 class="text-xl font-bold text-gray-900">Improve My Game</h1>
+                <p class="text-sm text-gray-500">Training resources and performance analysis</p>
+            </div>
         </div>
     </div>
 
-    <!-- Paddle Tips Section -->
-    {% if paddle_tips %}
-    <div class="p-4 mb-6">
-        <div class="bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg shadow-lg p-4 text-white">
-            <div class="flex items-center justify-between mb-4">
-                <div class="flex items-center">
-                    <i class="fas fa-lightbulb text-yellow-300 text-2xl mr-3"></i>
-                    <h3 class="text-xl font-bold" id="tipHeader">Loading tip...</h3>
+    <!-- Content -->
+    <div class="px-4 py-6 space-y-6">
+
+        <!-- Paddle Tips Section -->
+        {% if paddle_tips %}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="bg-gradient-to-br from-blue-500 to-purple-600 p-6 text-white">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center">
+                        <i class="fas fa-lightbulb text-yellow-300 text-2xl mr-3"></i>
+                        <h3 class="text-xl font-bold" id="tipHeader">Loading tip...</h3>
+                    </div>
+                    <button id="refreshTip" class="bg-white bg-opacity-20 hover:bg-opacity-30 rounded-full p-2 transition-all duration-200">
+                        <i class="fas fa-refresh text-white"></i>
+                    </button>
                 </div>
-                <button id="refreshTip" class="bg-white bg-opacity-20 hover:bg-opacity-30 rounded-full p-2 transition-all duration-200">
-                    <i class="fas fa-refresh text-white"></i>
-                </button>
+                
+                <div id="tipContainer" class="min-h-[200px]">
+                    <div class="tip-content">
+                        <!-- Tip Image -->
+                        <div class="mb-3">
+                            <img id="tipImage" src="" alt="Paddle Tip" class="w-full h-48 object-cover rounded-lg border-2 border-white border-opacity-20 hidden">
+                        </div>
+                        
+                        <h4 class="text-lg font-semibold mb-2" id="tipTitle">Loading tip...</h4>
+                        <p class="text-sm text-blue-100 mb-3" id="tipMeta">Tip #</p>
+                        <p class="text-white leading-relaxed mb-3" id="tipDescription">Loading...</p>
+                        
+                        <div id="tipActions" class="flex justify-between items-center mb-3">
+                            <span class="text-xs text-blue-200" id="tipDate"></span>
+                            <a id="tipVideoLink" href="#" target="_blank" class="bg-white bg-opacity-20 hover:bg-opacity-30 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hidden">
+                                <i class="fas fa-play mr-1"></i> Watch Video
+                            </a>
+                        </div>
+                        
+                        <!-- View More Link -->
+                        <div class="border-t border-white border-opacity-20 pt-3">
+                            <button id="viewMoreTip" class="w-full bg-white bg-opacity-10 hover:bg-opacity-20 rounded-lg py-2 px-4 text-white font-medium transition-all duration-200 flex items-center justify-center">
+                                <i class="fas fa-external-link-alt mr-2"></i> View Full Tip
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Coach Rally Section -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <div class="flex items-center gap-3">
+                    <div class="bg-gradient-to-br from-green-500 to-blue-600 rounded-full flex items-center justify-center h-10 w-10">
+                        <i class="fas fa-user-graduate text-white text-lg"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900">Coach Rally</h3>
+                        <p class="text-sm text-gray-500">Your AI-powered coach</p>
+                    </div>
+                </div>
             </div>
             
-            <div id="tipContainer" class="min-h-[200px]">
-                <div class="tip-content">
-                    <!-- Tip Image -->
-                    <div class="mb-3">
-                        <img id="tipImage" src="" alt="Paddle Tip" class="w-full h-48 object-cover rounded-lg border-2 border-white border-opacity-20 hidden">
-                    </div>
-                    
-                    <h4 class="text-lg font-semibold mb-2" id="tipTitle">Loading tip...</h4>
-                    <p class="text-sm text-blue-100 mb-3" id="tipMeta">Tip #</p>
-                    <p class="text-white leading-relaxed mb-3" id="tipDescription">Loading...</p>
-                    
-                    <div id="tipActions" class="flex justify-between items-center mb-3">
-                        <span class="text-xs text-blue-200" id="tipDate"></span>
-                        <a id="tipVideoLink" href="#" target="_blank" class="bg-white bg-opacity-20 hover:bg-opacity-30 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hidden">
-                            <i class="fas fa-play mr-1"></i> Watch Video
-                        </a>
-                    </div>
-                    
-                    <!-- View More Link -->
-                    <div class="border-t border-white border-opacity-20 pt-3">
-                        <button id="viewMoreTip" class="w-full bg-white bg-opacity-10 hover:bg-opacity-20 rounded-lg py-2 px-4 text-white font-medium transition-all duration-200 flex items-center justify-center">
-                            <i class="fas fa-external-link-alt mr-2"></i> View Full Tip
-                        </button>
-                    </div>
+            <div class="p-6">
+                <!-- Chat Preview -->
+                <div id="chat-preview" class="bg-gray-50 rounded-xl p-3 mb-4 min-h-[100px] max-h-[150px] overflow-y-auto cursor-pointer hover:bg-gray-100 transition-colors duration-200">
+                    <div class="text-sm text-gray-500 italic">Ask me anything about paddle tennis to improve your game...</div>
+                </div>
+                
+                <!-- Chat Input Form -->
+                <form id="paddle-coach-form" class="flex gap-2 mb-4">
+                    <input type="text" 
+                           id="paddle-coach-input" 
+                           class="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                           placeholder="Ask Coach Rally a question..."
+                           autocomplete="off" 
+                           required>
+                    <button type="submit" 
+                            class="bg-gradient-to-br from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white px-4 py-2 rounded-lg transition-all duration-200">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </form>
+                
+                <div class="text-xs text-gray-500">
+                    <i class="fas fa-lightbulb mr-1"></i>
+                    Try:<br>
+                    - "How do I improve my serve?"<br>
+                    - "Transitioning from Defense to Offense"<br>
+                    - "Blitzing strategies"
                 </div>
             </div>
         </div>
-    </div>
-    {% endif %}
 
-    <!-- Coach Rally Section -->
-    <div class="p-4 bg-white rounded-lg shadow mb-4 border-2 border-blue-400">
-        <div class="flex items-center gap-3 mb-4">
-            <div class="bg-gradient-to-br from-green-500 to-blue-600 rounded-md flex items-center justify-center h-10 w-10">
-                <i class="fas fa-user-graduate text-white text-lg"></i>
-            </div>
-            <div>
-                <h3 class="text-xl font-bold text-gray-800">Coach Rally</h3>
-                <p class="text-sm text-gray-600">Your AI-powered coach</p>
-            </div>
-        </div>
-        
-        <!-- Chat Preview -->
-        <div id="chat-preview" class="bg-gray-50 rounded-xl p-3 mb-4 min-h-[100px] max-h-[150px] overflow-y-auto">
-            <div class="text-sm text-gray-500 italic">Ask me anything about paddle tennis to improve your game...</div>
-        </div>
-        
-        <!-- Chat Input Form -->
-        <form id="paddle-coach-form" class="flex gap-2">
-            <input type="text" 
-                   id="paddle-coach-input" 
-                   class="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                   autocomplete="off" 
-                   required>
-            <button type="submit" 
-                    class="bg-gradient-to-br from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white px-4 py-2 rounded-lg transition-all duration-200">
-                <i class="fas fa-paper-plane"></i>
-            </button>
-        </form>
-        
-        <div class="text-xs text-gray-500 mt-2">
-            <i class="fas fa-lightbulb mr-1"></i>
-            Try:<br>
-            - "How do I improve my serve?"<br>
-            - "Transitioning from Defense to Offense"<br>
-            - "Blitzing strategies"
-        </div>
-    </div>
-
-    <!-- Full Screen Modal -->
-    <div id="coach-rally-modal" class="fixed inset-0 bg-white z-50 hidden flex flex-col">
-        <!-- Modal Header -->
-        <div class="flex items-center justify-between p-4 border-b border-gray-200 bg-white shadow sticky top-0 z-10">
-            <div class="flex items-center gap-3">
-                <div class="bg-gradient-to-br from-green-500 to-blue-600 rounded-md flex items-center justify-center h-10 w-10">
-                    <i class="fas fa-user-graduate text-white text-lg"></i>
+        <!-- Full Screen Modal -->
+        <div id="coach-rally-modal" class="fixed inset-0 bg-white z-50 hidden flex flex-col">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between p-4 border-b border-gray-200 bg-white shadow sticky top-0 z-10">
+                <div class="flex items-center gap-3">
+                    <div class="bg-gradient-to-br from-green-500 to-blue-600 rounded-md flex items-center justify-center h-10 w-10">
+                        <i class="fas fa-user-graduate text-white text-lg"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-bold text-gray-800">Coach Rally</h3>
+                        <p class="text-sm text-gray-600">Your AI-powered coach</p>
+                    </div>
                 </div>
-                <div>
-                    <h3 class="text-xl font-bold text-gray-800">Coach Rally</h3>
-                    <p class="text-sm text-gray-600">Your AI-powered coach</p>
-                </div>
-            </div>
-            <button id="close-modal" class="p-2 hover:bg-gray-100 rounded-full">
-                <i class="fas fa-times text-gray-500 text-xl"></i>
-            </button>
-        </div>
-
-        <!-- Chat Messages Container -->
-        <div id="paddle-coach-messages" class="flex-1 overflow-y-auto p-4 space-y-4 imessage-background"></div>
-
-        <!-- Chat Input Form -->
-        <div class="p-4 border-t border-gray-200 bg-white">
-            <form id="modal-coach-form" class="flex gap-2">
-                <input type="text" 
-                       id="modal-coach-input" 
-                       class="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                       autocomplete="off" 
-                       required>
-                <button type="submit" 
-                        class="bg-gradient-to-br from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white px-4 py-2 rounded-lg transition-all duration-200">
-                    <i class="fas fa-paper-plane"></i>
+                <button id="close-modal" class="p-2 hover:bg-gray-100 rounded-full">
+                    <i class="fas fa-times text-gray-500 text-xl"></i>
                 </button>
-            </form>
+            </div>
+
+            <!-- Chat Messages Container -->
+            <div id="paddle-coach-messages" class="flex-1 overflow-y-auto p-4 space-y-4 imessage-background"></div>
+
+            <!-- Chat Input Form -->
+            <div class="p-4 border-t border-gray-200 bg-white">
+                <form id="modal-coach-form" class="flex gap-2">
+                    <input type="text" 
+                           id="modal-coach-input" 
+                           class="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                           autocomplete="off" 
+                           required>
+                    <button type="submit" 
+                            class="bg-gradient-to-br from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white px-4 py-2 rounded-lg transition-all duration-200">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </form>
+            </div>
         </div>
-    </div>
 
-    <!-- Training Resources Section -->
-    <div class="p-4">
-      <div class="border-2 border-blue-200 rounded-xl p-4 bg-white">
-        <h2 class="text-xl font-bold text-blue-700 mb-4">Training Resources</h2>
-        <div class="space-y-4">
-          <!-- Video Library Card -->
-          <div class="bg-gray-50 rounded-lg shadow p-4 relative">
-              <div class="flex items-center justify-between mb-3">
-                  <div class="flex items-center">
-                      <i class="fas fa-video text-gray-400 text-xl mr-2"></i>
-                      <span class="text-lg font-bold text-gray-700">Training Video Library</span>
-                  </div>
-                  <span class="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full font-medium">Coming Soon</span>
-              </div>
-              <p class="text-gray-700 mb-4">Access our curated collection of training videos and tutorials.</p>
-              <div class="text-gray-700 font-semibold flex items-center cursor-not-allowed">
-                  Browse Videos <i class="fas fa-lock ml-2"></i>
-              </div>
-          </div>
-          <!-- Drills & Exercises Card -->
-          <div class="bg-gray-50 rounded-lg shadow p-4 relative">
-              <div class="flex items-center justify-between mb-3">
-                  <div class="flex items-center">
-                      <i class="fas fa-dumbbell text-gray-400 text-xl mr-2"></i>
-                      <span class="text-lg font-bold text-gray-700">Drills & Exercises</span>
-                  </div>
-                  <span class="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full font-medium">Coming Soon</span>
-              </div>
-              <p class="text-gray-700 mb-4">Practice routines and exercises to enhance your skills.</p>
-              <div class="text-gray-700 font-semibold flex items-center cursor-not-allowed">
-                  View Drills <i class="fas fa-lock ml-2"></i>
-              </div>
-          </div>
-          <!-- Performance Analysis Card -->
-          <div class="bg-gray-50 rounded-lg shadow p-4 relative">
-              <div class="flex items-center justify-between mb-3">
-                  <div class="flex items-center">
-                      <i class="fas fa-chart-bar text-gray-400 text-xl mr-2"></i>
-                      <span class="text-lg font-bold text-gray-700">Performance Analysis</span>
-                  </div>
-                  <span class="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full font-medium">Coming Soon</span>
-              </div>
-              <p class="text-gray-700 mb-4">Track your progress and identify areas for improvement.</p>
-              <div class="text-gray-700 font-semibold flex items-center cursor-not-allowed">
-                  View Analysis <i class="fas fa-lock ml-2"></i>
-              </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Review Video Footage Section -->
-    <div class="p-4 space-y-4 bg-gray-50 relative">
-        <div class="flex items-center justify-between">
-            <div class="flex items-center gap-2">
-                <i class="fas fa-video text-gray-400 text-xl"></i>
-                <h2 class="text-xl font-bold text-gray-700">Review Video Footage</h2>
+        <!-- Training Resources Section -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-graduation-cap text-blue-500 mr-2"></i>
+                    Training Resources
+                </h2>
             </div>
-            <span class="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full font-medium">Coming Soon</span>
-        </div>
-        <p class="text-gray-700 text-sm">This feature will allow you to review and analyze your match footage.</p>
-
-        <h3 class="text-lg font-semibold mt-6 mb-4 text-gray-700">Match Videos</h3>
-        <div class="grid grid-cols-1 gap-4">
-            <!-- Match Video 1 -->
-            <div class="bg-gray-100 rounded-lg shadow overflow-hidden relative">
-                <img src="/static/images/video_thumbnail.png" class="w-full h-48 object-cover opacity-50" alt="Match Video">
-                <div class="absolute inset-0 flex items-center justify-center">
-                    <i class="fas fa-lock text-gray-400 text-3xl"></i>
-                </div>
-                <div class="p-4">
-                    <div class="flex justify-between items-center mb-2">
-                        <h5 class="font-semibold text-sm text-gray-700">You/Jonathan Blume vs. Victor Forman/Stephen Statkus - Court 3</h5>
-                        <span class="bg-gray-400 text-white text-xs px-2 py-1 rounded">12:43</span>
+            
+            <div class="p-6 space-y-4">
+                <!-- Video Library Card -->
+                <div class="bg-gray-50 rounded-lg border border-gray-200 p-4 relative">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center">
+                            <i class="fas fa-video text-gray-400 text-xl mr-2"></i>
+                            <span class="text-lg font-semibold text-gray-700">Training Video Library</span>
+                        </div>
+                        <span class="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full font-medium">Coming Soon</span>
                     </div>
-                    <p class="text-gray-700 text-sm">Apr 12, 2025 • 243 views</p>
-                </div>
-            </div>
-
-            <!-- Match Video 2 -->
-            <div class="bg-gray-100 rounded-lg shadow overflow-hidden relative">
-                <img src="/static/images/video_thumbnail.png" class="w-full h-48 object-cover opacity-50" alt="Match Video">
-                <div class="absolute inset-0 flex items-center justify-center">
-                    <i class="fas fa-lock text-gray-400 text-3xl"></i>
-                </div>
-                <div class="p-4">
-                    <div class="flex justify-between items-center mb-2">
-                        <h5 class="font-semibold text-sm text-gray-700">You/Mike Lieberman vs. Brian Stutland/David Schwartz - Court 1</h5>
-                        <span class="bg-gray-400 text-white text-xs px-2 py-1 rounded">15:21</span>
+                    <p class="text-gray-700 mb-4">Access our curated collection of training videos and tutorials.</p>
+                    <div class="text-gray-700 font-semibold flex items-center cursor-not-allowed">
+                        Browse Videos <i class="fas fa-lock ml-2"></i>
                     </div>
-                    <p class="text-gray-700 text-sm">Mar 24, 2025 • 127 views</p>
                 </div>
-            </div>
-
-            <!-- Match Video 3 -->
-            <div class="bg-gray-100 rounded-lg shadow overflow-hidden relative">
-                <img src="/static/images/video_thumbnail.png" class="w-full h-48 object-cover opacity-50" alt="Match Video">
-                <div class="absolute inset-0 flex items-center justify-center">
-                    <i class="fas fa-lock text-gray-400 text-3xl"></i>
-                </div>
-                <div class="p-4">
-                    <div class="flex justify-between items-center mb-2">
-                        <h5 class="font-semibold text-sm text-gray-700">You/Andrew Franger vs. Mike Lieberman/Josh Cohen - Court 2</h5>
-                        <span class="bg-gray-400 text-white text-xs px-2 py-1 rounded">9:58</span>
+                
+                <!-- Drills & Exercises Card -->
+                <div class="bg-gray-50 rounded-lg border border-gray-200 p-4 relative">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center">
+                            <i class="fas fa-dumbbell text-gray-400 text-xl mr-2"></i>
+                            <span class="text-lg font-semibold text-gray-700">Drills & Exercises</span>
+                        </div>
+                        <span class="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full font-medium">Coming Soon</span>
                     </div>
-                    <p class="text-gray-700 text-sm">Feb 18, 2025 • 85 views</p>
-                </div>
-            </div>
-
-            <!-- Match Video 4 -->
-            <div class="bg-gray-100 rounded-lg shadow overflow-hidden relative">
-                <img src="/static/images/video_thumbnail.png" class="w-full h-48 object-cover opacity-50" alt="Match Video">
-                <div class="absolute inset-0 flex items-center justify-center">
-                    <i class="fas fa-lock text-gray-400 text-3xl"></i>
-                </div>
-                <div class="p-4">
-                    <div class="flex justify-between items-center mb-2">
-                        <h5 class="font-semibold text-sm text-gray-700">You/Victor Forman vs. David Schwartz/Alex Johnson - Court 4</h5>
-                        <span class="bg-gray-400 text-white text-xs px-2 py-1 rounded">11:16</span>
+                    <p class="text-gray-700 mb-4">Practice routines and exercises to enhance your skills.</p>
+                    <div class="text-gray-700 font-semibold flex items-center cursor-not-allowed">
+                        View Drills <i class="fas fa-lock ml-2"></i>
                     </div>
-                    <p class="text-gray-700 text-sm">Jan 30, 2025 • 204 views</p>
+                </div>
+                
+                <!-- Performance Analysis Card -->
+                <div class="bg-gray-50 rounded-lg border border-gray-200 p-4 relative">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center">
+                            <i class="fas fa-chart-bar text-gray-400 text-xl mr-2"></i>
+                            <span class="text-lg font-semibold text-gray-700">Performance Analysis</span>
+                        </div>
+                        <span class="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full font-medium">Coming Soon</span>
+                    </div>
+                    <p class="text-gray-700 mb-4">Track your progress and identify areas for improvement.</p>
+                    <div class="text-gray-700 font-semibold flex items-center cursor-not-allowed">
+                        View Analysis <i class="fas fa-lock ml-2"></i>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <h3 class="text-lg font-semibold mt-6 mb-4 text-gray-700">Practice Videos</h3>
-        <div class="grid grid-cols-1 gap-4">
-            <!-- Practice Video 1 -->
-            <div class="bg-gray-100 rounded-lg shadow overflow-hidden relative">
-                <img src="/static/images/video_thumbnail.png" class="w-full h-48 object-cover opacity-50" alt="Practice Video">
-                <div class="absolute inset-0 flex items-center justify-center">
-                    <i class="fas fa-lock text-gray-400 text-3xl"></i>
-                </div>
-                <div class="p-4">
-                    <div class="flex justify-between items-center mb-2">
-                        <h5 class="font-semibold text-sm text-gray-700">Serve Practice with Coach Smith</h5>
-                        <span class="bg-gray-400 text-white text-xs px-2 py-1 rounded">8:32</span>
+        <!-- Review Video Footage Section -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                        <i class="fas fa-video text-purple-500 text-xl"></i>
+                        <h2 class="text-lg font-semibold text-gray-900">Review Video Footage</h2>
                     </div>
-                    <p class="text-gray-700 text-sm">Apr 15, 2025 • 156 views</p>
+                    <span class="bg-orange-100 text-orange-800 text-xs px-2 py-1 rounded-full font-medium">Coming Soon</span>
                 </div>
+                <p class="text-sm text-gray-600 mt-2">This feature will allow you to review and analyze your match footage.</p>
             </div>
+            
+            <div class="p-6 space-y-6">
+                <div>
+                    <h3 class="text-lg font-semibold mb-4 text-gray-900">Match Videos</h3>
+                    <div class="space-y-4">
+                        <!-- Match Video 1 -->
+                        <div class="bg-gray-50 rounded-lg border border-gray-200 overflow-hidden relative">
+                            <img src="/static/images/video_thumbnail.png" class="w-full h-48 object-cover opacity-50" alt="Match Video">
+                            <div class="absolute inset-0 flex items-center justify-center">
+                                <i class="fas fa-lock text-gray-400 text-3xl"></i>
+                            </div>
+                            <div class="p-4">
+                                <div class="flex justify-between items-center mb-2">
+                                    <h5 class="font-semibold text-sm text-gray-700">You/Jonathan Blume vs. Victor Forman/Stephen Statkus - Court 3</h5>
+                                    <span class="bg-gray-400 text-white text-xs px-2 py-1 rounded">12:43</span>
+                                </div>
+                                <p class="text-gray-700 text-sm">Apr 12, 2025 • 243 views</p>
+                            </div>
+                        </div>
 
-            <!-- Practice Video 2 -->
-            <div class="bg-gray-100 rounded-lg shadow overflow-hidden relative">
-                <img src="/static/images/video_thumbnail.png" class="w-full h-48 object-cover opacity-50" alt="Practice Video">
-                <div class="absolute inset-0 flex items-center justify-center">
-                    <i class="fas fa-lock text-gray-400 text-3xl"></i>
-                </div>
-                <div class="p-4">
-                    <div class="flex justify-between items-center mb-2">
-                        <h5 class="font-semibold text-sm text-gray-700">Backhand Drills Session</h5>
-                        <span class="bg-gray-400 text-white text-xs px-2 py-1 rounded">12:15</span>
-                    </div>
-                    <p class="text-gray-700 text-sm">Apr 8, 2025 • 98 views</p>
-                </div>
-            </div>
+                        <!-- Match Video 2 -->
+                        <div class="bg-gray-50 rounded-lg border border-gray-200 overflow-hidden relative">
+                            <img src="/static/images/video_thumbnail.png" class="w-full h-48 object-cover opacity-50" alt="Match Video">
+                            <div class="absolute inset-0 flex items-center justify-center">
+                                <i class="fas fa-lock text-gray-400 text-3xl"></i>
+                            </div>
+                            <div class="p-4">
+                                <div class="flex justify-between items-center mb-2">
+                                    <h5 class="font-semibold text-sm text-gray-700">You/Mike Lieberman vs. Brian Stutland/David Schwartz - Court 1</h5>
+                                    <span class="bg-gray-400 text-white text-xs px-2 py-1 rounded">15:21</span>
+                                </div>
+                                <p class="text-gray-700 text-sm">Mar 24, 2025 • 127 views</p>
+                            </div>
+                        </div>
 
-            <!-- Practice Video 3 -->
-            <div class="bg-gray-100 rounded-lg shadow overflow-hidden relative">
-                <img src="/static/images/video_thumbnail.png" class="w-full h-48 object-cover opacity-50" alt="Practice Video">
-                <div class="absolute inset-0 flex items-center justify-center">
-                    <i class="fas fa-lock text-gray-400 text-3xl"></i>
-                </div>
-                <div class="p-4">
-                    <div class="flex justify-between items-center mb-2">
-                        <h5 class="font-semibold text-sm text-gray-700">Volley Technique Workshop</h5>
-                        <span class="bg-gray-400 text-white text-xs px-2 py-1 rounded">10:45</span>
+                        <!-- Match Video 3 -->
+                        <div class="bg-gray-50 rounded-lg border border-gray-200 overflow-hidden relative">
+                            <img src="/static/images/video_thumbnail.png" class="w-full h-48 object-cover opacity-50" alt="Match Video">
+                            <div class="absolute inset-0 flex items-center justify-center">
+                                <i class="fas fa-lock text-gray-400 text-3xl"></i>
+                            </div>
+                            <div class="p-4">
+                                <div class="flex justify-between items-center mb-2">
+                                    <h5 class="font-semibold text-sm text-gray-700">You/Andrew Franger vs. Mike Lieberman/Josh Cohen - Court 2</h5>
+                                    <span class="bg-gray-400 text-white text-xs px-2 py-1 rounded">9:58</span>
+                                </div>
+                                <p class="text-gray-700 text-sm">Feb 18, 2025 • 85 views</p>
+                            </div>
+                        </div>
+
+                        <!-- Match Video 4 -->
+                        <div class="bg-gray-50 rounded-lg border border-gray-200 overflow-hidden relative">
+                            <img src="/static/images/video_thumbnail.png" class="w-full h-48 object-cover opacity-50" alt="Match Video">
+                            <div class="absolute inset-0 flex items-center justify-center">
+                                <i class="fas fa-lock text-gray-400 text-3xl"></i>
+                            </div>
+                            <div class="p-4">
+                                <div class="flex justify-between items-center mb-2">
+                                    <h5 class="font-semibold text-sm text-gray-700">You/Victor Forman vs. David Schwartz/Alex Johnson - Court 4</h5>
+                                    <span class="bg-gray-400 text-white text-xs px-2 py-1 rounded">11:16</span>
+                                </div>
+                                <p class="text-gray-700 text-sm">Jan 30, 2025 • 204 views</p>
+                            </div>
+                        </div>
                     </div>
-                    <p class="text-gray-700 text-sm">Apr 1, 2025 • 172 views</p>
+                </div>
+
+                <div>
+                    <h3 class="text-lg font-semibold mb-4 text-gray-900">Practice Videos</h3>
+                    <div class="space-y-4">
+                        <!-- Practice Video 1 -->
+                        <div class="bg-gray-50 rounded-lg border border-gray-200 overflow-hidden relative">
+                            <img src="/static/images/video_thumbnail.png" class="w-full h-48 object-cover opacity-50" alt="Practice Video">
+                            <div class="absolute inset-0 flex items-center justify-center">
+                                <i class="fas fa-lock text-gray-400 text-3xl"></i>
+                            </div>
+                            <div class="p-4">
+                                <div class="flex justify-between items-center mb-2">
+                                    <h5 class="font-semibold text-sm text-gray-700">Serve Practice with Coach Smith</h5>
+                                    <span class="bg-gray-400 text-white text-xs px-2 py-1 rounded">8:32</span>
+                                </div>
+                                <p class="text-gray-700 text-sm">Apr 15, 2025 • 156 views</p>
+                            </div>
+                        </div>
+
+                        <!-- Practice Video 2 -->
+                        <div class="bg-gray-50 rounded-lg border border-gray-200 overflow-hidden relative">
+                            <img src="/static/images/video_thumbnail.png" class="w-full h-48 object-cover opacity-50" alt="Practice Video">
+                            <div class="absolute inset-0 flex items-center justify-center">
+                                <i class="fas fa-lock text-gray-400 text-3xl"></i>
+                            </div>
+                            <div class="p-4">
+                                <div class="flex justify-between items-center mb-2">
+                                    <h5 class="font-semibold text-sm text-gray-700">Backhand Drills Session</h5>
+                                    <span class="bg-gray-400 text-white text-xs px-2 py-1 rounded">12:15</span>
+                                </div>
+                                <p class="text-gray-700 text-sm">Apr 8, 2025 • 98 views</p>
+                            </div>
+                        </div>
+
+                        <!-- Practice Video 3 -->
+                        <div class="bg-gray-50 rounded-lg border border-gray-200 overflow-hidden relative">
+                            <img src="/static/images/video_thumbnail.png" class="w-full h-48 object-cover opacity-50" alt="Practice Video">
+                            <div class="absolute inset-0 flex items-center justify-center">
+                                <i class="fas fa-lock text-gray-400 text-3xl"></i>
+                            </div>
+                            <div class="p-4">
+                                <div class="flex justify-between items-center mb-2">
+                                    <h5 class="font-semibold text-sm text-gray-700">Volley Technique Workshop</h5>
+                                    <span class="bg-gray-400 text-white text-xs px-2 py-1 rounded">10:45</span>
+                                </div>
+                                <p class="text-gray-700 text-sm">Apr 1, 2025 • 172 views</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1166,6 +1192,93 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <style>
+/* Custom styles for modern mobile design */
+.min-h-screen {
+    min-height: 100vh;
+}
+
+/* Shadow utilities */
+.shadow-sm {
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+/* Border utilities */
+.border-gray-50 { border-color: #f9fafb; }
+.border-gray-100 { border-color: #f3f4f6; }
+.border-gray-200 { border-color: #e5e7eb; }
+
+/* Background utilities */
+.bg-gray-50 { background-color: #f9fafb; }
+.bg-white { background-color: #ffffff; }
+
+/* Text colors */
+.text-gray-900 { color: #111827; }
+.text-gray-700 { color: #374151; }
+.text-gray-600 { color: #4b5563; }
+.text-gray-500 { color: #6b7280; }
+.text-blue-500 { color: #3b82f6; }
+.text-purple-500 { color: #8b5cf6; }
+.text-orange-500 { color: #f97316; }
+.text-white { color: #ffffff; }
+
+/* Gradient backgrounds */
+.bg-gradient-to-br {
+    background-image: linear-gradient(to bottom right, var(--tw-gradient-stops));
+}
+.from-orange-500 {
+    --tw-gradient-from: #f97316;
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(249, 115, 22, 0));
+}
+.to-orange-600 {
+    --tw-gradient-to: #ea580c;
+}
+.from-green-500 {
+    --tw-gradient-from: #10b981;
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(16, 185, 129, 0));
+}
+.to-blue-600 {
+    --tw-gradient-to: #2563eb;
+}
+.from-blue-500 {
+    --tw-gradient-from: #3b82f6;
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(59, 130, 246, 0));
+}
+.to-purple-600 {
+    --tw-gradient-to: #7c3aed;
+}
+
+/* Spacing utilities */
+.space-y-6 > * + * { margin-top: 1.5rem; }
+.space-y-4 > * + * { margin-top: 1rem; }
+
+/* Border radius utilities */
+.rounded-xl { border-radius: 0.75rem; }
+.rounded-lg { border-radius: 0.5rem; }
+.rounded-full { border-radius: 9999px; }
+
+/* Overflow utilities */
+.overflow-hidden { overflow: hidden; }
+
+/* Transition utilities */
+.transition-colors {
+    transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+}
+
+.duration-200 {
+    transition-duration: 200ms;
+}
+
+/* Responsive design */
+@media (max-width: 640px) {
+    .px-6 { padding-left: 1rem; padding-right: 1rem; }
+    .py-4 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+    .text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+    .text-lg { font-size: 1.125rem; line-height: 1.75rem; }
+}
+
+/* Original tip container and refresh styles */
 #tipContainer {
     transition: opacity 0.3s ease-in-out;
 }

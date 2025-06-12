@@ -1,0 +1,730 @@
+{% extends "mobile/layout.html" %}
+{% set show_back_arrow = True %}
+
+{% block content %}
+<div class="flex items-center gap-3 mt-4 mb-2 px-4">
+  <div class="bg-white rounded-md flex items-center justify-center h-12 w-12">
+    <i class="fas fa-user-friends text-black text-3xl"></i>
+  </div>
+  <div>
+    <div class="text-2xl font-bold leading-tight">Find People to Play</div>
+    <div class="text-base text-gray-500 mt-1">Find players at {{ session_data.user.club }} to play.</div>
+  </div>
+</div>
+
+<!-- Filter Section -->
+<div class="px-4 mb-6 space-y-4">
+  <div class="bg-white rounded-lg shadow-md p-4">
+    <h3 class="text-lg font-semibold mb-4 text-gray-800">Filter Players</h3>
+    
+    <!-- Series Filter -->
+    <div class="mb-4">
+      <label for="seriesFilter" class="block text-sm font-medium text-gray-700 mb-1">Series</label>
+      <select id="seriesFilter" class="w-full p-2 border border-gray-300 rounded-md bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+        <option value="">All Series</option>
+      </select>
+    </div>
+
+    <!-- PTI Range Filter -->
+    <div id="ptiFiltersSection" class="mb-4" style="display: none;">
+      <label class="block text-sm font-medium text-gray-700 mb-2">PTI Filters</label>
+      <div class="space-y-3">
+        <div>
+          <label for="ptiMinSlider" class="block text-xs font-medium text-gray-600 mb-1">Minimum PTI</label>
+          <input type="range" id="ptiMinSlider" class="slider w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" 
+                 min="0" max="100" value="0" step="0.1">
+          <div class="text-xs text-gray-500 mt-1">Min: <span id="ptiMinValue">0</span></div>
+        </div>
+        <div>
+          <label for="ptiMaxSlider" class="block text-xs font-medium text-gray-600 mb-1">Maximum PTI</label>
+          <input type="range" id="ptiMaxSlider" class="slider w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" 
+                 min="0" max="100" value="100" step="0.1">
+          <div class="text-xs text-gray-500 mt-1">Max: <span id="ptiMaxValue">100</span></div>
+        </div>
+      </div>
+      <div class="text-xs text-gray-500 mt-1">
+        Available Range: <span id="ptiRangeDisplay">0 - 100</span>
+      </div>
+    </div>
+
+    <!-- Name Filters -->
+    <div class="grid grid-cols-2 gap-3 mb-4">
+      <div>
+        <label for="firstNameFilter" class="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+        <input type="text" id="firstNameFilter" placeholder="Enter first name" 
+               class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+      </div>
+      <div>
+        <label for="lastNameFilter" class="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+        <input type="text" id="lastNameFilter" placeholder="Enter last name" 
+               class="w-full p-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+      </div>
+    </div>
+
+    <!-- Filter Buttons -->
+    <div class="flex gap-2">
+      <button id="applyFilters" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200">
+        <i class="fas fa-search mr-2"></i>Apply Filters
+      </button>
+      <button id="resetFilters" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors duration-200">
+        <i class="fas fa-undo-alt mr-1"></i>Reset
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Loading Indicator -->
+<div id="playersLoading" class="flex justify-center items-center py-8">
+    <span class="loading loading-spinner loading-lg"></span>
+</div>
+
+<!-- Instructions -->
+<div class="px-4 mb-4">
+  <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+    <p class="text-sm text-blue-800 text-center">
+      <i class="fas fa-info-circle mr-2"></i>
+      Select multiple players with the check box or contact players individually.
+    </p>
+  </div>
+</div>
+
+<!-- Results Section -->
+<div id="playersList" class="space-y-4 px-4 pb-24"></div>
+
+<!-- Message Selected Players Button (moved here for better visibility) -->
+<div id="messageButtonContainer" class="fixed bottom-0 left-0 right-0 w-full p-4 bg-white border-t border-gray-200 shadow-lg z-50" style="display: none;">
+  <div class="flex justify-center">
+    <button id="messageSelectedBtn" class="px-6 py-3 bg-green-600 text-white rounded-lg shadow-xl hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-all duration-200 flex items-center gap-2 text-sm font-semibold">
+      <i class="fas fa-sms text-lg"></i>
+      <span>Message <span id="selectedCount">0</span> Selected Players</span>
+    </button>
+  </div>
+</div>
+
+<!-- Modal for Selected Players -->
+<div id="selectedPlayersModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+  <div class="bg-white rounded-lg max-w-md w-full max-h-[80vh] overflow-hidden">
+    <!-- Modal Header -->
+    <div class="p-4 border-b border-gray-200">
+      <div class="flex justify-between items-center">
+        <h3 class="text-lg font-semibold text-gray-800">Message Selected Players</h3>
+        <button id="closeModal" class="text-gray-400 hover:text-gray-600 focus:outline-none">
+          <i class="fas fa-times text-xl"></i>
+        </button>
+      </div>
+    </div>
+    
+    <!-- Modal Body -->
+    <div class="p-4 overflow-y-auto max-h-96">
+      <div id="selectedPlayersList" class="space-y-3">
+        <!-- Selected players will be populated here -->
+      </div>
+    </div>
+    
+    <!-- Modal Footer -->
+    <div class="p-4 border-t border-gray-200">
+      <div id="smsLinkContainer" class="text-center">
+        <!-- SMS link will be populated here -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Custom Slider Styles -->
+<style>
+.slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 8px;
+  background: #e5e7eb;
+  outline: none;
+  border-radius: 4px;
+  transition: background 0.3s ease;
+}
+
+.slider:hover {
+  background: #d1d5db;
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  background: #3b82f6;
+  cursor: pointer;
+  border-radius: 50%;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+}
+
+.slider::-webkit-slider-thumb:hover {
+  background: #2563eb;
+  transform: scale(1.1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  background: #3b82f6;
+  cursor: pointer;
+  border-radius: 50%;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+}
+
+.slider::-moz-range-thumb:hover {
+  background: #2563eb;
+  transform: scale(1.1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Fix message button styling */
+#messageSelectedBtn {
+  background-color: #16a34a !important; /* green-600 */
+  color: white !important;
+  border: none !important;
+  font-weight: 600 !important;
+  font-size: 0.875rem !important; /* text-sm */
+}
+
+#messageSelectedBtn:hover {
+  background-color: #15803d !important; /* green-700 */
+}
+
+#messageSelectedBtn:focus {
+  outline: 2px solid #16a34a !important;
+  outline-offset: 2px !important;
+}
+
+/* Ensure button container is visible */
+#messageButtonContainer {
+  background-color: white !important;
+  border-top: 1px solid #e5e7eb !important;
+  box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Style the SMS button in the modal */
+#smsLinkContainer a {
+  background-color: #16a34a !important; /* green-600 */
+  color: white !important;
+  text-decoration: none !important;
+  border: none !important;
+  font-weight: 600 !important;
+}
+
+#smsLinkContainer a:hover {
+  background-color: #15803d !important; /* green-700 */
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Global variables
+    let allPlayers = [];
+    let availableSeries = [];
+    let ptiRange = { min: 0, max: 100 };
+    let selectedPlayers = new Set(); // Track selected player names
+    
+    // UI Elements
+    const loadingDiv = document.getElementById('playersLoading');
+    const playersList = document.getElementById('playersList');
+    const seriesFilter = document.getElementById('seriesFilter');
+    const firstNameFilter = document.getElementById('firstNameFilter');
+    const lastNameFilter = document.getElementById('lastNameFilter');
+    const ptiMinSlider = document.getElementById('ptiMinSlider');
+    const ptiMaxSlider = document.getElementById('ptiMaxSlider');
+    const ptiMinValue = document.getElementById('ptiMinValue');
+    const ptiMaxValue = document.getElementById('ptiMaxValue');
+    const ptiRangeDisplay = document.getElementById('ptiRangeDisplay');
+    const applyFiltersBtn = document.getElementById('applyFilters');
+    const resetFiltersBtn = document.getElementById('resetFilters');
+    
+    // Selection UI Elements
+    const messageButtonContainer = document.getElementById('messageButtonContainer');
+    const messageSelectedBtn = document.getElementById('messageSelectedBtn');
+    const selectedCount = document.getElementById('selectedCount');
+    const selectedPlayersModal = document.getElementById('selectedPlayersModal');
+    const closeModal = document.getElementById('closeModal');
+    const selectedPlayersList = document.getElementById('selectedPlayersList');
+    const smsLinkContainer = document.getElementById('smsLinkContainer');
+
+    // Initialize page
+    async function initializePage() {
+        try {
+            showLoading(true);
+            await loadInitialData();
+            setupEventListeners();
+            loadPlayers();
+        } catch (error) {
+            console.error('Error initializing page:', error);
+            showError('Failed to load page data');
+        }
+    }
+
+    // Load initial data (available series and PTI range)
+    async function loadInitialData() {
+        const response = await fetch('/api/club-players');
+        if (!response.ok) throw new Error('Failed to fetch initial data');
+        
+        const data = await response.json();
+        availableSeries = data.available_series || [];
+        ptiRange = data.pti_range || { min: 0, max: 100 };
+        const ptiFiltersAvailable = data.pti_filters_available || false;
+        
+        // Populate series dropdown
+        seriesFilter.innerHTML = '<option value="">All Series</option>';
+        availableSeries.forEach(series => {
+            const option = document.createElement('option');
+            option.value = series;
+            option.textContent = series;
+            seriesFilter.appendChild(option);
+        });
+        
+        // Show/hide PTI filters based on availability
+        const ptiFiltersSection = document.getElementById('ptiFiltersSection');
+        if (ptiFiltersAvailable) {
+            ptiFiltersSection.style.display = 'block';
+            // Set up PTI sliders only if PTI data is available
+            setupPTISliders();
+        } else {
+            ptiFiltersSection.style.display = 'none';
+            console.log('PTI filters hidden - no valid PTI data available for this league');
+        }
+    }
+
+    // Setup PTI slider fields
+    function setupPTISliders() {
+        ptiMinSlider.value = ptiRange.min;
+        ptiMaxSlider.value = ptiRange.max;
+        ptiMinSlider.min = ptiRange.min;
+        ptiMinSlider.max = ptiRange.max;
+        ptiMaxSlider.min = ptiRange.min;
+        ptiMaxSlider.max = ptiRange.max;
+        ptiMinValue.textContent = ptiRange.min;
+        ptiMaxValue.textContent = ptiRange.max;
+        ptiRangeDisplay.textContent = `${ptiRange.min} - ${ptiRange.max}`;
+    }
+
+    // Setup event listeners
+    function setupEventListeners() {
+        // Filter events
+        applyFiltersBtn.addEventListener('click', loadPlayers);
+        resetFiltersBtn.addEventListener('click', resetFilters);
+        
+        // Auto-apply on Enter key for text inputs
+        firstNameFilter.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') loadPlayers();
+        });
+        lastNameFilter.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') loadPlayers();
+        });
+        
+        // PTI slider events with real-time value updates
+        const ptiFiltersSection = document.getElementById('ptiFiltersSection');
+        if (ptiFiltersSection.style.display !== 'none') {
+            ptiMinSlider.addEventListener('input', function() {
+                let minVal = parseFloat(this.value);
+                let maxVal = parseFloat(ptiMaxSlider.value);
+                
+                // Ensure min doesn't exceed max
+                if (minVal > maxVal) {
+                    minVal = maxVal;
+                    this.value = minVal;
+                }
+                
+                ptiMinValue.textContent = minVal.toFixed(1);
+            });
+            
+            ptiMaxSlider.addEventListener('input', function() {
+                let maxVal = parseFloat(this.value);
+                let minVal = parseFloat(ptiMinSlider.value);
+                
+                // Ensure max doesn't go below min
+                if (maxVal < minVal) {
+                    maxVal = minVal;
+                    this.value = maxVal;
+                }
+                
+                ptiMaxValue.textContent = maxVal.toFixed(1);
+            });
+        }
+        
+        // Selection events
+        messageSelectedBtn.addEventListener('click', showSelectedPlayersModal);
+        closeModal.addEventListener('click', hideSelectedPlayersModal);
+        
+        // Close modal when clicking outside
+        selectedPlayersModal.addEventListener('click', function(e) {
+            if (e.target === selectedPlayersModal) {
+                hideSelectedPlayersModal();
+            }
+        });
+    }
+
+    // Load and display players
+    async function loadPlayers() {
+        try {
+            showLoading(true);
+            
+            // Build query parameters
+            const params = new URLSearchParams();
+            
+            if (seriesFilter.value) params.append('series', seriesFilter.value);
+            if (firstNameFilter.value.trim()) params.append('first_name', firstNameFilter.value.trim());
+            if (lastNameFilter.value.trim()) params.append('last_name', lastNameFilter.value.trim());
+            
+            // Only add PTI filters if PTI filters section is visible
+            const ptiFiltersSection = document.getElementById('ptiFiltersSection');
+            if (ptiFiltersSection.style.display !== 'none') {
+                const ptiMin = parseFloat(ptiMinSlider.value);
+                const ptiMax = parseFloat(ptiMaxSlider.value);
+                if (!isNaN(ptiMin) && ptiMin >= ptiRange.min) params.append('pti_min', ptiMin);
+                if (!isNaN(ptiMax) && ptiMax <= ptiRange.max) params.append('pti_max', ptiMax);
+            }
+            
+            const response = await fetch('/api/club-players?' + params.toString());
+            if (!response.ok) throw new Error('Failed to fetch players');
+            
+            const data = await response.json();
+            allPlayers = data.players || [];
+            
+            displayPlayers(allPlayers);
+            showLoading(false);
+            
+        } catch (error) {
+            console.error('Error loading players:', error);
+            showError('Failed to load players');
+        }
+    }
+
+    // Display players
+    function displayPlayers(players) {
+        playersList.innerHTML = '';
+        
+        if (players.length === 0) {
+            playersList.innerHTML = '<div class="text-center text-gray-500 py-8">No players found matching your criteria.</div>';
+            updateSelectionUI();
+            return;
+        }
+        
+        players.forEach(player => {
+            const card = createPlayerCard(player);
+            playersList.appendChild(card);
+        });
+        
+        updateSelectionUI();
+    }
+
+    // Create player card with checkbox
+    function createPlayerCard(player) {
+        const card = document.createElement('div');
+        card.className = 'bg-white rounded-lg shadow p-4';
+        
+        const isSelected = selectedPlayers.has(player.name);
+        
+        card.innerHTML = `
+            <div class="flex items-start gap-3">
+                <div class="flex items-center pt-1">
+                    <input type="checkbox" id="player-${player.name.replace(/\s+/g, '-')}" 
+                           class="player-checkbox w-5 h-5 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2" 
+                           data-player-name="${player.name}" ${isSelected ? 'checked' : ''}>
+                </div>
+                <div class="flex-1">
+                    <div class="flex items-center justify-between mb-3">
+                        <div>
+                            <div class="font-bold text-lg text-gray-800">${player.name}</div>
+                            <div class="text-sm text-gray-500">${player.series}</div>
+                        </div>
+                        <button class="btn btn-success btn-sm contact-btn" 
+                                data-first="${player.firstName}" 
+                                data-last="${player.lastName}">
+                            <i class="fas fa-envelope"></i> Contact
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4 text-sm">
+                        <div class="space-y-1">
+                            ${player.pti !== 'N/A' ? `<div><span class="font-semibold text-gray-600">PTI:</span> <span class="text-blue-600 font-medium">${player.pti}</span></div>` : ''}
+                            <div><span class="font-semibold text-gray-600">Wins:</span> ${player.wins}</div>
+                        </div>
+                        <div class="space-y-1">
+                            <div><span class="font-semibold text-gray-600">Win Rate:</span> <span class="text-green-600 font-medium">${player.winRate}</span></div>
+                            <div><span class="font-semibold text-gray-600">Losses:</span> ${player.losses}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Add contact button functionality
+        const contactBtn = card.querySelector('.contact-btn');
+        contactBtn.addEventListener('click', function() {
+            const firstName = this.dataset.first;
+            const lastName = this.dataset.last;
+            window.location.href = `/contact-sub?first=${encodeURIComponent(firstName)}&last=${encodeURIComponent(lastName)}`;
+        });
+        
+        // Add checkbox functionality
+        const checkbox = card.querySelector('.player-checkbox');
+        checkbox.addEventListener('change', function() {
+            const playerName = this.dataset.playerName;
+            if (this.checked) {
+                selectedPlayers.add(playerName);
+            } else {
+                selectedPlayers.delete(playerName);
+            }
+            updateSelectionUI();
+        });
+        
+        return card;
+    }
+
+    // Update selection UI
+    function updateSelectionUI() {
+        const count = selectedPlayers.size;
+        selectedCount.textContent = count;
+        
+        console.log(`Updating selection UI: ${count} players selected`);
+        
+        if (count > 0) {
+            messageButtonContainer.style.display = 'block';
+            console.log('Message button container should be visible');
+        } else {
+            messageButtonContainer.style.display = 'none';
+            console.log('Message button container should be hidden');
+        }
+        
+        // Force a reflow to ensure styles are applied
+        messageButtonContainer.offsetHeight;
+    }
+
+    // Show selected players modal
+    function showSelectedPlayersModal() {
+        const selectedPlayersData = allPlayers.filter(player => selectedPlayers.has(player.name));
+        
+        // Populate selected players list
+        selectedPlayersList.innerHTML = '';
+        selectedPlayersData.forEach(player => {
+            const playerElement = document.createElement('div');
+            playerElement.className = 'flex justify-between items-center p-3 bg-gray-50 rounded-lg';
+            playerElement.innerHTML = `
+                <div>
+                    <div class="font-semibold text-gray-800">${player.name}</div>
+                    <div class="text-sm text-gray-600">${player.series}</div>
+                </div>
+                <div class="text-sm text-blue-600 font-mono">${player.phone || 'No phone available'}</div>
+            `;
+            selectedPlayersList.appendChild(playerElement);
+        });
+        
+        // Create messaging options based on number of players with phones
+        const playersWithPhones = selectedPlayersData.filter(player => player.phone && player.phone.trim());
+        
+        if (playersWithPhones.length === 0) {
+            smsLinkContainer.innerHTML = '<p class="text-gray-500">No phone numbers available for selected players</p>';
+        } else if (playersWithPhones.length === 1) {
+            // Single player - use direct SMS link
+            const player = playersWithPhones[0];
+            let cleanNumber = player.phone.replace(/[^\d+]/g, '');
+            if (!cleanNumber.startsWith('+')) {
+                cleanNumber = '+1' + cleanNumber;
+            }
+            
+            smsLinkContainer.innerHTML = `
+                <a href="sms:${cleanNumber}" 
+                   class="inline-flex items-center justify-center gap-2 w-full px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200 font-semibold">
+                    <i class="fas fa-sms"></i>
+                    Text ${player.name}
+                </a>
+            `;
+        } else {
+            // Multiple players - provide options for different platforms
+            const cleanedNumbers = playersWithPhones.map(player => {
+                let cleanNumber = player.phone.replace(/[^\d+]/g, '');
+                if (!cleanNumber.startsWith('+')) {
+                    cleanNumber = '+1' + cleanNumber;
+                }
+                return cleanNumber;
+            });
+            
+            const phoneNumbers = cleanedNumbers.join(',');
+            // Format for iOS - use line breaks instead of commas for better iOS compatibility
+            const displayNumbers = playersWithPhones.map(p => p.phone).join('\n');
+            
+            console.log('SMS numbers:', phoneNumbers); // Debug log
+            
+            smsLinkContainer.innerHTML = `
+                <div class="text-center">
+                    <button id="copyPhoneBtn" data-phone-numbers="${displayNumbers.replace(/"/g, '&quot;')}" 
+                            class="inline-flex items-center justify-center gap-2 w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 font-semibold">
+                        <i class="fas fa-copy"></i>
+                        Copy phone numbers to text message
+                    </button>
+                </div>
+            `;
+            
+            // Add event listener for copy button after adding to DOM
+            const copyBtn = smsLinkContainer.querySelector('#copyPhoneBtn');
+            if (copyBtn) {
+                copyBtn.addEventListener('click', function() {
+                    const phoneNumbers = this.getAttribute('data-phone-numbers');
+                    copyPhoneNumbers(phoneNumbers);
+                });
+            }
+        }
+        
+        selectedPlayersModal.classList.remove('hidden');
+    }
+
+    // Function to copy phone numbers to clipboard (iOS fallback)
+    window.copyPhoneNumbers = function(phoneNumbers) {
+        console.log('copyPhoneNumbers called with:', phoneNumbers);
+        // Try modern clipboard API first
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            console.log('Using modern clipboard API');
+            navigator.clipboard.writeText(phoneNumbers).then(function() {
+                console.log('Clipboard write successful');
+                showCopyFeedback('Phone numbers copied! Open Messages, paste, then add each number manually.');
+            }).catch(function(err) {
+                console.error('Clipboard API failed:', err);
+                fallbackCopyToClipboard(phoneNumbers);
+            });
+        } else {
+            console.log('Using fallback clipboard method');
+            // Fallback for older browsers
+            fallbackCopyToClipboard(phoneNumbers);
+        }
+    };
+
+    // Fallback copy method for older browsers or when clipboard API fails
+    function fallbackCopyToClipboard(text) {
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        
+        try {
+            const successful = document.execCommand('copy');
+            if (successful) {
+                showCopyFeedback('Phone numbers copied! Open Messages, paste, then add each number manually.');
+            } else {
+                showCopyFeedback('Copy failed. Please manually copy the numbers.', true);
+            }
+        } catch (err) {
+            console.error('Fallback copy failed:', err);
+            showCopyFeedback('Copy failed. Please manually copy the numbers.', true);
+        } finally {
+            document.body.removeChild(textArea);
+        }
+    }
+
+    // Show feedback message for copy operations
+    function showCopyFeedback(message, isError = false) {
+        console.log('showCopyFeedback called with:', message);
+        
+        // Remove any existing feedback
+        const existingFeedback = document.getElementById('copy-feedback');
+        if (existingFeedback) {
+            existingFeedback.remove();
+        }
+        
+        // Create feedback element
+        const feedback = document.createElement('div');
+        feedback.id = 'copy-feedback';
+        feedback.className = `fixed top-4 left-1/2 transform -translate-x-1/2 px-4 py-2 rounded-lg shadow-lg text-sm font-medium transition-all duration-300 ${
+            isError ? 'bg-red-100 text-red-800 border border-red-200' : 'bg-green-100 text-green-800 border border-green-200'
+        }`;
+        feedback.style.zIndex = '9999';
+        feedback.textContent = message;
+        feedback.style.opacity = '0';
+        feedback.style.transform = 'translate(-50%, -20px)';
+        
+        // Append to modal instead of body to ensure visibility
+        const modal = document.getElementById('selectedPlayersModal');
+        modal.appendChild(feedback);
+        
+        console.log('Feedback element added to modal');
+        
+        // Animate in
+        setTimeout(() => {
+            feedback.style.opacity = '1';
+            feedback.style.transform = 'translate(-50%, 0)';
+        }, 10);
+        
+        // Hide after 3 seconds
+        setTimeout(() => {
+            feedback.style.opacity = '0';
+            feedback.style.transform = 'translate(-50%, -20px)';
+            setTimeout(() => {
+                if (feedback.parentNode) {
+                    feedback.parentNode.removeChild(feedback);
+                }
+            }, 300);
+        }, 3000);
+    }
+
+    // Hide selected players modal
+    function hideSelectedPlayersModal() {
+        selectedPlayersModal.classList.add('hidden');
+    }
+
+    // Reset all filters
+    function resetFilters() {
+        seriesFilter.value = '';
+        firstNameFilter.value = '';
+        lastNameFilter.value = '';
+        
+        // Only reset PTI filters if they are visible
+        const ptiFiltersSection = document.getElementById('ptiFiltersSection');
+        if (ptiFiltersSection.style.display !== 'none') {
+            ptiMinSlider.value = ptiRange.min;
+            ptiMaxSlider.value = ptiRange.max;
+            ptiMinValue.textContent = ptiRange.min;
+            ptiMaxValue.textContent = ptiRange.max;
+        }
+        
+        loadPlayers();
+    }
+
+    // Show/hide loading indicator
+    function showLoading(show) {
+        if (show) {
+            loadingDiv.style.display = 'flex';
+            playersList.innerHTML = '';
+        } else {
+            loadingDiv.style.display = 'none';
+        }
+    }
+
+    // Show error message
+    function showError(message) {
+        showLoading(false);
+        playersList.innerHTML = `<div class="text-center text-red-500 py-8">${message}</div>`;
+    }
+
+    // Initialize the page
+    initializePage();
+    
+    // Debug function for testing button visibility (can be called from console)
+    window.testMessageButton = function() {
+        console.log('Testing message button...');
+        console.log('Button container element:', messageButtonContainer);
+        console.log('Current display style:', messageButtonContainer.style.display);
+        console.log('Current computed style:', window.getComputedStyle(messageButtonContainer).display);
+        console.log('Selected players count:', selectedPlayers.size);
+        
+        // Force show the button for testing
+        messageButtonContainer.style.display = 'block';
+        messageButtonContainer.style.zIndex = '9999';
+        console.log('Button forced to show with z-index 9999');
+    };
+});
+</script>
+{% endblock %} 
