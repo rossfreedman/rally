@@ -27,6 +27,7 @@
 - When suggesting backend changes, consider compatibility with Railway deployment (e.g., environment variables, file structure).
 - Use `.env` for sensitive configuration and remind me if hardcoding is detected.
 - Use Alembic for all database related management tasks (migrations, cloning, table updates, field updates, etc.)
+- Do not write code that pulls data from json files.  All data queries need to come from the postgres database.
 
 # Communication Style
 - Ask clarifying questions when unsure about instructions.

@@ -7,7 +7,7 @@
     <!-- Header -->
     <div class="bg-white border-b border-gray-100">
         <div class="flex items-center px-4 py-6">
-            <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center shadow-sm">
+            <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center shadow-sm flex-shrink-0" style="width: 3rem; height: 3rem; aspect-ratio: 1;">
                 <i class="fas fa-user-plus text-white text-lg"></i>
             </div>
             <div class="ml-4">
@@ -34,7 +34,7 @@
         </div>
 
         <!-- Results Container -->
-        <div id="subsResults" class="hidden space-y-6">
+        <div id="subsResults" class="hidden space-y-6" style="margin-top: 0.875rem;">
             <!-- Algorithm Header -->
             <div id="algorithmHeader" class="bg-black rounded-xl shadow-sm border border-gray-700 overflow-hidden">
                 <div class="p-6">
@@ -457,6 +457,14 @@ fetchAndRenderSubsMobile();
 .flex-1 { flex: 1 1 0%; }
 .flex-col { flex-direction: column; }
 .flex-shrink-0 { flex-shrink: 0; }
+
+/* Circle enforcement */
+.rounded-full {
+    border-radius: 50% !important;
+    aspect-ratio: 1 !important;
+    min-width: 0 !important;
+    max-width: none !important;
+}
 
 /* Visibility utilities */
 .hidden { display: none; }

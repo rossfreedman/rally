@@ -91,7 +91,7 @@ def get_series_stats(series_name):
                     'team_name': team_name,
                     'stats': stats
                 }
-                for team, stats in rankings
+                for team, stats in sorted_teams
             ],
             'court_stats': court_stats,
             'time_stats': time_stats,
@@ -101,49 +101,6 @@ def get_series_stats(series_name):
         logger.error(f"Error in series analysis: {str(e)}")
         return {'error': 'Failed to analyze series data'}
 
-def init_routes(app):
-    @app.route('/api/series-stats')
-    @login_required
-    def get_series_statistics():
-        try:
-            if 'user' not in session:
-                return jsonify({'error': 'Not authenticated'}), 401
-
-            series = session['user'].get('series')
-            if not series:
-                return jsonify({'error': 'No series selected'}), 400
-                
-            stats = get_series_stats(series)
-            
-            if 'error' in stats:
-                return jsonify(stats), 404 if stats['error'] == 'No data found for series' else 500
-                
-            return jsonify(stats)
-            
-        except Exception as e:
-            logger.error(f"Error getting series stats: {str(e)}")
-            return jsonify({'error': 'Failed to get series stats'}), 500
-
-    @app.route('/mobile/my-series')
-    @login_required
-    def serve_mobile_my_series():
-        try:
-            if 'user' not in session:
-                return jsonify({'error': 'Not authenticated'}), 401
-
-            series = session['user'].get('series')
-            if not series:
-                return jsonify({'error': 'No series selected'}), 400
-                
-            stats = get_series_stats(series)
-            
-            return jsonify({
-                'user': session['user'],
-                'series_stats': stats
-            })
-            
-        except Exception as e:
-            logger.error(f"Error serving mobile series analysis: {str(e)}")
-            return jsonify({'error': 'Failed to serve mobile series analysis'}), 500
-
-    return app
+# REMOVED: init_routes function that was creating duplicate /api/series-stats route
+# The main /api/series-stats route is properly handled by app/routes/api_routes.py blueprint
+# This file now only contains the get_series_stats utility function

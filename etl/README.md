@@ -1,188 +1,111 @@
-# Rally ETL System
+# ETL Scripts
 
-This directory contains ETL (Extract, Transform, Load) scripts for importing data into the Rally database from scraped JSON files.
+## comprehensive_json_import.py
 
-## Multi-League Schema Overview
+A comprehensive ETL script that imports data from JSON files in `data/leagues/all/` into the PostgreSQL database in the correct order based on foreign key constraints.
 
-The Rally database now supports players being active in multiple leagues simultaneously. This was implemented to reflect the real-world scenario where players participate in both APTA Chicago and NSTF leagues.
+### Overview
 
-### Schema Changes
+This script imports data from the following JSON files:
+1. `players.json` - Player information including league, club, series associations
+2. `player_history.json` - Historical PTI data for players across different dates  
+3. `match_history.json` - Individual match results and scores
+4. `series_stats.json` - Team statistics by series within leagues
+5. `schedules.json` - Upcoming match schedules
 
-#### Before (Single League)
-- Players had a direct `league_id` column
-- One player = One league only
-- Queries: `SELECT * FROM players WHERE league_id = 'APTA_CHICAGO'`
+### Import Order
 
-#### After (Multi League)
-- Players table no longer has `league_id` column
-- New `player_leagues` join table for many-to-many relationships
-- One player can be active in multiple leagues
-- Queries: Join through `player_leagues` table
+The script imports data in the following dependency order to respect foreign key constraints:
 
-### Core Tables
+1. **Extract and import leagues** from `players.json` → `leagues` table
+2. **Extract and import clubs** from `players.json` → `clubs` table  
+3. **Extract and import series** from `players.json` → `series` table
+4. **Analyze and import club-league relationships** → `club_leagues` table
+5. **Analyze and import series-league relationships** → `series_leagues` table
+6. **Import players** from `players.json` → `players` table
+7. **Import player history** from `player_history.json` → `player_history` table
+8. **Import match history** from `match_history.json` → `match_scores` table
+9. **Import series stats** from `series_stats.json` → `series_stats` table
+10. **Import schedules** from `schedules.json` → `schedule` table
 
-#### `players`
-- Stores canonical player information
-- Primary key: `id` (auto-increment)
-- Unique key: `tenniscores_player_id`
-- Fields: `first_name`, `last_name`, `tenniscores_player_id`, etc.
+### Features
 
-#### `player_leagues`
-- Join table for player-league associations
-- Links players to leagues with context (club, series)
-- Supports multiple league memberships per player
-- Fields: `player_id`, `league_id`, `club_id`, `series_id`, `is_active`
+- **Automatic data clearing**: Clears existing data from target tables before import
+- **Foreign key constraint handling**: Imports data in the correct order
+- **Comprehensive error handling**: Rollback on failure
+- **Progress monitoring**: Real-time logging and progress updates
+- **Data validation**: Handles invalid data values (e.g., 'unknown' winner values)
+- **Batch processing**: Commits data in batches for better performance
 
-#### `leagues`
-- League reference data
-- Primary key: `id` (auto-increment)
-- Unique key: `league_id` (string like 'APTA_CHICAGO', 'NSTF')
+### Usage
 
-## ETL Scripts
-
-### `import_players.py`
-Primary script for importing player data with multi-league support.
-
-**Usage:**
 ```bash
-# Dry run (analyze without changes)
-python etl/import_players.py --dry-run
-
-# Full import
-python etl/import_players.py
-
-# Custom file
-python etl/import_players.py --file path/to/players.json
+# Run the ETL script
+python etl/comprehensive_json_import.py
 ```
 
-**Features:**
-- Imports from `data/leagues/all/players.json` by default
-- Creates/updates players in `players` table
-- Creates league associations in `player_leagues` table
-- Handles foreign key lookups with caching
-- Supports upsert operations (INSERT ... ON CONFLICT)
+### Output
 
-### `import_career_stats.py`
-Imports career wins/losses statistics from player_history.json into the players table.
+The script provides detailed logging including:
+- File loading progress
+- Data extraction statistics  
+- Import progress with record counts
+- Error reporting
+- Final summary with total imported records
 
-**Usage:**
-```bash
-# Dry run (analyze without changes)
-python etl/import_career_stats.py --dry-run
+### Sample Output
 
-# Full import
-python etl/import_career_stats.py
+```
+🚀 Starting Comprehensive JSON ETL Process
+============================================================
+📂 Step 1: Loading JSON files...
+✅ Loaded 3,111 records from players.json
+✅ Loaded 2,102 records from player_history.json
+✅ Loaded 6,446 records from match_history.json
+✅ Loaded 208 records from series_stats.json
+✅ Loaded 1,909 records from schedules.json
 
-# Custom file
-python etl/import_career_stats.py --file path/to/player_history.json
+📋 Step 2: Extracting reference data...
+✅ Found 2 unique leagues: APTA_CHICAGO, NSTF
+✅ Found 45 unique clubs
+✅ Found 23 unique series
+✅ Found 53 club-league relationships
+✅ Found 23 series-league relationships
+
+📥 Step 4: Importing data in dependency order...
+✅ Imported 2 leagues
+✅ Imported 45 clubs
+✅ Imported 23 series
+✅ Imported 53 club-league relationships
+✅ Imported 23 series-league relationships
+✅ Imported 3,111 players (0 errors)
+✅ Imported 118,866 player history records (0 errors)
+✅ Imported 6,446 match history records (0 errors)
+✅ Imported 28 series stats records (0 errors)
+✅ Imported 1,857 schedule records (0 errors)
+
+🎉 ETL process completed successfully!
+Total: 130,454 records imported
 ```
 
-**Features:**
-- Imports actual career wins/losses from `player_history.json`
-- Updates `players.career_wins`, `players.career_losses`, `players.career_matches` columns
-- Calculates `players.career_win_percentage` automatically
-- Supports dry-run mode for data analysis
-- Handles missing player IDs and empty career stats gracefully
-- Integrated into main ETL pipeline automatically
+### Requirements
 
-**Database Schema:**
-```sql
--- Career stats columns added to players table
-ALTER TABLE players ADD COLUMN career_wins INTEGER DEFAULT 0;
-ALTER TABLE players ADD COLUMN career_losses INTEGER DEFAULT 0;  
-ALTER TABLE players ADD COLUMN career_matches INTEGER DEFAULT 0;
-ALTER TABLE players ADD COLUMN career_win_percentage NUMERIC(5,2) DEFAULT 0.00;
-```
+- PostgreSQL database with proper schema
+- Python packages: `psycopg2`, `python-dotenv`
+- JSON files in `data/leagues/all/` directory
+- Database connection configured via `DATABASE_URL` environment variable
 
-### `run_all_etl.py`
-Master script that runs all ETL processes in correct order.
+### Error Handling
 
-**Usage:**
-```bash
-# Run all ETL processes
-python etl/run_all_etl.py
+- **Rollback on failure**: If any errors occur, all changes are rolled back
+- **Transaction management**: Uses database transactions to ensure data consistency
+- **Error logging**: Comprehensive error reporting with specific error details
+- **Data validation**: Handles invalid data formats and missing fields gracefully
 
-# Dry run mode
-python etl/run_all_etl.py --dry-run
-```
+### Notes
 
-## Query Migration
-
-When updating existing code to use the new multi-league schema, queries need to be updated to join through the `player_leagues` table.
-
-### Example Migration
-
-**Old Query:**
-```sql
-SELECT * FROM players WHERE league_id = 'APTA_CHICAGO';
-```
-
-**New Query:**
-```sql
-SELECT DISTINCT p.*
-FROM players p
-JOIN player_leagues pl ON p.id = pl.player_id
-JOIN leagues l ON pl.league_id = l.id
-WHERE l.league_id = 'APTA_CHICAGO' 
-AND pl.is_active = true;
-```
-
-See `query_migration_examples.sql` for more examples.
-
-## Data Sources
-
-All ETL scripts read from JSON files in the `data/leagues/` directory:
-
-- `data/leagues/all/players.json` - Combined player data from all leagues (current season stats)
-- `data/leagues/all/player_history.json` - Historical performance data and career stats (wins/losses)
-- `data/leagues/all/match_history.json` - Match results and scores
-
-These files are populated by the scraper scripts in the `scrapers/` directory.
-
-## Multi-League Benefits
-
-1. **Accurate Data Model**: Reflects real-world player participation
-2. **Better Analytics**: Can analyze cross-league performance
-3. **Flexible Queries**: Can filter by single or multiple leagues
-4. **Data Integrity**: Prevents duplicate player records
-
-## Current Status
-
-✅ **Completed:**
-- Schema normalization (removed `league_id` from players)
-- `player_leagues` join table implementation
-- Player import ETL with multi-league support
-- Career stats import from `player_history.json`
-- Career stats columns in players table
-- Query migration examples
-- Master ETL runner script
-
-🔄 **In Progress/Future:**
-- Additional ETL scripts for other data types
-- Application code updates to use new schema
-- Foreign key constraint recreation for referential integrity
-
-## Performance Considerations
-
-- Added indexes on frequently joined columns
-- Foreign key caching in ETL scripts reduces database lookups
-- Batch operations for improved performance
-- `is_active` flag allows soft deletion of league associations
-
-## Monitoring
-
-Check data consistency with these queries:
-
-```sql
--- Players without league associations
-SELECT COUNT(*) FROM players p
-LEFT JOIN player_leagues pl ON p.id = pl.player_id
-WHERE pl.id IS NULL;
-
--- League distribution
-SELECT l.league_name, COUNT(DISTINCT pl.player_id) as unique_players
-FROM player_leagues pl
-JOIN leagues l ON pl.league_id = l.id
-WHERE pl.is_active = true
-GROUP BY l.league_name;
-``` 
+- The script clears all existing data from target tables before importing
+- Uses batch commits for better performance with large datasets
+- Validates data constraints (e.g., winner field must be 'home' or 'away')
+- Handles nested JSON structures (e.g., player history matches within player records)
+- Maps tenniscores player IDs to database player IDs for relationships 

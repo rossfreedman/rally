@@ -109,233 +109,206 @@ def calculate_points_progression(series_stats, matches_path):
         return {}
 
 def get_series_stats_data():
-    """Get series statistics data - extracted from working backup implementation"""
+    """Get series statistics data from PostgreSQL database"""
     try:
-        # Get the project root directory for file paths
-        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        stats_path = os.path.join(project_root, 'data', 'leagues', 'all', 'series_stats.json')
-        matches_path = os.path.join(project_root, 'data', 'leagues', 'all', 'match_history.json')
+        from flask import session, jsonify, request
+        from database_utils import execute_query, execute_query_one
+        import traceback
         
-        if not os.path.exists(stats_path):
-            return jsonify({'error': 'Stats file not found'}), 404
-            
-        with open(stats_path, 'r') as f:
-            all_stats = json.load(f)
-            
-        # Get the requested team from query params
+        # Get the requested team from query params (for individual team analysis)
         requested_team = request.args.get('team')
         
         if requested_team:
-            team_stats = next((team for team in all_stats if team['team'] == requested_team), None)
+            # Individual team analysis - query the database for this specific team
+            team_stats_query = """
+                SELECT 
+                    s.series,
+                    s.team,
+                    s.points,
+                    s.matches_won,
+                    s.matches_lost,
+                    s.matches_tied,
+                    s.lines_won,
+                    s.lines_lost,
+                    s.sets_won,
+                    s.sets_lost,
+                    s.games_won,
+                    s.games_lost,
+                    l.league_id
+                FROM series_stats s
+                LEFT JOIN leagues l ON s.league_id = l.id
+                WHERE s.team = %s
+            """
+            team_stats = execute_query_one(team_stats_query, [requested_team])
+            
             if not team_stats:
                 return jsonify({'error': 'Team not found'}), 404
 
-            # Format the response with just the team analysis data
-            stats_data = {
+            # Calculate percentages
+            total_matches = team_stats['matches_won'] + team_stats['matches_lost'] + (team_stats['matches_tied'] or 0)
+            match_percentage = f"{round((team_stats['matches_won'] / total_matches) * 100, 1)}%" if total_matches > 0 else "0%"
+            
+            total_lines = team_stats['lines_won'] + team_stats['lines_lost']
+            line_percentage = f"{round((team_stats['lines_won'] / total_lines) * 100, 1)}%" if total_lines > 0 else "0%"
+            
+            total_sets = team_stats['sets_won'] + team_stats['sets_lost']
+            set_percentage = f"{round((team_stats['sets_won'] / total_sets) * 100, 1)}%" if total_sets > 0 else "0%"
+            
+            total_games = team_stats['games_won'] + team_stats['games_lost']
+            game_percentage = f"{round((team_stats['games_won'] / total_games) * 100, 1)}%" if total_games > 0 else "0%"
+
+            # Format the response with team analysis data
+            response = {
                 'team_analysis': {
                     'overview': {
                         'points': team_stats['points'],
-                        'match_record': f"{team_stats['matches']['won']}-{team_stats['matches']['lost']}",
-                        'match_win_rate': team_stats['matches']['percentage'],
-                        'line_win_rate': team_stats['lines']['percentage'],
-                        'set_win_rate': team_stats['sets']['percentage'],
-                        'game_win_rate': team_stats['games']['percentage']
+                        'match_record': f"{team_stats['matches_won']}-{team_stats['matches_lost']}",
+                        'match_win_rate': match_percentage,
+                        'line_win_rate': line_percentage,
+                        'set_win_rate': set_percentage,
+                        'game_win_rate': game_percentage
                     }
                 }
             }
-
-            # Add match patterns if matches file exists
-            if os.path.exists(matches_path):
-                with open(matches_path, 'r') as f:
-                    matches = json.load(f)
-                    
-                # Initialize court stats
-                court_stats = {
-                    'court1': {'wins': 0, 'losses': 0, 'key_players': []},
-                    'court2': {'wins': 0, 'losses': 0, 'key_players': []},
-                    'court3': {'wins': 0, 'losses': 0, 'key_players': []},
-                    'court4': {'wins': 0, 'losses': 0, 'key_players': []}
-                }
-                
-                player_performance = {}
-                
-                # Group matches by date and team
-                team_matches = {}
-                for match in matches:
-                    if match['Home Team'] == requested_team or match['Away Team'] == requested_team:
-                        date = match['Date']
-                        if date not in team_matches:
-                            team_matches[date] = []
-                        team_matches[date].append(match)
-                
-                # Process each match day
-                for date, day_matches in team_matches.items():
-                    # Sort matches to ensure consistent court assignment
-                    day_matches.sort(key=lambda x: (x['Date'], x['Home Team'], x['Away Team']))
-                    
-                    # Process each match with its court number
-                    for court_num, match in enumerate(day_matches, 1):
-                        is_home = match['Home Team'] == requested_team
-                        court_key = f'court{court_num}'
-                        
-                        # Determine if this court was won
-                        won_court = (is_home and match['Winner'] == 'home') or \
-                                  (not is_home and match['Winner'] == 'away')
-                        
-                        # Update court stats
-                        if won_court:
-                            court_stats[court_key]['wins'] += 1
-                        else:
-                            court_stats[court_key]['losses'] += 1
-                        
-                        # Track player performance
-                        players = []
-                        if is_home:
-                            players = [
-                                {'name': match['Home Player 1'], 'team': 'home'},
-                                {'name': match['Home Player 2'], 'team': 'home'}
-                            ]
-                        else:
-                            players = [
-                                {'name': match['Away Player 1'], 'team': 'away'},
-                                {'name': match['Away Player 2'], 'team': 'away'}
-                            ]
-                        
-                        for player in players:
-                            if player['name'] not in player_performance:
-                                player_performance[player['name']] = {
-                                    'courts': {},
-                                    'total_wins': 0,
-                                    'total_matches': 0
-                                }
-                            
-                            if court_key not in player_performance[player['name']]['courts']:
-                                player_performance[player['name']]['courts'][court_key] = {
-                                    'wins': 0, 'matches': 0
-                                }
-                            
-                            player_performance[player['name']]['courts'][court_key]['matches'] += 1
-                            if won_court:
-                                player_performance[player['name']]['courts'][court_key]['wins'] += 1
-                                player_performance[player['name']]['total_wins'] += 1
-                            player_performance[player['name']]['total_matches'] += 1
-                
-                # Calculate various metrics
-                total_matches = len([match for matches in team_matches.values() for match in matches])
-                total_sets_won = 0
-                total_sets_played = 0
-                three_set_matches = 0
-                three_set_wins = 0
-                straight_set_wins = 0
-                comeback_wins = 0
-                
-                # Process match statistics
-                for matches in team_matches.values():
-                    for match in matches:
-                        scores = match['Scores'].split(', ')
-                        is_home = match['Home Team'] == requested_team
-                        won_match = (match['Winner'] == 'home' and is_home) or \
-                                  (match['Winner'] == 'away' and not is_home)
-                        
-                        # Count sets
-                        total_sets_played += len(scores)
-                        for set_score in scores:
-                            home_games, away_games = map(int, set_score.split('-'))
-                            if (is_home and home_games > away_games) or \
-                               (not is_home and away_games > home_games):
-                                total_sets_won += 1
-                        
-                        # Analyze match patterns
-                        if len(scores) == 3:
-                            three_set_matches += 1
-                            if won_match:
-                                three_set_wins += 1
-                        elif won_match:
-                            straight_set_wins += 1
-                        
-                        # Check for comebacks
-                        if won_match:
-                            first_set = scores[0].split('-')
-                            first_set_games = list(map(int, first_set))
-                            lost_first = (is_home and first_set_games[0] < first_set_games[1]) or \
-                                       (not is_home and first_set_games[0] > first_set_games[1])
-                            if lost_first:
-                                comeback_wins += 1
-                
-                # Identify key players for each court
-                for court_key in court_stats:
-                    court_players = []
-                    for player, stats in player_performance.items():
-                        if court_key in stats['courts'] and stats['courts'][court_key]['matches'] >= 2:
-                            win_rate = stats['courts'][court_key]['wins'] / stats['courts'][court_key]['matches']
-                            court_players.append({
-                                'name': player,
-                                'win_rate': win_rate,
-                                'matches': stats['courts'][court_key]['matches'],
-                                'wins': stats['courts'][court_key]['wins']
-                            })
-                    
-                    # Sort by win rate and take top 2
-                    court_players.sort(key=lambda x: x['win_rate'], reverse=True)
-                    court_stats[court_key]['key_players'] = court_players[:2]
-                
-                # Calculate basic team stats
-                total_matches = team_stats['matches']['won'] + team_stats['matches']['lost']
-                win_rate = team_stats['matches']['won'] / total_matches if total_matches > 0 else 0
-                
-                # Calculate average points
-                total_games = team_stats['games']['won'] + team_stats['games']['lost']
-                avg_points_for = team_stats['games']['won'] / total_matches if total_matches > 0 else 0
-                avg_points_against = team_stats['games']['lost'] / total_matches if total_matches > 0 else 0
-                
-                # Calculate consistency rating (based on standard deviation of scores)
-                consistency_rating = 8.5  # Placeholder - would calculate from actual score variance
-                
-                # Calculate strength index (composite of win rate and point differential)
-                point_differential = avg_points_for - avg_points_against
-                strength_index = (win_rate * 7 + (point_differential / 10) * 3)  # Scale to 0-10
-                
-                # Get recent form (last 5 matches)
-                recent_form = ['W', 'L', 'W', 'W', 'L']  # Placeholder - would get from actual match history
-                
-                # Format response
-                response = {
-                    'teamName': requested_team,
-                    'wins': team_stats['matches']['won'],
-                    'losses': team_stats['matches']['lost'],
-                    'winRate': win_rate,
-                    'avgPoinsftor': avg_points_for,
-                    'avgPointsAgainst': avg_points_against,
-                    'consistencyRating': consistency_rating,
-                    'strengthIndex': strength_index,
-                    'recentForm': recent_form,
-                    'dates': ['2025-01-01', '2025-01-15', '2025-02-01', '2025-02-15', '2025-03-01'],  # Placeholder dates
-                    'scores': [6, 8, 7, 9, 6],  # Placeholder scores
-                    'courtAnalysis': court_stats
-                }
-                
-                return jsonify(response)
             
-        # If no team requested, filter stats by user's series
+            # TODO: Add court analysis from match_scores table if needed
+            # For now, return basic team stats
+            return jsonify(response)
+            
+        # If no team requested, get series standings for the user's series
         user = session.get('user')
         if not user or not user.get('series'):
             return jsonify({'error': 'User series not found'}), 400
             
-        # Filter stats for the user's series
-        series_stats = [team for team in all_stats if team.get('series') == user['series']]
+        user_series = user['series']
+        user_league_id = user.get('league_id')
         
-        # Calculate points progression over time for the series
-        points_progression = calculate_points_progression(series_stats, matches_path)
+        print(f"[DEBUG] Getting series stats for user series: {user_series}, league: {user_league_id}")
         
+        # Convert league_id string to integer foreign key if needed
+        league_id_int = None
+        if user_league_id:
+            try:
+                league_record = execute_query_one(
+                    "SELECT id FROM leagues WHERE league_id = %s", 
+                    [user_league_id]
+                )
+                if league_record:
+                    league_id_int = league_record['id']
+                    print(f"[DEBUG] Converted league_id '{user_league_id}' to integer: {league_id_int}")
+            except Exception as e:
+                print(f"[DEBUG] Could not convert league ID: {e}")
+        
+        # Query series stats from database, filtering by user's series and league
+        if league_id_int:
+            series_stats_query = """
+                SELECT 
+                    s.series,
+                    s.team,
+                    s.points,
+                    s.matches_won,
+                    s.matches_lost,
+                    s.matches_tied,
+                    s.lines_won,
+                    s.lines_lost,
+                    s.lines_for,
+                    s.lines_ret,
+                    s.sets_won,
+                    s.sets_lost,
+                    s.games_won,
+                    s.games_lost,
+                    l.league_id
+                FROM series_stats s
+                LEFT JOIN leagues l ON s.league_id = l.id
+                WHERE s.series = %s AND s.league_id = %s
+                ORDER BY s.points DESC, s.team ASC
+            """
+            db_results = execute_query(series_stats_query, [user_series, league_id_int])
+        else:
+            # Fallback without league filtering
+            series_stats_query = """
+                SELECT 
+                    s.series,
+                    s.team,
+                    s.points,
+                    s.matches_won,
+                    s.matches_lost,
+                    s.matches_tied,
+                    s.lines_won,
+                    s.lines_lost,
+                    s.lines_for,
+                    s.lines_ret,
+                    s.sets_won,
+                    s.sets_lost,
+                    s.games_won,
+                    s.games_lost
+                FROM series_stats s
+                WHERE s.series = %s
+                ORDER BY s.points DESC, s.team ASC
+            """
+            db_results = execute_query(series_stats_query, [user_series])
+        
+        print(f"[DEBUG] Found {len(db_results)} teams in series '{user_series}'")
+        
+        # Transform database results to match the expected frontend format
+        teams = []
+        for row in db_results:
+            # Calculate percentages
+            total_matches = row['matches_won'] + row['matches_lost'] + (row['matches_tied'] or 0)
+            match_percentage = f"{round((row['matches_won'] / total_matches) * 100, 1)}%" if total_matches > 0 else "0%"
+            
+            total_lines = row['lines_won'] + row['lines_lost']
+            line_percentage = f"{round((row['lines_won'] / total_lines) * 100, 1)}%" if total_lines > 0 else "0%"
+            
+            total_sets = row['sets_won'] + row['sets_lost']
+            set_percentage = f"{round((row['sets_won'] / total_sets) * 100, 1)}%" if total_sets > 0 else "0%"
+            
+            total_games = row['games_won'] + row['games_lost']
+            game_percentage = f"{round((row['games_won'] / total_games) * 100, 1)}%" if total_games > 0 else "0%"
+            
+            team_data = {
+                'series': row['series'],
+                'team': row['team'],
+                'league_id': row.get('league_id', user_league_id),
+                'points': row['points'],
+                'matches': {
+                    'won': row['matches_won'],
+                    'lost': row['matches_lost'],
+                    'tied': row['matches_tied'] or 0,
+                    'percentage': match_percentage
+                },
+                'lines': {
+                    'won': row['lines_won'],
+                    'lost': row['lines_lost'],
+                    'for': row.get('lines_for', 0),
+                    'ret': row.get('lines_ret', 0),
+                    'percentage': line_percentage
+                },
+                'sets': {
+                    'won': row['sets_won'],
+                    'lost': row['sets_lost'],
+                    'percentage': set_percentage
+                },
+                'games': {
+                    'won': row['games_won'],
+                    'lost': row['games_lost'],
+                    'percentage': game_percentage
+                }
+            }
+            teams.append(team_data)
+        
+        print(f"[DEBUG] Returning {len(teams)} teams for series standings")
+        
+        # Return the teams data (points progression can be added later if needed)
         return jsonify({
-            'teams': series_stats,
-            'pointsProgression': points_progression
+            'teams': teams,
+            'pointsProgression': {}  # Placeholder for now
         })
         
     except Exception as e:
-        print(f"Error reading series stats: {str(e)}")
+        print(f"Error getting series stats from database: {str(e)}")
         print(traceback.format_exc())
-        return jsonify({'error': 'Failed to read stats file'}), 500
+        return jsonify({'error': 'Failed to get series stats from database'}), 500
 
 def get_players_by_series_data():
     """Get all players for a specific series, optionally filtered by team and club"""

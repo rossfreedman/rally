@@ -126,11 +126,11 @@
                     </div>
 
                             <!-- Column 2: Availability Buttons -->
-                            <div class="flex flex-col gap-4 w-[200px] flex-shrink-0" data-availability-buttons>
+                            <div class="flex flex-col gap-4 w-[240px] flex-shrink-0" data-availability-buttons>
                                 <!-- First grouping: availability selection buttons -->
                                 <div class="border border-gray-200 rounded-lg p-4 flex flex-col gap-3 bg-gray-50">
                                     <button 
-                                        class="btn availability-btn w-full py-3 text-center rounded-lg transition-colors text-sm font-semibold {% if avail.status == 'available' %}bg-green-500 text-white{% else %}bg-gray-100 text-gray-700{% endif %} hover:bg-green-600 hover:text-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                                        class="btn availability-btn w-full py-2.5 text-center rounded-lg transition-colors text-xs font-semibold {% if avail.status == 'available' %}bg-green-500 text-white{% else %}bg-gray-100 text-gray-700{% endif %} hover:bg-green-600 hover:text-white focus:outline-none focus:ring-2 focus:ring-green-500"
                                         onclick="updateAvailability(this, '{{ players[0].name }}', '{{ match.date }}', 'available')"
                                         data-status="available"
                                         data-current-status="{{ avail.status or '' }}"
@@ -139,7 +139,7 @@
                                         <i class="fas fa-check mr-1"></i>Count Me In!
                                     </button>
                                     <button 
-                                        class="btn availability-btn w-full py-3 text-center rounded-lg transition-colors text-sm font-semibold {% if avail.status == 'unavailable' %}bg-red-500 text-white{% else %}bg-gray-100 text-gray-700{% endif %} hover:bg-red-600 hover:text-white focus:outline-none focus:ring-2 focus:ring-red-500"
+                                        class="btn availability-btn w-full py-2.5 text-center rounded-lg transition-colors text-xs font-semibold {% if avail.status == 'unavailable' %}bg-red-500 text-white{% else %}bg-gray-100 text-gray-700{% endif %} hover:bg-red-600 hover:text-white focus:outline-none focus:ring-2 focus:ring-red-500"
                                         onclick="updateAvailability(this, '{{ players[0].name }}', '{{ match.date }}', 'unavailable')"
                                         data-status="unavailable"
                                         data-current-status="{{ avail.status or '' }}"
@@ -147,7 +147,7 @@
                                         <i class="fas fa-times mr-1"></i>Sorry, Can't
                                     </button>
                                     <button 
-                                        class="btn availability-btn w-full py-3 text-center rounded-lg transition-colors text-sm font-semibold {% if avail.status == 'not_sure' %}bg-yellow-500 text-white{% else %}bg-gray-100 text-gray-700{% endif %} hover:bg-yellow-600 hover:text-white focus:outline-none focus:ring-2 focus:ring-yellow-500"
+                                        class="btn availability-btn w-full py-2.5 text-center rounded-lg transition-colors text-xs font-semibold {% if avail.status == 'not_sure' %}bg-yellow-500 text-white{% else %}bg-gray-100 text-gray-700{% endif %} hover:bg-yellow-600 hover:text-white focus:outline-none focus:ring-2 focus:ring-yellow-500"
                                         onclick="updateAvailability(this, '{{ players[0].name }}', '{{ match.date }}', 'not_sure')"
                                         data-status="not_sure"
                                         data-current-status="{{ avail.status or '' }}"
@@ -156,9 +156,9 @@
                                     </button>
                                 </div>
                                 <!-- Second grouping: view team button in its own bordered container -->
-                                <div class="border border-gray-200 rounded-lg p-4 bg-blue-50">
-                                    <a href="{{ url_for('mobile.serve_all_team_availability', date=match.date) }}" class="btn availability-btn view-team-btn w-full py-3 rounded-lg transition-colors font-semibold bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500" style="text-transform: none; text-decoration: none;">
-                                        <span class="text-xs">View Team Availability {{ match.date | date_to_mmdd }}</span>
+                                <div class="border border-gray-200 rounded-lg p-3 bg-blue-50">
+                                    <a href="{{ url_for('mobile.serve_all_team_availability', date=match.date) }}" class="btn availability-btn view-team-btn w-full py-2.5 rounded-lg transition-colors font-semibold bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs text-center" style="text-transform: none; text-decoration: none; display: block;">
+                                        View Team Availability {{ match.date | date_to_mmdd }}
                                     </a>
                                 </div>
                             </div>
@@ -245,11 +245,11 @@ async function updateAvailability(button, playerName, date, status) {
             // Only update the class name, keep the original content
             let newClass;
             if (btnStatus === 'available') {
-                newClass = `btn availability-btn w-full py-2 text-center rounded-lg transition-colors text-base font-extrabold ${status === 'available' ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-700'} hover:bg-green-600 hover:text-white`;
+                newClass = `btn availability-btn w-full py-2.5 text-center rounded-lg transition-colors text-xs font-semibold ${status === 'available' ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-700'} hover:bg-green-600 hover:text-white focus:outline-none focus:ring-2 focus:ring-green-500`;
             } else if (btnStatus === 'unavailable') {
-                newClass = `btn availability-btn w-full py-2 text-center rounded-lg transition-colors text-base font-extrabold ${status === 'unavailable' ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-700'} hover:bg-red-600 hover:text-white`;
+                newClass = `btn availability-btn w-full py-2.5 text-center rounded-lg transition-colors text-xs font-semibold ${status === 'unavailable' ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-700'} hover:bg-red-600 hover:text-white focus:outline-none focus:ring-2 focus:ring-red-500`;
             } else {
-                newClass = `btn availability-btn w-full py-2 text-center rounded-lg transition-colors text-base font-extrabold ${status === 'not_sure' ? 'bg-yellow-500 text-white' : 'bg-gray-100 text-gray-700'} hover:bg-yellow-600 hover:text-white`;
+                newClass = `btn availability-btn w-full py-2.5 text-center rounded-lg transition-colors text-xs font-semibold ${status === 'not_sure' ? 'bg-yellow-500 text-white' : 'bg-gray-100 text-gray-700'} hover:bg-yellow-600 hover:text-white focus:outline-none focus:ring-2 focus:ring-yellow-500`;
             }
             
             // Apply changes with a fade effect

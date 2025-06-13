@@ -88,7 +88,6 @@ def parse_db_url(url):
         'keepalives_count': 3,
         'tcp_user_timeout': 30000,  # 30 seconds in milliseconds
         'target_session_attrs': 'read-write'
-        # Removed timezone configuration to prevent date conversion issues
     }
 
 def test_db_connection():
@@ -132,7 +131,6 @@ def get_db():
     logger.info(f"Database: {db_params['dbname']}")
     logger.info(f"SSL Mode: {db_params['sslmode']}")
     logger.info(f"Connect Timeout: {db_params['connect_timeout']}s")
-    logger.info(f"Timezone Options: {db_params.get('options', 'None')}")
     
     max_retries = 5
     retry_delay = 5

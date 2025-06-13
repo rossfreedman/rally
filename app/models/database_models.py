@@ -2,13 +2,23 @@
 Rally Database Models - Refactored Schema
 Updated to support clean separation between authentication and player data
 """
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, Numeric, Text, Date, Time, ForeignKey, UniqueConstraint
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Numeric, Text, Date, Time, ForeignKey, UniqueConstraint, create_engine
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy.sql import func
 from datetime import datetime
+import os
 
 Base = declarative_base()
+
+# Database session configuration
+DATABASE_URL = os.getenv('DATABASE_URL')
+if DATABASE_URL:
+    engine = create_engine(DATABASE_URL)
+    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+else:
+    # Fallback for when DATABASE_URL is not available (e.g., during migrations)
+    SessionLocal = None
 
 class User(Base):
     """
@@ -27,21 +37,9 @@ class User(Base):
     created_at = Column(DateTime(timezone=True), default=func.now())
     last_login = Column(DateTime(timezone=True))
     
-    # Legacy columns (nullable, for backward compatibility with existing database)
-    # These are deprecated in favor of user_player_associations table
-    series_id = Column(Integer, ForeignKey('series.id'), nullable=True)
-    league_id = Column(Integer, ForeignKey('leagues.id'), nullable=True) 
-    club_id = Column(Integer, ForeignKey('clubs.id'), nullable=True)
-    tenniscores_player_id = Column(String(255), nullable=True)  # Deprecated: use player associations
-    
-    # Relationships - fixed overlapping warnings
+    # Relationships - properly use user_player_associations for many-to-many
     player_associations = relationship("UserPlayerAssociation", back_populates="user", cascade="all, delete-orphan")
     players = relationship("Player", secondary="user_player_associations", back_populates="associated_users", overlaps="player_associations")
-    
-    # Legacy relationships (deprecated)
-    legacy_series = relationship("Series", foreign_keys=[series_id])
-    legacy_league = relationship("League", foreign_keys=[league_id]) 
-    legacy_club = relationship("Club", foreign_keys=[club_id])
     
     def __repr__(self):
         return f"<User(id={self.id}, email='{self.email}', admin={self.is_admin})>"
@@ -141,8 +139,8 @@ class Player(Base):
     league = relationship("League", back_populates="players")
     club = relationship("Club", back_populates="players")
     series = relationship("Series", back_populates="players")
-    user_associations = relationship("UserPlayerAssociation", back_populates="player", cascade="all, delete-orphan")
-    associated_users = relationship("User", secondary="user_player_associations", back_populates="players", overlaps="user_associations")
+    user_associations = relationship("UserPlayerAssociation", back_populates="player", cascade="all, delete-orphan", overlaps="players")
+    associated_users = relationship("User", secondary="user_player_associations", back_populates="players", overlaps="user_associations,player_associations")
     
     # Constraints  
     __table_args__ = (

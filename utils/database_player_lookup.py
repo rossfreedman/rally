@@ -25,13 +25,13 @@ def find_player_by_database_lookup(
     Find a player's tenniscores_player_id using pure database lookups.
     
     Progressive fallback strategy:
-    1. Primary: first_name + last_name + club + series + league (exact match)
+    1. Primary: fuzzy first_name + exact last_name + club + series + league
     2. Fallback 1: last_name + series + league (drop club and first name)  
     3. Fallback 2: last_name + club + league (drop series and first name)
     4. Fallback 3: last_name + league (drop club, series, and first name)
     
     Args:
-        first_name: Player's first name
+        first_name: Player's first name (uses fuzzy matching in primary search)
         last_name: Player's last name
         club_name: Club name
         series_name: Series name  
@@ -62,9 +62,9 @@ def find_player_by_database_lookup(
         league_db_id = league_record['id']
         
         # ===========================================
-        # PRIMARY SEARCH: All fields exact match
+        # PRIMARY SEARCH: Fuzzy first name + exact match on other fields
         # ===========================================
-        logger.info(f"PRIMARY: Exact match search for {first_name} {last_name}")
+        logger.info(f"PRIMARY: Fuzzy first name search for {first_name} {last_name}")
         
         primary_query = """
             SELECT p.tenniscores_player_id, p.first_name, p.last_name, c.name as club_name, s.name as series_name
@@ -73,13 +73,13 @@ def find_player_by_database_lookup(
             JOIN series s ON p.series_id = s.id
             WHERE p.league_id = %s 
             AND p.is_active = true
-            AND LOWER(TRIM(p.first_name)) = %s
+            AND LOWER(TRIM(p.first_name)) LIKE %s
             AND LOWER(TRIM(p.last_name)) = %s  
             AND LOWER(TRIM(c.name)) = %s
             AND LOWER(TRIM(s.name)) = %s
         """
         
-        primary_matches = execute_query(primary_query, (league_db_id, norm_first, norm_last, norm_club, norm_series))
+        primary_matches = execute_query(primary_query, (league_db_id, f"%{norm_first}%", norm_last, norm_club, norm_series))
         
         if len(primary_matches) == 1:
             player_id = primary_matches[0]['tenniscores_player_id']
