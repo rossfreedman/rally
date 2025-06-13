@@ -16,6 +16,7 @@ import pytz
 import json
 import os
 from utils.database_player_lookup import find_player_by_database_lookup
+from app.models.database_models import SessionLocal, User, Player, UserPlayerAssociation
 
 api_bp = Blueprint('api', __name__)
 
@@ -680,19 +681,39 @@ def update_availability():
         except ValueError:
             return jsonify({'error': 'Invalid date format. Expected YYYY-MM-DD'}), 400
         
-        # Get user's series_id from session
+        # Get user's series_id through player association (new schema)
         user_email = session['user']['email']
-        user_query = """
-            SELECT u.series_id 
-            FROM users u 
-            WHERE u.email = %s
-        """
-        user_result = execute_query_one(user_query, (user_email,))
         
-        if not user_result or not user_result.get('series_id'):
-            return jsonify({'error': 'User series not found'}), 400
-        
-        series_id = user_result['series_id']
+        # Use SQLAlchemy to get user's primary player association
+        db_session = SessionLocal()
+        try:
+            # Get user record
+            user_record = db_session.query(User).filter(User.email == user_email).first()
+            
+            if not user_record:
+                return jsonify({'error': 'User not found'}), 404
+            
+            # Get primary player association
+            primary_association = db_session.query(UserPlayerAssociation).filter(
+                UserPlayerAssociation.user_id == user_record.id,
+                UserPlayerAssociation.is_primary == True
+            ).first()
+            
+            if not primary_association:
+                return jsonify({'error': 'No player association found. Please update your settings to link your player profile.'}), 400
+            
+            # Check if the player association has a valid player record
+            if not primary_association.player:
+                return jsonify({'error': 'Player record not found. Your player association may be broken. Please update your settings to re-link your player profile.'}), 400
+            
+            # Get series_id from the associated player
+            series_id = primary_association.player.series_id
+            
+            if not series_id:
+                return jsonify({'error': 'Player series not found'}), 400
+                
+        finally:
+            db_session.close()
         
         print(f"Updating availability: {player_name} for {match_date} status {availability_status} series_id {series_id}")
         
@@ -750,31 +771,54 @@ def get_user_settings():
     try:
         user_email = session['user']['email']
         
-        # Get user data with club, series, and league names
+        # Get basic user data (no more foreign keys)
         user_data = execute_query_one('''
-            SELECT u.first_name, u.last_name, u.email, u.club_automation_password,
-                   c.name as club, s.name as series, u.tenniscores_player_id,
-                   l.league_id, l.league_name
+            SELECT u.first_name, u.last_name, u.email, u.club_automation_password, u.is_admin
             FROM users u
-            LEFT JOIN clubs c ON u.club_id = c.id
-            LEFT JOIN series s ON u.series_id = s.id
-            LEFT JOIN leagues l ON u.league_id = l.id
             WHERE u.email = %s
         ''', (user_email,))
         
         if not user_data:
             return jsonify({'error': 'User not found'}), 404
+        
+        # Get player association data using SQLAlchemy
+        db_session = SessionLocal()
+        try:
+            user_record = db_session.query(User).filter(User.email == user_email).first()
+            
+            if user_record:
+                # Get primary player association
+                primary_association = db_session.query(UserPlayerAssociation).filter(
+                    UserPlayerAssociation.user_id == user_record.id,
+                    UserPlayerAssociation.is_primary == True
+                ).first()
+                
+                if primary_association:
+                    player = primary_association.player
+                    club_name = player.club.name
+                    series_name = player.series.name
+                    league_id = player.league.league_id
+                    league_name = player.league.league_name
+                    tenniscores_player_id = player.tenniscores_player_id
+                else:
+                    # No player association found
+                    club_name = series_name = league_id = league_name = tenniscores_player_id = ''
+            else:
+                club_name = series_name = league_id = league_name = tenniscores_player_id = ''
+                
+        finally:
+            db_session.close()
             
         response_data = {
             'first_name': user_data['first_name'] or '',
             'last_name': user_data['last_name'] or '',
             'email': user_data['email'] or '',
             'club_automation_password': user_data['club_automation_password'] or '',
-            'club': user_data['club'] or '',
-            'series': user_data['series'] or '',
-            'league_id': user_data['league_id'] or '',
-            'league_name': user_data['league_name'] or '',
-            'tenniscores_player_id': user_data['tenniscores_player_id'] or ''
+            'club': club_name,
+            'series': series_name,
+            'league_id': league_id,
+            'league_name': league_name,
+            'tenniscores_player_id': tenniscores_player_id
         }
         
         return jsonify(response_data)
@@ -809,59 +853,51 @@ def update_settings():
         if not data.get('firstName') or not data.get('lastName') or not data.get('email'):
             return jsonify({'error': 'First name, last name, and email are required'}), 400
         
-        # Get club_id, series_id, and league_id from names/ids
-        club_id = None
-        series_id = None
-        league_id = None
-        
-        if data.get('club'):
-            club_result = execute_query_one('SELECT id FROM clubs WHERE name = %s', (data['club'],))
-            if club_result:
-                club_id = club_result['id']
-        
-        if data.get('series'):
-            series_result = execute_query_one('SELECT id FROM series WHERE name = %s', (data['series'],))
-            if series_result:
-                series_id = series_result['id']
-        
-        if data.get('league_id'):
-            league_result = execute_query_one('SELECT id FROM leagues WHERE league_id = %s', (data['league_id'],))
-            if league_result:
-                league_id = league_result['id']
-        
-        # Check if league has changed - if so, we need to find new player ID for the new league
-        current_user = execute_query_one('SELECT l.league_id FROM users u LEFT JOIN leagues l ON u.league_id = l.id WHERE u.email = %s', (user_email,))
-        current_league_id = current_user['league_id'] if current_user else None
-        new_league_id = data.get('league_id')
-        
-        league_changed = current_league_id != new_league_id
-        logger.info(f"Settings update: League change check - Current: {current_league_id}, New: {new_league_id}, Changed: {league_changed}")
-        
         # Enhanced player ID lookup logic:
         # 1. Always retry if user requests it OR they don't have a player ID
-        # 2. Always retry if league has changed
+        # 2. Always retry if league/club/series has changed from current session
         # 3. Use database-only lookup strategy
         force_player_id_retry = data.get('forcePlayerIdRetry', False)
         current_player_id = session['user'].get('tenniscores_player_id')
-        should_retry_player_id = (force_player_id_retry or 
-                                  league_changed or 
-                                  not current_player_id)
         
-        tenniscores_player_id = None
+        # Check if league/club/series has changed from current session
+        current_league_id = session['user'].get('league_id')
+        current_club = session['user'].get('club')
+        current_series = session['user'].get('series')
+        
+        new_league_id = data.get('league_id')
+        new_club = data.get('club')
+        new_series = data.get('series')
+        
+        settings_changed = (
+            new_league_id != current_league_id or
+            new_club != current_club or
+            new_series != current_series
+        )
+        
+        should_retry_player_id = (
+            force_player_id_retry or 
+            not current_player_id or
+            settings_changed
+        )
+        
+        found_player_id = None
+        player_association_created = False
+        
         if should_retry_player_id and data.get('firstName') and data.get('lastName') and data.get('club') and data.get('series'):
             try:
                 reason = []
                 if force_player_id_retry:
                     reason.append("user requested retry")
-                if league_changed:
-                    reason.append(f"league changed from {current_league_id} to {new_league_id}")
                 if not current_player_id:
                     reason.append("no existing player ID")
+                if settings_changed:
+                    reason.append(f"settings changed (league: {current_league_id} -> {new_league_id}, club: {current_club} -> {new_club}, series: {current_series} -> {new_series})")
                 
                 logger.info(f"Settings update: Retrying player ID lookup because: {', '.join(reason)}")
                 
                 # Use database-only lookup - NO MORE JSON FILES
-                tenniscores_player_id = find_player_by_database_lookup(
+                found_player_id = find_player_by_database_lookup(
                     first_name=data['firstName'],
                     last_name=data['lastName'],
                     club_name=data['club'],
@@ -869,122 +905,157 @@ def update_settings():
                     league_id=data.get('league_id')
                 )
                 
-                if tenniscores_player_id:
-                    logger.info(f"Settings update: Found player ID via database lookup: {tenniscores_player_id}")
+                if found_player_id:
+                    logger.info(f"Settings update: Found player ID via database lookup: {found_player_id}")
+                    
+                    # Create user-player association if player found
+                    db_session = SessionLocal()
+                    try:
+                        # Get user and player records
+                        user_record = db_session.query(User).filter(User.email == user_email).first()
+                        player_record = db_session.query(Player).filter(
+                            Player.tenniscores_player_id == found_player_id,
+                            Player.is_active == True
+                        ).first()
+                        
+                        if user_record and player_record:
+                            # Check if association already exists
+                            existing = db_session.query(UserPlayerAssociation).filter(
+                                UserPlayerAssociation.user_id == user_record.id,
+                                UserPlayerAssociation.player_id == player_record.id
+                            ).first()
+                            
+                            if not existing:
+                                # Unset any existing primary associations for this user
+                                db_session.query(UserPlayerAssociation).filter(
+                                    UserPlayerAssociation.user_id == user_record.id,
+                                    UserPlayerAssociation.is_primary == True
+                                ).update({'is_primary': False})
+                                
+                                # Create new association as primary
+                                association = UserPlayerAssociation(
+                                    user_id=user_record.id,
+                                    player_id=player_record.id,
+                                    is_primary=True
+                                )
+                                db_session.add(association)
+                                db_session.commit()
+                                player_association_created = True
+                                logger.info(f"Settings update: Created new primary association between user {user_email} and player {player_record.full_name}")
+                            else:
+                                # Association exists - make sure it's primary if settings changed
+                                if settings_changed and not existing.is_primary:
+                                    # Unset other primary associations
+                                    db_session.query(UserPlayerAssociation).filter(
+                                        UserPlayerAssociation.user_id == user_record.id,
+                                        UserPlayerAssociation.is_primary == True
+                                    ).update({'is_primary': False})
+                                    
+                                    # Set this association as primary
+                                    existing.is_primary = True
+                                    db_session.commit()
+                                    logger.info(f"Settings update: Updated existing association to primary for user {user_email} and player {player_record.full_name}")
+                                else:
+                                    logger.info(f"Settings update: Association already exists between user {user_email} and player {player_record.full_name}")
+                        else:
+                            logger.warning(f"Settings update: Could not find user or player record for association")
+                            
+                    except Exception as assoc_error:
+                        db_session.rollback()
+                        logger.error(f"Settings update: Error creating user-player association: {str(assoc_error)}")
+                    finally:
+                        db_session.close()
                 else:
                     logger.info(f"Settings update: No player ID found via database lookup")
                     
             except Exception as lookup_error:
                 logger.warning(f"Settings update: Player ID lookup error: {str(lookup_error)}")
-                tenniscores_player_id = None
+                found_player_id = None
         
-        # Update user data - update player ID if we retried and found one
-        if should_retry_player_id and tenniscores_player_id:
-            # We retried player ID lookup and found one - update it
-            success = execute_update('''
-                UPDATE users 
-                SET first_name = %s, last_name = %s, email = %s, 
-                    club_id = %s, series_id = %s, league_id = %s, club_automation_password = %s,
-                    tenniscores_player_id = %s
-                WHERE email = %s
-            ''', (
-                data['firstName'], 
-                data['lastName'], 
-                data['email'],
-                club_id,
-                series_id,
-                league_id,
-                data.get('clubAutomationPassword', ''),
-                tenniscores_player_id,
-                user_email
-            ))
-            logger.info(f"Settings update: Updated user with found player ID: {tenniscores_player_id}")
-        else:
-            # No retry needed or no player ID found - keep existing player ID
-            success = execute_update('''
-                UPDATE users 
-                SET first_name = %s, last_name = %s, email = %s, 
-                    club_id = %s, series_id = %s, league_id = %s, club_automation_password = %s
-                WHERE email = %s
-            ''', (
-                data['firstName'], 
-                data['lastName'], 
-                data['email'],
-                club_id,
-                series_id,
-                league_id,
-                data.get('clubAutomationPassword', ''),
-                user_email
-            ))
-            if should_retry_player_id and not tenniscores_player_id:
-                logger.info(f"Settings update: Updated user, but no player ID found despite retry")
-            else:
-                logger.info(f"Settings update: Updated user, keeping existing player ID")
+        # Update user data (only basic user fields - no foreign keys)
+        success = execute_update('''
+            UPDATE users 
+            SET first_name = %s, last_name = %s, email = %s, club_automation_password = %s
+            WHERE email = %s
+        ''', (
+            data['firstName'], 
+            data['lastName'], 
+            data['email'],
+            data.get('clubAutomationPassword', ''),
+            user_email
+        ))
         
         if not success:
             return jsonify({'error': 'Failed to update user data'}), 500
         
-        # Get updated user data to return and update session
-        updated_user = execute_query_one('''
-            SELECT u.id, u.first_name, u.last_name, u.email, u.club_automation_password,
-                   c.name as club, s.name as series, u.is_admin, u.tenniscores_player_id,
-                   l.league_id, l.league_name
-            FROM users u
-            LEFT JOIN clubs c ON u.club_id = c.id
-            LEFT JOIN series s ON u.series_id = s.id
-            LEFT JOIN leagues l ON u.league_id = l.id
-            WHERE u.email = %s
-        ''', (data['email'],))  # Use new email in case it was changed
+        logger.info(f"Settings update: Updated user basic data")
         
-        if updated_user:
+        # Get updated user data with player associations for session
+        db_session = SessionLocal()
+        try:
+            user_record = db_session.query(User).filter(User.email == data['email']).first()
+            
+            if not user_record:
+                return jsonify({'error': 'Failed to retrieve updated user data'}), 500
+            
+            # Get associated players
+            associations = db_session.query(UserPlayerAssociation).filter(
+                UserPlayerAssociation.user_id == user_record.id
+            ).all()
+            
+            # Find primary player for session data
+            primary_player = None
+            current_player_id = None
+            
+            for assoc in associations:
+                if assoc.is_primary:
+                    player = assoc.player
+                    if player and player.club and player.series and player.league:
+                        primary_player = {
+                            'club': player.club.name,
+                            'series': player.series.name,
+                            'league_id': player.league.league_id,
+                            'league_name': player.league.league_name,
+                            'tenniscores_player_id': player.tenniscores_player_id
+                        }
+                        current_player_id = player.tenniscores_player_id
+                        break
+            
             # Update session with new user data
-            # Use the database value for player ID to maintain consistency
             session['user'] = {
-                'id': updated_user['id'],
-                'email': updated_user['email'],
-                'first_name': updated_user['first_name'],
-                'last_name': updated_user['last_name'],
-                'club': updated_user['club'],
-                'series': updated_user['series'],
-                'league_id': updated_user['league_id'],
-                'league_name': updated_user['league_name'],
-                'club_automation_password': updated_user['club_automation_password'],
-                'is_admin': updated_user['is_admin'],
-                'tenniscores_player_id': updated_user['tenniscores_player_id'],  # Use database value
+                'id': user_record.id,
+                'email': user_record.email,
+                'first_name': user_record.first_name,
+                'last_name': user_record.last_name,
+                'club': primary_player['club'] if primary_player else data.get('club', ''),
+                'series': primary_player['series'] if primary_player else data.get('series', ''),
+                'league_id': primary_player['league_id'] if primary_player else data.get('league_id'),
+                'league_name': primary_player['league_name'] if primary_player else '',
+                'club_automation_password': data.get('clubAutomationPassword', ''),
+                'is_admin': user_record.is_admin,
+                'tenniscores_player_id': current_player_id,
                 'settings': '{}'  # Default empty settings for consistency with auth
             }
             
             # Explicitly mark session as modified to ensure persistence
             session.modified = True
             
-            # Log the player ID handling for tracking  
-            previous_player_id = current_player_id
-            final_player_id = updated_user['tenniscores_player_id']
-            player_id_changed = previous_player_id != final_player_id
-            
-            if should_retry_player_id:
-                if tenniscores_player_id:
-                    logger.info(f"Player ID lookup successful: {previous_player_id} → {final_player_id}")
-                else:
-                    logger.info(f"Player ID lookup attempted but failed - kept existing: {final_player_id}")
-            else:
-                logger.info(f"No player ID retry needed: {final_player_id}")
-            logger.info(f"Session player ID set to: {session['user']['tenniscores_player_id']}")
+            logger.info(f"Settings update: Session updated with player ID: {current_player_id}")
             
             return jsonify({
                 'success': True,
                 'message': 'Settings updated successfully',
                 'user': session['user'],
-                'player_id_updated': player_id_changed,
-                'player_id': final_player_id,
-                'previous_player_id': previous_player_id,
+                'player_id_updated': found_player_id is not None,
+                'player_id': current_player_id,
+                'player_association_created': player_association_created,
                 'player_id_retry_attempted': should_retry_player_id,
-                'player_id_retry_successful': should_retry_player_id and tenniscores_player_id is not None,
-                'league_changed': league_changed,
+                'player_id_retry_successful': found_player_id is not None,
                 'force_retry_requested': force_player_id_retry
             })
-        else:
-            return jsonify({'error': 'Failed to retrieve updated user data'}), 500
+            
+        finally:
+            db_session.close()
         
     except Exception as e:
         print(f"Error updating settings: {str(e)}")
@@ -1001,40 +1072,32 @@ def retry_player_id_lookup():
         logger = logging.getLogger(__name__)
         user_email = session['user']['email']
         
-        # Get current user data
-        user_data = execute_query_one('''
-            SELECT u.first_name, u.last_name, u.email,
-                   c.name as club, s.name as series, l.league_id
-            FROM users u
-            LEFT JOIN clubs c ON u.club_id = c.id
-            LEFT JOIN series s ON u.series_id = s.id
-            LEFT JOIN leagues l ON u.league_id = l.id
-            WHERE u.email = %s
-        ''', (user_email,))
+        # Get current user data from session (since we can't rely on user table foreign keys anymore)
+        first_name = session['user'].get('first_name')
+        last_name = session['user'].get('last_name')
+        club_name = session['user'].get('club')
+        series_name = session['user'].get('series')
+        league_id = session['user'].get('league_id')
         
-        if not user_data:
-            return jsonify({'success': False, 'message': 'User not found'}), 404
-        
-        first_name = user_data['first_name']
-        last_name = user_data['last_name']
-        club_name = user_data['club']
-        series_name = user_data['series']
-        league_id = user_data['league_id']
-        
-        if not all([first_name, last_name, club_name, series_name, league_id]):
+        # If session doesn't have player data, this means user never had a player association
+        # We can't do a retry without knowing what league/club/series to search in
+        if not all([first_name, last_name]):
             missing = []
             if not first_name: missing.append('first name')
             if not last_name: missing.append('last name')
-            if not club_name: missing.append('club')
-            if not series_name: missing.append('series')
-            if not league_id: missing.append('league')
             return jsonify({
                 'success': False, 
-                'message': f'Missing required data: {", ".join(missing)}'
+                'message': f'Missing required user data: {", ".join(missing)}'
+            }), 400
+        
+        if not all([club_name, series_name, league_id]):
+            return jsonify({
+                'success': False,
+                'message': 'Cannot retry player lookup - no club/series/league information available. Please update your settings with your club, series, and league information first.'
             }), 400
         
         try:
-            logger.info(f"Manual retry: Looking up player via database")
+            logger.info(f"Manual retry: Looking up player via database for {first_name} {last_name}")
             
             # Use database-only lookup - NO MORE JSON FILES
             found_player_id = find_player_by_database_lookup(
@@ -1046,30 +1109,77 @@ def retry_player_id_lookup():
             )
             
             if found_player_id:
-                # Update user record with found player ID
-                success = execute_update(
-                    'UPDATE users SET tenniscores_player_id = %s WHERE email = %s',
-                    (found_player_id, user_email)
-                )
-                
-                if success:
-                    # Update session
-                    session['user']['tenniscores_player_id'] = found_player_id
-                    session.modified = True
+                # Create user-player association
+                db_session = SessionLocal()
+                try:
+                    # Get user and player records
+                    user_record = db_session.query(User).filter(User.email == user_email).first()
+                    player_record = db_session.query(Player).filter(
+                        Player.tenniscores_player_id == found_player_id,
+                        Player.is_active == True
+                    ).first()
                     
-                    logger.info(f"Manual retry: Successfully updated player ID to {found_player_id}")
-                    
-                    return jsonify({
-                        'success': True,
-                        'player_id': found_player_id,
-                        'message': f'Player ID found and updated: {found_player_id}'
-                    })
-                else:
-                    logger.error(f"Manual retry: Failed to update database with player ID {found_player_id}")
+                    if user_record and player_record:
+                        # Check if association already exists
+                        existing = db_session.query(UserPlayerAssociation).filter(
+                            UserPlayerAssociation.user_id == user_record.id,
+                            UserPlayerAssociation.player_id == player_record.id
+                        ).first()
+                        
+                        if not existing:
+                            # Create new association
+                            association = UserPlayerAssociation(
+                                user_id=user_record.id,
+                                player_id=player_record.id,
+                                is_primary=True  # First association becomes primary
+                            )
+                            db_session.add(association)
+                            db_session.commit()
+                            
+                            # Update session with player data
+                            session['user']['tenniscores_player_id'] = found_player_id
+                            if player_record.club and player_record.series and player_record.league:
+                                session['user']['club'] = player_record.club.name
+                                session['user']['series'] = player_record.series.name
+                                session['user']['league_id'] = player_record.league.league_id
+                                session['user']['league_name'] = player_record.league.league_name
+                            session.modified = True
+                            
+                            logger.info(f"Manual retry: Created association and updated session for player ID {found_player_id}")
+                            
+                            return jsonify({
+                                'success': True,
+                                'player_id': found_player_id,
+                                'message': f'Player ID found and associated: {found_player_id}'
+                            })
+                        else:
+                            logger.info(f"Manual retry: Association already exists for player ID {found_player_id}")
+                            
+                            # Update session anyway in case it was missing
+                            session['user']['tenniscores_player_id'] = found_player_id
+                            session.modified = True
+                            
+                            return jsonify({
+                                'success': True,
+                                'player_id': found_player_id,
+                                'message': f'Player ID already associated: {found_player_id}'
+                            })
+                    else:
+                        logger.error(f"Manual retry: Could not find user or player record for association")
+                        return jsonify({
+                            'success': False,
+                            'message': 'Found player ID but could not create association'
+                        }), 500
+                        
+                except Exception as assoc_error:
+                    db_session.rollback()
+                    logger.error(f"Manual retry: Association error: {str(assoc_error)}")
                     return jsonify({
                         'success': False,
-                        'message': 'Found player ID but failed to update database'
+                        'message': 'Found player ID but failed to create association'
                     }), 500
+                finally:
+                    db_session.close()
             else:
                 logger.info(f"Manual retry: No player match found for {first_name} {last_name}")
                 return jsonify({

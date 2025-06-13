@@ -659,8 +659,11 @@ def get_season_history():
 @login_required
 def serve_mobile_my_team():
     """Serve the mobile My Team page"""
+    print(f"🔥 ROUTE CALLED: /mobile/my-team with user: {session['user']['email']}")
     try:
+        print(f"🔥 ABOUT TO CALL: get_mobile_team_data")
         result = get_mobile_team_data(session['user'])
+        print(f"🔥 RESULT FROM get_mobile_team_data: {type(result)}")
         
         session_data = {
             'user': session['user'],

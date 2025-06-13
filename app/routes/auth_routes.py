@@ -47,44 +47,11 @@ def handle_register():
             else:
                 return jsonify({'error': result['error']}), 500
 
-        # Set session data using same approach as settings (direct SQL to avoid SQLAlchemy relationship issues)
-        from database_utils import execute_query_one
-        
-        # Get updated user data using same query as settings update
-        updated_user = execute_query_one('''
-            SELECT u.id, u.first_name, u.last_name, u.email, u.club_automation_password,
-                   c.name as club, s.name as series, u.is_admin, u.tenniscores_player_id,
-                   l.league_id, l.league_name
-            FROM users u
-            LEFT JOIN clubs c ON u.club_id = c.id
-            LEFT JOIN series s ON u.series_id = s.id
-            LEFT JOIN leagues l ON u.league_id = l.id
-            WHERE u.email = %s
-        ''', (email,))
-        
-        if updated_user:
-            # Create session data exactly like settings update does
-            session['user'] = {
-                'id': updated_user['id'],
-                'email': updated_user['email'],
-                'first_name': updated_user['first_name'],
-                'last_name': updated_user['last_name'],
-                'club': updated_user['club'],
-                'series': updated_user['series'],
-                'league_id': updated_user['league_id'],
-                'league_name': updated_user['league_name'],
-                'club_automation_password': updated_user['club_automation_password'] or '',
-                'is_admin': updated_user['is_admin'],
-                'tenniscores_player_id': updated_user['tenniscores_player_id'],  # This should now be set!
-                'settings': '{}'  # Default empty settings for consistency
-            }
-            logger.info(f"Registration: Session created with player ID: {updated_user['tenniscores_player_id']}")
-        else:
-            # Fallback to original approach if SQL query fails
-            session['user'] = create_session_data(result['user'])
-            logger.warning("Registration: Fell back to create_session_data due to SQL query failure")
-        
+        # Set session data using the refactored service that handles user_player_associations
+        session['user'] = create_session_data(result['user'])
         session.permanent = True
+        
+        logger.info(f"Registration: Session created for user {email}")
         
         return jsonify({
             'status': 'success',

@@ -286,6 +286,14 @@
                 await loadLeaguesAndFilters();
             } catch (error) {
                 console.error('Error loading registration data:', error);
+                // Retry after a short delay in case of temporary network issues
+                setTimeout(async () => {
+                    try {
+                        await loadLeaguesAndFilters();
+                    } catch (retryError) {
+                        console.error('Retry failed:', retryError);
+                    }
+                }, 2000);
             }
         });
 
@@ -372,32 +380,54 @@
         function loadSeriesByLeague(leagueId = null) {
             const url = leagueId ? `/api/get-series-by-league?league_id=${leagueId}` : '/api/get-series-by-league';
             
+            console.log('Loading series from:', url);
+            
             fetch(url).then(r => r.json()).then(data => {
+                console.log('Series data received:', data);
                 const seriesSelect = document.getElementById('series');
+                
+                if (!seriesSelect) {
+                    console.error('Series select element not found');
+                    return;
+                }
+                
                 seriesSelect.innerHTML = '<option value="">Select your series</option>';
                 
                 if (data.series && Array.isArray(data.series)) {
+                    console.log(`Adding ${data.series.length} series options`);
                     data.series.forEach(series => {
                         const option = document.createElement('option');
                         option.value = series;
                         option.textContent = series;
                         seriesSelect.appendChild(option);
                     });
+                } else {
+                    console.warn('No series data found or invalid format');
                 }
             }).catch(error => {
                 console.error('Error loading series:', error);
                 // Fallback to all series
                 fetch('/api/get-series').then(r => r.json()).then(data => {
+                    console.log('Fallback series data received:', data);
                     const seriesSelect = document.getElementById('series');
+                    if (!seriesSelect) {
+                        console.error('Series select element not found in fallback');
+                        return;
+                    }
                     seriesSelect.innerHTML = '<option value="">Select your series</option>';
                     if (data.all_series && Array.isArray(data.all_series)) {
+                        console.log(`Adding ${data.all_series.length} fallback series options`);
                         data.all_series.forEach(series => {
                             const option = document.createElement('option');
                             option.value = series;
                             option.textContent = series;
                             seriesSelect.appendChild(option);
                         });
+                    } else {
+                        console.warn('No fallback series data found or invalid format');
                     }
+                }).catch(fallbackError => {
+                    console.error('Fallback series loading failed:', fallbackError);
                 });
             });
         }
@@ -412,6 +442,13 @@
             
             document.querySelector(`.auth-tab:nth-child(${formType === 'login' ? 1 : 2})`).classList.add('active');
             document.getElementById(`${formType}Form`).classList.add('active');
+            
+            // If switching to register form, ensure dropdowns are populated
+            if (formType === 'register') {
+                setTimeout(() => {
+                    loadLeaguesAndFilters();
+                }, 100);
+            }
         }
 
         document.getElementById('loginForm').addEventListener('submit', async function(e) {

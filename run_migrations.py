@@ -7,10 +7,12 @@ before the application starts, including:
 - Creating leagues table and relationships
 - Adding missing columns to users table
 - Creating proper indexes
+- Running Alembic data migrations
 """
 
 import os
 import sys
+import subprocess
 import logging
 from dotenv import load_dotenv
 
@@ -33,7 +35,7 @@ def run_all_migrations():
     print("🚀 Starting database migrations...")
     
     try:
-        # Run leagues tables migration
+        # Run schema migrations first
         print("📋 Running leagues tables migration...")
         run_leagues_migration()
         print("✅ Leagues tables migration completed")
@@ -42,6 +44,27 @@ def run_all_migrations():
         print("📋 Running missing user columns migration...")
         run_columns_migration()
         print("✅ User columns migration completed")
+        
+        # Run Alembic data migrations
+        print("📋 Running Alembic data migrations...")
+        try:
+            result = subprocess.run(
+                ['alembic', 'upgrade', 'head'], 
+                capture_output=True, 
+                text=True,
+                check=True
+            )
+            print("✅ Alembic data migrations completed")
+            print(f"Alembic output: {result.stdout}")
+            if result.stderr:
+                print(f"Alembic warnings: {result.stderr}")
+        except subprocess.CalledProcessError as e:
+            print(f"⚠️  Alembic migration failed: {e}")
+            print(f"Stdout: {e.stdout}")
+            print(f"Stderr: {e.stderr}")
+            print("⚠️  Continuing with application startup...")
+        except FileNotFoundError:
+            print("⚠️  Alembic not found - skipping data migrations")
         
         print("🎉 All database migrations completed successfully!")
         return True
