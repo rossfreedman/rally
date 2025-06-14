@@ -108,45 +108,56 @@
             </div>
         </div>
 
-        <!-- Full Screen Modal -->
-        <div id="coach-rally-modal" class="fixed inset-0 bg-white z-50 hidden flex flex-col">
-            <!-- Modal Header -->
-            <div class="flex items-center justify-between p-4 border-b border-gray-200 bg-white shadow sticky top-0 z-10">
-                <div class="flex items-center gap-3">
-                    <div class="bg-gradient-to-br from-green-500 to-blue-600 rounded-md flex items-center justify-center h-10 w-10">
-                        <i class="fas fa-user-graduate text-white text-lg"></i>
+        <!-- Modal Backdrop -->
+        <div id="coach-rally-modal" class="fixed inset-0 z-[9999] hidden transition-all duration-300 ease-out">
+            <!-- Dark overlay -->
+            <div class="absolute inset-0 bg-black bg-opacity-80 transition-opacity duration-300"></div>
+            
+            <!-- Modal Content -->
+            <div class="relative h-full flex items-center justify-center p-4 py-16">
+                <div class="bg-white rounded-lg shadow-2xl w-full max-w-md h-auto flex flex-col overflow-hidden transform transition-all duration-300 ease-out scale-100">
+                    <!-- Modal Header -->
+                    <div class="flex items-center justify-between p-4 border-b border-gray-200 bg-white flex-shrink-0">
+                        <div class="flex items-center gap-3">
+                            <div class="bg-gradient-to-br from-green-500 to-blue-600 rounded-full flex items-center justify-center h-10 w-10">
+                                <i class="fas fa-user-graduate text-white text-lg"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-bold text-gray-800">Coach Rally</h3>
+                                <p class="text-xs text-gray-600">Your AI-powered coach</p>
+                            </div>
+                        </div>
+                        <button id="close-modal" class="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                            <i class="fas fa-times text-gray-500 text-lg"></i>
+                        </button>
                     </div>
-                    <div>
-                        <h3 class="text-xl font-bold text-gray-800">Coach Rally</h3>
-                        <p class="text-sm text-gray-600">Your AI-powered coach</p>
+
+                    <!-- Chat Messages Container -->
+                    <div id="paddle-coach-messages" class="overflow-y-auto p-4 space-y-3 bg-gray-50" style="height: 500px;">
+                        <!-- Messages will be inserted here -->
+                    </div>
+
+                    <!-- Chat Input Form -->
+                    <div class="p-4 border-t border-gray-200 bg-white flex-shrink-0">
+                        <form id="modal-coach-form" class="flex gap-2">
+                            <input type="text" 
+                                   id="modal-coach-input" 
+                                   class="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" 
+                                   placeholder="Ask Coach Rally a question..."
+                                   autocomplete="off" 
+                                   required>
+                            <button type="submit" 
+                                    class="bg-gradient-to-br from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white px-4 py-2 rounded-lg transition-all duration-200 flex items-center justify-center">
+                                <i class="fas fa-paper-plane text-sm"></i>
+                            </button>
+                        </form>
                     </div>
                 </div>
-                <button id="close-modal" class="p-2 hover:bg-gray-100 rounded-full">
-                    <i class="fas fa-times text-gray-500 text-xl"></i>
-                </button>
-            </div>
-
-            <!-- Chat Messages Container -->
-            <div id="paddle-coach-messages" class="flex-1 overflow-y-auto p-4 space-y-4 imessage-background"></div>
-
-            <!-- Chat Input Form -->
-            <div class="p-4 border-t border-gray-200 bg-white">
-                <form id="modal-coach-form" class="flex gap-2">
-                    <input type="text" 
-                           id="modal-coach-input" 
-                           class="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                           autocomplete="off" 
-                           required>
-                    <button type="submit" 
-                            class="bg-gradient-to-br from-green-500 to-blue-600 hover:from-green-600 hover:to-blue-700 text-white px-4 py-2 rounded-lg transition-all duration-200">
-                        <i class="fas fa-paper-plane"></i>
-                    </button>
-                </form>
             </div>
         </div>
 
         <!-- Training Resources Section -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden relative z-1">
             <div class="px-6 py-4 border-b border-gray-50">
                 <h2 class="text-lg font-semibold text-gray-900 flex items-center">
                     <i class="fas fa-graduation-cap text-blue-500 mr-2"></i>
@@ -206,7 +217,7 @@
         </div>
 
         <!-- Review Video Footage Section -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden relative z-1">
             <div class="px-6 py-4 border-b border-gray-50">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center gap-2">
@@ -477,7 +488,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Create modal backdrop
         const modal = document.createElement('div');
-        modal.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4';
+        modal.className = 'fixed inset-0 bg-black bg-opacity-50 z-[9998] flex items-center justify-center p-4';
         modal.innerHTML = `
             <div class="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
                 <div class="p-4 border-b border-gray-200 flex justify-between items-center">
@@ -652,6 +663,9 @@ document.addEventListener('DOMContentLoaded', function() {
     chatPreview.addEventListener('click', () => {
         coachRallyModal.classList.remove('hidden');
         document.body.style.overflow = 'hidden';
+        document.body.style.position = 'fixed';
+        document.body.style.width = '100%';
+        document.body.style.height = '100%';
     });
 
     paddleCoachForm.addEventListener('submit', (e) => {
@@ -660,6 +674,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if (message) {
             coachRallyModal.classList.remove('hidden');
             document.body.style.overflow = 'hidden';
+            document.body.style.position = 'fixed';
+            document.body.style.width = '100%';
+            document.body.style.height = '100%';
             modalCoachInput.value = message;
             handleCoachMessage(message);
             paddleCoachInput.value = '';
@@ -671,14 +688,20 @@ document.addEventListener('DOMContentLoaded', function() {
     closeModalBtn.addEventListener('click', () => {
         coachRallyModal.classList.add('hidden');
         document.body.style.overflow = '';
+        document.body.style.position = '';
+        document.body.style.width = '';
+        document.body.style.height = '';
     });
 
-    // Allow closing modal by clicking outside the modal content
+    // Allow closing modal by clicking the overlay
     coachRallyModal.addEventListener('click', function(e) {
-        // Only close if the click is directly on the modal background (not a child)
-        if (e.target === coachRallyModal) {
+        // Close if clicking on the overlay (backdrop) or the outer modal container
+        if (e.target === coachRallyModal || e.target.classList.contains('bg-black')) {
             coachRallyModal.classList.add('hidden');
             document.body.style.overflow = '';
+            document.body.style.position = '';
+            document.body.style.width = '';
+            document.body.style.height = '';
         }
     });
 
@@ -687,6 +710,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!coachRallyModal.classList.contains('hidden') && (e.key === 'Escape' || e.key === 'Esc')) {
             coachRallyModal.classList.add('hidden');
             document.body.style.overflow = '';
+            document.body.style.position = '';
+            document.body.style.width = '';
+            document.body.style.height = '';
         }
     });
 
@@ -722,11 +748,8 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
         paddleCoachMessages.appendChild(userMessageDiv);
         
-        // Store the position of the user message for smart scrolling
-        const userMessagePosition = userMessageDiv.offsetTop;
-        
-        // Scroll to show the user message plus a small buffer (25px)
-        paddleCoachMessages.scrollTop = userMessagePosition - 25;
+        // Scroll to bottom to show the new user message
+        paddleCoachMessages.scrollTop = paddleCoachMessages.scrollHeight;
         
         // Update preview
         updateChatPreview(message);
@@ -747,6 +770,18 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
         `;
         paddleCoachMessages.appendChild(loadingDiv);
+        
+        // Scroll to show the "Coach Rally is thinking..." message
+        setTimeout(() => {
+            const loadingBubble = loadingDiv.querySelector('.imessage-loading-bubble');
+            if (loadingBubble) {
+                loadingBubble.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                // Adjust scroll position by 15px less to show some space above
+                setTimeout(() => {
+                    paddleCoachMessages.scrollTop = paddleCoachMessages.scrollTop - 15;
+                }, 300);
+            }
+        }, 100);
         
         // Make API call to get response
         fetch('/api/chat', {
@@ -788,11 +823,20 @@ document.addEventListener('DOMContentLoaded', function() {
                     ${formattedResponse}
                 </div>
             `;
+            
             paddleCoachMessages.appendChild(coachMessageDiv);
             
-            // Smart scroll: show the top of the coach response with 25px buffer from user message
-            const coachMessagePosition = coachMessageDiv.offsetTop;
-            paddleCoachMessages.scrollTop = userMessagePosition - 25;
+            // Scroll to show the top of the newly added coach response
+            setTimeout(() => {
+                const coachBubble = coachMessageDiv.querySelector('.imessage-coach-bubble');
+                if (coachBubble) {
+                    coachBubble.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    // Adjust scroll position by 20px less
+                    setTimeout(() => {
+                        paddleCoachMessages.scrollTop = paddleCoachMessages.scrollTop - 20;
+                    }, 300);
+                }
+            }, 100);
             
             // Check if response already contains training data/videos to avoid duplication
             const responseText = data.response || '';
@@ -1300,34 +1344,29 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 
 /* Enhanced Coach Rally chat styles */
-.imessage-background {
-    background: linear-gradient(180deg, #f8f9fa 0%, #e9ecef 100%);
-}
-
 #paddle-coach-messages {
     scrollbar-width: thin;
     scrollbar-color: #cbd5e1 #f1f5f9;
 }
 
 #paddle-coach-messages::-webkit-scrollbar {
-    width: 6px;
+    width: 4px;
 }
 
 #paddle-coach-messages::-webkit-scrollbar-track {
-    background: #f1f5f9;
-    border-radius: 3px;
+    background: transparent;
 }
 
 #paddle-coach-messages::-webkit-scrollbar-thumb {
     background: #cbd5e1;
-    border-radius: 3px;
+    border-radius: 2px;
 }
 
 #paddle-coach-messages::-webkit-scrollbar-thumb:hover {
     background: #94a3b8;
 }
 
-/* iMessage-style bubble animations */
+/* Message bubble styles for modal */
 .imessage-user-bubble,
 .imessage-coach-bubble,
 .imessage-followup-bubble,
@@ -1335,33 +1374,34 @@ document.addEventListener('DOMContentLoaded', function() {
 .imessage-loading-bubble {
     animation: messageSlideIn 0.3s ease-out;
     position: relative;
+    font-size: 0.875rem;
 }
 
 .imessage-user-bubble {
-    background: linear-gradient(135deg, #007AFF 0%, #0051D5 100%);
-    border-bottom-right-radius: 8px;
+    background: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%);
+    border-bottom-right-radius: 6px;
 }
 
 .imessage-coach-bubble {
-    background: #E5E5EA;
-    color: #000000;
-    border-bottom-left-radius: 8px;
+    background: #F3F4F6;
+    color: #1F2937;
+    border-bottom-left-radius: 6px;
 }
 
 .imessage-followup-bubble {
-    background: #E5E5EA;
-    color: #000000;
-    border-bottom-left-radius: 8px;
+    background: #F3F4F6;
+    color: #1F2937;
+    border-bottom-left-radius: 6px;
 }
 
 .imessage-video-bubble {
-    border-bottom-left-radius: 8px;
+    border-bottom-left-radius: 6px;
     animation: messageSlideIn 0.4s ease-out;
 }
 
 .imessage-loading-bubble {
-    background: #E5E5EA;
-    border-bottom-left-radius: 8px;
+    background: #F3F4F6;
+    border-bottom-left-radius: 6px;
 }
 
 /* Bubble hover effects */
@@ -1477,14 +1517,14 @@ document.addEventListener('DOMContentLoaded', function() {
     font-weight: 500;
 }
 .coach-video-container {
-    margin: 1em 0 0.5em 0;
+    margin: 0.5em 0;
     width: 100%;
-    max-width: 320px;
+    max-width: 280px;
     aspect-ratio: 16/9;
     background: #e5e7eb;
-    border-radius: 8px;
+    border-radius: 6px;
     overflow: hidden;
-    box-shadow: 0 2px 8px rgba(59,130,246,0.08);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
 }
 .coach-video-container iframe {
     width: 100%;
