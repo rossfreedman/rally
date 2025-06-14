@@ -613,6 +613,9 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Process management
   document.getElementById('clear-processes').addEventListener('click', clearStuckProcesses);
+  
+  // Status monitor functionality
+  initializeStatusMonitor();
 
   // Global variables for process management
   let currentScrapeProcess = null;
@@ -944,11 +947,26 @@ document.addEventListener('DOMContentLoaded', function() {
       'info': '#000000'
     }[status] || '#000000';
     
+    // Clear the placeholder if it exists
+    if (output.querySelector('.text-gray-400')) {
+      output.innerHTML = '';
+    }
+    
     const newLine = document.createElement('div');
     newLine.style.color = colorClass;
     newLine.innerHTML = `[${timestamp}] ${message}`;
     output.appendChild(newLine);
-    output.scrollTop = output.scrollHeight;
+    
+    // Auto-scroll if enabled
+    if (autoScrollScraping) {
+      output.scrollTop = output.scrollHeight;
+    }
+    
+    // Update status summary
+    updateStatusSummary('scraping', message, status);
+    
+    // Update status indicator
+    updateStatusIndicator('scraping', status);
   }
 
   function appendToImportOutput(message, status = 'info') {
@@ -961,31 +979,66 @@ document.addEventListener('DOMContentLoaded', function() {
       'info': '#000000'
     }[status] || '#000000';
     
+    // Clear the placeholder if it exists
+    if (output.querySelector('.text-gray-400')) {
+      output.innerHTML = '';
+    }
+    
     const newLine = document.createElement('div');
     newLine.style.color = colorClass;
     newLine.innerHTML = `[${timestamp}] ${message}`;
     output.appendChild(newLine);
-    output.scrollTop = output.scrollHeight;
+    
+    // Auto-scroll if enabled
+    if (autoScrollImporting) {
+      output.scrollTop = output.scrollHeight;
+    }
+    
+    // Update status summary
+    updateStatusSummary('importing', message, status);
+    
+    // Update status indicator
+    updateStatusIndicator('importing', status);
   }
 
   function clearScrapeOutput() {
-    document.getElementById('scrape-status').innerHTML = '<div class="text-gray-400">Ready to start scraping...</div>';
+    document.getElementById('scrape-status').innerHTML = `
+      <div class="text-gray-400 text-center py-8">
+        <i class="fas fa-terminal text-3xl mb-2"></i>
+        <div>Ready to start scraping...</div>
+        <div class="text-xs mt-1">Detailed operation logs will appear here</div>
+      </div>
+    `;
     document.getElementById('scrape-progress').classList.add('hidden');
     document.getElementById('scrape-progress-bar').style.width = '0%';
     document.getElementById('scrape-progress-text').textContent = '0%';
     document.getElementById('scrape-current-status').classList.add('hidden');
     document.getElementById('scrape-current-step').textContent = 'Initializing...';
     document.getElementById('scrape-elapsed-time').textContent = 'Elapsed: 0s';
+    
+    // Reset status summary and indicator
+    document.getElementById('scrape-status-summary').textContent = 'Ready to start';
+    updateStatusIndicator('scraping', 'inactive');
   }
 
   function clearImportOutput() {
-    document.getElementById('import-status').innerHTML = '<div class="text-gray-400">Ready to start import process...</div>';
+    document.getElementById('import-status').innerHTML = `
+      <div class="text-gray-400 text-center py-8">
+        <i class="fas fa-database text-3xl mb-2"></i>
+        <div>Ready to start import process...</div>
+        <div class="text-xs mt-1">Detailed operation logs will appear here</div>
+      </div>
+    `;
     document.getElementById('import-progress').classList.add('hidden');
     document.getElementById('import-progress-bar').style.width = '0%';
     document.getElementById('import-progress-text').textContent = '0%';
     document.getElementById('import-current-status').classList.add('hidden');
     document.getElementById('import-current-step').textContent = 'Initializing...';
     document.getElementById('import-elapsed-time').textContent = 'Elapsed: 0s';
+    
+    // Reset status summary and indicator
+    document.getElementById('import-status-summary').textContent = 'Ready to start';
+    updateStatusIndicator('importing', 'inactive');
   }
 
   function clearStuckProcesses() {
@@ -1033,6 +1086,116 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(() => {
       toast.remove();
     }, 5000);
+  }
+
+  // Status Monitor Functions
+  function initializeStatusMonitor() {
+    // Tab functionality
+    const tabs = document.querySelectorAll('.tab');
+    tabs.forEach(tab => {
+      tab.addEventListener('click', function() {
+        const targetTab = this.getAttribute('data-tab');
+        switchTab(targetTab);
+      });
+    });
+    
+    // Toggle monitor
+    document.getElementById('toggle-status-monitor').addEventListener('click', toggleStatusMonitor);
+    
+    // Auto-scroll controls
+    document.getElementById('auto-scroll-scraping').addEventListener('click', function() {
+      autoScrollScraping = !autoScrollScraping;
+      this.innerHTML = `<i class="fas fa-arrow-down mr-1"></i>Auto-scroll: ${autoScrollScraping ? 'ON' : 'OFF'}`;
+      this.classList.toggle('btn-active', autoScrollScraping);
+    });
+    
+    document.getElementById('auto-scroll-importing').addEventListener('click', function() {
+      autoScrollImporting = !autoScrollImporting;
+      this.innerHTML = `<i class="fas fa-arrow-down mr-1"></i>Auto-scroll: ${autoScrollImporting ? 'ON' : 'OFF'}`;
+      this.classList.toggle('btn-active', autoScrollImporting);
+    });
+    
+    // Clear log controls
+    document.getElementById('clear-scraping-log').addEventListener('click', clearScrapeOutput);
+    document.getElementById('clear-importing-log').addEventListener('click', clearImportOutput);
+  }
+  
+  function switchTab(tabName) {
+    // Update tab buttons
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.classList.remove('tab-active');
+    });
+    document.querySelector(`[data-tab="${tabName}"]`).classList.add('tab-active');
+    
+    // Update tab panels
+    document.querySelectorAll('.tab-panel').forEach(panel => {
+      panel.classList.remove('active');
+    });
+    document.getElementById(`tab-${tabName}`).classList.add('active');
+  }
+  
+  function toggleStatusMonitor() {
+    const content = document.getElementById('status-monitor-content');
+    const toggleBtn = document.getElementById('toggle-status-monitor');
+    const icon = toggleBtn.querySelector('i');
+    const text = toggleBtn.querySelector('span');
+    
+    statusMonitorCollapsed = !statusMonitorCollapsed;
+    
+    if (statusMonitorCollapsed) {
+      content.classList.add('collapsed');
+      icon.className = 'fas fa-chevron-up mr-1';
+      text.textContent = 'Show';
+    } else {
+      content.classList.remove('collapsed');
+      icon.className = 'fas fa-chevron-down mr-1';
+      text.textContent = 'Hide';
+    }
+  }
+  
+  function updateStatusSummary(type, message, status) {
+    const summaryElement = document.getElementById(`${type === 'scraping' ? 'scrape' : 'import'}-status-summary`);
+    
+    // Extract meaningful status from message
+    let summary = 'Processing...';
+    if (message.includes('Ready to start')) {
+      summary = 'Ready to start';
+    } else if (message.includes('Starting')) {
+      summary = 'Starting...';
+    } else if (message.includes('completed successfully')) {
+      summary = 'Completed successfully';
+    } else if (message.includes('Error') || message.includes('❌')) {
+      summary = 'Error occurred';
+    } else if (message.includes('stopped')) {
+      summary = 'Stopped';
+    } else if (message.includes('Step')) {
+      const stepMatch = message.match(/Step \d+/);
+      if (stepMatch) {
+        summary = stepMatch[0] + ' running...';
+      }
+    } else if (message.includes('🎾') || message.includes('📊')) {
+      summary = 'Scraping in progress...';
+    } else if (message.includes('💾') || message.includes('🗄️')) {
+      summary = 'Import in progress...';
+    }
+    
+    summaryElement.textContent = summary;
+  }
+  
+  function updateStatusIndicator(type, status) {
+    const indicator = document.getElementById(`${type}-status-indicator`);
+    
+    // Remove all status classes
+    indicator.classList.remove('status-indicator-active', 'status-indicator-inactive', 'status-indicator-error');
+    
+    // Add appropriate class based on status
+    if (status === 'error') {
+      indicator.classList.add('status-indicator-error');
+    } else if (status === 'success' || status === 'info') {
+      indicator.classList.add('status-indicator-active');
+    } else {
+      indicator.classList.add('status-indicator-inactive');
+    }
   }
 
   // Initialize system status
