@@ -3,25 +3,848 @@
 
 {% block title %}ETL Management | Rally Admin{% endblock %}
 
+{% block head %}
+<style>
+  .status-output {
+    background: #f8f9fa;
+    color: #000000;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    line-height: 1.4;
+    padding: 16px;
+    border-radius: 8px;
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid #dee2e6;
+  }
+  
+  .scraper-card {
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+  }
+  
+  .scraper-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+  }
+  
+  .scraper-card.selected {
+    border-color: #3b82f6;
+    background-color: #eff6ff;
+  }
+  
+  .pulse {
+    animation: pulse 2s infinite;
+  }
+  
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+  
+  .success-animation {
+    animation: successBounce 0.6s ease-in-out;
+  }
+  
+  @keyframes successBounce {
+    0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+    40% { transform: translateY(-10px); }
+    60% { transform: translateY(-5px); }
+  }
+  
+  .loading-spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #3b82f6;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container mx-auto px-4 py-6">
   <!-- Header -->
   <div class="welcome-section text-center mb-8">
-    <h1 class="text-2xl font-bold text-gray-800">
+    <h1 class="text-3xl font-bold text-gray-800">
+      <i class="fas fa-database mr-2 text-blue-600"></i>
       ETL Management
     </h1>
     <p class="text-sm text-gray-500 mt-2">
-      Extract, Transform, Load data operations
+      Extract, Transform, Load data operations for Rally
     </p>
   </div>
 
-  <!-- Coming Soon Message -->
-  <div class="bg-white rounded-lg shadow p-8 text-center">
-    <div class="mb-4">
-      <i class="fas fa-database text-6xl text-red-600"></i>
+  <!-- Scrape Data Section -->
+  <div class="mb-8">
+    <div class="bg-white rounded-lg shadow-lg p-6">
+      <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+        <i class="fas fa-cloud-download-alt mr-2 text-green-600"></i>
+        1. Scrape Data
+      </h2>
+      <p class="text-gray-600 mb-6">Select and run scrapers to collect data from TennisScores</p>
+      
+      <!-- League Input -->
+      <div class="mb-6">
+        <label for="league-input" class="block text-sm font-medium text-gray-700 mb-2">
+          League Subdomain *
+        </label>
+        <input 
+          type="text" 
+          id="league-input" 
+          class="input input-bordered w-full max-w-xs" 
+          placeholder="e.g., aptachicago, nstf"
+          required
+        >
+        <p class="text-xs text-gray-500 mt-1">Enter the subdomain from the TennisScores URL</p>
+      </div>
+
+      <!-- Scraper Selection -->
+      <div class="mb-6">
+        <label class="block text-sm font-medium text-gray-700 mb-3">
+          Select Scrapers to Run
+        </label>
+        
+        <!-- Run All Option -->
+        <div class="mb-4">
+          <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+            <input type="radio" name="scraper-mode" value="all" class="radio radio-primary mr-3" checked>
+            <div>
+              <div class="font-medium text-gray-800">
+                <i class="fas fa-rocket mr-2 text-blue-600"></i>
+                Run All Scrapers (Recommended)
+              </div>
+              <div class="text-sm text-gray-500">Comprehensive data collection - runs all scrapers in sequence</div>
+            </div>
+          </label>
+        </div>
+
+        <!-- Individual Scrapers -->
+        <div class="mb-4">
+          <label class="flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50">
+            <input type="radio" name="scraper-mode" value="individual" class="radio radio-primary mr-3">
+            <div>
+              <div class="font-medium text-gray-800">
+                <i class="fas fa-list mr-2 text-purple-600"></i>
+                Select Individual Scrapers
+              </div>
+              <div class="text-sm text-gray-500">Choose specific scrapers to run</div>
+            </div>
+          </label>
+        </div>
+
+        <!-- Individual Scraper Options (hidden by default) -->
+        <div id="individual-scrapers" class="ml-6 space-y-2 hidden">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+            <label class="scraper-card flex items-center p-3 border rounded-lg cursor-pointer">
+              <input type="checkbox" class="checkbox checkbox-primary mr-3" value="master_scraper">
+              <div>
+                <div class="font-medium text-sm">Master Scraper</div>
+                <div class="text-xs text-gray-500">Runs all scrapers automatically</div>
+              </div>
+            </label>
+            
+            <label class="scraper-card flex items-center p-3 border rounded-lg cursor-pointer">
+              <input type="checkbox" class="checkbox checkbox-primary mr-3" value="scraper_players">
+              <div>
+                <div class="font-medium text-sm">Players</div>
+                <div class="text-xs text-gray-500">Scrape player data</div>
+              </div>
+            </label>
+            
+            <label class="scraper-card flex items-center p-3 border rounded-lg cursor-pointer">
+              <input type="checkbox" class="checkbox checkbox-primary mr-3" value="scraper_match_scores">
+              <div>
+                <div class="font-medium text-sm">Match Scores</div>
+                <div class="text-xs text-gray-500">Scrape match results</div>
+              </div>
+            </label>
+            
+            <label class="scraper-card flex items-center p-3 border rounded-lg cursor-pointer">
+              <input type="checkbox" class="checkbox checkbox-primary mr-3" value="scraper_schedule">
+              <div>
+                <div class="font-medium text-sm">Schedule</div>
+                <div class="text-xs text-gray-500">Scrape match schedules</div>
+              </div>
+            </label>
+            
+            <label class="scraper-card flex items-center p-3 border rounded-lg cursor-pointer">
+              <input type="checkbox" class="checkbox checkbox-primary mr-3" value="scraper_stats">
+              <div>
+                <div class="font-medium text-sm">Statistics</div>
+                <div class="text-xs text-gray-500">Scrape team statistics</div>
+              </div>
+            </label>
+            
+            <label class="scraper-card flex items-center p-3 border rounded-lg cursor-pointer">
+              <input type="checkbox" class="checkbox checkbox-primary mr-3" value="scraper_players_history">
+              <div>
+                <div class="font-medium text-sm">Player History</div>
+                <div class="text-xs text-gray-500">Scrape player match history</div>
+              </div>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Control Buttons -->
+      <div class="flex flex-col gap-3 mb-6">
+        <button id="start-scraping" class="btn btn-primary flex items-center">
+          <i class="fas fa-play mr-2"></i>
+          Start Scraping
+        </button>
+        <button id="stop-scraping" class="btn btn-error flex items-center hidden">
+          <i class="fas fa-stop mr-2"></i>
+          Stop Scraping
+        </button>
+        <button id="clear-scrape-output" class="btn btn-outline flex items-center">
+          <i class="fas fa-eraser mr-2"></i>
+          Clear Output
+        </button>
+        <button id="clear-processes" class="btn btn-warning flex items-center">
+          <i class="fas fa-refresh mr-2"></i>
+          Clear Stuck Processes
+        </button>
+      </div>
+
+      <!-- Status Output -->
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-2">
+          <i class="fas fa-terminal mr-2"></i>
+          Scraping Status
+        </label>
+        <div id="scrape-status" class="status-output">
+          <div class="text-gray-400">Ready to start scraping...</div>
+        </div>
+      </div>
+
+      <!-- Progress Indicator -->
+      <div id="scrape-progress" class="hidden">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-sm font-medium text-gray-700">Progress</span>
+          <span id="scrape-progress-text" class="text-sm text-gray-500">0%</span>
+        </div>
+        <div class="w-full bg-gray-200 rounded-full h-2">
+          <div id="scrape-progress-bar" class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+        </div>
+        
+        <!-- Current Status Indicator -->
+        <div id="scrape-current-status" class="mt-3 p-3 bg-gray-50 rounded-lg hidden">
+          <div class="flex items-center">
+            <div class="loading-spinner mr-2"></div>
+            <div>
+              <div id="scrape-current-step" class="font-medium text-gray-800">Initializing...</div>
+              <div id="scrape-elapsed-time" class="text-sm text-gray-600">Elapsed: 0s</div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-    <h2 class="text-xl font-bold text-gray-800 mb-2">Coming Soon</h2>
-    <p class="text-gray-600 mb-6">ETL management functionality is under development.</p>
+  </div>
+
+  <!-- Import to Database Section -->
+  <div class="mb-8">
+    <div class="bg-white rounded-lg shadow-lg p-6">
+      <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+        <i class="fas fa-database mr-2 text-blue-600"></i>
+        2. Import to Database
+      </h2>
+      <p class="text-gray-600 mb-6">Process scraped data and import to Railway PostgreSQL database</p>
+      
+      <!-- Import Process Steps -->
+      <div class="mb-6">
+        <div class="space-y-3">
+          <div class="flex items-center p-3 border rounded-lg">
+            <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+              <span class="text-blue-600 font-bold text-sm">1</span>
+            </div>
+            <div>
+              <div class="font-medium text-gray-800">Consolidate League Data</div>
+              <div class="text-sm text-gray-500">Merge all league JSON files into consolidated files</div>
+            </div>
+          </div>
+          
+          <div class="flex items-center p-3 border rounded-lg">
+            <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+              <span class="text-blue-600 font-bold text-sm">2</span>
+            </div>
+            <div>
+              <div class="font-medium text-gray-800">Import to PostgreSQL</div>
+              <div class="text-sm text-gray-500">Load consolidated data into Railway database</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Control Buttons -->
+      <div class="flex flex-col gap-3 mb-6">
+        <button id="start-import" class="btn btn-success flex items-center">
+          <i class="fas fa-upload mr-2"></i>
+          Start Import Process
+        </button>
+        <button id="stop-import" class="btn btn-error flex items-center hidden">
+          <i class="fas fa-stop mr-2"></i>
+          Stop Import
+        </button>
+        <button id="clear-import-output" class="btn btn-outline flex items-center">
+          <i class="fas fa-eraser mr-2"></i>
+          Clear Output
+        </button>
+      </div>
+
+      <!-- Status Output -->
+      <div class="mb-4">
+        <label class="block text-sm font-medium text-gray-700 mb-2">
+          <i class="fas fa-terminal mr-2"></i>
+          Import Status
+        </label>
+        <div id="import-status" class="status-output">
+          <div class="text-gray-400">Ready to start import process...</div>
+        </div>
+      </div>
+
+      <!-- Progress Indicator -->
+      <div id="import-progress" class="hidden">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-sm font-medium text-gray-700">Progress</span>
+          <span id="import-progress-text" class="text-sm text-gray-500">0%</span>
+        </div>
+        <div class="w-full bg-gray-200 rounded-full h-2">
+          <div id="import-progress-bar" class="bg-green-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+        </div>
+        
+        <!-- Current Status Indicator -->
+        <div id="import-current-status" class="mt-3 p-3 bg-gray-50 rounded-lg hidden">
+          <div class="flex items-center">
+            <div class="loading-spinner mr-2"></div>
+            <div>
+              <div id="import-current-step" class="font-medium text-gray-800">Initializing...</div>
+              <div id="import-elapsed-time" class="text-sm text-gray-600">Elapsed: 0s</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- System Status -->
+  <div class="bg-white rounded-lg shadow-lg p-6">
+    <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+      <i class="fas fa-heartbeat mr-2 text-red-600"></i>
+      System Status
+    </h2>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="bg-gray-50 p-4 rounded-lg">
+        <div class="text-sm text-gray-600">Database Connection</div>
+        <div id="db-status" class="font-medium text-green-600">
+          <i class="fas fa-check-circle mr-1"></i>
+          Connected
+        </div>
+      </div>
+      <div class="bg-gray-50 p-4 rounded-lg">
+        <div class="text-sm text-gray-600">Last Scrape</div>
+        <div id="last-scrape" class="font-medium text-gray-800">
+          <i class="fas fa-clock mr-1"></i>
+          Never
+        </div>
+      </div>
+      <div class="bg-gray-50 p-4 rounded-lg">
+        <div class="text-sm text-gray-600">Last Import</div>
+        <div id="last-import" class="font-medium text-gray-800">
+          <i class="fas fa-clock mr-1"></i>
+          Never
+        </div>
+      </div>
+    </div>
   </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // UI State Management
+  const scraperModeRadios = document.querySelectorAll('input[name="scraper-mode"]');
+  const individualScrapersDiv = document.getElementById('individual-scrapers');
+  const leagueInput = document.getElementById('league-input');
+  
+  // Event Listeners
+  scraperModeRadios.forEach(radio => {
+    radio.addEventListener('change', function() {
+      if (this.value === 'individual') {
+        individualScrapersDiv.classList.remove('hidden');
+      } else {
+        individualScrapersDiv.classList.add('hidden');
+      }
+    });
+  });
+
+  // Scraper card selection
+  const scraperCards = document.querySelectorAll('.scraper-card');
+  scraperCards.forEach(card => {
+    card.addEventListener('click', function() {
+      this.classList.toggle('selected');
+    });
+  });
+
+  // Scraping functionality
+  document.getElementById('start-scraping').addEventListener('click', startScraping);
+  document.getElementById('stop-scraping').addEventListener('click', stopScraping);
+  document.getElementById('clear-scrape-output').addEventListener('click', clearScrapeOutput);
+  
+  // Import functionality
+  document.getElementById('start-import').addEventListener('click', startImport);
+  document.getElementById('stop-import').addEventListener('click', stopImport);
+  document.getElementById('clear-import-output').addEventListener('click', clearImportOutput);
+  
+  // Process management
+  document.getElementById('clear-processes').addEventListener('click', clearStuckProcesses);
+
+  // Global variables for process management
+  let currentScrapeProcess = null;
+  let currentImportProcess = null;
+  let scrapeElapsedTimer = null;
+  let importElapsedTimer = null;
+
+  function startScraping() {
+    const league = leagueInput.value.trim();
+    if (!league) {
+      showToast('Please enter a league subdomain', 'error');
+      return;
+    }
+
+    const mode = document.querySelector('input[name="scraper-mode"]:checked').value;
+    let scrapers = [];
+    
+    if (mode === 'all') {
+      scrapers = ['all'];
+    } else {
+      const selectedScrapers = document.querySelectorAll('#individual-scrapers input[type="checkbox"]:checked');
+      scrapers = Array.from(selectedScrapers).map(cb => cb.value);
+      
+      if (scrapers.length === 0) {
+        showToast('Please select at least one scraper', 'error');
+        return;
+      }
+    }
+
+    // UI updates
+    document.getElementById('start-scraping').classList.add('hidden');
+    document.getElementById('stop-scraping').classList.remove('hidden');
+    document.getElementById('scrape-progress').classList.remove('hidden');
+    
+    // Clear previous output
+    clearScrapeOutput();
+    
+    // Start the scraping process
+    currentScrapeProcess = new EventSource(`/api/admin/etl/scrape?league=${encodeURIComponent(league)}&scrapers=${encodeURIComponent(scrapers.join(','))}`);
+    
+    // Track scraping start time for elapsed time calculations
+    window.scrapeStartTime = new Date();
+    window.currentLeague = league; // Store league for status updates
+    
+    // Show status indicator
+    document.getElementById('scrape-current-status').classList.remove('hidden');
+    
+    // Start elapsed time logging (every 30 seconds) and update status indicator
+    scrapeElapsedTimer = setInterval(() => {
+      if (window.scrapeStartTime && currentScrapeProcess) {
+        const elapsed = formatElapsedTime(window.scrapeStartTime);
+        document.getElementById('scrape-elapsed-time').textContent = `Elapsed: ${elapsed}`;
+        
+        // Enhanced status logging every 30 seconds with specific details
+        const statusMsg = `⏰ Elapsed time: ${elapsed} - Web scraping operation active`;
+        const progressMsg = `📊 Extracting team statistics and match data from ${window.currentLeague.toUpperCase()}.tenniscores.com`;
+        const detailMsg = `🔍 Scanning league series, processing team standings, and collecting performance metrics`;
+        appendToScrapeOutput(statusMsg, 'info');
+        appendToScrapeOutput(progressMsg, 'info');
+        appendToScrapeOutput(detailMsg, 'info');
+      }
+    }, 30000); // 30 seconds
+    
+    // Update status indicator every 5 seconds
+    const statusTimer = setInterval(() => {
+      if (window.scrapeStartTime && currentScrapeProcess) {
+        const elapsed = formatElapsedTime(window.scrapeStartTime);
+        document.getElementById('scrape-elapsed-time').textContent = `Elapsed: ${elapsed}`;
+      } else {
+        clearInterval(statusTimer);
+      }
+    }, 5000);
+    
+    currentScrapeProcess.onmessage = function(event) {
+      const data = JSON.parse(event.data);
+      updateScrapeOutput(data);
+    };
+    
+    currentScrapeProcess.onerror = function(event) {
+      console.error('Scraping process error:', event);
+      
+      // Check if it's a 409 conflict (process already running)
+      if (event.target.readyState === EventSource.CLOSED) {
+        appendToScrapeOutput('❌ Connection closed. This might be due to a process already running.', 'error');
+        appendToScrapeOutput('💡 Try clicking "Clear Stuck Processes" if this persists.', 'warning');
+      } else {
+        appendToScrapeOutput('❌ Scraping process encountered an error and stopped.', 'error');
+      }
+      
+      // Always ensure cleanup on error
+      endScraping(false);
+      showToast('Scraping process stopped due to error', 'error');
+    };
+  }
+
+  function stopScraping() {
+    if (currentScrapeProcess) {
+      currentScrapeProcess.close();
+      currentScrapeProcess = null;
+    }
+    endScraping(false);
+    appendToScrapeOutput('❌ Scraping process stopped by user', 'error');
+  }
+
+  function formatElapsedTime(startTime) {
+    const elapsed = new Date() - startTime;
+    const hours = Math.floor(elapsed / (1000 * 60 * 60));
+    const minutes = Math.floor((elapsed % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((elapsed % (1000 * 60)) / 1000);
+    
+    if (hours > 0) {
+      return `${hours}h ${minutes}m ${seconds}s`;
+    } else if (minutes > 0) {
+      return `${minutes}m ${seconds}s`;
+    } else {
+      return `${seconds}s`;
+    }
+  }
+
+  function endScraping(success) {
+    // Clear elapsed timer
+    if (scrapeElapsedTimer) {
+      clearInterval(scrapeElapsedTimer);
+      scrapeElapsedTimer = null;
+    }
+    
+    // Log final elapsed time
+    if (window.scrapeStartTime) {
+      const totalElapsed = formatElapsedTime(window.scrapeStartTime);
+      appendToScrapeOutput(`⏱️ Total scraping time: ${totalElapsed}`, 'info');
+      window.scrapeStartTime = null;
+    }
+    
+    // Close EventSource if still open
+    if (currentScrapeProcess) {
+      currentScrapeProcess.close();
+      currentScrapeProcess = null;
+    }
+    
+    document.getElementById('start-scraping').classList.remove('hidden');
+    document.getElementById('stop-scraping').classList.add('hidden');
+    
+    // Hide status indicator
+    document.getElementById('scrape-current-status').classList.add('hidden');
+    
+    if (success) {
+      document.getElementById('scrape-progress-bar').style.width = '100%';
+      document.getElementById('scrape-progress-text').textContent = '100%';
+      document.getElementById('scrape-current-step').textContent = 'Process completed successfully!';
+      showToast('Scraping completed successfully!', 'success');
+    } else {
+      document.getElementById('scrape-current-step').textContent = 'Process stopped';
+    }
+  }
+
+  function startImport() {
+    // UI updates
+    document.getElementById('start-import').classList.add('hidden');
+    document.getElementById('stop-import').classList.remove('hidden');
+    document.getElementById('import-progress').classList.remove('hidden');
+    
+    // Clear previous output
+    clearImportOutput();
+    
+    // Start the import process
+    currentImportProcess = new EventSource('/api/admin/etl/import');
+    
+    // Track import start time for elapsed time calculations
+    window.importStartTime = new Date();
+    
+    // Show status indicator
+    document.getElementById('import-current-status').classList.remove('hidden');
+    
+    // Start elapsed time logging (every 30 seconds) and update status indicator
+    importElapsedTimer = setInterval(() => {
+      if (window.importStartTime && currentImportProcess) {
+        const elapsed = formatElapsedTime(window.importStartTime);
+        document.getElementById('import-elapsed-time').textContent = `Elapsed: ${elapsed}`;
+        
+        // Log elapsed time every 30 seconds
+        appendToImportOutput(`⏰ Elapsed time: ${elapsed}`, 'info');
+      }
+    }, 30000); // 30 seconds
+    
+    // Update status indicator every 5 seconds
+    const importStatusTimer = setInterval(() => {
+      if (window.importStartTime && currentImportProcess) {
+        const elapsed = formatElapsedTime(window.importStartTime);
+        document.getElementById('import-elapsed-time').textContent = `Elapsed: ${elapsed}`;
+      } else {
+        clearInterval(importStatusTimer);
+      }
+    }, 5000);
+    
+    currentImportProcess.onmessage = function(event) {
+      const data = JSON.parse(event.data);
+      updateImportOutput(data);
+    };
+    
+    currentImportProcess.onerror = function(event) {
+      console.error('Import process error:', event);
+      
+      if (event.target.readyState === EventSource.CLOSED) {
+        appendToImportOutput('❌ Connection closed. Import process stopped.', 'error');
+      } else {
+        appendToImportOutput('❌ Import process encountered an error and stopped.', 'error');
+      }
+      
+      // Always ensure cleanup on error
+      endImport(false);
+      showToast('Import process stopped due to error', 'error');
+    };
+  }
+
+  function stopImport() {
+    if (currentImportProcess) {
+      currentImportProcess.close();
+      currentImportProcess = null;
+    }
+    endImport(false);
+    appendToImportOutput('❌ Import process stopped by user', 'error');
+  }
+
+  function endImport(success) {
+    // Clear elapsed timer
+    if (importElapsedTimer) {
+      clearInterval(importElapsedTimer);
+      importElapsedTimer = null;
+    }
+    
+    // Log final elapsed time
+    if (window.importStartTime) {
+      const totalElapsed = formatElapsedTime(window.importStartTime);
+      appendToImportOutput(`⏱️ Total import time: ${totalElapsed}`, 'info');
+      window.importStartTime = null;
+    }
+    
+    // Close EventSource if still open
+    if (currentImportProcess) {
+      currentImportProcess.close();
+      currentImportProcess = null;
+    }
+    
+    document.getElementById('start-import').classList.remove('hidden');
+    document.getElementById('stop-import').classList.add('hidden');
+    
+    // Hide status indicator
+    document.getElementById('import-current-status').classList.add('hidden');
+    
+    if (success) {
+      document.getElementById('import-progress-bar').style.width = '100%';
+      document.getElementById('import-progress-text').textContent = '100%';
+      document.getElementById('import-current-step').textContent = 'Import completed successfully!';
+      showToast('Import completed successfully!', 'success');
+    } else {
+      document.getElementById('import-current-step').textContent = 'Process stopped';
+    }
+  }
+
+  function updateScrapeOutput(data) {
+    if (data.type === 'progress') {
+      document.getElementById('scrape-progress-bar').style.width = data.progress + '%';
+      document.getElementById('scrape-progress-text').textContent = data.progress + '%';
+    } else if (data.type === 'output') {
+      appendToScrapeOutput(data.message, data.status);
+      
+      // Update current step indicator based on message content
+      if (data.message.includes('🚀 Step') || data.message.includes('Running')) {
+        document.getElementById('scrape-current-step').textContent = data.message;
+      } else if (data.message.includes('🎾 Launching master scraper')) {
+        document.getElementById('scrape-current-step').textContent = 'Running master scraper (all scrapers)';
+      } else if (data.message.includes('✅') && data.message.includes('completed')) {
+        const stepMatch = data.message.match(/(\w+)\s+completed/);
+        if (stepMatch) {
+          document.getElementById('scrape-current-step').textContent = `Completed: ${stepMatch[1]}`;
+        }
+      }
+    } else if (data.type === 'complete') {
+      endScraping(data.success);
+      appendToScrapeOutput(data.message, data.success ? 'success' : 'error');
+    } else if (data.type === 'error') {
+      appendToScrapeOutput(data.message, 'error');
+      endScraping(false);
+    }
+  }
+
+  function updateImportOutput(data) {
+    if (data.type === 'progress') {
+      document.getElementById('import-progress-bar').style.width = data.progress + '%';
+      document.getElementById('import-progress-text').textContent = data.progress + '%';
+    } else if (data.type === 'output') {
+      appendToImportOutput(data.message, data.status);
+      
+      // Update current step indicator based on message content
+      if (data.message.includes('🗄️ Starting database import')) {
+        document.getElementById('import-current-step').textContent = 'Initializing database import';
+      } else if (data.message.includes('📋 Step 1: Consolidating')) {
+        document.getElementById('import-current-step').textContent = 'Step 1: Consolidating league data';
+      } else if (data.message.includes('💾 Step 2: Importing data')) {
+        document.getElementById('import-current-step').textContent = 'Step 2: Importing to PostgreSQL';
+      } else if (data.message.includes('✅') && data.message.includes('completed')) {
+        if (data.message.includes('consolidation')) {
+          document.getElementById('import-current-step').textContent = 'Consolidation completed';
+        } else if (data.message.includes('import')) {
+          document.getElementById('import-current-step').textContent = 'Import completed';
+        }
+      }
+    } else if (data.type === 'complete') {
+      endImport(data.success);
+      appendToImportOutput(data.message, data.success ? 'success' : 'error');
+    } else if (data.type === 'error') {
+      appendToImportOutput(data.message, 'error');
+      endImport(false);
+    }
+  }
+
+  function appendToScrapeOutput(message, status = 'info') {
+    const output = document.getElementById('scrape-status');
+    const timestamp = new Date().toLocaleTimeString();
+    const colorClass = {
+      'success': '#000000',
+      'error': '#000000',
+      'warning': '#000000',
+      'info': '#000000'
+    }[status] || '#000000';
+    
+    const newLine = document.createElement('div');
+    newLine.style.color = colorClass;
+    newLine.innerHTML = `[${timestamp}] ${message}`;
+    output.appendChild(newLine);
+    output.scrollTop = output.scrollHeight;
+  }
+
+  function appendToImportOutput(message, status = 'info') {
+    const output = document.getElementById('import-status');
+    const timestamp = new Date().toLocaleTimeString();
+    const colorClass = {
+      'success': '#000000',
+      'error': '#000000',
+      'warning': '#000000',
+      'info': '#000000'
+    }[status] || '#000000';
+    
+    const newLine = document.createElement('div');
+    newLine.style.color = colorClass;
+    newLine.innerHTML = `[${timestamp}] ${message}`;
+    output.appendChild(newLine);
+    output.scrollTop = output.scrollHeight;
+  }
+
+  function clearScrapeOutput() {
+    document.getElementById('scrape-status').innerHTML = '<div class="text-gray-400">Ready to start scraping...</div>';
+    document.getElementById('scrape-progress').classList.add('hidden');
+    document.getElementById('scrape-progress-bar').style.width = '0%';
+    document.getElementById('scrape-progress-text').textContent = '0%';
+    document.getElementById('scrape-current-status').classList.add('hidden');
+    document.getElementById('scrape-current-step').textContent = 'Initializing...';
+    document.getElementById('scrape-elapsed-time').textContent = 'Elapsed: 0s';
+  }
+
+  function clearImportOutput() {
+    document.getElementById('import-status').innerHTML = '<div class="text-gray-400">Ready to start import process...</div>';
+    document.getElementById('import-progress').classList.add('hidden');
+    document.getElementById('import-progress-bar').style.width = '0%';
+    document.getElementById('import-progress-text').textContent = '0%';
+    document.getElementById('import-current-status').classList.add('hidden');
+    document.getElementById('import-current-step').textContent = 'Initializing...';
+    document.getElementById('import-elapsed-time').textContent = 'Elapsed: 0s';
+  }
+
+  function clearStuckProcesses() {
+    if (confirm('Clear any stuck ETL processes? This will reset the system if processes are hanging.')) {
+      fetch('/api/admin/etl/clear-processes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.status === 'success') {
+          showToast('ETL processes cleared successfully', 'success');
+          // Reset UI
+          endScraping(false);
+          endImport(false);
+          // Refresh system status
+          checkSystemStatus();
+        } else {
+          showToast('Failed to clear processes: ' + (data.error || 'Unknown error'), 'error');
+        }
+      })
+      .catch(error => {
+        console.error('Error clearing processes:', error);
+        showToast('Error clearing processes', 'error');
+      });
+    }
+  }
+
+  function showToast(message, type) {
+    // Create toast notification
+    const toast = document.createElement('div');
+    toast.className = `alert alert-${type === 'success' ? 'success' : 'error'} fixed top-4 right-4 z-50 w-auto max-w-md shadow-lg`;
+    toast.innerHTML = `
+      <div>
+        <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'} mr-2"></i>
+        ${message}
+      </div>
+    `;
+    
+    document.body.appendChild(toast);
+    
+    // Remove toast after 5 seconds
+    setTimeout(() => {
+      toast.remove();
+    }, 5000);
+  }
+
+  // Initialize system status
+  checkSystemStatus();
+
+  function checkSystemStatus() {
+    fetch('/api/admin/etl/status')
+      .then(response => response.json())
+      .then(data => {
+        document.getElementById('db-status').innerHTML = data.database_connected ? 
+          '<i class="fas fa-check-circle mr-1"></i> Connected' : 
+          '<i class="fas fa-times-circle mr-1"></i> Disconnected';
+        document.getElementById('db-status').className = data.database_connected ? 
+          'font-medium text-green-600' : 'font-medium text-red-600';
+        
+        document.getElementById('last-scrape').innerHTML = 
+          `<i class="fas fa-clock mr-1"></i> ${data.last_scrape || 'Never'}`;
+        document.getElementById('last-import').innerHTML = 
+          `<i class="fas fa-clock mr-1"></i> ${data.last_import || 'Never'}`;
+      })
+      .catch(error => {
+        console.error('Error checking system status:', error);
+      });
+  }
+
+  // Refresh system status every 30 seconds
+  setInterval(checkSystemStatus, 30000);
+});
+</script>
 {% endblock %} 

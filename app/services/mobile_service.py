@@ -2261,10 +2261,10 @@ def get_club_players_data(user, series_filter=None, first_name_filter=None, last
                 if series_filter and player['Series'] != series_filter:
                     continue
                 
-                if first_name_filter and first_name_filter not in player['First Name'].lower():
+                if first_name_filter and first_name_filter.lower() not in player['First Name'].lower():
                     continue
                     
-                if last_name_filter and last_name_filter not in player['Last Name'].lower():
+                if last_name_filter and last_name_filter.lower() not in player['Last Name'].lower():
                     continue
                     
                 if pti_min is not None and pti_value < pti_min:

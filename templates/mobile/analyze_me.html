@@ -291,11 +291,11 @@
                         <table class="min-w-full text-xs">
                             <thead>
                                 <tr class="border-b border-gray-100">
-                                    <th class="text-left py-2 px-2 font-semibold text-gray-700 whitespace-nowrap">Season</th>
-                                    <th class="text-left py-2 px-2 font-semibold text-gray-700 whitespace-nowrap">Series</th>
-                                    <th class="text-center py-2 px-2 font-semibold text-gray-700 whitespace-nowrap">PTI Start</th>
-                                    <th class="text-center py-2 px-2 font-semibold text-gray-700 whitespace-nowrap">PTI End</th>
-                                    <th class="text-center py-2 px-2 font-semibold text-gray-700 whitespace-nowrap">Trend</th>
+                                    <th class="text-left py-2 px-1 font-semibold text-gray-700 whitespace-nowrap">Season</th>
+                                    <th class="text-left py-2 px-1 font-semibold text-gray-700 whitespace-nowrap">Series</th>
+                                    <th class="text-center py-2 px-1 font-semibold text-gray-700 whitespace-nowrap">PTI Start</th>
+                                    <th class="text-center py-2 px-1 font-semibold text-gray-700 whitespace-nowrap">PTI End</th>
+                                    <th class="text-center py-2 px-1 font-semibold text-gray-700 whitespace-nowrap">Trend</th>
                                 </tr>
                             </thead>
                             <tbody id="seasonHistoryBody">
@@ -622,11 +622,11 @@ async function loadSeasonHistory() {
       
       tableHTML += `
         <tr class="border-b border-gray-50 hover:bg-gray-50">
-          <td class="py-2 px-2 font-medium text-gray-900 whitespace-nowrap">${season.season}</td>
-          <td class="py-2 px-2 text-gray-700 whitespace-nowrap" title="${season.series}">${truncatedSeries}</td>
-          <td class="py-2 px-2 text-center text-gray-900 whitespace-nowrap">${season.pti_start}</td>
-          <td class="py-2 px-2 text-center text-gray-900 whitespace-nowrap">${season.pti_end}</td>
-          <td class="py-2 px-2 text-center font-medium whitespace-nowrap ${season.trend_class}">${season.trend_display}</td>
+          <td class="py-2 px-1 font-medium text-gray-900 whitespace-nowrap">${season.season}</td>
+          <td class="py-2 px-1 text-gray-700 whitespace-nowrap" title="${season.series}">${truncatedSeries}</td>
+          <td class="py-2 px-1 text-center text-gray-900 whitespace-nowrap">${season.pti_start}</td>
+          <td class="py-2 px-1 text-center text-gray-900 whitespace-nowrap">${season.pti_end}</td>
+          <td class="py-2 px-1 text-center font-medium whitespace-nowrap ${season.trend_class}">${season.trend_display}</td>
         </tr>
       `;
     });

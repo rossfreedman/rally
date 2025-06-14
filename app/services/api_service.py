@@ -734,52 +734,66 @@ def get_team_schedule_data_data():
         series_record = series_record[0]
         print(f"✓ Using series: {series_record}")
 
-        # Load all players from players.json
+        # Get all players from database for this series and club
         try:
-            project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            # Query players from the database instead of JSON file
+            players_query = """
+                SELECT 
+                    p.id as player_id,
+                    p.first_name,
+                    p.last_name,
+                    c.name as club_name,
+                    s.name as series_name,
+                    p.tenniscores_player_id,
+                    l.league_id
+                FROM players p
+                JOIN clubs c ON p.club_id = c.id
+                JOIN series s ON p.series_id = s.id  
+                JOIN leagues l ON p.league_id = l.id
+                WHERE s.name = %(series)s 
+                AND c.name = %(club_name)s
+            """
             
-            # Use dynamic path based on league
-            if user.get('league_id') and not user['league_id'].startswith('APTA'):
-                players_path = os.path.join(project_root, 'data', 'leagues', user['league_id'], 'players.json')
-            else:
-                players_path = os.path.join(project_root, 'data', 'leagues', 'all', 'players.json')
-                
-            with open(players_path, 'r') as f:
-                all_players_data = json.load(f)
-            
-            # Filter players for this series and club and league
-            team_players = []
+            # Add league filtering if user has a league_id
             user_league_id = user.get('league_id', '')
-            for player in all_players_data:
-                # Check league filtering first
-                player_league = player.get('League', player.get('league_id'))
-                if user_league_id.startswith('APTA'):
-                    # For APTA users, only include players from the same APTA league
-                    if player_league != user_league_id:
-                        continue
-                else:
-                    # For other leagues, match the league_id
-                    if player_league != user_league_id:
-                        continue
-                        
-                if (player.get('Series') == series and 
-                    player.get('Club') == club_name):
-                    full_name = f"{player['First Name']} {player['Last Name']}"
-                    team_players.append({
-                        'player_name': full_name,
-                        'club_name': club_name,
-                        'player_id': player.get('Player ID')  # Include Player ID for better matching
-                    })
+            if user_league_id:
+                players_query += " AND l.league_id = %(league_id)s"
+                players_params = {
+                    'series': series,
+                    'club_name': club_name,
+                    'league_id': user_league_id
+                }
+            else:
+                players_params = {
+                    'series': series,
+                    'club_name': club_name
+                }
             
-            print(f"✓ Found {len(team_players)} players in players.json for {club_name} - {series}")
+            print(f"Executing players query: {players_query}")
+            print(f"With parameters: {players_params}")
+            
+            players_data = execute_query(players_query, players_params)
+            
+            # Format players data
+            team_players = []
+            for player in players_data:
+                full_name = f"{player['first_name']} {player['last_name']}"
+                team_players.append({
+                    'player_name': full_name,
+                    'club_name': player['club_name'],
+                    'player_id': player['tenniscores_player_id'],  # Use tenniscores_player_id for consistency
+                    'internal_id': player['player_id']  # Store internal DB ID for availability queries
+                })
+            
+            print(f"✓ Found {len(team_players)} players in database for {club_name} - {series}")
             
             if not team_players:
-                print("❌ No players found in players.json")
+                print("❌ No players found in database")
                 return jsonify({'error': f'No players found for {club_name} - {series}'}), 404
                 
         except Exception as e:
-            print(f"❌ Error reading players.json: {e}")
-            return jsonify({'error': 'Error loading player data'}), 500
+            print(f"❌ Error querying players from database: {e}")
+            return jsonify({'error': 'Error loading player data from database'}), 500
 
         # Use the same logic as get_matches_for_user_club to get matches
         print("\n=== Getting matches using same logic as availability page ===")
@@ -858,7 +872,8 @@ def get_team_schedule_data_data():
             availability = []
             player_name = player['player_name']
             player_id = player.get('player_id')
-            print(f"\nChecking availability for {player_name} (ID: {player_id})")
+            internal_player_id = player.get('internal_id')  # Use the internal DB ID we already have
+            print(f"\nChecking availability for {player_name} (ID: {player_id}, Internal ID: {internal_player_id})")
             
             for event_date in event_dates:
                 try:
@@ -870,39 +885,27 @@ def get_team_schedule_data_data():
                     
                     if series_record['id'] is not None:
                         try:
-                            # Try player ID first, then fallback to name
                             avail_record = None
                             
-                            if player_id:
-                                # First, get the internal player_id from the players table using tenniscores_player_id
-                                player_db_record = execute_query(
-                                    "SELECT id FROM players WHERE tenniscores_player_id = %(tenniscores_id)s",
-                                    {'tenniscores_id': player_id}
-                                )
-                                
-                                if player_db_record:
-                                    internal_player_id = player_db_record[0]['id']
-                                    # Primary search: Use player_id (foreign key)
-                                    avail_query = """
-                                        SELECT availability_status
-                                        FROM player_availability 
-                                        WHERE player_id = %(player_id)s 
-                                        AND series_id = %(series_id)s 
-                                        AND DATE(match_date AT TIME ZONE 'UTC') = DATE(%(date)s AT TIME ZONE 'UTC')
-                                    """
-                                    avail_params = {
-                                        'player_id': internal_player_id,
-                                        'series_id': series_record['id'],
-                                        'date': event_date_obj
-                                    }
-                                    avail_record = execute_query(avail_query, avail_params)
-                                else:
-                                    print(f"No player found in players table with tenniscores_player_id: {player_id}")
-                                    avail_record = None
+                            if internal_player_id:
+                                # Primary search: Use the internal player_id we already have
+                                avail_query = """
+                                    SELECT availability_status
+                                    FROM player_availability 
+                                    WHERE player_id = %(player_id)s 
+                                    AND series_id = %(series_id)s 
+                                    AND DATE(match_date AT TIME ZONE 'UTC') = DATE(%(date)s AT TIME ZONE 'UTC')
+                                """
+                                avail_params = {
+                                    'player_id': internal_player_id,
+                                    'series_id': series_record['id'],
+                                    'date': event_date_obj
+                                }
+                                avail_record = execute_query(avail_query, avail_params)
                                 
                             if not avail_record and player_name:
                                 # Fallback search: Use player_name
-                                print(f"No availability found with player ID {player_id}, falling back to name search for {player_name}")
+                                print(f"No availability found with player ID {internal_player_id}, falling back to name search for {player_name}")
                                 avail_query = """
                                     SELECT availability_status
                                     FROM player_availability 

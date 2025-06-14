@@ -191,10 +191,28 @@
                     <div id="generation-controls" class="mb-4">
                         <p class="text-sm text-gray-600 mb-4">Ready to generate your optimal lineup!</p>
                         <div class="bg-gray-50 p-4 rounded-lg mb-4 border border-gray-200">
-                            <h3 class="font-semibold mb-2 text-gray-900">Summary:</h3>
-                            <div class="text-sm text-gray-700 space-y-1">
-                                <div>Players: <span id="summary-players-count" class="font-medium text-blue-600">0</span> selected</div>
-                                <div>Instructions: <span id="summary-instructions-count" class="font-medium text-purple-600">0</span> added</div>
+                            <h3 class="font-semibold mb-3 text-gray-900">Summary:</h3>
+                            
+                            <!-- Selected Players Section -->
+                            <div class="mb-4">
+                                <div class="flex items-center mb-2">
+                                    <i class="fas fa-users text-blue-500 mr-2"></i>
+                                    <span class="font-medium text-gray-800">Selected Players (<span id="summary-players-count">0</span>):</span>
+                                </div>
+                                <div id="summary-players-list" class="text-sm text-gray-700 ml-6">
+                                    <div class="text-gray-500 italic">No players selected</div>
+                                </div>
+                            </div>
+
+                            <!-- Instructions Section -->
+                            <div>
+                                <div class="flex items-center mb-2">
+                                    <i class="fas fa-clipboard-check text-purple-500 mr-2"></i>
+                                    <span class="font-medium text-gray-800">Instructions (<span id="summary-instructions-count">0</span>):</span>
+                                </div>
+                                <div id="summary-instructions-list" class="text-sm text-gray-700 ml-6">
+                                    <div class="text-gray-500 italic">No instructions added</div>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -445,22 +463,20 @@ function renderPlayers() {
     }[position];
     
     const div = document.createElement('div');
-    div.className = 'flex items-center p-4 bg-white rounded-lg hover:bg-gray-50 transition-colors border border-gray-200 shadow-sm';
+    div.className = 'grid grid-cols-4 gap-4 items-center p-4 bg-white rounded-lg hover:bg-gray-50 transition-colors border border-gray-200 shadow-sm';
     div.innerHTML = `
-      <input type="checkbox" id="${id}" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 mr-4 flex-shrink-0" ${checked ? 'checked' : ''} />
-      <div class="flex-1 min-w-0 mr-4">
-        <label for="${id}" class="cursor-pointer font-medium text-base text-gray-900 block">${player.name}</label>
+      <div class="flex justify-center">
+        <input type="checkbox" id="${id}" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2" ${checked ? 'checked' : ''} />
       </div>
-      <div class="flex items-center gap-4 flex-shrink-0">
-        <div class="text-center min-w-12">
-          <div class="text-gray-500 text-xs mb-1">PTI</div>
-          <div class="font-semibold text-sm text-gray-900">${player.rating}</div>
-        </div>
-        <div class="text-center min-w-16">
-          <div class="text-gray-500 text-xs mb-1">Position</div>
-          <div class="px-2 py-1 rounded-full text-xs font-medium ${positionColor}">
-            ${position}
-          </div>
+      <div>
+        <label for="${id}" class="cursor-pointer font-medium text-base text-gray-900">${player.name}</label>
+      </div>
+      <div class="text-center font-semibold text-sm text-gray-900">
+        ${player.rating}
+      </div>
+      <div class="flex justify-center">
+        <div class="px-2 py-1 rounded-full text-xs font-medium ${positionColor}">
+          ${position}
         </div>
       </div>
     `;
@@ -589,12 +605,15 @@ function generateLineup() {
     .then(res => res.json())
     .then(data => {
       document.getElementById('loading-indicator').classList.add('hidden');
-      document.getElementById('generation-controls').classList.remove('hidden');
       
       if (data.suggestion) {
         generatedLineup = data.suggestion;
         document.getElementById('generated-lineup').textContent = data.suggestion;
         document.getElementById('generated-lineup-container').classList.remove('hidden');
+        
+        // Hide the generation controls permanently after successful generation
+        document.getElementById('generation-controls').classList.add('hidden');
+        
         // Change the button to "Send to Team" after successful generation
         document.getElementById('generate-lineup-btn').textContent = 'Send to Team →';
         document.getElementById('generate-lineup-btn').onclick = () => {
@@ -603,6 +622,7 @@ function generateLineup() {
         };
       } else {
         // Handle case where API responds but without a successful lineup
+        document.getElementById('generation-controls').classList.remove('hidden');
         const container = document.getElementById('generated-lineup-container');
         container.innerHTML = `
           <h3 class="font-semibold mb-3 text-lg text-red-600">❌ Lineup Generation Failed</h3>
@@ -657,8 +677,43 @@ ${user.first_name || 'Captain'}`;
 }
 
 function updateSummary() {
-  document.getElementById('summary-players-count').textContent = selectedPlayers.size;
-  document.getElementById('summary-instructions-count').textContent = instructions.length;
+  // Update player count and list
+  const playersCount = document.getElementById('summary-players-count');
+  const playersList = document.getElementById('summary-players-list');
+  
+  playersCount.textContent = selectedPlayers.size;
+  
+  if (selectedPlayers.size === 0) {
+    playersList.innerHTML = '<div class="text-gray-500 italic">No players selected</div>';
+  } else {
+    const selectedPlayerNames = Array.from(selectedPlayers).sort();
+    playersList.innerHTML = selectedPlayerNames.map(name => {
+      // Find the player's rating for display
+      const player = players.find(p => p.name === name);
+      const rating = player ? ` (PTI: ${player.rating})` : '';
+      return `<div class="flex items-center py-1">
+        <i class="fas fa-user text-blue-400 mr-2 text-xs"></i>
+        <span class="text-gray-800">${name}${rating}</span>
+      </div>`;
+    }).join('');
+  }
+  
+  // Update instructions count and list
+  const instructionsCount = document.getElementById('summary-instructions-count');
+  const instructionsList = document.getElementById('summary-instructions-list');
+  
+  instructionsCount.textContent = instructions.length;
+  
+  if (instructions.length === 0) {
+    instructionsList.innerHTML = '<div class="text-gray-500 italic">No instructions added</div>';
+  } else {
+    instructionsList.innerHTML = instructions.map((instruction, index) => {
+      return `<div class="flex items-start py-1">
+        <i class="fas fa-arrow-right text-purple-400 mr-2 text-xs mt-1"></i>
+        <span class="text-gray-800">${instruction}</span>
+      </div>`;
+    }).join('');
+  }
 }
 
 // Event listeners
@@ -838,7 +893,11 @@ document.addEventListener('DOMContentLoaded', () => {
 .flex-shrink-0 { flex-shrink: 0; }
 
 /* Grid utilities */
+.grid { display: grid; }
 .grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+.grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.gap-4 { gap: 1rem; }
+.items-center { align-items: center; }
 @media (min-width: 640px) {
     .sm\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
