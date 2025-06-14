@@ -18,6 +18,103 @@
     border: 1px solid #dee2e6;
   }
   
+  .status-monitor-output {
+    background: #f8f9fa;
+    color: #000000;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    padding: 16px;
+    border-radius: 8px;
+    height: 500px;
+    overflow-y: auto;
+    border: 1px solid #dee2e6;
+    position: relative;
+  }
+  
+  .tab-content {
+    min-height: 400px;
+  }
+  
+  .tab-panel {
+    display: none;
+  }
+  
+  .tab-panel.active {
+    display: block;
+  }
+  
+  .tabs {
+    display: flex;
+    border-bottom: 2px solid #e5e7eb;
+    margin-bottom: 1rem;
+  }
+  
+  .tab {
+    padding: 8px 16px;
+    cursor: pointer;
+    border: none;
+    background: none;
+    color: #6b7280;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    font-size: 14px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+  }
+  
+  .tab:hover {
+    color: #3b82f6;
+    background-color: #f3f4f6;
+  }
+  
+  .tab.tab-active {
+    color: #3b82f6;
+    border-bottom-color: #3b82f6;
+    background-color: #eff6ff;
+  }
+  
+  .status-monitor-output::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  .status-monitor-output::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+  }
+  
+  .status-monitor-output::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+  }
+  
+  .status-monitor-output::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+  }
+  
+  #status-monitor-content.collapsed {
+    display: none;
+  }
+  
+  .status-indicator-active {
+    background-color: #10b981 !important;
+    animation: pulse-green 2s infinite;
+  }
+  
+  .status-indicator-inactive {
+    background-color: #6b7280 !important;
+  }
+  
+  .status-indicator-error {
+    background-color: #ef4444 !important;
+  }
+  
+  @keyframes pulse-green {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+  
   .scraper-card {
     transition: all 0.3s ease;
     border: 2px solid transparent;
@@ -213,14 +310,14 @@
         </button>
       </div>
 
-      <!-- Status Output -->
+      <!-- Quick Status Display -->
       <div class="mb-4">
-        <label class="block text-sm font-medium text-gray-700 mb-2">
-          <i class="fas fa-terminal mr-2"></i>
-          Scraping Status
-        </label>
-        <div id="scrape-status" class="status-output">
-          <div class="text-gray-400">Ready to start scraping...</div>
+        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+          <div class="flex items-center">
+            <i class="fas fa-chart-line mr-2 text-blue-600"></i>
+            <span class="text-sm font-medium text-gray-700">Scraping Status:</span>
+          </div>
+          <div id="scrape-status-summary" class="text-sm text-gray-600">Ready to start</div>
         </div>
       </div>
 
@@ -298,14 +395,14 @@
         </button>
       </div>
 
-      <!-- Status Output -->
+      <!-- Quick Status Display -->
       <div class="mb-4">
-        <label class="block text-sm font-medium text-gray-700 mb-2">
-          <i class="fas fa-terminal mr-2"></i>
-          Import Status
-        </label>
-        <div id="import-status" class="status-output">
-          <div class="text-gray-400">Ready to start import process...</div>
+        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+          <div class="flex items-center">
+            <i class="fas fa-upload mr-2 text-green-600"></i>
+            <span class="text-sm font-medium text-gray-700">Import Status:</span>
+          </div>
+          <div id="import-status-summary" class="text-sm text-gray-600">Ready to start</div>
         </div>
       </div>
 
@@ -333,32 +430,145 @@
     </div>
   </div>
 
-  <!-- System Status -->
-  <div class="bg-white rounded-lg shadow-lg p-6">
-    <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
-      <i class="fas fa-heartbeat mr-2 text-red-600"></i>
-      System Status
-    </h2>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <div class="bg-gray-50 p-4 rounded-lg">
-        <div class="text-sm text-gray-600">Database Connection</div>
-        <div id="db-status" class="font-medium text-green-600">
-          <i class="fas fa-check-circle mr-1"></i>
-          Connected
+  <!-- Status Monitor -->
+  <div class="mb-8">
+    <div class="bg-white rounded-lg shadow-lg">
+      <!-- Header with toggle -->
+      <div class="p-4 border-b border-gray-200">
+        <div class="flex items-center justify-between">
+          <h2 class="text-xl font-bold text-gray-800 flex items-center">
+            <i class="fas fa-monitor-heart-rate mr-2 text-purple-600"></i>
+            Status Monitor
+          </h2>
+          <button id="toggle-status-monitor" class="btn btn-sm btn-outline">
+            <i class="fas fa-chevron-down mr-1"></i>
+            <span>Hide</span>
+          </button>
         </div>
+        <p class="text-sm text-gray-500 mt-1">Real-time monitoring of ETL operations</p>
       </div>
-      <div class="bg-gray-50 p-4 rounded-lg">
-        <div class="text-sm text-gray-600">Last Scrape</div>
-        <div id="last-scrape" class="font-medium text-gray-800">
-          <i class="fas fa-clock mr-1"></i>
-          Never
+      
+      <!-- Monitor Content -->
+      <div id="status-monitor-content" class="p-4">
+        <!-- Tab Navigation -->
+        <div class="tabs tabs-bordered mb-4">
+          <button class="tab tab-active" data-tab="scraping">
+            <i class="fas fa-cloud-download-alt mr-2"></i>
+            Scraping Log
+          </button>
+          <button class="tab" data-tab="importing">
+            <i class="fas fa-database mr-2"></i>
+            Import Log
+          </button>
+          <button class="tab" data-tab="system">
+            <i class="fas fa-server mr-2"></i>
+            System Info
+          </button>
         </div>
-      </div>
-      <div class="bg-gray-50 p-4 rounded-lg">
-        <div class="text-sm text-gray-600">Last Import</div>
-        <div id="last-import" class="font-medium text-gray-800">
-          <i class="fas fa-clock mr-1"></i>
-          Never
+        
+        <!-- Tab Content -->
+        <div class="tab-content">
+          <!-- Scraping Tab -->
+          <div id="tab-scraping" class="tab-panel active">
+            <div class="mb-3 flex items-center justify-between">
+              <div class="flex items-center">
+                <div class="w-3 h-3 rounded-full bg-gray-400 mr-2" id="scraping-status-indicator"></div>
+                <span class="text-sm font-medium text-gray-700">Scraping Operations</span>
+              </div>
+              <div class="flex gap-2">
+                <button id="auto-scroll-scraping" class="btn btn-xs btn-outline">
+                  <i class="fas fa-arrow-down mr-1"></i>
+                  Auto-scroll: ON
+                </button>
+                <button id="clear-scraping-log" class="btn btn-xs btn-outline">
+                  <i class="fas fa-eraser mr-1"></i>
+                  Clear
+                </button>
+              </div>
+            </div>
+            <div id="scrape-status" class="status-monitor-output">
+              <div class="text-gray-400 text-center py-8">
+                <i class="fas fa-terminal text-3xl mb-2"></i>
+                <div>Ready to start scraping...</div>
+                <div class="text-xs mt-1">Detailed operation logs will appear here</div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Importing Tab -->
+          <div id="tab-importing" class="tab-panel">
+            <div class="mb-3 flex items-center justify-between">
+              <div class="flex items-center">
+                <div class="w-3 h-3 rounded-full bg-gray-400 mr-2" id="importing-status-indicator"></div>
+                <span class="text-sm font-medium text-gray-700">Import Operations</span>
+              </div>
+              <div class="flex gap-2">
+                <button id="auto-scroll-importing" class="btn btn-xs btn-outline">
+                  <i class="fas fa-arrow-down mr-1"></i>
+                  Auto-scroll: ON
+                </button>
+                <button id="clear-importing-log" class="btn btn-xs btn-outline">
+                  <i class="fas fa-eraser mr-1"></i>
+                  Clear
+                </button>
+              </div>
+            </div>
+            <div id="import-status" class="status-monitor-output">
+              <div class="text-gray-400 text-center py-8">
+                <i class="fas fa-database text-3xl mb-2"></i>
+                <div>Ready to start import process...</div>
+                <div class="text-xs mt-1">Detailed operation logs will appear here</div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- System Tab -->
+          <div id="tab-system" class="tab-panel">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div class="bg-gray-50 p-4 rounded-lg">
+                <div class="text-sm text-gray-600 mb-2">Database Connection</div>
+                <div id="db-status" class="font-medium text-green-600">
+                  <i class="fas fa-check-circle mr-1"></i>
+                  Connected
+                </div>
+              </div>
+              <div class="bg-gray-50 p-4 rounded-lg">
+                <div class="text-sm text-gray-600 mb-2">Last Scrape</div>
+                <div id="last-scrape" class="font-medium text-gray-800">
+                  <i class="fas fa-clock mr-1"></i>
+                  Never
+                </div>
+              </div>
+              <div class="bg-gray-50 p-4 rounded-lg">
+                <div class="text-sm text-gray-600 mb-2">Last Import</div>
+                <div id="last-import" class="font-medium text-gray-800">
+                  <i class="fas fa-clock mr-1"></i>
+                  Never
+                </div>
+              </div>
+              <div class="bg-gray-50 p-4 rounded-lg">
+                <div class="text-sm text-gray-600 mb-2">Active Processes</div>
+                <div id="active-processes" class="font-medium text-gray-800">
+                  <i class="fas fa-cog mr-1"></i>
+                  <span id="process-count">0</span> running
+                </div>
+              </div>
+              <div class="bg-gray-50 p-4 rounded-lg">
+                <div class="text-sm text-gray-600 mb-2">Server Uptime</div>
+                <div id="server-uptime" class="font-medium text-gray-800">
+                  <i class="fas fa-clock mr-1"></i>
+                  <span id="uptime-display">--</span>
+                </div>
+              </div>
+              <div class="bg-gray-50 p-4 rounded-lg">
+                <div class="text-sm text-gray-600 mb-2">System Status</div>
+                <div id="system-health" class="font-medium text-green-600">
+                  <i class="fas fa-heartbeat mr-1"></i>
+                  Healthy
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -409,6 +619,11 @@ document.addEventListener('DOMContentLoaded', function() {
   let currentImportProcess = null;
   let scrapeElapsedTimer = null;
   let importElapsedTimer = null;
+  
+  // Status monitor variables
+  let autoScrollScraping = true;
+  let autoScrollImporting = true;
+  let statusMonitorCollapsed = false;
 
   function startScraping() {
     const league = leagueInput.value.trim();
