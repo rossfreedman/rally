@@ -37,9 +37,40 @@ class User(Base):
     created_at = Column(DateTime(timezone=True), default=func.now())
     last_login = Column(DateTime(timezone=True))
     
-    # Relationships - properly use user_player_associations for many-to-many
+    # Relationships
     player_associations = relationship("UserPlayerAssociation", back_populates="user", cascade="all, delete-orphan")
-    players = relationship("Player", secondary="user_player_associations", back_populates="associated_users", overlaps="player_associations")
+    
+    # Helper method to get associated players
+    def get_players(self, session):
+        """Get all players associated with this user"""
+        from sqlalchemy.orm import joinedload
+        associations = session.query(UserPlayerAssociation).filter(
+            UserPlayerAssociation.user_id == self.id
+        ).all()
+        
+        players = []
+        for assoc in associations:
+            player = assoc.get_player(session)
+            if player:
+                players.append(player)
+        return players
+    
+    def get_primary_player(self, session):
+        """Get the primary player for this user"""
+        assoc = session.query(UserPlayerAssociation).filter(
+            UserPlayerAssociation.user_id == self.id,
+            UserPlayerAssociation.is_primary == True
+        ).first()
+        
+        return assoc.get_player(session) if assoc else None
+    
+    def get_player(self, session, league_id):
+        """Get the player for this user in a specific league"""
+        for assoc in self.player_associations:
+            player = assoc.get_player(session)
+            if player and player.league and player.league.league_id == league_id:
+                return player
+        return None
     
     def __repr__(self):
         return f"<User(id={self.id}, email='{self.email}', admin={self.is_admin})>"
@@ -135,12 +166,23 @@ class Player(Base):
     created_at = Column(DateTime(timezone=True), default=func.now())
     updated_at = Column(DateTime(timezone=True), default=func.now(), onupdate=func.now())
     
-    # Relationships - fixed overlapping warnings
+    # Relationships
     league = relationship("League", back_populates="players")
     club = relationship("Club", back_populates="players")
     series = relationship("Series", back_populates="players")
-    user_associations = relationship("UserPlayerAssociation", back_populates="player", cascade="all, delete-orphan", overlaps="players")
-    associated_users = relationship("User", secondary="user_player_associations", back_populates="players", overlaps="user_associations,player_associations")
+    
+    # Helper method to get associated users
+    def get_associated_users(self, session):
+        """Get all users associated with this player"""
+        associations = session.query(UserPlayerAssociation).filter(
+            UserPlayerAssociation.tenniscores_player_id == self.tenniscores_player_id
+        ).all()
+        
+        users = []
+        for assoc in associations:
+            if assoc.user:
+                users.append(assoc.user)
+        return users
     
     # Constraints  
     __table_args__ = (
@@ -156,22 +198,35 @@ class Player(Base):
 
 class UserPlayerAssociation(Base):
     """
-    Junction table linking users to their player records
-    Supports one-to-many relationship (user can have multiple player records)
+    Junction table linking users to their player records using stable identifiers
+    Uses tenniscores_player_id only - league is derived from player data
+    This makes associations ETL-resilient and fully normalized
     """
     __tablename__ = 'user_player_associations'
     
     user_id = Column(Integer, ForeignKey('users.id'), primary_key=True)
-    player_id = Column(Integer, ForeignKey('players.id'), primary_key=True)
+    tenniscores_player_id = Column(String(255), nullable=False, primary_key=True)
     is_primary = Column(Boolean, default=False)  # Mark primary player association
     created_at = Column(DateTime(timezone=True), default=func.now())
     
-    # Relationships - fixed overlapping warnings
-    user = relationship("User", back_populates="player_associations", overlaps="associated_users,players")
-    player = relationship("Player", back_populates="user_associations", overlaps="associated_users,players")
+    # Relationships
+    user = relationship("User", back_populates="player_associations")
+    
+    # Helper method to get associated player
+    def get_player(self, session):
+        """Get the associated player record (league derived from player)"""
+        return session.query(Player).filter(
+            Player.tenniscores_player_id == self.tenniscores_player_id
+        ).first()
+    
+    # Helper method to get league information
+    def get_league(self, session):
+        """Get the league for this association (derived from player)"""
+        player = self.get_player(session)
+        return player.league if player else None
     
     def __repr__(self):
-        return f"<UserPlayerAssociation(user_id={self.user_id}, player_id={self.player_id}, primary={self.is_primary})>"
+        return f"<UserPlayerAssociation(user_id={self.user_id}, tenniscores_player_id='{self.tenniscores_player_id}', primary={self.is_primary})>"
 
 # Junction tables for many-to-many relationships
 class ClubLeague(Base):

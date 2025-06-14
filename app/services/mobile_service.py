@@ -3509,9 +3509,40 @@ def get_player_search_data(user):
             elif last_name:
                 search_query = f'last name "{last_name}"'
         
-            # Get user's league for filtering
+            # Get user's leagues for filtering - handle users with multiple league associations
             user_league_id = user.get('league_id', '')
             print(f"[DEBUG] get_player_search_data: User league_id: '{user_league_id}'")
+            
+            # If user has no league_id or it's empty, try to get their leagues from associations
+            user_league_ids = set()
+            if user_league_id and user_league_id not in ['', 'None', None]:
+                user_league_ids.add(user_league_id)
+            else:
+                # Try to get user's leagues from their player associations
+                try:
+                    user_email = user.get('email')
+                    if user_email:
+                        # Query user's associated leagues
+                        from database_utils import execute_query
+                        user_leagues_query = """
+                            SELECT DISTINCT l.league_id
+                            FROM user_player_associations upa
+                            JOIN users u ON upa.user_id = u.id
+                            JOIN players p ON p.tenniscores_player_id = upa.tenniscores_player_id
+                            JOIN leagues l ON p.league_id = l.id
+                            WHERE u.email = %s
+                        """
+                        league_results = execute_query(user_leagues_query, [user_email])
+                        for result in league_results:
+                            user_league_ids.add(result['league_id'])
+                        print(f"[DEBUG] Found user leagues from associations: {user_league_ids}")
+                except Exception as e:
+                    print(f"[DEBUG] Could not get user leagues from associations: {e}")
+            
+            # If still no leagues found, default to showing all leagues
+            if not user_league_ids:
+                user_league_ids = {'APTA_CHICAGO', 'NSTF'}  # Show all leagues
+                print(f"[DEBUG] No specific leagues found, showing all: {user_league_ids}")
             
             # Load fresh player data using the same method as get_club_players_data
             all_players = _load_players_data()
@@ -3526,13 +3557,13 @@ def get_player_search_data(user):
                     'error': 'Error loading player data'
                 }
 
-            # Filter players by user's league first
-            def is_player_in_user_league(player):
+            # Filter players by user's leagues (multiple leagues supported)
+            def is_player_in_user_leagues(player):
                 player_league = player.get('League')
-                return player_league == user_league_id
+                return player_league in user_league_ids
             
-            league_filtered_players = [player for player in all_players if is_player_in_user_league(player)]
-            print(f"[DEBUG] Filtered from {len(all_players)} total players to {len(league_filtered_players)} players in user's league")
+            league_filtered_players = [player for player in all_players if is_player_in_user_leagues(player)]
+            print(f"[DEBUG] Filtered from {len(all_players)} total players to {len(league_filtered_players)} players in user's leagues: {user_league_ids}")
             
             # Search within the league-filtered players
             for player in league_filtered_players:

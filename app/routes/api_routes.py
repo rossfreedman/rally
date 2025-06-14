@@ -703,11 +703,12 @@ def update_availability():
                 return jsonify({'error': 'No player association found. Please update your settings to link your player profile.'}), 400
             
             # Check if the player association has a valid player record
-            if not primary_association.player:
+            player = primary_association.get_player(db_session)
+            if not player:
                 return jsonify({'error': 'Player record not found. Your player association may be broken. Please update your settings to re-link your player profile.'}), 400
             
             # Get series_id from the associated player
-            series_id = primary_association.player.series_id
+            series_id = player.series_id
             
             if not series_id:
                 return jsonify({'error': 'Player series not found'}), 400
@@ -794,12 +795,15 @@ def get_user_settings():
                 ).first()
                 
                 if primary_association:
-                    player = primary_association.player
-                    club_name = player.club.name
-                    series_name = player.series.name
-                    league_id = player.league.league_id
-                    league_name = player.league.league_name
-                    tenniscores_player_id = player.tenniscores_player_id
+                    player = primary_association.get_player(db_session)
+                    if player:
+                        club_name = player.club.name
+                        series_name = player.series.name
+                        league_id = player.league.league_id
+                        league_name = player.league.league_name
+                        tenniscores_player_id = player.tenniscores_player_id
+                    else:
+                        club_name = series_name = league_id = league_name = tenniscores_player_id = ''
                 else:
                     # No player association found
                     club_name = series_name = league_id = league_name = tenniscores_player_id = ''
@@ -922,7 +926,7 @@ def update_settings():
                             # Check if association already exists
                             existing = db_session.query(UserPlayerAssociation).filter(
                                 UserPlayerAssociation.user_id == user_record.id,
-                                UserPlayerAssociation.player_id == player_record.id
+                                UserPlayerAssociation.tenniscores_player_id == player_record.tenniscores_player_id
                             ).first()
                             
                             if not existing:
@@ -935,7 +939,7 @@ def update_settings():
                                 # Create new association as primary
                                 association = UserPlayerAssociation(
                                     user_id=user_record.id,
-                                    player_id=player_record.id,
+                                    tenniscores_player_id=player_record.tenniscores_player_id,
                                     is_primary=True
                                 )
                                 db_session.add(association)
@@ -1009,7 +1013,7 @@ def update_settings():
             
             for assoc in associations:
                 if assoc.is_primary:
-                    player = assoc.player
+                    player = assoc.get_player(db_session)
                     if player and player.club and player.series and player.league:
                         primary_player = {
                             'club': player.club.name,
@@ -1123,14 +1127,14 @@ def retry_player_id_lookup():
                         # Check if association already exists
                         existing = db_session.query(UserPlayerAssociation).filter(
                             UserPlayerAssociation.user_id == user_record.id,
-                            UserPlayerAssociation.player_id == player_record.id
+                            UserPlayerAssociation.tenniscores_player_id == player_record.tenniscores_player_id
                         ).first()
                         
                         if not existing:
                             # Create new association
                             association = UserPlayerAssociation(
                                 user_id=user_record.id,
-                                player_id=player_record.id,
+                                tenniscores_player_id=player_record.tenniscores_player_id,
                                 is_primary=True  # First association becomes primary
                             )
                             db_session.add(association)
