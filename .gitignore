@@ -55,7 +55,6 @@ Thumbs.db
 *.bak
 *.tmp 
 rally_backups/
-scrapers/
 scrapers_backups/
 reference_code/
 

@@ -483,12 +483,27 @@ def run_master_scraper_generator(league):
     try:
         master_start_time = datetime.now()
         
-        # Get the project root directory
-        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        master_scraper_path = os.path.join(project_root, 'etl', 'scrapers', 'master_scraper.py')
+        # Get the project root directory with better detection
+        current_file = os.path.abspath(__file__)
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(current_file)))
         
-        if not os.path.exists(master_scraper_path):
-            yield f"data: {json.dumps({'type': 'error', 'message': 'Master scraper not found at: ' + master_scraper_path})}\n\n"
+        # Try multiple possible locations for master scraper
+        possible_master_paths = [
+            os.path.join(project_root, 'etl', 'scrapers', 'master_scraper.py'),
+            os.path.join(project_root, 'scrapers', 'master_scraper.py'),
+            os.path.join(os.getcwd(), 'etl', 'scrapers', 'master_scraper.py'),
+            os.path.join(os.getcwd(), 'scrapers', 'master_scraper.py'),
+        ]
+        
+        master_scraper_path = None
+        for path in possible_master_paths:
+            if os.path.exists(path):
+                master_scraper_path = path
+                break
+        
+        if master_scraper_path is None:
+            yield f"data: {json.dumps({'type': 'error', 'message': 'Master scraper not found'})}\n\n"
+            yield f"data: {json.dumps({'type': 'output', 'message': '🔍 Searched paths: ' + ', '.join(possible_master_paths), 'status': 'info'})}\n\n"
             return
             
         # Enhanced master scraper logging
@@ -562,8 +577,29 @@ def run_individual_scraper_generator(league, scraper, scraper_index, total_scrap
     """Generator that runs a single scraper and yields progress updates"""
     try:
         scraper_start_time = datetime.now()
-        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        scrapers_dir = os.path.join(project_root, 'etl', 'scrapers')
+        # Get project root with better detection for different environments
+        current_file = os.path.abspath(__file__)
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(current_file)))
+        
+        # Try multiple possible locations for scrapers
+        possible_scraper_paths = [
+            os.path.join(project_root, 'etl', 'scrapers'),
+            os.path.join(project_root, 'scrapers'),
+            os.path.join(os.getcwd(), 'etl', 'scrapers'),
+            os.path.join(os.getcwd(), 'scrapers'),
+        ]
+        
+        scrapers_dir = None
+        for path in possible_scraper_paths:
+            if os.path.exists(path):
+                scrapers_dir = path
+                break
+        
+        if scrapers_dir is None:
+            yield f"data: {json.dumps({'type': 'output', 'message': '❌ Could not locate scrapers directory', 'status': 'error'})}\n\n"
+            yield f"data: {json.dumps({'type': 'output', 'message': '🔍 Searched paths: ' + ', '.join(possible_scraper_paths), 'status': 'info'})}\n\n"
+            return
+            
         scraper_path = os.path.join(scrapers_dir, f"{scraper}.py")
         
         if not os.path.exists(scraper_path):
@@ -839,12 +875,26 @@ def run_individual_scraper_generator(league, scraper, scraper_index, total_scrap
 def run_consolidation_script_generator():
     """Generator that runs the consolidation script and yields progress updates"""
     try:
-        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        consolidation_script = os.path.join(project_root, 'etl', 'database_import', 'consolidate_league_jsons_to_all.py')
+        current_file = os.path.abspath(__file__)
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(current_file)))
         
-        if not os.path.exists(consolidation_script):
-            error_msg = f"Consolidation script not found at: {consolidation_script}"
-            yield f"data: {json.dumps({'type': 'error', 'message': error_msg})}\n\n"
+        # Try multiple possible locations for consolidation script
+        possible_consolidation_paths = [
+            os.path.join(project_root, 'etl', 'database_import', 'consolidate_league_jsons_to_all.py'),
+            os.path.join(project_root, 'etl', 'consolidate_league_jsons_to_all.py'),
+            os.path.join(os.getcwd(), 'etl', 'database_import', 'consolidate_league_jsons_to_all.py'),
+            os.path.join(os.getcwd(), 'etl', 'consolidate_league_jsons_to_all.py'),
+        ]
+        
+        consolidation_script = None
+        for path in possible_consolidation_paths:
+            if os.path.exists(path):
+                consolidation_script = path
+                break
+        
+        if consolidation_script is None:
+            yield f"data: {json.dumps({'type': 'error', 'message': 'Consolidation script not found'})}\n\n"
+            yield f"data: {json.dumps({'type': 'output', 'message': '🔍 Searched paths: ' + ', '.join(possible_consolidation_paths), 'status': 'info'})}\n\n"
             return
         
         env = os.environ.copy()
@@ -882,12 +932,26 @@ def run_consolidation_script_generator():
 def run_import_script_generator():
     """Generator that runs the import script and yields progress updates"""
     try:
-        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        import_script = os.path.join(project_root, 'etl', 'database_import', 'json_import_all_to_database.py')
+        current_file = os.path.abspath(__file__)
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(current_file)))
         
-        if not os.path.exists(import_script):
-            error_msg = f"Import script not found at: {import_script}"
-            yield f"data: {json.dumps({'type': 'error', 'message': error_msg})}\n\n"
+        # Try multiple possible locations for import script
+        possible_import_paths = [
+            os.path.join(project_root, 'etl', 'database_import', 'json_import_all_to_database.py'),
+            os.path.join(project_root, 'etl', 'json_import_all_to_database.py'),
+            os.path.join(os.getcwd(), 'etl', 'database_import', 'json_import_all_to_database.py'),
+            os.path.join(os.getcwd(), 'etl', 'json_import_all_to_database.py'),
+        ]
+        
+        import_script = None
+        for path in possible_import_paths:
+            if os.path.exists(path):
+                import_script = path
+                break
+        
+        if import_script is None:
+            yield f"data: {json.dumps({'type': 'error', 'message': 'Import script not found'})}\n\n"
+            yield f"data: {json.dumps({'type': 'output', 'message': '🔍 Searched paths: ' + ', '.join(possible_import_paths), 'status': 'info'})}\n\n"
             return
         
         env = os.environ.copy()
