@@ -289,13 +289,13 @@ def register_user(
                 # Check if association already exists
                 existing = db_session.query(UserPlayerAssociation).filter(
                     UserPlayerAssociation.user_id == new_user.id,
-                    UserPlayerAssociation.player_id == player.id
+                    UserPlayerAssociation.tenniscores_player_id == player.tenniscores_player_id
                 ).first()
                 
                 if not existing:
                     association = UserPlayerAssociation(
                         user_id=new_user.id,
-                        player_id=player.id,
+                        tenniscores_player_id=player.tenniscores_player_id,
                         is_primary=True
                     )
                     db_session.add(association)
@@ -345,14 +345,14 @@ def register_user(
                         # Check if association already exists
                         existing = db_session.query(UserPlayerAssociation).filter(
                             UserPlayerAssociation.user_id == new_user.id,
-                            UserPlayerAssociation.player_id == player.id
+                            UserPlayerAssociation.tenniscores_player_id == player.tenniscores_player_id
                         ).first()
                         
                         if not existing:
                             # Create proper user-player association
                             association = UserPlayerAssociation(
                                 user_id=new_user.id,
-                                player_id=player.id,
+                                tenniscores_player_id=player.tenniscores_player_id,
                                 is_primary=True
                             )
                             db_session.add(association)
@@ -453,7 +453,7 @@ def associate_user_with_player(user_id: int, player_id: int, is_primary: bool = 
         # Check if association already exists
         existing = db_session.query(UserPlayerAssociation).filter(
             UserPlayerAssociation.user_id == user_id,
-            UserPlayerAssociation.player_id == player_id
+            UserPlayerAssociation.tenniscores_player_id == player.tenniscores_player_id
         ).first()
         
         if existing:
@@ -469,7 +469,7 @@ def associate_user_with_player(user_id: int, player_id: int, is_primary: bool = 
         # Create new association
         association = UserPlayerAssociation(
             user_id=user_id,
-            player_id=player_id,
+            tenniscores_player_id=player.tenniscores_player_id,
             is_primary=is_primary
         )
         
@@ -527,7 +527,7 @@ def authenticate_user(email: str, password: str) -> Dict[str, Any]:
         primary_player = None
         
         for assoc in associations:
-            player = assoc.player
+            player = assoc.get_player(db_session)
             if player and player.league and player.club and player.series:
                 player_data = {
                     'id': player.id,
@@ -614,7 +614,7 @@ def get_user_with_players(user_id: int) -> Optional[Dict[str, Any]]:
         
         players_data = []
         for assoc in associations:
-            player = assoc.player
+            player = assoc.get_player(db_session)
             if player and player.league and player.club and player.series:
                 players_data.append({
                     'id': player.id,
@@ -738,25 +738,9 @@ def create_session_data(user_data: Dict[str, Any]) -> Dict[str, Any]:
         # Debug logging to verify tenniscores_player_id is properly set
         logger.info(f"Session data: tenniscores_player_id = {primary_player.get('tenniscores_player_id')}")
     else:
-        # No player association - check if user has direct league/club/series data
-        # This handles users who registered but no player was found
-        try:
-            db_session = SessionLocal()
-            user_record = db_session.query(User).filter(User.id == user.get('id')).first()
-            
-            if user_record:
-                league_name = user_record.league.league_name if user_record.league else ''
-                league_id = user_record.league.league_id if user_record.league else None  # This will be 'APTA_CHICAGO'
-                club_name = user_record.club.name if user_record.club else ''
-                series_name = user_record.series.name if user_record.series else ''
-                tenniscores_player_id = user_record.tenniscores_player_id  # Load player ID from user record
-            else:
-                league_name = league_id = club_name = series_name = tenniscores_player_id = ''
-            
-            db_session.close()
-        except Exception as e:
-            logger.warning(f"Error loading user league/club/series data: {str(e)}")
-            league_name = league_id = club_name = series_name = tenniscores_player_id = ''
+        # No player association - user has no league/club/series data
+        # With normalized schema, all player data comes from associations
+        league_name = league_id = club_name = series_name = tenniscores_player_id = ''
         
         session_data.update({
             'club': club_name,

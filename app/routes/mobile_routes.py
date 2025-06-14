@@ -923,6 +923,46 @@ def serve_mobile_improve():
         print(f"Error serving improve page: {str(e)}")
         return redirect('/login')
 
+@mobile_bp.route('/mobile/training-videos')
+@login_required
+def serve_mobile_training_videos():
+    """Serve the mobile training videos page with YouTube-like interface"""
+    try:
+        user = session.get('user')
+        if not user:
+            return redirect('/login')
+            
+        session_data = {
+            'user': user,
+            'authenticated': True
+        }
+        
+        # Load training videos from JSON file
+        try:
+            import os
+            import json
+            videos_path = os.path.join('data', 'leagues', 'all', 'improve_data', 'platform_tennis_videos_full_30.json')
+            with open(videos_path, 'r', encoding='utf-8') as f:
+                training_videos = json.load(f)
+        except Exception as e:
+            print(f"Error loading training videos: {str(e)}")
+            training_videos = []
+        
+        log_user_activity(
+            user['email'], 
+            'page_visit', 
+            page='mobile_training_videos',
+            details='Accessed training videos library'
+        )
+        
+        return render_template('mobile/training_videos.html', 
+                              session_data=session_data,
+                              training_videos=training_videos)
+        
+    except Exception as e:
+        print(f"Error serving training videos page: {str(e)}")
+        return redirect('/login')
+
 @mobile_bp.route('/mobile/email-team')
 @login_required
 def serve_mobile_email_team():

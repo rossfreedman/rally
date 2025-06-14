@@ -1,0 +1,451 @@
+{% extends "mobile/layout.html" %}
+{% set show_back_arrow = True %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    
+    <!-- Header -->
+    <div class="bg-white border-b border-gray-100">
+        <div class="flex items-center px-4 py-6">
+            <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center shadow-sm">
+                <i class="fas fa-play-circle text-white text-lg"></i>
+            </div>
+            <div class="ml-4">
+                <h1 class="text-xl font-bold text-gray-900">Training Video Library</h1>
+                <p class="text-sm text-gray-500">Master your platform tennis game</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="bg-white border-b border-gray-100 sticky top-0 z-40">
+        <div class="px-4 py-4">
+            <!-- Filter Buttons - Two Rows -->
+            <div class="space-y-2">
+                <!-- First Row -->
+                <div class="flex flex-wrap gap-2 justify-center">
+                    <button class="filter-btn active px-4 py-2 rounded-full text-sm font-medium" data-filter="all">
+                        All Videos
+                    </button>
+                    <button class="filter-btn px-4 py-2 rounded-full text-sm font-medium" data-filter="serve">
+                        <i class="fas fa-tennis-ball mr-1"></i> Serving
+                    </button>
+                    <button class="filter-btn px-4 py-2 rounded-full text-sm font-medium" data-filter="volley">
+                        <i class="fas fa-hand-paper mr-1"></i> Volleys
+                    </button>
+                    <button class="filter-btn px-4 py-2 rounded-full text-sm font-medium" data-filter="overhead">
+                        <i class="fas fa-arrow-up mr-1"></i> Overheads
+                    </button>
+                </div>
+                <!-- Second Row -->
+                <div class="flex flex-wrap gap-2 justify-center">
+                    <button class="filter-btn px-4 py-2 rounded-full text-sm font-medium" data-filter="return">
+                        <i class="fas fa-undo mr-1"></i> Returns
+                    </button>
+                    <button class="filter-btn px-4 py-2 rounded-full text-sm font-medium" data-filter="strategy">
+                        <i class="fas fa-chess mr-1"></i> Strategy
+                    </button>
+                    <button class="filter-btn px-4 py-2 rounded-full text-sm font-medium" data-filter="positioning">
+                        <i class="fas fa-crosshairs mr-1"></i> Positioning
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Video Count -->
+    <div class="bg-white px-4 py-3 border-b border-gray-100">
+        <span id="video-count" class="text-sm text-gray-600">{{ training_videos|length }} videos</span>
+    </div>
+
+    <!-- Videos Grid -->
+    <div class="px-4 py-6">
+        <div id="videos-container" class="space-y-6">
+            {% for video in training_videos %}
+            <div class="video-card bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow duration-200" 
+                 data-title="{{ video.title|lower }}" 
+                 data-keywords="{{ video.keywords|join(',')|lower }}"
+                 data-summary="{{ video.summary|lower }}">
+                
+                <!-- Video Thumbnail / Player -->
+                <div class="relative aspect-video bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center video-container" 
+                     data-video-url="{{ video.url }}"
+                     data-video-id="{{ video.url.split('/')[-1].split('=')[-1].split('&')[0] if 'youtube.com' in video.url or 'youtu.be' in video.url else '' }}">
+                    
+                    <!-- Thumbnail View -->
+                    <div class="thumbnail-view absolute inset-0">
+                        <!-- YouTube Thumbnail -->
+                        {% set video_id = video.url.split('/')[-1].split('=')[-1].split('&')[0] if 'youtube.com' in video.url or 'youtu.be' in video.url else '' %}
+                        {% if video_id %}
+                        <img src="https://img.youtube.com/vi/{{ video_id }}/maxresdefault.jpg" 
+                             alt="{{ video.title }}" 
+                             class="w-full h-full object-cover"
+                             onerror="this.src='https://img.youtube.com/vi/{{ video_id }}/hqdefault.jpg'">
+                        {% endif %}
+                        
+                        <div class="absolute inset-0 bg-black bg-opacity-30"></div>
+                        
+                        <!-- Duration Badge (simulated) -->
+                        <div class="absolute bottom-4 right-4 bg-black bg-opacity-80 text-white text-xs px-2 py-1 rounded-md backdrop-blur-sm font-medium">
+                            {% set duration_minutes = range(3, 16) | random %}
+                            {{ duration_minutes }}:{{ '%02d'|format(range(0, 60) | random) }}
+                        </div>
+                        
+                        <!-- Modern Play Button Overlay -->
+                        <button class="play-btn absolute inset-0 flex items-center justify-center bg-black bg-opacity-0 hover:bg-opacity-30 transition-all duration-300 group">
+                            <!-- Outer glow ring -->
+                            <div class="absolute w-28 h-28 rounded-full bg-white bg-opacity-20 group-hover:bg-opacity-30 transition-all duration-300 animate-pulse"></div>
+                            
+                            <!-- Main button -->
+                            <div class="relative w-20 h-20 bg-gradient-to-r from-blue-500 via-purple-500 to-blue-600 rounded-full flex items-center justify-center shadow-2xl transform group-hover:scale-110 transition-all duration-300 border-2 border-white border-opacity-60 backdrop-blur-sm">
+                                <!-- Inner shadow for depth -->
+                                <div class="absolute inset-0 rounded-full bg-gradient-to-b from-white/20 to-transparent"></div>
+                                
+                                <!-- Play triangle with better positioning -->
+                                <div class="relative flex items-center justify-center ml-1">
+                                    <svg class="w-8 h-8 text-white drop-shadow-lg" fill="currentColor" viewBox="0 0 24 24">
+                                        <path d="M8 5v14l11-7z"/>
+                                    </svg>
+                                </div>
+                                
+                                <!-- Subtle inner glow -->
+                                <div class="absolute inset-2 rounded-full bg-gradient-to-r from-blue-400/30 to-purple-400/30 group-hover:from-blue-300/40 group-hover:to-purple-300/40 transition-all duration-300"></div>
+                            </div>
+                            
+                            <!-- Ripple effect on hover -->
+                            <div class="absolute w-24 h-24 rounded-full border-2 border-white border-opacity-40 group-hover:scale-125 group-hover:border-opacity-20 transition-all duration-500 opacity-0 group-hover:opacity-100"></div>
+                        </button>
+                    </div>
+                    
+                    <!-- Video Player (hidden initially) -->
+                    <div class="video-player hidden absolute inset-0">
+                        <iframe class="w-full h-full" 
+                                src="" 
+                                title="{{ video.title }}"
+                                frameborder="0" 
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                allowfullscreen>
+                        </iframe>
+                        <!-- Close Button -->
+                        <button class="close-video absolute top-2 right-2 w-8 h-8 bg-black bg-opacity-70 hover:bg-opacity-90 rounded-full flex items-center justify-center text-white transition-all duration-200 z-10">
+                            <i class="fas fa-times text-sm"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Video Info -->
+                <div class="p-4 pt-5">
+                    <h3 class="font-semibold text-gray-900 mb-2 line-clamp-2 leading-tight">{{ video.title }}</h3>
+                    <p class="text-sm text-gray-600 mb-4 line-clamp-3 leading-relaxed">{{ video.summary }}</p>
+                    
+                    <!-- Keywords/Tags -->
+                    <div class="flex flex-wrap gap-2">
+                        {% for keyword in video.keywords[:3] %}
+                        <span class="bg-blue-50 text-blue-700 text-xs px-3 py-1 rounded-full capitalize border border-blue-100 font-medium">
+                            {{ keyword }}
+                        </span>
+                        {% endfor %}
+                    </div>
+                    
+
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- No Results Message -->
+        <div id="no-results" class="hidden text-center py-12 px-4">
+            <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-search text-gray-400 text-xl"></i>
+            </div>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">No videos found</h3>
+            <p class="text-gray-600">Try adjusting your search or filter criteria</p>
+        </div>
+    </div>
+</div>
+
+<!-- Custom Styles -->
+<style>
+.filter-btn {
+    background-color: #f8fafc;
+    color: #64748b;
+    border: 1px solid #e2e8f0;
+    transition: all 0.3s ease;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.filter-btn:hover {
+    background-color: #f1f5f9;
+    color: #475569;
+    border-color: #cbd5e1;
+    box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.1);
+    transform: translateY(-1px);
+}
+
+.filter-btn.active {
+    background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+    color: white;
+    border-color: #3b82f6;
+    box-shadow: 0 4px 12px 0 rgba(59, 130, 246, 0.3);
+}
+
+.filter-btn.active:hover {
+    background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+    transform: translateY(-1px);
+}
+
+.line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.aspect-video {
+    aspect-ratio: 16 / 9;
+}
+
+#no-results.hidden {
+    display: none !important;
+}
+
+@media (max-width: 640px) {
+    .video-card {
+        margin-bottom: 1.5rem;
+    }
+    
+    .video-card .p-4 {
+        padding: 1rem;
+    }
+    
+    .filter-btn {
+        font-size: 0.75rem;
+        padding: 0.5rem 0.75rem;
+    }
+}
+</style>
+
+<!-- JavaScript for Search and Filter -->
+<script>
+let globalEventListenersAdded = false;
+
+document.addEventListener('DOMContentLoaded', function() {
+    const filterButtons = document.querySelectorAll('.filter-btn');
+    const videosContainer = document.getElementById('videos-container');
+    const videoCards = document.querySelectorAll('.video-card');
+    const videoCount = document.getElementById('video-count');
+    const noResults = document.getElementById('no-results');
+    
+    let currentFilter = 'all';
+    let currentSearch = '';
+    
+    // Filter functionality
+    filterButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            filterButtons.forEach(btn => btn.classList.remove('active'));
+            this.classList.add('active');
+            currentFilter = this.dataset.filter;
+            filterAndSearch();
+        });
+    });
+    
+    function filterAndSearch() {
+        let visibleCount = 0;
+        
+        // Get fresh reference to video cards (in case DOM was modified)
+        const currentVideoCards = document.querySelectorAll('.video-card');
+        
+        currentVideoCards.forEach((card, index) => {
+            const title = card.dataset.title;
+            const keywords = card.dataset.keywords;
+            const summary = card.dataset.summary;
+            
+            // Ensure data is lowercase (should already be from template)
+            const titleLower = title ? title.toLowerCase() : '';
+            const keywordsLower = keywords ? keywords.toLowerCase() : '';
+            const summaryLower = summary ? summary.toLowerCase() : '';
+            
+            // Check search match
+            const searchMatch = !currentSearch || 
+                titleLower.includes(currentSearch) || 
+                keywordsLower.includes(currentSearch) || 
+                summaryLower.includes(currentSearch);
+            
+            // Check filter match
+            let filterMatch = currentFilter === 'all';
+            
+            if (!filterMatch) {
+                const filterKeywords = {
+                    'serve': ['serve', 'serving', 'toss'],
+                    'volley': ['volley', 'net play', 'forehand volley', 'backhand volley'],
+                    'overhead': ['overhead', 'smash', 'lob'],
+                    'return': ['return', 'chip return'],
+                    'strategy': ['strategy', 'tactics', 'positioning', 'thirds'],
+                    'positioning': ['position', 'court position', 'net position']
+                };
+                
+                const filterTerms = filterKeywords[currentFilter] || [];
+                filterMatch = filterTerms.some(term => 
+                    titleLower.includes(term) || 
+                    keywordsLower.includes(term) || 
+                    summaryLower.includes(term)
+                );
+            }
+            
+            if (searchMatch && filterMatch) {
+                card.style.display = 'block';
+                visibleCount++;
+            } else {
+                card.style.display = 'none';
+            }
+        });
+        
+        // Update count and show/hide no results
+        videoCount.textContent = `${visibleCount} video${visibleCount !== 1 ? 's' : ''}`;
+        
+        if (visibleCount === 0 && (currentSearch || currentFilter !== 'all')) {
+            videosContainer.classList.add('hidden');
+            noResults.classList.remove('hidden');
+        } else {
+            videosContainer.classList.remove('hidden');
+            noResults.classList.add('hidden');
+        }
+        
+        // Re-initialize video players after filtering
+        initializeVideoPlayers();
+    }
+    
+
+    
+    // Initialize - ensure no-results is hidden at start
+    noResults.classList.add('hidden');
+    videosContainer.classList.remove('hidden');
+    
+    // Initialize
+    filterAndSearch();
+    
+    // Video player functionality
+    initializeVideoPlayers();
+});
+
+function initializeVideoPlayers() {
+    // Remove existing event listeners by removing the attribute and re-adding
+    document.querySelectorAll('.play-btn').forEach(button => {
+        button.removeAttribute('data-initialized');
+    });
+    document.querySelectorAll('.close-video').forEach(button => {
+        button.removeAttribute('data-initialized');
+    });
+    
+    // Add event listeners to all play buttons
+    document.querySelectorAll('.play-btn').forEach(button => {
+        // Skip if already initialized
+        if (button.getAttribute('data-initialized') === 'true') return;
+        
+        button.setAttribute('data-initialized', 'true');
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Find the video container
+            const videoCard = this.closest('.video-card');
+            const videoContainer = videoCard.querySelector('.video-container');
+            const thumbnailView = videoContainer.querySelector('.thumbnail-view');
+            const videoPlayer = videoContainer.querySelector('.video-player');
+            const iframe = videoPlayer.querySelector('iframe');
+            
+            // Get video URL and extract video ID
+            const videoUrl = videoContainer.dataset.videoUrl;
+            const videoId = extractYouTubeVideoId(videoUrl);
+            
+            if (videoId) {
+                // Set iframe source to YouTube embed URL with autoplay
+                iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&modestbranding=1`;
+                
+                // Hide thumbnail and show player
+                thumbnailView.classList.add('hidden');
+                videoPlayer.classList.remove('hidden');
+                
+                // Scroll video into view
+                videoContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        });
+    });
+    
+    // Add event listeners to close buttons
+    document.querySelectorAll('.close-video').forEach(button => {
+        // Skip if already initialized
+        if (button.getAttribute('data-initialized') === 'true') return;
+        
+        button.setAttribute('data-initialized', 'true');
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const videoContainer = this.closest('.video-container');
+            const thumbnailView = videoContainer.querySelector('.thumbnail-view');
+            const videoPlayer = videoContainer.querySelector('.video-player');
+            const iframe = videoPlayer.querySelector('iframe');
+            
+            // Stop video by clearing iframe source
+            iframe.src = '';
+            
+            // Show thumbnail and hide player
+            videoPlayer.classList.add('hidden');
+            thumbnailView.classList.remove('hidden');
+        });
+    });
+    
+        // Add global event listeners only once
+    if (!globalEventListenersAdded) {
+        // Close video when clicking outside the video area
+        document.addEventListener('click', function(e) {
+            // Check if click is outside any video player
+            if (!e.target.closest('.video-container')) {
+                document.querySelectorAll('.video-player:not(.hidden)').forEach(player => {
+                    const videoContainer = player.closest('.video-container');
+                    const thumbnailView = videoContainer.querySelector('.thumbnail-view');
+                    const iframe = player.querySelector('iframe');
+                    
+                    // Stop video and hide player
+                    iframe.src = '';
+                    player.classList.add('hidden');
+                    thumbnailView.classList.remove('hidden');
+                });
+            }
+        });
+        
+        // Close video with Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.video-player:not(.hidden)').forEach(player => {
+                    const videoContainer = player.closest('.video-container');
+                    const thumbnailView = videoContainer.querySelector('.thumbnail-view');
+                    const iframe = player.querySelector('iframe');
+                    
+                    // Stop video and hide player
+                    iframe.src = '';
+                    player.classList.add('hidden');
+                    thumbnailView.classList.remove('hidden');
+                });
+            }
+        });
+        
+        globalEventListenersAdded = true;
+    }
+}
+
+function extractYouTubeVideoId(url) {
+    const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+    const match = url.match(regex);
+    return match ? match[1] : null;
+}
+</script>
+{% endblock %} 
