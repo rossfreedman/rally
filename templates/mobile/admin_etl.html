@@ -18,103 +18,6 @@
     border: 1px solid #dee2e6;
   }
   
-  .status-monitor-output {
-    background: #f8f9fa;
-    color: #000000;
-    font-family: 'Courier New', monospace;
-    font-size: 13px;
-    line-height: 1.5;
-    padding: 16px;
-    border-radius: 8px;
-    height: 500px;
-    overflow-y: auto;
-    border: 1px solid #dee2e6;
-    position: relative;
-  }
-  
-  .tab-content {
-    min-height: 400px;
-  }
-  
-  .tab-panel {
-    display: none;
-  }
-  
-  .tab-panel.active {
-    display: block;
-  }
-  
-  .tabs {
-    display: flex;
-    border-bottom: 2px solid #e5e7eb;
-    margin-bottom: 1rem;
-  }
-  
-  .tab {
-    padding: 8px 16px;
-    cursor: pointer;
-    border: none;
-    background: none;
-    color: #6b7280;
-    border-bottom: 2px solid transparent;
-    transition: all 0.2s;
-    font-size: 14px;
-    font-weight: 500;
-    display: flex;
-    align-items: center;
-  }
-  
-  .tab:hover {
-    color: #3b82f6;
-    background-color: #f3f4f6;
-  }
-  
-  .tab.tab-active {
-    color: #3b82f6;
-    border-bottom-color: #3b82f6;
-    background-color: #eff6ff;
-  }
-  
-  .status-monitor-output::-webkit-scrollbar {
-    width: 8px;
-  }
-  
-  .status-monitor-output::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 4px;
-  }
-  
-  .status-monitor-output::-webkit-scrollbar-thumb {
-    background: #c1c1c1;
-    border-radius: 4px;
-  }
-  
-  .status-monitor-output::-webkit-scrollbar-thumb:hover {
-    background: #a8a8a8;
-  }
-  
-  #status-monitor-content.collapsed {
-    display: none;
-  }
-  
-  .status-indicator-active {
-    background-color: #10b981 !important;
-    animation: pulse-green 2s infinite;
-  }
-  
-  .status-indicator-inactive {
-    background-color: #6b7280 !important;
-  }
-  
-  .status-indicator-error {
-    background-color: #ef4444 !important;
-  }
-  
-  @keyframes pulse-green {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
-  }
-  
   .scraper-card {
     transition: all 0.3s ease;
     border: 2px solid transparent;
@@ -304,20 +207,24 @@
           <i class="fas fa-eraser mr-2"></i>
           Clear Output
         </button>
+        <button id="check-scrape-status" class="btn btn-info flex items-center">
+          <i class="fas fa-search mr-2"></i>
+          Force Check Status
+        </button>
         <button id="clear-processes" class="btn btn-warning flex items-center">
           <i class="fas fa-refresh mr-2"></i>
           Clear Stuck Processes
         </button>
       </div>
 
-      <!-- Quick Status Display -->
+      <!-- Status Output -->
       <div class="mb-4">
-        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-          <div class="flex items-center">
-            <i class="fas fa-chart-line mr-2 text-blue-600"></i>
-            <span class="text-sm font-medium text-gray-700">Scraping Status:</span>
-          </div>
-          <div id="scrape-status-summary" class="text-sm text-gray-600">Ready to start</div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">
+          <i class="fas fa-terminal mr-2"></i>
+          Scraping Status
+        </label>
+        <div id="scrape-status" class="status-output">
+          <div class="text-gray-400">Ready to start scraping...</div>
         </div>
       </div>
 
@@ -395,14 +302,14 @@
         </button>
       </div>
 
-      <!-- Quick Status Display -->
+      <!-- Status Output -->
       <div class="mb-4">
-        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-          <div class="flex items-center">
-            <i class="fas fa-upload mr-2 text-green-600"></i>
-            <span class="text-sm font-medium text-gray-700">Import Status:</span>
-          </div>
-          <div id="import-status-summary" class="text-sm text-gray-600">Ready to start</div>
+        <label class="block text-sm font-medium text-gray-700 mb-2">
+          <i class="fas fa-terminal mr-2"></i>
+          Import Status
+        </label>
+        <div id="import-status" class="status-output">
+          <div class="text-gray-400">Ready to start import process...</div>
         </div>
       </div>
 
@@ -430,145 +337,32 @@
     </div>
   </div>
 
-  <!-- Status Monitor -->
-  <div class="mb-8">
-    <div class="bg-white rounded-lg shadow-lg">
-      <!-- Header with toggle -->
-      <div class="p-4 border-b border-gray-200">
-        <div class="flex items-center justify-between">
-          <h2 class="text-xl font-bold text-gray-800 flex items-center">
-            <i class="fas fa-monitor-heart-rate mr-2 text-purple-600"></i>
-            Status Monitor
-          </h2>
-          <button id="toggle-status-monitor" class="btn btn-sm btn-outline">
-            <i class="fas fa-chevron-down mr-1"></i>
-            <span>Hide</span>
-          </button>
+  <!-- System Status -->
+  <div class="bg-white rounded-lg shadow-lg p-6">
+    <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+      <i class="fas fa-heartbeat mr-2 text-red-600"></i>
+      System Status
+    </h2>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="bg-gray-50 p-4 rounded-lg">
+        <div class="text-sm text-gray-600">Database Connection</div>
+        <div id="db-status" class="font-medium text-green-600">
+          <i class="fas fa-check-circle mr-1"></i>
+          Connected
         </div>
-        <p class="text-sm text-gray-500 mt-1">Real-time monitoring of ETL operations</p>
       </div>
-      
-      <!-- Monitor Content -->
-      <div id="status-monitor-content" class="p-4">
-        <!-- Tab Navigation -->
-        <div class="tabs tabs-bordered mb-4">
-          <button class="tab tab-active" data-tab="scraping">
-            <i class="fas fa-cloud-download-alt mr-2"></i>
-            Scraping Log
-          </button>
-          <button class="tab" data-tab="importing">
-            <i class="fas fa-database mr-2"></i>
-            Import Log
-          </button>
-          <button class="tab" data-tab="system">
-            <i class="fas fa-server mr-2"></i>
-            System Info
-          </button>
+      <div class="bg-gray-50 p-4 rounded-lg">
+        <div class="text-sm text-gray-600">Last Scrape</div>
+        <div id="last-scrape" class="font-medium text-gray-800">
+          <i class="fas fa-clock mr-1"></i>
+          Never
         </div>
-        
-        <!-- Tab Content -->
-        <div class="tab-content">
-          <!-- Scraping Tab -->
-          <div id="tab-scraping" class="tab-panel active">
-            <div class="mb-3 flex items-center justify-between">
-              <div class="flex items-center">
-                <div class="w-3 h-3 rounded-full bg-gray-400 mr-2" id="scraping-status-indicator"></div>
-                <span class="text-sm font-medium text-gray-700">Scraping Operations</span>
-              </div>
-              <div class="flex gap-2">
-                <button id="auto-scroll-scraping" class="btn btn-xs btn-outline">
-                  <i class="fas fa-arrow-down mr-1"></i>
-                  Auto-scroll: ON
-                </button>
-                <button id="clear-scraping-log" class="btn btn-xs btn-outline">
-                  <i class="fas fa-eraser mr-1"></i>
-                  Clear
-                </button>
-              </div>
-            </div>
-            <div id="scrape-status" class="status-monitor-output">
-              <div class="text-gray-400 text-center py-8">
-                <i class="fas fa-terminal text-3xl mb-2"></i>
-                <div>Ready to start scraping...</div>
-                <div class="text-xs mt-1">Detailed operation logs will appear here</div>
-              </div>
-            </div>
-          </div>
-          
-          <!-- Importing Tab -->
-          <div id="tab-importing" class="tab-panel">
-            <div class="mb-3 flex items-center justify-between">
-              <div class="flex items-center">
-                <div class="w-3 h-3 rounded-full bg-gray-400 mr-2" id="importing-status-indicator"></div>
-                <span class="text-sm font-medium text-gray-700">Import Operations</span>
-              </div>
-              <div class="flex gap-2">
-                <button id="auto-scroll-importing" class="btn btn-xs btn-outline">
-                  <i class="fas fa-arrow-down mr-1"></i>
-                  Auto-scroll: ON
-                </button>
-                <button id="clear-importing-log" class="btn btn-xs btn-outline">
-                  <i class="fas fa-eraser mr-1"></i>
-                  Clear
-                </button>
-              </div>
-            </div>
-            <div id="import-status" class="status-monitor-output">
-              <div class="text-gray-400 text-center py-8">
-                <i class="fas fa-database text-3xl mb-2"></i>
-                <div>Ready to start import process...</div>
-                <div class="text-xs mt-1">Detailed operation logs will appear here</div>
-              </div>
-            </div>
-          </div>
-          
-          <!-- System Tab -->
-          <div id="tab-system" class="tab-panel">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <div class="bg-gray-50 p-4 rounded-lg">
-                <div class="text-sm text-gray-600 mb-2">Database Connection</div>
-                <div id="db-status" class="font-medium text-green-600">
-                  <i class="fas fa-check-circle mr-1"></i>
-                  Connected
-                </div>
-              </div>
-              <div class="bg-gray-50 p-4 rounded-lg">
-                <div class="text-sm text-gray-600 mb-2">Last Scrape</div>
-                <div id="last-scrape" class="font-medium text-gray-800">
-                  <i class="fas fa-clock mr-1"></i>
-                  Never
-                </div>
-              </div>
-              <div class="bg-gray-50 p-4 rounded-lg">
-                <div class="text-sm text-gray-600 mb-2">Last Import</div>
-                <div id="last-import" class="font-medium text-gray-800">
-                  <i class="fas fa-clock mr-1"></i>
-                  Never
-                </div>
-              </div>
-              <div class="bg-gray-50 p-4 rounded-lg">
-                <div class="text-sm text-gray-600 mb-2">Active Processes</div>
-                <div id="active-processes" class="font-medium text-gray-800">
-                  <i class="fas fa-cog mr-1"></i>
-                  <span id="process-count">0</span> running
-                </div>
-              </div>
-              <div class="bg-gray-50 p-4 rounded-lg">
-                <div class="text-sm text-gray-600 mb-2">Server Uptime</div>
-                <div id="server-uptime" class="font-medium text-gray-800">
-                  <i class="fas fa-clock mr-1"></i>
-                  <span id="uptime-display">--</span>
-                </div>
-              </div>
-              <div class="bg-gray-50 p-4 rounded-lg">
-                <div class="text-sm text-gray-600 mb-2">System Status</div>
-                <div id="system-health" class="font-medium text-green-600">
-                  <i class="fas fa-heartbeat mr-1"></i>
-                  Healthy
-                </div>
-              </div>
-            </div>
-          </div>
+      </div>
+      <div class="bg-gray-50 p-4 rounded-lg">
+        <div class="text-sm text-gray-600">Last Import</div>
+        <div id="last-import" class="font-medium text-gray-800">
+          <i class="fas fa-clock mr-1"></i>
+          Never
         </div>
       </div>
     </div>
@@ -605,6 +399,10 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('start-scraping').addEventListener('click', startScraping);
   document.getElementById('stop-scraping').addEventListener('click', stopScraping);
   document.getElementById('clear-scrape-output').addEventListener('click', clearScrapeOutput);
+  document.getElementById('check-scrape-status').addEventListener('click', function() {
+    appendToScrapeOutput('🔍 Manually checking scraping status...', 'info');
+    checkScrapingCompletion();
+  });
   
   // Import functionality
   document.getElementById('start-import').addEventListener('click', startImport);
@@ -613,20 +411,12 @@ document.addEventListener('DOMContentLoaded', function() {
   
   // Process management
   document.getElementById('clear-processes').addEventListener('click', clearStuckProcesses);
-  
-  // Status monitor functionality
-  initializeStatusMonitor();
 
   // Global variables for process management
   let currentScrapeProcess = null;
   let currentImportProcess = null;
   let scrapeElapsedTimer = null;
   let importElapsedTimer = null;
-  
-  // Status monitor variables
-  let autoScrollScraping = true;
-  let autoScrollImporting = true;
-  let statusMonitorCollapsed = false;
 
   function startScraping() {
     const league = leagueInput.value.trim();
@@ -681,6 +471,13 @@ document.addEventListener('DOMContentLoaded', function() {
         appendToScrapeOutput(statusMsg, 'info');
         appendToScrapeOutput(progressMsg, 'info');
         appendToScrapeOutput(detailMsg, 'info');
+        
+        // Check for timeout (if process runs longer than 10 minutes without completion)
+        const elapsedMs = new Date() - window.scrapeStartTime;
+        if (elapsedMs > 600000) { // 10 minutes
+          appendToScrapeOutput('⚠️ Process taking longer than expected. Checking completion status...', 'warning');
+          checkScrapingCompletion();
+        }
       }
     }, 30000); // 30 seconds
     
@@ -704,15 +501,17 @@ document.addEventListener('DOMContentLoaded', function() {
       
       // Check if it's a 409 conflict (process already running)
       if (event.target.readyState === EventSource.CLOSED) {
-        appendToScrapeOutput('❌ Connection closed. This might be due to a process already running.', 'error');
-        appendToScrapeOutput('💡 Try clicking "Clear Stuck Processes" if this persists.', 'warning');
+        appendToScrapeOutput('❌ Connection closed. Checking if process completed...', 'warning');
+        
+        // Check if the process actually completed successfully by checking the status
+        setTimeout(() => {
+          checkScrapingCompletion();
+        }, 2000); // Wait 2 seconds then check
       } else {
         appendToScrapeOutput('❌ Scraping process encountered an error and stopped.', 'error');
+        endScraping(false);
+        showToast('Scraping process stopped due to error', 'error');
       }
-      
-      // Always ensure cleanup on error
-      endScraping(false);
-      showToast('Scraping process stopped due to error', 'error');
     };
   }
 
@@ -947,26 +746,11 @@ document.addEventListener('DOMContentLoaded', function() {
       'info': '#000000'
     }[status] || '#000000';
     
-    // Clear the placeholder if it exists
-    if (output.querySelector('.text-gray-400')) {
-      output.innerHTML = '';
-    }
-    
     const newLine = document.createElement('div');
     newLine.style.color = colorClass;
     newLine.innerHTML = `[${timestamp}] ${message}`;
     output.appendChild(newLine);
-    
-    // Auto-scroll if enabled
-    if (autoScrollScraping) {
-      output.scrollTop = output.scrollHeight;
-    }
-    
-    // Update status summary
-    updateStatusSummary('scraping', message, status);
-    
-    // Update status indicator
-    updateStatusIndicator('scraping', status);
+    output.scrollTop = output.scrollHeight;
   }
 
   function appendToImportOutput(message, status = 'info') {
@@ -979,66 +763,31 @@ document.addEventListener('DOMContentLoaded', function() {
       'info': '#000000'
     }[status] || '#000000';
     
-    // Clear the placeholder if it exists
-    if (output.querySelector('.text-gray-400')) {
-      output.innerHTML = '';
-    }
-    
     const newLine = document.createElement('div');
     newLine.style.color = colorClass;
     newLine.innerHTML = `[${timestamp}] ${message}`;
     output.appendChild(newLine);
-    
-    // Auto-scroll if enabled
-    if (autoScrollImporting) {
-      output.scrollTop = output.scrollHeight;
-    }
-    
-    // Update status summary
-    updateStatusSummary('importing', message, status);
-    
-    // Update status indicator
-    updateStatusIndicator('importing', status);
+    output.scrollTop = output.scrollHeight;
   }
 
   function clearScrapeOutput() {
-    document.getElementById('scrape-status').innerHTML = `
-      <div class="text-gray-400 text-center py-8">
-        <i class="fas fa-terminal text-3xl mb-2"></i>
-        <div>Ready to start scraping...</div>
-        <div class="text-xs mt-1">Detailed operation logs will appear here</div>
-      </div>
-    `;
+    document.getElementById('scrape-status').innerHTML = '<div class="text-gray-400">Ready to start scraping...</div>';
     document.getElementById('scrape-progress').classList.add('hidden');
     document.getElementById('scrape-progress-bar').style.width = '0%';
     document.getElementById('scrape-progress-text').textContent = '0%';
     document.getElementById('scrape-current-status').classList.add('hidden');
     document.getElementById('scrape-current-step').textContent = 'Initializing...';
     document.getElementById('scrape-elapsed-time').textContent = 'Elapsed: 0s';
-    
-    // Reset status summary and indicator
-    document.getElementById('scrape-status-summary').textContent = 'Ready to start';
-    updateStatusIndicator('scraping', 'inactive');
   }
 
   function clearImportOutput() {
-    document.getElementById('import-status').innerHTML = `
-      <div class="text-gray-400 text-center py-8">
-        <i class="fas fa-database text-3xl mb-2"></i>
-        <div>Ready to start import process...</div>
-        <div class="text-xs mt-1">Detailed operation logs will appear here</div>
-      </div>
-    `;
+    document.getElementById('import-status').innerHTML = '<div class="text-gray-400">Ready to start import process...</div>';
     document.getElementById('import-progress').classList.add('hidden');
     document.getElementById('import-progress-bar').style.width = '0%';
     document.getElementById('import-progress-text').textContent = '0%';
     document.getElementById('import-current-status').classList.add('hidden');
     document.getElementById('import-current-step').textContent = 'Initializing...';
     document.getElementById('import-elapsed-time').textContent = 'Elapsed: 0s';
-    
-    // Reset status summary and indicator
-    document.getElementById('import-status-summary').textContent = 'Ready to start';
-    updateStatusIndicator('importing', 'inactive');
   }
 
   function clearStuckProcesses() {
@@ -1088,118 +837,39 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 5000);
   }
 
-  // Status Monitor Functions
-  function initializeStatusMonitor() {
-    // Tab functionality
-    const tabs = document.querySelectorAll('.tab');
-    tabs.forEach(tab => {
-      tab.addEventListener('click', function() {
-        const targetTab = this.getAttribute('data-tab');
-        switchTab(targetTab);
-      });
-    });
-    
-    // Toggle monitor
-    document.getElementById('toggle-status-monitor').addEventListener('click', toggleStatusMonitor);
-    
-    // Auto-scroll controls
-    document.getElementById('auto-scroll-scraping').addEventListener('click', function() {
-      autoScrollScraping = !autoScrollScraping;
-      this.innerHTML = `<i class="fas fa-arrow-down mr-1"></i>Auto-scroll: ${autoScrollScraping ? 'ON' : 'OFF'}`;
-      this.classList.toggle('btn-active', autoScrollScraping);
-    });
-    
-    document.getElementById('auto-scroll-importing').addEventListener('click', function() {
-      autoScrollImporting = !autoScrollImporting;
-      this.innerHTML = `<i class="fas fa-arrow-down mr-1"></i>Auto-scroll: ${autoScrollImporting ? 'ON' : 'OFF'}`;
-      this.classList.toggle('btn-active', autoScrollImporting);
-    });
-    
-    // Clear log controls
-    document.getElementById('clear-scraping-log').addEventListener('click', clearScrapeOutput);
-    document.getElementById('clear-importing-log').addEventListener('click', clearImportOutput);
-  }
-  
-  function switchTab(tabName) {
-    // Update tab buttons
-    document.querySelectorAll('.tab').forEach(tab => {
-      tab.classList.remove('tab-active');
-    });
-    document.querySelector(`[data-tab="${tabName}"]`).classList.add('tab-active');
-    
-    // Update tab panels
-    document.querySelectorAll('.tab-panel').forEach(panel => {
-      panel.classList.remove('active');
-    });
-    document.getElementById(`tab-${tabName}`).classList.add('active');
-  }
-  
-  function toggleStatusMonitor() {
-    const content = document.getElementById('status-monitor-content');
-    const toggleBtn = document.getElementById('toggle-status-monitor');
-    const icon = toggleBtn.querySelector('i');
-    const text = toggleBtn.querySelector('span');
-    
-    statusMonitorCollapsed = !statusMonitorCollapsed;
-    
-    if (statusMonitorCollapsed) {
-      content.classList.add('collapsed');
-      icon.className = 'fas fa-chevron-up mr-1';
-      text.textContent = 'Show';
-    } else {
-      content.classList.remove('collapsed');
-      icon.className = 'fas fa-chevron-down mr-1';
-      text.textContent = 'Hide';
-    }
-  }
-  
-  function updateStatusSummary(type, message, status) {
-    const summaryElement = document.getElementById(`${type === 'scraping' ? 'scrape' : 'import'}-status-summary`);
-    
-    // Extract meaningful status from message
-    let summary = 'Processing...';
-    if (message.includes('Ready to start')) {
-      summary = 'Ready to start';
-    } else if (message.includes('Starting')) {
-      summary = 'Starting...';
-    } else if (message.includes('completed successfully')) {
-      summary = 'Completed successfully';
-    } else if (message.includes('Error') || message.includes('❌')) {
-      summary = 'Error occurred';
-    } else if (message.includes('stopped')) {
-      summary = 'Stopped';
-    } else if (message.includes('Step')) {
-      const stepMatch = message.match(/Step \d+/);
-      if (stepMatch) {
-        summary = stepMatch[0] + ' running...';
-      }
-    } else if (message.includes('🎾') || message.includes('📊')) {
-      summary = 'Scraping in progress...';
-    } else if (message.includes('💾') || message.includes('🗄️')) {
-      summary = 'Import in progress...';
-    }
-    
-    summaryElement.textContent = summary;
-  }
-  
-  function updateStatusIndicator(type, status) {
-    const indicator = document.getElementById(`${type}-status-indicator`);
-    
-    // Remove all status classes
-    indicator.classList.remove('status-indicator-active', 'status-indicator-inactive', 'status-indicator-error');
-    
-    // Add appropriate class based on status
-    if (status === 'error') {
-      indicator.classList.add('status-indicator-error');
-    } else if (status === 'success' || status === 'info') {
-      indicator.classList.add('status-indicator-active');
-    } else {
-      indicator.classList.add('status-indicator-inactive');
-    }
-  }
-
-  // Initialize system status
+  // Initialize system status and check for stuck processes
   checkSystemStatus();
+  
+  // Check if UI might be stuck in processing state on page load
+  setTimeout(() => {
+    if (document.getElementById('stop-scraping').classList.contains('hidden') === false) {
+      // UI shows scraping is active, but let's verify
+      appendToScrapeOutput('🔍 Checking if scraping process is actually running...', 'info');
+      checkScrapingCompletion();
+    }
+  }, 3000); // Wait 3 seconds after page load
+
+  function checkScrapingCompletion() {
+    fetch('/api/admin/etl/status')
+      .then(response => response.json())
+      .then(data => {
+        // If scraping is not active, it means it completed
+        if (!data.scraping_active) {
+          appendToScrapeOutput('✅ Scraping process completed successfully! (detected via status check)', 'success');
+          endScraping(true);
+        } else {
+          // Still active, maybe it's really stuck
+          appendToScrapeOutput('❌ Process appears to be stuck. Please use "Clear Stuck Processes".', 'error');
+          appendToScrapeOutput('💡 Try clicking "Clear Stuck Processes" to reset the system.', 'warning');
+          endScraping(false);
+        }
+      })
+      .catch(error => {
+        console.error('Error checking scraping completion:', error);
+        appendToScrapeOutput('❌ Could not verify process completion. Please manually check.', 'error');
+        endScraping(false);
+      });
+  }
 
   function checkSystemStatus() {
     fetch('/api/admin/etl/status')
