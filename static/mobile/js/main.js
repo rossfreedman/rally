@@ -9,6 +9,22 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Load any dynamic content
     loadDynamicContent();
+    
+    // Initialize loading indicator for home page
+    initHomePageLoadingIndicator();
+    
+    // Add page visibility handling for loading indicator
+    document.addEventListener('visibilitychange', function() {
+        if (!document.hidden) {
+            // Page became visible again - hide loading indicator
+            hideLoadingIndicator();
+        }
+    });
+    
+    // Handle page show event (back/forward navigation)
+    window.addEventListener('pageshow', function() {
+        hideLoadingIndicator();
+    });
 });
 
 /**
@@ -23,6 +39,148 @@ function initMobileApp() {
     
     // Handle device orientation changes
     handleOrientationChanges();
+}
+
+/**
+ * Initialize loading indicator specifically for home page buttons
+ */
+function initHomePageLoadingIndicator() {
+    // Only run on home page (index.html)
+    if (!window.location.pathname.endsWith('/mobile') && !window.location.pathname.endsWith('/mobile/')) {
+        return;
+    }
+    
+    console.log('Initializing home page loading indicator');
+    
+    // Create loading overlay
+    createLoadingOverlay();
+    
+    // Add event listeners to home page buttons only (not nav drawer buttons)
+    const homePageButtons = document.querySelectorAll('.icon-btn, .logout-btn');
+    
+    homePageButtons.forEach(button => {
+        // Skip if this button is inside the nav drawer
+        if (button.closest('#navDrawer')) {
+            return;
+        }
+        
+        button.addEventListener('click', function(e) {
+            const href = this.getAttribute('href');
+            
+            // Skip if it's a logout link (handle immediately)
+            if (href && href.includes('/logout')) {
+                return; // Let logout happen normally
+            }
+            
+            // Skip if it's a javascript: link or hash link
+            if (!href || href.startsWith('javascript:') || href.startsWith('#')) {
+                return;
+            }
+            
+            // Prevent immediate navigation
+            e.preventDefault();
+            
+            // Add visual feedback to the clicked button
+            this.classList.add('home-btn-loading');
+            
+            // Show loading indicator
+            showLoadingIndicator(getLoadingTextForUrl(href));
+            
+            // Navigate after a short delay (allows loading indicator to show)
+            setTimeout(() => {
+                window.location.href = href;
+            }, 150);
+            
+            // Safety timeout - hide loading indicator after 10 seconds if still showing
+            setTimeout(() => {
+                hideLoadingIndicator();
+            }, 10000);
+        });
+    });
+}
+
+/**
+ * Create the loading overlay HTML structure
+ */
+function createLoadingOverlay() {
+    // Check if overlay already exists
+    if (document.getElementById('home-loading-overlay')) {
+        return;
+    }
+    
+    const overlay = document.createElement('div');
+    overlay.id = 'home-loading-overlay';
+    overlay.className = 'loading-overlay';
+    
+    overlay.innerHTML = `
+        <div class="loading-spinner"></div>
+        <div class="loading-text" id="loading-text">Loading...</div>
+        <div class="loading-subtext">Please wait a moment</div>
+        <div class="loading-dots">
+            <div class="loading-dot"></div>
+            <div class="loading-dot"></div>
+            <div class="loading-dot"></div>
+        </div>
+    `;
+    
+    document.body.appendChild(overlay);
+}
+
+/**
+ * Show loading indicator with custom text
+ */
+function showLoadingIndicator(text = 'Loading...') {
+    const overlay = document.getElementById('home-loading-overlay');
+    const loadingText = document.getElementById('loading-text');
+    
+    if (overlay && loadingText) {
+        loadingText.textContent = text;
+        overlay.classList.add('show');
+    }
+}
+
+/**
+ * Hide loading indicator
+ */
+function hideLoadingIndicator() {
+    const overlay = document.getElementById('home-loading-overlay');
+    if (overlay) {
+        overlay.classList.remove('show');
+        
+        // Remove loading state from buttons
+        document.querySelectorAll('.home-btn-loading').forEach(btn => {
+            btn.classList.remove('home-btn-loading');
+        });
+    }
+}
+
+/**
+ * Get appropriate loading text based on the destination URL
+ */
+function getLoadingTextForUrl(url) {
+    const loadingMessages = {
+        '/mobile/availability': 'Loading Schedule...',
+        '/mobile/availability-calendar': 'Loading Calendar...',
+        '/mobile/improve': 'Loading Improvement Tools...',
+        '/mobile/find-people-to-play': 'Finding Club Members...',
+        '/mobile/reserve-court': 'Loading Court Reservations...',
+        '/mobile/settings': 'Loading Profile...',
+        '/mobile/analyze-me': 'Loading Your Analysis...',
+        '/mobile/myteam': 'Loading Team Data...',
+        '/mobile/myseries': 'Loading Series Data...',
+        '/mobile/my-club': 'Loading Club Information...',
+        '/mobile/player-search': 'Searching Players...',
+        '/mobile/teams-players': 'Loading Teams...',
+        '/mobile/team-schedule': 'Loading Team Schedule...',
+        '/mobile/find-subs': 'Finding Substitutes...',
+        '/mobile/lineup': 'Loading Lineup Builder...',
+        '/mobile/lineup-escrow': 'Loading Lineup Escrow...',
+        '/mobile/practice-times': 'Loading Practice Times...',
+        '/mobile/email-team': 'Loading Email Tool...',
+        '/admin': 'Loading Admin Panel...'
+    };
+    
+    return loadingMessages[url] || 'Loading...';
 }
 
 /**
@@ -141,7 +299,9 @@ function showToast(message, type = 'info') {
 window.app = {
     showToast,
     checkAuthentication,
-    loadDynamicContent
+    loadDynamicContent,
+    showLoadingIndicator,
+    hideLoadingIndicator
 };
 
 // Socket.IO initialization
@@ -172,6 +332,11 @@ function initializeSocketIO() {
 function loadDynamicContent() {
     // Load any dynamic content needed for the current page
     // This will be called on initial load and after navigation
+    
+    // Hide loading indicator if it's still showing (safety net)
+    setTimeout(() => {
+        hideLoadingIndicator();
+    }, 100);
 }
 
 // Initialize Socket.IO when the script loads
