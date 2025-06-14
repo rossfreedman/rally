@@ -1,0 +1,34 @@
+{
+  "timestamp": "2025-06-13T21:49:34.939946",
+  "schema_comparison": {
+    "tables_only_in_local": [],
+    "tables_only_in_railway": [],
+    "column_differences": {},
+    "constraint_differences": {},
+    "summary": {
+      "total_tables_local": 16,
+      "total_tables_railway": 16,
+      "common_tables": 16,
+      "tables_with_differences": 0,
+      "schema_identical": true
+    }
+  },
+  "data_comparison": {
+    "row_count_differences": {},
+    "tables_only_in_local": [],
+    "tables_only_in_railway": [],
+    "summary": {
+      "total_tables_local": 16,
+      "total_tables_railway": 16,
+      "common_tables": 16,
+      "total_rows_local": 131030,
+      "total_rows_railway": 131030,
+      "tables_with_count_differences": 0,
+      "data_identical": true
+    }
+  },
+  "databases": {
+    "local": "localhost:5432/rally",
+    "railway": "ballast.proxy.rlwy.net:40911/railway"
+  }
+}
