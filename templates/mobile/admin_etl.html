@@ -13,9 +13,33 @@
     line-height: 1.4;
     padding: 16px;
     border-radius: 8px;
-    max-height: 400px;
+    max-height: 500px;
+    min-height: 300px;
     overflow-y: auto;
-    border: 1px solid #dee2e6;
+    overflow-x: hidden;
+    border: 2px solid #dee2e6;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+    position: relative;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+  }
+  
+  .status-output::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  .status-output::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+  }
+  
+  .status-output::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+  }
+  
+  .status-output::-webkit-scrollbar-thumb:hover {
+    background: #555;
   }
   
   .scraper-card {
@@ -222,8 +246,9 @@
         <label class="block text-sm font-medium text-gray-700 mb-2">
           <i class="fas fa-terminal mr-2"></i>
           Scraping Status
+          <span class="text-xs text-gray-500 ml-2">(Scrollable Output)</span>
         </label>
-        <div id="scrape-status" class="status-output">
+        <div id="scrape-status" class="status-output" role="log" aria-live="polite" aria-label="ETL Scraping Output">
           <div class="text-gray-400">Ready to start scraping...</div>
         </div>
       </div>
@@ -307,8 +332,9 @@
         <label class="block text-sm font-medium text-gray-700 mb-2">
           <i class="fas fa-terminal mr-2"></i>
           Import Status
+          <span class="text-xs text-gray-500 ml-2">(Scrollable Output)</span>
         </label>
-        <div id="import-status" class="status-output">
+        <div id="import-status" class="status-output" role="log" aria-live="polite" aria-label="ETL Import Output">
           <div class="text-gray-400">Ready to start import process...</div>
         </div>
       </div>
