@@ -568,6 +568,21 @@ def run_individual_scraper_generator(league, scraper, scraper_index, total_scrap
         
         if not os.path.exists(scraper_path):
             yield f"data: {json.dumps({'type': 'output', 'message': '❌ Scraper not found: ' + scraper, 'status': 'error'})}\n\n"
+            yield f"data: {json.dumps({'type': 'output', 'message': '🔍 Debug info - Looking for file at: ' + scraper_path, 'status': 'warning'})}\n\n"
+            yield f"data: {json.dumps({'type': 'output', 'message': '📁 Project root: ' + project_root, 'status': 'info'})}\n\n"
+            yield f"data: {json.dumps({'type': 'output', 'message': '📂 Scrapers dir: ' + scrapers_dir, 'status': 'info'})}\n\n"
+            
+            # List files in scrapers directory for debugging
+            try:
+                if os.path.exists(scrapers_dir):
+                    files = os.listdir(scrapers_dir)
+                    py_files = [f for f in files if f.endswith('.py')]
+                    yield f"data: {json.dumps({'type': 'output', 'message': '📋 Available scrapers: ' + ', '.join(py_files), 'status': 'info'})}\n\n"
+                else:
+                    yield f"data: {json.dumps({'type': 'output', 'message': '❌ Scrapers directory does not exist: ' + scrapers_dir, 'status': 'error'})}\n\n"
+            except Exception as e:
+                yield f"data: {json.dumps({'type': 'output', 'message': '❌ Error listing scrapers: ' + str(e), 'status': 'error'})}\n\n"
+            
             return
         
         # Enhanced logging with progress and timing
