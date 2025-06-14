@@ -69,13 +69,50 @@ def normalize_date_for_db(date_input, target_timezone='UTC'):
         print(f"Error normalizing date {date_input}: {str(e)}")
         raise
 
-def get_player_availability(player_name, match_date, series):
-    """Get availability for a player on a specific date with verification"""
+def get_user_player_records(user_id):
+    """
+    Get all player records associated with a user via the user_player_associations table.
+    Returns a list of player records with their tenniscores_player_id.
+    """
+    try:
+        player_records = execute_query(
+            """
+            SELECT p.id, p.tenniscores_player_id, p.first_name, p.last_name, 
+                   p.series_id, s.name as series_name, upa.is_primary
+            FROM user_player_associations upa
+            JOIN players p ON p.tenniscores_player_id = upa.tenniscores_player_id
+            JOIN series s ON s.id = p.series_id
+            WHERE upa.user_id = %(user_id)s
+            ORDER BY upa.is_primary DESC, p.first_name, p.last_name
+            """,
+            {'user_id': user_id}
+        )
+        
+        print(f"Found {len(player_records) if player_records else 0} player records for user {user_id}")
+        return player_records if player_records else []
+        
+    except Exception as e:
+        print(f"❌ Error getting user player records: {str(e)}")
+        return []
+
+def get_player_availability(player_name, match_date, series, user_id=None):
+    """
+    Get availability for a player on a specific date with verification.
+    
+    Args:
+        player_name: Name of the player (used for fallback matching)
+        match_date: Date of the match
+        series: Series name
+        user_id: Optional user ID to use proper user-player associations
+    
+    Returns: 1 (available), 2 (unavailable), 3 (not sure), or 0 (not set)
+    """
     try:
         print(f"Getting availability for {player_name} on {match_date} in series {series}")
+        if user_id:
+            print(f"Using user_id {user_id} for proper association lookup")
         
         # Convert match_date to proper format for database query
-        # Use the correct UTC conversion function
         normalized_date = date_to_db_timestamp(match_date)
         print(f"Normalized date for query: {normalized_date}")
         
@@ -84,67 +121,66 @@ def get_player_availability(player_name, match_date, series):
             "SELECT id FROM series WHERE name = %(series)s",
             {'series': series}
         )
-        print(f"Series lookup result: {series_record}")
         
         if not series_record:
             print(f"No series found with name: {series}")
             return 0  # Return 0 instead of None for consistency
         
-        # Try to find player ID from player_name first for better matching
-        player_id = None
-        try:
-            # Look up player ID from user record if available
-            player_record = execute_query_one(
-                "SELECT tenniscores_player_id FROM users WHERE CONCAT(first_name, ' ', last_name) = %(player_name)s",
-                {'player_name': player_name.strip()}
-            )
-            if player_record and player_record['tenniscores_player_id']:
-                player_id = player_record['tenniscores_player_id']
-                print(f"Found player ID for {player_name}: {player_id}")
-        except Exception as e:
-            print(f"Could not look up player ID for {player_name}: {e}")
+        series_id = series_record['id']
         
-        print(f"Querying availability with parameters:")
-        print(f"  player_name: {player_name.strip()}")
-        print(f"  player_id: {player_id}")
-        print(f"  match_date: {normalized_date}")
-        print(f"  series_id: {series_record['id']}")
-        
-        # Try player ID first if available
-        result = None
-        if player_id:
-            # First, get the internal player_id from the players table using tenniscores_player_id
-            player_db_record = execute_query_one(
-                "SELECT id FROM players WHERE tenniscores_player_id = %(tenniscores_id)s",
-                {'tenniscores_id': player_id}
-            )
+        # If user_id is provided, use the proper association to find the player
+        player_record = None
+        if user_id:
+            user_players = get_user_player_records(user_id)
+            # Find the player record that matches the series
+            for p in user_players:
+                if p['series_name'] == series:
+                    player_record = p
+                    print(f"Found player via association: {p['first_name']} {p['last_name']} (ID: {p['tenniscores_player_id']})")
+                    break
             
-            if player_db_record:
-                internal_player_id = player_db_record['id']
-                # Primary search: Use player_id (foreign key)
-                result = execute_query_one(
-                    """
-                    SELECT availability_status, match_date
-                    FROM player_availability 
-                    WHERE player_id = %(player_id)s 
-                    AND DATE(match_date AT TIME ZONE 'UTC') = DATE(%(match_date)s AT TIME ZONE 'UTC')
-                    AND series_id = %(series_id)s
-                    """,
-                    {
-                        'player_id': internal_player_id,
-                        'match_date': normalized_date,
-                        'series_id': series_record['id']
-                    }
+            if not player_record:
+                print(f"No player record found for user {user_id} in series {series}")
+                # Fallback to name-based lookup
+                player_record = execute_query_one(
+                    "SELECT id, tenniscores_player_id FROM players WHERE CONCAT(first_name, ' ', last_name) = %(player_name)s AND series_id = %(series_id)s",
+                    {'player_name': player_name.strip(), 'series_id': series_id}
                 )
-                print(f"Player ID availability lookup result: {result}")
-            else:
-                print(f"No player found in players table with tenniscores_player_id: {player_id}")
+        else:
+            # Fallback to name-based lookup
+            player_record = execute_query_one(
+                "SELECT id, tenniscores_player_id FROM players WHERE CONCAT(first_name, ' ', last_name) = %(player_name)s AND series_id = %(series_id)s",
+                {'player_name': player_name.strip(), 'series_id': series_id}
+            )
+        
+        if not player_record:
+            print(f"No player record found for {player_name} in series {series}")
+            return 0
+        
+        internal_player_id = player_record['id']
+        tenniscores_player_id = player_record['tenniscores_player_id']
+        
+        print(f"Found player: internal_id={internal_player_id}, tenniscores_id={tenniscores_player_id}")
+        
+        # Query availability using the internal player ID
+        result = execute_query_one(
+            """
+            SELECT availability_status, match_date
+            FROM player_availability 
+            WHERE player_id = %(player_id)s 
+            AND DATE(match_date AT TIME ZONE 'UTC') = DATE(%(match_date)s AT TIME ZONE 'UTC')
+            AND series_id = %(series_id)s
+            """,
+            {
+                'player_id': internal_player_id,
+                'match_date': normalized_date,
+                'series_id': series_id
+            }
+        )
         
         if not result:
-            # Fallback search: Use player_name
-            if player_id:
-                print(f"No availability found with player ID {player_id}, falling back to name search for {player_name}")
-            
+            # Fallback to name-based search if player_id search failed
+            print(f"No availability found with player ID {internal_player_id}, trying name-based search")
             result = execute_query_one(
                 """
                 SELECT availability_status, match_date
@@ -156,16 +192,18 @@ def get_player_availability(player_name, match_date, series):
                 {
                     'player_name': player_name.strip(),
                     'match_date': normalized_date,
-                    'series_id': series_record['id']
+                    'series_id': series_id
                 }
             )
             print(f"Name-based availability lookup result: {result}")
+        else:
+            print(f"Player ID availability lookup result: {result}")
         
         if not result:
             print(f"No availability found for {player_name} on {match_date}")
             return 0  # Return 0 instead of None for "not set"
         
-        # Return the numeric status directly (like the backup)
+        # Return the numeric status directly
         status = result['availability_status']
         print(f"Found availability status: {status}")
         return status if status is not None else 0
@@ -175,7 +213,7 @@ def get_player_availability(player_name, match_date, series):
         print(traceback.format_exc())
         return 0  # Return 0 on error
 
-def update_player_availability(player_name, match_date, availability_status, series):
+def update_player_availability(player_name, match_date, availability_status, series, user_id=None):
     """
     Update player availability with enhanced date verification and correction
     
@@ -374,58 +412,46 @@ def update_player_availability(player_name, match_date, availability_status, ser
                 print("Creating new availability record")
                 print(f"Inserting: player={player_name.strip()}, date={intended_date_obj}, status={availability_status}, series_id={series_id}")
                 
-                # Try to get the player's ID for enhanced record creation
-                player_id = None
-                try:
-                    player_record = execute_query_one(
-                        "SELECT tenniscores_player_id FROM users WHERE CONCAT(first_name, ' ', last_name) = %(player_name)s",
-                        {'player_name': player_name.strip()}
-                    )
-                    if player_record and player_record['tenniscores_player_id']:
-                        player_id = player_record['tenniscores_player_id']
-                        print(f"Found player ID for new record: {player_id}")
-                except Exception as e:
-                    print(f"Could not look up player ID for new record: {e}")
+                # Try to get the player's ID for enhanced record creation using proper associations
+                player_record = None
+                if user_id:
+                    # Use proper user-player associations
+                    user_players = get_user_player_records(user_id)
+                    for p in user_players:
+                        if p['series_name'] == series:
+                            player_record = p
+                            print(f"Found player via association for new record: {p['first_name']} {p['last_name']} (ID: {p['tenniscores_player_id']})")
+                            break
+                
+                if not player_record:
+                    # Fallback to name-based lookup
+                    try:
+                        player_record = execute_query_one(
+                            "SELECT id, tenniscores_player_id FROM players WHERE CONCAT(first_name, ' ', last_name) = %(player_name)s AND series_id = %(series_id)s",
+                            {'player_name': player_name.strip(), 'series_id': series_id}
+                        )
+                        if player_record:
+                            print(f"Found player via name lookup for new record: {player_record['tenniscores_player_id']}")
+                    except Exception as e:
+                        print(f"Could not look up player ID for new record: {e}")
                 
                 # Create the new record with player ID if available
-                if player_id:
-                    # First, get the internal player_id from the players table using tenniscores_player_id
-                    player_db_record = execute_query_one(
-                        "SELECT id FROM players WHERE tenniscores_player_id = %(tenniscores_id)s",
-                        {'tenniscores_id': player_id}
+                if player_record:
+                    internal_player_id = player_record['id']
+                    result = execute_query(
+                        """
+                        INSERT INTO player_availability (player_name, match_date, availability_status, series_id, player_id, updated_at)
+                        VALUES (%(player)s, %(date)s, %(status)s, %(series_id)s, %(player_id)s, NOW())
+                        """,
+                        {
+                            'player': player_name.strip(),
+                            'date': intended_date_obj,
+                            'status': availability_status,
+                            'series_id': series_id,
+                            'player_id': internal_player_id
+                        }
                     )
-                    
-                    if player_db_record:
-                        internal_player_id = player_db_record['id']
-                        result = execute_query(
-                            """
-                            INSERT INTO player_availability (player_name, match_date, availability_status, series_id, player_id, updated_at)
-                            VALUES (%(player)s, %(date)s, %(status)s, %(series_id)s, %(player_id)s, NOW())
-                            """,
-                            {
-                                'player': player_name.strip(),
-                                'date': intended_date_obj,
-                                'status': availability_status,
-                                'series_id': series_id,
-                                'player_id': internal_player_id
-                            }
-                        )
-                        print(f"✅ Created new record with internal player ID: {internal_player_id}")
-                    else:
-                        # Fall back to creating without player_id if not found
-                        result = execute_query(
-                            """
-                            INSERT INTO player_availability (player_name, match_date, availability_status, series_id, updated_at)
-                            VALUES (%(player)s, %(date)s, %(status)s, %(series_id)s, NOW())
-                            """,
-                            {
-                                'player': player_name.strip(),
-                                'date': intended_date_obj,
-                                'status': availability_status,
-                                'series_id': series_id
-                            }
-                        )
-                        print(f"⚠️ Created new record without player ID (player not found in players table)")
+                    print(f"✅ Created new record with internal player ID: {internal_player_id}")
                 else:
                     # Fallback: create record without player ID
                     result = execute_query(
@@ -440,7 +466,7 @@ def update_player_availability(player_name, match_date, availability_status, ser
                             'series_id': series_id
                         }
                     )
-                    print("⚠️ Created new record without player ID (no player ID found)")
+                    print("⚠️ Created new record without player ID (no player record found)")
         
         # Verify the record was stored correctly
         verification_record = execute_query_one(
@@ -470,8 +496,8 @@ def update_player_availability(player_name, match_date, availability_status, ser
         print(traceback.format_exc())
         return False
 
-def get_user_availability(player_name, matches, series):
-    """Get availability for a user across multiple matches"""
+def get_user_availability(player_name, matches, series, user_id=None):
+    """Get availability for a user across multiple matches using proper user-player associations"""
     # First get the series_id
     series_record = execute_query_one(
         "SELECT id FROM series WHERE name = %(series)s",
@@ -492,8 +518,8 @@ def get_user_availability(player_name, matches, series):
     availability = []
     for match in matches:
         match_date = match.get('date', '')
-        # Get this player's availability for this specific match
-        numeric_status = get_player_availability(player_name, match_date, series)
+        # Get this player's availability for this specific match, using user_id if available
+        numeric_status = get_player_availability(player_name, match_date, series, user_id)
         
         # Convert numeric status to string status that template expects
         string_status = status_map.get(numeric_status)
@@ -530,7 +556,11 @@ def init_availability_routes(app):
                 if availability_status not in [1, 2, 3]:
                     return jsonify({'error': 'Invalid availability status'}), 400
                 
-                success = update_player_availability(player_name, match_date, availability_status, series)
+                # Get user_id from session for proper user-player associations
+                user = session.get('user')
+                user_id = user.get('id') if user else None
+                
+                success = update_player_availability(player_name, match_date, availability_status, series, user_id)
                 if success:
                     return jsonify({'status': 'success'})
                 return jsonify({'error': 'Failed to update availability'}), 500
@@ -542,14 +572,15 @@ def init_availability_routes(app):
                 if not user:
                     return jsonify({'error': 'No user in session'}), 400
                 
+                user_id = user.get('id')
                 player_name = f"{user['first_name']} {user['last_name']}"
                 series = user['series']
 
                 # Get matches for the user's club/series
                 matches = get_matches_for_user_club(user)
                 
-                # Get this user's availability for each match
-                availability = get_user_availability(player_name, matches, series)
+                # Get this user's availability for each match using proper user-player associations
+                availability = get_user_availability(player_name, matches, series, user_id)
 
                 # Create match-availability pairs
                 match_avail_pairs = list(zip(matches, availability))
@@ -658,16 +689,17 @@ def init_availability_routes(app):
                     print(error_msg)
                     return jsonify({'error': error_msg}), 401
                 
+                user_id = user.get('id')
                 expected_player_name = f"{user['first_name']} {user['last_name']}"
                 if player_name != expected_player_name:
                     error_msg = f"❌ Player name mismatch: received '{player_name}' vs expected '{expected_player_name}'"
                     print(error_msg)
                     return jsonify({'error': error_msg}), 403
                 
-                print(f"✅ All validations passed. Calling update_player_availability...")
+                print(f"✅ All validations passed. Calling update_player_availability with user_id {user_id}...")
                 
-                # Call the update function
-                success = update_player_availability(player_name, match_date, status, series)
+                # Call the update function with proper user association
+                success = update_player_availability(player_name, match_date, status, series, user_id)
                 
                 if success:
                     print(f"✅ Successfully updated availability")
