@@ -85,8 +85,18 @@ class AdvancedMatchupSimulator:
             team_a_metrics = self._calculate_real_metrics(team_a_players, league_id_int, team_b_players)
             team_b_metrics = self._calculate_real_metrics(team_b_players, league_id_int, team_a_players)
             
+            # Calculate PTI advantage for each team (15% weight)
+            team_a_avg_pti = team_a_metrics.get('average_pti', 25.0)
+            team_b_avg_pti = team_b_metrics.get('average_pti', 25.0)
+            
+            # Team A's PTI advantage = their PTI - opponent's PTI
+            team_a_metrics['pti_advantage'] = team_a_avg_pti - team_b_avg_pti
+            # Team B's PTI advantage = their PTI - opponent's PTI  
+            team_b_metrics['pti_advantage'] = team_b_avg_pti - team_a_avg_pti
+            
             print(f"[DEBUG] Team A metrics: {team_a_metrics}")
             print(f"[DEBUG] Team B metrics: {team_b_metrics}")
+            print(f"[DEBUG] PTI advantage: Team A = {team_a_metrics['pti_advantage']:.1f}, Team B = {team_b_metrics['pti_advantage']:.1f}")
             
             # Calculate composite scores
             team_a_score = self._calculate_composite_score(team_a_metrics)
@@ -227,8 +237,8 @@ class AdvancedMatchupSimulator:
                 experience_scores.append(total_matches)
             metrics['experience_level'] = statistics.mean(experience_scores)
             
-            # 5. PTI Advantage (15% weight) - will be calculated relative to opponent
-            metrics['pti_advantage'] = 0.0  # Placeholder, calculated in comparison
+            # 5. PTI Advantage (15% weight) - calculated in main simulation after both teams are processed
+            metrics['pti_advantage'] = 0.0  # Temporary placeholder, will be overwritten with actual calculation
             
             # 6. Head-to-Head Record (10% weight)
             if opponent_player_ids and len(opponent_player_ids) == 2:
@@ -318,47 +328,73 @@ class AdvancedMatchupSimulator:
         """Calculate head-to-head performance between these specific team pairings."""
         try:
             if len(team_a_players) != 2 or len(team_b_players) != 2:
+                print(f"[DEBUG H2H] Invalid team sizes: Team A={len(team_a_players)}, Team B={len(team_b_players)}")
                 return 50.0
             
-            # Get TennisScores IDs for both teams
-            team_a_ids = [p['tenniscores_player_id'] for p in team_a_players if p['tenniscores_player_id']]
-            team_b_ids = [p['tenniscores_player_id'] for p in team_b_players if p['tenniscores_player_id']]
+            # Get ALL TennisScores IDs for both teams (including duplicates)
+            team_a_ids = []
+            team_b_ids = []
             
-            if len(team_a_ids) != 2 or len(team_b_ids) != 2:
+            # For each player, find ALL their TennisScores IDs in case of duplicates
+            for player in team_a_players:
+                if player['tenniscores_player_id']:
+                    team_a_ids.append(player['tenniscores_player_id'])
+                # Also look for other records with same name
+                name_query = """
+                    SELECT DISTINCT tenniscores_player_id 
+                    FROM players 
+                    WHERE first_name = %s AND last_name = %s AND tenniscores_player_id IS NOT NULL
+                """
+                alt_ids = execute_query(name_query, [player['first_name'], player['last_name']])
+                for alt_id in alt_ids:
+                    if alt_id['tenniscores_player_id'] not in team_a_ids:
+                        team_a_ids.append(alt_id['tenniscores_player_id'])
+            
+            for player in team_b_players:
+                if player['tenniscores_player_id']:
+                    team_b_ids.append(player['tenniscores_player_id'])
+                # Also look for other records with same name
+                name_query = """
+                    SELECT DISTINCT tenniscores_player_id 
+                    FROM players 
+                    WHERE first_name = %s AND last_name = %s AND tenniscores_player_id IS NOT NULL
+                """
+                alt_ids = execute_query(name_query, [player['first_name'], player['last_name']])
+                for alt_id in alt_ids:
+                    if alt_id['tenniscores_player_id'] not in team_b_ids:
+                        team_b_ids.append(alt_id['tenniscores_player_id'])
+            
+            print(f"[DEBUG H2H] Team A players: {[(p.get('first_name', ''), p.get('last_name', ''), p.get('tenniscores_player_id', 'None')) for p in team_a_players]}")
+            print(f"[DEBUG H2H] Team B players: {[(p.get('first_name', ''), p.get('last_name', ''), p.get('tenniscores_player_id', 'None')) for p in team_b_players]}")
+            print(f"[DEBUG H2H] Team A TennisScores IDs: {team_a_ids}")
+            print(f"[DEBUG H2H] Team B TennisScores IDs: {team_b_ids}")
+            
+            if len(team_a_ids) == 0 or len(team_b_ids) == 0:
+                print(f"[DEBUG H2H] Missing TennisScores IDs: Team A has {len(team_a_ids)}, Team B has {len(team_b_ids)}")
                 return 50.0
             
-            # Search for matches where these exact teams played each other
-            # Need to account for different player ordering in teams
-            query = """
+            # Build dynamic query to handle variable number of player IDs
+            team_a_placeholders = ', '.join(['%s'] * len(team_a_ids))
+            team_b_placeholders = ', '.join(['%s'] * len(team_b_ids))
+            
+            query = f"""
                 SELECT winner, match_date,
                        home_player_1_id, home_player_2_id, 
                        away_player_1_id, away_player_2_id
                 FROM match_scores 
                 WHERE (
                     -- Team A was home, Team B was away
-                    ((home_player_1_id = %s AND home_player_2_id = %s) OR 
-                     (home_player_1_id = %s AND home_player_2_id = %s)) AND
-                    ((away_player_1_id = %s AND away_player_2_id = %s) OR 
-                     (away_player_1_id = %s AND away_player_2_id = %s))
+                    (home_player_1_id IN ({team_a_placeholders}) AND home_player_2_id IN ({team_a_placeholders}) AND
+                     away_player_1_id IN ({team_b_placeholders}) AND away_player_2_id IN ({team_b_placeholders}))
                 ) OR (
                     -- Team A was away, Team B was home
-                    ((away_player_1_id = %s AND away_player_2_id = %s) OR 
-                     (away_player_1_id = %s AND away_player_2_id = %s)) AND
-                    ((home_player_1_id = %s AND home_player_2_id = %s) OR 
-                     (home_player_1_id = %s AND home_player_2_id = %s))
+                    (away_player_1_id IN ({team_a_placeholders}) AND away_player_2_id IN ({team_a_placeholders}) AND
+                     home_player_1_id IN ({team_b_placeholders}) AND home_player_2_id IN ({team_b_placeholders}))
                 )
             """
             
-            params = [
-                # Team A home scenarios (both player orders)
-                team_a_ids[0], team_a_ids[1], team_a_ids[1], team_a_ids[0],
-                # Team B away scenarios (both player orders) 
-                team_b_ids[0], team_b_ids[1], team_b_ids[1], team_b_ids[0],
-                # Team A away scenarios (both player orders)
-                team_a_ids[0], team_a_ids[1], team_a_ids[1], team_a_ids[0],
-                # Team B home scenarios (both player orders)
-                team_b_ids[0], team_b_ids[1], team_b_ids[1], team_b_ids[0]
-            ]
+            # Use team IDs for each condition
+            params = team_a_ids + team_a_ids + team_b_ids + team_b_ids + team_a_ids + team_a_ids + team_b_ids + team_b_ids
             
             if league_id:
                 query += " AND league_id = %s"
@@ -366,9 +402,20 @@ class AdvancedMatchupSimulator:
             
             query += " ORDER BY match_date DESC"
             
+            print(f"[DEBUG H2H] Query: {query}")
+            print(f"[DEBUG H2H] Params: {params}")
+            
             head_to_head_matches = execute_query(query, params)
             
+            print(f"[DEBUG H2H] Found {len(head_to_head_matches) if head_to_head_matches else 0} head-to-head matches")
+            if head_to_head_matches:
+                for i, match in enumerate(head_to_head_matches):
+                    print(f"[DEBUG H2H] Match {i+1}: Date={match.get('match_date')}, Winner={match.get('winner')}")
+                    print(f"[DEBUG H2H]   Home: {match.get('home_player_1_id')} & {match.get('home_player_2_id')}")
+                    print(f"[DEBUG H2H]   Away: {match.get('away_player_1_id')} & {match.get('away_player_2_id')}")
+            
             if not head_to_head_matches:
+                print(f"[DEBUG H2H] No head-to-head matches found - returning 50.0")
                 return 50.0  # No head-to-head history, neutral score
             
             # Count wins for Team A
@@ -380,9 +427,12 @@ class AdvancedMatchupSimulator:
                 team_a_was_home = (
                     (match['home_player_1_id'] in team_a_ids and match['home_player_2_id'] in team_a_ids)
                 )
+                team_a_was_away = (
+                    (match['away_player_1_id'] in team_a_ids and match['away_player_2_id'] in team_a_ids)
+                )
                 
                 # Team A wins if: (they were home and winner='home') or (they were away and winner='away')
-                if (team_a_was_home and match['winner'] == 'home') or (not team_a_was_home and match['winner'] == 'away'):
+                if (team_a_was_home and match['winner'] == 'home') or (team_a_was_away and match['winner'] == 'away'):
                     team_a_wins += 1
             
             # Calculate win percentage for Team A
@@ -397,7 +447,10 @@ class AdvancedMatchupSimulator:
                     team_a_was_home = (
                         (match['home_player_1_id'] in team_a_ids and match['home_player_2_id'] in team_a_ids)
                     )
-                    if (team_a_was_home and match['winner'] == 'home') or (not team_a_was_home and match['winner'] == 'away'):
+                    team_a_was_away = (
+                        (match['away_player_1_id'] in team_a_ids and match['away_player_2_id'] in team_a_ids)
+                    )
+                    if (team_a_was_home and match['winner'] == 'home') or (team_a_was_away and match['winner'] == 'away'):
                         recent_team_a_wins += 1
                 
                 recent_win_percentage = (recent_team_a_wins / len(recent_matches)) * 100

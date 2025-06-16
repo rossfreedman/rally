@@ -475,6 +475,36 @@ document.addEventListener('DOMContentLoaded', function() {
         // Display team stats
         displayTeamStats('teamAStats', result.team_a);
         displayTeamStats('teamBStats', result.team_b);
+        
+        // Auto-scroll to Match Prediction section with proper timing
+        setTimeout(() => {
+            // Try multiple methods to ensure scrolling works on all devices
+            const matchPredictionSection = resultsSection.querySelector('.bg-white.rounded-2xl');
+            
+            if (matchPredictionSection) {
+                // First try scrolling to the specific Match Prediction card
+                matchPredictionSection.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'start' 
+                });
+            } else {
+                // Fallback to scrolling to results section
+                resultsSection.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'start' 
+                });
+            }
+            
+            // Additional fallback using window.scrollTo for maximum compatibility
+            setTimeout(() => {
+                const rect = resultsSection.getBoundingClientRect();
+                const offset = window.pageYOffset + rect.top - 35; // 35px offset from top (15px less scroll)
+                window.scrollTo({
+                    top: offset,
+                    behavior: 'smooth'
+                });
+            }, 100);
+        }, 500);
     }
     
     function displayPrediction(prediction, teamA, teamB) {
@@ -564,12 +594,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="text-2xl font-bold text-gray-900 mb-2">
                     ${winnerTeam} Predicted to Win
                 </div>
-                <div class="flex items-center justify-center space-x-24 mb-4">
+                <div class="flex items-center justify-center mb-4">
                     <div class="text-center">
                         <div class="text-3xl font-bold text-blue-600">${prediction.team_a_probability}%</div>
                         <div class="text-sm text-gray-500">Team A</div>
                     </div>
-                    <div class="text-2xl font-bold text-gray-400">vs</div>
+                    <div class="flex-1 flex justify-center items-center px-8">
+                        <div class="text-2xl font-bold text-gray-400 px-6 py-2 border border-gray-200 rounded-lg bg-gray-50">vs</div>
+                    </div>
                     <div class="text-center">
                         <div class="text-3xl font-bold text-red-600">${prediction.team_b_probability}%</div>
                         <div class="text-sm text-gray-500">Team B</div>
@@ -624,48 +656,156 @@ document.addEventListener('DOMContentLoaded', function() {
             return 'text-red-600 bg-red-50';
         }
         
+        // Helper function to get color for experience
+        function getExperienceColor(exp) {
+            if (exp >= 50) return 'text-green-600';
+            if (exp >= 20) return 'text-blue-600';
+            if (exp >= 10) return 'text-yellow-600';
+            return 'text-red-600';
+        }
+        
+        // Helper function to get color for consistency
+        function getConsistencyColor(cons) {
+            if (cons >= 80) return 'text-green-600';
+            if (cons >= 60) return 'text-yellow-600';
+            return 'text-red-600';
+        }
+        
+        // Helper function to get color for H2H and PTI gap (these will be comparative)
+        function getComparativeColor(value) {
+            if (value > 0) return 'text-green-600';
+            if (value === 0) return 'text-gray-600';
+            return 'text-red-600';
+        }
+        
         const avgPTI = metrics.average_pti || 0;
         const individualWinRate = metrics.individual_win_rates || 0;
         const recentForm = metrics.recent_individual_form || 0;
         const experience = metrics.experience_level || 0;
         const consistency = metrics.consistency_factor || 0;
+        const ptiSkillGap = metrics.pti_advantage || 0;
+        const headToHead = metrics.head_to_head_record || 0;
         
         display.innerHTML = `
             <div class="bg-gray-50 rounded-lg p-4 mb-4">
                 <div class="text-lg font-semibold text-gray-900 mb-2">
                     ${teamData.players.map(p => p.name).join(' & ')}
                 </div>
-                <div class="text-sm text-gray-600">Player Statistics</div>
+                <div class="text-sm text-gray-600">Detailed Algorithm Metrics</div>
             </div>
             
-            <div class="grid grid-cols-2 gap-4 mb-4">
-                <div class="text-center">
+            <!-- Primary Metrics Grid -->
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <div class="text-center p-3 bg-blue-50 rounded-lg">
                     <div class="text-2xl font-bold ${getPTIColor(avgPTI)}">${avgPTI.toFixed(1)}</div>
-                    <div class="text-xs text-gray-500 uppercase tracking-wide">Average PTI</div>
+                    <div class="text-xs text-gray-600 font-medium">Average PTI</div>
+                    <div class="text-xs text-blue-600 font-bold">(25% weight)</div>
                 </div>
-                <div class="text-center">
-                    <div class="text-2xl font-bold text-gray-900">${experience.toFixed(0)}</div>
-                    <div class="text-xs text-gray-500 uppercase tracking-wide">Avg Experience</div>
+                <div class="text-center p-3 bg-green-50 rounded-lg">
+                    <div class="text-2xl font-bold ${getExperienceColor(experience)}">${experience.toFixed(0)}</div>
+                    <div class="text-xs text-gray-600 font-medium">Avg Experience</div>
+                    <div class="text-xs text-green-600 font-bold">(10% weight)</div>
                 </div>
             </div>
             
+            <!-- All 7 Algorithm Metrics -->
             <div class="space-y-3">
-                <div class="flex justify-between items-center py-2 border-b border-gray-100">
-                    <span class="text-gray-700 font-medium">Individual Win Rate</span>
-                    <div class="flex items-center space-x-2">
-                        <span class="px-2 py-1 rounded-full text-sm font-semibold ${getWinRateColor(individualWinRate)}">${individualWinRate.toFixed(1)}%</span>
+                <div class="bg-blue-50 p-3 rounded-lg">
+                    <div class="flex justify-between items-center">
+                        <div class="flex-1">
+                            <div class="text-sm font-semibold text-gray-800">1. Average PTI</div>
+                            <div class="text-xs text-gray-600">Performance Tracking Index</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-lg font-bold ${getPTIColor(avgPTI)}">${avgPTI.toFixed(1)}</div>
+                            <div class="text-xs font-bold text-blue-600">25%</div>
+                        </div>
                     </div>
                 </div>
-                <div class="flex justify-between items-center py-2 border-b border-gray-100">
-                    <span class="text-gray-700 font-medium">Recent Performance</span>
-                    <div class="flex items-center space-x-2">
-                        <span class="px-2 py-1 rounded-full text-sm font-semibold ${getFormColor(recentForm)}">${recentForm.toFixed(1)}%</span>
+                
+                <div class="bg-green-50 p-3 rounded-lg">
+                    <div class="flex justify-between items-center">
+                        <div class="flex-1">
+                            <div class="text-sm font-semibold text-gray-800">2. Individual Win Rates</div>
+                            <div class="text-xs text-gray-600">Actual win percentage from matches</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-lg font-bold ${getWinRateColor(individualWinRate).includes('green') ? 'text-green-600' : getWinRateColor(individualWinRate).includes('yellow') ? 'text-yellow-600' : 'text-red-600'}">${individualWinRate.toFixed(1)}%</div>
+                            <div class="text-xs font-bold text-green-600">20%</div>
+                        </div>
                     </div>
                 </div>
-                <div class="flex justify-between items-center py-2 border-b border-gray-100">
-                    <span class="text-gray-700 font-medium">Consistency Score</span>
-                    <span class="font-semibold ${consistency >= 80 ? 'text-green-600' : consistency >= 60 ? 'text-yellow-600' : 'text-red-600'}">${consistency.toFixed(1)}</span>
+                
+                <div class="bg-purple-50 p-3 rounded-lg">
+                    <div class="flex justify-between items-center">
+                        <div class="flex-1">
+                            <div class="text-sm font-semibold text-gray-800">3. PTI Skill Gap</div>
+                            <div class="text-xs text-gray-600">Advantage vs opposing team</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-lg font-bold ${getComparativeColor(ptiSkillGap)}">${ptiSkillGap > 0 ? '+' : ''}${ptiSkillGap.toFixed(1)}</div>
+                            <div class="text-xs font-bold text-purple-600">15%</div>
+                        </div>
+                    </div>
                 </div>
+                
+                <div class="bg-orange-50 p-3 rounded-lg">
+                    <div class="flex justify-between items-center">
+                        <div class="flex-1">
+                            <div class="text-sm font-semibold text-gray-800">4. Recent Performance</div>
+                            <div class="text-xs text-gray-600">Last 5 matches performance</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-lg font-bold ${getFormColor(recentForm).includes('green') ? 'text-green-600' : getFormColor(recentForm).includes('yellow') ? 'text-yellow-600' : 'text-red-600'}">${recentForm.toFixed(1)}%</div>
+                            <div class="text-xs font-bold text-orange-600">15%</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-indigo-50 p-3 rounded-lg">
+                    <div class="flex justify-between items-center">
+                        <div class="flex-1">
+                            <div class="text-sm font-semibold text-gray-800">5. Experience Level</div>
+                            <div class="text-xs text-gray-600">Total matches played</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-lg font-bold ${getExperienceColor(experience)}">${experience.toFixed(0)}</div>
+                            <div class="text-xs font-bold text-indigo-600">10%</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-yellow-50 p-3 rounded-lg">
+                    <div class="flex justify-between items-center">
+                        <div class="flex-1">
+                            <div class="text-sm font-semibold text-gray-800">6. Head-to-Head History</div>
+                            <div class="text-xs text-gray-600">Direct & common opponent matchups</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-lg font-bold ${getComparativeColor(headToHead)}">${headToHead > 0 ? '+' : ''}${headToHead.toFixed(1)}</div>
+                            <div class="text-xs font-bold text-yellow-600">10%</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-gray-50 p-3 rounded-lg">
+                    <div class="flex justify-between items-center">
+                        <div class="flex-1">
+                            <div class="text-sm font-semibold text-gray-800">7. Consistency Factor</div>
+                            <div class="text-xs text-gray-600">PTI stability over time</div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-lg font-bold ${getConsistencyColor(consistency)}">${consistency.toFixed(1)}</div>
+                            <div class="text-xs font-bold text-gray-600">5%</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Calculation Summary -->
+            <div class="mt-4 p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200">
+                <div class="text-xs font-semibold text-blue-800 mb-1">Algorithm Weights</div>
+                <div class="text-xs text-blue-700">Each metric is normalized (0-1), weighted by importance, and combined for the final prediction score.</div>
             </div>
         `;
     }
