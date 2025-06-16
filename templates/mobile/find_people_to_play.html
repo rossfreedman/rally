@@ -87,6 +87,9 @@
             </div>
         </div>
 
+        <!-- Scroll Anchor -->
+        <div id="scrollAnchor"></div>
+
         <!-- Instructions -->
         <div id="contactInstructions" class="bg-yellow-100 border border-yellow-200 rounded-xl p-4 shadow-sm">
             <div class="flex items-center justify-center">
@@ -600,14 +603,14 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Scroll to instructions section smoothly (20px above for better visibility)
+    // Scroll to position instructions at top of viewport
     function scrollToResults() {
         // Use a small delay to ensure DOM is updated
         setTimeout(() => {
             const instructionsSection = document.getElementById('contactInstructions');
             if (instructionsSection) {
                 const elementPosition = instructionsSection.getBoundingClientRect().top;
-                const offsetPosition = elementPosition + window.pageYOffset - 20;
+                const offsetPosition = elementPosition + window.pageYOffset;
                 
                 window.scrollTo({
                     top: offsetPosition,
