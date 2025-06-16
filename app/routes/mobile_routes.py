@@ -33,6 +33,9 @@ from app.services.mobile_service import (
     get_mobile_improve_data
 )
 
+# Import the new simulation functionality
+from app.services.simulation import AdvancedMatchupSimulator, get_players_for_selection, get_teams_for_selection, get_players_by_team
+
 # Create mobile blueprint
 mobile_bp = Blueprint('mobile', __name__)
 
@@ -1195,4 +1198,176 @@ def serve_mobile_reserve_court():
         
     except Exception as e:
         print(f"Error serving reserve court page: {str(e)}")
-        return jsonify({'error': str(e)}), 500 
+        return jsonify({'error': str(e)}), 500
+
+@mobile_bp.route('/mobile/matchup-simulator')
+@login_required
+def serve_mobile_matchup_simulator():
+    """Serve the mobile Matchup Simulator page"""
+    try:
+        # Get user's league ID and series for filtering
+        user_league_id = session['user'].get('league_id')
+        user_series = session['user'].get('series')
+        user_club = session['user'].get('club')
+        print(f"[DEBUG] serve_mobile_matchup_simulator: User league_id: '{user_league_id}', series: '{user_series}', club: '{user_club}'")
+        
+        # Get available teams for selection (filtered by user's series)
+        available_teams = get_teams_for_selection(user_league_id, user_series, user_club)
+        print(f"[DEBUG] serve_mobile_matchup_simulator: Found {len(available_teams)} teams in series '{user_series}' (all teams in this series)")
+        
+        session_data = {
+            'user': session['user'],
+            'authenticated': True
+        }
+        
+        log_user_activity(session['user']['email'], 'page_visit', page='mobile_matchup_simulator')
+        
+        response = render_template('mobile/matchup_simulator.html', 
+                             session_data=session_data,
+                             available_teams=available_teams)
+        
+        # Add cache-busting headers
+        from flask import make_response
+        response = make_response(response)
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        
+        return response
+                             
+    except Exception as e:
+        print(f"Error serving mobile matchup simulator: {str(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
+        
+        session_data = {
+            'user': session['user'],
+            'authenticated': True
+        }
+        
+        return render_template('mobile/matchup_simulator.html', 
+                             session_data=session_data,
+                             available_teams=[],
+                             error="Failed to load team data")
+
+@mobile_bp.route('/api/run-simulation', methods=['POST'])
+@login_required
+def run_matchup_simulation():
+    """API endpoint to run head-to-head simulation"""
+    try:
+        if 'user' not in session:
+            return jsonify({'error': 'Not authenticated'}), 401
+        
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+        
+        # Extract team player IDs
+        team_a_players = data.get('team_a_players', [])
+        team_b_players = data.get('team_b_players', [])
+        
+        if len(team_a_players) != 2 or len(team_b_players) != 2:
+            return jsonify({'error': 'Each team must have exactly 2 players'}), 400
+        
+        # Convert to integers
+        try:
+            team_a_players = [int(pid) for pid in team_a_players]
+            team_b_players = [int(pid) for pid in team_b_players]
+        except (ValueError, TypeError):
+            return jsonify({'error': 'Invalid player IDs provided'}), 400
+        
+        # Get user's league ID for filtering
+        user_league_id = session['user'].get('league_id')
+        
+        # Run the simulation
+        simulator = AdvancedMatchupSimulator()
+        result = simulator.simulate_matchup(team_a_players, team_b_players, user_league_id)
+        
+        if 'error' in result:
+            return jsonify(result), 400
+        
+        # Log the simulation
+        team_a_names = [p['name'] for p in result['team_a']['players']]
+        team_b_names = [p['name'] for p in result['team_b']['players']]
+        
+        log_user_activity(
+            session['user']['email'], 
+            'simulation_run',
+            page='mobile_matchup_simulator',
+            details=f"Team A: {' & '.join(team_a_names)} vs Team B: {' & '.join(team_b_names)}"
+        )
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        print(f"Error running simulation: {str(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
+        return jsonify({'error': 'Simulation failed. Please try again.'}), 500
+
+@mobile_bp.route('/api/get-team-players/<team_name>')
+@login_required
+def get_team_players(team_name):
+    """API endpoint to get players for a specific team"""
+    try:
+        if 'user' not in session:
+            return jsonify({'error': 'Not authenticated'}), 401
+        
+        # Get user's league ID for filtering
+        user_league_id = session['user'].get('league_id')
+        print(f"[DEBUG] get_team_players: User league_id from session: '{user_league_id}' for team '{team_name}'")
+        
+        # Get players for the team
+        players = get_players_by_team(team_name, user_league_id)
+        print(f"[DEBUG] get_team_players: Found {len(players)} players for team '{team_name}' in league '{user_league_id}'")
+        
+        if not players:
+            return jsonify({
+                'success': False,
+                'error': f'No players found for team {team_name}',
+                'players': [],
+                'team_name': team_name
+            }), 404
+        
+        return jsonify({
+            'success': True,
+            'players': players,
+            'team_name': team_name
+        })
+        
+    except Exception as e:
+        print(f"Error getting team players: {str(e)}")
+        return jsonify({'error': 'Failed to get team players'}), 500
+
+# Debug endpoint removed - new AdvancedMatchupSimulator uses sophisticated algorithms
+# instead of the legacy debug functionality
+
+@mobile_bp.route('/mobile/polls')
+@login_required
+def serve_mobile_polls():
+    """Serve the mobile team polls management page"""
+    session_data = {
+        'user': session['user'],
+        'authenticated': True
+    }
+    
+    log_user_activity(session['user']['email'], 'page_visit', page='mobile_polls')
+    return render_template('mobile/team_polls.html', session_data=session_data)
+
+@mobile_bp.route('/mobile/polls/<int:poll_id>')
+def serve_mobile_poll_vote(poll_id):
+    """Serve the mobile poll voting page (public link)"""
+    # Check if user is logged in
+    if 'user' not in session:
+        # Store the poll URL for redirect after login
+        session['redirect_after_login'] = f'/mobile/polls/{poll_id}'
+        return redirect('/login')
+    
+    session_data = {
+        'user': session['user'],
+        'authenticated': True,
+        'poll_id': poll_id
+    }
+    
+    log_user_activity(session['user']['email'], 'page_visit', page='mobile_poll_vote', details=f'Poll {poll_id}')
+    return render_template('mobile/poll_vote.html', session_data=session_data, poll_id=poll_id) 

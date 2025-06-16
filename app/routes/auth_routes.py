@@ -136,10 +136,13 @@ def handle_login():
             club = session_user.get('club', '')
             series = session_user.get('series', '')
 
+        # Check for redirect_after_login in session
+        redirect_url = session.pop('redirect_after_login', '/mobile')
+        
         return jsonify({
             'status': 'success',
             'message': result['message'],
-            'redirect': '/mobile',
+            'redirect': redirect_url,
             'user': {
                 'email': user_data['email'],
                 'first_name': user_data['first_name'],

@@ -124,6 +124,34 @@
             color: #6c757d;
         }
 
+        .password-match {
+            border-color: #28a745 !important;
+            box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.15) !important;
+        }
+
+        .password-mismatch {
+            border-color: #dc3545 !important;
+            box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.15) !important;
+        }
+
+        .password-feedback {
+            font-size: 0.875rem;
+            margin-top: 5px;
+            margin-bottom: 15px;
+        }
+
+        .password-feedback.match {
+            color: #28a745;
+        }
+
+        .password-feedback.mismatch {
+            color: #dc3545;
+        }
+
+        .password-feedback i {
+            margin-right: 5px;
+        }
+
         .auth-tabs {
             display: flex;
             margin-bottom: 30px;
@@ -245,6 +273,16 @@
                     <div class="form-floating">
                         <input type="password" class="form-control" id="registerPassword" placeholder="Password" required>
                         <label for="registerPassword">Password</label>
+                    </div>
+                    
+                    <div class="form-floating">
+                        <input type="password" class="form-control" id="confirmPassword" placeholder="Confirm Password" required>
+                        <label for="confirmPassword">Confirm Password</label>
+                    </div>
+                    
+                    <div class="password-feedback" id="passwordFeedback" style="display: none;">
+                        <i class="fas fa-check-circle"></i>
+                        <span id="passwordFeedbackText"></span>
                     </div>
                     
                     <div class="form-floating">
@@ -432,6 +470,76 @@
             });
         }
 
+        // Password validation functions
+        function validatePasswordMatch() {
+            const password = document.getElementById('registerPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const passwordField = document.getElementById('registerPassword');
+            const confirmField = document.getElementById('confirmPassword');
+            const feedback = document.getElementById('passwordFeedback');
+            const feedbackText = document.getElementById('passwordFeedbackText');
+            const feedbackIcon = feedback.querySelector('i');
+            
+            // Only show feedback if both fields have content
+            if (password.length === 0 && confirmPassword.length === 0) {
+                feedback.style.display = 'none';
+                passwordField.classList.remove('password-match', 'password-mismatch');
+                confirmField.classList.remove('password-match', 'password-mismatch');
+                return true;
+            }
+            
+            // Only validate if confirm password has been touched
+            if (confirmPassword.length === 0) {
+                feedback.style.display = 'none';
+                passwordField.classList.remove('password-match', 'password-mismatch');
+                confirmField.classList.remove('password-match', 'password-mismatch');
+                return true;
+            }
+            
+            feedback.style.display = 'block';
+            
+            if (password === confirmPassword && password.length > 0) {
+                // Passwords match
+                passwordField.classList.remove('password-mismatch');
+                passwordField.classList.add('password-match');
+                confirmField.classList.remove('password-mismatch');
+                confirmField.classList.add('password-match');
+                
+                feedback.classList.remove('mismatch');
+                feedback.classList.add('match');
+                feedbackIcon.className = 'fas fa-check-circle';
+                feedbackText.textContent = 'Passwords match';
+                return true;
+            } else {
+                // Passwords don't match
+                passwordField.classList.remove('password-match');
+                passwordField.classList.add('password-mismatch');
+                confirmField.classList.remove('password-match');
+                confirmField.classList.add('password-mismatch');
+                
+                feedback.classList.remove('match');
+                feedback.classList.add('mismatch');
+                feedbackIcon.className = 'fas fa-times-circle';
+                feedbackText.textContent = 'Passwords do not match';
+                return false;
+            }
+        }
+
+        // Add event listeners for real-time password validation
+        document.addEventListener('DOMContentLoaded', function() {
+            const registerPassword = document.getElementById('registerPassword');
+            const confirmPassword = document.getElementById('confirmPassword');
+            
+            if (registerPassword && confirmPassword) {
+                registerPassword.addEventListener('input', validatePasswordMatch);
+                confirmPassword.addEventListener('input', validatePasswordMatch);
+                
+                // Also validate on blur events
+                registerPassword.addEventListener('blur', validatePasswordMatch);
+                confirmPassword.addEventListener('blur', validatePasswordMatch);
+            }
+        });
+
         function showForm(formType) {
             document.querySelectorAll('.auth-tab').forEach(tab => {
                 tab.classList.remove('active');
@@ -494,6 +602,7 @@
             
             const email = document.getElementById('registerEmail').value;
             const password = document.getElementById('registerPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
             const firstName = document.getElementById('firstName').value;
             const lastName = document.getElementById('lastName').value;
             const league = document.getElementById('league').value;
@@ -502,6 +611,20 @@
             const errorMessage = document.getElementById('registerErrorMessage');
             const authErrorContainer = document.getElementById('authErrorContainer');
             const authErrorMessage = document.getElementById('authErrorMessage');
+            
+            // Validate password matching before submission
+            if (!validatePasswordMatch()) {
+                authErrorMessage.textContent = 'Passwords do not match. Please check your password entries.';
+                authErrorContainer.classList.add('active');
+                return;
+            }
+            
+            // Validate that passwords match
+            if (password !== confirmPassword) {
+                authErrorMessage.textContent = 'Passwords do not match';
+                authErrorContainer.classList.add('active');
+                return;
+            }
             
             // Validate that league is selected
             if (!league) {

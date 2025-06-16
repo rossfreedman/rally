@@ -87,22 +87,36 @@
 <body class="min-h-screen bg-base-100 text-base-content">
 
     <!-- Top Bar -->
-    <nav class="navbar bg-black shadow-md px-4 py-2 relative" style="position: fixed; top: 0; left: 0; width: 100%; z-index: 1000; height: 56px; box-shadow: 0 2px 8px rgba(0,0,0,0.08)">
-        {% if show_back_arrow %}
-            <a href="javascript:history.back()" class="back-arrow" aria-label="<">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;">
-                    <polyline points="15 18 9 12 15 6"></polyline>
-                </svg>
+    <nav class="navbar bg-black shadow-md px-4 py-2 relative flex items-center" style="position: fixed; top: 0; left: 0; width: 100%; z-index: 1000; height: 56px; box-shadow: 0 2px 8px rgba(0,0,0,0.08)">
+        <!-- Left side -->
+        <div class="flex items-center" style="flex: 1;">
+            {% if show_back_arrow %}
+                <a href="javascript:history.back()" class="back-arrow mr-3" aria-label="<">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle;">
+                        <polyline points="15 18 9 12 15 6"></polyline>
+                    </svg>
+                </a>
+            {% endif %}
+        </div>
+        
+        <!-- Center logo -->
+        <div class="flex justify-center" style="flex: 1;">
+            <a href="/mobile" class="navbar-logo">
+                <img src="/static/images/rallylogo.png" alt="Rally Logo" class="h-10 w-auto">
             </a>
-        {% endif %}
-        <a href="/mobile" class="navbar-logo absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2">
-            <img src="/static/images/rallylogo.png" alt="Rally Logo" class="h-10 w-auto">
-        </a>
-        <button class="hamburger-btn" id="hamburgerToggle" aria-label="Open menu">
-            <span class="bar"></span>
-            <span class="bar"></span>
-            <span class="bar"></span>
-        </button>
+        </div>
+        
+        <!-- Right side -->
+        <div class="flex items-center justify-end" style="flex: 1;">
+            <a href="/mobile/settings" class="profile-icon" aria-label="Profile" style="margin-right: 5px; margin-top: 2px;">
+                <i class="fas fa-user-circle text-white text-2xl hover:text-gray-300 transition-colors"></i>
+            </a>
+            <button class="hamburger-btn" id="hamburgerToggle" aria-label="Open menu">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </button>
+        </div>
     </nav>
 
     <!-- Slide-in Nav Drawer (right) -->
@@ -122,8 +136,8 @@
                     <ul class="space-y-2 ml-6">
                         <li><a href="/mobile/availability" class="nav-link flex items-center gap-2 text-lg text-black"><span class="inline-block w-7 text-center"><i class="fas fa-calendar text-black"></i></span> View Schedule</a></li>
                         <li><a href="/mobile/availability-calendar" class="nav-link flex items-center gap-2 text-lg text-black"><span class="inline-block w-7 text-center"><i class="fas fa-calendar-check text-black"></i></span> Update Availability</a></li>
-                        <li><a href="/mobile/improve" class="nav-link flex items-center gap-2 text-lg text-black"><span class="inline-block w-7 text-center"><i class="fas fa-chart-line text-black"></i></span> Improve My Game</a></li>
                         <li><a href="/mobile/find-people-to-play" class="nav-link flex items-center gap-2 text-lg text-black"><span class="inline-block w-7 text-center"><i class="fas fa-user-friends text-black"></i></span> Find Club Members</a></li>
+                        <li><a href="/mobile/polls" class="nav-link flex items-center gap-2 text-lg text-black"><span class="inline-block w-7 text-center"><i class="fas fa-poll text-black"></i></span> Team Polls</a></li>
                         <li><a href="/mobile/reserve-court" class="nav-link flex items-center gap-2 text-lg text-black"><span class="inline-block w-7 text-center"><i class="fas fa-table-tennis text-black"></i></span> Reserve a Court</a></li>
                     </ul>
                 </div>
