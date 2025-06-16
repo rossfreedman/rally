@@ -22,107 +22,99 @@ import re
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils.player_id_utils import extract_tenniscores_player_id, create_player_id
 
-# Import enhanced discovery functions from scraper_players.py
-try:
-    from scrapers.scraper_players import discover_all_leagues_and_series, find_missing_teams_comprehensive
-    print("[DEBUG] Successfully imported enhanced discovery functions")
-except ImportError as e:
-    print(f"[DEBUG] Warning: Could not import enhanced discovery functions: {e}")
-    # Define a fallback function
-    def discover_all_leagues_and_series(driver, config, max_exploration_pages=5):
-        print("[DEBUG] Using fallback discovery - enhanced functions not available")
-        return {'teams': {}, 'series': set(), 'divisions': {}, 'locations': {}, 'clubs': set()}
-
 # Removed hardcoded division and location lookups - now using dynamic discovery
 
 # Removed file-based configuration functions - now using user input
 
-def get_subdomain_to_league_id_mapping():
+def build_league_data_dir(league_id):
     """
-    Dynamically map subdomains to their correct database league IDs by querying the database.
-    This ensures consistency with the database schema and automatically handles new leagues.
+    Build the dynamic data directory path based on the league ID.
     
+    Args:
+        league_id (str): The league identifier
+        
     Returns:
-        dict: Mapping of subdomain -> league_id
+        str: The data directory path (e.g., 'data/leagues/APTACHICAGO')
     """
-    try:
-        import psycopg2
-        from dotenv import load_dotenv
-        
-        # Load environment variables
-        load_dotenv()
-        DATABASE_URL = os.getenv('DATABASE_URL')
-        
-        if not DATABASE_URL:
-            print("[WARNING] DATABASE_URL not found, using fallback mapping")
-            return _get_fallback_mapping()
-        
-        # Query database for league mappings
-        conn = psycopg2.connect(DATABASE_URL)
-        cursor = conn.cursor()
-        
-        cursor.execute("SELECT league_id, league_url FROM leagues WHERE league_url IS NOT NULL")
-        results = cursor.fetchall()
-        
-        mapping = {}
-        for league_id, league_url in results:
-            # Extract subdomain from URL (e.g., https://aptachicago.tenniscores.com -> aptachicago)
-            if league_url and 'tenniscores.com' in league_url:
-                try:
-                    # Parse URL to get subdomain
-                    from urllib.parse import urlparse
-                    parsed = urlparse(league_url)
-                    hostname = parsed.hostname
-                    if hostname and hostname.endswith('.tenniscores.com'):
-                        subdomain = hostname.replace('.tenniscores.com', '')
-                        mapping[subdomain] = league_id
-                        print(f"[DEBUG] Mapped subdomain '{subdomain}' -> league_id '{league_id}'")
-                except Exception as e:
-                    print(f"[WARNING] Could not parse URL {league_url}: {e}")
-        
-        conn.close()
-        
-        if not mapping:
-            print("[WARNING] No mappings found in database, using fallback")
-            return _get_fallback_mapping()
-            
-        print(f"[DEBUG] Dynamic mapping loaded: {mapping}")
-        return mapping
-        
-    except Exception as e:
-        print(f"[WARNING] Database query failed: {e}, using fallback mapping")
-        return _get_fallback_mapping()
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    # Go up two levels: scrapers -> etl -> project_root
+    project_root = os.path.dirname(os.path.dirname(script_dir))
+    
+    league_data_dir = os.path.join(project_root, 'data', 'leagues', league_id)
+    os.makedirs(league_data_dir, exist_ok=True)
+    
+    return league_data_dir
 
-def _get_fallback_mapping():
-    """
-    Fallback mapping in case database query fails.
+class ChromeManager:
+    """Context manager for handling Chrome WebDriver sessions."""
     
-    Returns:
-        dict: Basic fallback mapping
-    """
-    return {
-        'aptachicago': 'APTA_CHICAGO',
-        'nstf': 'NSTF',
-    }
+    def __init__(self, max_retries=3):
+        """Initialize the Chrome WebDriver manager.
+        
+        Args:
+            max_retries (int): Maximum number of retries for creating a new driver
+        """
+        self.driver = None
+        self.max_retries = max_retries
+        
+    def create_driver(self):
+        """Create and configure a new Chrome WebDriver instance."""
+        options = webdriver.ChromeOptions()
+        options.add_argument('--headless')
+        options.add_argument('--no-sandbox')
+        options.add_argument('--disable-dev-shm-usage')
+        options.add_argument('--disable-gpu')
+        options.add_argument('--window-size=1920x1080')
+        options.add_argument('--disable-features=NetworkService')
+        options.add_argument('--disable-features=VizDisplayCompositor')
+        options.add_argument('--disable-web-security')
+        options.add_argument('--disable-features=IsolateOrigins,site-per-process')
+        return webdriver.Chrome(options=options)
+
+    def __enter__(self):
+        """Create and return a Chrome WebDriver instance with retries."""
+        for attempt in range(self.max_retries):
+            try:
+                if self.driver is not None:
+                    try:
+                        self.driver.quit()
+                    except:
+                        pass
+                self.driver = self.create_driver()
+                return self.driver
+            except Exception as e:
+                print(f"Error creating Chrome driver (attempt {attempt + 1}/{self.max_retries}): {str(e)}")
+                if attempt < self.max_retries - 1:
+                    print("Retrying...")
+                    time.sleep(5)
+                else:
+                    raise Exception("Failed to create Chrome driver after maximum retries")
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Clean up the Chrome WebDriver instance."""
+        self.quit()
+
+    def quit(self):
+        """Safely quit the Chrome WebDriver instance."""
+        if self.driver is not None:
+            try:
+                self.driver.quit()
+            except Exception as e:
+                print(f"Error closing Chrome driver: {str(e)}")
+            finally:
+                self.driver = None
+
+# Removed active_series functionality - now processes all discovered series
 
 def get_league_config(league_subdomain=None):
     """Get dynamic league configuration based on user input"""
     if not league_subdomain:
         raise ValueError("League subdomain must be provided")
     
-    # Map subdomain to correct database league ID
-    subdomain_mapping = get_subdomain_to_league_id_mapping()
-    league_id = subdomain_mapping.get(league_subdomain.lower())
-    
-    if not league_id:
-        # Fallback to uppercased subdomain if no mapping exists
-        league_id = league_subdomain.upper()
-        print(f"[WARNING] No league ID mapping found for '{league_subdomain}', using fallback: {league_id}")
-    
     base_url = build_base_url(league_subdomain)
     
     return {
-        'league_id': league_id,
+        'league_id': league_subdomain.upper(),
         'subdomain': league_subdomain,
         'base_url': base_url,
         'main_page': f'{base_url}/?mod=nndz-TjJiOWtOR2sxTnhI',
@@ -224,85 +216,79 @@ def extract_club_name_from_team(team_name):
     # Fallback: use the team name as-is
     return team_name
 
-def build_league_data_dir(league_id):
+def discover_all_leagues_and_series(driver, config, max_exploration_pages=5):
     """
-    Build the dynamic data directory path based on the league ID.
+    Comprehensively discover all leagues, series, divisions, and locations 
+    dynamically from the target website without relying on hardcoded values.
     
     Args:
-        league_id (str): The league identifier
+        driver: Chrome WebDriver instance
+        config: League configuration dictionary
+        max_exploration_pages (int): Maximum number of pages to explore for discovery
         
     Returns:
-        str: The data directory path (e.g., 'data/leagues/APTACHICAGO')
+        dict: Comprehensive discovery results containing:
+            - 'teams': mapping of team names to team IDs
+            - 'series': set of all discovered series names
+            - 'divisions': mapping of division IDs to division names (if found)
+            - 'locations': mapping of location IDs to location names (if found)
+            - 'clubs': set of all discovered club names
     """
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    # Go up two levels: scrapers -> etl -> project_root
-    project_root = os.path.dirname(os.path.dirname(script_dir))
+    print(f"🔍 Starting comprehensive site discovery for {config['subdomain']} website...")
     
-    league_data_dir = os.path.join(project_root, 'data', 'leagues', league_id)
-    os.makedirs(league_data_dir, exist_ok=True)
+    discovery_results = {
+        'teams': {},
+        'series': set(),
+        'divisions': {},
+        'locations': {},
+        'clubs': set()
+    }
     
-    return league_data_dir
-
-class ChromeManager:
-    """Context manager for handling Chrome WebDriver sessions."""
-    
-    def __init__(self, max_retries=3):
-        """Initialize the Chrome WebDriver manager.
+    try:
+        # Start with the main league page
+        print(f"📄 Exploring main page: {config['main_page']}")
+        driver.get(config['main_page'])
+        time.sleep(3)
         
-        Args:
-            max_retries (int): Maximum number of retries for creating a new driver
-        """
-        self.driver = None
-        self.max_retries = max_retries
+        # Get page source and parse
+        soup = BeautifulSoup(driver.page_source, 'html.parser')
         
-    def create_driver(self):
-        """Create and configure a new Chrome WebDriver instance."""
-        options = webdriver.ChromeOptions()
-        options.add_argument('--headless')
-        options.add_argument('--no-sandbox')
-        options.add_argument('--disable-dev-shm-usage')
-        options.add_argument('--disable-gpu')
-        options.add_argument('--window-size=1920x1080')
-        options.add_argument('--disable-features=NetworkService')
-        options.add_argument('--disable-features=VizDisplayCompositor')
-        options.add_argument('--disable-web-security')
-        options.add_argument('--disable-features=IsolateOrigins,site-per-process')
-        return webdriver.Chrome(options=options)
-
-    def __enter__(self):
-        """Create and return a Chrome WebDriver instance with retries."""
-        for attempt in range(self.max_retries):
-            try:
-                if self.driver is not None:
-                    try:
-                        self.driver.quit()
-                    except:
-                        pass
-                self.driver = self.create_driver()
-                return self.driver
-            except Exception as e:
-                print(f"Error creating Chrome driver (attempt {attempt + 1}/{self.max_retries}): {str(e)}")
-                if attempt < self.max_retries - 1:
-                    print("Retrying...")
-                    time.sleep(5)
-                else:
-                    raise Exception("Failed to create Chrome driver after maximum retries")
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        """Clean up the Chrome WebDriver instance."""
-        self.quit()
-
-    def quit(self):
-        """Safely quit the Chrome WebDriver instance."""
-        if self.driver is not None:
-            try:
-                self.driver.quit()
-            except Exception as e:
-                print(f"Error closing Chrome driver: {str(e)}")
-            finally:
-                self.driver = None
-
-# Removed active_series functionality - now processes all discovered series
+        # Discover teams and extract series/clubs from team names
+        print("🏆 Discovering teams and extracting series information...")
+        team_links = soup.find_all('a', href=re.compile(r'team='))
+        
+        for link in team_links:
+            href = link.get('href', '')
+            team_name = link.text.strip()
+            
+            # Extract team ID from URL
+            team_match = re.search(r'team=([^&]+)', href)
+            if team_match and team_name:
+                team_id = team_match.group(1)
+                
+                # Store team mapping
+                discovery_results['teams'][team_name] = team_id
+                
+                # Extract series name using existing helper function
+                series_name = extract_series_name_from_team(team_name)
+                if series_name:
+                    discovery_results['series'].add(series_name)
+                    print(f"  Found series: {series_name} (from team: {team_name})")
+                
+                # Extract club name
+                club_name = extract_club_name_from_team(team_name)
+                if club_name and club_name != "Unknown":
+                    discovery_results['clubs'].add(club_name)
+        
+        print(f"✅ Discovered {len(discovery_results['teams'])} teams")
+        print(f"✅ Discovered {len(discovery_results['series'])} series: {sorted(discovery_results['series'])}")
+        print(f"✅ Discovered {len(discovery_results['clubs'])} clubs")
+        
+        return discovery_results
+        
+    except Exception as e:
+        print(f"❌ Error during site discovery: {str(e)}")
+        return discovery_results
 
 def get_player_stats(player_url, driver, config, max_retries=3, retry_delay=2):
     """Get detailed player statistics including match history."""
@@ -464,11 +450,6 @@ def scrape_player_history(league_subdomain):
                 first_name = cells[0].text.strip() if len(cells) > 0 else "Unknown"
                 last_name = cells[1].text.strip() if len(cells) > 1 else "Unknown"
                 rating = cells[2].text.strip() if len(cells) > 2 else "N/A"
-                
-                # Skip players with BYE in their name (placeholder players)
-                if 'BYE' in first_name.upper() or 'BYE' in last_name.upper():
-                    print(f"   Skipping BYE player: {first_name} {last_name}")
-                    continue
                 
                 # Extract series and club information from row classes or data
                 series_name = "Unknown"
@@ -636,3 +617,5 @@ if __name__ == "__main__":
     
     scrape_player_history(league_subdomain)
     print(f"\n✅ Player history scraping complete for {league_subdomain.upper()}!")
+
+

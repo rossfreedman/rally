@@ -1,0 +1,448 @@
+{% extends "mobile/layout.html" %}
+{% set show_back_arrow = True %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    
+    <!-- Header -->
+    <div class="bg-white border-b border-gray-100">
+        <div class="flex items-center px-4 py-6">
+            <div class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center shadow-sm">
+                <!-- Using the correct Font Awesome 6 icon name -->
+                <i class="fas fa-square-poll-vertical text-white text-lg"></i>
+            </div>
+            <div class="ml-4">
+                <h1 class="text-xl font-bold text-gray-900">Team Polls</h1>
+                <p class="text-sm text-gray-500">All polls for your team will appear here</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content -->
+    <div class="px-4 py-6 space-y-6">
+
+        <!-- Create New Poll Button -->
+        <div class="mb-6">
+            <button onclick="showCreatePollModal()" class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg shadow hover:bg-blue-700 transition-colors">
+                <i class="fas fa-plus mr-2"></i>
+                Create New Poll
+            </button>
+        </div>
+
+        <!-- Polls List -->
+        <div id="pollsList" class="space-y-4">
+            <!-- Loading state -->
+            <div id="loadingState" class="text-center py-8">
+                <i class="fas fa-spinner fa-spin text-gray-500 text-2xl mb-2"></i>
+                <p class="text-gray-500">Loading polls...</p>
+            </div>
+            
+            <!-- Empty state -->
+            <div id="emptyState" class="text-center py-8 hidden">
+                <i class="fas fa-poll text-gray-400 text-4xl mb-4"></i>
+                <p class="text-gray-500 text-lg">No team polls yet</p>
+                <p class="text-gray-400 text-sm">Create the first poll for your team!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Poll Modal -->
+<div id="createPollModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-xl font-bold text-gray-800">Create New Poll</h2>
+                    <button onclick="hideCreatePollModal()" class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                
+                <form id="createPollForm">
+                    <!-- Question -->
+                    <div class="mb-4">
+                        <label for="pollQuestion" class="block text-sm font-medium text-gray-700 mb-2">
+                            Poll Question
+                        </label>
+                        <textarea 
+                            id="pollQuestion" 
+                            name="question" 
+                            rows="3" 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="What would you like to ask your team?"
+                            required
+                        ></textarea>
+                    </div>
+                    
+                    <!-- Choices -->
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Answer Choices
+                        </label>
+                        <div id="choicesContainer">
+                            <div class="choice-input-group mb-2">
+                                <input 
+                                    type="text" 
+                                    class="choice-input w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    placeholder="Choice 1"
+                                    required
+                                />
+                            </div>
+                            <div class="choice-input-group mb-2">
+                                <input 
+                                    type="text" 
+                                    class="choice-input w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                    placeholder="Choice 2"
+                                    required
+                                />
+                            </div>
+                        </div>
+                        <button type="button" onclick="addChoice()" class="text-blue-600 hover:text-blue-800 text-sm">
+                            <i class="fas fa-plus mr-1"></i>
+                            Add Choice
+                        </button>
+                    </div>
+                    
+                    <!-- Buttons -->
+                    <div class="flex space-x-3">
+                        <button 
+                            type="button" 
+                            onclick="hideCreatePollModal()" 
+                            class="flex-1 px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors"
+                        >
+                            Cancel
+                        </button>
+                        <button 
+                            type="submit" 
+                            class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                        >
+                            Create Poll
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Success Toast -->
+<div id="successToast" class="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 hidden">
+    <div class="flex items-center">
+        <i class="fas fa-check-circle mr-2"></i>
+        <span id="successMessage">Poll created successfully!</span>
+    </div>
+</div>
+
+<!-- Error Toast -->
+<div id="errorToast" class="fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 hidden">
+    <div class="flex items-center">
+        <i class="fas fa-exclamation-circle mr-2"></i>
+        <span id="errorMessage">An error occurred</span>
+    </div>
+</div>
+
+<script>
+// Global variables
+let pollsData = [];
+
+// Initialize page
+  document.addEventListener('DOMContentLoaded', function() {
+      loadPolls();
+  });
+
+// Load polls from API
+async function loadPolls() {
+    try {
+        console.log('Loading polls...');
+        const response = await fetch('/api/polls/team/1'); // Using team_id = 1 for now
+        console.log('Response status:', response.status);
+        
+        const data = await response.json();
+        console.log('Response data:', data);
+        
+        if (data.success) {
+            pollsData = data.polls;
+            console.log('Loaded', pollsData.length, 'polls');
+            renderPolls();
+        } else {
+            console.error('API returned error:', data.error);
+            showError(data.debug ? `${data.error}: ${data.debug}` : 'Failed to load polls');
+        }
+    } catch (error) {
+        console.error('Error loading polls:', error);
+        showError('Network error loading polls');
+    }
+}
+
+// Render polls list
+function renderPolls() {
+    const pollsList = document.getElementById('pollsList');
+    const loadingState = document.getElementById('loadingState');
+    const emptyState = document.getElementById('emptyState');
+    
+    loadingState.classList.add('hidden');
+    
+    if (pollsData.length === 0) {
+        emptyState.classList.remove('hidden');
+        return;
+    }
+    
+    emptyState.classList.add('hidden');
+    
+    pollsList.innerHTML = pollsData.map(poll => `
+        <div class="bg-white rounded-lg shadow-md p-4 border border-gray-200">
+            <div class="flex justify-between items-start mb-3">
+                <div class="flex-1">
+                    <h3 class="font-semibold text-gray-800 mb-1">${escapeHtml(poll.question)}</h3>
+                    <p class="text-sm text-gray-500">
+                        Created ${formatDate(poll.created_at)} • ${poll.response_count} responses
+                    </p>
+                </div>
+                <div class="flex space-x-3 ml-4">
+                    <button onclick="viewPollResults(${poll.id})" class="flex items-center space-x-1 text-green-600 hover:text-green-800 px-2 py-1 rounded hover:bg-green-50 transition-colors">
+                        <i class="fas fa-chart-bar text-lg"></i>
+                        <span class="text-sm font-medium">View Results</span>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="text-sm text-gray-600 mb-3">
+                <strong>Choices:</strong>
+                <ul class="list-disc list-inside ml-2">
+                    ${poll.choices.map(choice => `<li>${escapeHtml(choice.choice_text)}</li>`).join('')}
+                </ul>
+            </div>
+            
+            ${!poll.is_creator ? `
+                <div class="text-xs text-gray-500 mb-2">
+                    <i class="fas fa-user mr-1"></i>
+                    Created by ${escapeHtml(poll.first_name)} ${escapeHtml(poll.last_name)}
+                </div>
+            ` : ''}
+            
+            <div class="flex justify-between items-center">
+                <div class="flex items-center space-x-2">
+                    <span class="text-sm font-medium text-gray-700">
+                        Poll Link: 
+                        <span class="text-blue-600 font-mono text-xs">
+                            /mobile/polls/${poll.id}
+                        </span>
+                    </span>
+                    <button onclick="copyPollLink(${poll.id}, this)" class="text-blue-600 hover:text-blue-800 p-1 hover:bg-blue-50 rounded transition-colors" title="Copy link">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+// Show create poll modal
+function showCreatePollModal() {
+    document.getElementById('createPollModal').classList.remove('hidden');
+}
+
+// Hide create poll modal
+function hideCreatePollModal() {
+    document.getElementById('createPollModal').classList.add('hidden');
+    document.getElementById('createPollForm').reset();
+    resetChoices();
+}
+
+// Add choice input
+function addChoice() {
+    const container = document.getElementById('choicesContainer');
+    const choiceCount = container.children.length;
+    
+    if (choiceCount >= 5) {
+        showError('Maximum 5 choices allowed');
+        return;
+    }
+    
+    const choiceDiv = document.createElement('div');
+    choiceDiv.className = 'choice-input-group mb-2 flex items-center';
+    choiceDiv.innerHTML = `
+        <input 
+            type="text" 
+            class="choice-input flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent mr-2"
+            placeholder="Choice ${choiceCount + 1}"
+            required
+        />
+        <button type="button" onclick="removeChoice(this)" class="text-red-600 hover:text-red-800 p-1">
+            <i class="fas fa-times"></i>
+        </button>
+    `;
+    container.appendChild(choiceDiv);
+}
+
+// Remove choice input
+function removeChoice(button) {
+    const container = document.getElementById('choicesContainer');
+    if (container.children.length > 2) {
+        button.parentElement.remove();
+    }
+}
+
+// Reset choices to default
+function resetChoices() {
+    const container = document.getElementById('choicesContainer');
+    container.innerHTML = `
+        <div class="choice-input-group mb-2">
+            <input 
+                type="text" 
+                class="choice-input w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Choice 1"
+                required
+            />
+        </div>
+        <div class="choice-input-group mb-2">
+            <input 
+                type="text" 
+                class="choice-input w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Choice 2"
+                required
+            />
+        </div>
+    `;
+}
+
+// Handle form submission
+document.getElementById('createPollForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const question = document.getElementById('pollQuestion').value.trim();
+    const choiceInputs = document.querySelectorAll('.choice-input');
+    const choices = Array.from(choiceInputs)
+        .map(input => input.value.trim())
+        .filter(choice => choice.length > 0);
+    
+    if (choices.length < 2) {
+        showError('Please provide at least 2 choices');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/polls', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                question: question,
+                choices: choices
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showSuccess('Poll created successfully!');
+            hideCreatePollModal();
+            loadPolls(); // Reload polls list
+        } else {
+            showError(data.error || 'Failed to create poll');
+        }
+    } catch (error) {
+        console.error('Error creating poll:', error);
+        showError('Failed to create poll');
+    }
+});
+
+// Copy poll link to clipboard
+async function copyPollLink(pollId, buttonElement) {
+    const link = `${window.location.origin}/mobile/polls/${pollId}`;
+    const icon = buttonElement.querySelector('i');
+    const originalIcon = icon.className;
+    const originalTitle = buttonElement.title;
+    
+    try {
+        await navigator.clipboard.writeText(link);
+        
+        // Visual feedback - change icon and color
+        icon.className = 'fas fa-check';
+        buttonElement.classList.remove('text-blue-600', 'hover:text-blue-800');
+        buttonElement.classList.add('text-green-600', 'hover:text-green-800');
+        buttonElement.title = 'Copied!';
+        
+        showSuccess('Poll link copied to clipboard!');
+        
+        // Reset icon after 2 seconds
+        setTimeout(() => {
+            icon.className = originalIcon;
+            buttonElement.classList.remove('text-green-600', 'hover:text-green-800');
+            buttonElement.classList.add('text-blue-600', 'hover:text-blue-800');
+            buttonElement.title = originalTitle;
+        }, 2000);
+        
+    } catch (error) {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = link;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        
+        // Visual feedback for fallback too
+        icon.className = 'fas fa-check';
+        buttonElement.classList.remove('text-blue-600', 'hover:text-blue-800');
+        buttonElement.classList.add('text-green-600', 'hover:text-green-800');
+        buttonElement.title = 'Copied!';
+        
+        showSuccess('Poll link copied to clipboard!');
+        
+        // Reset icon after 2 seconds
+        setTimeout(() => {
+            icon.className = originalIcon;
+            buttonElement.classList.remove('text-green-600', 'hover:text-green-800');
+            buttonElement.classList.add('text-blue-600', 'hover:text-blue-800');
+            buttonElement.title = originalTitle;
+        }, 2000);
+    }
+}
+
+// View poll results
+function viewPollResults(pollId) {
+    window.location.href = `/mobile/polls/${pollId}`;
+}
+
+// Utility functions
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function formatDate(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+    });
+}
+
+function showSuccess(message) {
+    const toast = document.getElementById('successToast');
+    const messageSpan = document.getElementById('successMessage');
+    messageSpan.textContent = message;
+    toast.classList.remove('hidden');
+    
+    setTimeout(() => {
+        toast.classList.add('hidden');
+    }, 3000);
+}
+
+function showError(message) {
+    const toast = document.getElementById('errorToast');
+    const messageSpan = document.getElementById('errorMessage');
+    messageSpan.textContent = message;
+    toast.classList.remove('hidden');
+    
+    setTimeout(() => {
+        toast.classList.add('hidden');
+    }, 3000);
+}
+</script>
+{% endblock %} 

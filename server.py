@@ -29,6 +29,7 @@ from app.routes.auth_routes import auth_bp
 from app.routes.admin_routes import admin_bp
 from app.routes.mobile_routes import mobile_bp
 from app.routes.api_routes import api_bp
+from app.routes.polls_routes import polls_bp
 
 # Import act routes initialization
 from routes.act import init_act_routes
@@ -70,6 +71,7 @@ app.register_blueprint(auth_bp)
 app.register_blueprint(admin_bp)
 app.register_blueprint(mobile_bp)
 app.register_blueprint(api_bp)
+app.register_blueprint(polls_bp)
 
 # Initialize act routes (includes find-subs, availability, schedule, rally_ai, etc.)
 init_act_routes(app)

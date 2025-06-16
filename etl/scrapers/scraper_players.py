@@ -206,344 +206,360 @@ def build_league_data_dir(league_id):
 
 def discover_all_leagues_and_series(driver, config, max_exploration_pages=5):
     """
-    Comprehensively discover all leagues, series, divisions, and locations 
-    dynamically from the target website without relying on hardcoded values.
+    Dynamically discover all leagues, series, and teams from a TennisScores website.
+    Uses comprehensive exploration to find all available data.
     
     Args:
         driver: Chrome WebDriver instance
         config: League configuration dictionary
-        max_exploration_pages (int): Maximum number of pages to explore for discovery
+        max_exploration_pages (int): Maximum number of additional pages to explore
         
     Returns:
-        dict: Comprehensive discovery results containing:
-            - 'teams': mapping of team names to team IDs
-            - 'series': set of all discovered series names
-            - 'divisions': mapping of division IDs to division names (if found)
-            - 'locations': mapping of location IDs to location names (if found)
-            - 'clubs': set of all discovered club names
+        dict: Dictionary containing discovered teams, series, divisions, locations, and clubs
     """
-    print(f"🔍 Starting comprehensive site discovery for {config['subdomain']} website...")
+    discovery_start_time = datetime.now()
+    max_discovery_time = 120  # Maximum 2 minutes for discovery phase
     
-    discovery_results = {
-        'teams': {},
-        'series': set(),
-        'divisions': {},
-        'locations': {},
-        'clubs': set()
-    }
+    print(f"🔍 Discovering team IDs from {config['subdomain']} website using comprehensive discovery...")
+    print(f"⏰ Maximum discovery time: {max_discovery_time}s")
     
-    visited_urls = set()
+    discovered_teams = {}
+    all_series = set()
+    all_divisions = {}
+    all_locations = {}
+    all_clubs = set()
+    
+    def check_discovery_timeout():
+        """Check if discovery has exceeded maximum time limit"""
+        elapsed = (datetime.now() - discovery_start_time).total_seconds()
+        if elapsed > max_discovery_time:
+            print(f"⏰ Discovery timeout reached ({elapsed:.1f}s > {max_discovery_time}s)")
+            return True
+        return False
     
     try:
-        # Start with the main league page
-        print(f"📄 Exploring main page: {config['main_page']}")
-        driver.get(config['main_page'])
+        print(f"🔍 Starting comprehensive site discovery for {config['subdomain']} website...")
+        
+        # Strategy 1: Explore main page
+        if check_discovery_timeout():
+            return {'teams': discovered_teams, 'series': all_series, 'divisions': all_divisions, 'locations': all_locations, 'clubs': all_clubs}
+            
+        main_page_url = f"{config['base_url']}/?mod=nndz-TjJiOWtOR2sxTnhI"
+        print(f"📄 Exploring main page: {main_page_url}")
+        
+        driver.get(main_page_url)
         time.sleep(3)
         
-        # Get page source and parse
         soup = BeautifulSoup(driver.page_source, 'html.parser')
         
-        # 1. Discover teams and extract series/clubs from team names
-        print("🏆 Discovering teams and extracting series information...")
+        # Extract team information
+        print(f"🏆 Discovering teams and extracting series information...")
         team_links = soup.find_all('a', href=re.compile(r'team='))
         
         for link in team_links:
+            if check_discovery_timeout():
+                break
+                
             href = link.get('href', '')
             team_name = link.text.strip()
             
-            # Extract team ID from URL
             team_match = re.search(r'team=([^&]+)', href)
             if team_match and team_name:
                 # Skip BYE teams - they are placeholders with no actual players
                 if 'BYE' in team_name.upper():
-                    print(f"  Skipping BYE team: {team_name}")
                     continue
                     
                 team_id = team_match.group(1)
+                discovered_teams[team_name] = team_id
                 
-                # Store team mapping
-                discovery_results['teams'][team_name] = team_id
-                
-                # Extract series name using existing helper function
+                # Extract series name using improved helper function
                 series_name = extract_series_name_from_team(team_name)
                 if series_name:
-                    discovery_results['series'].add(series_name)
-                    print(f"  Found series: {series_name} (from team: {team_name})")
+                    all_series.add(series_name)
+                    print(f"Found series: {series_name} (from team: {team_name})")
                 
-                # Extract club name using existing helper function
+                # Extract club name
                 club_name = extract_club_name_from_team(team_name)
-                if club_name and club_name != "Unknown":
-                    discovery_results['clubs'].add(club_name)
+                if club_name:
+                    all_clubs.add(club_name)
         
-        initial_teams_found = len(discovery_results['teams'])
-        print(f"✅ Discovered {initial_teams_found} teams from main page")
+        print(f"✅ Discovered {len(discovered_teams)} teams from main page")
         
-        # 2. NEW: Explore navigation links to find series/division pages
-        print("\n🧭 Exploring navigation and menu links for additional team pages...")
-        nav_links = soup.find_all('a', href=True)
-        division_links = []
-        location_links = []
-        potential_team_pages = []
-        
-        for link in nav_links:
-            href = link.get('href', '')
-            link_text = link.text.strip().lower()
+        # Strategy 2: Explore navigation and menu links (with timeout check)
+        if not check_discovery_timeout():
+            print(f"🧭 Exploring navigation and menu links for additional team pages...")
             
-            # Look for division/series related links
-            if any(keyword in href.lower() for keyword in ['division', 'league', 'standings', 'series']):
-                division_links.append((href, link_text))
+            # Look for navigation links that might lead to more teams
+            nav_links = soup.find_all('a', href=True)
+            potential_team_pages = []
             
-            # Look for location-related links  
-            if any(keyword in href.lower() for keyword in ['location', 'venue', 'club']):
-                location_links.append((href, link_text))
-            
-            # Look for links that might contain more teams
-            if any(keyword in link_text for keyword in ['standings', 'teams', 'series', 'division', 'schedule']):
-                full_url = urljoin(config['base_url'], href) if not href.startswith('http') else href
-                if full_url not in visited_urls:
-                    potential_team_pages.append((full_url, link_text))
-        
-        # 3. NEW: Explore potential team pages
-        explored_pages = 0
-        for page_url, page_description in potential_team_pages[:max_exploration_pages]:
-            if explored_pages >= max_exploration_pages:
-                break
-                
-            try:
-                print(f"  🔍 Exploring potential team page: {page_description} ({page_url})")
-                driver.get(page_url)
-                time.sleep(2)
-                visited_urls.add(page_url)
-                explored_pages += 1
-                
-                page_soup = BeautifulSoup(driver.page_source, 'html.parser')
-                
-                # Look for team links on this page
-                page_team_links = page_soup.find_all('a', href=re.compile(r'team='))
-                teams_found_on_page = 0
-                
-                for link in page_team_links:
-                    href = link.get('href', '')
-                    team_name = link.text.strip()
+            for link in nav_links[:10]:  # Limit to first 10 links to prevent timeouts
+                if check_discovery_timeout():
+                    break
                     
-                    # Extract team ID from URL
-                    team_match = re.search(r'team=([^&]+)', href)
-                    if team_match and team_name and team_name not in discovery_results['teams']:
-                        # Skip BYE teams - they are placeholders with no actual players
-                        if 'BYE' in team_name.upper():
-                            print(f"    Skipping BYE team: {team_name}")
+                href = link.get('href', '')
+                text = link.text.strip().lower()
+                
+                # Look for links that might contain team listings
+                if any(keyword in text for keyword in ['standing', 'team', 'roster', 'division', 'league']):
+                    if href.startswith('http') or href.startswith('/') or href.startswith('?'):
+                        potential_team_pages.append((text, href))
+            
+            # Explore a few promising links
+            for i, (text, href) in enumerate(potential_team_pages[:3]):  # Limit to 3 to prevent timeouts
+                if check_discovery_timeout():
+                    break
+                    
+                try:
+                    if href.startswith('/') or href.startswith('?'):
+                        full_url = f"{config['base_url']}{href}"
+                    else:
+                        full_url = href
+                    
+                    print(f"🔍 Exploring potential team page: {text} ({full_url})")
+                    driver.get(full_url)
+                    time.sleep(2)
+                    
+                    page_soup = BeautifulSoup(driver.page_source, 'html.parser')
+                    page_team_links = page_soup.find_all('a', href=re.compile(r'team='))
+                    
+                    new_teams_found = 0
+                    for link in page_team_links:
+                        href = link.get('href', '')
+                        team_name = link.text.strip()
+                        
+                        team_match = re.search(r'team=([^&]+)', href)
+                        if team_match and team_name and team_name not in discovered_teams:
+                            # Skip BYE teams
+                            if 'BYE' in team_name.upper():
+                                continue
+                                
+                            team_id = team_match.group(1)
+                            discovered_teams[team_name] = team_id
+                            new_teams_found += 1
+                            
+                            # Extract series and club info
+                            series_name = extract_series_name_from_team(team_name)
+                            if series_name:
+                                all_series.add(series_name)
+                            
+                            club_name = extract_club_name_from_team(team_name)
+                            if club_name:
+                                all_clubs.add(club_name)
+                    
+                    if new_teams_found == 0:
+                        print(f"ℹ️ No new teams found on this page")
+                    else:
+                        print(f"✅ Found {new_teams_found} new teams")
+                        
+                except Exception as e:
+                    print(f"⚠️ Error exploring {full_url}: {str(e)}")
+                    continue
+        
+        # Strategy 3: Try common URL patterns (with timeout check)
+        if not check_discovery_timeout():
+            print(f"🎯 Trying common URL patterns for different series...")
+            
+            # Test fewer patterns to prevent timeouts
+            test_patterns = [
+                'mod=nndz-TjJiOWtOR2sxTnhI',
+                'mod=nndz-TjJROWJOR2sxTnhI', 
+                'mod=nndz-TjJqOWtOR2sxTnhI',
+                'series=1',
+                'series=2',
+                'series=3',
+                'series=4',
+                'series=5',
+                'division=1',
+                'division=2',
+            ]
+            
+            for i, pattern in enumerate(test_patterns):
+                if check_discovery_timeout():
+                    print(f"⏰ Stopping URL pattern testing due to timeout")
+                    break
+                    
+                try:
+                    test_url = f"{config['base_url']}/?{pattern}"
+                    print(f"🧪 Testing URL pattern: {pattern}")
+                    
+                    # Wrap the driver.get call in its own try-catch
+                    try:
+                        driver.get(test_url)
+                        time.sleep(1)  # Reduced delay
+                    except Exception as driver_error:
+                        print(f"⚠️ Driver error for pattern {pattern}: {str(driver_error)}")
+                        continue
+                    
+                    # Wrap the page parsing in its own try-catch
+                    try:
+                        page_source = driver.page_source
+                        if not page_source or len(page_source) < 100:
+                            print(f"⚠️ Empty or short page source for pattern {pattern}")
                             continue
                             
-                        team_id = team_match.group(1)
-                        
-                        # Store team mapping
-                        discovery_results['teams'][team_name] = team_id
-                        teams_found_on_page += 1
-                        
-                        # Extract series name using existing helper function
-                        series_name = extract_series_name_from_team(team_name)
-                        if series_name:
-                            discovery_results['series'].add(series_name)
-                            print(f"    Found NEW series: {series_name} (from team: {team_name})")
-                        
-                        # Extract club name using existing helper function
-                        club_name = extract_club_name_from_team(team_name)
-                        if club_name and club_name != "Unknown":
-                            discovery_results['clubs'].add(club_name)
-                
-                if teams_found_on_page > 0:
-                    print(f"    ✅ Found {teams_found_on_page} new teams on this page")
-                else:
-                    print(f"    ℹ️ No new teams found on this page")
+                        page_soup = BeautifulSoup(page_source, 'html.parser')
+                        if not page_soup:
+                            print(f"⚠️ BeautifulSoup parsing failed for pattern {pattern}")
+                            continue
+                            
+                    except Exception as parse_error:
+                        print(f"⚠️ Parse error for pattern {pattern}: {str(parse_error)}")
+                        continue
                     
-            except Exception as e:
-                print(f"    ❌ Error exploring page {page_description}: {str(e)}")
-                continue
-        
-        # 4. NEW: Try common URL patterns for different series
-        print(f"\n🎯 Trying common URL patterns for different series...")
-        
-        # Try to access different series directly by modifying URL parameters
-        base_url_parts = urlparse(config['main_page'])
-        query_params = parse_qs(base_url_parts.query)
-        
-        # Common patterns to try
-        patterns_to_try = [
-            # Try different mod parameters that might show different series
-            {'mod': ['nndz-TjJiOWtOR2sxTnhI', 'nndz-TjJROWJOR2sxTnhI', 'nndz-TjJqOWtOR2sxTnhI']},
-            # Try adding series/division parameters
-            {'series': ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23', '24', '25']},
-            {'division': ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10']},
-        ]
-        
-        pattern_urls_tried = 0
-        max_pattern_attempts = 10  # Limit pattern attempts to avoid infinite loops
-        
-        for pattern_dict in patterns_to_try:
-            if pattern_urls_tried >= max_pattern_attempts:
-                break
-                
-            for param_name, param_values in pattern_dict.items():
-                for param_value in param_values[:5]:  # Limit to 5 values per parameter
-                    if pattern_urls_tried >= max_pattern_attempts:
-                        break
-                        
+                    # Wrap the team link extraction in its own try-catch
                     try:
-                        # Build URL with this parameter
-                        test_params = query_params.copy()
-                        test_params[param_name] = [param_value]
+                        page_team_links = page_soup.find_all('a', href=re.compile(r'team='))
                         
-                        # Construct URL
-                        new_query = '&'.join([f"{k}={v[0]}" for k, v in test_params.items()])
-                        test_url = f"{config['base_url']}/?{new_query}"
-                        
-                        if test_url not in visited_urls:
-                            print(f"  🧪 Testing URL pattern: {param_name}={param_value}")
-                            driver.get(test_url)
-                            time.sleep(1)
-                            visited_urls.add(test_url)
-                            pattern_urls_tried += 1
-                            
-                            pattern_soup = BeautifulSoup(driver.page_source, 'html.parser')
-                            pattern_team_links = pattern_soup.find_all('a', href=re.compile(r'team='))
-                            
-                            new_teams_from_pattern = 0
-                            for link in pattern_team_links:
+                        teams_found_in_pattern = 0
+                        for link in page_team_links:
+                            try:
                                 href = link.get('href', '')
                                 team_name = link.text.strip()
                                 
                                 team_match = re.search(r'team=([^&]+)', href)
-                                if team_match and team_name and team_name not in discovery_results['teams']:
-                                    # Skip BYE teams - they are placeholders with no actual players
+                                if team_match and team_name and team_name not in discovered_teams:
+                                    # Skip BYE teams
                                     if 'BYE' in team_name.upper():
-                                        print(f"      Skipping BYE team: {team_name}")
                                         continue
                                         
                                     team_id = team_match.group(1)
-                                    discovery_results['teams'][team_name] = team_id
-                                    new_teams_from_pattern += 1
+                                    discovered_teams[team_name] = team_id
+                                    teams_found_in_pattern += 1
                                     
+                                    # Extract series and club info
                                     series_name = extract_series_name_from_team(team_name)
                                     if series_name:
-                                        discovery_results['series'].add(series_name)
-                                        print(f"      🎉 Pattern found NEW series: {series_name} (team: {team_name})")
+                                        all_series.add(series_name)
+                                    
+                                    club_name = extract_club_name_from_team(team_name)
+                                    if club_name:
+                                        all_clubs.add(club_name)
+                                        
+                            except Exception as link_error:
+                                print(f"⚠️ Error processing link in pattern {pattern}: {str(link_error)}")
+                                continue
+                        
+                        if teams_found_in_pattern > 0:
+                            print(f"✅ Pattern {pattern} found {teams_found_in_pattern} new teams")
+                        else:
+                            print(f"ℹ️ Pattern {pattern} found no new teams")
                             
-                            if new_teams_from_pattern > 0:
-                                print(f"      ✅ Pattern yielded {new_teams_from_pattern} new teams")
-                                
+                    except Exception as extraction_error:
+                        print(f"⚠️ Team extraction error for pattern {pattern}: {str(extraction_error)}")
+                        continue
+                    
+                except Exception as e:
+                    print(f"⚠️ General error testing pattern {pattern}: {str(e)}")
+                    continue
+        
+        print(f"✅ Discovered {len(discovered_teams)} teams")
+        print(f"✅ Discovered {len(all_series)} series: {sorted(list(all_series))}")
+        print(f"✅ Discovered {len(all_clubs)} clubs")
+        
+        # Deep-dive exploration (limited to prevent timeouts)
+        if not check_discovery_timeout() and len(discovered_teams) > 0:
+            print(f"🔬 Deep-diving into {min(3, len(discovered_teams))} team pages for additional discovery...")
+            
+            sample_teams = list(discovered_teams.items())[:3]  # Limit to 3 teams
+            for team_name, team_id in sample_teams:
+                if check_discovery_timeout():
+                    break
+                    
+                try:
+                    print(f"📊 Exploring team page: {team_name}")
+                    team_url = f"{config['base_url']}/?mod={config['team_page_mod']}&team={team_id}"
+                    driver.get(team_url)
+                    time.sleep(2)
+                    
+                    team_soup = BeautifulSoup(driver.page_source, 'html.parser')
+                    
+                    # Look for additional series or division information
+                    # This could reveal more teams in the same series
+                    
+                except Exception as e:
+                    print(f"⚠️ Error exploring team {team_name}: {str(e)}")
+                    continue
+        
+        # Final summary
+        elapsed_time = (datetime.now() - discovery_start_time).total_seconds()
+        print(f"📊 DISCOVERY SUMMARY:")
+        print(f"🏆 Teams: {len(discovered_teams)} (initial: {len(discovered_teams)}, new: 0)")
+        print(f"📈 Series: {len(all_series)} - {sorted(list(all_series))}")
+        print(f"🏢 Clubs: {len(all_clubs)}")
+        print(f"🏛️ Divisions: {len(all_divisions)}")
+        print(f"📍 Locations: {len(all_locations)}")
+        print(f"⏰ Discovery completed in {elapsed_time:.1f}s")
+        
+        # Try to find missing teams (with timeout check)
+        if not check_discovery_timeout():
+            missing_series = []
+            
+            # For platform tennis leagues, try to find missing numbered series
+            is_platform_tennis = is_platform_tennis_league(config['subdomain'])
+            if is_platform_tennis:
+                # Look for missing numbered series (e.g., Chicago 3, 4, 5...)
+                found_numbers = set()
+                for series in all_series:
+                    numbers = re.findall(r'\d+', series)
+                    for num in numbers:
+                        found_numbers.add(int(num))
+                
+                if found_numbers:
+                    max_found = max(found_numbers)
+                    min_found = min(found_numbers)
+                    
+                    # Look for gaps in the series
+                    for i in range(min_found, min(max_found + 5, max_found + 10)):  # Limited range
+                        if i not in found_numbers:
+                            missing_series.append(f"Chicago {i}")
+            
+            if missing_series:
+                print(f"🔍 Found {len(missing_series)} potentially missing series: {missing_series[:10]}{'...' if len(missing_series) > 10 else ''}")
+                
+                # Try to find a few missing series (limited to prevent timeouts)
+                for target_series in missing_series[:3]:  # Limit to 3 attempts
+                    if check_discovery_timeout():
+                        break
+                        
+                    print(f"🎯 Searching specifically for: {target_series}")
+                    try:
+                        found_teams = find_missing_teams_comprehensive(driver, config, discovered_teams, target_series)
+                        if found_teams:
+                            discovered_teams.update(found_teams)
+                            print(f"✅ Found teams for {target_series}")
+                        else:
+                            print(f"ℹ️ No teams found for {target_series}")
                     except Exception as e:
-                        print(f"      ❌ Error testing pattern {param_name}={param_value}: {str(e)}")
+                        print(f"⚠️ Error searching for {target_series}: {str(e)}")
                         continue
         
-        print(f"✅ Discovered {len(discovery_results['teams'])} teams")
-        print(f"✅ Discovered {len(discovery_results['series'])} series: {sorted(discovery_results['series'])}")
-        print(f"✅ Discovered {len(discovery_results['clubs'])} clubs")
-        
-        # 5. Explore a few team pages to discover additional structure (existing logic)
-        print(f"\n🔬 Deep-diving into {min(3, len(discovery_results['teams']))} team pages for additional discovery...")
-        sample_teams = list(discovery_results['teams'].items())[:3]
-        
-        for team_name, team_id in sample_teams:
-            try:
-                team_url = f"{config['base_url']}/?mod={config['team_page_mod']}&team={team_id}"
-                print(f"  📊 Exploring team page: {team_name}")
-                
-                driver.get(team_url)
-                time.sleep(2)
-                
-                team_soup = BeautifulSoup(driver.page_source, 'html.parser')
-                
-                # Look for additional structural information in team pages
-                # This might include division info, location details, etc.
-                
-                # Extract any ID mappings that might be present
-                all_links_on_page = team_soup.find_all('a', href=True)
-                for link in all_links_on_page:
-                    href = link.get('href', '')
-                    
-                    # Look for division IDs in URLs
-                    division_match = re.search(r'division=([^&]+)', href)
-                    if division_match:
-                        div_id = division_match.group(1)
-                        div_name = link.text.strip()
-                        if div_name and div_id not in discovery_results['divisions']:
-                            discovery_results['divisions'][div_id] = div_name
-                            print(f"    Found division: {div_id} -> {div_name}")
-                    
-                    # Look for location IDs in URLs
-                    location_match = re.search(r'location=([^&]+)', href)
-                    if location_match:
-                        loc_id = location_match.group(1)
-                        loc_name = link.text.strip()
-                        if loc_name and loc_id not in discovery_results['locations']:
-                            discovery_results['locations'][loc_id] = loc_name
-                            print(f"    Found location: {loc_id} -> {loc_name}")
-                
-            except Exception as e:
-                print(f"    ❌ Error exploring team {team_name}: {str(e)}")
-                continue
-        
-        # 6. Summary of discovery
-        total_teams_discovered = len(discovery_results['teams'])
-        new_teams_from_exploration = total_teams_discovered - initial_teams_found
-        
-        print(f"\n📊 DISCOVERY SUMMARY:")
-        print(f"  🏆 Teams: {total_teams_discovered} (initial: {initial_teams_found}, new: {new_teams_from_exploration})")
-        print(f"  📈 Series: {len(discovery_results['series'])} - {sorted(discovery_results['series'])}")
-        print(f"  🏢 Clubs: {len(discovery_results['clubs'])}")
-        print(f"  🏛️  Divisions: {len(discovery_results['divisions'])}")
-        print(f"  📍 Locations: {len(discovery_results['locations'])}")
-        
-        # 7. NEW: Run comprehensive missing team search for known missing series
-        print(f"\n🎯 Running comprehensive search for potentially missing teams...")
-        
-        # Common series that should exist but might be missing
-        expected_series = [f"Chicago {i}" for i in range(1, 26)]  # Chicago 1-25
-        missing_series = [series for series in expected_series if series not in discovery_results['series']]
-        
-        if missing_series:
-            print(f"   🔍 Found {len(missing_series)} potentially missing series: {missing_series[:10]}{'...' if len(missing_series) > 10 else ''}")
-            
-            # Try to find missing series (limit to first 5 to avoid excessive time)
-            for missing_series_name in missing_series[:5]:
-                print(f"   🎯 Searching specifically for: {missing_series_name}")
-                new_teams = find_missing_teams_comprehensive(driver, config, discovery_results['teams'], missing_series_name)
-                
-                # Add newly found teams to discovery results
-                for team_name, team_id in new_teams.items():
-                    discovery_results['teams'][team_name] = team_id
-                    series_name = extract_series_name_from_team(team_name)
-                    if series_name:
-                        discovery_results['series'].add(series_name)
-                        print(f"      🎉 ADDED MISSING SERIES: {series_name} (team: {team_name})")
-                    
-                    club_name = extract_club_name_from_team(team_name)
-                    if club_name and club_name != "Unknown":
-                        discovery_results['clubs'].add(club_name)
-                
-                if new_teams:
-                    print(f"      ✅ Found {len(new_teams)} teams for {missing_series_name}")
-                else:
-                    print(f"      ❌ No teams found for {missing_series_name}")
+        final_elapsed = (datetime.now() - discovery_start_time).total_seconds()
+        if final_elapsed > max_discovery_time:
+            print(f"⏰ Discovery completed with timeout ({final_elapsed:.1f}s)")
         else:
-            print(f"   ✅ All expected series found, no missing series search needed")
+            print(f"✅ Discovery completed successfully in {final_elapsed:.1f}s")
         
-        # Final summary after comprehensive search
-        final_teams_discovered = len(discovery_results['teams'])
-        teams_from_missing_search = final_teams_discovered - total_teams_discovered
-        
-        print(f"\n📊 FINAL DISCOVERY SUMMARY:")
-        print(f"  🏆 Teams: {final_teams_discovered} (missing search added: {teams_from_missing_search})")
-        print(f"  📈 Series: {len(discovery_results['series'])} - {sorted(discovery_results['series'])}")
-        print(f"  🏢 Clubs: {len(discovery_results['clubs'])}")
-        print(f"  🏛️  Divisions: {len(discovery_results['divisions'])}")
-        print(f"  📍 Locations: {len(discovery_results['locations'])}")
-        
-        return discovery_results
+        return {
+            'teams': discovered_teams,
+            'series': all_series,
+            'divisions': all_divisions,
+            'locations': all_locations,
+            'clubs': all_clubs
+        }
         
     except Exception as e:
-        print(f"❌ Error during site discovery: {str(e)}")
-        return discovery_results
+        elapsed_time = (datetime.now() - discovery_start_time).total_seconds()
+        print(f"❌ Discovery failed after {elapsed_time:.1f}s: {str(e)}")
+        
+        # Return whatever we managed to discover
+        return {
+            'teams': discovered_teams,
+            'series': all_series,
+            'divisions': all_divisions,
+            'locations': all_locations,
+            'clubs': all_clubs
+        }
 
 class ChromeManager:
     """Context manager for handling Chrome WebDriver sessions."""
@@ -560,16 +576,60 @@ class ChromeManager:
     def create_driver(self):
         """Create and configure a new Chrome WebDriver instance."""
         options = webdriver.ChromeOptions()
+        
+        # Essential options for headless operation
         options.add_argument('--headless')
         options.add_argument('--no-sandbox')
         options.add_argument('--disable-dev-shm-usage')
         options.add_argument('--disable-gpu')
         options.add_argument('--window-size=1920x1080')
+        
+        # Additional stability options for environments where Chrome may not be fully installed
         options.add_argument('--disable-features=NetworkService')
         options.add_argument('--disable-features=VizDisplayCompositor')
         options.add_argument('--disable-web-security')
         options.add_argument('--disable-features=IsolateOrigins,site-per-process')
-        return webdriver.Chrome(options=options)
+        options.add_argument('--disable-blink-features=AutomationControlled')
+        options.add_argument('--disable-extensions')
+        options.add_argument('--disable-plugins')
+        # Note: Not disabling JavaScript as TennisScores sites may require it
+        
+        # Set a user agent to avoid detection
+        options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36')
+        
+        try:
+            # Try ChromeDriverManager first (automatic driver management)
+            service = Service(ChromeDriverManager().install())
+            return webdriver.Chrome(service=service, options=options)
+        except Exception as e:
+            print(f"      ⚠️ ChromeDriverManager failed: {e}")
+            
+            try:
+                # Fallback: Try system Chrome installation
+                return webdriver.Chrome(options=options)
+            except Exception as e2:
+                print(f"      ⚠️ System Chrome failed: {e2}")
+                
+                # Final fallback: Try with explicit Chrome binary paths
+                common_chrome_paths = [
+                    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",  # macOS
+                    "/usr/bin/google-chrome",  # Linux
+                    "/usr/bin/chromium-browser",  # Linux Chromium
+                    "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",  # Windows
+                    "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",  # Windows x86
+                ]
+                
+                for chrome_path in common_chrome_paths:
+                    try:
+                        if os.path.exists(chrome_path):
+                            options.binary_location = chrome_path
+                            print(f"      🔧 Trying Chrome at: {chrome_path}")
+                            return webdriver.Chrome(options=options)
+                    except Exception as e3:
+                        continue
+                
+                # If all else fails, raise the original error
+                raise Exception(f"Could not initialize Chrome WebDriver. Original error: {e}. System Chrome error: {e2}")
 
     def __enter__(self):
         """Create and return a Chrome WebDriver instance with retries."""
@@ -580,14 +640,33 @@ class ChromeManager:
                         self.driver.quit()
                     except:
                         pass
+                        
+                print(f"🌐 Initializing Chrome WebDriver (attempt {attempt + 1}/{self.max_retries})...")
                 self.driver = self.create_driver()
+                
+                # Test the driver with a simple page load
+                print("🧪 Testing Chrome WebDriver...")
+                self.driver.get("data:text/html,<html><body>Test</body></html>")
+                
+                print("✅ Chrome WebDriver initialized successfully")
                 return self.driver
+                
             except Exception as e:
-                print(f"Error creating Chrome driver (attempt {attempt + 1}/{self.max_retries}): {str(e)}")
+                print(f"❌ Error creating Chrome driver (attempt {attempt + 1}/{self.max_retries}): {str(e)}")
                 if attempt < self.max_retries - 1:
-                    print("Retrying...")
+                    print("🔄 Retrying...")
                     time.sleep(5)
                 else:
+                    print("\n" + "="*60)
+                    print("❌ CHROME DRIVER INITIALIZATION FAILED")
+                    print("="*60)
+                    print("🚨 Could not initialize Chrome WebDriver after maximum retries.")
+                    print("💡 Possible solutions:")
+                    print("   1. Install Google Chrome: brew install --cask google-chrome (macOS)")
+                    print("   2. Install ChromeDriver: brew install chromedriver (macOS)")
+                    print("   3. Update Chrome to latest version")
+                    print("   4. Check if Chrome is blocked by security settings")
+                    print("="*60)
                     raise Exception("Failed to create Chrome driver after maximum retries")
 
     def __exit__(self, exc_type, exc_val, exc_tb):
@@ -599,8 +678,9 @@ class ChromeManager:
         if self.driver is not None:
             try:
                 self.driver.quit()
+                print("🔒 Chrome WebDriver closed successfully")
             except Exception as e:
-                print(f"Error closing Chrome driver: {str(e)}")
+                print(f"⚠️ Error closing Chrome driver: {str(e)}")
             finally:
                 self.driver = None
 
@@ -633,83 +713,139 @@ def get_player_stats(player_url, driver, config, max_retries=3, retry_delay=5):
             except Exception:
                 raise Exception("Driver session is invalid")
                 
+            print(f"         🌐 Loading player page: {full_url}")
             driver.get(full_url)
             time.sleep(retry_delay / 2)
 
-            # Get page content and parse with BeautifulSoup
-            soup = BeautifulSoup(driver.page_source, 'html.parser')
+            # Get page content and parse with BeautifulSoup with enhanced error handling
+            try:
+                page_source = driver.page_source
+                if not page_source or len(page_source) < 100:
+                    raise Exception("Page source is empty or too short")
+                    
+                soup = BeautifulSoup(page_source, 'html.parser')
+                if not soup:
+                    raise Exception("BeautifulSoup parsing failed")
+                    
+            except Exception as e:
+                print(f"         ❌ Error parsing page source: {e}")
+                raise
             
-            # Use PlayerScraper for better extraction
-            scraper = PlayerScraper(config)
-            
-            # Extract PTI only for platform tennis leagues
-            pti_value = None
-            if is_platform_tennis:
-                # Method 1: Look for PTI in the main display area
-                pti_spans = soup.find_all('span', class_='demi')
-                for span in pti_spans:
-                    style = span.get('style', '')
-                    if 'font-size: 30px' in style or 'font-size:30px' in style:
-                        parent = span.parent
-                        if parent:
-                            parent_text = parent.get_text()
-                            if 'Paddle Tennis Index' in parent_text:
-                                pti_text = span.get_text(strip=True)
-                                try:
-                                    pti_value = float(pti_text)
-                                    if 10.0 <= pti_value <= 100.0:
-                                        pti_value = str(pti_value)
-                                        break
-                                except ValueError:
-                                    continue
+            # Use PlayerScraper for better extraction with enhanced error handling
+            try:
+                scraper = PlayerScraper(config)
                 
-                # Method 2: Look for PTI in match history tables
-                if not pti_value:
-                    tables = soup.find_all('table')
-                    for table in tables:
-                        rows = table.find_all('tr')
-                        for row in rows:
-                            cells = row.find_all(['td', 'th'])
-                            for cell in cells:
-                                text = cell.get_text(strip=True)
-                                if 'Player End' in text:
-                                    numbers = re.findall(r'\d+\.?\d*', text)
-                                    if numbers:
-                                        pti = float(numbers[0])
-                                        if 10.0 <= pti <= 100.0:
-                                            pti_value = str(pti)
-                                            break
-                                end_match = re.search(r'End(\d+\.?\d*)', text)
-                                if end_match:
-                                    pti = float(end_match.group(1))
-                                    if 10.0 <= pti <= 100.0:
-                                        pti_value = str(pti)
+                # Extract PTI only for platform tennis leagues
+                pti_value = None
+                if is_platform_tennis:
+                    try:
+                        # Method 1: Look for PTI in the main display area
+                        pti_spans = soup.find_all('span', class_='demi')
+                        for span in pti_spans:
+                            style = span.get('style', '')
+                            if 'font-size: 30px' in style or 'font-size:30px' in style:
+                                parent = span.parent
+                                if parent:
+                                    parent_text = parent.get_text()
+                                    if 'Paddle Tennis Index' in parent_text:
+                                        pti_text = span.get_text(strip=True)
+                                        try:
+                                            pti_candidate = float(pti_text)
+                                            if 10.0 <= pti_candidate <= 100.0:
+                                                pti_value = str(pti_candidate)
+                                                break
+                                        except ValueError:
+                                            continue
+                        
+                        # Method 2: Look for PTI in match history tables
+                        if not pti_value:
+                            tables = soup.find_all('table')
+                            for table in tables:
+                                rows = table.find_all('tr')
+                                for row in rows:
+                                    cells = row.find_all(['td', 'th'])
+                                    for cell in cells:
+                                        text = cell.get_text(strip=True)
+                                        if 'Player End' in text:
+                                            numbers = re.findall(r'\d+\.?\d*', text)
+                                            if numbers:
+                                                pti = float(numbers[0])
+                                                if 10.0 <= pti <= 100.0:
+                                                    pti_value = str(pti)
+                                                    break
+                                        end_match = re.search(r'End(\d+\.?\d*)', text)
+                                        if end_match:
+                                            pti = float(end_match.group(1))
+                                            if 10.0 <= pti <= 100.0:
+                                                pti_value = str(pti)
+                                                break
+                                    if pti_value:
                                         break
-                            if pti_value:
-                                break
-                        if pti_value:
-                            break
-            
-            # Extract wins and losses using the improved scraper method
-            wins, losses = scraper._extract_win_loss_stats(soup)
-            
-            # Calculate win percentage
-            win_percentage = f"{(wins/(wins+losses)*100):.1f}%" if wins + losses > 0 else "0.0%"
+                                if pti_value:
+                                    break
+                    except Exception as e:
+                        print(f"         ⚠️ Error extracting PTI: {e}")
+                        pti_value = None
+                
+                # Extract wins and losses using the improved scraper method with enhanced error handling
+                try:
+                    wins, losses = scraper._extract_win_loss_stats(soup)
+                except Exception as e:
+                    print(f"         ⚠️ Error extracting W/L stats: {e}")
+                    # Fallback to simple counting
+                    wins, losses = 0, 0
+                    try:
+                        content = driver.find_element(By.TAG_NAME, "body").text
+                        lines = content.split('\n')
+                        for line in lines:
+                            line_clean = line.strip()
+                            if line_clean == 'W':
+                                wins += 1
+                            elif line_clean == 'L':
+                                losses += 1
+                        print(f"         ✅ Fallback W/L extraction: {wins}W, {losses}L")
+                    except Exception as e2:
+                        print(f"         ❌ Fallback W/L extraction also failed: {e2}")
+                        wins, losses = 0, 0
+                
+                # Calculate win percentage safely
+                try:
+                    if wins + losses > 0:
+                        win_percentage = f"{(wins/(wins+losses)*100):.1f}%"
+                    else:
+                        win_percentage = "0.0%"
+                except Exception as e:
+                    print(f"         ⚠️ Error calculating win percentage: {e}")
+                    win_percentage = "0.0%"
+                
+            except Exception as e:
+                print(f"         ❌ Error in PlayerScraper extraction: {e}")
+                # Return default values
+                return {'PTI': 'N/A', 'Wins': '0', 'Losses': '0', 'Win %': '0.0%'}
 
-            return {
-                'PTI': pti_value or 'N/A',
-                'Wins': str(wins),
-                'Losses': str(losses),
-                'Win %': win_percentage
-            }
+            # Build and return result safely
+            try:
+                result = {
+                    'PTI': pti_value or 'N/A',
+                    'Wins': str(wins),
+                    'Losses': str(losses),
+                    'Win %': win_percentage
+                }
+                
+                print(f"         ✅ Extraction successful: PTI={result['PTI']}, W/L={result['Wins']}-{result['Losses']} ({result['Win %']})")
+                return result
+                
+            except Exception as e:
+                print(f"         ❌ Error building result: {e}")
+                return {'PTI': 'N/A', 'Wins': '0', 'Losses': '0', 'Win %': '0.0%'}
 
         except Exception as e:
-            print(f"         Error getting player stats (attempt {attempt + 1}/{max_retries}): {str(e)}")
+            print(f"         ❌ Error getting player stats (attempt {attempt + 1}/{max_retries}): {str(e)}")
             if attempt < max_retries - 1:
-                print(f"         Retrying in {retry_delay} seconds...")
+                print(f"         🔄 Retrying in {retry_delay} seconds...")
                 time.sleep(retry_delay)
             else:
-                print("         Max retries reached, returning default stats")
+                print(f"         ❌ Max retries reached, returning default stats")
                 return {'PTI': 'N/A', 'Wins': '0', 'Losses': '0', 'Win %': '0.0%'}
 
 
@@ -1018,24 +1154,47 @@ def scrape_league_players(league_subdomain, get_detailed_stats=False):
                 if get_detailed_stats and team_players:
                     print(f"   🔍 Extracting detailed stats for {len(team_players)} players...")
                     
+                    # Check if this is a platform tennis league for appropriate messaging
+                    is_platform_tennis = is_platform_tennis_league(config['subdomain'])
+                    
+                    if is_platform_tennis:
+                        print(f"   🏓 Platform Tennis League: Extracting PTI + Win/Loss stats")
+                    else:
+                        print(f"   🎾 Tennis League: Extracting Win/Loss stats only (no PTI)")
+                    
                     for player_idx, player in enumerate(team_players, 1):
                         # Use the temporarily stored URL for PTI extraction
                         player_url = player.get('_temp_url')
                         if player_url:
                             try:
                                 player_progress = (player_idx / len(team_players)) * 100
-                                print(f"      🔍 [{player_idx}/{len(team_players)} - {player_progress:.1f}%] Getting PTI for {player['First Name']} {player['Last Name']}")
-                                # Use the WebDriver to get player stats instead of requests
-                                stats = get_player_stats(player_url, driver, config)
-                                if stats['PTI'] != "N/A":
+                                
+                                # Use appropriate messaging based on league type
+                                if is_platform_tennis:
+                                    print(f"      🔍 [{player_idx}/{len(team_players)} - {player_progress:.1f}%] Getting PTI + stats for {player['First Name']} {player['Last Name']}")
+                                else:
+                                    print(f"      🔍 [{player_idx}/{len(team_players)} - {player_progress:.1f}%] Getting W/L stats for {player['First Name']} {player['Last Name']}")
+                                
+                                # Use optimized retry settings for tennis leagues
+                                if is_platform_tennis:
+                                    stats = get_player_stats(player_url, driver, config, max_retries=3, retry_delay=5)
+                                else:
+                                    # Tennis leagues need less time per player since no PTI extraction
+                                    stats = get_player_stats(player_url, driver, config, max_retries=2, retry_delay=2)
+                                
+                                if stats['PTI'] != "N/A" and is_platform_tennis:
                                     player.update(stats)
                                     print(f"         ✅ Updated stats: PTI={stats['PTI']}, W/L: {stats['Wins']}-{stats['Losses']} ({stats['Win %']})")
                                 else:
-                                    # Update just the W/L if PTI not found
+                                    # Update just the W/L if PTI not found or tennis league
                                     player['Wins'] = stats['Wins']
                                     player['Losses'] = stats['Losses'] 
                                     player['Win %'] = stats['Win %']
-                                    print(f"         ⚠️  No PTI found, but got W/L: {stats['Wins']}-{stats['Losses']} ({stats['Win %']})")
+                                    
+                                    if is_platform_tennis:
+                                        print(f"         ⚠️  No PTI found, but got W/L: {stats['Wins']}-{stats['Losses']} ({stats['Win %']})")
+                                    else:
+                                        print(f"         ✅ Tennis stats: W/L: {stats['Wins']}-{stats['Losses']} ({stats['Win %']})")
                                     
                             except Exception as e:
                                 print(f"         ❌ Error getting stats for {player['First Name']} {player['Last Name']}: {e}")
@@ -1043,8 +1202,11 @@ def scrape_league_players(league_subdomain, get_detailed_stats=False):
                         else:
                             print(f"      ⚠️  No URL available for {player['First Name']} {player['Last Name']}")
                         
-                        # Rate limiting
-                        time.sleep(0.5)
+                        # Reduced rate limiting for tennis leagues
+                        if is_platform_tennis:
+                            time.sleep(0.5)  # Platform tennis needs more time for PTI extraction
+                        else:
+                            time.sleep(0.2)  # Tennis leagues can be faster
                 
                 all_players.extend(team_players)
                 
@@ -1400,32 +1562,28 @@ def find_missing_teams_comprehensive(driver, config, known_teams, target_series=
     new_teams = {}
     base_url = config['base_url']
     
-    # Strategy 1: Try different URL structures
+    # Strategy 1: Try fewer, more targeted URL structures to prevent timeouts
     url_strategies = [
-        # Try different main page variations
+        # Try different main page variations (reduced set)
         f"{base_url}/?mod=nndz-TjJiOWtOR2sxTnhI",
         f"{base_url}/?mod=nndz-TjJROWJOR2sxTnhI", 
-        f"{base_url}/?mod=nndz-TjJqOWtOR2sxTnhI",
-        # Try direct access patterns
+        # Try direct access patterns (fewer attempts)
         f"{base_url}/standings",
         f"{base_url}/teams", 
-        f"{base_url}/series",
-        f"{base_url}/divisions",
-        # Try season variations
+        # Try current season only
         f"{base_url}/?season=2024",
-        f"{base_url}/?season=2023",
-        f"{base_url}/?year=2024",
     ]
     
-    for url in url_strategies:
+    for i, url in enumerate(url_strategies):
         try:
-            print(f"   🌐 Trying URL: {url}")
+            print(f"   🌐 Trying URL {i+1}/{len(url_strategies)}: {url}")
             driver.get(url)
             time.sleep(2)
             
             soup = BeautifulSoup(driver.page_source, 'html.parser')
             team_links = soup.find_all('a', href=re.compile(r'team='))
             
+            found_any = False
             for link in team_links:
                 href = link.get('href', '')
                 team_name = link.text.strip()
@@ -1439,39 +1597,42 @@ def find_missing_teams_comprehensive(driver, config, known_teams, target_series=
                         
                     team_id = team_match.group(1)
                     new_teams[team_name] = team_id
+                    found_any = True
                     
                     series_name = extract_series_name_from_team(team_name)
                     if target_series and series_name == target_series:
                         print(f"      🎉 FOUND TARGET: {team_name} -> {team_id} (series: {series_name})")
                     elif series_name:
                         print(f"      ✅ Found: {team_name} -> {team_id} (series: {series_name})")
+            
+            if not found_any:
+                print(f"      ℹ️ No new teams found on this page")
                         
         except Exception as e:
             print(f"      ❌ Error with URL {url}: {str(e)}")
+            # Continue with next URL instead of stopping
             continue
     
-    # Strategy 2: Search for specific club/series combinations
-    if target_series:
+    # Strategy 2: Only search for specific target series if provided (reduced scope)
+    if target_series and len(new_teams) == 0:
         # Extract series number from target (e.g., "24" from "Chicago 24")
         series_match = re.search(r'(\d+)', target_series)
         if series_match:
             series_num = series_match.group(1)
             
-            # Try different parameter combinations
+            # Try only the most likely parameter combinations (reduced set)
             param_combinations = [
                 {'mod': 'nndz-TjJiOWtOR2sxTnhI', 'series': series_num},
-                {'mod': 'nndz-TjJiOWtOR2sxTnhI', 'division': series_num},
-                {'mod': 'nndz-TjJiOWtOR2sxTnhI', 'league': series_num},
                 {'series': series_num},
                 {'division': series_num}, 
             ]
             
-            for params in param_combinations:
+            for i, params in enumerate(param_combinations):
                 try:
                     param_string = '&'.join([f"{k}={v}" for k, v in params.items()])
                     test_url = f"{base_url}/?{param_string}"
                     
-                    print(f"   🧪 Testing specific params: {param_string}")
+                    print(f"   🧪 Testing specific params {i+1}/{len(param_combinations)}: {param_string}")
                     driver.get(test_url)
                     time.sleep(2)
                     
@@ -1500,55 +1661,61 @@ def find_missing_teams_comprehensive(driver, config, known_teams, target_series=
                     print(f"      ❌ Error with params {params}: {str(e)}")
                     continue
     
-    # Strategy 3: Try accessing team IDs directly by incrementing known IDs
-    print(f"   🔢 Trying sequential team ID discovery...")
-    
-    # Get known team IDs and try adjacent ones
-    known_team_ids = list(known_teams.values())
-    numeric_ids = []
-    
-    for team_id in known_team_ids:
-        if team_id.isdigit():
-            numeric_ids.append(int(team_id))
-    
-    if numeric_ids:
-        min_id = min(numeric_ids)
-        max_id = max(numeric_ids)
+    # Skip Strategy 3 (sequential ID discovery) for tennis leagues to prevent timeouts
+    is_platform_tennis = is_platform_tennis_league(config['subdomain'])
+    if is_platform_tennis:
+        print(f"   🔢 Trying sequential team ID discovery...")
         
-        # Try a range around the known IDs
-        for test_id in range(max(1, min_id - 10), max_id + 50):
-            if str(test_id) not in known_team_ids:
-                try:
-                    team_url = f"{base_url}/?mod={config['team_page_mod']}&team={test_id}"
-                    driver.get(team_url)
-                    time.sleep(1)
-                    
-                    # Check if this is a valid team page
-                    soup = BeautifulSoup(driver.page_source, 'html.parser')
-                    
-                    # Look for team name in page title or headers
-                    title = soup.find('title')
-                    if title and any(word in title.text.lower() for word in ['team', 'roster', 'players']):
-                        # Try to extract team name from page content
-                        headers = soup.find_all(['h1', 'h2', 'h3'])
-                        for header in headers:
-                            header_text = header.text.strip()
-                            # Look for team name patterns
-                            if ' - ' in header_text and any(char.isdigit() for char in header_text):
-                                series_name = extract_series_name_from_team(header_text)
-                                if target_series and series_name == target_series:
-                                    new_teams[header_text] = str(test_id)
-                                    print(f"      🎯 FOUND BY ID SCAN: {header_text} -> {test_id} (TARGET SERIES!)")
-                                    break
-                                elif series_name and header_text not in known_teams:
-                                    new_teams[header_text] = str(test_id)
-                                    print(f"      ✅ Found by ID scan: {header_text} -> {test_id}")
+        # Get known team IDs and try adjacent ones (reduced scope)
+        known_team_ids = list(known_teams.values())
+        numeric_ids = []
+        
+        for team_id in known_team_ids:
+            if team_id.isdigit():
+                numeric_ids.append(int(team_id))
+        
+        if numeric_ids:
+            min_id = min(numeric_ids)
+            max_id = max(numeric_ids)
+            
+            # Try a smaller range around known IDs to prevent timeouts
+            test_range = range(max(1, min_id - 2), min(max_id + 5, max_id + 10))
+            
+            for test_id in test_range:
+                if str(test_id) not in known_team_ids:
+                    try:
+                        test_url = f"{base_url}/?mod={config['team_page_mod']}&team={test_id}"
+                        driver.get(test_url)
+                        time.sleep(1)  # Reduced delay
                         
-                except Exception as e:
-                    # Expected for invalid team IDs
-                    continue
+                        soup = BeautifulSoup(driver.page_source, 'html.parser')
+                        
+                        # Look for team name in page title or headers
+                        title = soup.find('title')
+                        if title and 'team' in title.text.lower():
+                            # Try to extract team name from page
+                            headers = soup.find_all(['h1', 'h2', 'h3'])
+                            for header in headers:
+                                header_text = header.text.strip()
+                                if header_text and len(header_text) > 3:
+                                    if 'BYE' not in header_text.upper():
+                                        new_teams[header_text] = str(test_id)
+                                        print(f"      🔢 Found by ID: {header_text} -> {test_id}")
+                                        break
+                                    
+                    except Exception as e:
+                        print(f"      ⚠️ Error testing ID {test_id}: {str(e)}")
+                        continue
+    else:
+        print(f"   ⏭️ Skipping sequential ID discovery for tennis league (prevents timeouts)")
     
-    print(f"   📊 Comprehensive search complete: {len(new_teams)} new teams found")
+    if new_teams:
+        print(f"   ✅ Found {len(new_teams)} new teams via comprehensive search")
+        for name, team_id in new_teams.items():
+            print(f"      - {name} -> {team_id}")
+    else:
+        print(f"   ℹ️ No new teams found via comprehensive search")
+    
     return new_teams
 
 

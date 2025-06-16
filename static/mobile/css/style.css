@@ -239,15 +239,11 @@ a:hover {
     outline: none !important;
     display: flex !important;
     flex-direction: column !important;
-    justify-content: flex-start !important;
-    align-items: flex-end !important;
+    justify-content: center !important;
+    align-items: center !important;
     gap: 6px !important;
-    position: absolute !important;
-    top: 50% !important;
-    transform: translateY(calc(-50% + 3px)) !important;
-    right: 12px !important;
     cursor: pointer !important;
-    z-index: 1001 !important;
+    flex-shrink: 0 !important;
 }
 
 .hamburger-btn .bar {

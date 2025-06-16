@@ -291,11 +291,11 @@
                         <table class="min-w-full text-xs">
                             <thead>
                                 <tr class="border-b border-gray-100">
-                                    <th class="text-left py-2 px-1 font-semibold text-gray-700 whitespace-nowrap">Season</th>
-                                    <th class="text-left py-2 px-1 font-semibold text-gray-700 whitespace-nowrap">Series</th>
-                                    <th class="text-center py-2 px-1 font-semibold text-gray-700 whitespace-nowrap">PTI Start</th>
-                                    <th class="text-center py-2 px-1 font-semibold text-gray-700 whitespace-nowrap">PTI End</th>
-                                    <th class="text-center py-2 px-1 font-semibold text-gray-700 whitespace-nowrap">Trend</th>
+                                    <th class="text-left py-1 px-1 font-semibold text-gray-700 whitespace-nowrap text-xs">Season</th>
+                                    <th class="text-left py-1 px-1 font-semibold text-gray-700 whitespace-nowrap text-xs">Series</th>
+                                    <th class="text-center py-1 px-1 font-semibold text-gray-700 whitespace-nowrap text-xs">Start</th>
+                                    <th class="text-center py-1 px-1 font-semibold text-gray-700 whitespace-nowrap text-xs">End</th>
+                                    <th class="text-center py-1 px-1 font-semibold text-gray-700 whitespace-nowrap text-xs">Trend</th>
                                 </tr>
                             </thead>
                             <tbody id="seasonHistoryBody">
@@ -417,6 +417,49 @@
     .py-4 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
     .text-3xl { font-size: 1.875rem; line-height: 2.25rem; }
     .text-2xl { font-size: 1.5rem; line-height: 2rem; }
+    
+    /* Make tables even more compact on mobile */
+    table {
+        font-size: 0.625rem !important; /* Extra small text */
+    }
+    
+    th, td {
+        padding: 0.25rem 0.125rem !important; /* Very tight padding */
+        word-break: break-word;
+    }
+    
+    /* Adjust card padding on mobile */
+    .p-6 {
+        padding: 0.75rem !important;
+    }
+    
+    /* Make series names shorter on mobile if needed */
+    .series-name {
+        max-width: 80px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}
+
+@media (max-width: 480px) {
+    /* Extra small screens */
+    table {
+        font-size: 0.5rem !important; /* Even smaller text */
+    }
+    
+    th, td {
+        padding: 0.125rem 0.0625rem !important; /* Extremely tight padding */
+    }
+    
+    .p-6 {
+        padding: 0.5rem !important;
+    }
+    
+    /* Stack some content vertically on very small screens */
+    .series-name {
+        max-width: 60px;
+    }
 }
 </style>
 
@@ -622,11 +665,13 @@ async function loadSeasonHistory() {
       
       tableHTML += `
         <tr class="border-b border-gray-50 hover:bg-gray-50">
-          <td class="py-2 px-1 font-medium text-gray-900 whitespace-nowrap">${season.season}</td>
-          <td class="py-2 px-1 text-gray-700 whitespace-nowrap" title="${season.series}">${truncatedSeries}</td>
-          <td class="py-2 px-1 text-center text-gray-900 whitespace-nowrap">${season.pti_start}</td>
-          <td class="py-2 px-1 text-center text-gray-900 whitespace-nowrap">${season.pti_end}</td>
-          <td class="py-2 px-1 text-center font-medium whitespace-nowrap ${season.trend_class}">${season.trend_display}</td>
+          <td class="py-1 px-1 font-medium text-gray-900 whitespace-nowrap text-xs">${season.season}</td>
+          <td class="py-1 px-1 text-gray-700 whitespace-nowrap text-xs" title="${season.series}">
+            <div class="series-name">${truncatedSeries}</div>
+          </td>
+          <td class="py-1 px-1 text-center text-gray-900 whitespace-nowrap text-xs">${season.pti_start}</td>
+          <td class="py-1 px-1 text-center text-gray-900 whitespace-nowrap text-xs">${season.pti_end}</td>
+          <td class="py-1 px-1 text-center font-medium whitespace-nowrap text-xs ${season.trend_class}">${season.trend_display}</td>
         </tr>
       `;
     });

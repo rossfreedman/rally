@@ -164,7 +164,7 @@ def get_career_stats_from_db(player_id):
         
         if not career_records or len(career_records) < 5:
             print(f"[DEBUG] get_career_stats_from_db: Insufficient career data for player {player_id} (found {len(career_records) if career_records else 0} records, need at least 5)")
-            return None
+            # Try to get career stats anyway from players table even if not enough history
         
         # Get career stats directly from players table (imported from player_history.json)
         career_stats_query = """
@@ -184,14 +184,18 @@ def get_career_stats_from_db(player_id):
             print(f"[DEBUG] get_career_stats_from_db: No career data found for player {player_id}")
             return None
         
+        print(f"[DEBUG] Raw career data from DB: {career_data}")
+        
         # Check if player has meaningful career data
         career_matches = career_data['career_matches'] or 0
         career_wins = career_data['career_wins'] or 0
         career_losses = career_data['career_losses'] or 0
         
-        if career_matches < 5:  # Require at least 5 career matches
-            print(f"[DEBUG] get_career_stats_from_db: Insufficient career matches for player {player_id} (found {career_matches})")
-            return None
+        # Always show career stats even if 0 - remove the minimum requirement
+        # This allows the UI to display the current state and shows that the feature is working
+        # if career_matches < 1:  # Reduced from 5 to 1 to be less strict
+        #     print(f"[DEBUG] get_career_stats_from_db: Insufficient career matches for player {player_id} (found {career_matches})")
+        #     return None
         
         # Use the actual career data from JSON import
         total_matches = career_matches
@@ -928,12 +932,8 @@ def get_player_analysis(user):
         # Build career stats from player_history table
         career_stats = get_career_stats_from_db(player_id)
         
-        # If no career stats found or they're the same as current season, set to None
-        if (not career_stats or 
-            (career_stats.get('matches', 0) == total_matches and 
-             career_stats.get('wins', 0) == wins and 
-             career_stats.get('losses', 0) == losses)):
-            career_stats = None
+        # Show career stats if they exist in the database
+        # (Remove the logic that hides career stats when they match current season)
         
         # Player history (empty for now since we don't have PTI data)
         player_history = {

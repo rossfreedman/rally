@@ -88,12 +88,15 @@
         </div>
 
         <!-- Instructions -->
-        <div class="bg-blue-50 border border-blue-100 rounded-xl p-4">
+        <div id="contactInstructions" class="bg-yellow-100 border border-yellow-200 rounded-xl p-4 shadow-sm">
             <div class="flex items-center justify-center">
-                <i class="fas fa-info-circle text-blue-500 mr-2"></i>
-                <p class="text-sm text-blue-700 text-center">
-                    Select multiple players with the checkbox or contact players individually
-                </p>
+                <div class="text-sm text-yellow-800 text-center font-medium">
+                    <p class="mb-2">Two options to contact players:</p>
+                    <div class="text-left space-y-1">
+                        <p>1. Click the checkbox next to each name to select and contact multiple players</p>
+                        <p>2. Click the contact player button to contact one player individually</p>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -209,6 +212,7 @@
 .border-gray-50 { border-color: #f9fafb; }
 .border-gray-100 { border-color: #f3f4f6; }
 .border-blue-100 { border-color: #dbeafe; }
+.border-yellow-200 { border-color: #fde047; }
 
 /* Background utilities */
 .bg-gray-50 { background-color: #f9fafb; }
@@ -229,7 +233,9 @@
 .text-green-500 { color: #10b981; }
 .text-green-600 { color: #059669; }
 .text-green-700 { color: #047857; }
+.text-yellow-600 { color: #d97706; }
 .text-yellow-700 { color: #b45309; }
+.text-yellow-800 { color: #92400e; }
 .text-red-700 { color: #b91c1c; }
 .text-blue-500 { color: #3b82f6; }
 .text-blue-600 { color: #2563eb; }
@@ -594,23 +600,37 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Scroll to results section smoothly
+    // Scroll to instructions section smoothly (20px above for better visibility)
     function scrollToResults() {
         // Use a small delay to ensure DOM is updated
         setTimeout(() => {
-            const playersSection = document.querySelector('#playersList').closest('.bg-white.rounded-xl');
-            if (playersSection) {
-                playersSection.scrollIntoView({ 
-                    behavior: 'smooth', 
-                    block: 'start',
-                    inline: 'nearest'
+            const instructionsSection = document.getElementById('contactInstructions');
+            if (instructionsSection) {
+                const elementPosition = instructionsSection.getBoundingClientRect().top;
+                const offsetPosition = elementPosition + window.pageYOffset - 20;
+                
+                window.scrollTo({
+                    top: offsetPosition,
+                    behavior: 'smooth'
                 });
             }
         }, 100);
     }
 
+    // Handle contact button click
+    window.handleContactClick = function(playerName) {
+        console.log('Contact button clicked for player:', playerName);
+        const nameParts = playerName.split(' ');
+        const firstName = nameParts[0] || 'Unknown';
+        const lastName = nameParts.slice(1).join(' ') || 'Unknown';
+        console.log('Parsed name:', firstName, lastName);
+        window.location.href = `/contact-sub?first=${encodeURIComponent(firstName)}&last=${encodeURIComponent(lastName)}`;
+    };
+
     // Create player card with checkbox
     function createPlayerCard(player) {
+        console.log('Creating player card for:', player); // Debug log
+        
         const card = document.createElement('div');
         card.className = 'bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow duration-200';
         
@@ -644,11 +664,22 @@ document.addEventListener('DOMContentLoaded', function() {
                             <h3 class="font-bold text-lg text-gray-900 truncate">${player.name}</h3>
                             <p class="text-sm text-gray-500">${player.series}</p>
                         </div>
-                        <button class="ml-3 px-3 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors duration-200 contact-btn flex items-center gap-2" 
-                                data-first="${player.firstName}" 
-                                data-last="${player.lastName}">
-                            <i class="fas fa-envelope text-sm"></i>
-                            <span class="hidden sm:inline">Contact</span>
+                        <button class="ml-3 contact-btn" 
+                                onclick="handleContactClick('${player.name}')"
+                                style="
+                                    background-color: #16a34a !important; 
+                                    color: white !important; 
+                                    padding: 8px 16px !important; 
+                                    border-radius: 8px !important; 
+                                    font-size: 14px !important; 
+                                    font-weight: 500 !important; 
+                                    border: none !important; 
+                                    min-width: 70px !important;
+                                    cursor: pointer !important;
+                                    display: inline-block !important;
+                                    visibility: visible !important;
+                                ">
+                            Contact
                         </button>
                     </div>
                     
@@ -677,13 +708,7 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
         `;
         
-        // Add contact button functionality
-        const contactBtn = card.querySelector('.contact-btn');
-        contactBtn.addEventListener('click', function() {
-            const firstName = this.dataset.first;
-            const lastName = this.dataset.last;
-            window.location.href = `/contact-sub?first=${encodeURIComponent(firstName)}&last=${encodeURIComponent(lastName)}`;
-        });
+        // Contact button functionality is handled inline
         
         // Add checkbox functionality
         const checkbox = card.querySelector('.player-checkbox');
