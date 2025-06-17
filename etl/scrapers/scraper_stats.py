@@ -137,27 +137,11 @@ class ChromeManager:
             finally:
                 self.driver = None
 
-def standardize_league_id(subdomain):
-    """
-    Standardize league ID format to match database expectations.
-    
-    Args:
-        subdomain (str): The subdomain (e.g., 'aptachicago', 'nstf', 'cita')
-        
-    Returns:
-        str: Standardized league ID (e.g., 'APTA_CHICAGO', 'NSTF', 'CITA')
-    """
-    subdomain_lower = subdomain.lower()
-    
-    # Map subdomains to standardized league IDs
-    mapping = {
-        'aptachicago': 'APTA_CHICAGO',
-        'aptanational': 'APTA_NATIONAL', 
-        'nstf': 'NSTF',
-        'cita': 'CITA'
-    }
-    
-    return mapping.get(subdomain_lower, subdomain.upper())
+# Import centralized league utilities  
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+from utils.league_utils import standardize_league_id
 
 # Dynamic League Configuration - User Input Based
 def get_league_config(league_subdomain=None):

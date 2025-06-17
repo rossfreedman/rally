@@ -29,16 +29,21 @@ from typing import Dict, List, Set, Any, Optional
 import re
 
 # Add project root to Python path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+script_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(os.path.dirname(script_dir))
+sys.path.insert(0, project_root)
 
 from database_config import get_db
+from utils.league_utils import normalize_league_id, get_league_display_name, get_league_url
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
 class ComprehensiveETL:
     def __init__(self):
-        self.data_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 
-                                   'data', 'leagues', 'all')
+        # Use the same project root calculation as the import fix
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        project_root = os.path.dirname(os.path.dirname(script_dir))
+        self.data_dir = os.path.join(project_root, 'data', 'leagues', 'all')
         self.imported_counts = {}
         self.errors = []
         
@@ -115,16 +120,19 @@ class ComprehensiveETL:
         for player in players_data:
             league = player.get('League', '').strip()
             if league:
-                leagues.add(league)
+                # Normalize the league ID
+                normalized_league = normalize_league_id(league)
+                if normalized_league:
+                    leagues.add(normalized_league)
                 
         # Convert to standardized format
         league_records = []
-        for league in sorted(leagues):
-            # Create standardized league data
+        for league_id in sorted(leagues):
+            # Create standardized league data using utility functions
             league_record = {
-                'league_id': league,
-                'league_name': self._get_league_display_name(league),
-                'league_url': self._get_league_url(league)
+                'league_id': league_id,
+                'league_name': get_league_display_name(league_id),
+                'league_url': get_league_url(league_id)
             }
             league_records.append(league_record)
             
@@ -171,16 +179,19 @@ class ComprehensiveETL:
             league = player.get('League', '').strip()
             
             if club and league:
-                if club not in club_league_map:
-                    club_league_map[club] = set()
-                club_league_map[club].add(league)
+                # Normalize the league ID
+                normalized_league = normalize_league_id(league)
+                if normalized_league:
+                    if club not in club_league_map:
+                        club_league_map[club] = set()
+                    club_league_map[club].add(normalized_league)
                 
         relationships = []
         for club, leagues in club_league_map.items():
-            for league in leagues:
+            for league_id in leagues:
                 relationships.append({
                     'club_name': club,
-                    'league_id': league
+                    'league_id': league_id
                 })
                 
         self.log(f"✅ Found {len(relationships)} club-league relationships")
@@ -196,16 +207,19 @@ class ComprehensiveETL:
             league = player.get('League', '').strip()
             
             if series_name and league:
-                if series_name not in series_league_map:
-                    series_league_map[series_name] = set()
-                series_league_map[series_name].add(league)
+                # Normalize the league ID
+                normalized_league = normalize_league_id(league)
+                if normalized_league:
+                    if series_name not in series_league_map:
+                        series_league_map[series_name] = set()
+                    series_league_map[series_name].add(normalized_league)
                 
         relationships = []
         for series_name, leagues in series_league_map.items():
-            for league in leagues:
+            for league_id in leagues:
                 relationships.append({
                     'series_name': series_name,
-                    'league_id': league
+                    'league_id': league_id
                 })
                 
         self.log(f"✅ Found {len(relationships)} series-league relationships")
@@ -359,33 +373,44 @@ class ComprehensiveETL:
                 tenniscores_player_id = player.get('Player ID', '').strip()
                 first_name = player.get('First Name', '').strip()
                 last_name = player.get('Last Name', '').strip()
-                league_id = player.get('League', '').strip()
+                raw_league_id = player.get('League', '').strip()
+                league_id = normalize_league_id(raw_league_id) if raw_league_id else ''
                 club_name = player.get('Club', '').strip()
                 series_name = player.get('Series', '').strip()
                 
-                # Parse PTI
-                pti_str = player.get('PTI', '').strip()
+                # Parse PTI - handle both string and numeric types
+                pti_value = player.get('PTI', '')
                 pti = None
-                if pti_str and pti_str.upper() != 'N/A':
-                    try:
-                        pti = float(pti_str)
-                    except ValueError:
-                        pass
+                if pti_value is not None and pti_value != '':
+                    if isinstance(pti_value, (int, float)):
+                        pti = float(pti_value)
+                    else:
+                        pti_str = str(pti_value).strip()
+                        if pti_str and pti_str.upper() != 'N/A':
+                            try:
+                                pti = float(pti_str)
+                            except ValueError:
+                                pass
                 
                 # Parse wins/losses
                 wins = self._parse_int(player.get('Wins', '0'))
                 losses = self._parse_int(player.get('Losses', '0'))
                 
-                # Parse win percentage
-                win_pct_str = player.get('Win %', '0.0%').replace('%', '').strip()
+                # Parse win percentage - handle both string and numeric types
+                win_pct_value = player.get('Win %', '0.0%')
                 win_percentage = 0.0
-                try:
-                    win_percentage = float(win_pct_str)
-                except ValueError:
-                    pass
+                if isinstance(win_pct_value, (int, float)):
+                    win_percentage = float(win_pct_value)
+                else:
+                    try:
+                        win_pct_str = str(win_pct_value).replace('%', '').strip()
+                        win_percentage = float(win_pct_str)
+                    except (ValueError, AttributeError):
+                        pass
                 
-                # Captain status
-                captain_status = player.get('Captain', '').strip()
+                # Captain status - handle different data types
+                captain_value = player.get('Captain', '')
+                captain_status = str(captain_value).strip() if captain_value is not None else ''
                 
                 if not all([tenniscores_player_id, first_name, last_name, league_id]):
                     self.log(f"⚠️  Skipping player with missing required data: {player}", "WARNING")
@@ -452,7 +477,8 @@ class ComprehensiveETL:
         for player_record in player_history_data:
             try:
                 tenniscores_player_id = player_record.get('player_id', '').strip()
-                league_id = player_record.get('league_id', '').strip()
+                raw_league_id = player_record.get('league_id', '').strip()
+                league_id = normalize_league_id(raw_league_id) if raw_league_id else ''
                 series = player_record.get('series', '').strip()
                 matches = player_record.get('matches', [])
                 
@@ -539,7 +565,8 @@ class ComprehensiveETL:
                 away_team = (record.get('Away Team') or '').strip()
                 scores = record.get('Scores') or ''
                 winner = (record.get('Winner') or '').strip()
-                league_id = (record.get('league_id') or '').strip()
+                raw_league_id = (record.get('league_id') or '').strip()
+                league_id = normalize_league_id(raw_league_id) if raw_league_id else ''
                 
                 # Extract player IDs
                 home_player_1_id = (record.get('Home Player 1 ID') or '').strip()
@@ -615,7 +642,8 @@ class ComprehensiveETL:
             try:
                 series = record.get('series', '').strip()
                 team = record.get('team', '').strip()
-                league_id = record.get('league_id', '').strip()
+                raw_league_id = record.get('league_id', '').strip()
+                league_id = normalize_league_id(raw_league_id) if raw_league_id else ''
                 points = record.get('points', 0)
                 
                 # Extract match stats
@@ -700,7 +728,8 @@ class ComprehensiveETL:
                 home_team = record.get('home_team', '').strip()
                 away_team = record.get('away_team', '').strip()
                 location = record.get('location', '').strip()
-                league_id = record.get('League', '').strip()
+                raw_league_id = record.get('League', '').strip()
+                league_id = normalize_league_id(raw_league_id) if raw_league_id else ''
                 
                 # Parse date
                 match_date = None
@@ -749,23 +778,7 @@ class ComprehensiveETL:
         self.imported_counts['schedule'] = imported
         self.log(f"✅ Imported {imported:,} schedule records ({errors} errors)")
     
-    def _get_league_display_name(self, league_id: str) -> str:
-        """Get display name for league"""
-        display_names = {
-            'NSTF': 'North Shore Tennis Foundation',
-            'APTA_CHICAGO': 'APTA Chicago',
-            'APTA_NATIONAL': 'APTA National'
-        }
-        return display_names.get(league_id, league_id)
-        
-    def _get_league_url(self, league_id: str) -> str:
-        """Get URL for league"""
-        urls = {
-            'NSTF': 'https://nstf.org/',
-            'APTA_CHICAGO': 'https://aptachicago.tenniscores.com/',
-            'APTA_NATIONAL': 'https://apta.tenniscores.com/'
-        }
-        return urls.get(league_id, '')
+
         
     def _parse_int(self, value: str) -> int:
         """Parse integer with error handling"""

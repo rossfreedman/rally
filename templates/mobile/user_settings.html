@@ -67,6 +67,35 @@
                         </div>
                         <div class="text-xs text-gray-500 mt-1">This is used to automatically log you into Club Automation when reserving</div>
                     </div>
+                    
+                    <!-- Player Preferences Section -->
+                    <div class="pt-6 border-t border-gray-100">
+                        <h3 class="text-md font-semibold text-gray-900 mb-4 flex items-center">
+                            <i class="fas fa-user-cog text-blue-500 mr-2"></i>
+                            Player Preferences
+                        </h3>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2" for="adDeuce">Ad/Deuce</label>
+                                <select id="adDeuce" name="adDeuce" class="w-full p-3 border border-gray-300 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                    <option value="">Select preference...</option>
+                                    <option value="Ad">Ad</option>
+                                    <option value="Deuce">Deuce</option>
+                                    <option value="Either">Either</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2" for="dominantHand">Dominant Hand</label>
+                                <select id="dominantHand" name="dominantHand" class="w-full p-3 border border-gray-300 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                    <option value="">Select hand...</option>
+                                    <option value="Righty">Righty</option>
+                                    <option value="Lefty">Lefty</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="text-xs text-gray-500 mt-2">These preferences will be used for match planning and lineups.</div>
+                    </div>
+                    
                     <div class="pt-4">
                         <button type="submit" class="w-full px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors duration-200 font-medium">
                             <i class="fas fa-save mr-2"></i>Save Changes
@@ -120,6 +149,10 @@ function fillUserSettingsForm(user) {
   if (user.club_automation_password !== undefined) {
     document.getElementById('clubAutomationPassword').value = user.club_automation_password || '';
   }
+  
+  // Player preferences (placeholders for now)
+  document.getElementById('adDeuce').value = user.ad_deuce_preference || '';
+  document.getElementById('dominantHand').value = user.dominant_hand || '';
 }
 // Fetch leagues, clubs and series for dropdowns
 function loadLeaguesClubsAndSeries(user) {
@@ -286,6 +319,9 @@ form.addEventListener('submit', function(e) {
     club: form.club.value,
     series: form.series.value,
     clubAutomationPassword: form.clubAutomationPassword.value,
+    // Player preferences (placeholders for now)
+    adDeuce: form.adDeuce.value,
+    dominantHand: form.dominantHand.value,
     forcePlayerIdRetry: forceRetry
   };
   
