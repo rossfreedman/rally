@@ -2,7 +2,7 @@
   {
     "series": "Series 1",
     "team": "Birchwood S1",
-    "league_id": "NSTF",
+    "league_id": "nsft",
     "points": 24,
     "matches": {
       "won": 2,
@@ -31,7 +31,7 @@
   {
     "series": "Series 1",
     "team": "Wilmette S1 T2",
-    "league_id": "NSTF",
+    "league_id": "nsft",
     "points": 12,
     "matches": {
       "won": 1,
@@ -60,7 +60,7 @@
   {
     "series": "Series 1",
     "team": "Lake Forest  S1",
-    "league_id": "NSTF",
+    "league_id": "nsft",
     "points": 5,
     "matches": {
       "won": 0,
@@ -89,7 +89,7 @@
   {
     "series": "Series 1",
     "team": "Wilmette S1 T1",
-    "league_id": "NSTF",
+    "league_id": "nsft",
     "points": 5,
     "matches": {
       "won": 0,
@@ -118,7 +118,7 @@
   {
     "series": "Series 1",
     "team": "Tennaqua S1",
-    "league_id": "NSTF",
+    "league_id": "nsft",
     "points": 3,
     "matches": {
       "won": 0,
@@ -147,7 +147,7 @@
   {
     "series": "Series 1",
     "team": "Midtown S1",
-    "league_id": "NSTF",
+    "league_id": "nsft",
     "points": 0,
     "matches": {
       "won": 0,
@@ -176,7 +176,7 @@
   {
     "series": "Series 3",
     "team": "Valley Lo S3",
-    "league_id": "NSTF",
+    "league_id": "nsft",
     "points": 15,
     "matches": {
       "won": 1,
@@ -205,7 +205,7 @@
   {
     "series": "Series 3",
     "team": "Skokie S3",
-    "league_id": "NSTF",
+    "league_id": "nsft",
     "points": 12,
     "matches": {
       "won": 1,
@@ -234,7 +234,7 @@
   {
     "series": "Series 3",
     "team": "Lake Forest S3",
-    "league_id": "NSTF",
+    "league_id": "nsft",
     "points": 10,
     "matches": {
       "won": 1,
@@ -263,7 +263,7 @@
   {
     "series": "Series 3",
     "team": "Old Willow S3",
-    "league_id": "NSTF",
+    "league_id": "nsft",
     "points": 6,
     "matches": {
       "won": 0,
@@ -292,7 +292,7 @@
   {
     "series": "Series 3",
     "team": "Tennaqua S3",
-    "league_id": "NSTF",
+    "league_id": "nsft",
     "points": 5,
     "matches": {
       "won": 0,
@@ -321,7 +321,7 @@
   {
     "series": "Series 3",
     "team": "Birchwood S3",
-    "league_id": "NSTF",
+    "league_id": "nsft",
     "points": 0,
     "matches": {
       "won": 0,
@@ -350,7 +350,7 @@
   {
     "series": "Series 2A",
     "team": "Tennaqua S2A",
-    "league_id": "NSTF",
+    "league_id": "nsft",
     "points": 15,
     "matches": {
       "won": 1,
@@ -379,7 +379,7 @@
   {
     "series": "Series 2A",
     "team": "Midtown S2A",
-    "league_id": "NSTF",
+    "league_id": "nsft",
     "points": 11,
     "matches": {
       "won": 1,
@@ -408,7 +408,7 @@
   {
     "series": "Series 2A",
     "team": "Old Willow S2A",
-    "league_id": "NSTF",
+    "league_id": "nsft",
     "points": 9,
     "matches": {
       "won": 1,
@@ -437,7 +437,7 @@
   {
     "series": "Series 2A",
     "team": "Exmoor S2A",
-    "league_id": "NSTF",
+    "league_id": "nsft",
     "points": 7,
     "matches": {
       "won": 0,
@@ -466,7 +466,7 @@
   {
     "series": "Series 2A",
     "team": "Skokie S2A",
-    "league_id": "NSTF",
+    "league_id": "nsft",
     "points": 6,
     "matches": {
       "won": 0,
@@ -495,7 +495,7 @@
   {
     "series": "Series 2A",
     "team": "Northmoor S2A",
-    "league_id": "NSTF",
+    "league_id": "nsft",
     "points": 2,
     "matches": {
       "won": 0,
@@ -524,7 +524,7 @@
   {
     "series": "Series 2B",
     "team": "Lake Forest S2B",
-    "league_id": "NSTF",
+    "league_id": "nsft",
     "points": 18,
     "matches": {
       "won": 1,
@@ -553,7 +553,7 @@
   {
     "series": "Series 2B",
     "team": "Ravinia Green S2B",
-    "league_id": "NSTF",
+    "league_id": "nsft",
     "points": 16,
     "matches": {
       "won": 1,
@@ -582,7 +582,7 @@
   {
     "series": "Series 2B",
     "team": "Birchwood S2B",
-    "league_id": "NSTF",
+    "league_id": "nsft",
     "points": 12,
     "matches": {
       "won": 1,
@@ -611,7 +611,7 @@
   {
     "series": "Series 2B",
     "team": "Wilmette S2B",
-    "league_id": "NSTF",
+    "league_id": "nsft",
     "points": 9,
     "matches": {
       "won": 1,
@@ -640,7 +640,7 @@
   {
     "series": "Series 2B",
     "team": "Tennaqua S2B",
-    "league_id": "NSTF",
+    "league_id": "nsft",
     "points": 4,
     "matches": {
       "won": 0,
@@ -669,7 +669,7 @@
   {
     "series": "Series 2B",
     "team": "Winnetka S2B",
-    "league_id": "NSTF",
+    "league_id": "nsft",
     "points": 4,
     "matches": {
       "won": 0,

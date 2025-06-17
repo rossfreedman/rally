@@ -24,26 +24,9 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 from utils.player_id_utils import extract_tenniscores_player_id, create_player_id
 
-def standardize_league_id(subdomain):
-    """
-    Standardize league ID format to match database expectations.
-    
-    Args:
-        subdomain (str): The subdomain (e.g., 'aptachicago', 'nstf')
-        
-    Returns:
-        str: Standardized league ID (e.g., 'APTA_CHICAGO', 'NSTF')
-    """
-    subdomain_lower = subdomain.lower()
-    
-    # Map subdomains to standardized league IDs
-    mapping = {
-        'aptachicago': 'APTA_CHICAGO',
-        'aptanational': 'APTA_NATIONAL', 
-        'nstf': 'NSTF'
-    }
-    
-    return mapping.get(subdomain_lower, subdomain.upper())
+# Import centralized league utilities
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+from utils.league_utils import standardize_league_id
 
 def is_platform_tennis_league(subdomain):
     """
