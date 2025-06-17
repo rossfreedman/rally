@@ -215,9 +215,24 @@ class UserPlayerAssociation(Base):
     # Helper method to get associated player
     def get_player(self, session):
         """Get the associated player record (league derived from player)"""
-        return session.query(Player).filter(
+        # Get all players with this tenniscores_player_id
+        players = session.query(Player).filter(
             Player.tenniscores_player_id == self.tenniscores_player_id
-        ).first()
+        ).all()
+        
+        if not players:
+            return None
+        elif len(players) == 1:
+            return players[0]
+        else:
+            # Multiple players with same tenniscores_player_id
+            # Prefer players from Tennaqua club (user's preferred registration)
+            tennaqua_players = [p for p in players if p.club and p.club.name == 'Tennaqua']
+            if tennaqua_players:
+                return tennaqua_players[0]
+            
+            # If no Tennaqua player, return first one (existing behavior)
+            return players[0]
     
     # Helper method to get league information
     def get_league(self, session):

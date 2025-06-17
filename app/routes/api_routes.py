@@ -901,13 +901,19 @@ def update_settings():
                 logger.info(f"Settings update: Retrying player ID lookup because: {', '.join(reason)}")
                 
                 # Use database-only lookup - NO MORE JSON FILES
-                found_player_id = find_player_by_database_lookup(
+                lookup_result = find_player_by_database_lookup(
                     first_name=data['firstName'],
                     last_name=data['lastName'],
                     club_name=data['club'],
                     series_name=data['series'],
                     league_id=data.get('league_id')
                 )
+                
+                # Extract player ID from the enhanced result
+                found_player_id = None
+                if lookup_result and lookup_result.get('player'):
+                    found_player_id = lookup_result['player']['tenniscores_player_id']
+                    logger.info(f"Settings update: Match type: {lookup_result['match_type']} - {lookup_result['message']}")
                 
                 if found_player_id:
                     logger.info(f"Settings update: Found player ID via database lookup: {found_player_id}")
@@ -1104,13 +1110,19 @@ def retry_player_id_lookup():
             logger.info(f"Manual retry: Looking up player via database for {first_name} {last_name}")
             
             # Use database-only lookup - NO MORE JSON FILES
-            found_player_id = find_player_by_database_lookup(
+            lookup_result = find_player_by_database_lookup(
                 first_name=first_name,
                 last_name=last_name,
                 club_name=club_name,
                 series_name=series_name,
                 league_id=league_id
             )
+            
+            # Extract player ID from the enhanced result
+            found_player_id = None
+            if lookup_result and lookup_result.get('player'):
+                found_player_id = lookup_result['player']['tenniscores_player_id']
+                logger.info(f"Manual retry: Match type: {lookup_result['match_type']} - {lookup_result['message']}")
             
             if found_player_id:
                 # Create user-player association

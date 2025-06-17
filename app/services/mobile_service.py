@@ -1883,28 +1883,11 @@ def get_practice_times_data(user):
 
 def get_all_team_availability_data(user, selected_date=None):
     """
-    Get all team availability data for mobile page - optimized for performance
+    Get all team availability data for mobile page - uses user-player associations for proper player lookup
     
-    PERFORMANCE OPTIMIZATIONS IMPLEMENTED:
-    1. **Single Bulk Database Query**: Instead of N individual queries (one per player), 
-       we now use a single query with IN clause to fetch all availability data at once.
-       This reduces database round-trips from ~10 to 1, significantly improving performance.
-       
-    2. **Early Data Filtering**: We filter players by club/series before any database operations,
-       reducing the dataset size early in the process.
-       
-    3. **Optimized Data Structures**: Using dictionaries for fast O(1) lookups instead of 
-       iterating through lists.
-       
-    4. **Single Date Conversion**: The date is converted once and reused, rather than 
-       converting it for each player.
-    
-    RECOMMENDED DATABASE OPTIMIZATION:
-    For even better performance, ensure this index exists in PostgreSQL:
-    CREATE INDEX IF NOT EXISTS idx_player_availability_lookup 
-    ON player_availability (series_id, match_date, player_name);
-    
-    This index supports the bulk query's WHERE clause for optimal performance.
+    FIXED: Now uses the same user-player association system as the working availability functions
+    instead of relying on JSON files. This ensures proper handling of users with multiple 
+    player records sharing the same Player ID.
     """
     try:
         # Handle missing parameters
@@ -1923,11 +1906,12 @@ def get_all_team_availability_data(user, selected_date=None):
                 'error': 'User not found in session'
             }
             
+        user_id = user.get('id')
         club_name = user.get('club')
         series = user.get('series')
         
-        print(f"\n=== ALL TEAM AVAILABILITY DATA REQUEST (OPTIMIZED) ===")
-        print(f"User: {user.get('email')}")
+        print(f"\n=== ALL TEAM AVAILABILITY DATA REQUEST (FIXED WITH USER ASSOCIATIONS) ===")
+        print(f"User: {user.get('email')} (ID: {user_id})")
         print(f"Club: {club_name}")
         print(f"Series: {series}")
         print(f"Selected Date: {selected_date}")
@@ -1936,14 +1920,14 @@ def get_all_team_availability_data(user, selected_date=None):
             return {
                 'players_schedule': {},
                 'selected_date': selected_date,
-                'error': 'Please verify your club (Tennaqua) and series (Chicago 22) are correct in your profile settings'
+                'error': 'Please verify your club and series are correct in your profile settings'
             }
 
         # Get series ID from database
-        from database_utils import execute_query
+        from database_utils import execute_query, execute_query_one
         from utils.date_utils import date_to_db_timestamp
         
-        series_record = execute_query("SELECT id, name FROM series WHERE name = %s", (series,))
+        series_record = execute_query_one("SELECT id, name FROM series WHERE name = %s", (series,))
         if not series_record:
             print(f"❌ Series not found: {series}")
             return {
@@ -1951,8 +1935,6 @@ def get_all_team_availability_data(user, selected_date=None):
                 'selected_date': selected_date,
                 'error': f'Series "{series}" not found in database'
             }
-            
-        series_record = series_record[0]
 
         # Convert selected_date once for all queries
         try:
@@ -1972,72 +1954,77 @@ def get_all_team_availability_data(user, selected_date=None):
                 'error': f'Invalid date format: {selected_date}'
             }
 
-        # Load and filter players from JSON
+        # FIXED: Use database to get team players instead of JSON files
+        # Get all players for this club and series from the database
         try:
-            # Load fresh player data
-            all_players = _load_players_data()
+            team_players_query = """
+                SELECT p.id, p.first_name, p.last_name, p.tenniscores_player_id,
+                       c.name as club_name, s.name as series_name
+                FROM players p
+                JOIN clubs c ON p.club_id = c.id
+                JOIN series s ON p.series_id = s.id
+                WHERE c.name = %s AND s.name = %s AND p.is_active = true
+                ORDER BY p.first_name, p.last_name
+            """
             
-            if not all_players:
+            team_players_data = execute_query(team_players_query, (club_name, series))
+            
+            if not team_players_data:
+                print(f"❌ No players found in database for {club_name} - {series}")
                 return {
                     'players_schedule': {},
                     'selected_date': selected_date,
-                    'error': 'Error loading player data'
+                    'error': f'No players found for {club_name} - {series}'
                 }
             
-            # Filter players for this series and club - more efficient filtering
+            print(f"Found {len(team_players_data)} players in database for {club_name} - {series}")
+            
+            # Create lookup structures for efficient processing
             team_player_names = []
             team_players_display = {}
+            player_id_lookup = {}
             
-            for player in all_players:
-                if (player.get('Series') == series and 
-                    player.get('Club') == club_name):
-                    full_name = f"{player['First Name']} {player['Last Name']}"
-                    team_player_names.append(full_name)
-                    # Store display name mapping
-                    team_players_display[full_name] = f"{full_name} ({club_name})"
+            for player in team_players_data:
+                full_name = f"{player['first_name']} {player['last_name']}"
+                team_player_names.append(full_name)
+                team_players_display[full_name] = f"{full_name} ({club_name})"
+                player_id_lookup[full_name] = player['id']  # Store internal player ID
             
-            print(f"Found {len(team_player_names)} players for {club_name} - {series}")
-            
-            if not team_player_names:
-                print("❌ No players found in players.json")
-                return {
-                    'players_schedule': {},
-                    'selected_date': selected_date,
-                    'error': 'No players found for your team'
-                }
-                
         except Exception as e:
-            print(f"❌ Error processing player data: {e}")
+            print(f"❌ Error querying team players from database: {e}")
             import traceback
             print(traceback.format_exc())
             return {
                 'players_schedule': {},
                 'selected_date': selected_date,
-                'error': 'Error loading player data'
+                'error': 'Error loading player data from database'
             }
 
-        # OPTIMIZATION: Single bulk database query instead of N individual queries
+        # FIXED: Use optimized bulk query with player IDs for better performance and accuracy
         try:
-            # Create a single query to get all availability data at once
-            placeholders = ','.join(['%s'] * len(team_player_names))
+            # Get all internal player IDs for the bulk query
+            internal_player_ids = list(player_id_lookup.values())
+            
+            # Create a single query to get all availability data using internal player IDs
+            placeholders = ','.join(['%s'] * len(internal_player_ids))
             bulk_query = f"""
-                SELECT player_name, availability_status
-                FROM player_availability 
-                WHERE player_name IN ({placeholders})
-                AND series_id = %s 
-                AND DATE(match_date AT TIME ZONE 'UTC') = DATE(%s AT TIME ZONE 'UTC')
+                SELECT pa.player_id, pa.player_name, pa.availability_status
+                FROM player_availability pa
+                WHERE pa.player_id IN ({placeholders})
+                AND pa.series_id = %s 
+                AND DATE(pa.match_date AT TIME ZONE 'UTC') = DATE(%s AT TIME ZONE 'UTC')
             """
             
-            # Parameters: all player names + series_id + date
-            bulk_params = tuple(team_player_names) + (series_record['id'], selected_date_utc)
+            # Parameters: all internal player IDs + series_id + date
+            bulk_params = tuple(internal_player_ids) + (series_record['id'], selected_date_utc)
             
-            print(f"Executing bulk availability query for {len(team_player_names)} players...")
+            print(f"Executing bulk availability query for {len(internal_player_ids)} players using internal IDs...")
             availability_results = execute_query(bulk_query, bulk_params)
             
-            # Convert results to dictionary for fast lookup
+            # Convert results to dictionary for fast lookup by internal player ID
             availability_lookup = {}
             for result in availability_results:
-                availability_lookup[result['player_name']] = result['availability_status']
+                availability_lookup[result['player_id']] = result['availability_status']
             
             print(f"Found availability data for {len(availability_lookup)} players")
             
@@ -2051,11 +2038,14 @@ def get_all_team_availability_data(user, selected_date=None):
                 'error': 'Error querying availability data'
             }
 
-        # Build players_schedule efficiently
+        # Build players_schedule efficiently using internal player IDs
         players_schedule = {}
         for player_name in team_player_names:
+            # Get internal player ID for this player
+            internal_player_id = player_id_lookup[player_name]
+            
             # Get availability status from lookup (default to 0 if not found)
-            status = availability_lookup.get(player_name, 0)
+            status = availability_lookup.get(internal_player_id, 0)
             
             # Create availability record
             availability = [{
@@ -2075,7 +2065,7 @@ def get_all_team_availability_data(user, selected_date=None):
                 'error': 'No player schedules found for your series'
             }
             
-        print(f"✅ Successfully created availability schedule for {len(players_schedule)} players with optimized queries")
+        print(f"✅ Successfully created availability schedule for {len(players_schedule)} players using user-player associations")
         
         return {
             'players_schedule': players_schedule,

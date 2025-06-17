@@ -7,108 +7,128 @@ Your complete guide to running the Rally ELT pipeline easily and repeatedly.
 ```
 📂 rally/
 ├── 📁 etl/                              # Main ELT scripts
-│   ├── run_all_etl.py                   # Master script
-│   ├── import_reference_data.py         # Step 1: Leagues, clubs, series
-│   ├── import_players.py                # Step 2: Players
-│   ├── import_career_stats.py           # Step 3: Career stats
-│   └── import_player_history.py         # Step 4: Match history
+│   └── 📁 database_import/
+│       └── json_import_all_to_database.py   # ⭐ MAIN ETL SCRIPT (includes career stats)
+├── 📁 scripts/                         # Standalone utility scripts
+│   └── import_career_stats.py          # ⚠️ DEPRECATED (use main ETL instead)
 ├── 📁 data/leagues/all/                 # Data sources
 │   ├── players.json                     # Player data (from scrapers)
-│   └── player_history.json             # Match history (from scrapers)
+│   └── player_history.json             # Match history + career stats (from scrapers)
 ├── run_etl.py                          # 🆕 Command center (THIS IS WHAT YOU USE!)
 └── validate_etl_pipeline.py            # 🆕 Proper validation
 ```
 
 ## 🎯 Simple Commands (Use These!)
 
-### **See All Options**
-```bash
-python run_etl.py --help
-```
-
 ### **Run Complete ELT Pipeline** ⭐ Most Common
 ```bash
-python run_etl.py --run
+# This now includes career stats automatically!
+python etl/database_import/json_import_all_to_database.py
 ```
 
-### **Test Run (No Database Changes)**
+### **Alternative: Use Command Center** (if available)
 ```bash
-python run_etl.py --dry-run
+python run_etl.py --run
 ```
 
 ### **Validate ELT Pipeline**
 ```bash
-python run_etl.py --validate
+python validate_etl_pipeline.py
 ```
 
-### **Run ELT + Validate** ⭐ Recommended
-```bash
-python run_etl.py --run --validate
-```
+## 🔄 What Gets Imported (All in One Script!)
 
-### **Run Scripts One by One** (for debugging)
-```bash
-python run_etl.py --individual
-```
+The main ETL script now imports **everything** in the correct order:
 
-### **Show File Locations**
-```bash
-python run_etl.py --files
-```
-
-## 🔄 Typical Workflow
-
-### **1. Daily/Weekly Data Update**
-```bash
-# Step 1: Run your scrapers (separate process)
-# Step 2: Run ELT pipeline
-python run_etl.py --run
-```
-
-### **2. Test Before Important Updates**
-```bash
-# Test first
-python run_etl.py --dry-run
-
-# If looks good, run for real
-python run_etl.py --run
-```
-
-### **3. Full Validation** (after changes to scripts)
-```bash
-python run_etl.py --run --validate
-```
-
-## 📊 What Each Command Does
-
-| Command | What It Does |
-|---------|-------------|
-| `--run` | Imports all JSON data to database |
-| `--validate` | Tests if scripts work correctly |
-| `--dry-run` | Shows what would happen (no changes) |
-| `--individual` | Runs scripts one by one with prompts |
-| `--files` | Shows where everything is located |
+1. **Reference Data**: Leagues, clubs, series
+2. **Relationships**: Club-league, series-league mappings  
+3. **Players**: Current season data from `players.json`
+4. **✨ Career Stats**: Career totals from `player_history.json` ← **NEW!**
+5. **Player History**: Individual match records
+6. **Match History**: All match results
+7. **Series Stats**: Team performance data
+8. **Schedules**: Upcoming matches
 
 ## ✅ Success Indicators
 
-### **ELT Run Success:**
+### **Complete Import Success:**
 ```
-✅ ELT Pipeline - SUCCESS
-🎉 All operations completed successfully!
-   Your database has been updated with the latest data.
+✅ Updated 2,102 players with career stats (0 not found, 0 errors)
+✅ Imported 121,001 player history records (0 errors)
+✅ ETL process completed successfully!
+
+📊 IMPORT SUMMARY
+   players             :      7,637 records
+   career_stats        :      2,102 records  ← Look for this!
+   player_history      :    121,001 records
+   TOTAL               :    139,893 records
 ```
 
-### **Validation Success:**
+## 🚨 Important Changes (2025-06-16)
+
+### **✅ What's New:**
+- **Career stats now included** in main ETL script
+- **Single script** handles everything 
+- **No manual steps** required
+
+### **⚠️ What's Deprecated:**
+- `scripts/import_career_stats.py` is now **DEPRECATED**
+- Don't run it separately anymore
+- Main ETL script handles career stats automatically
+
+### **🔄 Migration:**
+**Before (2 steps):**
+```bash
+python etl/database_import/json_import_all_to_database.py
+python scripts/import_career_stats.py  # ← Manual step
 ```
-🎯 ELT PIPELINE VALIDATION RESULTS
-Overall Status: ✅ PASS
-📋 Test Results:
-   Script Reliability: ✅ PASS
-   JSON Completeness:  ✅ PASS  
-   Data Integrity:     ✅ PASS
+
+**After (1 step):**
+```bash
+python etl/database_import/json_import_all_to_database.py  # ← Everything included!
 ```
+
+## 🎯 Quick Start for New Users
+
+1. **First time setup:**
+   ```bash
+   # Check your data files exist
+   ls -la data/leagues/all/players.json
+   ls -la data/leagues/all/player_history.json
+   ```
+
+2. **Run the complete pipeline:**
+   ```bash
+   python etl/database_import/json_import_all_to_database.py
+   ```
+
+3. **Verify career stats were imported:**
+   Look for this line in the output:
+   ```
+   ✅ Updated 2,102 players with career stats (0 not found, 0 errors)
+   ```
+
+## 💡 Pro Tips
+
+- **Single script does everything**: No need for multiple manual steps
+- **Career stats included**: Automatically imported from `player_history.json`
+- **Check the summary**: Look for `career_stats: X records` in final summary
+- **Don't use deprecated scripts**: Stick to the main ETL script
 
 ## 🚨 Troubleshooting
+
+### **"Career stats not showing in UI"**
+Check the ETL output for this line:
+```bash
+✅ Updated X players with career stats (0 not found, 0 errors)
+```
+If you see `Updated 0 players`, check that `player_history.json` exists and has career data.
+
+### **"Database connection error"**
+```bash
+# Check database is running and accessible
+python -c "from database_config import test_db_connection; test_db_connection()"
+```
 
 ### **"Data files not found"**
 ```bash
@@ -119,44 +139,6 @@ ls -la data/leagues/all/player_history.json
 # If missing, run your scrapers first
 ```
 
-### **"ELT Pipeline FAILED"**
-```bash
-# Run individual scripts to see which one fails:
-python run_etl.py --individual
-```
-
-### **"Database connection error"**
-```bash
-# Check database is running and accessible
-python -c "from database_config import test_db_connection; test_db_connection()"
-```
-
-## 🎯 Quick Start for New Users
-
-1. **First time setup:**
-   ```bash
-   python run_etl.py --files        # See where everything is
-   python run_etl.py --dry-run      # Test without changes
-   ```
-
-2. **Run the pipeline:**
-   ```bash
-   python run_etl.py --run --validate
-   ```
-
-3. **Regular updates:**
-   ```bash
-   python run_etl.py --run
-   ```
-
-## 💡 Pro Tips
-
-- **Always validate after script changes:** `--run --validate`
-- **Use dry-run first:** Test with `--dry-run` before real runs
-- **Check data files:** Make sure JSON files are fresh from scrapers
-- **Individual mode for debugging:** Use `--individual` to debug issues
-- **Keep it simple:** Use `run_etl.py` instead of running scripts manually
-
 ---
 
-**That's it! Your ELT pipeline is now super easy to run and repeat.** 🚀 
+**That's it! Your ELT pipeline now handles career stats automatically in a single script.** 🚀 

@@ -68,19 +68,18 @@ Overall Status: ✅ PASS
 ### **Script Reliability Tests**
 ```
 ✅ All ELT scripts completed successfully
-   - import_reference_data.py
-   - import_players.py  
-   - import_career_stats.py
-   - import_player_history.py
+   - Main ETL script (includes career stats import)
+   - All data imported in single process
 ```
 
 ### **JSON Completeness Tests**
 ```
 ✅ Leagues: 2/2 imported
-✅ Clubs: 45/45 imported
-✅ Series: 23/23 imported
-✅ Players: 3111/3111 imported
-✅ Player History: 118866/118866 records imported
+✅ Clubs: 78/78 imported
+✅ Series: 57/57 imported
+✅ Players: 7,637/7,637 imported
+✅ Career Stats: 2,102/2,102 players updated
+✅ Player History: 121,001/121,001 records imported
 ```
 
 ### **Data Integrity Tests**
@@ -89,6 +88,7 @@ Overall Status: ✅ PASS
 ✅ Players have valid club_id: No violations
 ✅ Players have valid series_id: No violations
 ✅ Player history has valid player_id: No violations
+✅ Career stats populated: 2,102 players with career data
 ✅ Player history linking: 100.0%
 ✅ All players have first names
 ```
