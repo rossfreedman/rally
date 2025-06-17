@@ -321,12 +321,12 @@ def register_user(
                 player_association_result = 'no_matches'
         
         elif all([first_name, last_name, league_name]):
-            # Use database-only player lookup - same as settings update
+            # Use enhanced database lookup with confidence-based matching
             try:
-                logger.info(f"Registration: Looking up player via database for {first_name} {last_name}")
+                logger.info(f"Registration: Looking up player via enhanced database matching for {first_name} {last_name}")
                 
-                # Use pure database lookup - NO MORE JSON FILES
-                tenniscores_player_id = find_player_by_database_lookup(
+                # Use enhanced lookup function that returns structured results with confidence levels
+                lookup_result = find_player_by_database_lookup(
                     first_name=first_name,
                     last_name=last_name,
                     club_name=club_name,
@@ -334,22 +334,77 @@ def register_user(
                     league_id=league_name
                 )
                 
-                if tenniscores_player_id:
+                # Handle results based on confidence level from enhanced lookup
+                match_type = lookup_result.get('match_type', 'no_match')
+                player_data = lookup_result.get('player')
+                message = lookup_result.get('message', '')
+                
+                logger.info(f"Registration: Lookup result - {match_type}: {message}")
+                
+                if match_type in ['exact', 'high_confidence'] and player_data:
+                    # High confidence matches - auto-associate
+                    tenniscores_player_id = player_data['tenniscores_player_id']
+                    
+                    logger.info(f"Registration: Found {match_type} match - {player_data['first_name']} {player_data['last_name']} ({player_data['club_name']}, {player_data['series_name']})")
+                    
                     # Find the actual Player record in the database
-                    player = db_session.query(Player).filter(
+                    # CRITICAL FIX: When multiple players exist for same tenniscores_player_id,
+                    # prioritize the one that matches the registration data
+                    all_players = db_session.query(Player).filter(
                         Player.tenniscores_player_id == tenniscores_player_id,
                         Player.is_active == True
-                    ).first()
+                    ).all()
+                    
+                    player = None
+                    if len(all_players) == 1:
+                        # Single player - use it
+                        player = all_players[0]
+                        logger.info(f"Registration: Single player found for {tenniscores_player_id}")
+                    elif len(all_players) > 1:
+                        # Multiple players - prioritize the one that matches registration data
+                        logger.info(f"Registration: Found {len(all_players)} players for {tenniscores_player_id}, selecting best match")
+                        
+                        # First try: exact club and series match
+                        for p in all_players:
+                            if (p.club and p.series and 
+                                p.club.name == player_data['club_name'] and 
+                                p.series.name == player_data['series_name']):
+                                player = p
+                                logger.info(f"Registration: Selected player {p.id} - exact club+series match")
+                                break
+                        
+                        # Second try: club match only
+                        if not player:
+                            for p in all_players:
+                                if p.club and p.club.name == player_data['club_name']:
+                                    player = p
+                                    logger.info(f"Registration: Selected player {p.id} - club match ({p.club.name})")
+                                    break
+                        
+                        # Third try: series match only
+                        if not player:
+                            for p in all_players:
+                                if p.series and p.series.name == player_data['series_name']:
+                                    player = p
+                                    logger.info(f"Registration: Selected player {p.id} - series match ({p.series.name})")
+                                    break
+                        
+                        # Fallback: use first player but log warning
+                        if not player:
+                            player = all_players[0]
+                            logger.warning(f"Registration: No club/series match found, using first player {player.id}")
+                            logger.warning(f"Registration: Selected {player.first_name} {player.last_name} at {player.club.name if player.club else 'No club'} in {player.series.name if player.series else 'No series'}")
+                            for i, p in enumerate(all_players):
+                                logger.warning(f"Registration: Option {i+1}: {p.first_name} {p.last_name} at {p.club.name if p.club else 'No club'} in {p.series.name if p.series else 'No series'}")
                     
                     if player:
-                        # Check if association already exists
+                        # Create proper user-player association for high confidence matches
                         existing = db_session.query(UserPlayerAssociation).filter(
                             UserPlayerAssociation.user_id == new_user.id,
                             UserPlayerAssociation.tenniscores_player_id == player.tenniscores_player_id
                         ).first()
                         
                         if not existing:
-                            # Create proper user-player association
                             association = UserPlayerAssociation(
                                 user_id=new_user.id,
                                 tenniscores_player_id=player.tenniscores_player_id,
@@ -369,21 +424,38 @@ def register_user(
                                     'is_primary': True
                                 }]
                             
-                            logger.info(f"Registration: Created association between user {email} and player {player.full_name} (ID: {player.id})")
+                            logger.info(f"Registration: Created association between user {email} and {match_type} match {player.full_name} (ID: {player.id})")
                         else:
                             player_association_result = 'already_associated'
-                            logger.info(f"Registration: User {email} already associated with player {player.full_name}")
                     else:
-                        # Player ID found but no active player record
                         player_association_result = 'no_active_player'
-                        logger.warning(f"Registration: Found player ID {tenniscores_player_id} but no active Player record in database")
+                        logger.warning(f"Registration: Found {match_type} match but no active Player record for {tenniscores_player_id}")
+                
+                elif match_type in ['probable', 'possible'] and player_data:
+                    # Good matches but not high confidence - avoid auto-association
+                    logger.info(f"Registration: Found {match_type} match but skipping auto-association to preserve user registration intent")
+                    logger.info(f"Registration: User registered: {first_name} {last_name} at {club_name} in {series_name}")
+                    logger.info(f"Registration: Match found: {player_data['first_name']} {player_data['last_name']} at {player_data['club_name']} in {player_data['series_name']}")
+                    logger.info(f"Registration: User can manually link to player later in settings")
+                    
+                    player_association_result = 'probable_matches_available'
+                
+                elif match_type == 'risky' and player_data:
+                    # Risky matches - definitely skip auto-association
+                    logger.warning(f"Registration: Found risky match (last name only) - SKIPPING auto-association")
+                    logger.warning(f"Registration: User registered: {first_name} {last_name} at {club_name} in {series_name}")
+                    logger.warning(f"Registration: Risky match: {player_data['first_name']} {player_data['last_name']} at {player_data['club_name']} in {player_data['series_name']}")
+                    logger.info(f"Registration: User can manually review and link to correct player in settings")
+                    
+                    player_association_result = 'risky_matches_skipped'
+                
                 else:
-                    # No matches found using the database lookup
+                    # No matches found or error
+                    logger.info(f"Registration: No player matches found for {first_name} {last_name} (result: {match_type})")
                     player_association_result = 'no_matches'
-                    logger.info(f"Registration: No player matches found for {first_name} {last_name} using database lookup")
                     
             except Exception as match_error:
-                logger.warning(f"Registration: Error matching player ID for {first_name} {last_name}: {str(match_error)}")
+                logger.warning(f"Registration: Error in enhanced player lookup for {first_name} {last_name}: {str(match_error)}")
                 player_association_result = 'no_matches'
         
         # Commit the transaction
@@ -391,9 +463,11 @@ def register_user(
         
         # Log successful registration
         association_detail = {
-            'associated': 'Player association created',
+            'associated': 'Player association created with exact match',
             'associated_legacy': 'Player ID found but stored in legacy format - no association record created',
-            'no_matches': 'No player matches found - registered without association', 
+            'no_matches': 'No player matches found - registered without association',
+            'probable_matches_available': 'Probable player matches found but skipped auto-association - user can link manually',
+            'risky_matches_skipped': 'Risky player matches found but skipped to avoid incorrect association',
             None: 'Registered without player search'
         }.get(player_association_result, 'Unknown association result')
         
@@ -622,6 +696,7 @@ def get_user_with_players(user_id: int) -> Optional[Dict[str, Any]]:
                     'league': player.league.league_name,
                     'club': player.club.name,
                     'series': player.series.name,
+                    'tenniscores_player_id': player.tenniscores_player_id,
                     'is_primary': assoc.is_primary
                 })
         

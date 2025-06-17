@@ -19,7 +19,7 @@ try:
     from scraper_match_scores import scrape_all_matches
     from scraper_schedule import scrape_tennis_schedule
     from scraper_stats import scrape_all_stats
-    from scraper_players_history import scrape_player_history
+    from etl.scrapers.scraper_player_history import scrape_player_history
     print("✅ All scraper modules imported successfully")
 except ImportError as e:
     print(f"❌ Error importing scraper modules: {e}")

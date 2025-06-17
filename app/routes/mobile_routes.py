@@ -1012,6 +1012,7 @@ def serve_mobile_availability():
         if not user:
             return jsonify({'error': 'No user in session'}), 400
         
+        user_id = user.get('id')  # Add user_id extraction
         player_name = f"{user['first_name']} {user['last_name']}"
         series = user['series']
 
@@ -1019,7 +1020,8 @@ def serve_mobile_availability():
         matches = get_matches_for_user_club(user)
         
         # Get this user's availability for each match using existing function (same as availability-calendar)
-        availability = get_user_availability(player_name, matches, series)
+        # FIXED: Pass user_id parameter for proper user-player associations
+        availability = get_user_availability(player_name, matches, series, user_id)
 
         # Create match-availability pairs for the template
         match_avail_pairs = list(zip(matches, availability))
@@ -1126,6 +1128,7 @@ def serve_mobile_availability_calendar():
         if not user:
             return jsonify({'error': 'No user in session'}), 400
         
+        user_id = user.get('id')  # Add user_id extraction
         player_name = f"{user['first_name']} {user['last_name']}"
         series = user['series']
 
@@ -1133,7 +1136,8 @@ def serve_mobile_availability_calendar():
         matches = get_matches_for_user_club(user)
         
         # Get this user's availability for each match using existing function
-        availability = get_user_availability(player_name, matches, series)
+        # FIXED: Pass user_id parameter for proper user-player associations
+        availability = get_user_availability(player_name, matches, series, user_id)
 
         session_data = {
             'user': user,
