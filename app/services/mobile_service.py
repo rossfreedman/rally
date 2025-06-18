@@ -439,7 +439,8 @@ def get_player_analysis(user):
         
         # Get user's league for filtering
         user_league_id = user.get('league_id', '')
-        print(f"[DEBUG] get_player_analysis: User league_id string: '{user_league_id}'")
+        user_league_name = user.get('league_name', '')
+        print(f"[DEBUG] get_player_analysis: User league_id string: '{user_league_id}', league_name: '{user_league_name}'")
         
         # Convert string league_id to integer foreign key if needed
         league_id_int = None
@@ -459,6 +460,22 @@ def get_player_analysis(user):
         elif isinstance(user_league_id, int):
             league_id_int = user_league_id
             print(f"[DEBUG] League_id already integer: {league_id_int}")
+        elif user_league_id is None and user_league_name:
+            # Handle case where league_id is None but league_name exists
+            print(f"[DEBUG] league_id is None, attempting to resolve from league_name: '{user_league_name}'")
+            try:
+                league_record = execute_query_one(
+                    "SELECT id, league_id FROM leagues WHERE league_name = %s", 
+                    [user_league_name]
+                )
+                if league_record:
+                    league_id_int = league_record['id']
+                    resolved_league_id = league_record['league_id']
+                    print(f"[DEBUG] Resolved league_name '{user_league_name}' to league_id '{resolved_league_id}' (db_id: {league_id_int})")
+                else:
+                    print(f"[WARNING] League name '{user_league_name}' not found in leagues table")
+            except Exception as e:
+                print(f"[DEBUG] Could not resolve league from league_name: {e}")
         
         # Query player history and match data from database
         # Note: execute_query and execute_query_one are already imported at module level
@@ -2184,36 +2201,44 @@ def get_club_players_data(user, series_filter=None, first_name_filter=None, last
             print(f"Showing players from all clubs (club_only=False)")
         print(f"All clubs in data: {sorted(list(clubs_in_data))}")
 
-        # Load contact information from database instead of CSV files
+        # Load contact information from CSV directory file
         contact_info = {}
         try:
-            # Get contact info from players table (phone and email columns if they exist)
-            contact_query = """
-                SELECT 
-                    CONCAT(first_name, ' ', last_name) as full_name,
-                    COALESCE(phone, '') as phone,
-                    COALESCE(email, '') as email
-                FROM players p
-                WHERE p.first_name IS NOT NULL AND p.last_name IS NOT NULL
-            """
+            # Get user's league for dynamic path
+            user_league_id = user.get('league_id', '')
             
-            # Check if phone and email columns exist in players table
-            try:
-                contact_data = execute_query(contact_query)
-                for row in contact_data:
-                    full_name = row['full_name']
-                    if full_name:
-                        contact_info[full_name.lower()] = {
-                            'phone': row.get('phone', ''),
-                            'email': row.get('email', '')
-                        }
-                print(f"Loaded {len(contact_info)} contact records from database")
-            except Exception as contact_error:
-                print(f"Contact info columns may not exist in players table: {contact_error}")
-                # For now, continue without contact info - this is not critical for functionality
+            # Use dynamic path based on league
+            if user_league_id and not user_league_id.startswith('APTA'):
+                # For non-APTA leagues, use league-specific path
+                csv_path = os.path.join('data', 'leagues', user_league_id, 'club_directories', 'directory_tennaqua.csv')
+            else:
+                # For APTA leagues, use the main directory
+                csv_path = os.path.join('data', 'leagues', 'all', 'club_directories', 'directory_tennaqua.csv')
+            
+            print(f"Looking for contact info CSV at: {csv_path}")
+            
+            if os.path.exists(csv_path):
+                import csv
+                with open(csv_path, 'r') as file:
+                    reader = csv.DictReader(file)
+                    for row in reader:
+                        # Create full name from CSV columns (First and Last Name)
+                        first_name = row.get('First', '').strip()
+                        last_name = row.get('Last Name', '').strip()
+                        
+                        if first_name and last_name:
+                            full_name = f"{first_name} {last_name}"
+                            contact_info[full_name.lower()] = {
+                                'phone': row.get('Phone', '').strip(),
+                                'email': row.get('Email', '').strip()
+                            }
+                
+                print(f"Loaded {len(contact_info)} contact records from CSV file")
+            else:
+                print(f"Contact CSV file not found at: {csv_path}")
                 
         except Exception as e:
-            print(f"Error loading contact info from database: {e}")
+            print(f"Error loading contact info from CSV: {e}")
             # Continue without contact info
 
         # Calculate PTI range from ALL players in the file (for slider bounds)

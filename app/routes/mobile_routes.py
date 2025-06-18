@@ -195,7 +195,26 @@ def serve_mobile_analyze_me():
         # Check if session already has a tenniscores_player_id (set by league switching)
         if session_user.get('tenniscores_player_id'):
             print(f"[DEBUG] Using session player ID: {session_user.get('tenniscores_player_id')}")
-            # Use the session data directly since it already has the correct player ID for current league
+            
+            # Fix session data if league_id is None but league_name exists
+            if session_user.get('league_id') is None and session_user.get('league_name'):
+                print(f"[DEBUG] Session has league_name '{session_user.get('league_name')}' but league_id is None, attempting to resolve")
+                try:
+                    league_record = execute_query_one(
+                        "SELECT id, league_id FROM leagues WHERE league_name = %s", 
+                        [session_user.get('league_name')]
+                    )
+                    if league_record:
+                        session_user['league_id'] = league_record['id']
+                        print(f"[DEBUG] Resolved league_name to league_id: {league_record['id']} ('{league_record['league_id']}')")
+                        # Update session for future requests
+                        session['user']['league_id'] = league_record['id']
+                    else:
+                        print(f"[WARNING] Could not resolve league_name '{session_user.get('league_name')}' to league_id")
+                except Exception as e:
+                    print(f"[DEBUG] Error resolving league_name to league_id: {e}")
+            
+            # Use the session data (now with resolved league_id if applicable)
             analyze_data = get_player_analysis(session_user)
         else:
             # Fallback: Look up player data from database using name matching

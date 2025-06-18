@@ -119,22 +119,22 @@
             </div>
         </div>
         
-        <!-- Player ID Display -->
+
+        
+        <!-- Logout Button -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="px-6 py-4 border-b border-gray-50">
-                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-                    <i class="fas fa-id-card text-purple-500 mr-2"></i>
-                    Player ID Information
-                </h2>
-            </div>
-            
             <div class="p-6">
-                <div class="text-sm text-gray-600 mb-3">
-                    <span class="font-mono">Player ID: <span id="player-id-display" class="font-semibold">Loading...</span></span>
-                </div>
-                <button id="retry-player-id-btn" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors duration-200 font-medium hidden" onclick="retryPlayerIdLookup()">
-                    <i class="fas fa-sync-alt mr-2"></i>Retry Player ID Lookup
-                </button>
+                <a href="/logout" class="w-full px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors duration-200 font-medium flex items-center justify-center">
+                    <i class="fas fa-sign-out-alt mr-2"></i>
+                    Logout
+                </a>
+            </div>
+        </div>
+        
+        <!-- Player ID -->
+        <div class="text-center py-4">
+            <div class="text-xs text-gray-500 font-mono">
+                Player ID: nndz-WkNHeHdiZjhnUT09
             </div>
         </div>
     </div>
@@ -249,67 +249,15 @@ fetch('/api/get-user-settings').then(r=>r.json()).then(user => {
   fillUserSettingsForm(user);
   loadLeaguesClubsAndSeries(user);
   
-  // Display player ID
-  const playerIdDisplay = document.getElementById('player-id-display');
-  const retryBtn = document.getElementById('retry-player-id-btn');
-  
-  if (user.tenniscores_player_id) {
-    playerIdDisplay.textContent = user.tenniscores_player_id;
-    retryBtn.classList.add('hidden');
-  } else {
-    playerIdDisplay.textContent = 'Not set';
-    playerIdDisplay.className = 'text-orange-500';
-    retryBtn.classList.remove('hidden');
-  }
+
 });
 
-// Retry Player ID Lookup function
-function retryPlayerIdLookup() {
-  const retryBtn = document.getElementById('retry-player-id-btn');
-  const originalContent = retryBtn.innerHTML;
-  
-  // Show loading state
-  retryBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Looking up...';
-  retryBtn.disabled = true;
-  
-  fetch('/api/retry-player-id', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({})
-  })
-  .then(r => r.json())
-  .then(resp => {
-    if (resp.success && resp.player_id) {
-      // Success - update display
-      const playerIdDisplay = document.getElementById('player-id-display');
-      playerIdDisplay.textContent = resp.player_id;
-      playerIdDisplay.className = 'text-green-600 font-semibold';
-      retryBtn.classList.add('hidden');
-      
-      window.app && window.app.showToast && window.app.showToast(`Player ID found: ${resp.player_id}`, 'success');
-    } else {
-      // No match found
-      window.app && window.app.showToast && window.app.showToast(resp.message || 'No matching player found', 'warning');
-      retryBtn.innerHTML = originalContent;
-      retryBtn.disabled = false;
-    }
-  })
-  .catch(error => {
-    console.error('Error retrying player ID lookup:', error);
-    window.app && window.app.showToast && window.app.showToast('Retry failed', 'error');
-    retryBtn.innerHTML = originalContent;
-    retryBtn.disabled = false;
-  });
-}
+
 
 // Handle form submit
 const form = document.getElementById('user-settings-form');
 form.addEventListener('submit', function(e) {
   e.preventDefault();
-  
-  // Check if we should force a player ID retry
-  const currentPlayerIdDisplay = document.getElementById('player-id-display');
-  const forceRetry = currentPlayerIdDisplay.textContent === 'Not set';
   
   const data = {
     firstName: form.firstName.value,
@@ -321,8 +269,7 @@ form.addEventListener('submit', function(e) {
     clubAutomationPassword: form.clubAutomationPassword.value,
     // Player preferences (placeholders for now)
     adDeuce: form.adDeuce.value,
-    dominantHand: form.dominantHand.value,
-    forcePlayerIdRetry: forceRetry
+    dominantHand: form.dominantHand.value
   };
   
   fetch('/api/update-settings', {
@@ -334,22 +281,6 @@ form.addEventListener('submit', function(e) {
   .then(resp => {
     if (resp.success) {
       window.app && window.app.showToast && window.app.showToast('Settings updated!', 'success');
-      
-      // Update Player ID display
-      const playerIdDisplay = document.getElementById('player-id-display');
-      const retryBtn = document.getElementById('retry-player-id-btn');
-      
-      if (resp.user && resp.user.tenniscores_player_id) {
-        playerIdDisplay.textContent = resp.user.tenniscores_player_id;
-        playerIdDisplay.className = resp.player_id_updated ? 'text-green-600 font-semibold' : '';
-        retryBtn.classList.add('hidden');
-        
-        if (resp.player_id_updated) {
-          window.app && window.app.showToast && window.app.showToast(`Player ID found: ${resp.user.tenniscores_player_id}`, 'success');
-        }
-      } else {
-        retryBtn.classList.remove('hidden');
-      }
       
       // Reload page after a short delay to ensure all components are updated
       setTimeout(() => window.location.reload(), 1000);
