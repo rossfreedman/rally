@@ -327,6 +327,17 @@ def serve_contact_sub():
     log_user_activity(session['user']['email'], 'page_visit', page='contact_sub')
     return render_template('mobile/contact_sub.html', session_data=session_data)
 
+@app.route('/pti_vs_opponents_analysis.html')
+@login_required
+def serve_pti_analysis():
+    """Serve the PTI vs Opponents Analysis page"""
+    session_data = {
+        'user': session['user'],
+        'authenticated': True
+    }
+    log_user_activity(session['user']['email'], 'page_visit', page='pti_vs_opponents_analysis')
+    return render_template('analysis/pti_vs_opponents_analysis.html', session_data=session_data)
+
 @app.route('/<path:path>')
 @login_required
 def serve_static(path):

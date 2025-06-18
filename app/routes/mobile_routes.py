@@ -677,6 +677,231 @@ def get_season_history():
         print(f"Full traceback: {traceback.format_exc()}")
         return jsonify({'error': 'Failed to fetch season history'}), 500
 
+@mobile_bp.route('/api/season-history/<player_name>')
+@login_required
+def get_player_season_history(player_name):
+    """API endpoint to get previous season history data for a specific player"""
+    try:
+        if 'user' not in session:
+            return jsonify({'error': 'Not authenticated'}), 401
+        
+        # URL decode the player name
+        from urllib.parse import unquote
+        player_name = unquote(player_name)
+        
+        # Find the player in the database by name
+        player_query = '''
+            SELECT 
+                p.id,
+                p.tenniscores_player_id,
+                p.pti as current_pti,
+                p.series_id,
+                s.name as series_name,
+                p.first_name,
+                p.last_name
+            FROM players p
+            LEFT JOIN series s ON p.series_id = s.id
+            WHERE CONCAT(p.first_name, ' ', p.last_name) = %s
+        '''
+        player_data = execute_query_one(player_query, [player_name])
+        
+        if not player_data:
+            print(f"[DEBUG] Player Season History - Player '{player_name}' not found in database")
+            return jsonify({'error': 'Player not found'}), 404
+        
+        player_db_id = player_data['id']
+        tenniscores_player_id = player_data['tenniscores_player_id']
+        
+        # Debug logging
+        print(f"[DEBUG] Player Season History - Player Name: {player_name}")
+        print(f"[DEBUG] Player Season History - Player DB ID: {player_db_id}")  
+        print(f"[DEBUG] Player Season History - TennisCore ID: {tenniscores_player_id}")
+        print(f"[DEBUG] Player Season History - Player Series: {player_data.get('series_name')}")
+        
+        # FIRST: Try to get season history using the proper foreign key relationship (player_id)
+        season_history_query = '''
+            WITH season_data AS (
+                SELECT 
+                    series,
+                    -- Calculate tennis season year (Aug-May spans two calendar years)
+                    CASE 
+                        WHEN EXTRACT(MONTH FROM date) >= 8 THEN EXTRACT(YEAR FROM date)
+                        ELSE EXTRACT(YEAR FROM date) - 1
+                    END as season_year,
+                    date,
+                    end_pti,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY series, 
+                        CASE 
+                            WHEN EXTRACT(MONTH FROM date) >= 8 THEN EXTRACT(YEAR FROM date)
+                            ELSE EXTRACT(YEAR FROM date) - 1
+                        END 
+                        ORDER BY date ASC
+                    ) as rn_start,
+                    ROW_NUMBER() OVER (
+                        PARTITION BY series, 
+                        CASE 
+                            WHEN EXTRACT(MONTH FROM date) >= 8 THEN EXTRACT(YEAR FROM date)
+                            ELSE EXTRACT(YEAR FROM date) - 1
+                        END 
+                        ORDER BY date DESC
+                    ) as rn_end
+                FROM player_history
+                WHERE player_id = %s
+                ORDER BY date DESC
+            ),
+            season_summary AS (
+                SELECT 
+                    series,
+                    season_year,
+                    MAX(CASE WHEN rn_start = 1 THEN end_pti END) as pti_start,
+                    MAX(CASE WHEN rn_end = 1 THEN end_pti END) as pti_end,
+                    COUNT(*) as matches_count
+                FROM season_data
+                GROUP BY series, season_year
+                HAVING COUNT(*) >= 3  -- Only show seasons with at least 3 matches
+            )
+            SELECT 
+                series,
+                season_year,
+                pti_start,
+                pti_end,
+                (pti_end - pti_start) as trend,
+                matches_count
+            FROM season_summary
+            ORDER BY season_year DESC, series  -- Most recent seasons first
+            LIMIT 10
+        '''
+        
+        season_records = execute_query(season_history_query, [player_db_id])
+        
+        print(f"[DEBUG] Player Season History - Player ID {player_db_id} query returned {len(season_records) if season_records else 0} records")
+        
+        # SECOND: If no records found with player_id, try matching by tenniscores_player_id in the match data
+        # This is a more targeted approach than the broad series matching
+        if not season_records and tenniscores_player_id:
+            print(f"[DEBUG] Player Season History - Trying tenniscores_player_id matching for {tenniscores_player_id}")
+            
+            # Look for player_history records that might match this specific player by name patterns
+            name_based_query = '''
+                WITH player_matches AS (
+                    -- Find all player_history records where the player name matches our target player
+                    SELECT ph.*, p2.first_name, p2.last_name
+                    FROM player_history ph
+                    JOIN players p2 ON ph.player_id = p2.id
+                    WHERE p2.tenniscores_player_id = %s
+                      OR (p2.first_name = %s AND p2.last_name = %s)
+                ),
+                season_data AS (
+                    SELECT 
+                        series,
+                        CASE 
+                            WHEN EXTRACT(MONTH FROM date) >= 8 THEN EXTRACT(YEAR FROM date)
+                            ELSE EXTRACT(YEAR FROM date) - 1
+                        END as season_year,
+                        date,
+                        end_pti,
+                        ROW_NUMBER() OVER (
+                            PARTITION BY series, 
+                            CASE 
+                                WHEN EXTRACT(MONTH FROM date) >= 8 THEN EXTRACT(YEAR FROM date)
+                                ELSE EXTRACT(YEAR FROM date) - 1
+                            END 
+                            ORDER BY date ASC
+                        ) as rn_start,
+                        ROW_NUMBER() OVER (
+                            PARTITION BY series, 
+                            CASE 
+                                WHEN EXTRACT(MONTH FROM date) >= 8 THEN EXTRACT(YEAR FROM date)
+                                ELSE EXTRACT(YEAR FROM date) - 1
+                            END 
+                            ORDER BY date DESC
+                        ) as rn_end
+                    FROM player_matches
+                    ORDER BY date DESC
+                ),
+                season_summary AS (
+                    SELECT 
+                        series,
+                        season_year,
+                        MAX(CASE WHEN rn_start = 1 THEN end_pti END) as pti_start,
+                        MAX(CASE WHEN rn_end = 1 THEN end_pti END) as pti_end,
+                        COUNT(*) as matches_count
+                    FROM season_data
+                    GROUP BY series, season_year
+                    HAVING COUNT(*) >= 3
+                )
+                SELECT 
+                    series,
+                    season_year,
+                    pti_start,
+                    pti_end,
+                    (pti_end - pti_start) as trend,
+                    matches_count
+                FROM season_summary
+                ORDER BY season_year DESC, series
+                LIMIT 10
+            '''
+            
+            season_records = execute_query(name_based_query, [
+                tenniscores_player_id,
+                player_data['first_name'], 
+                player_data['last_name']
+            ])
+            
+            print(f"[DEBUG] Player Season History - Name-based query returned {len(season_records) if season_records else 0} records")
+        
+        if not season_records:
+            print(f"[DEBUG] Player Season History - No season records found for player {player_name}")
+            return jsonify({'error': 'No season history found'}), 404
+        
+        print(f"[DEBUG] Player Season History - Final results: {len(season_records)} records found for {player_name}")
+        for record in season_records:
+            print(f"  Series: {record['series']}, Season: {record['season_year']}, PTI: {record['pti_start']} -> {record['pti_end']}")
+        
+        # Format season data
+        seasons = []
+        for record in season_records:
+            # Create season string (e.g., "2024-2025" for tennis season)
+            season_year = int(record['season_year'])
+            next_year = season_year + 1
+            season_str = f"{season_year}-{next_year}"
+            
+            # Format trend with arrow (positive PTI change = worse performance = red)
+            trend_value = float(record['trend'])
+            if trend_value > 0:
+                trend_display = f"+{trend_value:.1f} ▲"
+                trend_class = "text-red-600"  # Positive = PTI went up = worse performance = red
+            elif trend_value < 0:
+                trend_display = f"{trend_value:.1f} ▼"
+                trend_class = "text-green-600"  # Negative = PTI went down = better performance = green
+            else:
+                trend_display = "0.0 ─"
+                trend_class = "text-gray-500"
+            
+            seasons.append({
+                'season': season_str,
+                'series': record['series'],
+                'pti_start': round(float(record['pti_start']), 1),
+                'pti_end': round(float(record['pti_end']), 1),
+                'trend': trend_value,
+                'trend_display': trend_display,
+                'trend_class': trend_class,
+                'matches_count': record['matches_count']
+            })
+        
+        return jsonify({
+            'success': True,
+            'seasons': seasons,
+            'player_name': player_name
+        })
+        
+    except Exception as e:
+        print(f"Error fetching player season history: {str(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
+        return jsonify({'error': 'Failed to fetch season history'}), 500
+
 @mobile_bp.route('/mobile/my-team')
 @login_required
 def serve_mobile_my_team():
@@ -1380,9 +1605,14 @@ def get_team_players(team_name):
 @login_required
 def serve_mobile_polls():
     """Serve the mobile team polls management page"""
+    # Check if user is admin
+    from app.services.admin_service import is_user_admin
+    user_is_admin = is_user_admin(session['user']['email'])
+    
     session_data = {
         'user': session['user'],
-        'authenticated': True
+        'authenticated': True,
+        'is_admin': user_is_admin
     }
     
     log_user_activity(session['user']['email'], 'page_visit', page='mobile_polls')

@@ -10,6 +10,12 @@ This script audits the player matching system by:
 Usage:
     python scripts/admin_player_audit.py [--dry-run] [--detailed]
 """
+"""
+⚠️  DEPRECATED SCRIPT ⚠️
+This script references the old users.tenniscores_player_id column which has been removed.
+The new schema uses user_player_associations table for many-to-many relationships.
+Consider using the new association-based queries instead.
+"""
 
 import sys
 import os

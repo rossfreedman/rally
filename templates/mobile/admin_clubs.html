@@ -4,24 +4,277 @@
 {% block title %}Club Management | Rally Admin{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-6">
-  <!-- Header -->
-  <div class="welcome-section text-center mb-8">
-    <h1 class="text-2xl font-bold text-gray-800">
-      Club Management
-    </h1>
-    <p class="text-sm text-gray-500 mt-2">
-      Manage clubs and club settings
-    </p>
-  </div>
-
-  <!-- Coming Soon Message -->
-  <div class="bg-white rounded-lg shadow p-8 text-center">
-    <div class="mb-4">
-      <i class="fas fa-building text-6xl text-purple-600"></i>
+<div class="min-h-screen bg-gray-50">
+    
+    <!-- Header -->
+    <div class="bg-white border-b border-gray-100">
+        <div class="flex items-center px-4 py-6">
+            <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center shadow-sm">
+                <i class="fas fa-building text-white text-lg"></i>
+            </div>
+            <div class="ml-4">
+                <h1 class="text-xl font-bold text-gray-900">Club Management</h1>
+                <p class="text-sm text-gray-500">Manage clubs, their players, and associated series</p>
+            </div>
+        </div>
     </div>
-    <h2 class="text-xl font-bold text-gray-800 mb-2">Coming Soon</h2>
-    <p class="text-gray-600 mb-6">Club management functionality is under development.</p>
-  </div>
+
+    <!-- Content -->
+    <div class="px-4 py-6 space-y-6">
+        
+        <!-- Clubs List -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-list text-purple-500 mr-2"></i>
+                    Active Clubs
+                </h2>
+            </div>
+            
+            <div class="divide-y divide-gray-100" id="clubsContainer">
+                <!-- Club cards will be populated here -->
+                <div class="p-6 text-center text-gray-500">
+                    <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                    <p>Loading clubs...</p>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
+
+<!-- Edit Club Modal -->
+<div id="editClubModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-xl max-w-md w-full max-h-90vh overflow-y-auto">
+        <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+            <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                <i class="fas fa-edit text-purple-500 mr-2"></i>
+                Edit Club
+            </h3>
+            <button onclick="closeModal('editClubModal')" class="text-gray-400 hover:text-gray-600 p-1">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <form id="editClubForm" class="p-6 space-y-4">
+            <input type="hidden" id="editClubOldName">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2" for="editClubName">Club Name</label>
+                <input type="text" id="editClubName" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500" required>
+            </div>
+            <div class="flex gap-3 pt-4">
+                <button type="button" onclick="closeModal('editClubModal')" class="flex-1 px-4 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium transition-colors">
+                    Cancel
+                </button>
+                <button type="submit" class="flex-1 px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium transition-colors">
+                    Save Changes
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+let clubs = [];
+
+async function loadClubs() {
+    try {
+        const response = await fetch('/api/admin/clubs');
+        const data = await response.json();
+        clubs = data;
+        renderClubs();
+    } catch (error) {
+        console.error('Error loading clubs:', error);
+        document.getElementById('clubsContainer').innerHTML = `
+            <div class="p-6 text-center text-red-500">
+                <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
+                <p>Error loading clubs</p>
+            </div>
+        `;
+    }
+}
+
+function renderClubs() {
+    const container = document.getElementById('clubsContainer');
+    
+    if (clubs.length === 0) {
+        container.innerHTML = `
+            <div class="p-6 text-center text-gray-500">
+                <i class="fas fa-building text-2xl mb-2"></i>
+                <p>No clubs found</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = clubs.map(club => `
+        <div class="p-6 hover:bg-gray-50 transition-colors">
+            <div class="flex items-start justify-between">
+                <div class="flex-1">
+                    <h3 class="text-lg font-semibold text-gray-900">${club.name}</h3>
+                    <div class="space-y-1 text-sm text-gray-600 mt-2">
+                        <p><span class="font-medium">Players:</span> ${club.player_count}</p>
+                        <p><span class="font-medium">Active Series:</span> ${club.active_series}</p>
+                    </div>
+                </div>
+                <div class="flex flex-col gap-2 ml-4">
+                    <button onclick="editClub('${club.name}')" class="px-3 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors text-sm font-medium">
+                        <i class="fas fa-edit mr-1"></i> Edit
+                    </button>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function editClub(clubName) {
+    const club = clubs.find(c => c.name === clubName);
+    if (!club) return;
+    
+    document.getElementById('editClubOldName').value = club.name;
+    document.getElementById('editClubName').value = club.name;
+    
+    showModal('editClubModal');
+}
+
+function showModal(modalId) {
+    document.getElementById(modalId).classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeModal(modalId) {
+    document.getElementById(modalId).classList.add('hidden');
+    document.body.style.overflow = 'auto';
+}
+
+function showToast(message, type = 'info') {
+    // Simple toast notification
+    const toast = document.createElement('div');
+    toast.className = `fixed top-4 right-4 px-4 py-3 rounded-lg text-white z-50 ${
+        type === 'success' ? 'bg-green-600' : type === 'error' ? 'bg-red-600' : 'bg-blue-600'
+    }`;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    
+    setTimeout(() => {
+        toast.remove();
+    }, 3000);
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+    loadClubs();
+    
+    // Set up edit form submission
+    document.getElementById('editClubForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const oldName = document.getElementById('editClubOldName').value;
+        const newName = document.getElementById('editClubName').value;
+        
+        try {
+            const response = await fetch('/api/admin/update-club', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    old_name: oldName,
+                    new_name: newName
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to update club');
+            }
+            
+            // Reload clubs and close modal
+            await loadClubs();
+            closeModal('editClubModal');
+            showToast('Club updated successfully', 'success');
+            
+        } catch (error) {
+            console.error('Error updating club:', error);
+            showToast('Failed to update club', 'error');
+        }
+    });
+});
+</script>
+
+<style>
+/* Modern UI Styles to match the site */
+.min-h-screen { min-height: 100vh; }
+.max-h-90vh { max-height: 90vh; }
+
+/* Background colors */
+.bg-gray-50 { background-color: #f9fafb; }
+.bg-gray-100 { background-color: #f3f4f6; }
+.bg-white { background-color: #ffffff; }
+.bg-purple-100 { background-color: #f3e8ff; }
+.bg-purple-600 { background-color: #9333ea; }
+.bg-purple-700 { background-color: #7c3aed; }
+.bg-green-600 { background-color: #16a34a; }
+.bg-red-600 { background-color: #dc2626; }
+.bg-blue-600 { background-color: #2563eb; }
+
+/* Text colors */
+.text-gray-900 { color: #111827; }
+.text-gray-700 { color: #374151; }
+.text-gray-600 { color: #4b5563; }
+.text-gray-500 { color: #6b7280; }
+.text-gray-400 { color: #9ca3af; }
+.text-purple-500 { color: #a855f7; }
+.text-purple-700 { color: #7c3aed; }
+.text-red-500 { color: #ef4444; }
+.text-white { color: #ffffff; }
+
+/* Border colors */
+.border-gray-100 { border-color: #f3f4f6; }
+.border-gray-300 { border-color: #d1d5db; }
+.border-gray-50 { border-color: #f9fafb; }
+
+/* Hover states */
+.hover\:bg-gray-50:hover { background-color: #f9fafb; }
+.hover\:bg-gray-200:hover { background-color: #e5e7eb; }
+.hover\:bg-purple-200:hover { background-color: #e9d5ff; }
+.hover\:bg-purple-700:hover { background-color: #7c3aed; }
+.hover\:text-gray-600:hover { color: #4b5563; }
+
+/* Focus states */
+.focus\:ring-2:focus {
+    --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
+    --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
+    box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
+}
+.focus\:ring-purple-500:focus { --tw-ring-color: #a855f7; }
+.focus\:border-purple-500:focus { border-color: #a855f7; }
+
+/* Gradients */
+.bg-gradient-to-br { background-image: linear-gradient(to bottom right, var(--tw-gradient-stops)); }
+.from-purple-500 { --tw-gradient-from: #a855f7; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(168, 85, 247, 0)); }
+.to-purple-600 { --tw-gradient-to: #9333ea; }
+
+/* Utilities */
+.shadow-sm { box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); }
+.shadow-xl { box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); }
+.rounded-xl { border-radius: 0.75rem; }
+.rounded-lg { border-radius: 0.5rem; }
+.rounded-full { border-radius: 9999px; }
+.space-y-6 > * + * { margin-top: 1.5rem; }
+.space-y-4 > * + * { margin-top: 1rem; }
+.space-y-1 > * + * { margin-top: 0.25rem; }
+.divide-y > * + * { border-top-width: 1px; }
+.divide-gray-100 > * + * { border-top-color: #f3f4f6; }
+.transition-colors { transition-property: color, background-color, border-color, text-decoration-color, fill, stroke; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); transition-duration: 150ms; }
+.hidden { display: none; }
+.overflow-hidden { overflow: hidden; }
+.overflow-y-auto { overflow-y: auto; }
+.font-medium { font-weight: 500; }
+.font-semibold { font-weight: 600; }
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+    .flex-col { flex-direction: column; }
+    .px-6 { padding-left: 1rem; padding-right: 1rem; }
+}
+</style>
 {% endblock %} 

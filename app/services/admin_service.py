@@ -4,7 +4,6 @@ This module provides functions for user management, club/series administration, 
 """
 
 import os
-import sqlite3
 from database_utils import execute_query, execute_query_one, execute_update
 from utils.logging import log_user_activity
 import traceback
@@ -16,8 +15,10 @@ def get_all_users():
             SELECT u.id, u.first_name, u.last_name, u.email, u.last_login,
                    c.name as club_name, s.name as series_name
             FROM users u
-            LEFT JOIN clubs c ON u.club_id = c.id
-            LEFT JOIN series s ON u.series_id = s.id
+            LEFT JOIN user_player_associations upa ON u.id = upa.user_id
+            LEFT JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+            LEFT JOIN clubs c ON p.club_id = c.id
+            LEFT JOIN series s ON p.series_id = s.id
             ORDER BY u.last_name, u.first_name
         ''')
         return users
@@ -28,33 +29,69 @@ def get_all_users():
 def get_all_series_with_stats():
     """Get all active series with player counts and active clubs"""
     try:
-        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'data', 'paddlepro.db')
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
-        
-        # Get series with player counts and active clubs
-        cursor.execute('''
-            SELECT s.name, COUNT(u.id) as player_count,
-                   GROUP_CONCAT(DISTINCT c.name) as active_clubs
+        # Use PostgreSQL-compatible query with correct joins
+        series = execute_query('''
+            SELECT s.id, s.name, COUNT(DISTINCT u.id) as player_count,
+                   STRING_AGG(DISTINCT c.name, ', ') as active_clubs
             FROM series s
-            LEFT JOIN users u ON s.id = u.series_id
-            LEFT JOIN clubs c ON u.club_id = c.id
-            GROUP BY s.id
+            LEFT JOIN players p ON s.id = p.series_id
+            LEFT JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
+            LEFT JOIN users u ON upa.user_id = u.id
+            LEFT JOIN clubs c ON p.club_id = c.id
+            GROUP BY s.id, s.name
             ORDER BY s.name
         ''')
         
-        series = []
-        for row in cursor.fetchall():
-            series.append({
-                'name': row[0],
-                'player_count': row[1],
-                'active_clubs': row[2] or 'None'
-            })
-        
-        conn.close()
-        return series
+        return [{
+            'id': row['id'],
+            'name': row['name'],
+            'player_count': row['player_count'],
+            'active_clubs': row['active_clubs'] or 'None'
+        } for row in series]
     except Exception as e:
         print(f"Error getting admin series: {str(e)}")
+        raise e
+
+def get_all_leagues():
+    """Get all leagues with statistics"""
+    try:
+        leagues = execute_query('''
+            SELECT l.id, l.league_name, l.league_url,
+                   COUNT(DISTINCT cl.club_id) as club_count,
+                   COUNT(DISTINCT sl.series_id) as series_count
+            FROM leagues l
+            LEFT JOIN club_leagues cl ON l.id = cl.league_id
+            LEFT JOIN series_leagues sl ON l.id = sl.league_id
+            GROUP BY l.id, l.league_name, l.league_url
+            ORDER BY l.league_name
+        ''')
+        
+        return leagues
+    except Exception as e:
+        print(f"Error getting admin leagues: {str(e)}")
+        raise e
+
+def get_all_clubs_with_stats():
+    """Get all clubs with player counts and active series"""
+    try:
+        clubs = execute_query('''
+            SELECT c.id, c.name, COUNT(DISTINCT p.id) as player_count,
+                   STRING_AGG(DISTINCT s.name, ', ') as active_series
+            FROM clubs c
+            LEFT JOIN players p ON c.id = p.club_id
+            LEFT JOIN series s ON p.series_id = s.id
+            GROUP BY c.id, c.name
+            ORDER BY c.name
+        ''')
+        
+        return [{
+            'id': row['id'],
+            'name': row['name'],
+            'player_count': row['player_count'],
+            'active_series': row['active_series'] or 'None'
+        } for row in clubs]
+    except Exception as e:
+        print(f"Error getting admin clubs: {str(e)}")
         raise e
 
 def update_user_info(email, first_name, last_name, club_name, series_name, admin_email):
@@ -70,37 +107,45 @@ def update_user_info(email, first_name, last_name, club_name, series_name, admin
             action='update_user',
             details=f"Updated user: {email}"
         )
-            
-        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'data', 'paddlepro.db')
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
         
-        try:
-            # Get club and series IDs
-            cursor.execute('SELECT id FROM clubs WHERE name = ?', (club_name,))
-            club_result = cursor.fetchone()
+        # Get club and series IDs using PostgreSQL
+        club = execute_query_one('SELECT id FROM clubs WHERE name = %(club_name)s', {'club_name': club_name})
+        series = execute_query_one('SELECT id FROM series WHERE name = %(series_name)s', {'series_name': series_name})
+        
+        if not club or not series:
+            raise ValueError('Club or series not found')
             
-            cursor.execute('SELECT id FROM series WHERE name = ?', (series_name,))
-            series_result = cursor.fetchone()
-            
-            if not club_result or not series_result:
-                raise ValueError('Club or series not found')
-                
-            club_id = club_result[0]
-            series_id = series_result[0]
-            
-            # Update user
-            cursor.execute('''
-                UPDATE users 
-                SET first_name = ?, last_name = ?, club_id = ?, series_id = ?
-                WHERE email = ?
-            ''', (first_name, last_name, club_id, series_id, email))
-            
-            conn.commit()
-            return True
-            
-        finally:
-            conn.close()
+        club_id = club['id']
+        series_id = series['id']
+        
+        # Update user basic info
+        execute_update('''
+            UPDATE users 
+            SET first_name = %(first_name)s, last_name = %(last_name)s
+            WHERE email = %(email)s
+        ''', {
+            'first_name': first_name,
+            'last_name': last_name,
+            'email': email
+        })
+        
+        # Update player info through the association
+        execute_update('''
+            UPDATE players 
+            SET club_id = %(club_id)s, series_id = %(series_id)s
+            WHERE tenniscores_player_id IN (
+                SELECT upa.tenniscores_player_id 
+                FROM user_player_associations upa 
+                JOIN users u ON upa.user_id = u.id 
+                WHERE u.email = %(email)s
+            )
+        ''', {
+            'club_id': club_id,
+            'series_id': series_id,
+            'email': email
+        })
+        
+        return True
             
     except Exception as e:
         print(f"Error updating user: {str(e)}")
@@ -112,15 +157,12 @@ def update_club_name(old_name, new_name):
         if not all([old_name, new_name]):
             raise ValueError('Missing required fields')
             
-        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'data', 'paddlepro.db')
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
+        # Update club name using PostgreSQL
+        execute_update(
+            'UPDATE clubs SET name = %(new_name)s WHERE name = %(old_name)s',
+            {'new_name': new_name, 'old_name': old_name}
+        )
         
-        # Update club name
-        cursor.execute('UPDATE clubs SET name = ? WHERE name = ?', (new_name, old_name))
-        
-        conn.commit()
-        conn.close()
         return True
     except Exception as e:
         print(f"Error updating club: {str(e)}")
@@ -132,15 +174,12 @@ def update_series_name(old_name, new_name):
         if not all([old_name, new_name]):
             raise ValueError('Missing required fields')
             
-        db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'data', 'paddlepro.db')
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
+        # Update series name using PostgreSQL
+        execute_update(
+            'UPDATE series SET name = %(new_name)s WHERE name = %(old_name)s',
+            {'new_name': new_name, 'old_name': old_name}
+        )
         
-        # Update series name
-        cursor.execute('UPDATE series SET name = ? WHERE name = ?', (new_name, old_name))
-        
-        conn.commit()
-        conn.close()
         return True
     except Exception as e:
         print(f"Error updating series: {str(e)}")

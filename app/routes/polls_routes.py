@@ -370,4 +370,85 @@ def respond_to_poll(poll_id):
         return jsonify({'error': 'Failed to submit vote'}), 500
     finally:
         print(f"🗳️  === POLL VOTE SUBMISSION API ENDED ===")
+        print()
+
+@polls_bp.route('/api/polls/<int:poll_id>', methods=['DELETE'])
+@login_required
+def delete_poll(poll_id):
+    """Delete a poll (admin only)"""
+    print(f"🗑️  === POLL DELETION API STARTED ===")
+    print(f"🗑️  Poll ID: {poll_id}")
+    try:
+        # Check if user is admin
+        from app.services.admin_service import is_user_admin
+        user_email = session['user']['email']
+        
+        if not is_user_admin(user_email):
+            print(f"🗑️  User {user_email} is not admin, access denied")
+            return jsonify({'error': 'Admin access required'}), 403
+        
+        print(f"🗑️  Admin check passed for user: {user_email}")
+        
+        # Check if poll exists
+        poll_query = '''
+            SELECT id, question, created_by
+            FROM polls
+            WHERE id = %s
+        '''
+        poll = execute_query_one(poll_query, [poll_id])
+        print(f"🗑️  Poll exists check: {poll}")
+        
+        if not poll:
+            print(f"🗑️  Poll {poll_id} not found")
+            return jsonify({'error': 'Poll not found'}), 404
+        
+        # Delete poll responses first (foreign key constraint)
+        print(f"🗑️  Deleting poll responses...")
+        delete_responses_query = '''
+            DELETE FROM poll_responses
+            WHERE poll_id = %s
+        '''
+        execute_update(delete_responses_query, [poll_id])
+        
+        # Delete poll choices
+        print(f"🗑️  Deleting poll choices...")
+        delete_choices_query = '''
+            DELETE FROM poll_choices
+            WHERE poll_id = %s
+        '''
+        execute_update(delete_choices_query, [poll_id])
+        
+        # Finally delete the poll
+        print(f"🗑️  Deleting poll...")
+        delete_poll_query = '''
+            DELETE FROM polls
+            WHERE id = %s
+        '''
+        execute_update(delete_poll_query, [poll_id])
+        
+        print(f"🗑️  Poll deletion successful")
+        
+        # Log the activity
+        log_user_activity(
+            user_email,
+            'admin_action',
+            action='delete_poll',
+            details=f'Deleted poll: {poll["question"]} (ID: {poll_id})'
+        )
+        
+        response_data = {
+            'success': True,
+            'message': 'Poll deleted successfully'
+        }
+        print(f"🗑️  Returning success response: {response_data}")
+        
+        return jsonify(response_data)
+        
+    except Exception as e:
+        print(f"🗑️  ❌ Error deleting poll: {str(e)}")
+        import traceback
+        print(f"🗑️  ❌ Full traceback: {traceback.format_exc()}")
+        return jsonify({'error': 'Failed to delete poll'}), 500
+    finally:
+        print(f"🗑️  === POLL DELETION API ENDED ===")
         print() 

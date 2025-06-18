@@ -1012,6 +1012,58 @@ def get_admin_series():
         print(f"Error getting admin series: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
+@admin_bp.route('/api/admin/clubs')
+@login_required
+def get_admin_clubs():
+    """Get all clubs with player counts and active series"""
+    try:
+        clubs = execute_query('''
+            SELECT c.id, c.name, COUNT(DISTINCT p.id) as player_count,
+                   STRING_AGG(DISTINCT s.name, ', ') as active_series
+            FROM clubs c
+            LEFT JOIN players p ON c.id = p.club_id
+            LEFT JOIN series s ON p.series_id = s.id
+            GROUP BY c.id, c.name
+            ORDER BY c.name
+        ''')
+        
+        return jsonify([{
+            'id': row['id'],
+            'name': row['name'],
+            'player_count': row['player_count'],
+            'active_series': row['active_series'] or 'None'
+        } for row in clubs])
+    except Exception as e:
+        print(f"Error getting admin clubs: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@admin_bp.route('/api/admin/leagues')
+@login_required
+def get_admin_leagues():
+    """Get all leagues with club and series counts"""
+    try:
+        leagues = execute_query('''
+            SELECT l.id, l.league_name, l.league_url,
+                   COUNT(DISTINCT cl.club_id) as club_count,
+                   COUNT(DISTINCT sl.series_id) as series_count
+            FROM leagues l
+            LEFT JOIN club_leagues cl ON l.id = cl.league_id
+            LEFT JOIN series_leagues sl ON l.id = sl.league_id
+            GROUP BY l.id, l.league_name, l.league_url
+            ORDER BY l.league_name
+        ''')
+        
+        return jsonify([{
+            'id': row['id'],
+            'league_name': row['league_name'],
+            'league_url': row['league_url'],
+            'club_count': row['club_count'],
+            'series_count': row['series_count']
+        } for row in leagues])
+    except Exception as e:
+        print(f"Error getting admin leagues: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
 @admin_bp.route('/api/admin/update-user', methods=['POST'])
 @login_required
 def update_user():

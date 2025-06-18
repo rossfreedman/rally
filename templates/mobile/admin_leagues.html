@@ -4,24 +4,161 @@
 {% block title %}League Management | Rally Admin{% endblock %}
 
 {% block content %}
-<div class="container mx-auto px-4 py-6">
-  <!-- Header -->
-  <div class="welcome-section text-center mb-8">
-    <h1 class="text-2xl font-bold text-gray-800">
-      League Management
-    </h1>
-    <p class="text-sm text-gray-500 mt-2">
-      Manage leagues and league settings
-    </p>
-  </div>
-
-  <!-- Coming Soon Message -->
-  <div class="bg-white rounded-lg shadow p-8 text-center">
-    <div class="mb-4">
-      <i class="fas fa-trophy text-6xl text-green-600"></i>
+<div class="min-h-screen bg-gray-50">
+    
+    <!-- Header -->
+    <div class="bg-white border-b border-gray-100">
+        <div class="flex items-center px-4 py-6">
+            <div class="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center shadow-sm">
+                <i class="fas fa-trophy text-white text-lg"></i>
+            </div>
+            <div class="ml-4">
+                <h1 class="text-xl font-bold text-gray-900">League Management</h1>
+                <p class="text-sm text-gray-500">Manage leagues and their associated clubs and series</p>
+            </div>
+        </div>
     </div>
-    <h2 class="text-xl font-bold text-gray-800 mb-2">Coming Soon</h2>
-    <p class="text-gray-600 mb-6">League management functionality is under development.</p>
-  </div>
+
+    <!-- Content -->
+    <div class="px-4 py-6 space-y-6">
+        
+        <!-- Leagues List -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-list text-green-500 mr-2"></i>
+                    Active Leagues
+                </h2>
+            </div>
+            
+            <div class="divide-y divide-gray-100" id="leaguesContainer">
+                <!-- League cards will be populated here -->
+                <div class="p-6 text-center text-gray-500">
+                    <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                    <p>Loading leagues...</p>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
+
+<script>
+let leagues = [];
+
+async function loadLeagues() {
+    try {
+        const response = await fetch('/api/admin/leagues');
+        const data = await response.json();
+        leagues = data;
+        renderLeagues();
+    } catch (error) {
+        console.error('Error loading leagues:', error);
+        document.getElementById('leaguesContainer').innerHTML = `
+            <div class="p-6 text-center text-red-500">
+                <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
+                <p>Error loading leagues</p>
+            </div>
+        `;
+    }
+}
+
+function renderLeagues() {
+    const container = document.getElementById('leaguesContainer');
+    
+    if (leagues.length === 0) {
+        container.innerHTML = `
+            <div class="p-6 text-center text-gray-500">
+                <i class="fas fa-trophy text-2xl mb-2"></i>
+                <p>No leagues found</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = leagues.map(league => `
+        <div class="p-6 hover:bg-gray-50 transition-colors">
+            <div class="flex items-start justify-between">
+                <div class="flex-1">
+                    <h3 class="text-lg font-semibold text-gray-900">${league.league_name}</h3>
+                    <p class="text-gray-600 mb-2">
+                        <a href="${league.league_url}" target="_blank" class="text-blue-600 hover:text-blue-800 hover:underline">
+                            ${league.league_url}
+                        </a>
+                    </p>
+                    <div class="space-y-1 text-sm text-gray-600">
+                        <p><span class="font-medium">Clubs:</span> ${league.club_count}</p>
+                        <p><span class="font-medium">Series:</span> ${league.series_count}</p>
+                    </div>
+                </div>
+                <div class="flex flex-col gap-2 ml-4">
+                    <span class="px-3 py-2 bg-green-100 text-green-700 rounded-lg text-sm font-medium text-center">
+                        <i class="fas fa-eye mr-1"></i> View
+                    </span>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+    loadLeagues();
+});
+</script>
+
+<style>
+/* Modern UI Styles to match the site */
+.min-h-screen { min-height: 100vh; }
+
+/* Background colors */
+.bg-gray-50 { background-color: #f9fafb; }
+.bg-white { background-color: #ffffff; }
+.bg-green-100 { background-color: #dcfce7; }
+
+/* Text colors */
+.text-gray-900 { color: #111827; }
+.text-gray-600 { color: #4b5563; }
+.text-gray-500 { color: #6b7280; }
+.text-green-500 { color: #10b981; }
+.text-green-700 { color: #047857; }
+.text-blue-600 { color: #2563eb; }
+.text-blue-800 { color: #1e40af; }
+.text-red-500 { color: #ef4444; }
+.text-white { color: #ffffff; }
+
+/* Border colors */
+.border-gray-100 { border-color: #f3f4f6; }
+.border-gray-50 { border-color: #f9fafb; }
+
+/* Hover states */
+.hover\:bg-gray-50:hover { background-color: #f9fafb; }
+.hover\:text-blue-800:hover { color: #1e40af; }
+.hover\:underline:hover { text-decoration-line: underline; }
+
+/* Gradients */
+.bg-gradient-to-br { background-image: linear-gradient(to bottom right, var(--tw-gradient-stops)); }
+.from-green-500 { --tw-gradient-from: #10b981; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(16, 185, 129, 0)); }
+.to-green-600 { --tw-gradient-to: #059669; }
+
+/* Utilities */
+.shadow-sm { box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); }
+.rounded-xl { border-radius: 0.75rem; }
+.rounded-lg { border-radius: 0.5rem; }
+.rounded-full { border-radius: 9999px; }
+.space-y-6 > * + * { margin-top: 1.5rem; }
+.space-y-1 > * + * { margin-top: 0.25rem; }
+.space-y-2 > * + * { margin-top: 0.5rem; }
+.divide-y > * + * { border-top-width: 1px; }
+.divide-gray-100 > * + * { border-top-color: #f3f4f6; }
+.transition-colors { transition-property: color, background-color, border-color, text-decoration-color, fill, stroke; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); transition-duration: 150ms; }
+.overflow-hidden { overflow: hidden; }
+.font-medium { font-weight: 500; }
+.font-semibold { font-weight: 600; }
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+    .flex-col { flex-direction: column; }
+    .px-6 { padding-left: 1rem; padding-right: 1rem; }
+}
+</style>
 {% endblock %} 

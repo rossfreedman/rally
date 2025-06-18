@@ -1416,3 +1416,160 @@ def debug_club_data():
 
 # Route moved to mobile_routes.py to avoid conflicts
 # The mobile blueprint now handles /api/player-history-chart with database queries 
+
+# ==========================================
+# PTI ANALYSIS DATA ENDPOINTS
+# ==========================================
+
+@api_bp.route('/api/pti-analysis/players')
+@login_required
+def get_pti_analysis_players():
+    """Get all players with PTI data for analysis"""
+    try:
+        query = """
+            SELECT 
+                CONCAT(p.first_name, ' ', p.last_name) as name,
+                p.first_name as "First Name",
+                p.last_name as "Last Name", 
+                p.pti as "PTI",
+                p.wins,
+                p.losses,
+                p.win_percentage,
+                l.league_name as league,
+                c.name as club,
+                s.name as series
+            FROM players p
+            LEFT JOIN leagues l ON p.league_id = l.id
+            LEFT JOIN clubs c ON p.club_id = c.id  
+            LEFT JOIN series s ON p.series_id = s.id
+            WHERE p.is_active = true
+            AND p.pti IS NOT NULL
+            ORDER BY p.first_name, p.last_name
+        """
+        
+        players_data = execute_query(query)
+        
+        return jsonify(players_data)
+        
+    except Exception as e:
+        print(f"Error getting PTI analysis players: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@api_bp.route('/api/pti-analysis/player-history')
+@login_required
+def get_pti_analysis_player_history():
+    """Get player history data for PTI analysis"""
+    try:
+        query = """
+            SELECT 
+                CONCAT(p.first_name, ' ', p.last_name) as name,
+                ph.series,
+                ph.date,
+                ph.end_pti,
+                l.league_name as league
+            FROM player_history ph
+            JOIN players p ON ph.player_id = p.id
+            LEFT JOIN leagues l ON ph.league_id = l.id
+            WHERE ph.end_pti IS NOT NULL
+            ORDER BY p.first_name, p.last_name, ph.date
+        """
+        
+        history_data = execute_query(query)
+        
+        # Group by player name and structure like the original JSON
+        players_history = []
+        current_player = None
+        current_matches = []
+        
+        for row in history_data:
+            player_name = row['name']
+            
+            if current_player != player_name:
+                if current_player is not None:
+                    players_history.append({
+                        'name': current_player,
+                        'matches': current_matches
+                    })
+                current_player = player_name
+                current_matches = []
+            
+            # Format date as string for JSON serialization
+            date_str = row['date'].strftime('%m/%d/%Y') if row['date'] else None
+            
+            current_matches.append({
+                'series': row['series'],
+                'date': date_str,
+                'end_pti': float(row['end_pti']) if row['end_pti'] else None
+            })
+        
+        # Add the last player
+        if current_player is not None:
+            players_history.append({
+                'name': current_player,
+                'matches': current_matches
+            })
+        
+        return jsonify(players_history)
+        
+    except Exception as e:
+        print(f"Error getting PTI analysis player history: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@api_bp.route('/api/pti-analysis/match-history')
+@login_required
+def get_pti_analysis_match_history():
+    """Get match history data for PTI analysis"""
+    try:
+        query = """
+            SELECT 
+                TO_CHAR(ms.match_date, 'DD-Mon-YY') as "Date",
+                ms.home_team as "Home Team",
+                ms.away_team as "Away Team",
+                COALESCE(p1.first_name || ' ' || p1.last_name, ms.home_player_1_id) as "Home Player 1",
+                COALESCE(p2.first_name || ' ' || p2.last_name, ms.home_player_2_id) as "Home Player 2", 
+                COALESCE(p3.first_name || ' ' || p3.last_name, ms.away_player_1_id) as "Away Player 1",
+                COALESCE(p4.first_name || ' ' || p4.last_name, ms.away_player_2_id) as "Away Player 2",
+                ms.scores as "Scores",
+                ms.winner as "Winner",
+                l.league_name as league
+            FROM match_scores ms
+            LEFT JOIN players p1 ON (
+                CASE 
+                    WHEN NULLIF(TRIM(ms.home_player_1_id), '') ~ '^[0-9]+$' 
+                    THEN NULLIF(TRIM(ms.home_player_1_id), '')::INTEGER 
+                    ELSE NULL 
+                END = p1.id
+            )
+            LEFT JOIN players p2 ON (
+                CASE 
+                    WHEN NULLIF(TRIM(ms.home_player_2_id), '') ~ '^[0-9]+$' 
+                    THEN NULLIF(TRIM(ms.home_player_2_id), '')::INTEGER 
+                    ELSE NULL 
+                END = p2.id
+            )
+            LEFT JOIN players p3 ON (
+                CASE 
+                    WHEN NULLIF(TRIM(ms.away_player_1_id), '') ~ '^[0-9]+$' 
+                    THEN NULLIF(TRIM(ms.away_player_1_id), '')::INTEGER 
+                    ELSE NULL 
+                END = p3.id
+            )
+            LEFT JOIN players p4 ON (
+                CASE 
+                    WHEN NULLIF(TRIM(ms.away_player_2_id), '') ~ '^[0-9]+$' 
+                    THEN NULLIF(TRIM(ms.away_player_2_id), '')::INTEGER 
+                    ELSE NULL 
+                END = p4.id
+            )
+            LEFT JOIN leagues l ON ms.league_id = l.id
+            WHERE ms.match_date IS NOT NULL
+            ORDER BY ms.match_date DESC
+        """
+        
+        match_data = execute_query(query)
+        
+        return jsonify(match_data)
+        
+    except Exception as e:
+        print(f"Error getting PTI analysis match history: {str(e)}")
+        return jsonify({'error': str(e)}), 500 
