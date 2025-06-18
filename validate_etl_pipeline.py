@@ -228,7 +228,7 @@ class ETLPipelineValidator:
             script_path = 'run_all_etl.py'
         else:
             # Running from project root
-            script_path = 'etl/run_all_etl.py'
+            script_path = 'data/etl/run_all_etl.py'
         
         cmd = [sys.executable, script_path]
         

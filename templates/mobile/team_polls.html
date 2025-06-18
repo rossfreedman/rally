@@ -29,8 +29,8 @@
             </button>
         </div>
 
-        <!-- Polls List -->
-        <div id="pollsList" class="space-y-4">
+        <!-- Polls Container -->
+        <div class="space-y-4">
             <!-- Loading state -->
             <div id="loadingState" class="text-center py-8">
                 <i class="fas fa-spinner fa-spin text-gray-500 text-2xl mb-2"></i>
@@ -42,6 +42,10 @@
                 <i class="fas fa-poll text-gray-400 text-4xl mb-4"></i>
                 <p class="text-gray-500 text-lg">No team polls yet</p>
                 <p class="text-gray-400 text-sm">Create the first poll for your team!</p>
+            </div>
+            
+            <!-- Polls List -->
+            <div id="pollsList" class="space-y-4">
             </div>
         </div>
     </div>
@@ -154,23 +158,34 @@ let pollsData = [];
 // Load polls from API
 async function loadPolls() {
     try {
-        console.log('Loading polls...');
-        const response = await fetch('/api/polls/team/1'); // Using team_id = 1 for now
-        console.log('Response status:', response.status);
+        const url = `/api/polls/team/1?t=${Date.now()}`; // Cache busting parameter
+        
+        const response = await fetch(url, {
+            cache: 'no-cache',
+            headers: {
+                'Cache-Control': 'no-cache'
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
         
         const data = await response.json();
-        console.log('Response data:', data);
         
         if (data.success) {
+            const oldCount = pollsData.length;
             pollsData = data.polls;
-            console.log('Loaded', pollsData.length, 'polls');
+            
+            console.log(`📊 Loaded ${pollsData.length} polls (was ${oldCount})`);
+            
             renderPolls();
         } else {
-            console.error('API returned error:', data.error);
+            console.error('❌ API returned error:', data.error);
             showError(data.debug ? `${data.error}: ${data.debug}` : 'Failed to load polls');
         }
     } catch (error) {
-        console.error('Error loading polls:', error);
+        console.error('❌ Error loading polls:', error);
         showError('Network error loading polls');
     }
 }
@@ -180,6 +195,11 @@ function renderPolls() {
     const pollsList = document.getElementById('pollsList');
     const loadingState = document.getElementById('loadingState');
     const emptyState = document.getElementById('emptyState');
+    
+    if (!pollsList || !loadingState || !emptyState) {
+        console.error('❌ ERROR: Required DOM elements not found!');
+        return;
+    }
     
     loadingState.classList.add('hidden');
     
@@ -192,16 +212,24 @@ function renderPolls() {
     
     pollsList.innerHTML = pollsData.map(poll => `
         <div class="bg-white rounded-lg shadow-md p-4 border border-gray-200">
-            <div class="flex justify-between items-start mb-3">
-                <div class="flex-1">
-                    <h3 class="font-semibold text-gray-800 mb-1">${escapeHtml(poll.question)}</h3>
-                    <p class="text-sm text-gray-500">
-                        Created ${formatDate(poll.created_at)} • ${poll.response_count} responses
-                    </p>
+            <div class="mb-3">
+                <div class="flex justify-between items-start mb-2">
+                    <div class="flex-1">
+                        <h3 class="font-semibold text-gray-800 mb-1">${escapeHtml(poll.question)}</h3>
+                        <p class="text-sm text-gray-500">
+                            Created ${formatDate(poll.created_at)} • ${poll.response_count} responses
+                        </p>
+                    </div>
                 </div>
-                <div class="flex space-x-3 ml-4">
-                    <button onclick="viewPollResults(${poll.id})" class="flex items-center space-x-1 text-green-600 hover:text-green-800 px-2 py-1 rounded hover:bg-green-50 transition-colors">
-                        <i class="fas fa-chart-bar text-lg"></i>
+                
+                <!-- Action Buttons -->
+                <div class="flex flex-wrap gap-2 mt-3">
+                    <button onclick="respondToPoll(${poll.id})" class="flex items-center space-x-1 text-blue-600 hover:text-blue-800 px-3 py-2 rounded-lg hover:bg-blue-50 transition-colors border border-blue-200">
+                        <i class="fas fa-vote-yea"></i>
+                        <span class="text-sm font-medium">Respond to Poll</span>
+                    </button>
+                    <button onclick="viewPollResults(${poll.id})" class="flex items-center space-x-1 text-green-600 hover:text-green-800 px-3 py-2 rounded-lg hover:bg-green-50 transition-colors border border-green-200">
+                        <i class="fas fa-chart-bar"></i>
                         <span class="text-sm font-medium">View Results</span>
                     </button>
                 </div>
@@ -337,14 +365,20 @@ document.getElementById('createPollForm').addEventListener('submit', async funct
         const data = await response.json();
         
         if (data.success) {
+            console.log('✅ Poll created successfully');
             showSuccess('Poll created successfully!');
             hideCreatePollModal();
-            loadPolls(); // Reload polls list
+            
+            // Reload polls after a brief delay
+            setTimeout(() => {
+                loadPolls();
+            }, 1000);
         } else {
+            console.error('❌ Failed to create poll:', data.error);
             showError(data.error || 'Failed to create poll');
         }
     } catch (error) {
-        console.error('Error creating poll:', error);
+        console.error('❌ Error creating poll:', error);
         showError('Failed to create poll');
     }
 });
@@ -400,6 +434,11 @@ async function copyPollLink(pollId, buttonElement) {
             buttonElement.title = originalTitle;
         }, 2000);
     }
+}
+
+// Respond to poll
+function respondToPoll(pollId) {
+    window.location.href = `/mobile/polls/${pollId}`;
 }
 
 // View poll results

@@ -11,8 +11,8 @@
                 <i class="fas fa-user-friends text-white text-lg"></i>
             </div>
             <div class="ml-4">
-                <h1 class="text-xl font-bold text-gray-900">Find People to Play</h1>
-                <p class="text-sm text-gray-500">Find players at {{ session_data.user.club }} to play</p>
+                <h1 class="text-xl font-bold text-gray-900">Search & Connect with Players</h1>
+                <p class="text-sm text-gray-500">Find players to play</p>
             </div>
         </div>
     </div>
@@ -31,7 +31,21 @@
             
             <div class="p-6 space-y-4">
     
-                <!-- Series Filter -->
+                <!-- Name Filters (First) -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label for="firstNameFilter" class="block text-sm font-medium text-gray-700 mb-2">First Name</label>
+                        <input type="text" id="firstNameFilter" placeholder="Enter first name" 
+                               class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label for="lastNameFilter" class="block text-sm font-medium text-gray-700 mb-2">Last Name</label>
+                        <input type="text" id="lastNameFilter" placeholder="Enter last name" 
+                               class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                </div>
+
+                <!-- Series Filter (Second) -->
                 <div>
                     <label for="seriesFilter" class="block text-sm font-medium text-gray-700 mb-2">Series</label>
                     <select id="seriesFilter" class="w-full p-3 border border-gray-300 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
@@ -39,7 +53,7 @@
                     </select>
                 </div>
 
-                <!-- PTI Range Filter -->
+                <!-- PTI Range Filter (Third) -->
                 <div id="ptiFiltersSection" style="display: none;">
                     <label class="block text-sm font-medium text-gray-700 mb-3">PTI Range</label>
                     <div class="bg-gray-50 rounded-lg p-4 space-y-4">
@@ -61,18 +75,16 @@
                     </div>
                 </div>
 
-                <!-- Name Filters -->
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label for="firstNameFilter" class="block text-sm font-medium text-gray-700 mb-2">First Name</label>
-                        <input type="text" id="firstNameFilter" placeholder="Enter first name" 
-                               class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label for="lastNameFilter" class="block text-sm font-medium text-gray-700 mb-2">Last Name</label>
-                        <input type="text" id="lastNameFilter" placeholder="Enter last name" 
-                               class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                    </div>
+                <!-- Club Filter Checkbox (Fourth) -->
+                <div>
+                    <label class="flex items-center cursor-pointer">
+                        <input type="checkbox" id="clubOnlyFilter" checked 
+                               class="w-5 h-5 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2">
+                        <span class="text-sm font-medium text-gray-700" style="margin-left: 5px;">
+                            <span id="clubOnlyLabel">My Club</span> only
+                        </span>
+                    </label>
+                    <p class="text-xs text-gray-500 mt-1 ml-8">Show only players from your club</p>
                 </div>
 
                 <!-- Filter Buttons -->
@@ -409,6 +421,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const ptiMinValue = document.getElementById('ptiMinValue');
     const ptiMaxValue = document.getElementById('ptiMaxValue');
     const ptiRangeDisplay = document.getElementById('ptiRangeDisplay');
+    const clubOnlyFilter = document.getElementById('clubOnlyFilter');
+    const clubOnlyLabel = document.getElementById('clubOnlyLabel');
     const applyFiltersBtn = document.getElementById('applyFilters');
     const resetFiltersBtn = document.getElementById('resetFilters');
     
@@ -443,6 +457,7 @@ document.addEventListener('DOMContentLoaded', function() {
         availableSeries = data.available_series || [];
         ptiRange = data.pti_range || { min: 0, max: 100 };
         const ptiFiltersAvailable = data.pti_filters_available || false;
+        const userClub = data.user_club || 'My Club';
         
         // Populate series dropdown
         seriesFilter.innerHTML = '<option value="">All Series</option>';
@@ -452,6 +467,9 @@ document.addEventListener('DOMContentLoaded', function() {
             option.textContent = series;
             seriesFilter.appendChild(option);
         });
+        
+        // Update club name in checkbox label
+        clubOnlyLabel.textContent = userClub;
         
         // Show/hide PTI filters based on availability
         const ptiFiltersSection = document.getElementById('ptiFiltersSection');
@@ -545,6 +563,9 @@ document.addEventListener('DOMContentLoaded', function() {
             if (seriesFilter.value) params.append('series', seriesFilter.value);
             if (firstNameFilter.value.trim()) params.append('first_name', firstNameFilter.value.trim());
             if (lastNameFilter.value.trim()) params.append('last_name', lastNameFilter.value.trim());
+            
+            // Add club filter parameter
+            params.append('club_only', clubOnlyFilter.checked);
             
             // Only add PTI filters if PTI filters section is visible
             const ptiFiltersSection = document.getElementById('ptiFiltersSection');
@@ -926,6 +947,7 @@ document.addEventListener('DOMContentLoaded', function() {
         seriesFilter.value = '';
         firstNameFilter.value = '';
         lastNameFilter.value = '';
+        clubOnlyFilter.checked = true; // Reset to default checked state
         
         // Only reset PTI filters if they are visible
         const ptiFiltersSection = document.getElementById('ptiFiltersSection');

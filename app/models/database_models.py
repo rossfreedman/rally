@@ -186,7 +186,7 @@ class Player(Base):
     
     # Constraints  
     __table_args__ = (
-        UniqueConstraint('tenniscores_player_id', 'league_id', name='unique_player_in_league'),
+        UniqueConstraint('tenniscores_player_id', 'league_id', 'club_id', 'series_id', name='unique_player_in_league_club_series'),
     )
     
     @property
@@ -394,4 +394,51 @@ class SeriesStats(Base):
     created_at = Column(DateTime(timezone=True), default=func.now())
     
     # Relationships
-    league = relationship("League") 
+    league = relationship("League")
+
+class Poll(Base):
+    """Team polls for voting/decisions"""
+    __tablename__ = 'polls'
+    
+    id = Column(Integer, primary_key=True)
+    team_id = Column(Integer)  # Reference to team (could be club or series-specific)
+    created_by = Column(Integer, ForeignKey('users.id'))
+    question = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=func.now())
+    
+    # Relationships
+    creator = relationship("User")
+    choices = relationship("PollChoice", back_populates="poll", cascade="all, delete-orphan")
+    responses = relationship("PollResponse", back_populates="poll", cascade="all, delete-orphan")
+
+class PollChoice(Base):
+    """Poll choice options"""
+    __tablename__ = 'poll_choices'
+    
+    id = Column(Integer, primary_key=True)
+    poll_id = Column(Integer, ForeignKey('polls.id', ondelete='CASCADE'))
+    choice_text = Column(Text, nullable=False)
+    
+    # Relationships
+    poll = relationship("Poll", back_populates="choices")
+    responses = relationship("PollResponse", back_populates="choice")
+
+class PollResponse(Base):
+    """Poll responses from players"""
+    __tablename__ = 'poll_responses'
+    
+    id = Column(Integer, primary_key=True)
+    poll_id = Column(Integer, ForeignKey('polls.id', ondelete='CASCADE'))
+    choice_id = Column(Integer, ForeignKey('poll_choices.id'))
+    player_id = Column(Integer, ForeignKey('players.id'))
+    responded_at = Column(DateTime(timezone=True), default=func.now())
+    
+    # Relationships
+    poll = relationship("Poll", back_populates="responses")
+    choice = relationship("PollChoice", back_populates="responses")
+    player = relationship("Player")
+    
+    # Constraints
+    __table_args__ = (
+        UniqueConstraint('poll_id', 'player_id', name='unique_poll_player_response'),
+    )

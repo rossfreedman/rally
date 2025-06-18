@@ -17,8 +17,8 @@ def find_problematic_files():
     
     # Files to check (excluding migration history)
     check_patterns = [
-        "etl/*.py",
-        "etl/*.sql", 
+        "data/etl/*.py",
+        "data/etl/*.sql", 
         "scripts/*.py",
         "app/services/*.py",
         "app/routes/*.py",
@@ -56,8 +56,8 @@ def find_problematic_files():
     return problematic_files
 
 def fix_etl_cleanup_script():
-    """Fix etl/cleanup_orphaned_associations.sql"""
-    file_path = "etl/cleanup_orphaned_associations.sql"
+    """Fix data/etl/cleanup_orphaned_associations.sql"""
+    file_path = "data/etl/cleanup_orphaned_associations.sql"
     
     if not os.path.exists(file_path):
         print(f"⚠️  {file_path} not found")
@@ -109,8 +109,8 @@ WHERE p.id IS NULL;"""
         print(f"   ❌ Error updating {file_path}: {e}")
 
 def fix_backup_restore_script():
-    """Fix etl/backup_restore_users.py"""
-    file_path = "etl/backup_restore_users.py"
+    """Fix data/etl/backup_restore_users.py"""
+    file_path = "data/etl/backup_restore_users.py"
     
     if not os.path.exists(file_path):
         print(f"⚠️  {file_path} not found")
