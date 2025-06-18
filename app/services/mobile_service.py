@@ -442,6 +442,41 @@ def get_player_analysis(user):
         user_league_name = user.get('league_name', '')
         print(f"[DEBUG] get_player_analysis: User league_id string: '{user_league_id}', league_name: '{user_league_name}'")
         
+        # DEBUGGING: Track league ID conversion issues and force fresh data
+        print(f"[SESSION-DEBUG] Raw user data from session:")
+        print(f"  league_id: {user.get('league_id')} (type: {type(user.get('league_id'))})")
+        print(f"  league_name: {user.get('league_name')}")
+        print(f"  tenniscores_player_id: {user.get('tenniscores_player_id')}")
+        
+        # Force refresh league data from database to avoid stale session data
+        if hasattr(user, 'get') and user.get('email'):
+            try:
+                fresh_user_data = execute_query_one("""
+                    SELECT u.id, u.email, u.first_name, u.last_name,
+                           p.tenniscores_player_id, l.id as league_db_id, l.league_id, l.league_name
+                    FROM users u
+                    JOIN user_player_associations upa ON u.id = upa.user_id
+                    JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+                    JOIN leagues l ON p.league_id = l.id
+                    WHERE u.email = %s AND upa.is_primary = true
+                """, [user['email']])
+                
+                if fresh_user_data:
+                    print(f"[SESSION-DEBUG] Fresh database lookup:")
+                    print(f"  league_db_id: {fresh_user_data['league_db_id']}")
+                    print(f"  league_id: {fresh_user_data['league_id']}")
+                    print(f"  league_name: {fresh_user_data['league_name']}")
+                    
+                    # Use fresh data instead of potentially stale session data
+                    user_league_id = fresh_user_data['league_id']
+                    user_league_name = fresh_user_data['league_name']
+                    print(f"[SESSION-DEBUG] Using fresh league data: {user_league_id}")
+                else:
+                    print(f"[SESSION-DEBUG] No fresh data found, using session data")
+            except Exception as e:
+                print(f"[SESSION-DEBUG] Error getting fresh data: {e}")
+                # Continue with session data if refresh fails
+        
         # Convert string league_id to integer foreign key if needed
         league_id_int = None
         if isinstance(user_league_id, str) and user_league_id != '':
