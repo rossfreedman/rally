@@ -74,3 +74,6 @@ scraper.log
 *.backup
 *.bak
 server_backup*.py
+# Database dump files
+local_dump_for_railway_*.sql
+railway_backup_*.sql
