@@ -1,73 +1,67 @@
-#!/usr/bin/env python3
-"""Check Railway database schema"""
-
 import psycopg2
-import sys
 import os
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from dotenv import load_dotenv
 
-from database_config import get_db_url
-import re
+load_dotenv()
 
-def check_railway_schema():
-    """Check Railway database schema"""
-    os.environ['SYNC_RAILWAY'] = 'true'
+def connect_railway():
+    # Try different environment variables for Railway connection
+    url = os.getenv('DATABASE_PUBLIC_URL') or os.getenv('DATABASE_URL')
     
-    # Get Railway connection details  
-    url = get_db_url()
-    pattern = r'postgresql://([^:]+):([^@]+)@([^/]+)/(.+)'
-    match = re.match(pattern, url)
-    user, password, host_port, database = match.groups()
-    host, port = host_port.split(':')
-
-    conn = psycopg2.connect(
-        host=host, port=port, database=database, 
-        user=user, password=password, sslmode='prefer'
+    if not url:
+        print("❌ No Railway database URL found. Check DATABASE_PUBLIC_URL or DATABASE_URL environment variables.")
+        return None
+        
+    if url.startswith('postgres://'):
+        url = url.replace('postgres://', 'postgresql://', 1)
+    
+    import urllib.parse as urlparse
+    parsed = urlparse.urlparse(url)
+    
+    return psycopg2.connect(
+        dbname=parsed.path[1:],
+        user=parsed.username,
+        password=parsed.password,
+        host=parsed.hostname,
+        port=parsed.port or 5432,
+        sslmode='require'
     )
 
-    cursor = conn.cursor()
-
-    print("🔍 Checking Railway Database Schema")
-    print("=" * 50)
-
-    # Check if the constraint exists
-    cursor.execute("""
-        SELECT constraint_name 
-        FROM information_schema.table_constraints 
-        WHERE table_name = 'club_leagues' 
-        AND constraint_name = 'club_leagues_club_id_league_id_key'
-    """)
-
-    constraint_exists = cursor.fetchone()
-    print(f'❓ club_leagues_club_id_league_id_key constraint exists: {constraint_exists is not None}')
-
-    # Check current club_leagues table structure
-    cursor.execute("""
-        SELECT column_name, data_type, is_nullable
-        FROM information_schema.columns 
-        WHERE table_name = 'club_leagues'
-        ORDER BY ordinal_position
-    """)
-
-    columns = cursor.fetchall()
-    print(f'📊 club_leagues columns: {columns}')
-
-    # Check all constraints on club_leagues
-    cursor.execute("""
-        SELECT constraint_name, constraint_type
-        FROM information_schema.table_constraints 
-        WHERE table_name = 'club_leagues'
-    """)
-
-    constraints = cursor.fetchall()
-    print(f'🔗 club_leagues constraints: {constraints}')
-
-    # Check current Alembic version
-    cursor.execute("SELECT version_num FROM alembic_version")
-    version = cursor.fetchone()
-    print(f'📋 Current Alembic version: {version[0] if version else "None"}')
-
+def check_schema():
+    conn = connect_railway()
+    if not conn:
+        return
+        
+    cur = conn.cursor()
+    
+    print("=== RAILWAY DATABASE DATA CHECK ===")
+    
+    # Check if key tables have data
+    key_tables = ['users', 'players', 'match_scores', 'schedule', 'series_stats', 'series_leagues', 'leagues', 'clubs', 'series']
+    print(f"\n📊 DATA COUNTS:")
+    total_records = 0
+    
+    for table in key_tables:
+        try:
+            cur.execute(f"SELECT COUNT(*) FROM {table}")
+            count = cur.fetchone()[0]
+            total_records += count
+            status = "✅" if count > 0 else "❌"
+            print(f"  {status} {table}: {count:,} rows")
+        except Exception as e:
+            print(f"  ⚠️  {table}: Error - {e}")
+    
+    print(f"\n📈 TOTAL RECORDS: {total_records:,}")
+    
+    if total_records == 0:
+        print("\n🚨 CRITICAL ISSUE: Railway database has NO DATA!")
+        print("   This explains why the application shows no data.")
+        print("   The schema is correct but data is missing.")
+    else:
+        print(f"\n✅ Railway database has data - investigating other issues needed")
+    
+    cur.close()
     conn.close()
 
 if __name__ == "__main__":
-    check_railway_schema() 
+    check_schema() 

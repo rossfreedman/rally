@@ -173,20 +173,14 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>PTI vs Opponents Analysis</h1>
-            <p>Analyze player performance relative to opponent strength</p>
+            <h1>Your PTI vs Opponents Analysis</h1>
+            <p>Analyze your performance relative to opponent strength</p>
         </div>
 
         <div class="controls">
             <div class="control-group">
-                <label for="playerSelect">Select Player:</label>
-                <select id="playerSelect">
-                    <option value="">Loading players...</option>
-                </select>
-            </div>
-            <div class="control-group">
-                <label>&nbsp;</label>
-                <button onclick="generateChart()">Generate Chart</button>
+                <label>Analyzing:</label>
+                <span id="currentPlayerName" style="font-weight: bold; color: #2c3e50;">Loading...</span>
             </div>
         </div>
 
@@ -228,62 +222,53 @@
         let playerHistoryData = [];
         let matchHistoryData = [];
         let playersData = [];
+        
+        // Get current user information from session
+        const sessionData = {{ session_data | tojson }};
+        const currentUserName = sessionData.user ? `${sessionData.user.first_name} ${sessionData.user.last_name}`.trim() : null;
 
-        // Load all data files
+        // Load all data from database
         async function loadData() {
             try {
-                console.log('Loading data files...');
+                console.log('Loading data from database...');
                 
                 const [playerHistoryResponse, matchHistoryResponse, playersResponse] = await Promise.all([
-                                            fetch('/data/leagues/all/player_history.json'),
-                fetch('/data/leagues/all/match_history.json'),
-                fetch('/data/leagues/all/players.json')
+                    fetch('/api/pti-analysis/player-history'),
+                    fetch('/api/pti-analysis/match-history'),
+                    fetch('/api/pti-analysis/players')
                 ]);
 
                 if (!playerHistoryResponse.ok || !matchHistoryResponse.ok || !playersResponse.ok) {
-                    throw new Error('Failed to load one or more data files');
+                    throw new Error('Failed to load one or more data endpoints');
                 }
 
                 playerHistoryData = await playerHistoryResponse.json();
                 matchHistoryData = await matchHistoryResponse.json();
                 playersData = await playersResponse.json();
 
-                console.log('Data loaded successfully');
+                console.log('Data loaded successfully from database');
                 console.log(`Player history: ${playerHistoryData.length} players`);
                 console.log(`Match history: ${matchHistoryData.length} matches`);
                 console.log(`Players data: ${playersData.length} players`);
 
-                populatePlayerSelect();
-                document.getElementById('loadingMessage').style.display = 'none';
+                // Display current user name
+                if (currentUserName) {
+                    document.getElementById('currentPlayerName').textContent = currentUserName;
+                    document.getElementById('loadingMessage').style.display = 'none';
+                    
+                    // Automatically generate chart for current user
+                    generateChart();
+                } else {
+                    showError('Could not determine current user. Please ensure you are logged in.');
+                }
 
             } catch (error) {
                 console.error('Error loading data:', error);
-                showError('Failed to load data files. Please ensure the data files are accessible.');
+                showError('Failed to load data from database. Please ensure you are logged in.');
             }
         }
 
-        function populatePlayerSelect() {
-            const select = document.getElementById('playerSelect');
-            select.innerHTML = '<option value="">Select a player...</option>';
-            
-            // Get unique player names from player history
-            const playerNames = playerHistoryData
-                .map(player => player.name)
-                .filter(name => name)
-                .sort();
-            
-            playerNames.forEach(name => {
-                const option = document.createElement('option');
-                option.value = name;
-                option.textContent = name;
-                select.appendChild(option);
-            });
 
-            // Select Daniel Sullivan by default if available
-            if (playerNames.includes('Daniel Sullivan')) {
-                select.value = 'Daniel Sullivan';
-            }
-        }
 
         function showError(message) {
             const errorDiv = document.getElementById('errorMessage');
@@ -327,11 +312,17 @@
             const year = date.getFullYear().toString().substr(-2);
             return `${day}-${month}-${year}`;
         }
+        
+        function normalizeDate(dateStr) {
+            // Normalize various date formats for comparison
+            if (!dateStr) return '';
+            return dateStr.toLowerCase().trim();
+        }
 
         function findPlayerPTI(playerName) {
             const player = playersData.find(p => {
-                const fullName = `${p['First Name']} ${p['Last Name']}`.trim();
-                return fullName === playerName.trim();
+                return p.name === playerName.trim() || 
+                       `${p['First Name']} ${p['Last Name']}`.trim() === playerName.trim();
             });
             return player ? parseFloat(player.PTI) : null;
         }
@@ -345,9 +336,9 @@
             const allPlayers = [homePlayer1, homePlayer2, awayPlayer1, awayPlayer2];
             
             if ([homePlayer1, homePlayer2].includes(targetPlayer)) {
-                return [awayPlayer1, awayPlayer2].filter(p => p);
+                return [awayPlayer1, awayPlayer2].filter(p => p && p.trim() !== '');
             } else if ([awayPlayer1, awayPlayer2].includes(targetPlayer)) {
-                return [homePlayer1, homePlayer2].filter(p => p);
+                return [homePlayer1, homePlayer2].filter(p => p && p.trim() !== '');
             }
             return [];
         }
@@ -357,7 +348,7 @@
             const homePlayer2 = match['Home Player 2'] || '';
             const awayPlayer1 = match['Away Player 1'] || '';
             const awayPlayer2 = match['Away Player 2'] || '';
-            const winner = (match.Winner || '').toLowerCase();
+            const winner = (match.Winner || '').toLowerCase().trim();
             
             const targetOnHome = [homePlayer1, homePlayer2].includes(targetPlayer);
             const targetOnAway = [awayPlayer1, awayPlayer2].includes(targetPlayer);
@@ -396,10 +387,38 @@
                 }
                 
                 // Find corresponding match in match history
-                const matchDateFormatted = formatDateForMatching(matchDate).toLowerCase();
+                const matchDateFormatted = formatDateForMatching(matchDate);
+                
+                // Debug: Log the first few attempts to see date formats
+                if (scatterData.length < 3) {
+                    console.log(`[DEBUG] Player history date: "${matchDateStr}" -> parsed: ${matchDate} -> formatted: "${matchDateFormatted}"`);
+                    const sampleDates = matchHistoryData.slice(0, 10).map(m => m.Date).filter(d => d);
+                    console.log(`[DEBUG] Sample match history dates:`, sampleDates);
+                }
+                
                 const correspondingMatch = matchHistoryData.find(histMatch => {
-                    const histDate = (histMatch.Date || '').toLowerCase();
-                    if (histDate === matchDateFormatted) {
+                    const histDate = histMatch.Date || '';
+                    
+                    // Try multiple date comparison approaches
+                    const normalizedHistDate = normalizeDate(histDate);
+                    const normalizedMatchDate = normalizeDate(matchDateFormatted);
+                    
+                    // Also try direct date comparison by converting both to same format
+                    let datesMatch = false;
+                    if (normalizedHistDate === normalizedMatchDate) {
+                        datesMatch = true;
+                    } else {
+                        // Try parsing the history date and comparing as Date objects
+                        const histDateParsed = parseDate(histDate);
+                        if (histDateParsed && matchDate && 
+                            histDateParsed.getFullYear() === matchDate.getFullYear() &&
+                            histDateParsed.getMonth() === matchDate.getMonth() &&
+                            histDateParsed.getDate() === matchDate.getDate()) {
+                            datesMatch = true;
+                        }
+                    }
+                    
+                    if (datesMatch) {
                         const allPlayers = [
                             histMatch['Home Player 1'],
                             histMatch['Home Player 2'],
@@ -412,7 +431,13 @@
                 });
                 
                 if (!correspondingMatch) {
-                    console.warn(`Could not find match record for ${playerName} on ${matchDateStr}`);
+                    if (scatterData.length < 3) { // Only show debug for first few misses
+                        console.warn(`Could not find match record for ${playerName} on ${matchDateStr}`);
+                        console.warn(`[DEBUG] Searched for formatted date: "${matchDateFormatted}" in ${matchHistoryData.length} match records`);
+                        // Show actual sample dates from match history for comparison
+                        const sampleDates = matchHistoryData.slice(0, 10).map(m => m.Date).filter(d => d);
+                        console.warn(`[DEBUG] Actual match history dates:`, sampleDates);
+                    }
                     continue;
                 }
                 
@@ -654,9 +679,8 @@
         }
 
         function generateChart() {
-            const playerName = document.getElementById('playerSelect').value;
-            if (!playerName) {
-                showError('Please select a player');
+            if (!currentUserName) {
+                showError('Could not determine current user. Please ensure you are logged in.');
                 return;
             }
             
@@ -665,8 +689,8 @@
                 document.getElementById('scatterChart').style.display = 'none';
                 document.getElementById('statsContainer').style.display = 'none';
                 
-                const data = createScatterPlotData(playerName);
-                createScatterPlot(data, playerName);
+                const data = createScatterPlotData(currentUserName);
+                createScatterPlot(data, currentUserName);
                 
             } catch (error) {
                 console.error('Error generating chart:', error);

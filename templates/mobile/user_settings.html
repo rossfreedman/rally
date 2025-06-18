@@ -133,8 +133,8 @@
         
         <!-- Player ID -->
         <div class="text-center py-4">
-            <div class="text-xs text-gray-500 font-mono">
-                Player ID: nndz-WkNHeHdiZjhnUT09
+            <div class="text-xs text-gray-500 font-mono" id="player-id-display">
+                Player ID: Loading...
             </div>
         </div>
     </div>
@@ -249,7 +249,13 @@ fetch('/api/get-user-settings').then(r=>r.json()).then(user => {
   fillUserSettingsForm(user);
   loadLeaguesClubsAndSeries(user);
   
-
+  // Update Player ID display with user's actual Player ID
+  const playerIdDisplay = document.getElementById('player-id-display');
+  if (user.tenniscores_player_id) {
+    playerIdDisplay.textContent = `Player ID: ${user.tenniscores_player_id}`;
+  } else {
+    playerIdDisplay.textContent = 'Player ID: Not linked';
+  }
 });
 
 

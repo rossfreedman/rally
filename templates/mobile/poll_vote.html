@@ -17,6 +17,14 @@
         </div>
     </div>
 
+    <!-- Back Button -->
+    <div class="px-4 py-3 border-b border-gray-100 bg-white">
+        <a href="/mobile/polls" class="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium transition-colors">
+            <i class="fas fa-arrow-left mr-2"></i>
+            View all polls
+        </a>
+    </div>
+
     <!-- Content -->
     <div class="px-4 py-6 space-y-6">
         
@@ -62,30 +70,67 @@ let pollId = {{ poll_id }};
 // Initialize page
 document.addEventListener('DOMContentLoaded', function() {
     loadPoll();
+    
+    // Check if we should scroll to results section
+    if (window.location.hash === '#results') {
+        // Wait for content to load then scroll
+        setTimeout(() => {
+            scrollToResults();
+        }, 500);
+    }
 });
+
+// Function to scroll to results section
+function scrollToResults() {
+    const resultsSection = document.getElementById('results-section');
+    if (resultsSection) {
+        resultsSection.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'start' 
+        });
+        console.log('📍 Scrolled to results section');
+    } else {
+        console.log('❌ Results section not found for scrolling');
+    }
+}
 
 // Load poll data from API
 async function loadPoll() {
     try {
-        console.log('Loading poll data for poll ID:', pollId);
-        const response = await fetch(`/api/polls/${pollId}`);
-        console.log('Poll data response status:', response.status);
+        console.log('📡 Loading poll data for poll ID:', pollId);
+        const response = await fetch(`/api/polls/${pollId}?t=${Date.now()}`, {
+            cache: 'no-cache',
+            headers: {
+                'Cache-Control': 'no-cache'
+            }
+        });
+        console.log('📡 Poll data response status:', response.status);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
         
         const data = await response.json();
-        console.log('Poll data received:', data);
+        console.log('=== API RESPONSE DEBUG ===');
+        console.log('Success:', data.success);
+        console.log('Total votes:', data.total_votes);
+        console.log('User vote:', data.user_vote);
+        console.log('=========================');
         
         if (data.success) {
             pollData = data;
-            console.log('User has voted:', data.user_vote !== null);
-            console.log('Total votes:', data.total_votes);
+            console.log('✅ Setting pollData and rendering...');
             renderPoll();
+            return data; // Return the data for promise chaining
         } else {
-            console.error('Failed to load poll:', data);
+            console.error('❌ API returned error:', data.error);
             showErrorState();
+            throw new Error(data.error || 'Failed to load poll');
         }
     } catch (error) {
-        console.error('Error loading poll:', error);
+        console.error('❌ Error loading poll:', error);
         showErrorState();
+        throw error; // Re-throw for promise chaining
     }
 }
 
@@ -113,9 +158,27 @@ function renderPoll() {
     const votersByChoice = pollData.voters_by_choice;
     
     const hasVoted = userVote !== null;
-    console.log('Rendering poll - user has voted:', hasVoted, 'user vote:', userVote);
+    console.log('🎨 === POLL RENDER DEBUG ===');
+    console.log('📊 User vote:', userVote, hasVoted ? '(can change vote)' : '(first time voting)');
+    console.log('📈 Total votes:', totalVotes);
+    console.log('🗳️  Results breakdown:', choices.map(c => `${c.choice_text}: ${c.vote_count} votes (${Math.round(c.percentage)}%)`));
+    console.log('================================');
     
     pollContent.innerHTML = `
+        <!-- Share Poll -->
+        <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h4 class="font-medium text-gray-800">Share this poll</h4>
+                    <p class="text-sm text-gray-600">Send this link to other team members</p>
+                </div>
+                <button id="copyLinkBtn" onclick="copyPollLink()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                    <i class="fas fa-copy mr-1"></i>
+                    Copy Link
+                </button>
+            </div>
+        </div>
+        
         <!-- Poll Question -->
         <div class="bg-white rounded-lg shadow-md p-6 border border-gray-200">
             <div class="mb-4">
@@ -125,12 +188,15 @@ function renderPoll() {
                     ${formatDate(poll.created_at)}
                 </p>
             </div>
-            
+        </div>
+        
+        <!-- Voting Section -->
+        <div class="bg-white rounded-lg shadow-md p-6 border border-gray-200">
             ${hasVoted ? 
                 `<div class="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
                     <div class="flex items-center">
                         <i class="fas fa-check-circle text-green-600 mr-2"></i>
-                        <span class="text-green-800 font-medium">You have voted!</span>
+                        <span class="text-green-800 font-medium">You have voted! You can change your vote below.</span>
                     </div>
                 </div>` 
                 : 
@@ -142,41 +208,40 @@ function renderPoll() {
                 </div>`
             }
             
-            <!-- Voting Form (if not voted) -->
-            ${!hasVoted ? `
-                <form id="voteForm" class="space-y-3">
-                    ${choices.map(choice => `
-                        <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
-                            <input 
-                                type="radio" 
-                                name="choice" 
-                                value="${choice.id}" 
-                                class="mr-3 text-blue-600 focus:ring-blue-500"
-                            />
-                            <span class="text-gray-800">${escapeHtml(choice.choice_text)}</span>
-                        </label>
-                    `).join('')}
-                    
-                    <button 
-                        type="submit" 
-                        id="submitVoteBtn"
-                        class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg shadow hover:bg-blue-700 transition-colors font-medium"
-                    >
-                        <span id="submitBtnText">
-                            <i class="fas fa-vote-yea mr-2"></i>
-                            Submit Vote
-                        </span>
-                        <span id="submitBtnLoading" class="hidden">
-                            <i class="fas fa-spinner fa-spin mr-2"></i>
-                            Submitting...
-                        </span>
-                    </button>
-                </form>
-            ` : ''}
+            <!-- Voting Form (always show) -->
+            <form id="voteForm" class="space-y-3">
+                ${choices.map(choice => `
+                    <label class="flex items-center p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+                        <input 
+                            type="radio" 
+                            name="choice" 
+                            value="${choice.id}" 
+                            class="mr-3 text-blue-600 focus:ring-blue-500"
+                            ${choice.id === userVote ? 'checked' : ''}
+                        />
+                        <span class="text-gray-800">${escapeHtml(choice.choice_text)}</span>
+                    </label>
+                `).join('')}
+                
+                <button 
+                    type="submit" 
+                    id="submitVoteBtn"
+                    class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg shadow hover:bg-blue-700 transition-colors font-medium"
+                >
+                    <span id="submitBtnText">
+                        <i class="fas fa-vote-yea mr-2"></i>
+                        ${hasVoted ? 'Update Vote' : 'Submit Vote'}
+                    </span>
+                    <span id="submitBtnLoading" class="hidden">
+                        <i class="fas fa-spinner fa-spin mr-2"></i>
+                        ${hasVoted ? 'Updating...' : 'Submitting...'}
+                    </span>
+                </button>
+            </form>
         </div>
         
         <!-- Results -->
-        <div class="bg-white rounded-lg shadow-md p-6 border border-gray-200">
+        <div id="results-section" class="bg-white rounded-lg shadow-md p-6 border border-gray-200">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-lg font-bold text-gray-800">Results</h3>
                 <span class="text-sm text-gray-500">${totalVotes} vote${totalVotes !== 1 ? 's' : ''}</span>
@@ -222,31 +287,22 @@ function renderPoll() {
                 </div>`
             }
         </div>
-        
-        <!-- Share Poll -->
-        <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-            <div class="flex items-center justify-between">
-                <div>
-                    <h4 class="font-medium text-gray-800">Share this poll</h4>
-                    <p class="text-sm text-gray-600">Send this link to other team members</p>
-                </div>
-                <button onclick="copyPollLink()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-                    <i class="fas fa-copy mr-1"></i>
-                    Copy Link
-                </button>
-            </div>
-        </div>
     `;
     
-    // Add event listener for vote form if user hasn't voted
-    if (!hasVoted) {
-        const voteForm = document.getElementById('voteForm');
-        if (voteForm) {
-            console.log('Adding vote form event listener');
-            voteForm.addEventListener('submit', handleVoteSubmission);
-        }
+    // Add event listener for vote form (always available now)
+    const voteForm = document.getElementById('voteForm');
+    if (voteForm) {
+        console.log('Adding vote form event listener');
+        voteForm.addEventListener('submit', handleVoteSubmission);
     } else {
-        console.log('User has already voted, not showing vote form');
+        console.error('Vote form not found!');
+    }
+    
+    // Check if we should scroll to results after rendering
+    if (window.location.hash === '#results') {
+        setTimeout(() => {
+            scrollToResults();
+        }, 100);
     }
 }
 
@@ -263,6 +319,10 @@ async function handleVoteSubmission(e) {
         showError('Please select a choice');
         return;
     }
+    
+    // Store current vote for rollback if needed
+    const previousVote = pollData ? pollData.user_vote : null;
+    const wasUpdate = previousVote !== null;
     
     // Show loading state
     const submitBtn = document.getElementById('submitVoteBtn');
@@ -305,30 +365,80 @@ async function handleVoteSubmission(e) {
         console.log('Response data:', data);
         
         if (data.success) {
-            console.log('Vote successful, showing success message');
+            console.log('Vote successful, updating UI immediately');
             
-            // Show immediate feedback on the button
-            const submitBtn = document.getElementById('submitVoteBtn');
-            const submitBtnText = document.getElementById('submitBtnText');
-            const submitBtnLoading = document.getElementById('submitBtnLoading');
+            // Update pollData immediately with the new vote
+            if (pollData) {
+                pollData.user_vote = parseInt(choiceId);
+            }
             
+            // Show success message immediately
+            showSuccess(wasUpdate ? '✅ Your vote has been updated!' : '🎉 Your vote has been recorded!');
+            
+            // Update button to success state immediately
             if (submitBtn && submitBtnText && submitBtnLoading) {
-                submitBtn.disabled = true;
-                submitBtnText.innerHTML = '<i class="fas fa-check-circle mr-2"></i>Vote Recorded!';
+                submitBtnText.innerHTML = `<i class="fas fa-check-circle mr-2"></i>${wasUpdate ? 'Vote Updated!' : 'Vote Recorded!'}`;
                 submitBtnText.classList.remove('hidden');
                 submitBtnLoading.classList.add('hidden');
                 submitBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
                 submitBtn.classList.add('bg-green-600');
             }
             
-            // Show success message
-            showSuccess('🎉 Your vote has been recorded!');
+            // Update the voting status message immediately
+            const statusMessage = document.querySelector('.bg-blue-50, .bg-green-50');
+            if (statusMessage) {
+                statusMessage.className = 'bg-green-50 border border-green-200 rounded-lg p-3 mb-4';
+                statusMessage.innerHTML = `
+                    <div class="flex items-center">
+                        <i class="fas fa-check-circle text-green-600 mr-2"></i>
+                        <span class="text-green-800 font-medium">You have voted! You can change your vote below.</span>
+                    </div>
+                `;
+            }
             
-            // Wait a moment then reload poll to show updated results
-            console.log('Reloading poll data in 1500ms...');
-            setTimeout(() => {
-                loadPoll();
-            }, 1500);
+            // Reload fresh data from server to update results section
+            console.log('🔄 Refreshing poll data for updated results...');
+            setTimeout(async () => {
+                try {
+                    const freshResponse = await fetch(`/api/polls/${pollId}?t=${Date.now()}`, {
+                        cache: 'no-cache',
+                        headers: {
+                            'Cache-Control': 'no-cache'
+                        }
+                    });
+                    
+                    if (freshResponse.ok) {
+                        const freshData = await freshResponse.json();
+                        if (freshData.success) {
+                            // Update global poll data
+                            pollData = freshData;
+                            
+                            // Update only the results section (not the voting form)
+                            updateResultsSection();
+                            
+                            console.log('✅ Results updated successfully');
+                            
+                            // Auto-scroll to results after successful vote update
+                            setTimeout(() => {
+                                scrollToResults();
+                            }, 200);
+                        }
+                    }
+                } catch (error) {
+                    console.error('❌ Error refreshing results:', error);
+                }
+                
+                // Reset button to normal state
+                setTimeout(() => {
+                    if (submitBtn && submitBtnText && submitBtnLoading) {
+                        submitBtn.disabled = false;
+                        submitBtn.classList.remove('bg-green-600');
+                        submitBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                        submitBtnText.innerHTML = `<i class="fas fa-vote-yea mr-2"></i>Update Vote`;
+                    }
+                }, 500);
+            }, 300);
+            
         } else {
             console.error('Vote failed:', data.error);
             showError(data.error || 'Failed to submit vote');
@@ -338,6 +448,19 @@ async function handleVoteSubmission(e) {
         console.error('Error submitting vote:', error);
         showError('Failed to submit vote. Please try again.');
         resetButtonState();
+        
+        // Rollback the radio button selection on error
+        if (previousVote) {
+            const previousRadio = document.querySelector(`input[name="choice"][value="${previousVote}"]`);
+            if (previousRadio) {
+                previousRadio.checked = true;
+            }
+        } else {
+            // Clear all radio buttons if there was no previous vote
+            document.querySelectorAll('input[name="choice"]').forEach(radio => {
+                radio.checked = false;
+            });
+        }
     }
 }
 
@@ -352,18 +475,116 @@ function resetButtonState() {
         submitBtn.disabled = false;
         submitBtnText.classList.remove('hidden');
         submitBtnLoading.classList.add('hidden');
+        
+        // Reset button color
+        submitBtn.classList.remove('bg-green-600');
+        submitBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+        
+        // Reset button text based on current vote status
+        const hasVoted = pollData && pollData.user_vote !== null;
+        submitBtnText.innerHTML = `<i class="fas fa-vote-yea mr-2"></i>${hasVoted ? 'Update Vote' : 'Submit Vote'}`;
     } else {
         console.log('Button elements not found for reset');
     }
 }
 
+// Update only the results section without touching the voting form
+function updateResultsSection() {
+    if (!pollData) return;
+    
+    const choices = pollData.choices;
+    const userVote = pollData.user_vote;
+    const totalVotes = pollData.total_votes;
+    const votersByChoice = pollData.voters_by_choice;
+    
+    // Find the results container - look for the div containing "Results" heading
+    const resultsContainer = Array.from(document.querySelectorAll('.bg-white.rounded-lg.shadow-md')).find(div => 
+        div.querySelector('h3') && div.querySelector('h3').textContent.includes('Results')
+    );
+    if (!resultsContainer) {
+        console.error('Could not find results container');
+        return;
+    }
+    
+    // Update the results HTML (preserve the ID)
+    resultsContainer.id = 'results-section';
+    resultsContainer.innerHTML = `
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-bold text-gray-800">Results</h3>
+            <span class="text-sm text-gray-500">${totalVotes} vote${totalVotes !== 1 ? 's' : ''}</span>
+        </div>
+        
+        ${totalVotes === 0 ? 
+            `<p class="text-gray-500 text-center py-4">No votes yet</p>` 
+            : 
+            `<div class="space-y-4">
+                ${choices.map(choice => {
+                    const percentage = Math.round(choice.percentage);
+                    const voters = votersByChoice[choice.id] || [];
+                    const isUserChoice = choice.id === userVote;
+                    
+                    return `
+                        <div class="space-y-2">
+                            <div class="flex justify-between items-center">
+                                <span class="font-medium text-gray-800 ${isUserChoice ? 'text-blue-600' : ''}">
+                                    ${escapeHtml(choice.choice_text)}
+                                    ${isUserChoice ? '<i class="fas fa-check-circle ml-1"></i>' : ''}
+                                </span>
+                                <span class="text-sm text-gray-600">${choice.vote_count} vote${choice.vote_count !== 1 ? 's' : ''} (${percentage}%)</span>
+                            </div>
+                            
+                            <!-- Progress Bar -->
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                <div 
+                                    class="h-2 rounded-full transition-all duration-500 ${isUserChoice ? 'bg-blue-600' : 'bg-gray-400'}" 
+                                    style="width: ${percentage}%"
+                                ></div>
+                            </div>
+                            
+                            <!-- Voters List -->
+                            ${voters.length > 0 ? `
+                                <div class="text-sm text-gray-600">
+                                    <strong>Voted:</strong> 
+                                    ${voters.map(voter => escapeHtml(voter.name)).join(', ')}
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                }).join('')}
+            </div>`
+        }
+    `;
+    
+    console.log('✅ Results section updated');
+}
+
 // Copy poll link to clipboard
 async function copyPollLink() {
     const link = window.location.href;
+    const button = document.getElementById('copyLinkBtn');
+    
+    // Store original button content
+    const originalHTML = button.innerHTML;
+    const originalClasses = button.className;
     
     try {
         await navigator.clipboard.writeText(link);
+        
+        // Show immediate feedback on button
+        button.innerHTML = '<i class="fas fa-check mr-1"></i>Copied!';
+        button.className = button.className.replace('bg-blue-600 hover:bg-blue-700', 'bg-green-600 hover:bg-green-700');
+        button.disabled = true;
+        
+        // Show success toast
         showSuccess('Poll link copied to clipboard!');
+        
+        // Reset button after 2 seconds
+        setTimeout(() => {
+            button.innerHTML = originalHTML;
+            button.className = originalClasses;
+            button.disabled = false;
+        }, 2000);
+        
     } catch (error) {
         // Fallback for older browsers
         const textArea = document.createElement('textarea');
@@ -372,7 +593,21 @@ async function copyPollLink() {
         textArea.select();
         document.execCommand('copy');
         document.body.removeChild(textArea);
+        
+        // Show immediate feedback on button
+        button.innerHTML = '<i class="fas fa-check mr-1"></i>Copied!';
+        button.className = button.className.replace('bg-blue-600 hover:bg-blue-700', 'bg-green-600 hover:bg-green-700');
+        button.disabled = true;
+        
+        // Show success toast
         showSuccess('Poll link copied to clipboard!');
+        
+        // Reset button after 2 seconds
+        setTimeout(() => {
+            button.innerHTML = originalHTML;
+            button.className = originalClasses;
+            button.disabled = false;
+        }, 2000);
     }
 }
 

@@ -4,6 +4,12 @@ Script to fix all users' tenniscores_player_id in the database.
 This script matches Rally users with their corresponding player records in player_history.json
 and updates the database with the correct player IDs.
 """
+"""
+⚠️  DEPRECATED SCRIPT ⚠️
+This script references the old users.tenniscores_player_id column which has been removed.
+The new schema uses user_player_associations table for many-to-many relationships.
+Consider using the new association-based queries instead.
+"""
 
 import sys
 import os

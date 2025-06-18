@@ -30,11 +30,10 @@
             </div>
             
             <div class="p-6">
-                <form method="get">
+                <form method="get" id="teamSelectionForm">
                     <div class="relative">
                         <select name="team" id="team"
-                          class="w-full py-3 px-4 text-base border border-gray-300 text-gray-900 bg-white rounded-lg shadow-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition appearance-none"
-                          onchange="this.form.submit()">
+                          class="w-full py-3 px-4 text-base border border-gray-300 text-gray-900 bg-white rounded-lg shadow-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition appearance-none">
                           <option value="" {% if not selected_team %}selected{% endif %} disabled hidden>Select a team...</option>
                           {% for t in all_teams %}
                             <option value="{{ t }}" {% if t == selected_team %}selected{% endif %}>{{ t }}</option>
@@ -363,4 +362,43 @@
     .sm\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const teamSelect = document.getElementById('team');
+    const teamForm = document.getElementById('teamSelectionForm');
+    
+    if (teamSelect && teamForm) {
+        teamSelect.addEventListener('change', function() {
+            const selectedTeam = this.value;
+            
+            // Don't show loading for empty selection
+            if (!selectedTeam) {
+                return;
+            }
+            
+            // Add visual feedback to the select
+            this.classList.add('nav-link-loading');
+            
+            // Show loading indicator with team-specific message
+            if (window.app && window.app.showLoadingIndicator) {
+                window.app.showLoadingIndicator('Loading Team Analysis...');
+            }
+            
+            // Submit form after brief delay to show loading indicator
+            setTimeout(() => {
+                teamForm.submit();
+            }, 150);
+            
+            // Safety timeout - hide loading indicator after 10 seconds if still showing
+            setTimeout(() => {
+                if (window.app && window.app.hideLoadingIndicator) {
+                    window.app.hideLoadingIndicator();
+                }
+            }, 10000);
+        });
+    }
+});
+</script>
+
 {% endblock %} 

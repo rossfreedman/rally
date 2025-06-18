@@ -344,7 +344,7 @@
         {% endif %}
 
         <!-- Previous Season History -->
-        {% if analyze_data.player_history and analyze_data.player_history.seasons %}
+        {% if analyze_data.pti_data_available or True %}
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             <div class="px-6 py-4 border-b border-gray-50">
                 <h2 class="text-lg font-semibold text-gray-900 flex items-center">
@@ -354,38 +354,46 @@
             </div>
             
             <div class="p-6">
-                <div class="overflow-x-auto">
-                    <table class="min-w-full text-xs">
-                        <thead>
-                            <tr class="border-b border-gray-100">
-                                <th class="text-left py-2 px-2 font-semibold text-gray-700 whitespace-nowrap">Season</th>
-                                <th class="text-left py-2 px-2 font-semibold text-gray-700 whitespace-nowrap">Series</th>
-                                <th class="text-center py-2 px-2 font-semibold text-gray-700 whitespace-nowrap">PTI Start</th>
-                                <th class="text-center py-2 px-2 font-semibold text-gray-700 whitespace-nowrap">PTI End</th>
-                                <th class="text-center py-2 px-2 font-semibold text-gray-700 whitespace-nowrap">Trend</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for row in analyze_data.player_history.seasons %}
-                            <tr class="border-b border-gray-50">
-                                <td class="py-2 px-2 text-center">{{ row.season }}</td>
-                                <td class="py-2 px-2 text-center">{{ row.series }}</td>
-                                <td class="py-2 px-2 text-center">{{ row.ptiStart }}</td>
-                                <td class="py-2 px-2 text-center">{{ row.ptiEnd }}</td>
-                                <td class="py-2 px-2 text-center">
-                                    {% set trend = row.trend %}
-                                    {% if trend is string and trend.startswith('+') %}
-                                    <span class="text-red-600 font-bold flex items-center justify-center">{{ trend }} <span class="ml-1">▲</span></span>
-                                    {% elif trend is string and trend.startswith('-') %}
-                                    <span class="text-green-600 font-bold flex items-center justify-center">{{ trend }} <span class="ml-1">▼</span></span>
-                                    {% else %}
-                                    <span class="text-gray-500">{{ trend }}</span>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                <!-- Loading State -->
+                <div id="playerSeasonHistoryLoading" class="text-center py-8">
+                    <div class="loading loading-spinner loading-lg text-blue-500 mb-2"></div>
+                    <p class="text-gray-500 text-sm">Loading season history...</p>
+                </div>
+                
+                <!-- Error State -->
+                <div id="playerSeasonHistoryError" class="text-center py-8 hidden">
+                    <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-exclamation-triangle text-red-500 text-2xl"></i>
+                    </div>
+                    <p class="text-red-700 text-sm">Unable to load season history</p>
+                </div>
+                
+                <!-- Season History Table -->
+                <div id="playerSeasonHistoryTable" class="hidden">
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full text-xs">
+                            <thead>
+                                <tr class="border-b border-gray-100">
+                                    <th class="text-left py-1 px-1 font-semibold text-gray-700 whitespace-nowrap text-xs">Season</th>
+                                    <th class="text-left py-1 px-1 font-semibold text-gray-700 whitespace-nowrap text-xs">Series</th>
+                                    <th class="text-center py-1 px-1 font-semibold text-gray-700 whitespace-nowrap text-xs">Start</th>
+                                    <th class="text-center py-1 px-1 font-semibold text-gray-700 whitespace-nowrap text-xs">End</th>
+                                    <th class="text-center py-1 px-1 font-semibold text-gray-700 whitespace-nowrap text-xs">Trend</th>
+                                </tr>
+                            </thead>
+                            <tbody id="playerSeasonHistoryBody">
+                                <!-- Data will be populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- No Data State -->
+                    <div id="playerSeasonHistoryEmpty" class="text-center py-8 hidden">
+                        <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-history text-gray-400 text-2xl"></i>
+                        </div>
+                        <p class="text-gray-500">No previous season data available</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -554,12 +562,85 @@
 .overflow-hidden { overflow: hidden; }
 .overflow-x-auto { overflow-x: auto; }
 
+/* Loading spinner utilities */
+.loading {
+    position: relative;
+    display: inline-block;
+}
+
+.loading-spinner {
+    width: 1.5rem;
+    height: 1.5rem;
+    border: 2px solid transparent;
+    border-top: 2px solid currentColor;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+.loading-lg {
+    width: 2rem;
+    height: 2rem;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Utility classes */
+.hidden { display: none !important; }
+.mb-2 { margin-bottom: 0.5rem; }
+
 /* Responsive design */
 @media (max-width: 640px) {
     .px-6 { padding-left: 1rem; padding-right: 1rem; }
     .py-4 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
     .text-3xl { font-size: 1.875rem; line-height: 2.25rem; }
     .text-2xl { font-size: 1.5rem; line-height: 2rem; }
+    
+    /* Make tables more compact on mobile */
+    table {
+        font-size: 0.625rem !important; /* Extra small text */
+    }
+    
+    th, td {
+        padding: 0.25rem 0.125rem !important; /* Very tight padding */
+        word-break: break-word;
+    }
+    
+    /* Adjust card padding on mobile */
+    .p-6 {
+        padding: 0.75rem !important;
+    }
+    
+    /* Make series names shorter on mobile if needed */
+    .series-name {
+        max-width: 80px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}
+
+@media (max-width: 480px) {
+    /* Extra small screens */
+    table {
+        font-size: 0.5rem !important; /* Even smaller text */
+    }
+    
+    th, td {
+        padding: 0.125rem 0.0625rem !important; /* Extremely tight padding */
+    }
+    
+    .p-6 {
+        padding: 0.5rem !important;
+    }
+    
+    /* Stack some content vertically on very small screens */
+    .series-name {
+        max-width: 60px;
+    }
 }
 </style>
 
@@ -710,6 +791,93 @@ document.addEventListener('DOMContentLoaded', async function() {
         }
     }
     {% endif %}
+    
+    // Load season history data in parallel (copied from working analyze-me implementation)
+    loadSeasonHistory();
 });
+
+// Function to load season history data (copied exactly from analyze-me but adapted for player-specific endpoint)
+async function loadSeasonHistory() {
+  const loading = document.getElementById('playerSeasonHistoryLoading');
+  const error = document.getElementById('playerSeasonHistoryError');
+  const table = document.getElementById('playerSeasonHistoryTable');
+  const empty = document.getElementById('playerSeasonHistoryEmpty');
+  const tbody = document.getElementById('playerSeasonHistoryBody');
+  
+  try {
+    console.log('🔄 DYNAMIC LOADING: Starting season history load for {{ player_name }}...');
+    
+    // Show loading state
+    loading.classList.remove('hidden');
+    error.classList.add('hidden');
+    table.classList.add('hidden');
+    
+    // Add small delay to make loading visible
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    console.log('📡 DYNAMIC LOADING: Making API call to /api/season-history/{{ player_name | urlencode }}');
+    const response = await fetch('/api/season-history/{{ player_name | urlencode }}');
+    console.log('✅ DYNAMIC LOADING: API response status:', response.status);
+    
+    if (response.status === 404) {
+      console.log('❌ DYNAMIC LOADING: No season history data available');
+      loading.classList.add('hidden');
+      table.classList.remove('hidden');
+      empty.classList.remove('hidden');
+      return;
+    }
+    
+    const data = await response.json();
+    console.log('📊 DYNAMIC LOADING: Received data:', data);
+    
+    if (!data.success || !data.seasons || data.seasons.length === 0) {
+      console.log('⚠️ DYNAMIC LOADING: No seasons found in response');
+      loading.classList.add('hidden');
+      table.classList.remove('hidden');
+      empty.classList.remove('hidden');
+      return;
+    }
+    
+    console.log(`🎯 DYNAMIC LOADING: Building table with ${data.seasons.length} seasons`);
+    
+    // Build table rows
+    let tableHTML = '';
+    data.seasons.forEach((season, index) => {
+      console.log(`  Row ${index + 1}: ${season.season} | ${season.series} | ${season.pti_start} → ${season.pti_end}`);
+      
+      // Truncate series name if longer than 15 characters
+      const truncatedSeries = season.series.length > 15 
+        ? season.series.substring(0, 15) + '...' 
+        : season.series;
+      
+      tableHTML += `
+        <tr class="border-b border-gray-50 hover:bg-gray-50">
+          <td class="py-1 px-1 font-medium text-gray-900 whitespace-nowrap text-xs">${season.season}</td>
+          <td class="py-1 px-1 text-gray-700 whitespace-nowrap text-xs" title="${season.series}">
+            <div class="series-name">${truncatedSeries}</div>
+          </td>
+          <td class="py-1 px-1 text-center text-gray-900 whitespace-nowrap text-xs">${season.pti_start}</td>
+          <td class="py-1 px-1 text-center text-gray-900 whitespace-nowrap text-xs">${season.pti_end}</td>
+          <td class="py-1 px-1 text-center font-medium whitespace-nowrap text-xs ${season.trend_class}">${season.trend_display}</td>
+        </tr>
+      `;
+    });
+    
+    // Clear existing content and add new data
+    tbody.innerHTML = '';
+    tbody.innerHTML = tableHTML;
+    
+    // Show table
+    loading.classList.add('hidden');
+    table.classList.remove('hidden');
+    
+    console.log('🎉 DYNAMIC LOADING: Season history loaded successfully! Table updated with real data from API.');
+    
+  } catch (err) {
+    console.error('💥 DYNAMIC LOADING: Error loading season history:', err);
+    loading.classList.add('hidden');
+    error.classList.remove('hidden');
+  }
+}
 </script>
 {% endblock %}

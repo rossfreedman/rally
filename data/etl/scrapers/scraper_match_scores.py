@@ -833,6 +833,10 @@ def scrape_all_matches(league_subdomain, max_retries=3, retry_delay=5):
     start_time = datetime.now()
     print(f"🕐 Session Start: {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
     
+    # Initialize timing variables
+    discovery_start_time = None
+    discovery_duration = None
+    
     try:
         # Load league configuration from user input
         config = get_league_config(league_subdomain)
@@ -863,17 +867,103 @@ def scrape_all_matches(league_subdomain, max_retries=3, retry_delay=5):
             # Parse the page with BeautifulSoup
             soup = BeautifulSoup(driver.page_source, 'html.parser')
             
-            # Multi-strategy series discovery to handle different website structures
+            # Import comprehensive discovery from players scraper
             series_urls = []
-            discovery_start_time = datetime.now()
-            print(f"🔍 Discovery Phase Start: {discovery_start_time.strftime('%H:%M:%S')}")
+            comprehensive_discovery_success = False
             
-            # Strategy 1: NSTF/APTA_CHICAGO format - div_list_option
-            print("🔍 Trying Strategy 1: div_list_option (NSTF/APTA_CHICAGO format)")
-            series_elements = soup.find_all('div', class_='div_list_option')
+            try:
+                # Import the comprehensive discovery function from players scraper
+                import sys
+                import os
+                sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+                from scraper_players import discover_all_leagues_and_series
+                
+                print("🔍 Using comprehensive discovery from players scraper...")
+                discovery_results = discover_all_leagues_and_series(driver, config)
+                
+                # Extract series information from discovery results
+                discovered_teams = discovery_results['teams']
+                all_series = discovery_results['series']
+                
+                # Dynamically extract correct series URLs from the main page
+                print("🔍 Dynamically discovering series overview URLs...")
+                
+                # Parse the main page to find the correct series navigation links
+                soup = BeautifulSoup(driver.page_source, 'html.parser')
+                all_links = soup.find_all('a', href=True)
+                
+                for link in all_links:
+                    href = link.get('href', '')
+                    text = link.text.strip()
+                    
+                    # Look for numbered series links with the correct mod parameter for series overview pages
+                    if (text.isdigit() or 
+                        (text.endswith(' SW') and text.replace(' SW', '').isdigit()) or
+                        text in ['Legends']):
+                        
+                        # Check if this uses the correct mod parameter for series overview (not team pages)
+                        if 'mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx' in href and 'did=' in href:
+                            full_url = f"{base_url}{href}" if href.startswith('/') else f"{base_url}/{href}"
+                            
+                            # Format series name consistently
+                            if text.isdigit():
+                                series_name = f"Chicago {text}"
+                            elif text.endswith(' SW'):
+                                series_name = f"Chicago {text}"
+                            elif text == 'Legends':
+                                series_name = "Chicago Legends"
+                            else:
+                                series_name = f"Chicago {text}"
+                            
+                            # Only add if this series was discovered in our comprehensive search
+                            if series_name in all_series:
+                                series_urls.append((series_name, full_url))
+                                print(f"📈 Found series: {series_name}")
+                
+                if not series_urls:
+                    print("⚠️  No series overview URLs found using dynamic discovery")
+                    print("🔍 Falling back to team-based URLs (may not have match results)")
+                    # Fallback to original method if dynamic discovery fails
+                    for series_name in sorted(all_series):
+                        series_team = None
+                        for team_name, team_id in discovered_teams.items():
+                            if (series_name in team_name or 
+                                (series_name.startswith('Chicago ') and f" - {series_name.split()[1]}" in team_name) or
+                                (series_name.startswith('Series ') and f" S{series_name.split()[1]}" in team_name)):
+                                series_team = team_id
+                                break
+                        
+                        if series_team:
+                            series_url = f"{base_url}/?mod=nndz-TjJiOWtOR2sxTnhI&team={series_team}"
+                            series_urls.append((series_name, series_url))
+                            print(f"📈 Found series (fallback): {series_name}")
+                else:
+                    print(f"✅ Successfully discovered {len(series_urls)} series overview URLs dynamically")
+                
+                print(f"✅ Comprehensive discovery found {len(series_urls)} series")
+                comprehensive_discovery_success = True
+                
+            except ImportError as e:
+                print(f"⚠️  Could not import comprehensive discovery: {e}")
+                print("🔍 Falling back to basic discovery strategies...")
+                comprehensive_discovery_success = False
+            except Exception as e:
+                print(f"⚠️  Comprehensive discovery failed: {e}")
+                print("🔍 Falling back to basic discovery strategies...")
+                comprehensive_discovery_success = False
             
-            if series_elements:
-                print(f"✅ Found {len(series_elements)} series using Strategy 1")
+            # Only run basic discovery strategies if comprehensive discovery failed
+            if not comprehensive_discovery_success:
+                # Fallback to original basic discovery
+                discovery_start_time = datetime.now()
+                print(f"🔍 Discovery Phase Start: {discovery_start_time.strftime('%H:%M:%S')}")
+                
+                # Strategy 1: NSTF/APTA_CHICAGO format - div_list_option
+                print("🔍 Trying Strategy 1: div_list_option (NSTF/APTA_CHICAGO format)")
+                series_elements = soup.find_all('div', class_='div_list_option')
+                
+                if series_elements:
+                    print(f"✅ Found {len(series_elements)} series using Strategy 1")
                 for element in series_elements:
                     try:
                         series_link = element.find('a')
@@ -903,237 +993,238 @@ def scrape_all_matches(league_subdomain, max_retries=3, retry_delay=5):
                     except Exception as e:
                         print(f"❌ Error extracting series URL: {str(e)}")
             
-            # Strategy 2: CITA format - look for different patterns
-            if not series_urls:
-                print("🔍 Trying Strategy 2: CITA format - searching for series links")
-                
-                # Look for any links that might contain series information
-                all_links = soup.find_all('a', href=True)
-                
-                for link in all_links:
-                    try:
-                        href = link.get('href', '')
-                        text = link.text.strip()
-                        
-                        # Look for patterns that might indicate series
-                        if (text and 
-                            (text.replace(' ', '').replace('&', '').replace('Under', '').replace('.', '').replace('0', '').isdigit() or
-                             'series' in text.lower() or
-                             'division' in text.lower() or
-                             'level' in text.lower() or
-                             'flight' in text.lower() or
-                             re.match(r'^\d+(\.\d+)?\s*(&\s*Under|&\s*Over|Over|Under|\+)?$', text.replace(' ', '')) or
-                             re.match(r'^\d+(\.\d+)?\s*(Men|Women|Mixed|Open)?\s*(Doubles?|Singles?)?$', text, re.IGNORECASE))):
-                            
-                            # Format the series name
-                            if text.replace(' ', '').replace('&', '').replace('Under', '').replace('.', '').replace('0', '').isdigit():
-                                # Numeric series like "4.5", "3.5 & Under", etc.
-                                formatted_series = text
-                            elif 'series' in text.lower():
-                                formatted_series = text
-                            else:
-                                # Use the text as-is for other patterns
-                                formatted_series = text
-                                
-                            full_url = f"{base_url}{href}" if href.startswith('/') else href
-                            
-                            # Filter out library documents and PDFs
-                            if (full_url and 
-                                (formatted_series, full_url) not in series_urls and
-                                'library' not in href.lower() and
-                                not href.lower().endswith('.pdf') and
-                                not href.lower().endswith('.doc') and
-                                not href.lower().endswith('.docx')):
-                                series_urls.append((formatted_series, full_url))
-                                print(f"📈 Found series: {formatted_series}")
-                                print(f"    URL: {full_url}")
-                            elif 'library' in href.lower() or href.lower().endswith(('.pdf', '.doc', '.docx')):
-                                print(f"⏸️ Skipping library/document: {formatted_series} -> {href}")
-                    except Exception as e:
-                        print(f"❌ Error processing link: {str(e)}")
-                
-                if series_urls:
-                    print(f"✅ Found {len(series_urls)} series using Strategy 2")
-            
-            # Strategy 3: Generic fallback - look for any structured navigation
-            if not series_urls:
-                print("🔍 Trying Strategy 3: Generic fallback - looking for navigation patterns")
-                
-                # Look for common navigation patterns
-                nav_patterns = [
-                    ('ul', 'nav'),
-                    ('div', 'navigation'),
-                    ('div', 'menu'),
-                    ('div', 'list'),
-                    ('table', None),
-                    ('tbody', None)
-                ]
-                
-                for tag, class_name in nav_patterns:
-                    elements = soup.find_all(tag, class_=class_name) if class_name else soup.find_all(tag)
+                # Strategy 2: CITA format - look for different patterns
+                if not series_urls:
+                    print("🔍 Trying Strategy 2: CITA format - searching for series links")
                     
-                    for element in elements:
-                        links = element.find_all('a', href=True)
-                        
-                        for link in links:
-                            try:
-                                href = link.get('href', '')
-                                text = link.text.strip()
-                                
-                                # Look for numeric or series-like patterns
-                                if (text and len(text) < 50 and  # Reasonable length
-                                    (text.replace(' ', '').replace('&', '').isdigit() or
-                                     'series' in text.lower() or
-                                     re.match(r'^\d+(\.\d+)?.*$', text) or
-                                     re.match(r'^[A-Z]\d+.*$', text))):
-                                    
-                                    formatted_series = text
-                                    full_url = f"{base_url}{href}" if href.startswith('/') else href
-                                    
-                                    if full_url and (formatted_series, full_url) not in series_urls:
-                                        series_urls.append((formatted_series, full_url))
-                                        print(f"📈 Found series: {formatted_series}")
-                                        print(f"    URL: {full_url}")
-                            except Exception as e:
-                                continue
-                
-                if series_urls:
-                    print(f"✅ Found {len(series_urls)} series using Strategy 3")
-            
-            # Debug: If still no series found, show detailed page structure
-            if not series_urls:
-                print("🔍 No series found with any strategy. Analyzing page structure...")
-                
-                # Show some debug info about the page structure
-                all_divs = soup.find_all('div')
-                classes_found = set()
-                
-                for div in all_divs[:50]:  # Limit to first 50 for performance
-                    if div.get('class'):
-                        classes_found.update(div.get('class'))
-                
-                print(f"📊 Found {len(all_divs)} div elements")
-                print(f"📊 Common classes: {list(classes_found)[:20]}")  # Show first 20 classes
-                
-                # Look for any links with text
-                all_links = soup.find_all('a', href=True)
-                print(f"📊 Found {len(all_links)} total links")
-                
-                # Show all link texts for debugging
-                link_texts = []
-                for link in all_links:
-                    text = link.text.strip()
-                    href = link.get('href', '')
-                    if text and len(text) < 100:  # Reasonable length
-                        link_texts.append(f"'{text}' -> {href}")
-                
-                if link_texts:
-                    print(f"📊 All links found:")
-                    for i, link_text in enumerate(link_texts[:20]):  # Show first 20
-                        print(f"  {i+1}. {link_text}")
-                    if len(link_texts) > 20:
-                        print(f"  ... and {len(link_texts) - 20} more links")
-                
-                # Look for dropdowns, menus, or navigation elements
-                nav_elements = soup.find_all(['nav', 'ul', 'ol'])
-                print(f"📊 Found {len(nav_elements)} navigation elements")
-                
-                for i, nav in enumerate(nav_elements[:5]):  # Show first 5
-                    nav_links = nav.find_all('a')
-                    if nav_links:
-                        print(f"  Nav {i+1}: {len(nav_links)} links")
-                        for link in nav_links[:3]:  # Show first 3 links in each nav
-                            print(f"    - '{link.text.strip()}' -> {link.get('href', '')}")
-                
-                # Look for form elements or buttons that might trigger navigation
-                forms = soup.find_all('form')
-                buttons = soup.find_all(['button', 'input'])
-                selects = soup.find_all('select')
-                
-                print(f"📊 Found {len(forms)} forms, {len(buttons)} buttons/inputs, {len(selects)} select elements")
-                
-                # Look for JavaScript-loaded content indicators
-                scripts = soup.find_all('script')
-                print(f"📊 Found {len(scripts)} script tags (may indicate dynamic content)")
-                
-                # Check for common league/series keywords in the page content
-                page_text = soup.get_text().lower()
-                league_keywords = ['series', 'division', 'level', 'flight', 'league', 'tournament', 'bracket', 'draw']
-                found_keywords = [kw for kw in league_keywords if kw in page_text]
-                if found_keywords:
-                    print(f"📊 Found league keywords in page: {found_keywords}")
-                
-                # Try to find any numeric patterns in the page text
-                numeric_patterns = re.findall(r'\b\d+(?:\.\d+)?\b', page_text)
-                unique_numbers = list(set(numeric_patterns))[:10]  # Get unique numbers, limit to 10
-                if unique_numbers:
-                    print(f"📊 Found numeric patterns: {unique_numbers}")
-                
-                # Strategy 6: Try to find series through JavaScript interaction
-                print("🔍 Trying Strategy 6: JavaScript interaction and dynamic content")
-                
-                # Wait a bit more for potential JavaScript to load
-                time.sleep(3)
-                
-                # Re-parse the page after waiting
-                updated_soup = BeautifulSoup(driver.page_source, 'html.parser')
-                updated_links = updated_soup.find_all('a', href=True)
-                
-                print(f"📊 After waiting: Found {len(updated_links)} links")
-                
-                # Try clicking on potential navigation elements
-                try:
-                    # Look for menu toggles or dropdowns
-                    menu_toggles = driver.find_elements(By.XPATH, "//button[contains(@class, 'toggle') or contains(@class, 'menu') or contains(@class, 'nav')]")
-                    dropdown_toggles = driver.find_elements(By.XPATH, "//a[contains(@class, 'dropdown') or contains(@data-toggle, 'dropdown')]")
+                    # Look for any links that might contain series information
+                    all_links = soup.find_all('a', href=True)
                     
-                    for toggle in menu_toggles + dropdown_toggles:
+                    for link in all_links:
                         try:
-                            print(f"📋 Clicking potential menu toggle: {toggle.text.strip()}")
-                            toggle.click()
-                            time.sleep(2)
+                            href = link.get('href', '')
+                            text = link.text.strip()
                             
-                            # Re-check for series after clicking
-                            updated_soup = BeautifulSoup(driver.page_source, 'html.parser')
-                            new_links = updated_soup.find_all('a', href=True)
-                            
-                            for link in new_links:
-                                text = link.text.strip()
-                                href = link.get('href', '')
+                            # Look for patterns that might indicate series
+                            if (text and 
+                                (text.replace(' ', '').replace('&', '').replace('Under', '').replace('.', '').replace('0', '').isdigit() or
+                                 'series' in text.lower() or
+                                 'division' in text.lower() or
+                                 'level' in text.lower() or
+                                 'flight' in text.lower() or
+                                 re.match(r'^\d+(\.\d+)?\s*(&\s*Under|&\s*Over|Over|Under|\+)?$', text.replace(' ', '')) or
+                                 re.match(r'^\d+(\.\d+)?\s*(Men|Women|Mixed|Open)?\s*(Doubles?|Singles?)?$', text, re.IGNORECASE))):
                                 
-                                # Check if this looks like a series link
-                                if (text and 
-                                    (re.match(r'^\d+(\.\d+)?', text) or
-                                     'series' in text.lower() or
-                                     'division' in text.lower() or
-                                     'level' in text.lower())):
-                                    
+                                # Format the series name
+                                if text.replace(' ', '').replace('&', '').replace('Under', '').replace('.', '').replace('0', '').isdigit():
+                                    # Numeric series like "4.5", "3.5 & Under", etc.
                                     formatted_series = text
-                                    full_url = f"{base_url}{href}" if href.startswith('/') else href
+                                elif 'series' in text.lower():
+                                    formatted_series = text
+                                else:
+                                    # Use the text as-is for other patterns
+                                    formatted_series = text
                                     
-                                    if (formatted_series, full_url) not in series_urls:
-                                        series_urls.append((formatted_series, full_url))
-                                        print(f"📈 Found series after menu interaction: {formatted_series}")
-                                        print(f"    URL: {full_url}")
-                            
-                            if series_urls:
-                                break
+                                full_url = f"{base_url}{href}" if href.startswith('/') else href
                                 
+                                # Filter out library documents and PDFs
+                                if (full_url and 
+                                    (formatted_series, full_url) not in series_urls and
+                                    'library' not in href.lower() and
+                                    not href.lower().endswith('.pdf') and
+                                    not href.lower().endswith('.doc') and
+                                    not href.lower().endswith('.docx')):
+                                    series_urls.append((formatted_series, full_url))
+                                    print(f"📈 Found series: {formatted_series}")
+                                    print(f"    URL: {full_url}")
+                                elif 'library' in href.lower() or href.lower().endswith(('.pdf', '.doc', '.docx')):
+                                    print(f"⏸️ Skipping library/document: {formatted_series} -> {href}")
                         except Exception as e:
-                            print(f"📋 Error clicking toggle: {e}")
-                            continue
-                            
-                except Exception as e:
-                    print(f"📋 Error with JavaScript interaction: {e}")
+                            print(f"❌ Error processing link: {str(e)}")
+                    
+                    if series_urls:
+                        print(f"✅ Found {len(series_urls)} series using Strategy 2")
                 
-                if series_urls:
-                    print(f"✅ Found {len(series_urls)} series using Strategy 6 (JavaScript interaction)")
+                # Strategy 3: Generic fallback - look for any structured navigation
+                if not series_urls:
+                    print("🔍 Trying Strategy 3: Generic fallback - looking for navigation patterns")
+                    
+                    # Look for common navigation patterns
+                    nav_patterns = [
+                        ('ul', 'nav'),
+                        ('div', 'navigation'),
+                        ('div', 'menu'),
+                        ('div', 'list'),
+                        ('table', None),
+                        ('tbody', None)
+                    ]
+                    
+                    for tag, class_name in nav_patterns:
+                        elements = soup.find_all(tag, class_=class_name) if class_name else soup.find_all(tag)
+                        
+                        for element in elements:
+                            links = element.find_all('a', href=True)
+                            
+                            for link in links:
+                                try:
+                                    href = link.get('href', '')
+                                    text = link.text.strip()
+                                    
+                                    # Look for numeric or series-like patterns
+                                    if (text and len(text) < 50 and  # Reasonable length
+                                        (text.replace(' ', '').replace('&', '').isdigit() or
+                                         'series' in text.lower() or
+                                         re.match(r'^\d+(\.\d+)?.*$', text) or
+                                         re.match(r'^[A-Z]\d+.*$', text))):
+                                        
+                                        formatted_series = text
+                                        full_url = f"{base_url}{href}" if href.startswith('/') else href
+                                        
+                                        if full_url and (formatted_series, full_url) not in series_urls:
+                                            series_urls.append((formatted_series, full_url))
+                                            print(f"📈 Found series: {formatted_series}")
+                                            print(f"    URL: {full_url}")
+                                except Exception as e:
+                                    continue
+                    
+                    if series_urls:
+                        print(f"✅ Found {len(series_urls)} series using Strategy 3")
+                
+                # Debug: If still no series found, show detailed page structure
+                if not series_urls:
+                    print("🔍 No series found with any strategy. Analyzing page structure...")
+                    
+                    # Show some debug info about the page structure
+                    all_divs = soup.find_all('div')
+                    classes_found = set()
+                    
+                    for div in all_divs[:50]:  # Limit to first 50 for performance
+                        if div.get('class'):
+                            classes_found.update(div.get('class'))
+                    
+                    print(f"📊 Found {len(all_divs)} div elements")
+                    print(f"📊 Common classes: {list(classes_found)[:20]}")  # Show first 20 classes
+                    
+                    # Look for any links with text
+                    all_links = soup.find_all('a', href=True)
+                    print(f"📊 Found {len(all_links)} total links")
+                    
+                    # Show all link texts for debugging
+                    link_texts = []
+                    for link in all_links:
+                        text = link.text.strip()
+                        href = link.get('href', '')
+                        if text and len(text) < 100:  # Reasonable length
+                            link_texts.append(f"'{text}' -> {href}")
+                    
+                    if link_texts:
+                        print(f"📊 All links found:")
+                        for i, link_text in enumerate(link_texts[:20]):  # Show first 20
+                            print(f"  {i+1}. {link_text}")
+                        if len(link_texts) > 20:
+                            print(f"  ... and {len(link_texts) - 20} more links")
+                    
+                    # Look for dropdowns, menus, or navigation elements
+                    nav_elements = soup.find_all(['nav', 'ul', 'ol'])
+                    print(f"📊 Found {len(nav_elements)} navigation elements")
+                    
+                    for i, nav in enumerate(nav_elements[:5]):  # Show first 5
+                        nav_links = nav.find_all('a')
+                        if nav_links:
+                            print(f"  Nav {i+1}: {len(nav_links)} links")
+                            for link in nav_links[:3]:  # Show first 3 links in each nav
+                                print(f"    - '{link.text.strip()}' -> {link.get('href', '')}")
+                    
+                    # Look for form elements or buttons that might trigger navigation
+                    forms = soup.find_all('form')
+                    buttons = soup.find_all(['button', 'input'])
+                    selects = soup.find_all('select')
+                    
+                    print(f"📊 Found {len(forms)} forms, {len(buttons)} buttons/inputs, {len(selects)} select elements")
+                    
+                    # Look for JavaScript-loaded content indicators
+                    scripts = soup.find_all('script')
+                    print(f"📊 Found {len(scripts)} script tags (may indicate dynamic content)")
+                    
+                    # Check for common league/series keywords in the page content
+                    page_text = soup.get_text().lower()
+                    league_keywords = ['series', 'division', 'level', 'flight', 'league', 'tournament', 'bracket', 'draw']
+                    found_keywords = [kw for kw in league_keywords if kw in page_text]
+                    if found_keywords:
+                        print(f"📊 Found league keywords in page: {found_keywords}")
+                    
+                    # Try to find any numeric patterns in the page text
+                    numeric_patterns = re.findall(r'\b\d+(?:\.\d+)?\b', page_text)
+                    unique_numbers = list(set(numeric_patterns))[:10]  # Get unique numbers, limit to 10
+                    if unique_numbers:
+                        print(f"📊 Found numeric patterns: {unique_numbers}")
+                    
+                    # Strategy 6: Try to find series through JavaScript interaction
+                    print("🔍 Trying Strategy 6: JavaScript interaction and dynamic content")
+                    
+                    # Wait a bit more for potential JavaScript to load
+                    time.sleep(3)
+                    
+                    # Re-parse the page after waiting
+                    updated_soup = BeautifulSoup(driver.page_source, 'html.parser')
+                    updated_links = updated_soup.find_all('a', href=True)
+                    
+                    print(f"📊 After waiting: Found {len(updated_links)} links")
+                    
+                    # Try clicking on potential navigation elements
+                    try:
+                        # Look for menu toggles or dropdowns
+                        menu_toggles = driver.find_elements(By.XPATH, "//button[contains(@class, 'toggle') or contains(@class, 'menu') or contains(@class, 'nav')]")
+                        dropdown_toggles = driver.find_elements(By.XPATH, "//a[contains(@class, 'dropdown') or contains(@data-toggle, 'dropdown')]")
+                        
+                        for toggle in menu_toggles + dropdown_toggles:
+                            try:
+                                print(f"📋 Clicking potential menu toggle: {toggle.text.strip()}")
+                                toggle.click()
+                                time.sleep(2)
+                                
+                                # Re-check for series after clicking
+                                updated_soup = BeautifulSoup(driver.page_source, 'html.parser')
+                                new_links = updated_soup.find_all('a', href=True)
+                                
+                                for link in new_links:
+                                    text = link.text.strip()
+                                    href = link.get('href', '')
+                                    
+                                    # Check if this looks like a series link
+                                    if (text and 
+                                        (re.match(r'^\d+(\.\d+)?', text) or
+                                         'series' in text.lower() or
+                                         'division' in text.lower() or
+                                         'level' in text.lower())):
+                                        
+                                        formatted_series = text
+                                        full_url = f"{base_url}{href}" if href.startswith('/') else href
+                                        
+                                        if (formatted_series, full_url) not in series_urls:
+                                            series_urls.append((formatted_series, full_url))
+                                            print(f"📈 Found series after menu interaction: {formatted_series}")
+                                            print(f"    URL: {full_url}")
+                                
+                                if series_urls:
+                                    break
+                                    
+                            except Exception as e:
+                                print(f"📋 Error clicking toggle: {e}")
+                                continue
+                                
+                    except Exception as e:
+                        print(f"📋 Error with JavaScript interaction: {e}")
+                    
+                    if series_urls:
+                        print(f"✅ Found {len(series_urls)} series using Strategy 6 (JavaScript interaction)")
+                
+                discovery_end_time = datetime.now()
+                discovery_duration = discovery_end_time - discovery_start_time
+                print(f"✅ Discovery Phase Complete: {discovery_duration.total_seconds():.1f} seconds")
+                print(f"📊 Discovered {len(series_urls)} series total")
             
-            discovery_end_time = datetime.now()
-            discovery_duration = discovery_end_time - discovery_start_time
-            print(f"✅ Discovery Phase Complete: {discovery_duration.total_seconds():.1f} seconds")
-            print(f"📊 Discovered {len(series_urls)} series total")
-            
+            # Common processing regardless of discovery method
             if not series_urls:
                 print("❌ No series found!")
                 return
@@ -1272,7 +1363,7 @@ def scrape_all_matches(league_subdomain, max_retries=3, retry_delay=5):
             # Detailed timing summary
             print(f"📅 SESSION SUMMARY - {end_time.strftime('%Y-%m-%d')}")
             print(f"🕐 Session Start:     {start_time.strftime('%H:%M:%S')}")
-            if discovery_start_time:
+            if discovery_start_time and discovery_duration:
                 print(f"🔍 Discovery Start:   {discovery_start_time.strftime('%H:%M:%S')} (Duration: {discovery_duration.total_seconds():.1f}s)")
             if scraping_start_time:
                 print(f"⚡ Scraping Start:    {scraping_start_time.strftime('%H:%M:%S')} (Duration: {scraping_duration.total_seconds():.1f}s)")
@@ -1314,19 +1405,54 @@ def scrape_all_matches(league_subdomain, max_retries=3, retry_delay=5):
 # Removed load_league_id function - now uses dynamic user input
 
 if __name__ == "__main__":
+    import sys
+    
     print("🔍 Dynamically discovering ALL series from any TennisScores website")
     print("📊 No more hardcoded values - everything is discovered automatically!")
     print()
     
-    # Get league input from user
-    league_subdomain = input("Enter league subdomain (e.g., 'aptachicago', 'nstf'): ").strip().lower()
+    # Check if league was provided as command line argument
+    if len(sys.argv) > 1:
+        league_subdomain = sys.argv[1].strip().lower()
+        print(f"📋 Using league from command line: {league_subdomain}")
+    else:
+        # Get league input from user interactively
+        print("Available options:")
+        print("  • aptachicago - APTA Chicago league")
+        print("  • nstf - NSTF league") 
+        print("  • all - Process all known leagues")
+        print()
+        league_subdomain = input("Enter league subdomain (e.g., 'aptachicago', 'nstf', 'all'): ").strip().lower()
+    
+    # Strip quotes if they were included in the input
+    league_subdomain = league_subdomain.strip('"').strip("'")
     
     if not league_subdomain:
         print("❌ No league subdomain provided. Exiting.")
         exit(1)
     
-    target_url = f"https://{league_subdomain}.tenniscores.com"
-    print(f"🌐 Target URL: {target_url}")
-    print()
-    
-    scrape_all_matches(league_subdomain)
+    # Handle 'all' option to process multiple leagues
+    if league_subdomain == 'all':
+        known_leagues = ['aptachicago', 'nstf']
+        print(f"🌟 Processing all known leagues: {', '.join(known_leagues)}")
+        
+        for league in known_leagues:
+            print(f"\n{'='*60}")
+            print(f"🏆 PROCESSING LEAGUE: {league.upper()}")
+            print(f"{'='*60}")
+            
+            try:
+                scrape_all_matches(league)
+                print(f"✅ Successfully completed {league}")
+            except Exception as e:
+                print(f"❌ Error processing {league}: {str(e)}")
+                continue
+        
+        print(f"\n🎉 All leagues processing complete!")
+    else:
+        # Process single league
+        target_url = f"https://{league_subdomain}.tenniscores.com"
+        print(f"🌐 Target URL: {target_url}")
+        print()
+        
+        scrape_all_matches(league_subdomain)

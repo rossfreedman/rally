@@ -10,8 +10,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Load any dynamic content
     loadDynamicContent();
     
-    // Initialize loading indicator for home page
-    initHomePageLoadingIndicator();
+    // Initialize loading indicator for all navigation
+    initLoadingIndicator();
     
     // Add page visibility handling for loading indicator
     document.addEventListener('visibilitychange', function() {
@@ -42,20 +42,29 @@ function initMobileApp() {
 }
 
 /**
- * Initialize loading indicator specifically for home page buttons
+ * Initialize loading indicator for all navigation elements
  */
-function initHomePageLoadingIndicator() {
-    // Only run on home page (index.html)
-    if (!window.location.pathname.endsWith('/mobile') && !window.location.pathname.endsWith('/mobile/')) {
-        return;
-    }
-    
-    console.log('Initializing home page loading indicator');
+function initLoadingIndicator() {
+    console.log('Initializing loading indicator for all navigation');
     
     // Create loading overlay
     createLoadingOverlay();
     
-    // Add event listeners to home page buttons only (not nav drawer buttons)
+    // Initialize home page buttons (if on home page)
+    if (window.location.pathname.endsWith('/mobile') || window.location.pathname.endsWith('/mobile/')) {
+        initHomePageButtons();
+    }
+    
+    // Initialize navigation drawer links (on all pages)
+    initNavDrawerLinks();
+}
+
+/**
+ * Initialize loading indicator for home page buttons
+ */
+function initHomePageButtons() {
+    console.log('Initializing home page buttons');
+    
     const homePageButtons = document.querySelectorAll('.icon-btn, .logout-btn');
     
     homePageButtons.forEach(button => {
@@ -65,38 +74,66 @@ function initHomePageLoadingIndicator() {
         }
         
         button.addEventListener('click', function(e) {
-            const href = this.getAttribute('href');
-            
-            // Skip if it's a logout link (handle immediately)
-            if (href && href.includes('/logout')) {
-                return; // Let logout happen normally
-            }
-            
-            // Skip if it's a javascript: link or hash link
-            if (!href || href.startsWith('javascript:') || href.startsWith('#')) {
-                return;
-            }
-            
-            // Prevent immediate navigation
-            e.preventDefault();
-            
-            // Add visual feedback to the clicked button
-            this.classList.add('home-btn-loading');
-            
-            // Show loading indicator
-            showLoadingIndicator(getLoadingTextForUrl(href));
-            
-            // Navigate after a short delay (allows loading indicator to show)
-            setTimeout(() => {
-                window.location.href = href;
-            }, 150);
-            
-            // Safety timeout - hide loading indicator after 10 seconds if still showing
-            setTimeout(() => {
-                hideLoadingIndicator();
-            }, 10000);
+            handleNavigationClick(e, this, 'home-btn-loading');
         });
     });
+}
+
+/**
+ * Initialize loading indicator for navigation drawer links
+ */
+function initNavDrawerLinks() {
+    console.log('Initializing nav drawer links');
+    
+    // Wait for nav drawer to be rendered
+    setTimeout(() => {
+        const navDrawer = document.getElementById('navDrawer');
+        if (navDrawer) {
+            const navLinks = navDrawer.querySelectorAll('a[href]');
+            
+            navLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    handleNavigationClick(e, this, 'nav-link-loading');
+                });
+            });
+        }
+    }, 100);
+}
+
+/**
+ * Handle navigation click with loading indicator
+ */
+function handleNavigationClick(event, element, loadingClass) {
+    const href = element.getAttribute('href');
+    
+    // Skip if it's a logout link (handle immediately)
+    if (href && href.includes('/logout')) {
+        return; // Let logout happen normally
+    }
+    
+    // Skip if it's a javascript: link or hash link
+    if (!href || href.startsWith('javascript:') || href.startsWith('#')) {
+        return;
+    }
+    
+    // Prevent immediate navigation
+    event.preventDefault();
+    
+    // Add visual feedback to the clicked element
+    element.classList.add(loadingClass);
+    
+    // Show loading indicator
+    showLoadingIndicator(getLoadingTextForUrl(href));
+    
+    // Navigate after a short delay (allows loading indicator to show)
+    setTimeout(() => {
+        window.location.href = href;
+    }, 150);
+    
+    // Safety timeout - hide loading indicator after 10 seconds if still showing
+    setTimeout(() => {
+        hideLoadingIndicator();
+    }, 10000);
 }
 
 /**
@@ -115,7 +152,7 @@ function createLoadingOverlay() {
     overlay.innerHTML = `
         <div class="loading-spinner"></div>
         <div class="loading-text" id="loading-text">Loading...</div>
-        <div class="loading-subtext">Please wait a moment</div>
+        <div class="loading-subtext">Hang tight...</div>
         <div class="loading-dots">
             <div class="loading-dot"></div>
             <div class="loading-dot"></div>
@@ -147,9 +184,9 @@ function hideLoadingIndicator() {
     if (overlay) {
         overlay.classList.remove('show');
         
-        // Remove loading state from buttons
-        document.querySelectorAll('.home-btn-loading').forEach(btn => {
-            btn.classList.remove('home-btn-loading');
+        // Remove loading state from all navigation elements
+        document.querySelectorAll('.home-btn-loading, .nav-link-loading').forEach(btn => {
+            btn.classList.remove('home-btn-loading', 'nav-link-loading');
         });
     }
 }
@@ -177,6 +214,9 @@ function getLoadingTextForUrl(url) {
         '/mobile/lineup-escrow': 'Loading Lineup Escrow...',
         '/mobile/practice-times': 'Loading Practice Times...',
         '/mobile/email-team': 'Loading Email Tool...',
+        '/mobile/polls': 'Loading Team Polls...',
+        '/mobile/matchup-simulator': 'Loading Matchup Simulator...',
+        '/mobile/training-videos': 'Loading Training Videos...',
         '/admin': 'Loading Admin Panel...'
     };
     
