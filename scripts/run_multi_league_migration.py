@@ -115,7 +115,7 @@ def main():
         # Step 4: Import player data
         {
             'type': 'etl',
-            'file': 'etl/import_players.py',
+            'file': 'data/etl/import_players.py',
             'description': 'Import player data with multi-league support'
         },
         

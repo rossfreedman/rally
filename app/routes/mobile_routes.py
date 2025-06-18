@@ -679,6 +679,7 @@ def serve_mobile_my_team():
         team_data = result.get('team_data')
         court_analysis = result.get('court_analysis', {})
         top_players = result.get('top_players', [])
+        strength_of_schedule = result.get('strength_of_schedule', {})
         error = result.get('error')
         
         return render_template('mobile/my_team.html', 
@@ -686,6 +687,7 @@ def serve_mobile_my_team():
                              team_data=team_data,
                              court_analysis=court_analysis,
                              top_players=top_players,
+                             strength_of_schedule=strength_of_schedule,
                              error=error)
                              
     except Exception as e:
@@ -703,6 +705,15 @@ def serve_mobile_my_team():
                              team_data=None,
                              court_analysis={},
                              top_players=[],
+                             strength_of_schedule={
+                                 'sos_value': 0.0,
+                                 'rank': 0,
+                                 'total_teams': 0,
+                                 'opponents_count': 0,
+                                 'all_teams_sos': [],
+                                 'user_team_name': '',
+                                 'error': 'Failed to load team data'
+                             },
                              error="Failed to load team data")
 
 @mobile_bp.route('/mobile/myteam')

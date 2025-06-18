@@ -295,19 +295,40 @@ async function handleVoteSubmission(e) {
             })
         });
         
-        console.log('Response received:', response.status);
+        console.log('Response received:', response.status, response.ok);
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
         const data = await response.json();
         console.log('Response data:', data);
         
         if (data.success) {
             console.log('Vote successful, showing success message');
+            
+            // Show immediate feedback on the button
+            const submitBtn = document.getElementById('submitVoteBtn');
+            const submitBtnText = document.getElementById('submitBtnText');
+            const submitBtnLoading = document.getElementById('submitBtnLoading');
+            
+            if (submitBtn && submitBtnText && submitBtnLoading) {
+                submitBtn.disabled = true;
+                submitBtnText.innerHTML = '<i class="fas fa-check-circle mr-2"></i>Vote Recorded!';
+                submitBtnText.classList.remove('hidden');
+                submitBtnLoading.classList.add('hidden');
+                submitBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                submitBtn.classList.add('bg-green-600');
+            }
+            
+            // Show success message
             showSuccess('🎉 Your vote has been recorded!');
             
             // Wait a moment then reload poll to show updated results
-            console.log('Reloading poll data in 800ms...');
+            console.log('Reloading poll data in 1500ms...');
             setTimeout(() => {
                 loadPoll();
-            }, 800);
+            }, 1500);
         } else {
             console.error('Vote failed:', data.error);
             showError(data.error || 'Failed to submit vote');

@@ -17,19 +17,26 @@ polls_bp = Blueprint('polls', __name__)
 @login_required
 def create_poll():
     """Create a new poll with question and choices"""
+    print(f"🔥 === POLL CREATION API STARTED ===")
     try:
         data = request.get_json()
+        print(f"🔥 Received data: {data}")
         
         if not data or not data.get('question') or not data.get('choices'):
+            print(f"🔥 Missing required data - question: {data.get('question') if data else 'None'}, choices: {data.get('choices') if data else 'None'}")
             return jsonify({'error': 'Question and choices are required'}), 400
         
         question = data['question'].strip()
         choices = [choice.strip() for choice in data['choices'] if choice.strip()]
         
+        print(f"🔥 Processed - question: '{question}', choices: {choices}")
+        
         if len(choices) < 2:
+            print(f"🔥 Not enough choices: {len(choices)}")
             return jsonify({'error': 'At least 2 choices are required'}), 400
         
         user_id = session['user']['id']
+        print(f"🔥 User ID: {user_id}")
         
         # Create the poll
         poll_query = '''
@@ -38,20 +45,28 @@ def create_poll():
             RETURNING id
         '''
         
+        print(f"🔥 Executing poll insert query with params: [{user_id}, '{question}', None]")
         poll_result = execute_query_one(poll_query, [user_id, question, None])
+        print(f"🔥 Poll insert result: {poll_result}")
         
         if not poll_result:
+            print(f"🔥 Failed to create poll - no result returned")
             return jsonify({'error': 'Failed to create poll'}), 500
         
         poll_id = poll_result['id']
+        print(f"🔥 Created poll with ID: {poll_id}")
         
         # Add choices
-        for choice_text in choices:
+        print(f"🔥 Adding {len(choices)} choices...")
+        for i, choice_text in enumerate(choices):
             choice_query = '''
                 INSERT INTO poll_choices (poll_id, choice_text)
                 VALUES (%s, %s)
             '''
+            print(f"🔥 Adding choice {i+1}: '{choice_text}'")
             execute_update(choice_query, [poll_id, choice_text])
+        
+        print(f"🔥 All choices added successfully")
         
         # Log the activity
         log_user_activity(
@@ -59,20 +74,29 @@ def create_poll():
             'poll_created',
             details=f'Created poll: {question}'
         )
+        print(f"🔥 Activity logged")
         
         # Generate shareable link
         poll_link = f"/mobile/polls/{poll_id}"
         
-        return jsonify({
+        response_data = {
             'success': True,
             'poll_id': poll_id,
             'poll_link': poll_link,
             'message': 'Poll created successfully'
-        })
+        }
+        print(f"🔥 Returning success response: {response_data}")
+        
+        return jsonify(response_data)
         
     except Exception as e:
-        print(f"Error creating poll: {str(e)}")
+        print(f"🔥 ❌ Error creating poll: {str(e)}")
+        import traceback
+        print(f"🔥 ❌ Full traceback: {traceback.format_exc()}")
         return jsonify({'error': 'Failed to create poll'}), 500
+    finally:
+        print(f"🔥 === POLL CREATION API ENDED ===")
+        print()
 
 @polls_bp.route('/api/polls/team/<int:team_id>')
 @login_required
@@ -85,14 +109,15 @@ def get_team_polls(team_id):
         print(f"[DEBUG] Getting team polls for user: {user.get('email')}")
         print(f"[DEBUG] User club: {user.get('club')}, series: {user.get('series')}")
         
-        # Start with simpler query - get all polls for now, then we can filter by team
-        # First, get all polls created by any user
+        # Get all polls - including those with NULL team_id (which is how polls are currently created)
+        # TODO: In the future, we may want to filter by actual team membership
         polls_query = '''
             SELECT 
                 p.id,
                 p.question,
                 p.created_at,
                 p.created_by,
+                p.team_id,
                 creator.first_name,
                 creator.last_name,
                 COUNT(DISTINCT pr.player_id) as response_count,
@@ -100,12 +125,13 @@ def get_team_polls(team_id):
             FROM polls p
             LEFT JOIN users creator ON p.created_by = creator.id
             LEFT JOIN poll_responses pr ON p.id = pr.poll_id
-            GROUP BY p.id, p.question, p.created_at, p.created_by, creator.first_name, creator.last_name
+            WHERE p.team_id IS NULL OR p.team_id = %s
+            GROUP BY p.id, p.question, p.created_at, p.created_by, p.team_id, creator.first_name, creator.last_name
             ORDER BY p.created_at DESC
         '''
         
-        print(f"[DEBUG] Executing polls query...")
-        polls = execute_query(polls_query, [user_id])
+        print(f"[DEBUG] Executing polls query for team_id: {team_id}...")
+        polls = execute_query(polls_query, [user_id, team_id])
         print(f"[DEBUG] Found {len(polls)} polls")
         
         # Get choices for each poll
@@ -248,15 +274,23 @@ def get_poll_details(poll_id):
 @login_required
 def respond_to_poll(poll_id):
     """Submit a player's response to a poll"""
+    print(f"🗳️  === POLL VOTE SUBMISSION API STARTED ===")
+    print(f"🗳️  Poll ID: {poll_id}")
     try:
         data = request.get_json()
+        print(f"🗳️  Received data: {data}")
         
         if not data or not data.get('choice_id'):
+            print(f"🗳️  Missing choice_id in request data")
             return jsonify({'error': 'Choice ID is required'}), 400
         
         choice_id = data['choice_id']
+        print(f"🗳️  Choice ID: {choice_id}")
         
         # Get user's player ID
+        user_id = session['user']['id']
+        print(f"🗳️  User ID: {user_id}")
+        
         user_player_query = '''
             SELECT p.id
             FROM players p
@@ -264,12 +298,15 @@ def respond_to_poll(poll_id):
             WHERE upa.user_id = %s
             LIMIT 1
         '''
-        user_player = execute_query_one(user_player_query, [session['user']['id']])
+        user_player = execute_query_one(user_player_query, [user_id])
+        print(f"🗳️  User player query result: {user_player}")
         
         if not user_player:
+            print(f"🗳️  No player profile found for user {user_id}")
             return jsonify({'error': 'Player profile not found'}), 400
         
         player_id = user_player['id']
+        print(f"🗳️  Player ID: {player_id}")
         
         # Verify the choice exists for this poll
         choice_query = '''
@@ -277,8 +314,10 @@ def respond_to_poll(poll_id):
             WHERE id = %s AND poll_id = %s
         '''
         choice_exists = execute_query_one(choice_query, [choice_id, poll_id])
+        print(f"🗳️  Choice exists check: {choice_exists}")
         
         if not choice_exists:
+            print(f"🗳️  Invalid choice {choice_id} for poll {poll_id}")
             return jsonify({'error': 'Invalid choice for this poll'}), 400
         
         # Check if user has already voted
@@ -287,9 +326,11 @@ def respond_to_poll(poll_id):
             WHERE poll_id = %s AND player_id = %s
         '''
         existing_vote = execute_query_one(existing_vote_query, [poll_id, player_id])
+        print(f"🗳️  Existing vote check: {existing_vote}")
         
         if existing_vote:
             # Update existing vote
+            print(f"🗳️  Updating existing vote")
             update_query = '''
                 UPDATE poll_responses
                 SET choice_id = %s, responded_at = NOW()
@@ -298,11 +339,14 @@ def respond_to_poll(poll_id):
             execute_update(update_query, [choice_id, poll_id, player_id])
         else:
             # Insert new vote
+            print(f"🗳️  Inserting new vote")
             insert_query = '''
                 INSERT INTO poll_responses (poll_id, choice_id, player_id)
                 VALUES (%s, %s, %s)
             '''
             execute_update(insert_query, [poll_id, choice_id, player_id])
+        
+        print(f"🗳️  Vote successfully processed")
         
         # Log the activity
         log_user_activity(
@@ -311,11 +355,19 @@ def respond_to_poll(poll_id):
             details=f'Voted in poll {poll_id}'
         )
         
-        return jsonify({
+        response_data = {
             'success': True,
             'message': 'Vote submitted successfully'
-        })
+        }
+        print(f"🗳️  Returning success response: {response_data}")
+        
+        return jsonify(response_data)
         
     except Exception as e:
-        print(f"Error submitting poll response: {str(e)}")
-        return jsonify({'error': 'Failed to submit vote'}), 500 
+        print(f"🗳️  ❌ Error submitting poll response: {str(e)}")
+        import traceback
+        print(f"🗳️  ❌ Full traceback: {traceback.format_exc()}")
+        return jsonify({'error': 'Failed to submit vote'}), 500
+    finally:
+        print(f"🗳️  === POLL VOTE SUBMISSION API ENDED ===")
+        print() 

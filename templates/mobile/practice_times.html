@@ -122,6 +122,22 @@
                             <p class="text-xs text-gray-500 mt-1">Select the date of your first practice</p>
                         </div>
 
+                        <!-- Last Practice Date -->
+                        <div>
+                            <label for="last_date" class="block text-sm font-medium text-gray-700 mb-2">
+                                <i class="fas fa-calendar-check mr-2 text-orange-500"></i>
+                                Last Practice Date
+                            </label>
+                            <input 
+                                type="date" 
+                                id="last_date" 
+                                name="last_date" 
+                                required
+                                class="w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            />
+                            <p class="text-xs text-gray-500 mt-1">Select the date of your last practice</p>
+                        </div>
+
                         <!-- Practice Day -->
                         <div>
                             <label for="day" class="block text-sm font-medium text-gray-700 mb-2">
@@ -162,22 +178,6 @@
                             <p class="text-xs text-gray-500 mt-1">Start time for practices</p>
                         </div>
 
-                        <!-- Last Practice Date -->
-                        <div>
-                            <label for="last_date" class="block text-sm font-medium text-gray-700 mb-2">
-                                <i class="fas fa-calendar-check mr-2 text-orange-500"></i>
-                                Last Practice Date
-                            </label>
-                            <input 
-                                type="date" 
-                                id="last_date" 
-                                name="last_date" 
-                                required
-                                class="w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            />
-                            <p class="text-xs text-gray-500 mt-1">Select the date of your last practice</p>
-                        </div>
-
                         <!-- Submit Button -->
                         <div class="pt-4">
                             <button 
@@ -206,12 +206,12 @@
             <div class="p-6">
                 <ul class="space-y-3 text-sm text-gray-600">
                     <li class="flex items-start">
-                        <i class="fas fa-calendar-check text-blue-500 mr-3 mt-0.5 flex-shrink-0"></i>
-                        <span>Select your first practice date</span>
+                        <i class="fas fa-calendar text-blue-500 mr-3 mt-0.5 flex-shrink-0"></i>
+                        <span>Select your first practice date (defaults to today)</span>
                     </li>
                     <li class="flex items-start">
                         <i class="fas fa-calendar-check text-orange-500 mr-3 mt-0.5 flex-shrink-0"></i>
-                        <span>Select your last practice date</span>
+                        <span>Select your last practice date (defaults to 3 months from today)</span>
                     </li>
                     <li class="flex items-start">
                         <i class="fas fa-calendar-week text-green-500 mr-3 mt-0.5 flex-shrink-0"></i>
@@ -478,16 +478,33 @@ document.getElementById('remove-btn').addEventListener('click', function() {
   });
 });
 
+// Set default dates when page loads
+document.addEventListener('DOMContentLoaded', function() {
+  const firstDateInput = document.getElementById('first_date');
+  const lastDateInput = document.getElementById('last_date');
+  
+  // Set default first date to today
+  const today = new Date();
+  const todayFormatted = today.toISOString().split('T')[0];
+  firstDateInput.value = todayFormatted;
+  
+  // Set default last date to 3 months from today
+  const threeMonthsFromNow = new Date(today);
+  threeMonthsFromNow.setMonth(threeMonthsFromNow.getMonth() + 3);
+  const threeMonthsFormatted = threeMonthsFromNow.toISOString().split('T')[0];
+  lastDateInput.value = threeMonthsFormatted;
+});
+
 // Helper function to suggest a reasonable end date when first date is selected
 document.getElementById('first_date').addEventListener('change', function() {
   const firstDateInput = document.getElementById('first_date');
   const lastDateInput = document.getElementById('last_date');
   
   if (firstDateInput.value && !lastDateInput.value) {
-    // If first date is selected but last date isn't, suggest 6 months later
+    // If first date is selected but last date isn't, suggest 3 months later
     const firstDate = new Date(firstDateInput.value);
     const suggestedLastDate = new Date(firstDate);
-    suggestedLastDate.setMonth(suggestedLastDate.getMonth() + 6);
+    suggestedLastDate.setMonth(suggestedLastDate.getMonth() + 3);
     
     // Format as YYYY-MM-DD for the date input
     const formattedDate = suggestedLastDate.toISOString().split('T')[0];

@@ -1373,6 +1373,7 @@ def get_club_players():
         last_name_filter = request.args.get('last_name', '').strip()
         pti_min = request.args.get('pti_min', type=float)
         pti_max = request.args.get('pti_max', type=float)
+        club_only = request.args.get('club_only', 'true').lower() == 'true'  # Default to true
 
         # Use the mobile service function to get the data
         result = get_club_players_data(
@@ -1381,7 +1382,8 @@ def get_club_players():
             first_name_filter, 
             last_name_filter, 
             pti_min, 
-            pti_max
+            pti_max,
+            club_only
         )
         
         return jsonify(result)
