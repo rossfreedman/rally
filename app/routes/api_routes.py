@@ -660,6 +660,7 @@ def update_availability():
         match_date = data.get('match_date')
         availability_status = data.get('availability_status')
         series = data.get('series')
+        notes = data.get('notes', '')  # Optional notes field
         
         # Validate required fields
         if not all([player_name, match_date, availability_status]):
@@ -729,18 +730,18 @@ def update_availability():
             # Update existing record
             update_query = """
                 UPDATE player_availability 
-                SET availability_status = %s, updated_at = CURRENT_TIMESTAMP
+                SET availability_status = %s, notes = %s, updated_at = CURRENT_TIMESTAMP
                 WHERE player_name = %s AND match_date = %s AND series_id = %s
             """
-            result = execute_update(update_query, (availability_status, player_name, formatted_date, series_id))
+            result = execute_update(update_query, (availability_status, notes, player_name, formatted_date, series_id))
             print(f"Updated existing availability record: {result}")
         else:
             # Insert new record
             insert_query = """
-                INSERT INTO player_availability (player_name, match_date, availability_status, series_id, updated_at)
-                VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP)
+                INSERT INTO player_availability (player_name, match_date, availability_status, series_id, notes, updated_at)
+                VALUES (%s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
             """
-            result = execute_update(insert_query, (player_name, formatted_date, availability_status, series_id))
+            result = execute_update(insert_query, (player_name, formatted_date, availability_status, series_id, notes))
             print(f"Created new availability record: {result}")
         
         # Log the activity

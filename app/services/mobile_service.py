@@ -2044,7 +2044,7 @@ def get_all_team_availability_data(user, selected_date=None):
             # Create a single query to get all availability data using internal player IDs
             placeholders = ','.join(['%s'] * len(internal_player_ids))
             bulk_query = f"""
-                SELECT pa.player_id, pa.player_name, pa.availability_status
+                SELECT pa.player_id, pa.player_name, pa.availability_status, pa.notes
                 FROM player_availability pa
                 WHERE pa.player_id IN ({placeholders})
                 AND pa.series_id = %s 
@@ -2060,7 +2060,10 @@ def get_all_team_availability_data(user, selected_date=None):
             # Convert results to dictionary for fast lookup by internal player ID
             availability_lookup = {}
             for result in availability_results:
-                availability_lookup[result['player_id']] = result['availability_status']
+                availability_lookup[result['player_id']] = {
+                    'availability_status': result['availability_status'],
+                    'notes': result.get('notes', '') or ''
+                }
             
             print(f"Found availability data for {len(availability_lookup)} players")
             
@@ -2080,13 +2083,16 @@ def get_all_team_availability_data(user, selected_date=None):
             # Get internal player ID for this player
             internal_player_id = player_id_lookup[player_name]
             
-            # Get availability status from lookup (default to 0 if not found)
-            status = availability_lookup.get(internal_player_id, 0)
+            # Get availability data from lookup (default to status 0 and empty notes if not found)
+            availability_data = availability_lookup.get(internal_player_id, {'availability_status': 0, 'notes': ''})
+            status = availability_data['availability_status']
+            notes = availability_data['notes']
             
             # Create availability record
             availability = [{
                 'date': selected_date,
-                'availability_status': status
+                'availability_status': status,
+                'notes': notes
             }]
             
             # Store with display name
