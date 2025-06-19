@@ -86,7 +86,7 @@
                                     <div class="text-base text-gray-600">{{ show_time }}</div>
                                 </div>
                                 <div>
-                                    <div class="text-lg">
+                                    <div class="text-sm">
                                         {% if is_practice %}
                                             <!-- Practice description removed -->
                                         {% else %}
@@ -94,22 +94,22 @@
                                                 {% set home_team = match.home_team.split(' - ') if match.home_team else [] %}
                                                 {% set away_team = match.away_team.split(' - ') if match.away_team else [] %}
                                                 <div class="flex items-center gap-2">
-                                                    <span class="text-lg text-gray-900">{{ match.home_team }} vs.</span>
+                                                    <span class="text-sm font-bold text-gray-900">{{ match.home_team }} vs.</span>
                                                 </div>
                                                 <div>
-                                                    <span class="text-lg text-gray-900">{{ match.away_team }}</span>
+                                                    <span class="text-sm font-bold text-gray-900">{{ match.away_team }}</span>
                                                 </div>
                                             {% else %}
-                                                <span class="font-medium text-lg text-gray-900">Match Details TBD</span>
+                                                <span class="font-bold text-sm text-gray-900">Match Details TBD</span>
                                             {% endif %}
                                         {% endif %}
                                     </div>
                                     <div class="flex items-center gap-2 mt-4">
                                         {% if not is_practice %}
-                                            <i class="fas fa-map-marker-alt text-red-500 text-lg"></i>
+                                            <i class="fas fa-map-marker-alt text-red-500 text-sm"></i>
                                             {% set location_text = match.location or match.home_team or session_data.user.club %}
                                             {% if location_text != 'All Clubs' %}
-                                                <span class="text-gray-600 text-lg">{{ location_text }}</span>
+                                                <span class="text-gray-600 text-sm font-bold">{{ location_text }}</span>
                                             {% endif %}
                                         {% endif %}
                                     </div>

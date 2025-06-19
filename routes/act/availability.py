@@ -435,7 +435,7 @@ def update_player_availability(player_name, match_date, availability_status, ser
                     except Exception as e:
                         print(f"Could not look up player ID for new record: {e}")
                 
-                # Create the new record with player ID if available
+                # FIXED: Always require player_id - fail fast instead of creating bad data
                 if player_record:
                     internal_player_id = player_record['id']
                     result = execute_query(
@@ -453,20 +453,23 @@ def update_player_availability(player_name, match_date, availability_status, ser
                     )
                     print(f"✅ Created new record with internal player ID: {internal_player_id}")
                 else:
-                    # Fallback: create record without player ID
-                    result = execute_query(
-                        """
-                        INSERT INTO player_availability (player_name, match_date, availability_status, series_id, updated_at)
-                        VALUES (%(player)s, %(date)s, %(status)s, %(series_id)s, NOW())
-                        """,
-                        {
-                            'player': player_name.strip(),
-                            'date': intended_date_obj,
-                            'status': availability_status,
-                            'series_id': series_id
-                        }
-                    )
-                    print("⚠️ Created new record without player ID (no player record found)")
+                    # FIXED: Fail fast instead of creating record with NULL player_id
+                    error_msg = f"❌ Cannot create availability record: Player '{player_name.strip()}' not found in series '{series}' (series_id: {series_id})"
+                    print(error_msg)
+                    print("Available players in this series:")
+                    try:
+                        available_players = execute_query(
+                            "SELECT CONCAT(first_name, ' ', last_name) as full_name FROM players WHERE series_id = %s AND is_active = true ORDER BY first_name, last_name",
+                            (series_id,)
+                        )
+                        for p in available_players[:10]:  # Show first 10
+                            print(f"  - {p['full_name']}")
+                        if len(available_players) > 10:
+                            print(f"  ... and {len(available_players) - 10} more")
+                    except Exception as e:
+                        print(f"Could not list available players: {e}")
+                    
+                    raise ValueError(f"Player '{player_name.strip()}' not found in series '{series}'. Please verify the player name and series are correct.")
         
         # Verify the record was stored correctly
         verification_record = execute_query_one(

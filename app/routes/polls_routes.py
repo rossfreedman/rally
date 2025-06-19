@@ -13,6 +13,20 @@ import uuid
 # Create polls blueprint
 polls_bp = Blueprint('polls', __name__)
 
+def get_user_team_id(user):
+    """Generate a team identifier based on user's club and series"""
+    club = user.get('club', '').strip()
+    series = user.get('series', '').strip()
+    
+    if not club or not series:
+        return None
+    
+    # Create a consistent team identifier
+    # For APTA leagues: "Tennaqua - Chicago 22" -> "Tennaqua-Chicago_22"
+    # For NSTF leagues: "Tennaqua - Series 2B" -> "Tennaqua-Series_2B"
+    team_id = f"{club}-{series}".replace(' ', '_')
+    return team_id
+
 @polls_bp.route('/api/polls', methods=['POST'])
 @login_required
 def create_poll():
@@ -36,17 +50,25 @@ def create_poll():
             return jsonify({'error': 'At least 2 choices are required'}), 400
         
         user_id = session['user']['id']
-        print(f"🔥 User ID: {user_id}")
+        user = session['user']
         
-        # Create the poll
+        # Generate team ID based on user's club and series
+        team_id = get_user_team_id(user)
+        if not team_id:
+            print(f"🔥 Could not determine team ID for user: club={user.get('club')}, series={user.get('series')}")
+            return jsonify({'error': 'Could not determine your team. Please update your profile.'}), 400
+        
+        print(f"🔥 User ID: {user_id}, Team ID: {team_id}")
+        
+        # Create the poll with team_id
         poll_query = '''
             INSERT INTO polls (created_by, question, team_id)
             VALUES (%s, %s, %s)
             RETURNING id
         '''
         
-        print(f"🔥 Executing poll insert query with params: [{user_id}, '{question}', None]")
-        poll_result = execute_query_one(poll_query, [user_id, question, None])
+        print(f"🔥 Executing poll insert query with params: [{user_id}, '{question}', '{team_id}']")
+        poll_result = execute_query_one(poll_query, [user_id, question, team_id])
         print(f"🔥 Poll insert result: {poll_result}")
         
         if not poll_result:
@@ -72,7 +94,7 @@ def create_poll():
         log_user_activity(
             session['user']['email'],
             'poll_created',
-            details=f'Created poll: {question}'
+            details=f'Created poll for team {team_id}: {question}'
         )
         print(f"🔥 Activity logged")
         
@@ -83,6 +105,7 @@ def create_poll():
             'success': True,
             'poll_id': poll_id,
             'poll_link': poll_link,
+            'team_id': team_id,
             'message': 'Poll created successfully'
         }
         print(f"🔥 Returning success response: {response_data}")
@@ -98,16 +121,91 @@ def create_poll():
         print(f"🔥 === POLL CREATION API ENDED ===")
         print()
 
-@polls_bp.route('/api/polls/team/<int:team_id>')
+@polls_bp.route('/api/polls/my-team')
 @login_required
-def get_team_polls(team_id):
-    """Get all polls for a team"""
+def get_my_team_polls():
+    """Get all polls for the current user's team"""
     try:
         user = session['user']
         user_id = user['id']
         
-        print(f"[DEBUG] Getting team polls for user: {user.get('email')}")
+        # Get user's team ID
+        team_id = get_user_team_id(user)
+        if not team_id:
+            print(f"[DEBUG] Could not determine team ID for user: club={user.get('club')}, series={user.get('series')}")
+            return jsonify({'error': 'Could not determine your team. Please update your profile.'}), 400
+        
+        print(f"[DEBUG] Getting polls for user: {user.get('email')}")
         print(f"[DEBUG] User club: {user.get('club')}, series: {user.get('series')}")
+        print(f"[DEBUG] Team ID: {team_id}")
+        
+        # Get polls for this specific team only
+        polls_query = '''
+            SELECT 
+                p.id,
+                p.question,
+                p.created_at,
+                p.created_by,
+                p.team_id,
+                creator.first_name,
+                creator.last_name,
+                COUNT(DISTINCT pr.player_id) as response_count,
+                CASE WHEN p.created_by = %s THEN true ELSE false END as is_creator
+            FROM polls p
+            LEFT JOIN users creator ON p.created_by = creator.id
+            LEFT JOIN poll_responses pr ON p.id = pr.poll_id
+            WHERE p.team_id = %s
+            GROUP BY p.id, p.question, p.created_at, p.created_by, p.team_id, creator.first_name, creator.last_name
+            ORDER BY p.created_at DESC
+        '''
+        
+        print(f"[DEBUG] Executing polls query for team_id: {team_id}...")
+        polls = execute_query(polls_query, [user_id, team_id])
+        print(f"[DEBUG] Found {len(polls)} polls for team {team_id}")
+        
+        # Get choices for each poll
+        for poll in polls:
+            choices_query = '''
+                SELECT id, choice_text
+                FROM poll_choices
+                WHERE poll_id = %s
+                ORDER BY id
+            '''
+            try:
+                poll['choices'] = execute_query(choices_query, [poll['id']])
+                print(f"[DEBUG] Poll {poll['id']} has {len(poll['choices'])} choices")
+            except Exception as e:
+                print(f"[DEBUG] Error getting choices for poll {poll['id']}: {e}")
+                poll['choices'] = []
+        
+        print(f"[DEBUG] Returning {len(polls)} polls for team {team_id}")
+        return jsonify({
+            'success': True,
+            'polls': polls,
+            'team_id': team_id,
+            'team_name': f"{user.get('club')} - {user.get('series')}"
+        })
+        
+    except Exception as e:
+        print(f"Error getting team polls: {str(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
+        return jsonify({
+            'error': 'Failed to get polls', 
+            'debug': str(e) if user.get('email') == 'rossfreedman@gmail.com' else None
+        }), 500
+
+@polls_bp.route('/api/polls/team/<int:team_id>')
+@login_required
+def get_team_polls(team_id):
+    """Get all polls for a team (legacy endpoint - deprecated)"""
+    try:
+        user = session['user']
+        user_id = user['id']
+        
+        print(f"[DEBUG] DEPRECATED: Getting team polls for user: {user.get('email')}")
+        print(f"[DEBUG] User club: {user.get('club')}, series: {user.get('series')}")
+        print(f"[WARNING] This endpoint is deprecated. Use /api/polls/my-team instead.")
         
         # Get all polls - including those with NULL team_id (which is how polls are currently created)
         # TODO: In the future, we may want to filter by actual team membership
@@ -168,12 +266,13 @@ def get_team_polls(team_id):
 def get_poll_details(poll_id):
     """Get poll details + current results (public endpoint for sharing)"""
     try:
-        # Get poll details
+        # Get poll details with team_id
         poll_query = '''
             SELECT 
                 p.id,
                 p.question,
                 p.created_at,
+                p.team_id,
                 u.first_name,
                 u.last_name
             FROM polls p
@@ -185,6 +284,20 @@ def get_poll_details(poll_id):
         
         if not poll:
             return jsonify({'error': 'Poll not found'}), 404
+        
+        # If user is logged in, verify they can access this poll (same team)
+        if 'user' in session:
+            user = session['user']
+            user_team_id = get_user_team_id(user)
+            poll_team_id = poll.get('team_id')
+            
+            # Allow access if:
+            # 1. Poll has no team_id (legacy polls)
+            # 2. User's team matches poll's team
+            # 3. Poll team_id is None/NULL
+            if poll_team_id and user_team_id and poll_team_id != user_team_id:
+                print(f"[SECURITY] User team '{user_team_id}' attempting to access poll from team '{poll_team_id}'")
+                return jsonify({'error': 'Poll not found'}), 404
         
         # Get choices with vote counts
         choices_query = '''
@@ -287,10 +400,30 @@ def respond_to_poll(poll_id):
         choice_id = data['choice_id']
         print(f"🗳️  Choice ID: {choice_id}")
         
-        # Get user's player ID
-        user_id = session['user']['id']
-        print(f"🗳️  User ID: {user_id}")
+        # Get user's team ID for security check
+        user = session['user']
+        user_id = user['id']
+        user_team_id = get_user_team_id(user)
+        print(f"🗳️  User ID: {user_id}, Team ID: {user_team_id}")
         
+        # Verify the poll exists and user can access it (same team)
+        poll_query = '''
+            SELECT team_id FROM polls WHERE id = %s
+        '''
+        poll = execute_query_one(poll_query, [poll_id])
+        
+        if not poll:
+            print(f"🗳️  Poll {poll_id} not found")
+            return jsonify({'error': 'Poll not found'}), 404
+        
+        poll_team_id = poll.get('team_id')
+        
+        # Security check: Verify user can vote on this poll (same team)
+        if poll_team_id and user_team_id and poll_team_id != user_team_id:
+            print(f"🗳️  SECURITY: User team '{user_team_id}' attempting to vote on poll from team '{poll_team_id}'")
+            return jsonify({'error': 'Poll not found'}), 404
+        
+        # Get user's player ID
         user_player_query = '''
             SELECT p.id
             FROM players p
