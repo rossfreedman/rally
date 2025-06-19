@@ -165,7 +165,7 @@ def get_player_availability(player_name, match_date, series, user_id=None):
         # Query availability using the internal player ID
         result = execute_query_one(
             """
-            SELECT availability_status, match_date
+            SELECT availability_status, match_date, notes
             FROM player_availability 
             WHERE player_id = %(player_id)s 
             AND DATE(match_date AT TIME ZONE 'UTC') = DATE(%(match_date)s AT TIME ZONE 'UTC')
@@ -183,7 +183,7 @@ def get_player_availability(player_name, match_date, series, user_id=None):
             print(f"No availability found with player ID {internal_player_id}, trying name-based search")
             result = execute_query_one(
                 """
-                SELECT availability_status, match_date
+                SELECT availability_status, match_date, notes
                 FROM player_availability 
                 WHERE player_name = %(player_name)s 
                 AND DATE(match_date AT TIME ZONE 'UTC') = DATE(%(match_date)s AT TIME ZONE 'UTC')
@@ -201,19 +201,20 @@ def get_player_availability(player_name, match_date, series, user_id=None):
         
         if not result:
             print(f"No availability found for {player_name} on {match_date}")
-            return 0  # Return 0 instead of None for "not set"
+            return {'status': 0, 'notes': ''}  # Return dict with default values
         
-        # Return the numeric status directly
+        # Return both status and notes
         status = result['availability_status']
-        print(f"Found availability status: {status}")
-        return status if status is not None else 0
+        notes = result.get('notes', '') or ''  # Handle None values
+        print(f"Found availability status: {status}, notes: {notes}")
+        return {'status': status if status is not None else 0, 'notes': notes}
         
     except Exception as e:
         print(f"❌ Error getting player availability: {str(e)}")
         print(traceback.format_exc())
         return 0  # Return 0 on error
 
-def update_player_availability(player_name, match_date, availability_status, series, user_id=None):
+def update_player_availability(player_name, match_date, availability_status, series, user_id=None, notes=None):
     """
     Update player availability with enhanced date verification and correction
     
@@ -300,11 +301,12 @@ def update_player_availability(player_name, match_date, availability_status, ser
             result = execute_query(
                 """
                 UPDATE player_availability 
-                SET availability_status = %(status)s, updated_at = NOW()
+                SET availability_status = %(status)s, notes = %(notes)s, updated_at = NOW()
                 WHERE id = %(id)s
                 """,
                 {
                     'status': availability_status,
+                    'notes': notes,
                     'id': existing_record['id']
                 }
             )
@@ -440,15 +442,16 @@ def update_player_availability(player_name, match_date, availability_status, ser
                     internal_player_id = player_record['id']
                     result = execute_query(
                         """
-                        INSERT INTO player_availability (player_name, match_date, availability_status, series_id, player_id, updated_at)
-                        VALUES (%(player)s, %(date)s, %(status)s, %(series_id)s, %(player_id)s, NOW())
+                        INSERT INTO player_availability (player_name, match_date, availability_status, series_id, player_id, notes, updated_at)
+                        VALUES (%(player)s, %(date)s, %(status)s, %(series_id)s, %(player_id)s, %(notes)s, NOW())
                         """,
                         {
                             'player': player_name.strip(),
                             'date': intended_date_obj,
                             'status': availability_status,
                             'series_id': series_id,
-                            'player_id': internal_player_id
+                            'player_id': internal_player_id,
+                            'notes': notes
                         }
                     )
                     print(f"✅ Created new record with internal player ID: {internal_player_id}")
@@ -522,11 +525,15 @@ def get_user_availability(player_name, matches, series, user_id=None):
     for match in matches:
         match_date = match.get('date', '')
         # Get this player's availability for this specific match, using user_id if available
-        numeric_status = get_player_availability(player_name, match_date, series, user_id)
+        availability_data = get_player_availability(player_name, match_date, series, user_id)
+        
+        # Extract numeric status and notes
+        numeric_status = availability_data.get('status', 0) if isinstance(availability_data, dict) else availability_data
+        notes = availability_data.get('notes', '') if isinstance(availability_data, dict) else ''
         
         # Convert numeric status to string status that template expects
         string_status = status_map.get(numeric_status)
-        availability.append({'status': string_status})
+        availability.append({'status': string_status, 'notes': notes})
         
     return availability
 
@@ -563,7 +570,8 @@ def init_availability_routes(app):
                 user = session.get('user')
                 user_id = user.get('id') if user else None
                 
-                success = update_player_availability(player_name, match_date, availability_status, series, user_id)
+                notes = data.get('notes', '')  # Get notes from request data
+                success = update_player_availability(player_name, match_date, availability_status, series, user_id, notes)
                 if success:
                     return jsonify({'status': 'success'})
                 return jsonify({'error': 'Failed to update availability'}), 500

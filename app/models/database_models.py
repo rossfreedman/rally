@@ -282,6 +282,7 @@ class PlayerAvailability(Base):
     availability_status = Column(Integer, nullable=False, default=3)  # 1=available, 2=unavailable, 3=not sure
     series_id = Column(Integer, ForeignKey('series.id'), nullable=False)
     updated_at = Column(DateTime(timezone=True), default=func.now())
+    notes = Column(Text, nullable=True)  # Optional notes from user about their availability
     
     # Relationships
     player = relationship("Player")

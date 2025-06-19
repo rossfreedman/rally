@@ -41,19 +41,34 @@
                                             <td class="px-4 py-3">
                                                 {% if date.availability_status == 1 %}
                                                     {% set available_count.value = available_count.value + 1 %}
-                                                    <span class="text-green-600 font-medium flex items-center">
-                                                        <i class="fas fa-check-circle mr-1"></i>Available
-                                                    </span>
+                                                    <div>
+                                                        <span class="text-green-600 font-medium flex items-center">
+                                                            <i class="fas fa-check-circle mr-1"></i>Available
+                                                        </span>
+                                                        {% if date.notes %}
+                                                            <div class="text-xs text-gray-600 mt-1 italic">{{ date.notes }}</div>
+                                                        {% endif %}
+                                                    </div>
                                                 {% elif date.availability_status == 2 %}
                                                     {% set unavailable_count.value = unavailable_count.value + 1 %}
-                                                    <span class="text-red-600 font-medium flex items-center">
-                                                        <i class="fas fa-times-circle mr-1"></i>Not Available
-                                                    </span>
+                                                    <div>
+                                                        <span class="text-red-600 font-medium flex items-center">
+                                                            <i class="fas fa-times-circle mr-1"></i>Not Available
+                                                        </span>
+                                                        {% if date.notes %}
+                                                            <div class="text-xs text-gray-600 mt-1 italic">{{ date.notes }}</div>
+                                                        {% endif %}
+                                                    </div>
                                                 {% elif date.availability_status == 3 %}
                                                     {% set not_sure_count.value = not_sure_count.value + 1 %}
-                                                    <span class="text-yellow-500 font-medium flex items-center">
-                                                        <i class="fas fa-question-circle mr-1"></i>Not Sure
-                                                    </span>
+                                                    <div>
+                                                        <span class="text-yellow-500 font-medium flex items-center">
+                                                            <i class="fas fa-question-circle mr-1"></i>Not Sure
+                                                        </span>
+                                                        {% if date.notes %}
+                                                            <div class="text-xs text-gray-600 mt-1 italic">{{ date.notes }}</div>
+                                                        {% endif %}
+                                                    </div>
                                                 {% else %}
                                                     {% set not_set_count.value = not_set_count.value + 1 %}
                                                     <span class="text-gray-400 flex items-center">
