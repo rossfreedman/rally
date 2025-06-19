@@ -13,7 +13,7 @@
             </div>
             <div class="ml-4">
                 <h1 class="text-xl font-bold text-gray-900">Team Polls</h1>
-                <p class="text-sm text-gray-500">All polls for your team will appear here</p>
+                <p class="text-sm text-gray-500">Polls for your team only - create and vote on team decisions</p>
             </div>
         </div>
     </div>
@@ -202,13 +202,17 @@ let pollToDelete = null;
 
 // Initialize page
   document.addEventListener('DOMContentLoaded', function() {
+      console.log('🔄 Page loaded, session data:', {{ session_data|tojson }});
       loadPolls();
   });
 
 // Load polls from API
 async function loadPolls() {
+    console.log('🔄 Starting loadPolls...');
+    
     try {
-        const url = `/api/polls/team/1?t=${Date.now()}`; // Cache busting parameter
+        const url = `/api/polls/my-team?t=${Date.now()}`; // Cache busting parameter
+        console.log('🔄 Fetching from:', url);
         
         const response = await fetch(url, {
             cache: 'no-cache',
@@ -217,27 +221,66 @@ async function loadPolls() {
             }
         });
         
+        console.log('🔄 Response status:', response.status, response.statusText);
+        
         if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            const errorText = await response.text();
+            console.error('❌ HTTP Error Response:', errorText);
+            throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
         }
         
         const data = await response.json();
+        console.log('🔄 API Response:', data);
         
         if (data.success) {
             const oldCount = pollsData.length;
             pollsData = data.polls;
             
-            console.log(`📊 Loaded ${pollsData.length} polls (was ${oldCount})`);
+            console.log(`📊 Loaded ${pollsData.length} polls for team "${data.team_name}" (was ${oldCount})`);
+            console.log(`📊 Team ID: ${data.team_id}`);
+            
+            // Update page header to show team name
+            const headerElement = document.querySelector('.bg-white.border-b h1');
+            if (headerElement && data.team_name) {
+                headerElement.textContent = `Team Polls - ${data.team_name}`;
+            }
             
             renderPolls();
         } else {
             console.error('❌ API returned error:', data.error);
-            showError(data.debug ? `${data.error}: ${data.debug}` : 'Failed to load polls');
+            console.error('❌ Full API response:', data);
+            hideLoadingAndShowError(data.error || 'Failed to load polls');
         }
     } catch (error) {
         console.error('❌ Error loading polls:', error);
-        showError('Network error loading polls');
+        console.error('❌ Error details:', error.message);
+        hideLoadingAndShowError(`Error: ${error.message}`);
     }
+}
+
+// Helper function to hide loading state and show error
+function hideLoadingAndShowError(message) {
+    const loadingState = document.getElementById('loadingState');
+    const emptyState = document.getElementById('emptyState');
+    
+    if (loadingState) {
+        loadingState.classList.add('hidden');
+    }
+    
+    if (emptyState) {
+        emptyState.classList.remove('hidden');
+        // Update empty state message for errors
+        const emptyStateText = emptyState.querySelector('p.text-gray-500.text-lg');
+        if (emptyStateText) {
+            emptyStateText.textContent = 'Your team polls will appear here.';
+        }
+        const emptyStateSubtext = emptyState.querySelector('p.text-gray-400.text-sm');
+        if (emptyStateSubtext) {
+            emptyStateSubtext.textContent = '';
+        }
+    }
+    
+    showError(message);
 }
 
 // Render polls list

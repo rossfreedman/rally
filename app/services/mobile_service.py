@@ -1208,13 +1208,12 @@ def get_recent_matches_for_user_club(user):
                 ms.home_player_2_id as "Home Player 2", 
                 ms.away_player_1_id as "Away Player 1",
                 ms.away_player_2_id as "Away Player 2",
-                l.league_id,
+                ms.league_id,
                 '' as "Time",
                 '' as "Location",
                 '' as "Court",
                 '' as "Series"
             FROM match_scores ms
-            LEFT JOIN leagues l ON ms.league_id = l.id
             ORDER BY ms.match_date DESC
         """)
             
@@ -1229,17 +1228,13 @@ def get_recent_matches_for_user_club(user):
         def is_match_in_user_league(match):
             match_league_id = match.get('league_id')
             
-            # Handle case where user_league_id is None but we have league_name
+            # Handle case where user_league_id is None or empty
             if user_league_id is None or user_league_id == '':
-                if 'APTA' in user_league_name:
-                    # User is in APTA league, match APTA_CHICAGO records
-                    return match_league_id == 'APTA_CHICAGO' or not match_league_id
-                else:
-                    # For other leagues, be more permissive during transition
-                    return True
+                # If user has no league specified, include all matches
+                return True
             
-            # Normal league matching
-            return match_league_id == user_league_id or (not match_league_id and str(user_league_id).startswith('APTA'))
+            # Simple integer comparison - match if league IDs are equal
+            return match_league_id == user_league_id
         
         league_filtered_matches = [match for match in all_matches if is_match_in_user_league(match)]
         print(f"[DEBUG] get_recent_matches_for_user_club: Filtered from {len(all_matches)} to {len(league_filtered_matches)} matches for user's league (user_league_id: '{user_league_id}', user_league_name: '{user_league_name}')")
@@ -1346,9 +1341,8 @@ def calculate_player_streaks(club_name, user_league_id=''):
                 ms.home_player_2_id as "Home Player 2",
                 ms.away_player_1_id as "Away Player 1", 
                 ms.away_player_2_id as "Away Player 2",
-                l.league_id
+                ms.league_id
             FROM match_scores ms
-            LEFT JOIN leagues l ON ms.league_id = l.id
             ORDER BY ms.match_date DESC
         """)
         
@@ -1357,13 +1351,8 @@ def calculate_player_streaks(club_name, user_league_id=''):
             def is_match_in_user_league(match):
                 match_league_id = match.get('league_id')
                 
-                # Handle case where user_league_id is None but we need to filter
-                if user_league_id is None or user_league_id == '':
-                    # For transition period, assume APTA_CHICAGO if not specified
-                    return match_league_id == 'APTA_CHICAGO' or not match_league_id
-                
-                # Normal league matching
-                return match_league_id == user_league_id or (not match_league_id and str(user_league_id).startswith('APTA'))
+                # Simple integer comparison - match if league IDs are equal
+                return match_league_id == user_league_id
             
             league_filtered_matches = [match for match in all_matches if is_match_in_user_league(match)]
             print(f"[DEBUG] calculate_player_streaks: Filtered from {len(all_matches)} to {len(league_filtered_matches)} matches for user's league (user_league_id: '{user_league_id}')")
@@ -1689,9 +1678,8 @@ def get_mobile_club_data(user):
                     ss.matches_won,
                     ss.matches_lost,
                     ss.matches_tied,
-                    l.league_id
+                    ss.league_id
                 FROM series_stats ss
-                LEFT JOIN leagues l ON ss.league_id = l.id
                 ORDER BY ss.series, ss.points DESC
             """
             
@@ -1708,17 +1696,13 @@ def get_mobile_club_data(user):
             def is_user_league(team_data):
                 team_league_id = team_data.get('league_id')
                 
-                # Handle case where user_league_id is None but we have league_name
+                # Handle case where user_league_id is None or empty
                 if user_league_id is None or user_league_id == '':
-                    if 'APTA' in user_league_name:
-                        # User is in APTA league, match APTA_CHICAGO records or records without league_id
-                        return team_league_id == 'APTA_CHICAGO' or not team_league_id
-                    else:
-                        # For other leagues, be more permissive during transition
-                        return True
+                    # If user has no league specified, include all teams
+                    return True
                 
-                # Normal league matching
-                return team_league_id == user_league_id or (not team_league_id and str(user_league_id).startswith('APTA'))
+                # Simple integer comparison - match if league IDs are equal
+                return team_league_id == user_league_id
             
             league_filtered_stats = [team for team in stats_data if is_user_league(team)]
             print(f"[DEBUG] Filtered from {len(stats_data)} total teams to {len(league_filtered_stats)} teams in user's league (user_league_id: '{user_league_id}', user_league_name: '{user_league_name}')")
@@ -1768,29 +1752,29 @@ def get_mobile_club_data(user):
         # Calculate head-to-head records (filtered by user's league)
         head_to_head = {}
         
-        # Load ALL match history for comprehensive head-to-head records
+        # Load ALL match history from database for comprehensive head-to-head records
         try:
-            project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-            match_history_path = os.path.join(project_root, 'data', 'leagues', 'all', 'match_history.json')
-            
-            with open(match_history_path, 'r') as f:
-                all_match_history = json.load(f)
+            all_match_history = execute_query("""
+                SELECT 
+                    ms.home_team as "Home Team",
+                    ms.away_team as "Away Team",
+                    ms.winner as "Winner",
+                    ms.league_id
+                FROM match_scores ms
+                ORDER BY ms.match_date DESC
+            """)
             
             # Filter match history by user's league
             def is_match_in_user_league(match):
                 match_league_id = match.get('league_id')
                 
-                # Handle case where user_league_id is None but we have league_name
+                # Handle case where user_league_id is None or empty
                 if user_league_id is None or user_league_id == '':
-                    if 'APTA' in user_league_name:
-                        # User is in APTA league, match APTA_CHICAGO records
-                        return match_league_id == 'APTA_CHICAGO' or not match_league_id
-                    else:
-                        # For other leagues, be more permissive during transition
-                        return True
+                    # If user has no league specified, include all matches
+                    return True
                 
-                # Normal league matching
-                return match_league_id == user_league_id or (not match_league_id and str(user_league_id).startswith('APTA'))
+                # Simple integer comparison - match if league IDs are equal
+                return match_league_id == user_league_id
             
             league_filtered_matches = [match for match in all_match_history if is_match_in_user_league(match)]
             print(f"[DEBUG] Filtered from {len(all_match_history)} total matches to {len(league_filtered_matches)} matches in user's league (user_league_id: '{user_league_id}', user_league_name: '{user_league_name}')")
@@ -2052,7 +2036,7 @@ def get_all_team_availability_data(user, selected_date=None):
                 'error': 'Error loading player data from database'
             }
 
-        # FIXED: Use optimized bulk query with player IDs for better performance and accuracy
+        # Use clean player_id-only query now that data integrity is fixed
         try:
             # Get all internal player IDs for the bulk query
             internal_player_ids = list(player_id_lookup.values())
@@ -2070,7 +2054,7 @@ def get_all_team_availability_data(user, selected_date=None):
             # Parameters: all internal player IDs + series_id + date
             bulk_params = tuple(internal_player_ids) + (series_record['id'], selected_date_utc)
             
-            print(f"Executing bulk availability query for {len(internal_player_ids)} players using internal IDs...")
+            print(f"Executing clean availability query for {len(internal_player_ids)} players using player IDs...")
             availability_results = execute_query(bulk_query, bulk_params)
             
             # Convert results to dictionary for fast lookup by internal player ID
@@ -2081,7 +2065,7 @@ def get_all_team_availability_data(user, selected_date=None):
             print(f"Found availability data for {len(availability_lookup)} players")
             
         except Exception as e:
-            print(f"❌ Error in bulk availability query: {e}")
+            print(f"❌ Error in availability query: {e}")
             import traceback
             print(traceback.format_exc())
             return {

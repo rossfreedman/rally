@@ -757,12 +757,20 @@ def get_team_schedule_data_data():
             # Add league filtering if user has a league_id
             user_league_id = user.get('league_id', '')
             if user_league_id:
-                players_query += " AND l.league_id = %(league_id)s"
-                players_params = {
-                    'series': series,
-                    'club_name': club_name,
-                    'league_id': user_league_id
-                }
+                try:
+                    league_id_int = int(user_league_id)
+                    players_query += " AND l.id = %(league_id)s"  # Use l.id (primary key) instead of l.league_id
+                    players_params = {
+                        'series': series,
+                        'club_name': club_name,
+                        'league_id': league_id_int
+                    }
+                except (ValueError, TypeError) as e:
+                    print(f"Warning: Invalid league_id '{user_league_id}', skipping league filter: {e}")
+                    players_params = {
+                        'series': series,
+                        'club_name': club_name
+                    }
             else:
                 players_params = {
                     'series': series,

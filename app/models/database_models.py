@@ -401,7 +401,7 @@ class Poll(Base):
     __tablename__ = 'polls'
     
     id = Column(Integer, primary_key=True)
-    team_id = Column(Integer)  # Reference to team (could be club or series-specific)
+    team_id = Column(String(255))  # Team identifier string in format "Club-Series" (e.g., "Tennaqua-Chicago_9")
     created_by = Column(Integer, ForeignKey('users.id'))
     question = Column(Text, nullable=False)
     created_at = Column(DateTime(timezone=True), default=func.now())
