@@ -7,7 +7,7 @@
     <!-- Header -->
     <div class="bg-white border-b border-gray-100">
         <div class="flex items-center px-4 py-6">
-            <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center shadow-sm">
+            <div class="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center shadow-sm">
                 <i class="fas fa-calendar text-white text-lg"></i>
             </div>
             <div class="ml-4">
@@ -162,6 +162,7 @@
 /* Background utilities */
 .bg-gray-50 { background-color: #f9fafb; }
 .bg-white { background-color: #ffffff; }
+.bg-green-500 { background-color: #10b981; }
 
 /* Text colors */
 .text-gray-900 { color: #111827; }
@@ -730,7 +731,7 @@ function openDateModal(date, dayData) {
                     id="modal-notes-${date.getMonth() + 1}-${date.getDate()}-${date.getFullYear()}"
                     rows="2"
                     class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
-                    placeholder="Add a note about your availability (i.e. may be 10 min late)"
+                    placeholder="Add a note (optional):"
                     data-match-date="${date.getMonth() + 1}/${date.getDate()}/${date.getFullYear()}"
                     onblur="autoSaveNotesModal(this)"
                     style="box-sizing: border-box; font-size: 0.75rem; line-height: 1.2; padding: 0.5rem;">${dayData.notes || ''}</textarea>

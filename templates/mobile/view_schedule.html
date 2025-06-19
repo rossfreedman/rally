@@ -77,9 +77,10 @@
                     <div class="flex items-center gap-1 mt-2">
                         <i class="fas fa-map-marker-alt text-lg text-[#FFD600]"></i>
                         {% set loc = match.location or match.home_team.split(' - ')[0] %}
+                        {% set maps_query = match.club_address or loc %}
                         <span class="schedule-location-text-normal">{{ loc }}</span>
                         {% if 'Practice' not in match %}
-                        <a class="directions-small-btn" href="https://maps.google.com/?q={{ loc | urlencode }}" target="_blank" rel="noopener noreferrer">
+                        <a class="directions-small-btn" href="https://maps.google.com/?q={{ maps_query | urlencode }}" target="_blank" rel="noopener noreferrer">
                             Get Directions
                         </a>
                         {% endif %}

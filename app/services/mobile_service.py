@@ -1194,7 +1194,7 @@ def get_recent_matches_for_user_club(user):
         Dict with matches grouped by date for the last 10 weeks
     """
     try:
-        from database_utils import execute_query
+        from database_utils import execute_query, execute_query_one
         
         # Query match history from database instead of JSON file
         all_matches = execute_query("""
@@ -1224,20 +1224,33 @@ def get_recent_matches_for_user_club(user):
         user_league_id = user.get('league_id', '')
         user_league_name = user.get('league_name', '')
         
+        # FIXED: Convert string league_id to integer primary key for proper filtering
+        user_league_db_id = None
+        if user_league_id:
+            try:
+                league_lookup = execute_query_one("SELECT id FROM leagues WHERE league_id = %s", (user_league_id,))
+                if league_lookup:
+                    user_league_db_id = league_lookup['id']
+                    print(f"[DEBUG] get_recent_matches: Converted user league_id '{user_league_id}' to database ID: {user_league_db_id}")
+                else:
+                    print(f"[DEBUG] get_recent_matches: No league found for league_id '{user_league_id}'")
+            except Exception as e:
+                print(f"[DEBUG] get_recent_matches: Error looking up league ID: {e}")
+        
         # Filter matches by user's league first
         def is_match_in_user_league(match):
             match_league_id = match.get('league_id')
             
-            # Handle case where user_league_id is None or empty
-            if user_league_id is None or user_league_id == '':
+            # Handle case where user_league_db_id is None or empty
+            if user_league_db_id is None:
                 # If user has no league specified, include all matches
                 return True
             
-            # Simple integer comparison - match if league IDs are equal
-            return match_league_id == user_league_id
+            # FIXED: Use integer-to-integer comparison
+            return match_league_id == user_league_db_id
         
         league_filtered_matches = [match for match in all_matches if is_match_in_user_league(match)]
-        print(f"[DEBUG] get_recent_matches_for_user_club: Filtered from {len(all_matches)} to {len(league_filtered_matches)} matches for user's league (user_league_id: '{user_league_id}', user_league_name: '{user_league_name}')")
+        print(f"[DEBUG] get_recent_matches_for_user_club: Filtered from {len(all_matches)} to {len(league_filtered_matches)} matches for user's league (user_league_id: '{user_league_id}' -> db_id: {user_league_db_id}, user_league_name: '{user_league_name}')")
         
         # Filter matches where user's club is either home or away team
         # Make sure to capture ALL teams from this club across ALL series
@@ -1325,7 +1338,7 @@ def get_recent_matches_for_user_club(user):
         print(f"Error getting recent matches for user club: {e}")
         return {}
 
-def calculate_player_streaks(club_name, user_league_id=''):
+def calculate_player_streaks(club_name, user_league_db_id=None):
     """Calculate winning and losing streaks for players across ALL matches for the club - only show significant streaks (+5/-5)"""
     try:
         from database_utils import execute_query
@@ -1347,15 +1360,15 @@ def calculate_player_streaks(club_name, user_league_id=''):
         """)
         
         # Filter matches by user's league if provided
-        if user_league_id:
+        if user_league_db_id:
             def is_match_in_user_league(match):
                 match_league_id = match.get('league_id')
                 
-                # Simple integer comparison - match if league IDs are equal
-                return match_league_id == user_league_id
+                # Integer comparison - match if league IDs are equal
+                return match_league_id == user_league_db_id
             
             league_filtered_matches = [match for match in all_matches if is_match_in_user_league(match)]
-            print(f"[DEBUG] calculate_player_streaks: Filtered from {len(all_matches)} to {len(league_filtered_matches)} matches for user's league (user_league_id: '{user_league_id}')")
+            print(f"[DEBUG] calculate_player_streaks: Filtered from {len(all_matches)} to {len(league_filtered_matches)} matches for user's league (user_league_db_id: {user_league_db_id})")
             all_matches = league_filtered_matches
         
         player_stats = {}
@@ -1662,10 +1675,23 @@ def get_mobile_club_data(user):
         weekly_results.sort(key=lambda x: parse_date(x['date']), reverse=True)
         
         # Calculate club standings (for all teams in the club across all series) - filtered by user's league
-        from database_utils import execute_query
+        from database_utils import execute_query, execute_query_one
         
         # Get user league information for filtering
         user_league_name = user.get('league_name', '')
+        
+        # FIXED: Convert string league_id to integer primary key for proper filtering
+        user_league_db_id = None
+        if user_league_id:
+            try:
+                league_lookup = execute_query_one("SELECT id FROM leagues WHERE league_id = %s", (user_league_id,))
+                if league_lookup:
+                    user_league_db_id = league_lookup['id']
+                    print(f"[DEBUG] Converted user league_id '{user_league_id}' to database ID: {user_league_db_id}")
+                else:
+                    print(f"[DEBUG] No league found for league_id '{user_league_id}'")
+            except Exception as e:
+                print(f"[DEBUG] Error looking up league ID: {e}")
         
         tennaqua_standings = []
         try:
@@ -1696,16 +1722,16 @@ def get_mobile_club_data(user):
             def is_user_league(team_data):
                 team_league_id = team_data.get('league_id')
                 
-                # Handle case where user_league_id is None or empty
-                if user_league_id is None or user_league_id == '':
+                # Handle case where user_league_db_id is None or empty
+                if user_league_db_id is None:
                     # If user has no league specified, include all teams
                     return True
                 
-                # Simple integer comparison - match if league IDs are equal
-                return team_league_id == user_league_id
+                # FIXED: Use integer-to-integer comparison
+                return team_league_id == user_league_db_id
             
             league_filtered_stats = [team for team in stats_data if is_user_league(team)]
-            print(f"[DEBUG] Filtered from {len(stats_data)} total teams to {len(league_filtered_stats)} teams in user's league (user_league_id: '{user_league_id}', user_league_name: '{user_league_name}')")
+            print(f"[DEBUG] Filtered from {len(stats_data)} total teams to {len(league_filtered_stats)} teams in user's league (user_league_id: '{user_league_id}' -> db_id: {user_league_db_id}, user_league_name: '{user_league_name}')")
                 
             for team_stats in league_filtered_stats:
                 if not team_stats.get('team', '').startswith(club_name):
@@ -1768,16 +1794,16 @@ def get_mobile_club_data(user):
             def is_match_in_user_league(match):
                 match_league_id = match.get('league_id')
                 
-                # Handle case where user_league_id is None or empty
-                if user_league_id is None or user_league_id == '':
+                # Handle case where user_league_db_id is None or empty
+                if user_league_db_id is None:
                     # If user has no league specified, include all matches
                     return True
                 
-                # Simple integer comparison - match if league IDs are equal
-                return match_league_id == user_league_id
+                # FIXED: Use integer-to-integer comparison
+                return match_league_id == user_league_db_id
             
             league_filtered_matches = [match for match in all_match_history if is_match_in_user_league(match)]
-            print(f"[DEBUG] Filtered from {len(all_match_history)} total matches to {len(league_filtered_matches)} matches in user's league (user_league_id: '{user_league_id}', user_league_name: '{user_league_name}')")
+            print(f"[DEBUG] Filtered from {len(all_match_history)} total matches to {len(league_filtered_matches)} matches in user's league (user_league_id: '{user_league_id}' -> db_id: {user_league_db_id}, user_league_name: '{user_league_name}')")
             
             for match in league_filtered_matches:
                 home_team = match.get('Home Team', '')
@@ -1854,7 +1880,7 @@ def get_mobile_club_data(user):
         head_to_head.sort(key=lambda x: (x['wins'] / x['total'] if x['total'] > 0 else 0, x['total']), reverse=True)
         
         # Calculate player streaks (filtered by user's league)
-        player_streaks = calculate_player_streaks(club_name, user_league_id)
+        player_streaks = calculate_player_streaks(club_name, user_league_db_id)
         
         return {
             'team_name': club_name,
@@ -2450,7 +2476,7 @@ def get_mobile_team_data(user):
                 'error': 'User club or series not found'
             }
         
-        # Handle different team naming conventions based on league
+        # Get team_id using proper database relationships instead of string construction
         league_id = user.get('league_id', '')
         
         # Convert league_id to integer foreign key for database queries
@@ -2466,61 +2492,51 @@ def get_mobile_team_data(user):
                     print(f"[DEBUG] get_mobile_team_data: Converted league_id '{league_id}' to integer: {league_id_int}")
                 else:
                     print(f"[WARNING] get_mobile_team_data: League '{league_id}' not found in leagues table")
+                    return {
+                        'team_data': None,
+                        'court_analysis': {},
+                        'top_players': [],
+                        'error': 'League not found'
+                    }
             except Exception as e:
                 print(f"[DEBUG] get_mobile_team_data: Could not convert league ID: {e}")
+                return {
+                    'team_data': None,
+                    'court_analysis': {},
+                    'top_players': [],
+                    'error': 'Failed to resolve league'
+                }
         elif isinstance(league_id, int):
             league_id_int = league_id
             print(f"[DEBUG] get_mobile_team_data: League_id already integer: {league_id_int}")
         
-        if league_id == 'NSTF':
-            # NSTF format: "Tennaqua S2B" from series "Series 2B"
-            import re
-            # Extract the series suffix (e.g., "2B" from "Series 2B")
-            series_match = re.search(r'Series\s+(.+)', series)
-            if series_match:
-                series_suffix = series_match.group(1)
-                team = f"{club} S{series_suffix}"
-            else:
-                # Fallback: try to extract any suffix after "Series"
-                series_suffix = series.replace('Series', '').strip()
-                team = f"{club} S{series_suffix}" if series_suffix else f"{club} S1"
-        else:
-            # Other leagues - try multiple formats
-            import re
-            
-            # First try: "Tennaqua - 22" format for series like "Chicago 22"
-            m = re.search(r'(\d+)', series)
-            series_num = m.group(1) if m else ''
-            team = f"{club} - {series_num}"
-            
-            # If that doesn't work, try NSTF format as fallback
-            # This handles cases where league_id might be wrong but team exists in NSTF format
-            team_fallback = None
-            if series_num:
-                # Try common NSTF patterns: S1, S2A, S2B, S3, etc.
-                possible_patterns = [
-                    f"S{series_num}",
-                    f"S{series_num}A", 
-                    f"S{series_num}B",
-                    f"S{series_num[0]}{series_num[1:]}A" if len(series_num) > 1 else None,
-                    f"S{series_num[0]}{series_num[1:]}B" if len(series_num) > 1 else None
-                ]
-                # Remove None values
-                possible_patterns = [p for p in possible_patterns if p]
-                
-                for pattern in possible_patterns:
-                    team_fallback = f"{club} {pattern}"
-                    # Check if this team exists in series_stats
-                    test_query = "SELECT COUNT(*) as count FROM series_stats WHERE team = %s"
-                    try:
-                        result = execute_query_one(test_query, [team_fallback])
-                        if result and result.get('count', 0) > 0:
-                            team = team_fallback
-                            break
-                    except:
-                        pass
+        # Get the user's team using proper joins (much more reliable!)
+        team_query = """
+            SELECT t.id, t.team_name
+            FROM teams t
+            JOIN clubs c ON t.club_id = c.id
+            JOIN series s ON t.series_id = s.id
+            JOIN leagues l ON t.league_id = l.id
+            WHERE c.name = %s 
+            AND s.name = %s 
+            AND l.id = %s
+        """
         
-        print(f"[DEBUG] get_mobile_team_data: Final team name: '{team}' for user {user.get('first_name')} {user.get('last_name')}")
+        team_record = execute_query_one(team_query, [club, series, league_id_int])
+        
+        if not team_record:
+            print(f"[DEBUG] get_mobile_team_data: Team not found - club: {club}, series: {series}, league_id: {league_id_int}")
+            return {
+                'team_data': None,
+                'court_analysis': {},
+                'top_players': [],
+                'error': f'Team not found: {club} / {series}'
+            }
+        
+        team_id = team_record['id']
+        team = team_record['team_name']  # Use the actual team name from database
+        
+        print(f"[DEBUG] get_mobile_team_data: Found team_id={team_id}, team_name='{team}' for user {user.get('first_name')} {user.get('last_name')}")
         
         # MORE DEBUG: Show that we reached this point
         print(f"[DEBUG DATABASE QUERY] About to query database for team: {team}")
@@ -2546,42 +2562,23 @@ def get_mobile_team_data(user):
         """
         team_stats = execute_query_one(team_stats_query, [team])
         
-        # Get team matches
-        if league_id_int:
-            matches_query = """
-                SELECT 
-                    TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
-                    home_team as "Home Team",
-                    away_team as "Away Team",
-                    winner as "Winner",
-                    scores as "Scores",
-                    home_player_1_id as "Home Player 1",
-                    home_player_2_id as "Home Player 2",
-                    away_player_1_id as "Away Player 1",
-                    away_player_2_id as "Away Player 2"
-                FROM match_scores
-                WHERE (home_team = %s OR away_team = %s)
-                AND league_id = %s
-                ORDER BY match_date DESC
-            """
-            team_matches = execute_query(matches_query, [team, team, league_id_int])
-        else:
-            matches_query = """
-                SELECT 
-                    TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
-                    home_team as "Home Team",
-                    away_team as "Away Team",
-                    winner as "Winner",
-                    scores as "Scores",
-                    home_player_1_id as "Home Player 1",
-                    home_player_2_id as "Home Player 2",
-                    away_player_1_id as "Away Player 1",
-                    away_player_2_id as "Away Player 2"
-                FROM match_scores
-                WHERE (home_team = %s OR away_team = %s)
-                ORDER BY match_date DESC
-            """
-            team_matches = execute_query(matches_query, [team, team])
+        # Get team matches using team_id (much more efficient!)
+        matches_query = """
+            SELECT 
+                TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
+                home_team as "Home Team",
+                away_team as "Away Team",
+                winner as "Winner",
+                scores as "Scores",
+                home_player_1_id as "Home Player 1",
+                home_player_2_id as "Home Player 2",
+                away_player_1_id as "Away Player 1",
+                away_player_2_id as "Away Player 2"
+            FROM match_scores
+            WHERE (home_team_id = %s OR away_team_id = %s)
+            ORDER BY match_date DESC
+        """
+        team_matches = execute_query(matches_query, [team_id, team_id])
         
         # DEBUG: Raw database query to understand the data structure
         print(f"[DEBUG DATABASE QUERY] Starting database debug...")

@@ -1,0 +1,273 @@
+{% extends "mobile/layout.html" %}
+{% set show_back_arrow = True %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    
+    <!-- Header -->
+    <div class="bg-white border-b border-gray-100">
+        <div class="flex items-center px-4 py-6">
+            <div class="w-12 h-12 bg-purple-600 rounded-full flex items-center justify-center shadow-sm">
+                <i class="fas fa-clipboard-list text-white text-lg"></i>
+            </div>
+            <div class="ml-4">
+                <h1 class="text-xl font-bold text-gray-900">Track Byes & Court Assignments</h1>
+                <p class="text-sm text-gray-500">Review previous player assignments</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content -->
+    <div class="px-4 py-6 space-y-6">
+        
+        <!-- Coming Soon Notice -->
+        <div class="bg-yellow-300 border border-yellow-400 rounded-xl p-4">
+            <div class="flex items-start">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-rocket text-black text-lg mt-0.5"></i>
+                </div>
+                <div class="ml-3">
+                    <div class="font-semibold text-black mb-2">🚀 Coming Soon!</div>
+                    <div class="text-sm text-black">
+                        This feature is in development. The data below shows a preview of functionality with sample data.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+
+        <!-- Legend -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-info-circle text-blue-500 mr-2"></i>
+                    Legend
+                </h3>
+            </div>
+            
+            <div class="p-6">
+                <div class="grid grid-cols-2 gap-4 text-sm">
+                    <div class="flex items-center">
+                        <div class="w-4 h-4 bg-green-500 rounded mr-2"></div>
+                        <span>Court Assignments</span>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="w-4 h-4 bg-red-500 rounded mr-2"></div>
+                        <span>Forced Byes</span>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="w-4 h-4 bg-yellow-500 rounded mr-2"></div>
+                        <span>Not Available</span>
+                    </div>
+                    <div class="flex items-center">
+                        <i class="fas fa-bandage text-purple-500 text-lg mr-2"></i>
+                        <span class="text-purple-700 font-medium">Injury</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Team Roster Tracking Table -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-users text-green-500 mr-2"></i>
+                    Team Roster Tracking
+                </h2>
+                <p class="text-sm text-gray-500 mt-1">Click on numbers to edit (sample data)</p>
+            </div>
+            
+            <div class="p-6">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full table-auto">
+                        <thead>
+                            <tr class="bg-gray-50">
+                                <th class="px-3 py-3 text-left font-semibold text-gray-700 text-sm sticky left-0 bg-gray-50 z-10 border-r border-gray-200">Player</th>
+                                <th class="px-3 py-3 text-center font-semibold text-gray-700 text-sm bg-red-100">Forced Byes</th>
+                                <th class="px-3 py-3 text-center font-semibold text-gray-700 text-sm bg-yellow-100">Not Available</th>
+                                <th class="px-3 py-3 text-center font-semibold text-gray-700 text-sm bg-purple-200">Injury</th>
+                                <th class="px-3 py-3 text-center font-semibold text-gray-700 text-sm bg-green-100">Court 1</th>
+                                <th class="px-3 py-3 text-center font-semibold text-gray-700 text-sm bg-green-100">Court 2</th>
+                                <th class="px-3 py-3 text-center font-semibold text-gray-700 text-sm bg-green-100">Court 3</th>
+                                <th class="px-3 py-3 text-center font-semibold text-gray-700 text-sm bg-green-100">Court 4</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rosterTableBody">
+                            <!-- Sample roster data -->
+                            <tr class="border-t border-gray-50 roster-row" data-event-type="match">
+                                <td class="px-3 py-3 font-medium text-gray-900 text-sm sticky left-0 bg-white z-10 border-r border-gray-200">John Smith</td>
+                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-red-100 px-2 py-1 rounded cursor-pointer hover:bg-red-200" data-player="John Smith" data-type="bye">1</span></td>
+                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-yellow-100 px-2 py-1 rounded cursor-pointer hover:bg-yellow-200" data-player="John Smith" data-type="unavailable">0</span></td>
+                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-purple-100 px-2 py-1 rounded cursor-pointer hover:bg-purple-200" data-player="John Smith" data-type="injury">0</span></td>
+                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-green-100 px-2 py-1 rounded cursor-pointer hover:bg-green-200" data-player="John Smith" data-type="court1">3</span></td>
+                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-green-100 px-2 py-1 rounded cursor-pointer hover:bg-green-200" data-player="John Smith" data-type="court2">2</span></td>
+                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-green-100 px-2 py-1 rounded cursor-pointer hover:bg-green-200" data-player="John Smith" data-type="court3">1</span></td>
+                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-green-100 px-2 py-1 rounded cursor-pointer hover:bg-green-200" data-player="John Smith" data-type="court4">2</span></td>
+                            </tr>
+                            <tr class="border-t border-gray-50 roster-row" data-event-type="practice">
+                                <td class="px-3 py-3 font-medium text-gray-900 text-sm sticky left-0 bg-white z-10 border-r border-gray-200">Sarah Johnson</td>
+                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-red-100 px-2 py-1 rounded cursor-pointer hover:bg-red-200" data-player="Sarah Johnson" data-type="bye">0</span></td>
+                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-yellow-100 px-2 py-1 rounded cursor-pointer hover:bg-yellow-200" data-player="Sarah Johnson" data-type="unavailable">1</span></td>
+                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-purple-100 px-2 py-1 rounded cursor-pointer hover:bg-purple-200" data-player="Sarah Johnson" data-type="injury">0</span></td>
+                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-green-100 px-2 py-1 rounded cursor-pointer hover:bg-green-200" data-player="Sarah Johnson" data-type="court1">2</span></td>
+                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-green-100 px-2 py-1 rounded cursor-pointer hover:bg-green-200" data-player="Sarah Johnson" data-type="court2">3</span></td>
+                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-green-100 px-2 py-1 rounded cursor-pointer hover:bg-green-200" data-player="Sarah Johnson" data-type="court3">2</span></td>
+                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-green-100 px-2 py-1 rounded cursor-pointer hover:bg-green-200" data-player="Sarah Johnson" data-type="court4">1</span></td>
+                            </tr>
+                            <tr class="border-t border-gray-50 roster-row" data-event-type="match">
+                                <td class="px-3 py-3 font-medium text-gray-900 text-sm sticky left-0 bg-white z-10 border-r border-gray-200">Mike Davis</td>
+                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-red-100 px-2 py-1 rounded cursor-pointer hover:bg-red-200" data-player="Mike Davis" data-type="bye">2</span></td>
+                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-yellow-100 px-2 py-1 rounded cursor-pointer hover:bg-yellow-200" data-player="Mike Davis" data-type="unavailable">0</span></td>
+                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-purple-100 px-2 py-1 rounded cursor-pointer hover:bg-purple-200" data-player="Mike Davis" data-type="injury">1</span></td>
+                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-green-100 px-2 py-1 rounded cursor-pointer hover:bg-green-200" data-player="Mike Davis" data-type="court1">1</span></td>
+                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-green-100 px-2 py-1 rounded cursor-pointer hover:bg-green-200" data-player="Mike Davis" data-type="court2">2</span></td>
+                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-green-100 px-2 py-1 rounded cursor-pointer hover:bg-green-200" data-player="Mike Davis" data-type="court3">3</span></td>
+                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-green-100 px-2 py-1 rounded cursor-pointer hover:bg-green-200" data-player="Mike Davis" data-type="court4">2</span></td>
+                            </tr>
+                            <tr class="border-t border-gray-50 roster-row" data-event-type="practice">
+                                <td class="px-3 py-3 font-medium text-gray-900 text-sm sticky left-0 bg-white z-10 border-r border-gray-200">Lisa Wilson</td>
+                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-red-100 px-2 py-1 rounded cursor-pointer hover:bg-red-200" data-player="Lisa Wilson" data-type="bye">0</span></td>
+                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-yellow-100 px-2 py-1 rounded cursor-pointer hover:bg-yellow-200" data-player="Lisa Wilson" data-type="unavailable">2</span></td>
+                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-purple-100 px-2 py-1 rounded cursor-pointer hover:bg-purple-200" data-player="Lisa Wilson" data-type="injury">0</span></td>
+                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-green-100 px-2 py-1 rounded cursor-pointer hover:bg-green-200" data-player="Lisa Wilson" data-type="court1">4</span></td>
+                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-green-100 px-2 py-1 rounded cursor-pointer hover:bg-green-200" data-player="Lisa Wilson" data-type="court2">1</span></td>
+                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-green-100 px-2 py-1 rounded cursor-pointer hover:bg-green-200" data-player="Lisa Wilson" data-type="court3">1</span></td>
+                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-green-100 px-2 py-1 rounded cursor-pointer hover:bg-green-200" data-player="Lisa Wilson" data-type="court4">2</span></td>
+                            </tr>
+                            <tr class="border-t border-gray-50 roster-row" data-event-type="match">
+                                <td class="px-3 py-3 font-medium text-gray-900 text-sm sticky left-0 bg-white z-10 border-r border-gray-200">David Brown</td>
+                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-red-100 px-2 py-1 rounded cursor-pointer hover:bg-red-200" data-player="David Brown" data-type="bye">1</span></td>
+                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-yellow-100 px-2 py-1 rounded cursor-pointer hover:bg-yellow-200" data-player="David Brown" data-type="unavailable">1</span></td>
+                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-purple-100 px-2 py-1 rounded cursor-pointer hover:bg-purple-200" data-player="David Brown" data-type="injury">0</span></td>
+                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-green-100 px-2 py-1 rounded cursor-pointer hover:bg-green-200" data-player="David Brown" data-type="court1">2</span></td>
+                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-green-100 px-2 py-1 rounded cursor-pointer hover:bg-green-200" data-player="David Brown" data-type="court2">2</span></td>
+                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-green-100 px-2 py-1 rounded cursor-pointer hover:bg-green-200" data-player="David Brown" data-type="court3">3</span></td>
+                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-green-100 px-2 py-1 rounded cursor-pointer hover:bg-green-200" data-player="David Brown" data-type="court4">1</span></td>
+                            </tr>
+                            <tr class="border-t border-gray-50 roster-row" data-event-type="practice">
+                                <td class="px-3 py-3 font-medium text-gray-900 text-sm sticky left-0 bg-white z-10 border-r border-gray-200">Emily Chen</td>
+                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-red-100 px-2 py-1 rounded cursor-pointer hover:bg-red-200" data-player="Emily Chen" data-type="bye">0</span></td>
+                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-yellow-100 px-2 py-1 rounded cursor-pointer hover:bg-yellow-200" data-player="Emily Chen" data-type="unavailable">0</span></td>
+                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-purple-100 px-2 py-1 rounded cursor-pointer hover:bg-purple-200" data-player="Emily Chen" data-type="injury">0</span></td>
+                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-green-100 px-2 py-1 rounded cursor-pointer hover:bg-green-200" data-player="Emily Chen" data-type="court1">1</span></td>
+                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-green-100 px-2 py-1 rounded cursor-pointer hover:bg-green-200" data-player="Emily Chen" data-type="court2">3</span></td>
+                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-green-100 px-2 py-1 rounded cursor-pointer hover:bg-green-200" data-player="Emily Chen" data-type="court3">2</span></td>
+                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-green-100 px-2 py-1 rounded cursor-pointer hover:bg-green-200" data-player="Emily Chen" data-type="court4">2</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Directions -->
+                <div class="mt-4 px-6 py-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div class="flex items-center">
+                        <i class="fas fa-hand-pointer text-blue-600 mr-2"></i>
+                        <span class="text-sm text-blue-700 font-medium">Click on a cell to edit a player's status</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+    </div>
+</div>
+
+<style>
+/* Background utilities */
+.bg-gray-50 { background-color: #f9fafb; }
+.bg-white { background-color: #ffffff; }
+.bg-green-100 { background-color: #dcfce7; }
+.bg-yellow-100 { background-color: #fef3c7; }
+.bg-red-100 { background-color: #fee2e2; }
+.bg-blue-50 { background-color: #eff6ff; }
+.bg-blue-100 { background-color: #dbeafe; }
+.bg-gray-100 { background-color: #f3f4f6; }
+.bg-purple-600 { background-color: #9333ea; }
+
+/* Border radius utilities */
+.rounded-xl { border-radius: 0.75rem; }
+.rounded-lg { border-radius: 0.5rem; }
+.rounded-full { border-radius: 9999px; }
+
+/* Shadow utilities */
+.shadow-sm {
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+
+    // Editable cell functionality
+    const editableCells = document.querySelectorAll('.editable-cell');
+    
+    editableCells.forEach(cell => {
+        cell.addEventListener('click', function() {
+            const currentValue = this.textContent;
+            const player = this.dataset.player;
+            const type = this.dataset.type;
+            
+            // Create input element
+            const input = document.createElement('input');
+            input.type = 'number';
+            input.min = '0';
+            input.max = '20';
+            input.value = currentValue;
+            input.className = 'w-12 text-center border border-gray-300 rounded px-1 py-0.5 text-sm';
+            
+            // Replace cell content with input
+            this.innerHTML = '';
+            this.appendChild(input);
+            input.focus();
+            input.select();
+            
+            // Handle save on blur or enter
+            function saveValue() {
+                const newValue = parseInt(input.value) || 0;
+                cell.textContent = newValue;
+                
+                // Show toast notification
+                showToast(`Updated ${player}: ${type.replace(/(\d+)/, ' $1').replace(/([A-Z])/g, ' $1').trim()} = ${newValue}`, 'success');
+            }
+            
+            input.addEventListener('blur', saveValue);
+            input.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    saveValue();
+                } else if (e.key === 'Escape') {
+                    cell.textContent = currentValue;
+                }
+            });
+        });
+    });
+    
+    // Toast notification function
+    function showToast(message, type = 'success') {
+        const toast = document.createElement('div');
+        toast.className = `fixed top-20 right-4 z-50 p-4 rounded-lg shadow-lg text-white text-sm max-w-sm transform translate-x-full transition-transform duration-300 ${type === 'success' ? 'bg-green-600' : 'bg-red-600'}`;
+        toast.innerHTML = `
+            <div class="flex items-center">
+                <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'} mr-2"></i>
+                <span>${message}</span>
+            </div>
+        `;
+        
+        document.body.appendChild(toast);
+        
+        // Animate in
+        setTimeout(() => {
+            toast.style.transform = 'translateX(0)';
+        }, 100);
+        
+        // Remove after 3 seconds
+        setTimeout(() => {
+            toast.style.transform = 'translateX(100%)';
+            setTimeout(() => {
+                document.body.removeChild(toast);
+            }, 300);
+        }, 3000);
+    }
+});
+</script>
+{% endblock %} 

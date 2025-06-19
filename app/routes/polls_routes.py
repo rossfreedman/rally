@@ -14,18 +14,25 @@ import uuid
 polls_bp = Blueprint('polls', __name__)
 
 def get_user_team_id(user):
-    """Generate a team identifier based on user's club and series"""
-    club = user.get('club', '').strip()
-    series = user.get('series', '').strip()
-    
-    if not club or not series:
+    """Get user's team ID from their player association (integer foreign key)"""
+    try:
+        user_id = user.get('id')
+        if not user_id:
+            return None
+        
+        # Get user's player and their team_id
+        user_team_query = '''
+            SELECT p.team_id
+            FROM players p
+            JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
+            WHERE upa.user_id = %s AND p.is_active = TRUE AND p.team_id IS NOT NULL
+            LIMIT 1
+        '''
+        result = execute_query_one(user_team_query, [user_id])
+        return result['team_id'] if result else None
+    except Exception as e:
+        print(f"Error getting user team ID: {e}")
         return None
-    
-    # Create a consistent team identifier
-    # For APTA leagues: "Tennaqua - Chicago 22" -> "Tennaqua-Chicago_22"
-    # For NSTF leagues: "Tennaqua - Series 2B" -> "Tennaqua-Series_2B"
-    team_id = f"{club}-{series}".replace(' ', '_')
-    return team_id
 
 @polls_bp.route('/api/polls', methods=['POST'])
 @login_required
@@ -52,11 +59,11 @@ def create_poll():
         user_id = session['user']['id']
         user = session['user']
         
-        # Generate team ID based on user's club and series
+        # Get user's team ID from player association
         team_id = get_user_team_id(user)
         if not team_id:
-            print(f"🔥 Could not determine team ID for user: club={user.get('club')}, series={user.get('series')}")
-            return jsonify({'error': 'Could not determine your team. Please update your profile.'}), 400
+            print(f"🔥 Could not determine team ID for user: {user.get('email')} (user_id: {user_id})")
+            return jsonify({'error': 'Could not determine your team. Please contact support.'}), 400
         
         print(f"🔥 User ID: {user_id}, Team ID: {team_id}")
         
@@ -129,15 +136,14 @@ def get_my_team_polls():
         user = session['user']
         user_id = user['id']
         
-        # Get user's team ID
+        # Get user's team ID  
         team_id = get_user_team_id(user)
         if not team_id:
-            print(f"[DEBUG] Could not determine team ID for user: club={user.get('club')}, series={user.get('series')}")
-            return jsonify({'error': 'Could not determine your team. Please update your profile.'}), 400
+            print(f"[DEBUG] Could not determine team ID for user: {user.get('email')} (user_id: {user_id})")
+            return jsonify({'error': 'Could not determine your team. Please contact support.'}), 400
         
         print(f"[DEBUG] Getting polls for user: {user.get('email')}")
-        print(f"[DEBUG] User club: {user.get('club')}, series: {user.get('series')}")
-        print(f"[DEBUG] Team ID: {team_id}")
+        print(f"[DEBUG] Team ID: {team_id} (integer foreign key)")
         
         # Get polls for this specific team only
         polls_query = '''
@@ -178,12 +184,19 @@ def get_my_team_polls():
                 print(f"[DEBUG] Error getting choices for poll {poll['id']}: {e}")
                 poll['choices'] = []
         
-        print(f"[DEBUG] Returning {len(polls)} polls for team {team_id}")
+        # Get team name for response
+        team_name_query = '''
+            SELECT team_name, team_alias FROM teams WHERE id = %s
+        '''
+        team_info = execute_query_one(team_name_query, [team_id])
+        team_display_name = team_info.get('team_alias') or team_info.get('team_name') if team_info else f"Team {team_id}"
+        
+        print(f"[DEBUG] Returning {len(polls)} polls for team {team_id} ({team_display_name})")
         return jsonify({
             'success': True,
             'polls': polls,
             'team_id': team_id,
-            'team_name': f"{user.get('club')} - {user.get('series')}"
+            'team_name': team_display_name
         })
         
     except Exception as e:
@@ -293,10 +306,10 @@ def get_poll_details(poll_id):
             
             # Allow access if:
             # 1. Poll has no team_id (legacy polls)
-            # 2. User's team matches poll's team
+            # 2. User's team matches poll's team (integer comparison)
             # 3. Poll team_id is None/NULL
-            if poll_team_id and user_team_id and poll_team_id != user_team_id:
-                print(f"[SECURITY] User team '{user_team_id}' attempting to access poll from team '{poll_team_id}'")
+            if poll_team_id and user_team_id and int(poll_team_id) != int(user_team_id):
+                print(f"[SECURITY] User team {user_team_id} attempting to access poll from team {poll_team_id}")
                 return jsonify({'error': 'Poll not found'}), 404
         
         # Get choices with vote counts
@@ -418,9 +431,9 @@ def respond_to_poll(poll_id):
         
         poll_team_id = poll.get('team_id')
         
-        # Security check: Verify user can vote on this poll (same team)
-        if poll_team_id and user_team_id and poll_team_id != user_team_id:
-            print(f"🗳️  SECURITY: User team '{user_team_id}' attempting to vote on poll from team '{poll_team_id}'")
+        # Security check: Verify user can vote on this poll (same team - integer comparison)
+        if poll_team_id and user_team_id and int(poll_team_id) != int(user_team_id):
+            print(f"🗳️  SECURITY: User team {user_team_id} attempting to vote on poll from team {poll_team_id}")
             return jsonify({'error': 'Poll not found'}), 404
         
         # Get user's player ID

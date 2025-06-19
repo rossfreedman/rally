@@ -92,6 +92,7 @@ class League(Base):
     players = relationship("Player", back_populates="league")
     clubs = relationship("Club", secondary="club_leagues", back_populates="leagues")
     series = relationship("Series", secondary="series_leagues", back_populates="leagues")
+    teams = relationship("Team", back_populates="league")
     
     def __repr__(self):
         return f"<League(id={self.id}, league_id='{self.league_id}', name='{self.league_name}')>"
@@ -104,11 +105,13 @@ class Club(Base):
     
     id = Column(Integer, primary_key=True)
     name = Column(String(255), nullable=False, unique=True)
+    club_address = Column(String(500), nullable=True)
     updated_at = Column(DateTime(timezone=True), default=func.now(), onupdate=func.now())
     
     # Relationships
     players = relationship("Player", back_populates="club")
     leagues = relationship("League", secondary="club_leagues", back_populates="clubs")
+    teams = relationship("Team", back_populates="club")
     
     def __repr__(self):
         return f"<Club(id={self.id}, name='{self.name}')>"
@@ -126,9 +129,52 @@ class Series(Base):
     # Relationships
     players = relationship("Player", back_populates="series")
     leagues = relationship("League", secondary="series_leagues", back_populates="series")
+    teams = relationship("Team", back_populates="series")
     
     def __repr__(self):
         return f"<Series(id={self.id}, name='{self.name}')>"
+
+class Team(Base):
+    """
+    Team entities representing club participation in a series within a league
+    """
+    __tablename__ = 'teams'
+    
+    id = Column(Integer, primary_key=True)
+    club_id = Column(Integer, ForeignKey('clubs.id'), nullable=False)
+    series_id = Column(Integer, ForeignKey('series.id'), nullable=False)
+    league_id = Column(Integer, ForeignKey('leagues.id'), nullable=False)
+    team_name = Column(String(255), nullable=False)
+    team_alias = Column(String(255))  # Optional display alias
+    external_team_id = Column(String(255))  # For ETL mapping
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), default=func.now())
+    updated_at = Column(DateTime(timezone=True), default=func.now(), onupdate=func.now())
+    
+    # Relationships
+    club = relationship("Club", back_populates="teams")
+    series = relationship("Series", back_populates="teams")
+    league = relationship("League", back_populates="teams")
+    players = relationship("Player", back_populates="team")
+    polls = relationship("Poll", back_populates="team")
+    series_stats = relationship("SeriesStats", back_populates="team_obj")
+    home_matches = relationship("MatchScore", foreign_keys="MatchScore.home_team_id", back_populates="home_team_obj")
+    away_matches = relationship("MatchScore", foreign_keys="MatchScore.away_team_id", back_populates="away_team_obj")
+    home_scheduled_matches = relationship("Schedule", foreign_keys="Schedule.home_team_id", back_populates="home_team_obj")
+    away_scheduled_matches = relationship("Schedule", foreign_keys="Schedule.away_team_id", back_populates="away_team_obj")
+    
+    # Constraints
+    __table_args__ = (
+        UniqueConstraint('club_id', 'series_id', 'league_id', name='unique_team_club_series_league'),
+    )
+    
+    @property
+    def display_name(self):
+        """Return team_alias if available, otherwise team_name"""
+        return self.team_alias or self.team_name
+    
+    def __repr__(self):
+        return f"<Team(id={self.id}, name='{self.team_name}', club='{self.club.name if self.club else None}')>"
 
 class Player(Base):
     """
@@ -147,6 +193,7 @@ class Player(Base):
     league_id = Column(Integer, ForeignKey('leagues.id'), nullable=False)
     club_id = Column(Integer, ForeignKey('clubs.id'), nullable=False) 
     series_id = Column(Integer, ForeignKey('series.id'), nullable=False)
+    team_id = Column(Integer, ForeignKey('teams.id'))  # Nullable during migration
     
     # Player statistics integrated directly
     pti = Column(Numeric(10, 2))  # Performance Tracking Index
@@ -170,6 +217,7 @@ class Player(Base):
     league = relationship("League", back_populates="players")
     club = relationship("Club", back_populates="players")
     series = relationship("Series", back_populates="players")
+    team = relationship("Team", back_populates="players")
     
     # Helper method to get associated users
     def get_associated_users(self, session):
@@ -313,12 +361,13 @@ class UserInstruction(Base):
     user_email = Column(String(255), nullable=False)
     instruction = Column(Text, nullable=False)
     series_id = Column(Integer, ForeignKey('series.id'))
-    team_id = Column(Integer)
+    team_id = Column(Integer, ForeignKey('teams.id'))  # Now properly FK constrained
     created_at = Column(DateTime(timezone=True), default=func.now())
     is_active = Column(Boolean, default=True)
     
     # Relationships
     series = relationship("Series")
+    team = relationship("Team")
 
 class MatchScore(Base):
     """Match scores and results"""
@@ -327,8 +376,10 @@ class MatchScore(Base):
     id = Column(Integer, primary_key=True)
     league_id = Column(Integer, ForeignKey('leagues.id'))
     match_date = Column(Date)
-    home_team = Column(Text)
-    away_team = Column(Text)
+    home_team = Column(Text)  # Keep for backward compatibility
+    away_team = Column(Text)  # Keep for backward compatibility
+    home_team_id = Column(Integer, ForeignKey('teams.id'))  # New team foreign keys
+    away_team_id = Column(Integer, ForeignKey('teams.id'))  # New team foreign keys
     home_player_1_id = Column(Text)
     home_player_2_id = Column(Text)
     away_player_1_id = Column(Text)
@@ -339,6 +390,8 @@ class MatchScore(Base):
     
     # Relationships
     league = relationship("League")
+    home_team_obj = relationship("Team", foreign_keys=[home_team_id], back_populates="home_matches")
+    away_team_obj = relationship("Team", foreign_keys=[away_team_id], back_populates="away_matches")
 
 class PlayerHistory(Base):
     """Historical player performance data"""
@@ -364,13 +417,17 @@ class Schedule(Base):
     league_id = Column(Integer, ForeignKey('leagues.id'))
     match_date = Column(Date)
     match_time = Column(Time)
-    home_team = Column(Text)
-    away_team = Column(Text)
+    home_team = Column(Text)  # Keep for backward compatibility
+    away_team = Column(Text)  # Keep for backward compatibility
+    home_team_id = Column(Integer, ForeignKey('teams.id'))  # New team foreign keys
+    away_team_id = Column(Integer, ForeignKey('teams.id'))  # New team foreign keys
     location = Column(Text)
     created_at = Column(DateTime(timezone=True), default=func.now())
     
     # Relationships
     league = relationship("League")
+    home_team_obj = relationship("Team", foreign_keys=[home_team_id], back_populates="home_scheduled_matches")
+    away_team_obj = relationship("Team", foreign_keys=[away_team_id], back_populates="away_scheduled_matches")
 
 class SeriesStats(Base):
     """Team statistics by series"""
@@ -378,8 +435,9 @@ class SeriesStats(Base):
     
     id = Column(Integer, primary_key=True)
     league_id = Column(Integer, ForeignKey('leagues.id'))
-    series = Column(String(255))
-    team = Column(String(255))
+    series = Column(String(255))  # Keep for backward compatibility
+    team = Column(String(255))  # Keep for backward compatibility
+    team_id = Column(Integer, ForeignKey('teams.id'))  # New team foreign key
     points = Column(Integer)
     matches_won = Column(Integer)
     matches_lost = Column(Integer)
@@ -396,18 +454,20 @@ class SeriesStats(Base):
     
     # Relationships
     league = relationship("League")
+    team_obj = relationship("Team", back_populates="series_stats")
 
 class Poll(Base):
     """Team polls for voting/decisions"""
     __tablename__ = 'polls'
     
     id = Column(Integer, primary_key=True)
-    team_id = Column(String(255))  # Team identifier string in format "Club-Series" (e.g., "Tennaqua-Chicago_9")
+    team_id = Column(Integer, ForeignKey('teams.id'))  # Foreign key reference to teams table
     created_by = Column(Integer, ForeignKey('users.id'))
     question = Column(Text, nullable=False)
     created_at = Column(DateTime(timezone=True), default=func.now())
     
     # Relationships
+    team = relationship("Team", back_populates="polls")
     creator = relationship("User")
     choices = relationship("PollChoice", back_populates="poll", cascade="all, delete-orphan")
     responses = relationship("PollResponse", back_populates="poll", cascade="all, delete-orphan")

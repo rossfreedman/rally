@@ -898,7 +898,7 @@ def get_team_schedule_data_data():
                             if internal_player_id:
                                 # Primary search: Use the internal player_id we already have
                                 avail_query = """
-                                    SELECT availability_status
+                                    SELECT availability_status, notes
                                     FROM player_availability 
                                     WHERE player_id = %(player_id)s 
                                     AND series_id = %(series_id)s 
@@ -915,7 +915,7 @@ def get_team_schedule_data_data():
                                 # Fallback search: Use player_name
                                 print(f"No availability found with player ID {internal_player_id}, falling back to name search for {player_name}")
                                 avail_query = """
-                                    SELECT availability_status
+                                    SELECT availability_status, notes
                                     FROM player_availability 
                                     WHERE player_name = %(player)s 
                                     AND series_id = %(series_id)s 
@@ -929,9 +929,11 @@ def get_team_schedule_data_data():
                                 avail_record = execute_query(avail_query, avail_params)
                             
                             status = avail_record[0]['availability_status'] if avail_record and avail_record[0]['availability_status'] is not None else 0
+                            notes = avail_record[0]['notes'] if avail_record and avail_record[0]['notes'] is not None else ''
                         except Exception as e:
                             print(f"Error querying availability for {player_name}: {e}")
                             status = 0
+                            notes = ''
                     
                     # Get event details for this date
                     event_info = event_details.get(event_date, {})
@@ -939,6 +941,7 @@ def get_team_schedule_data_data():
                     availability.append({
                         'date': event_date,
                         'availability_status': status,
+                        'notes': notes,
                         'event_type': event_info.get('type', 'Unknown'),
                         'opponent': event_info.get('opponent', ''),
                         'description': event_info.get('description', ''),

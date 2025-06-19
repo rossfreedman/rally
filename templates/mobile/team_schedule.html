@@ -336,7 +336,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                         ${formatEventInfo(date)}
                                     </td>
                                     <td class="px-4 py-3 w-1/2">
-                                        ${formatAvailabilityStatus(date.availability_status)}
+                                        ${formatAvailabilityStatus(date)}
                                     </td>
                                 </tr>
                             `).join('')}
@@ -405,17 +405,28 @@ document.addEventListener('DOMContentLoaded', function() {
         return '';
     }
 
-    // Helper to format availability status
-    function formatAvailabilityStatus(status) {
+    // Helper to format availability status with notes
+    function formatAvailabilityStatus(date) {
+        const status = date.availability_status;
+        const notes = date.notes || '';
+        
+        let statusHtml = '';
         if (status === 1) {
-            return '<span class="text-green-600 font-medium text-sm whitespace-nowrap flex items-center"><i class="fas fa-check-circle mr-1 text-xs"></i>Available</span>';
+            statusHtml = '<span class="text-green-600 font-medium text-sm whitespace-nowrap flex items-center"><i class="fas fa-check-circle mr-1 text-xs"></i>Available</span>';
         } else if (status === 2) {
-            return '<span class="text-red-600 font-medium text-sm whitespace-nowrap flex items-center"><i class="fas fa-times-circle mr-1 text-xs"></i>Not Available</span>';
+            statusHtml = '<span class="text-red-600 font-medium text-sm whitespace-nowrap flex items-center"><i class="fas fa-times-circle mr-1 text-xs"></i>Not Available</span>';
         } else if (status === 3) {
-            return '<span class="text-yellow-500 font-medium text-sm whitespace-nowrap flex items-center"><i class="fas fa-question-circle mr-1 text-xs"></i>Not Sure</span>';
+            statusHtml = '<span class="text-yellow-500 font-medium text-sm whitespace-nowrap flex items-center"><i class="fas fa-question-circle mr-1 text-xs"></i>Not Sure</span>';
         } else {
-            return '<span class="text-gray-400 text-sm whitespace-nowrap flex items-center"><i class="fas fa-minus-circle mr-1 text-xs"></i>Not Set</span>';
+            statusHtml = '<span class="text-gray-400 text-sm whitespace-nowrap flex items-center"><i class="fas fa-minus-circle mr-1 text-xs"></i>Not Set</span>';
         }
+        
+        // Add notes if they exist
+        if (notes && notes.trim()) {
+            statusHtml = `<div>${statusHtml}<div class="text-xs text-gray-600 mt-1 italic">${notes}</div></div>`;
+        }
+        
+        return statusHtml;
     }
 
     function renderSingleTable(selectedDate, selectedPlayer) {
@@ -455,7 +466,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
             if (foundEntry) {
-                const statusHtml = formatAvailabilityStatus(foundEntry.availability_status);
+                const statusHtml = formatAvailabilityStatus(foundEntry);
                 const row = `<tr class="border-t border-gray-50">
                     <td class="px-4 py-3 w-1/2 font-medium text-gray-900">${playerObj.player}</td>
                     <td class="px-4 py-3 w-1/2">${statusHtml}</td>
