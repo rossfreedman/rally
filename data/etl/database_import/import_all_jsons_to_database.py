@@ -78,10 +78,11 @@ class ComprehensiveETL:
         
         tables_to_clear = [
             'schedule',           # No dependencies 
-            'series_stats',       # References leagues
-            'match_scores',       # References players, leagues
+            'series_stats',       # References leagues, teams
+            'match_scores',       # References players, leagues, teams
             'player_history',     # References players, leagues  
-            'players',           # References leagues, clubs, series
+            'players',           # References leagues, clubs, series, teams
+            'teams',             # References leagues, clubs, series
             'series_leagues',    # References series, leagues
             'club_leagues',      # References clubs, leagues
             'series',           # Referenced by others
@@ -226,6 +227,125 @@ class ComprehensiveETL:
         self.log(f"✅ Found {len(relationships)} series-league relationships")
         return relationships
         
+    def extract_teams(self, series_stats_data: List[Dict], schedules_data: List[Dict]) -> List[Dict]:
+        """Extract unique teams from series stats and schedules data"""
+        self.log("🔍 Extracting teams from JSON data...")
+        
+        teams = set()
+        
+        # Extract from series_stats.json
+        for record in series_stats_data:
+            series_name = record.get('series', '').strip()
+            team_name = record.get('team', '').strip()
+            league_id = normalize_league_id(record.get('league_id', '').strip())
+            
+            if team_name and series_name and league_id:
+                # Parse team name to extract club
+                club_name = self.parse_team_name_to_club(team_name, series_name)
+                if club_name:
+                    teams.add((club_name, series_name, league_id, team_name))
+        
+        # Extract from schedules.json (both home and away teams)
+        for record in schedules_data:
+            league_id = normalize_league_id(record.get('League', '').strip())
+            home_team = record.get('home_team', '').strip()
+            away_team = record.get('away_team', '').strip()
+            
+            for team_name in [home_team, away_team]:
+                if team_name and league_id and team_name != 'BYE':
+                    # Parse team name to extract club and series
+                    club_name, series_name = self.parse_schedule_team_name(team_name)
+                    if club_name and series_name:
+                        teams.add((club_name, series_name, league_id, team_name))
+        
+        # Convert to list of dictionaries
+        team_records = []
+        for club_name, series_name, league_id, team_name in sorted(teams):
+            team_records.append({
+                'club_name': club_name,
+                'series_name': series_name,
+                'league_id': league_id,
+                'team_name': team_name
+            })
+        
+        self.log(f"✅ Found {len(team_records)} unique teams")
+        return team_records
+    
+    def parse_team_name_to_club(self, team_name: str, series_name: str) -> str:
+        """Parse team name from series_stats to extract club name"""
+        # Examples: 
+        # APTA_CHICAGO: "Tennaqua - 22" with series "Chicago 22" -> "Tennaqua"
+        # NSTF: "Tennaqua S2B" with series "Series 2B" -> "Tennaqua"
+        
+        # Handle APTA_CHICAGO format: "Club - Suffix"
+        if ' - ' in team_name:
+            club_part = team_name.split(' - ')[0].strip()
+            return club_part
+        
+        # Handle NSTF format: "Club SSuffix" (like "Tennaqua S2B")
+        # Must be " S" followed by number or number+letter (not words like "Shore")
+        import re
+        if re.search(r' S\d', team_name):  # " S" followed by a digit
+            parts = team_name.split(' S')
+            if len(parts) >= 2:
+                club_part = parts[0].strip()
+                return club_part
+        
+        # Fallback: return the whole team name as club
+        return team_name
+    
+    def parse_schedule_team_name(self, team_name: str) -> tuple:
+        """Parse team name from schedules to extract club and series"""
+        # Examples: 
+        # APTA_CHICAGO: "Tennaqua - 22" -> ("Tennaqua", "Chicago 22")
+        # NSTF: "Tennaqua S2B" -> ("Tennaqua", "Series 2B")
+        
+        # Handle APTA_CHICAGO format: "Club - Suffix"
+        if ' - ' in team_name:
+            parts = team_name.split(' - ')
+            if len(parts) >= 2:
+                club_name = parts[0].strip()
+                series_suffix = parts[1].strip()
+                
+                # Map series suffix to full series name
+                series_name = self.map_series_suffix_to_full_name(series_suffix)
+                return club_name, series_name
+        
+        # Handle NSTF format: "Club SSuffix" (like "Tennaqua S2B")
+        # Must be " S" followed by number or number+letter (not words like "Shore")
+        import re
+        if re.search(r' S\d', team_name):  # " S" followed by a digit
+            parts = team_name.split(' S')
+            if len(parts) >= 2:
+                club_name = parts[0].strip()
+                series_suffix = parts[1].strip()
+                
+                # Map series suffix to full series name (for NSTF, this becomes "Series 2B")
+                series_name = self.map_series_suffix_to_full_name(f"S{series_suffix}")
+                return club_name, series_name
+        
+        # Fallback for edge cases: treat entire name as club with default series
+        return team_name, "Series A"
+    
+    def map_series_suffix_to_full_name(self, suffix: str) -> str:
+        """Map series suffix to full series name"""
+        # Examples: "22" -> "Chicago 22", "21 SW" -> "Chicago 21 SW", "S2B" -> "Series 2B"
+        try:
+            # If it's a pure number, assume it's a Chicago series
+            series_num = int(suffix)
+            return f"Chicago {series_num}"
+        except ValueError:
+            # If it's not a pure number, handle special cases
+            if suffix.upper().startswith('S'):
+                # NSTF format like "S2B" -> "Series 2B"
+                return f"Series {suffix[1:]}"
+            elif any(char.isdigit() for char in suffix):
+                # If it contains numbers but isn't pure number (like "21 SW"), assume Chicago
+                return f"Chicago {suffix}"
+            
+            # Default: assume it's already a series name
+            return suffix
+        
     def import_leagues(self, conn, leagues_data: List[Dict]):
         """Import leagues into database"""
         self.log("📥 Importing leagues...")
@@ -360,6 +480,76 @@ class ComprehensiveETL:
         self.imported_counts['series_leagues'] = imported
         self.log(f"✅ Imported {imported} series-league relationships")
         
+    def import_teams(self, conn, teams_data: List[Dict]):
+        """Import teams into database"""
+        self.log("📥 Importing teams...")
+        
+        cursor = conn.cursor()
+        imported = 0
+        errors = 0
+        
+        for team in teams_data:
+            try:
+                club_name = team['club_name']
+                series_name = team['series_name']
+                league_id = team['league_id']
+                team_name = team['team_name']
+                
+                # Create team alias for display (optional)
+                team_alias = self.generate_team_alias(team_name, series_name)
+                
+                cursor.execute("""
+                    INSERT INTO teams (club_id, series_id, league_id, team_name, team_alias, created_at)
+                    SELECT c.id, s.id, l.id, %s, %s, CURRENT_TIMESTAMP
+                    FROM clubs c, series s, leagues l
+                    WHERE c.name = %s AND s.name = %s AND l.league_id = %s
+                    ON CONFLICT (club_id, series_id, league_id) DO UPDATE SET
+                        team_name = EXCLUDED.team_name,
+                        team_alias = EXCLUDED.team_alias,
+                        updated_at = CURRENT_TIMESTAMP
+                """, (team_name, team_alias, club_name, series_name, league_id))
+                
+                if cursor.rowcount > 0:
+                    imported += 1
+                    
+            except Exception as e:
+                errors += 1
+                if errors <= 10:
+                    self.log(f"❌ Error importing team {team_name}: {str(e)}", "ERROR")
+                    
+                if errors > 50:
+                    self.log(f"❌ Too many team import errors ({errors}), stopping", "ERROR")
+                    raise Exception(f"Too many team import errors ({errors})")
+                
+        conn.commit()
+        self.imported_counts['teams'] = imported
+        self.log(f"✅ Imported {imported} teams ({errors} errors)")
+        
+    def generate_team_alias(self, team_name: str, series_name: str) -> str:
+        """Generate a user-friendly team alias"""
+        # Examples:
+        # APTA_CHICAGO: "Tennaqua - 22" -> "Series 22"
+        # NSTF: "Tennaqua S2B" -> "Series 2B"
+        
+        # Handle APTA_CHICAGO format: "Club - Suffix"
+        if ' - ' in team_name:
+            parts = team_name.split(' - ')
+            if len(parts) >= 2:
+                suffix = parts[1].strip()
+                return f"Series {suffix}"
+        
+        # Handle NSTF format: "Club SSuffix"
+        # Must be " S" followed by number or number+letter (not words like "Shore")
+        import re
+        if re.search(r' S\d', team_name):  # " S" followed by a digit
+            parts = team_name.split(' S')
+            if len(parts) >= 2:
+                suffix = parts[1].strip()
+                return f"Series {suffix}"
+        
+        # Fallback: use series name
+        return series_name
+        
     def import_players(self, conn, players_data: List[Dict]):
         """Import players data with enhanced conflict detection"""
         self.log("📥 Importing players with enhanced conflict detection...")
@@ -473,20 +663,22 @@ class ComprehensiveETL:
                 cursor.execute("""
                     INSERT INTO players (
                         tenniscores_player_id, first_name, last_name, 
-                        league_id, club_id, series_id, pti, wins, losses, 
+                        league_id, club_id, series_id, team_id, pti, wins, losses, 
                         win_percentage, captain_status, is_active, created_at
                     )
                     SELECT 
                         %s, %s, %s,
-                        l.id, c.id, s.id, %s, %s, %s,
+                        l.id, c.id, s.id, t.id, %s, %s, %s,
                         %s, %s, true, CURRENT_TIMESTAMP
                     FROM leagues l
                     LEFT JOIN clubs c ON c.name = %s
                     LEFT JOIN series s ON s.name = %s
+                    LEFT JOIN teams t ON t.club_id = c.id AND t.series_id = s.id AND t.league_id = l.id
                     WHERE l.league_id = %s
                     ON CONFLICT ON CONSTRAINT unique_player_in_league_club_series DO UPDATE SET
                         first_name = EXCLUDED.first_name,
                         last_name = EXCLUDED.last_name,
+                        team_id = EXCLUDED.team_id,
                         pti = EXCLUDED.pti,
                         wins = EXCLUDED.wins,
                         losses = EXCLUDED.losses,
@@ -716,15 +908,38 @@ class ComprehensiveETL:
                 league_row = cursor.fetchone()
                 league_db_id = league_row[0] if league_row else None
                 
+                # Get team IDs from teams table
+                home_team_id = None
+                away_team_id = None
+                
+                if home_team and home_team != 'BYE':
+                    cursor.execute("""
+                        SELECT t.id FROM teams t
+                        JOIN leagues l ON t.league_id = l.id
+                        WHERE l.league_id = %s AND t.team_name = %s
+                    """, (league_id, home_team))
+                    home_team_row = cursor.fetchone()
+                    home_team_id = home_team_row[0] if home_team_row else None
+                
+                if away_team and away_team != 'BYE':
+                    cursor.execute("""
+                        SELECT t.id FROM teams t
+                        JOIN leagues l ON t.league_id = l.id
+                        WHERE l.league_id = %s AND t.team_name = %s
+                    """, (league_id, away_team))
+                    away_team_row = cursor.fetchone()
+                    away_team_id = away_team_row[0] if away_team_row else None
+                
                 cursor.execute("""
                     INSERT INTO match_scores (
-                        match_date, home_team, away_team, home_player_1_id, home_player_2_id,
-                        away_player_1_id, away_player_2_id, scores, winner, 
-                        league_id, created_at
+                        match_date, home_team, away_team, home_team_id, away_team_id,
+                        home_player_1_id, home_player_2_id, away_player_1_id, away_player_2_id, 
+                        scores, winner, league_id, created_at
                     )
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
-                """, (match_date, home_team, away_team, home_player_1_id, home_player_2_id,
-                      away_player_1_id, away_player_2_id, str(scores), winner, league_db_id))
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+                """, (match_date, home_team, away_team, home_team_id, away_team_id,
+                      home_player_1_id, home_player_2_id, away_player_1_id, away_player_2_id, 
+                      str(scores), winner, league_db_id))
                 
                 imported += 1
                     
@@ -805,16 +1020,27 @@ class ComprehensiveETL:
                     
                 league_db_id = league_row[0]
                 
+                # Get team_id from teams table
+                cursor.execute("""
+                    SELECT t.id FROM teams t
+                    JOIN leagues l ON t.league_id = l.id
+                    JOIN series s ON t.series_id = s.id
+                    WHERE l.league_id = %s AND s.name = %s AND t.team_name = %s
+                """, (league_id, series, team))
+                
+                team_row = cursor.fetchone()
+                team_db_id = team_row[0] if team_row else None
+                
                 cursor.execute("""
                     INSERT INTO series_stats (
-                        series, team, points, matches_won, matches_lost, matches_tied,
+                        series, team, team_id, points, matches_won, matches_lost, matches_tied,
                         lines_won, lines_lost, lines_for, lines_ret,
                         sets_won, sets_lost, games_won, games_lost,
                         league_id, created_at
                     )
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
                 """, (
-                    series, team, points, matches_won, matches_lost, matches_tied,
+                    series, team, team_db_id, points, matches_won, matches_lost, matches_tied,
                     lines_won, lines_lost, lines_for, lines_ret,
                     sets_won, sets_lost, games_won, games_lost, league_db_id
                 ))
@@ -886,13 +1112,35 @@ class ComprehensiveETL:
                 league_row = cursor.fetchone()
                 league_db_id = league_row[0] if league_row else None
                 
+                # Get team IDs from teams table
+                home_team_id = None
+                away_team_id = None
+                
+                if home_team and home_team != 'BYE':
+                    cursor.execute("""
+                        SELECT t.id FROM teams t
+                        JOIN leagues l ON t.league_id = l.id
+                        WHERE l.league_id = %s AND t.team_name = %s
+                    """, (league_id, home_team))
+                    home_team_row = cursor.fetchone()
+                    home_team_id = home_team_row[0] if home_team_row else None
+                
+                if away_team and away_team != 'BYE':
+                    cursor.execute("""
+                        SELECT t.id FROM teams t
+                        JOIN leagues l ON t.league_id = l.id
+                        WHERE l.league_id = %s AND t.team_name = %s
+                    """, (league_id, away_team))
+                    away_team_row = cursor.fetchone()
+                    away_team_id = away_team_row[0] if away_team_row else None
+                
                 cursor.execute("""
                     INSERT INTO schedule (
-                        match_date, match_time, home_team, away_team, 
+                        match_date, match_time, home_team, away_team, home_team_id, away_team_id,
                         location, league_id, created_at
                     )
-                    VALUES (%s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
-                """, (match_date, match_time, home_team, away_team, location, league_db_id))
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+                """, (match_date, match_time, home_team, away_team, home_team_id, away_team_id, location, league_db_id))
                 
                 if cursor.rowcount > 0:
                     imported += 1
@@ -966,6 +1214,10 @@ class ComprehensiveETL:
             club_league_rels = self.analyze_club_league_relationships(players_data)
             series_league_rels = self.analyze_series_league_relationships(players_data)
             
+            # Step 2b: Extract teams from series stats and schedules
+            self.log("\n🏗️  Step 2b: Extracting teams...")
+            teams_data = self.extract_teams(series_stats_data, schedules_data)
+            
             # Step 3: Connect to database and import
             self.log("\n🗄️  Step 3: Connecting to database...")
             with get_db() as conn:
@@ -981,6 +1233,7 @@ class ComprehensiveETL:
                     self.import_series(conn, series_data)
                     self.import_club_leagues(conn, club_league_rels)
                     self.import_series_leagues(conn, series_league_rels)
+                    self.import_teams(conn, teams_data)  # NEW: Import teams before players
                     self.import_players(conn, players_data)
                     self.import_career_stats(conn, player_history_data)
                     self.import_player_history(conn, player_history_data)

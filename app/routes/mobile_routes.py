@@ -1634,4 +1634,21 @@ def serve_mobile_poll_vote(poll_id):
     }
     
     log_user_activity(session['user']['email'], 'page_visit', page='mobile_poll_vote', details=f'Poll {poll_id}')
-    return render_template('mobile/poll_vote.html', session_data=session_data, poll_id=poll_id) 
+    return render_template('mobile/poll_vote.html', session_data=session_data, poll_id=poll_id)
+
+@mobile_bp.route('/mobile/track-byes-courts')
+@login_required
+def serve_track_byes_courts():
+    """Serve the Track Byes & Court Assignments page with dummy data"""
+    try:
+        session_data = {
+            'user': session['user'],
+            'authenticated': True
+        }
+        
+        log_user_activity(session['user']['email'], 'page_visit', page='track_byes_courts')
+        return render_template('mobile/track_byes_courts.html', session_data=session_data)
+        
+    except Exception as e:
+        print(f"Error serving track byes courts page: {str(e)}")
+        return jsonify({'error': str(e)}), 500

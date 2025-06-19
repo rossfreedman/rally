@@ -497,6 +497,59 @@ def scrape_matches(driver, url, series_name, league_id, max_retries=3, retry_del
                     except TimeoutException:
                         pass
                 
+                # Strategy 6: NSTF-specific navigation attempts
+                if not matches_link and league_id == 'NSTF':
+                    try:
+                        # For NSTF, try looking for navigation tabs or buttons
+                        nstf_navigation_patterns = [
+                            "//a[contains(text(), 'Match')]",
+                            "//button[contains(text(), 'Match')]",
+                            "//div[contains(@class, 'tab') and contains(text(), 'Match')]",
+                            "//a[contains(@class, 'nav') and contains(text(), 'Match')]",
+                            "//a[contains(text(), 'Result')]",
+                            "//button[contains(text(), 'Result')]"
+                        ]
+                        
+                        for pattern in nstf_navigation_patterns:
+                            try:
+                                matches_link = WebDriverWait(driver, 3).until(
+                                    EC.presence_of_element_located((By.XPATH, pattern))
+                                )
+                                print(f"Found matches link using NSTF pattern: {pattern}")
+                                break
+                            except TimeoutException:
+                                continue
+                    except Exception as e:
+                        print(f"Error in NSTF navigation attempts: {e}")
+                
+                # Strategy 7: Try direct URL modification for series overview
+                if not matches_link and league_id == 'NSTF':
+                    try:
+                        current_url = driver.current_url
+                        print(f"Current URL: {current_url}")
+                        
+                        # If we're on a team page, try to navigate to series overview
+                        if 'team=' in current_url:
+                            # Extract team ID and try series overview URL
+                            team_match = re.search(r'team=([^&]+)', current_url)
+                            if team_match:
+                                team_id = team_match.group(1)
+                                overview_url = f"{base_url}/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did={team_id}"
+                                print(f"Trying series overview URL: {overview_url}")
+                                driver.get(overview_url)
+                                time.sleep(3)
+                                
+                                # Now try to find matches link again
+                                try:
+                                    matches_link = WebDriverWait(driver, 5).until(
+                                        EC.presence_of_element_located((By.LINK_TEXT, "Matches"))
+                                    )
+                                    print("Found matches link after navigating to series overview")
+                                except TimeoutException:
+                                    print("Still no matches link found after series overview attempt")
+                    except Exception as e:
+                        print(f"Error in direct URL modification: {e}")
+                
                 # If we found a matches link, click it
                 if matches_link:
                     print(f"Clicking matches link: {matches_link.text}")
@@ -896,7 +949,7 @@ def scrape_all_matches(league_subdomain, max_retries=3, retry_delay=5):
                     href = link.get('href', '')
                     text = link.text.strip()
                     
-                    # Look for numbered series links with the correct mod parameter for series overview pages
+                    # Strategy A: APTA Chicago format - numbered series with specific mod
                     if (text.isdigit() or 
                         (text.endswith(' SW') and text.replace(' SW', '').isdigit()) or
                         text in ['Legends']):
@@ -919,6 +972,52 @@ def scrape_all_matches(league_subdomain, max_retries=3, retry_delay=5):
                             if series_name in all_series:
                                 series_urls.append((series_name, full_url))
                                 print(f"📈 Found series: {series_name}")
+                    
+                    # Strategy B: NSTF format - try to find series overview pages with different patterns
+                    elif (config['league_id'] == 'NSTF' and 
+                          (text.startswith('Series ') or text.startswith('S') or 
+                           text in ['1', '2A', '2B', '3', 'A'])):
+                        
+                        # For NSTF, try multiple URL patterns that might lead to series overview
+                        potential_patterns = [
+                            'mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx',  # Standard series overview
+                            'mod=nndz-TjJSOWJOR2sxTnhI',  # Alternative series pattern
+                            'mod=nndz-TjJqOWtOR2sxTnhI',  # Another alternative
+                        ]
+                        
+                        for pattern in potential_patterns:
+                            if pattern in href:
+                                full_url = f"{base_url}{href}" if href.startswith('/') else f"{base_url}/{href}"
+                                
+                                # Map text to series name
+                                if text.startswith('Series '):
+                                    series_name = text
+                                elif text.startswith('S'):
+                                    series_name = f"Series {text[1:]}"
+                                elif text in ['1', '2A', '2B', '3', 'A']:
+                                    series_name = f"Series {text}"
+                                else:
+                                    series_name = text
+                                
+                                # Only add if this series was discovered
+                                if series_name in all_series:
+                                    series_urls.append((series_name, full_url))
+                                    print(f"📈 Found NSTF series: {series_name}")
+                                break
+                    
+                    # Strategy C: Generic approach - look for any link that might contain series results
+                    elif any(keyword in text.lower() for keyword in ['result', 'match', 'score', 'standing']) and len(text) < 50:
+                        # This might be a results/matches page
+                        if 'mod=' in href and 'team=' not in href:  # Series level, not team level
+                            full_url = f"{base_url}{href}" if href.startswith('/') else f"{base_url}/{href}"
+                            
+                            # Try to match this to one of our discovered series
+                            for discovered_series in all_series:
+                                if (discovered_series.lower() in text.lower() or 
+                                    any(part in text.lower() for part in discovered_series.lower().split())):
+                                    series_urls.append((discovered_series, full_url))
+                                    print(f"📈 Found series via generic match: {discovered_series}")
+                                    break
                 
                 if not series_urls:
                     print("⚠️  No series overview URLs found using dynamic discovery")
@@ -934,9 +1033,34 @@ def scrape_all_matches(league_subdomain, max_retries=3, retry_delay=5):
                                 break
                         
                         if series_team:
-                            series_url = f"{base_url}/?mod=nndz-TjJiOWtOR2sxTnhI&team={series_team}"
-                            series_urls.append((series_name, series_url))
-                            print(f"📈 Found series (fallback): {series_name}")
+                            # Try different URL patterns based on league
+                            if config['league_id'] == 'NSTF':
+                                # For NSTF, try multiple mod parameters that might contain series overview/matches
+                                nstf_patterns = [
+                                    f"/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did={series_team}",  # Series overview
+                                    f"/?mod=nndz-TjJSOWJOR2sxTnhI&did={series_team}",  # Alternative overview
+                                    f"/?mod=nndz-TjJqOWtOR2sxTnhI&did={series_team}",  # Another alternative
+                                    f"/?mod=nndz-TjJiOWtOR2sxTnhI&team={series_team}",  # Team page fallback
+                                ]
+                                
+                                # Try each pattern to see which one works
+                                for i, pattern in enumerate(nstf_patterns):
+                                    test_url = f"{base_url}{pattern}"
+                                    if i < 3:  # First 3 are series overview attempts
+                                        series_urls.append((series_name, test_url))
+                                        print(f"📈 Found series (NSTF pattern {i+1}): {series_name}")
+                                        break  # Only add the first working pattern
+                                
+                                # If no series overview patterns worked, fall back to team page
+                                if not any(series_name in url[0] for url in series_urls):
+                                    series_url = f"{base_url}/?mod=nndz-TjJiOWtOR2sxTnhI&team={series_team}"
+                                    series_urls.append((series_name, series_url))
+                                    print(f"📈 Found series (fallback): {series_name}")
+                            else:
+                                # Original fallback for other leagues
+                                series_url = f"{base_url}/?mod=nndz-TjJiOWtOR2sxTnhI&team={series_team}"
+                                series_urls.append((series_name, series_url))
+                                print(f"📈 Found series (fallback): {series_name}")
                 else:
                     print(f"✅ Successfully discovered {len(series_urls)} series overview URLs dynamically")
                 

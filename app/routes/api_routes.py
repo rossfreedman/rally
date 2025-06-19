@@ -91,6 +91,305 @@ def get_enhanced_streaks():
     """Get enhanced streaks"""
     return get_enhanced_streaks_data()
 
+@api_bp.route('/api/last-3-matches')
+@login_required
+def get_last_3_matches():
+    """Get the last 3 matches for the current user"""
+    try:
+        user = session['user']
+        player_id = user.get('tenniscores_player_id')
+        
+        if not player_id:
+            return jsonify({'error': 'Player ID not found'}), 404
+        
+        # Get user's league for filtering
+        user_league_id = user.get('league_id', '')
+        
+        # Convert league_id to integer if it's a string
+        league_id_int = None
+        if user_league_id and str(user_league_id).isdigit():
+            league_id_int = int(user_league_id)
+        
+        # Query the last 3 matches for this player
+        if league_id_int:
+            matches_query = """
+                SELECT 
+                    TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
+                    match_date,
+                    home_team as "Home Team",
+                    away_team as "Away Team",
+                    winner as "Winner",
+                    scores as "Scores",
+                    home_player_1_id as "Home Player 1",
+                    home_player_2_id as "Home Player 2",
+                    away_player_1_id as "Away Player 1",
+                    away_player_2_id as "Away Player 2"
+                FROM match_scores
+                WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
+                AND league_id = %s
+                ORDER BY match_date DESC
+                LIMIT 3
+            """
+            matches = execute_query(matches_query, [player_id, player_id, player_id, player_id, league_id_int])
+        else:
+            matches_query = """
+                SELECT 
+                    TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
+                    match_date,
+                    home_team as "Home Team",
+                    away_team as "Away Team",
+                    winner as "Winner",
+                    scores as "Scores",
+                    home_player_1_id as "Home Player 1",
+                    home_player_2_id as "Home Player 2",
+                    away_player_1_id as "Away Player 1",
+                    away_player_2_id as "Away Player 2"
+                FROM match_scores
+                WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
+                ORDER BY match_date DESC
+                LIMIT 3
+            """
+            matches = execute_query(matches_query, [player_id, player_id, player_id, player_id])
+        
+        if not matches:
+            return jsonify({'matches': [], 'message': 'No recent matches found'})
+        
+        # Helper function to get player name from ID
+        def get_player_name(player_id):
+            if not player_id:
+                return None
+            try:
+                if league_id_int:
+                    name_query = """
+                        SELECT first_name, last_name FROM players 
+                        WHERE tenniscores_player_id = %s AND league_id = %s
+                    """
+                    player_record = execute_query_one(name_query, [player_id, league_id_int])
+                else:
+                    name_query = """
+                        SELECT first_name, last_name FROM players 
+                        WHERE tenniscores_player_id = %s
+                    """
+                    player_record = execute_query_one(name_query, [player_id])
+                
+                if player_record:
+                    return f"{player_record['first_name']} {player_record['last_name']}"
+                else:
+                    return f"Player {player_id[:8]}..."
+            except Exception:
+                return f"Player {player_id[:8]}..."
+        
+        # Process matches to add readable information
+        processed_matches = []
+        for match in matches:
+            is_home = player_id in [match.get('Home Player 1'), match.get('Home Player 2')]
+            winner = match.get('Winner', '').lower()
+            
+            # Determine if player won
+            player_won = (is_home and winner == 'home') or (not is_home and winner == 'away')
+            
+            # Get partner name
+            if is_home:
+                partner_id = match.get('Home Player 2') if match.get('Home Player 1') == player_id else match.get('Home Player 1')
+            else:
+                partner_id = match.get('Away Player 2') if match.get('Away Player 1') == player_id else match.get('Away Player 1')
+            
+            partner_name = get_player_name(partner_id) if partner_id else 'No Partner'
+            
+            # Get opponent names
+            if is_home:
+                opponent1_id = match.get('Away Player 1')
+                opponent2_id = match.get('Away Player 2')
+            else:
+                opponent1_id = match.get('Home Player 1')
+                opponent2_id = match.get('Home Player 2')
+            
+            opponent1_name = get_player_name(opponent1_id) if opponent1_id else 'Unknown'
+            opponent2_name = get_player_name(opponent2_id) if opponent2_id else 'Unknown'
+            
+            processed_match = {
+                'date': match.get('Date'),
+                'home_team': match.get('Home Team'),
+                'away_team': match.get('Away Team'),
+                'scores': match.get('Scores'),
+                'player_was_home': is_home,
+                'player_won': player_won,
+                'partner_name': partner_name,
+                'opponent1_name': opponent1_name,
+                'opponent2_name': opponent2_name,
+                'match_result': 'Won' if player_won else 'Lost'
+            }
+            processed_matches.append(processed_match)
+        
+        return jsonify({
+            'matches': processed_matches,
+            'total_matches': len(processed_matches)
+        })
+        
+    except Exception as e:
+        print(f"Error getting last 3 matches: {str(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
+        return jsonify({'error': 'Failed to retrieve matches'}), 500
+
+@api_bp.route('/api/team-last-3-matches')
+@login_required
+def get_team_last_3_matches():
+    """Get the last 3 matches for the current user's team using team_id"""
+    try:
+        user = session['user']
+        
+        # Get user's team information
+        user_club = user.get('club', '')
+        user_series = user.get('series', '')
+        user_league_id = user.get('league_id', '')
+        
+        if not user_club or not user_series:
+            return jsonify({'error': 'Team information not found'}), 404
+        
+        # Convert league_id to integer foreign key for database queries
+        league_id_int = None
+        if isinstance(user_league_id, str) and user_league_id != '':
+            try:
+                league_record = execute_query_one(
+                    "SELECT id FROM leagues WHERE league_id = %s", 
+                    [user_league_id]
+                )
+                if league_record:
+                    league_id_int = league_record['id']
+                else:
+                    return jsonify({'error': 'League not found'}), 404
+            except Exception as e:
+                return jsonify({'error': 'Failed to resolve league'}), 500
+        elif isinstance(user_league_id, int):
+            league_id_int = user_league_id
+        
+        # Get the user's team_id using proper joins
+        team_query = """
+            SELECT t.id, t.team_name
+            FROM teams t
+            JOIN clubs c ON t.club_id = c.id
+            JOIN series s ON t.series_id = s.id
+            JOIN leagues l ON t.league_id = l.id
+            WHERE c.name = %s 
+            AND s.name = %s 
+            AND l.id = %s
+        """
+        
+        team_record = execute_query_one(team_query, [user_club, user_series, league_id_int])
+        
+        if not team_record:
+            return jsonify({'error': 'Team not found in database', 'club': user_club, 'series': user_series}), 404
+        
+        team_id = team_record['id']
+        team_name = team_record['team_name']
+        
+        # Query the last 3 matches using team_id (much more efficient!)
+        matches_query = """
+            SELECT 
+                TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
+                match_date,
+                home_team as "Home Team",
+                away_team as "Away Team",
+                winner as "Winner",
+                scores as "Scores",
+                home_player_1_id as "Home Player 1",
+                home_player_2_id as "Home Player 2",
+                away_player_1_id as "Away Player 1",
+                away_player_2_id as "Away Player 2"
+            FROM match_scores
+            WHERE (home_team_id = %s OR away_team_id = %s)
+            ORDER BY match_date DESC
+            LIMIT 3
+        """
+        matches = execute_query(matches_query, [team_id, team_id])
+        
+        if not matches:
+            return jsonify({'matches': [], 'message': 'No recent team matches found', 'team_name': team_name, 'team_id': team_id})
+        
+        # Helper function to get player name from ID
+        def get_player_name(player_id):
+            if not player_id:
+                return None
+            try:
+                if league_id_int:
+                    name_query = """
+                        SELECT first_name, last_name FROM players 
+                        WHERE tenniscores_player_id = %s AND league_id = %s
+                    """
+                    player_record = execute_query_one(name_query, [player_id, league_id_int])
+                else:
+                    name_query = """
+                        SELECT first_name, last_name FROM players 
+                        WHERE tenniscores_player_id = %s
+                    """
+                    player_record = execute_query_one(name_query, [player_id])
+                
+                if player_record:
+                    return f"{player_record['first_name']} {player_record['last_name']}"
+                else:
+                    return f"Player {player_id[:8]}..."
+            except Exception:
+                return f"Player {player_id[:8]}..."
+        
+        # Process matches to add readable information
+        processed_matches = []
+        for match in matches:
+            is_home = match.get('Home Team') == team_name
+            winner = match.get('Winner', '').lower()
+            
+            # Determine if team won
+            team_won = (is_home and winner == 'home') or (not is_home and winner == 'away')
+            
+            # Get our team's players
+            if is_home:
+                our_player1_id = match.get('Home Player 1')
+                our_player2_id = match.get('Home Player 2')
+                opponent_team = match.get('Away Team')
+                opponent_player1_id = match.get('Away Player 1')
+                opponent_player2_id = match.get('Away Player 2')
+            else:
+                our_player1_id = match.get('Away Player 1')
+                our_player2_id = match.get('Away Player 2')
+                opponent_team = match.get('Home Team')
+                opponent_player1_id = match.get('Home Player 1')
+                opponent_player2_id = match.get('Home Player 2')
+            
+            # Get readable names
+            our_player1_name = get_player_name(our_player1_id) if our_player1_id else 'Unknown'
+            our_player2_name = get_player_name(our_player2_id) if our_player2_id else 'Unknown'
+            opponent_player1_name = get_player_name(opponent_player1_id) if opponent_player1_id else 'Unknown'
+            opponent_player2_name = get_player_name(opponent_player2_id) if opponent_player2_id else 'Unknown'
+            
+            processed_match = {
+                'date': match.get('Date'),
+                'home_team': match.get('Home Team'),
+                'away_team': match.get('Away Team'),
+                'scores': match.get('Scores'),
+                'team_was_home': is_home,
+                'team_won': team_won,
+                'our_player1_name': our_player1_name,
+                'our_player2_name': our_player2_name,
+                'opponent_team': opponent_team,
+                'opponent_player1_name': opponent_player1_name,
+                'opponent_player2_name': opponent_player2_name,
+                'match_result': 'Won' if team_won else 'Lost'
+            }
+            processed_matches.append(processed_match)
+        
+        return jsonify({
+            'matches': processed_matches,
+            'total_matches': len(processed_matches),
+            'team_name': team_name,
+            'team_id': team_id
+        })
+        
+    except Exception as e:
+        print(f"Error getting team's last 3 matches: {str(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
+        return jsonify({'error': 'Failed to retrieve team matches'}), 500
+
 @api_bp.route('/api/find-training-video', methods=['POST'])
 def find_training_video():
     """Find training video"""
@@ -656,15 +955,20 @@ def update_availability():
         if not data:
             return jsonify({'error': 'No data provided'}), 400
         
+        # Accept either player_name (legacy) or tenniscores_player_id (preferred)
         player_name = data.get('player_name')
+        tenniscores_player_id = data.get('tenniscores_player_id')
         match_date = data.get('match_date')
         availability_status = data.get('availability_status')
         series = data.get('series')
         notes = data.get('notes', '')  # Optional notes field
         
-        # Validate required fields
-        if not all([player_name, match_date, availability_status]):
-            return jsonify({'error': 'Missing required fields: player_name, match_date, availability_status'}), 400
+        # Validate required fields - prefer player ID over name
+        if not all([match_date, availability_status]):
+            return jsonify({'error': 'Missing required fields: match_date, availability_status'}), 400
+            
+        if not tenniscores_player_id and not player_name:
+            return jsonify({'error': 'Either tenniscores_player_id or player_name is required'}), 400
         
         # Validate availability status
         if availability_status not in [1, 2, 3]:  # 1=available, 2=unavailable, 3=not_sure
@@ -682,33 +986,51 @@ def update_availability():
         except ValueError:
             return jsonify({'error': 'Invalid date format. Expected YYYY-MM-DD'}), 400
         
-        # Get user's series_id through player association (new schema)
+        # Get player info and series_id using tenniscores_player_id or fallback to player associations
         user_email = session['user']['email']
         
-        # Use SQLAlchemy to get user's primary player association
+        # Use SQLAlchemy to get player info
         db_session = SessionLocal()
         try:
-            # Get user record
-            user_record = db_session.query(User).filter(User.email == user_email).first()
+            player = None
             
-            if not user_record:
-                return jsonify({'error': 'User not found'}), 404
+            # If tenniscores_player_id is provided, use it directly
+            if tenniscores_player_id:
+                player = db_session.query(Player).filter(
+                    Player.tenniscores_player_id == tenniscores_player_id,
+                    Player.is_active == True
+                ).first()
+                
+                if not player:
+                    return jsonify({'error': f'Player with ID {tenniscores_player_id} not found or inactive'}), 404
+                    
+                # Also get the full name for legacy compatibility
+                player_name = f"{player.first_name} {player.last_name}"
+                
+            else:
+                # Fallback: use player associations (legacy approach)
+                user_record = db_session.query(User).filter(User.email == user_email).first()
+                
+                if not user_record:
+                    return jsonify({'error': 'User not found'}), 404
+                
+                # Get primary player association
+                primary_association = db_session.query(UserPlayerAssociation).filter(
+                    UserPlayerAssociation.user_id == user_record.id,
+                    UserPlayerAssociation.is_primary == True
+                ).first()
+                
+                if not primary_association:
+                    return jsonify({'error': 'No player association found. Please update your settings to link your player profile.'}), 400
+                
+                # Check if the player association has a valid player record
+                player = primary_association.get_player(db_session)
+                if not player:
+                    return jsonify({'error': 'Player record not found. Your player association may be broken. Please update your settings to re-link your player profile.'}), 400
+                
+                tenniscores_player_id = player.tenniscores_player_id
             
-            # Get primary player association
-            primary_association = db_session.query(UserPlayerAssociation).filter(
-                UserPlayerAssociation.user_id == user_record.id,
-                UserPlayerAssociation.is_primary == True
-            ).first()
-            
-            if not primary_association:
-                return jsonify({'error': 'No player association found. Please update your settings to link your player profile.'}), 400
-            
-            # Check if the player association has a valid player record
-            player = primary_association.get_player(db_session)
-            if not player:
-                return jsonify({'error': 'Player record not found. Your player association may be broken. Please update your settings to re-link your player profile.'}), 400
-            
-            # Get series_id from the associated player
+            # Get series_id from the player
             series_id = player.series_id
             
             if not series_id:
@@ -717,45 +1039,49 @@ def update_availability():
         finally:
             db_session.close()
         
-        print(f"Updating availability: {player_name} for {match_date} status {availability_status} series_id {series_id}")
+        # Get the internal player.id for the database FK relationship
+        player_db_id = player.id
         
-        # Check if record exists
+        print(f"Updating availability: {player_name} (tenniscores_id: {tenniscores_player_id}, db_id: {player_db_id}) for {match_date} status {availability_status} series_id {series_id}")
+        
+        # Check if record exists using player_id (internal database ID)
         check_query = """
             SELECT id FROM player_availability 
-            WHERE player_name = %s AND match_date = %s AND series_id = %s
+            WHERE player_id = %s AND match_date = %s AND series_id = %s
         """
-        existing_record = execute_query_one(check_query, (player_name, formatted_date, series_id))
+        existing_record = execute_query_one(check_query, (player_db_id, formatted_date, series_id))
         
         if existing_record:
             # Update existing record
             update_query = """
                 UPDATE player_availability 
                 SET availability_status = %s, notes = %s, updated_at = CURRENT_TIMESTAMP
-                WHERE player_name = %s AND match_date = %s AND series_id = %s
+                WHERE player_id = %s AND match_date = %s AND series_id = %s
             """
-            result = execute_update(update_query, (availability_status, notes, player_name, formatted_date, series_id))
+            result = execute_update(update_query, (availability_status, notes, player_db_id, formatted_date, series_id))
             print(f"Updated existing availability record: {result}")
         else:
-            # Insert new record
+            # Insert new record using existing schema (player_id + player_name)
             insert_query = """
-                INSERT INTO player_availability (player_name, match_date, availability_status, series_id, notes, updated_at)
-                VALUES (%s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+                INSERT INTO player_availability (player_id, player_name, match_date, availability_status, series_id, notes, updated_at)
+                VALUES (%s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
             """
-            result = execute_update(insert_query, (player_name, formatted_date, availability_status, series_id, notes))
+            result = execute_update(insert_query, (player_db_id, player_name, formatted_date, availability_status, series_id, notes))
             print(f"Created new availability record: {result}")
         
         # Log the activity
         log_user_activity(
-            player_name,
+            user_email,
             'availability_update',
             page='mobile_availability',
-            details=f'Set availability for {match_date} to status {availability_status}'
+            details=f'Set availability for {match_date} to status {availability_status} (Player: {player_name}, ID: {tenniscores_player_id})'
         )
         
         return jsonify({
             'success': True,
             'message': 'Availability updated successfully',
             'player_name': player_name,
+            'tenniscores_player_id': tenniscores_player_id,
             'match_date': match_date,
             'availability_status': availability_status
         })

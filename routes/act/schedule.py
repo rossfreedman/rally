@@ -37,6 +37,7 @@ def get_matches_for_user_club(user):
         
         # Query the database for matches where user's team is playing
         # Include both regular matches and practice entries
+        # JOIN with clubs table to get club address for Google Maps links
         matches_query = """
             SELECT 
                 s.match_date,
@@ -44,6 +45,7 @@ def get_matches_for_user_club(user):
                 s.home_team,
                 s.away_team,
                 s.location,
+                c.club_address,
                 l.league_id,
                 CASE 
                     WHEN s.home_team ILIKE %s THEN 'practice'
@@ -51,6 +53,7 @@ def get_matches_for_user_club(user):
                 END as type
             FROM schedule s
             LEFT JOIN leagues l ON s.league_id = l.id
+            LEFT JOIN clubs c ON s.location = c.name
             WHERE (s.home_team ILIKE %s OR s.away_team ILIKE %s OR s.home_team ILIKE %s)
             ORDER BY s.match_date, s.match_time
         """
@@ -78,6 +81,7 @@ def get_matches_for_user_club(user):
                     'date': match_date,
                     'time': match_time,
                     'location': match['location'] or '',
+                    'club_address': match['club_address'] or '',  # Include club address
                     'home_team': match['home_team'] or '',
                     'away_team': match['away_team'] or '',
                     'type': 'practice' if is_practice else 'match'

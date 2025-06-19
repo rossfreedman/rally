@@ -1,7 +1,0 @@
-{
-  "original_db_url": "postgresql://postgres:postgres@localhost:5432/rally",
-  "test_db_url": "postgresql://postgres:postgres@localhost:5432/rally_etl_test",
-  "test_db_name": "rally_etl_test",
-  "created_at": "2025-06-12T08:53:04.033592",
-  "backup_dir": "etl_test_backups"
-}

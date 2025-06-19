@@ -108,6 +108,7 @@
                                         {% if not is_practice %}
                                             <i class="fas fa-map-marker-alt text-red-500 text-sm"></i>
                                             {% set location_text = match.location or match.home_team or session_data.user.club %}
+                                            {% set maps_query = match.club_address or location_text %}
                                             {% if location_text != 'All Clubs' %}
                                                 <span class="text-gray-600 text-sm font-bold">{{ location_text }}</span>
                                             {% endif %}
@@ -116,7 +117,7 @@
                                     {% if not is_practice and location_text and location_text != 'All Clubs' %}
                                         {% if match.location and match.location != session_data.user.club %}
                                             <div class="mt-3">
-                                                <a class="inline-block bg-green-500 text-white text-xs font-medium px-2 py-1.5 rounded-md hover:bg-green-600 transition-colors duration-200" href="https://maps.google.com/?q={{ location_text | urlencode }}" target="_blank" rel="noopener noreferrer">
+                                                <a class="inline-block bg-green-500 text-white text-xs font-medium px-2 py-1.5 rounded-md hover:bg-green-600 transition-colors duration-200" href="https://maps.google.com/?q={{ maps_query | urlencode }}" target="_blank" rel="noopener noreferrer">
                                                     <i class="fas fa-directions mr-1"></i>Get Directions
                                                 </a>
                                             </div>
@@ -154,17 +155,27 @@
                                     </button>
                                 </div>
                                 
-                                                                <!-- Notes Container -->
-                                <div class="availability-container">
-                                    <textarea 
-                                            id="notes-{{ loop.index0 }}"
-                                            name="notes"
-                                            rows="2"
-                                            class="notes-textarea"
-                                            placeholder="Add a note about your availability (i.e. may be 10 min late)"
-                                            data-match-date="{{ match.date }}"
-                                            data-player-name="{{ players[0].name }}"
-                                            onblur="autoSaveNotes(this)">{{ avail.notes or '' }}</textarea>
+                                <!-- Add Note Button -->
+                                <div class="availability-container" id="add-note-container-{{ loop.index0 }}" style="{% if avail.notes %}display: none;{% endif %}">
+                                    <button type="button" class="add-note-button" onclick="console.log('Button clicked!'); openNoteModal('{{ match.date }}', '{{ players[0].name }}', {{ loop.index0 }})">
+                                        <i class="fas fa-pencil-alt"></i>Add a note (optional)
+                                    </button>
+                                </div>
+                                
+                                <!-- Note Display (shown when note exists) -->
+                                <div class="availability-container note-display" id="note-display-{{ loop.index0 }}" style="{% if not avail.notes %}display: none;{% endif %}">
+                                    <div class="note-content">
+                                        <div class="note-header">
+                                            <div class="note-header-left">
+                                                <i class="fas fa-sticky-note text-gray-400" style="font-size: 0.625rem;"></i>
+                                                <span class="note-label-text">Note</span>
+                                            </div>
+                                            <button type="button" class="edit-note-button" onclick="openNoteModal('{{ match.date }}', '{{ players[0].name }}', {{ loop.index0 }})">
+                                                <i class="fas fa-edit"></i>Edit
+                                            </button>
+                                        </div>
+                                        <div class="note-text" id="note-text-{{ loop.index0 }}">{{ avail.notes or '' }}</div>
+                                    </div>
                                 </div>
                                 
                                 <!-- View Team Container -->
@@ -184,7 +195,99 @@
     </div>
 </div>
 
+<!-- Note Modal -->
+<div id="noteModal" class="modal-overlay" style="display: none;">
+    <div class="modal-container">
+        <div class="modal-header">
+            <h3 class="modal-title">
+                <i class="fas fa-pencil-alt"></i>Add a Note
+            </h3>
+            <button type="button" class="modal-close" onclick="closeNoteModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-content">
+            <label for="modal-notes-textarea" class="modal-label">
+                Add a note (optional):
+            </label>
+            <textarea 
+                id="modal-notes-textarea"
+                name="notes"
+                rows="4"
+                class="modal-textarea"
+                placeholder="e.g. May be 10 min late...."></textarea>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="modal-button modal-button-save" onclick="saveNoteFromModal()">
+                <i class="fas fa-save"></i>Save Note
+            </button>
+            <button type="button" class="modal-button modal-button-cancel" onclick="closeNoteModal()">
+                Cancel
+            </button>
+        </div>
+    </div>
+</div>
+
 <script>
+// Define note modal functions first to ensure they're available globally
+function openNoteModal(matchDate, playerName, noteIndex) {
+    console.log('openNoteModal called with:', { matchDate, playerName, noteIndex });
+    
+    window.currentNoteDate = matchDate;
+    window.currentNotePlayerName = playerName;
+    window.currentNoteIndex = noteIndex;
+    
+    // Get existing note text if any
+    const existingNoteElement = document.getElementById(`note-text-${noteIndex}`);
+    const existingNote = existingNoteElement ? existingNoteElement.textContent.trim() : '';
+    
+    console.log('Existing note:', existingNote);
+    
+    // Populate modal with existing note
+    const textarea = document.getElementById('modal-notes-textarea');
+    if (textarea) {
+        textarea.value = existingNote;
+    } else {
+        console.error('Modal textarea not found');
+    }
+    
+    // Show modal
+    const modal = document.getElementById('noteModal');
+    if (modal) {
+        modal.style.display = 'flex';
+        console.log('Modal should be visible now');
+    } else {
+        console.error('Modal element not found');
+    }
+    
+    // Focus on textarea
+    setTimeout(() => {
+        if (textarea) {
+            textarea.focus();
+        }
+    }, 100);
+}
+
+function closeNoteModal() {
+    const modal = document.getElementById('noteModal');
+    modal.style.display = 'none';
+    
+    // Clear form
+    document.getElementById('modal-notes-textarea').value = '';
+    
+    // Reset global variables
+    window.currentNoteDate = '';
+    window.currentNotePlayerName = '';
+    window.currentNoteIndex = -1;
+}
+
+// Make functions globally available immediately
+window.openNoteModal = openNoteModal;
+window.closeNoteModal = closeNoteModal;
+
+console.log('Note modal functions defined and made global');
+console.log('openNoteModal type:', typeof window.openNoteModal);
+
 async function updateAvailability(button, playerName, date, status) {
     // DEBUG: Log the actual date received
     console.log(`DEBUG: updateAvailability called with date='${date}', type=${typeof date}`);
@@ -227,17 +330,24 @@ async function updateAvailability(button, playerName, date, status) {
             console.log(`DEBUG: Final standardizedDate='${standardizedDate}'`);
         }
         
-        // Get the notes for this match
-        const notesTextarea = document.querySelector(`textarea[data-match-date="${date}"]`);
-        const notes = notesTextarea ? notesTextarea.value.trim() : '';
+        // Notes are now handled via modal, so we don't include them in availability updates
+        const notes = '';
         
+        // Use tenniscores_player_id if available, fallback to player_name for legacy support
         const requestData = {
-            'player_name': playerName.trim(),
             'match_date': standardizedDate.trim(),
             'availability_status': availabilityStatus,
             'series': user.series.trim(),
             'notes': notes
         };
+        
+        // Prefer tenniscores_player_id over player_name
+        if (user.tenniscores_player_id) {
+            requestData.tenniscores_player_id = user.tenniscores_player_id.trim();
+            requestData.player_name = playerName.trim(); // Keep for logging/display purposes
+        } else {
+            requestData.player_name = playerName.trim(); // Legacy fallback
+        }
         
         const response = await fetch('/api/availability', {
             method: 'POST',
@@ -326,10 +436,26 @@ async function updateAvailability(button, playerName, date, status) {
     }
 }
 
-async function autoSaveNotes(textarea) {
-    const matchDate = textarea.getAttribute('data-match-date');
-    const playerName = textarea.getAttribute('data-player-name');
+
+
+// Global variables to track current note context (using window object)
+// Variables are now stored on window object and accessed in functions above
+
+async function saveNoteFromModal() {
+    const textarea = document.getElementById('modal-notes-textarea');
     const notes = textarea.value.trim();
+    
+    if (window.currentNoteIndex < 0) {
+        console.error('No note context available');
+        return;
+    }
+    
+    console.log('Saving note for:', { 
+        currentNoteDate: window.currentNoteDate, 
+        currentNotePlayerName: window.currentNotePlayerName, 
+        currentNoteIndex: window.currentNoteIndex, 
+        notes 
+    });
     
     try {
         const user = window.sessionData && window.sessionData.user;
@@ -338,8 +464,9 @@ async function autoSaveNotes(textarea) {
         }
         
         // Find the current availability status for this match
-        const buttonGroup = textarea.closest('[data-availability-buttons]');
-        const selectedButton = buttonGroup.querySelector('.selected-available, .selected-unavailable, .selected-not-sure');
+        const noteDisplayElement = document.getElementById(`note-display-${window.currentNoteIndex}`);
+        const matchCard = noteDisplayElement ? noteDisplayElement.closest('.schedule-card') : null;
+        const selectedButton = matchCard ? matchCard.querySelector('.selected-available, .selected-unavailable, .selected-not-sure') : null;
         
         let availabilityStatus = 3; // Default to "not sure" if no selection
         if (selectedButton) {
@@ -352,20 +479,41 @@ async function autoSaveNotes(textarea) {
         }
         
         // Convert date to standard format
-        let standardizedDate = matchDate;
-        if (matchDate.includes('/')) {
-            const [month, day, year] = matchDate.split('/');
+        let standardizedDate = window.currentNoteDate;
+        if (window.currentNoteDate.includes('/')) {
+            const [month, day, year] = window.currentNoteDate.split('/');
             const fullYear = year.length === 2 ? `20${year}` : year;
             standardizedDate = `${fullYear}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
         }
         
+        // Use tenniscores_player_id if available, fallback to player_name for legacy support
         const requestData = {
-            'player_name': playerName.trim(),
             'match_date': standardizedDate.trim(),
             'availability_status': availabilityStatus,
             'series': user.series.trim(),
             'notes': notes
         };
+        
+        // Prefer tenniscores_player_id over player_name
+        if (user.tenniscores_player_id) {
+            requestData.tenniscores_player_id = user.tenniscores_player_id.trim();
+            requestData.player_name = window.currentNotePlayerName.trim(); // Keep for logging/display purposes
+        } else {
+            requestData.player_name = window.currentNotePlayerName.trim(); // Legacy fallback
+        }
+        
+        // Show loading state
+        const saveButton = document.querySelector('.modal-button-save');
+        const originalContent = saveButton.innerHTML;
+        saveButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>Saving...';
+        saveButton.disabled = true;
+        
+        // Ensure button state is restored after a timeout as backup
+        const timeoutId = setTimeout(() => {
+            saveButton.innerHTML = originalContent;
+            saveButton.disabled = false;
+            console.error('Save operation timed out - button state restored');
+        }, 10000);
         
         const response = await fetch('/api/availability', {
             method: 'POST',
@@ -379,25 +527,138 @@ async function autoSaveNotes(textarea) {
         const data = await response.json();
         
         if (!response.ok) {
-            throw new Error(data.error || 'Failed to save notes');
+            throw new Error(data.error || 'Failed to save note');
         }
         
-        // Show subtle feedback - green border briefly
-        textarea.style.borderColor = '#10b981';
-        setTimeout(() => {
-            textarea.style.borderColor = '#d1d5db';
-        }, 1000);
+        // Update the note display and button visibility
+        const noteDisplayContainer = document.getElementById(`note-display-${window.currentNoteIndex}`);
+        const noteText = document.getElementById(`note-text-${window.currentNoteIndex}`);
+        const addNoteContainer = document.getElementById(`add-note-container-${window.currentNoteIndex}`);
+        
+        if (notes) {
+            // Show note if there's content, hide add button
+            noteText.textContent = notes;
+            noteDisplayContainer.style.display = 'block';
+            addNoteContainer.style.display = 'none';
+        } else {
+            // Hide note if empty, show add button
+            noteDisplayContainer.style.display = 'none';
+            addNoteContainer.style.display = 'block';
+        }
+        
+        // Clear timeout and restore button state
+        clearTimeout(timeoutId);
+        saveButton.innerHTML = originalContent;
+        saveButton.disabled = false;
+        
+        // Close modal
+        closeNoteModal();
+        
+        // Show success toast
+        const toast = document.createElement('div');
+        toast.className = 'fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 opacity-0 transition-opacity duration-300';
+        toast.textContent = notes ? 'Note saved!' : 'Note removed!';
+        document.body.appendChild(toast);
+        
+        // Fade in toast
+        requestAnimationFrame(() => {
+            toast.style.opacity = '1';
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 2000);
+        });
         
     } catch (error) {
-        console.error('Error saving notes:', error);
+        console.error('Error saving note:', error);
         
-        // Show subtle error feedback - red border briefly
-        textarea.style.borderColor = '#ef4444';
-        setTimeout(() => {
-            textarea.style.borderColor = '#d1d5db';
-        }, 1000);
+        // Clear timeout and restore button state
+        clearTimeout(timeoutId);
+        const saveButton = document.querySelector('.modal-button-save');
+        saveButton.innerHTML = originalContent;
+        saveButton.disabled = false;
+        
+        // Show error toast
+        const toast = document.createElement('div');
+        toast.className = 'fixed bottom-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 opacity-0 transition-opacity duration-300';
+        toast.textContent = error.message || 'Error saving note. Please try again.';
+        document.body.appendChild(toast);
+        
+        // Fade in toast
+        requestAnimationFrame(() => {
+            toast.style.opacity = '1';
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        });
     }
 }
+
+// Make saveNoteFromModal globally available too
+window.saveNoteFromModal = saveNoteFromModal;
+
+// Test function to verify JavaScript is working
+window.testModal = function() {
+    console.log('Test modal function called');
+    const modal = document.getElementById('noteModal');
+    if (modal) {
+        modal.style.display = 'flex';
+        console.log('Test modal opened successfully');
+    } else {
+        console.error('Modal not found in test');
+    }
+};
+
+console.log('Note modal JavaScript loaded successfully');
+console.log('Available functions:');
+console.log('- openNoteModal:', typeof window.openNoteModal);
+console.log('- closeNoteModal:', typeof window.closeNoteModal);
+console.log('- saveNoteFromModal:', typeof window.saveNoteFromModal);
+
+// Close modal when clicking outside
+document.addEventListener('click', function(event) {
+    const modal = document.getElementById('noteModal');
+    if (event.target === modal) {
+        closeNoteModal();
+    }
+});
+
+// Backup event listeners for add note buttons in case onclick doesn't work
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Setting up backup event listeners for add note buttons');
+    
+    // Add click listeners to all add note buttons
+    const addNoteButtons = document.querySelectorAll('.add-note-button');
+    console.log('Found', addNoteButtons.length, 'add note buttons');
+    
+    addNoteButtons.forEach((button, index) => {
+        button.addEventListener('click', function(event) {
+            console.log('Add note button clicked via event listener:', index);
+            
+            // Find the match data from the button's context
+            const container = button.closest('.schedule-card');
+            if (container) {
+                // Try to extract data from nearby elements
+                const dateElement = container.querySelector('[data-raw-date]');
+                const matchDate = dateElement ? dateElement.getAttribute('data-raw-date') : '';
+                
+                // Get player name from session data if available
+                const firstName = window.sessionData?.user?.first_name || '';
+                const lastName = window.sessionData?.user?.last_name || '';
+                const playerName = firstName && lastName ? `${firstName} ${lastName}` : 'Unknown Player';
+                
+                console.log('Extracted data:', { matchDate, playerName, index });
+                
+                if (matchDate) {
+                    openNoteModal(matchDate, playerName, index);
+                } else {
+                    console.error('Could not find match date for note button');
+                }
+            }
+        });
+    });
+});
 </script>
 
 <!-- Availability Filter Script -->
@@ -622,12 +883,12 @@ async function autoSaveNotes(textarea) {
     display: flex;
     flex-direction: column;
     gap: 1rem;
-    width: 240px;
+    width: 210px;
     flex-shrink: 0;
 }
 
 .availability-container {
-    width: 240px;
+    width: 210px;
     box-sizing: border-box;
     border: 1px solid #e5e7eb;
     border-radius: 0.5rem;
@@ -636,6 +897,8 @@ async function autoSaveNotes(textarea) {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
+    position: relative;
+    z-index: 1;
 }
 
 .availability-container.blue-container {
@@ -718,12 +981,256 @@ async function autoSaveNotes(textarea) {
     color: #6b7280;
 }
 
-.view-team-button {
+.add-note-button {
     width: 100%;
     padding: 0.625rem;
     text-align: center;
     border-radius: 0.5rem;
     font-size: 0.75rem;
+    font-weight: 600;
+    background-color: #e5e7eb;
+    color: #374151;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    z-index: 1;
+    pointer-events: auto;
+}
+
+.add-note-button:hover {
+    background-color: #d1d5db;
+}
+
+.add-note-button:active {
+    background-color: #9ca3af;
+    transform: scale(0.98);
+}
+
+.add-note-button i {
+    margin-right: 0.25rem;
+    pointer-events: none;
+}
+
+/* Note Display Styles */
+.note-display {
+    background-color: #f9fafb !important;
+    border: 1px solid #e5e7eb !important;
+}
+
+.note-content {
+    width: 100%;
+}
+
+.note-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+}
+
+.note-header-left {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.note-label-text {
+    font-size: 0.625rem;
+    font-weight: 500;
+    color: #6b7280;
+}
+
+.note-title {
+    font-size: 0.625rem;
+    font-weight: 500;
+    color: #6b7280;
+    margin-left: 0.25rem;
+}
+
+.edit-note-button {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.5rem;
+    background-color: #9ca3af;
+    color: white;
+    border: none;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.edit-note-button:hover {
+    background-color: #6b7280;
+}
+
+.edit-note-button i {
+    margin-right: 0.25rem;
+}
+
+.note-text {
+    font-size: 0.625rem;
+    color: #6b7280;
+    background-color: white;
+    padding: 0.5rem;
+    border-radius: 0.375rem;
+    border: 1px solid #e5e7eb;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+}
+
+/* Modal Styles */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 1rem;
+}
+
+.modal-container {
+    background-color: white;
+    border-radius: 0.75rem;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    width: 100%;
+    max-width: 400px;
+    max-height: 90vh;
+    overflow: hidden;
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #e5e7eb;
+    background-color: #f9fafb;
+}
+
+.modal-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin: 0;
+    display: flex;
+    align-items: center;
+}
+
+.modal-title i {
+    margin-right: 0.5rem;
+    color: #3b82f6;
+}
+
+.modal-close {
+    width: 2rem;
+    height: 2rem;
+    border: none;
+    background-color: transparent;
+    color: #6b7280;
+    cursor: pointer;
+    border-radius: 0.375rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.modal-close:hover {
+    background-color: #f3f4f6;
+    color: #374151;
+}
+
+.modal-content {
+    padding: 1.25rem;
+}
+
+.modal-label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #374151;
+    margin-bottom: 0.5rem;
+}
+
+.modal-textarea {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.75rem;
+    font-size: 0.875rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    resize: vertical;
+    background-color: white;
+    line-height: 1.5;
+    min-height: 100px;
+}
+
+.modal-textarea:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.modal-footer {
+    display: flex;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    border-top: 1px solid #e5e7eb;
+    background-color: #f9fafb;
+}
+
+.modal-button {
+    flex: 1;
+    padding: 0.625rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    border-radius: 0.5rem;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-button-cancel {
+    background-color: #f3f4f6;
+    color: #374151;
+}
+
+.modal-button-cancel:hover {
+    background-color: #e5e7eb;
+}
+
+.modal-button-save {
+    background-color: #10b981;
+    color: white;
+}
+
+.modal-button-save:hover {
+    background-color: #059669;
+}
+
+.modal-button-save:disabled {
+    background-color: #9ca3af;
+    cursor: not-allowed;
+}
+
+.modal-button i {
+    margin-right: 0.25rem;
+}
+
+.view-team-button {
+    width: 100%;
+    padding: 0.625rem;
+    text-align: center;
+    border-radius: 0.5rem;
+    font-size: 0.625rem;
     font-weight: 600;
     background-color: #3b82f6;
     color: white;

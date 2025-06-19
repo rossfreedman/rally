@@ -217,6 +217,45 @@
         </div>
         {% endif %}
 
+        <!-- Team Last 3 Matches Card -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-history text-green-500 mr-2"></i>
+                    Last 3 Team Matches
+                </h2>
+            </div>
+            
+            <div class="p-6">
+                <!-- Loading State -->
+                <div id="teamLast3MatchesLoading" class="text-center py-8">
+                    <div class="loading loading-spinner loading-lg text-blue-500 mb-2"></div>
+                    <p class="text-gray-500 text-sm">Loading recent team matches...</p>
+                </div>
+                
+                <!-- Error State -->
+                <div id="teamLast3MatchesError" class="text-center py-8 hidden">
+                    <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-exclamation-triangle text-red-500 text-2xl"></i>
+                    </div>
+                    <p class="text-red-700 text-sm">Unable to load recent team matches</p>
+                </div>
+                
+                <!-- No Matches State -->
+                <div id="teamLast3MatchesEmpty" class="text-center py-8 hidden">
+                    <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-calendar-times text-gray-400 text-2xl"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">No Recent Team Matches</h3>
+                    <p class="text-gray-500">No team match data available yet</p>
+                </div>
+                
+                <!-- Matches List -->
+                <div id="teamLast3MatchesList" class="space-y-4 hidden">
+                    <!-- Matches will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
 
         {% else %}
         <!-- Empty State -->
@@ -326,4 +365,116 @@
     .text-2xl { font-size: 1.5rem; line-height: 2rem; }
 }
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', async function() {
+    // Load Team's Last 3 Matches data
+    loadTeamLast3Matches();
+});
+
+// Function to load Team's Last 3 Matches data
+async function loadTeamLast3Matches() {
+    const loading = document.getElementById('teamLast3MatchesLoading');
+    const error = document.getElementById('teamLast3MatchesError');
+    const empty = document.getElementById('teamLast3MatchesEmpty');
+    const list = document.getElementById('teamLast3MatchesList');
+    
+    try {
+        console.log('Loading team last 3 matches...');
+        
+        // Show loading state
+        loading.classList.remove('hidden');
+        error.classList.add('hidden');
+        empty.classList.add('hidden');
+        list.classList.add('hidden');
+        
+        const response = await fetch('/api/team-last-3-matches');
+        console.log('Team last 3 matches response status:', response.status);
+        
+        if (response.status === 404) {
+            console.log('No team last 3 matches data available');
+            loading.classList.add('hidden');
+            empty.classList.remove('hidden');
+            return;
+        }
+        
+        const data = await response.json();
+        console.log('Team last 3 matches data:', data);
+        
+        if (data.error || !data.matches || data.matches.length === 0) {
+            console.log('No team matches found in response');
+            loading.classList.add('hidden');
+            empty.classList.remove('hidden');
+            return;
+        }
+        
+        // Build matches list
+        let matchesHTML = '';
+        data.matches.forEach(match => {
+            // Get result styling
+            const resultClass = match.team_won ? 'text-green-600' : 'text-red-600';
+            const resultIcon = match.team_won ? 'fa-check-circle' : 'fa-times-circle';
+            const resultBg = match.team_won ? 'bg-green-100' : 'bg-red-100';
+            
+            // Format our team players
+            const ourPlayers = match.our_player2_name && match.our_player2_name !== 'Unknown' 
+                ? `${match.our_player1_name} & ${match.our_player2_name}`
+                : match.our_player1_name;
+                
+            // Format opponent players
+            const opponentPlayers = match.opponent_player2_name && match.opponent_player2_name !== 'Unknown' 
+                ? `${match.opponent_player1_name} & ${match.opponent_player2_name}`
+                : match.opponent_player1_name;
+            
+            matchesHTML += `
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <!-- Match Header -->
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-2">
+                            <i class="fas ${resultIcon} ${resultClass}"></i>
+                            <span class="font-semibold ${resultClass}">${match.match_result}</span>
+                        </div>
+                        <div class="text-sm text-gray-500">${match.date}</div>
+                    </div>
+                    
+                    <!-- Teams -->
+                    <div class="mb-2">
+                        <div class="text-sm font-medium text-gray-900">${match.home_team} vs ${match.away_team}</div>
+                        <div class="text-xs text-gray-600">vs ${match.opponent_team}</div>
+                    </div>
+                    
+                    <!-- Players -->
+                    <div class="mb-2">
+                        <div class="text-sm text-gray-700">Our Team: ${ourPlayers}</div>
+                        <div class="text-sm text-gray-700">Opponents: ${opponentPlayers}</div>
+                    </div>
+                    
+                    <!-- Score -->
+                    <div class="flex items-center justify-between">
+                        <div class="text-sm font-medium text-gray-900">Score: ${match.scores}</div>
+                        <div class="px-2 py-1 rounded-full text-xs font-medium ${resultBg} ${resultClass}">
+                            ${match.match_result}
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        // Update matches list
+        list.innerHTML = matchesHTML;
+        
+        // Show matches list
+        loading.classList.add('hidden');
+        list.classList.remove('hidden');
+        
+        console.log('Team last 3 matches loaded successfully');
+        
+    } catch (err) {
+        console.error('Error loading team last 3 matches:', err);
+        loading.classList.add('hidden');
+        error.classList.remove('hidden');
+    }
+}
+</script>
+
 {% endblock %} 
