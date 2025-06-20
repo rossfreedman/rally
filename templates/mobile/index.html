@@ -12,8 +12,9 @@
       {% endif %}
     </h1>
     {% if session_data and session_data.user and session_data.user.series and session_data.user.club %}
-    <p class="text-sm text-gray-500 mt-2">
-      {{ session_data.user.series.replace('Chicago 22', 'Series 22') }} @ {{ session_data.user.club }}
+    <p class="text-sm text-gray-500 mt-2" id="userSeriesDisplay">
+      {% set transformed_series = session_data.user.series.replace('Chicago ', 'Series ') if session_data.user.series.startswith('Chicago ') else session_data.user.series %}
+      {{ transformed_series }} @ {{ session_data.user.club }}
     </p>
     {% endif %}
   </div>
@@ -49,10 +50,10 @@
         </div>
       </a>
       
-      <a href="/mobile/polls" class="ios-card bg-teal-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-        <i class="fas fa-poll text-white text-3xl mb-4 opacity-90"></i>
+      <a href="/mobile/track-byes-courts" class="ios-card bg-orange-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+        <i class="fas fa-clipboard-check text-white text-3xl mb-4 opacity-90"></i>
         <div class="text-left">
-          <span class="block text-lg font-semibold">Team Polls</span>
+          <span class="block text-lg font-semibold">Track Assignments</span>
         </div>
       </a>
       
@@ -60,6 +61,13 @@
         <i class="fas fa-chart-line text-white text-3xl mb-4 opacity-90"></i>
         <div class="text-left">
           <span class="block text-lg font-semibold">Improve My Game</span>
+        </div>
+      </a>
+      
+      <a href="/mobile/polls" class="ios-card bg-teal-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+        <i class="fas fa-poll text-white text-3xl mb-4 opacity-90"></i>
+        <div class="text-left">
+          <span class="block text-lg font-semibold">Team Polls</span>
         </div>
       </a>
       
@@ -85,7 +93,7 @@
       <a href="/mobile/analyze-me" class="ios-card bg-indigo-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
         <i class="fas fa-user text-white text-3xl mb-4 opacity-90"></i>
         <div class="text-left">
-          <span class="block text-lg font-semibold">Analyze Me</span>
+          <span class="block text-lg font-semibold">Me</span>
         </div>
       </a>
       
@@ -113,7 +121,7 @@
     
     <!-- Competition Subsection -->
     <div class="p-4 border-2 border-gray-200 rounded-xl bg-gray-50 mt-6 mb-6">
-      <div class="text-sm font-semibold text-gray-600 mb-4 text-center">Competition</div>
+      <div class="text-lg font-bold text-gray-600 mb-4 text-center">Competition</div>
       <div class="grid grid-cols-2 gap-4 mb-4">
         <a href="/mobile/player-search" class="ios-card bg-pink-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
           <div class="relative mb-4">
@@ -154,11 +162,11 @@
     <div class="flex items-center justify-center mb-6">
       <div class="flex-grow border-t-2 border-gray-400"></div>
       <div class="section-header text-xl font-bold px-4 text-center">
-        Captain Stuff
+        Captain's Corner
       </div>
       <div class="flex-grow border-t-2 border-gray-400"></div>
     </div>
-    <div class="icon-grid grid grid-cols-2 gap-4" aria-label="Captain Stuff">
+    <div class="icon-grid grid grid-cols-2 gap-4" aria-label="Captain's Corner">
       <a href="/mobile/team-schedule" class="ios-card bg-sky-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
         <i class="fas fa-calendar text-white text-3xl mb-4 opacity-90"></i>
         <div class="text-left">
@@ -180,10 +188,31 @@
         </div>
       </a>
       
+      <a href="/mobile/lineup-escrow" class="ios-card bg-purple-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+        <i class="fas fa-lock text-white text-3xl mb-4 opacity-90"></i>
+        <div class="text-left">
+          <span class="block text-lg font-semibold">Lineup Escrow</span>
+        </div>
+      </a>
+      
+      <a href="/mobile/polls" class="ios-card bg-teal-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+        <i class="fas fa-poll text-white text-3xl mb-4 opacity-90"></i>
+        <div class="text-left">
+          <span class="block text-lg font-semibold">Team Polls</span>
+        </div>
+      </a>
+      
       <a href="/mobile/practice-times" class="ios-card bg-yellow-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
         <i class="fas fa-clock text-white text-3xl mb-4 opacity-90"></i>
         <div class="text-left">
           <span class="block text-lg font-semibold">Practice Times</span>
+        </div>
+      </a>
+      
+      <a href="/mobile/track-byes-courts" class="ios-card bg-orange-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+        <i class="fas fa-edit text-white text-3xl mb-4 opacity-90"></i>
+        <div class="text-left">
+          <span class="block text-lg font-semibold">Update Byes & Assignments</span>
         </div>
       </a>
     </div>

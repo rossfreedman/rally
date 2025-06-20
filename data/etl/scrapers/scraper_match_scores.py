@@ -172,6 +172,61 @@ def load_players_data(league_id):
         print(f"❌ Error loading players data: {str(e)}")
         return False
 
+def extract_series_name_from_team(team_name):
+    """
+    Extract series name from team name, auto-detecting APTA vs NSTF vs CNSWPL format.
+    
+    Args:
+        team_name (str): Team name in various formats
+        
+    Returns:
+        str: Standardized series name or None if not detected
+        
+    Examples:
+        APTA: "Birchwood - 6" -> "Chicago 6"
+        NSTF: "Birchwood S1" -> "Series 1"
+        NSTF: "Wilmette Sunday A" -> "Series A"
+        CNSWPL: "Birchwood 1" -> "Division 1"
+        CNSWPL: "Hinsdale PC 1a" -> "Division 1a"
+    """
+    if not team_name:
+        return None
+        
+    team_name = team_name.strip()
+    
+    # APTA Chicago format: "Club - Number"
+    if ' - ' in team_name:
+        parts = team_name.split(' - ')
+        if len(parts) > 1:
+            series_num = parts[1].strip()
+            return f"Chicago {series_num}"
+    
+    # NSTF format: "Club SNumber" or "Club SNumberLetter" (e.g., S1, S2A, S2B)
+    elif re.search(r'S(\d+[A-Z]*)', team_name):
+        match = re.search(r'S(\d+[A-Z]*)', team_name)
+        if match:
+            series_identifier = match.group(1)
+            return f"Series {series_identifier}"
+    
+    # NSTF Sunday formats
+    elif 'Sunday A' in team_name:
+        return "Series A"
+    elif 'Sunday B' in team_name:
+        return "Series B"
+    
+    # CNSWPL format: "Club Number" or "Club NumberLetter" (e.g., "Birchwood 1", "Hinsdale PC 1a")
+    elif re.search(r'\s(\d+[a-zA-Z]?)$', team_name):
+        match = re.search(r'\s(\d+[a-zA-Z]?)$', team_name)
+        if match:
+            division_identifier = match.group(1)
+            return f"Division {division_identifier}"
+    
+    # Direct series name (already formatted)
+    elif team_name.startswith('Series ') or team_name.startswith('Chicago ') or team_name.startswith('Division '):
+        return team_name
+    
+    return None
+
 def extract_club_name_from_team(team_name):
     """Extract the club name from a team name like 'Birchwood - 6' or 'Lake Forest S1' -> 'Birchwood' or 'Lake Forest'."""
     if not team_name:

@@ -143,7 +143,7 @@
                     <p class="text-sm text-gray-600">Please verify:</p>
                     <ul class="list-disc list-inside text-sm text-gray-600 ml-4 mt-2">
                         <li>Your club ({{ session_data.user.club if session_data.user.club else 'Not set' }}) is correct</li>
-                        <li>Your series ({{ session_data.user.series if session_data.user.series else 'Not set' }}) is correct</li>
+                        <li>Your series (<span class="user-series">{{ session_data.user.series if session_data.user.series else 'Not set' }}</span>) is correct</li>
                     </ul>
                     <p class="text-sm text-gray-600 mt-2">
                         You can update these settings in your <a href="/mobile/settings" class="text-blue-600 underline">profile settings</a>.
@@ -516,6 +516,15 @@ document.addEventListener('DOMContentLoaded', function() {
     dateFilter.addEventListener('change', updateVisibility);
     playerFilter.addEventListener('change', updateVisibility);
     resetButton.addEventListener('click', resetFilters);
+
+    // Transform series display from "Chicago XX" to "Series XX"
+    const seriesElements = document.querySelectorAll('.user-series');
+    seriesElements.forEach(element => {
+        const seriesText = element.textContent;
+        if (seriesText && seriesText !== 'Not set') {
+            element.textContent = seriesText.replace(/^Chicago\s+(\d+.*)$/i, 'Series $1');
+        }
+    });
 
     // Start loading data
     loadTeamScheduleData();

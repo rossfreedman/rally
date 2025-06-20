@@ -311,16 +311,18 @@ def get_player_history_chart():
         if not player_id:
             return jsonify({'error': 'Player ID not found'}), 400
         
-        # Get player's database ID first
+        # Get player's database ID - prioritize the player record that has actual PTI history
         player_query = '''
             SELECT 
                 p.id,
                 p.pti as current_pti,
                 p.series_id,
-                s.name as series_name
+                s.name as series_name,
+                (SELECT COUNT(*) FROM player_history ph WHERE ph.player_id = p.id) as history_count
             FROM players p
             LEFT JOIN series s ON p.series_id = s.id
             WHERE p.tenniscores_player_id = %s
+            ORDER BY history_count DESC, p.id DESC
         '''
         player_data = execute_query_one(player_query, [player_id])
         
@@ -328,6 +330,9 @@ def get_player_history_chart():
             return jsonify({'error': 'Player not found'}), 404
         
         player_db_id = player_data['id']
+        
+        # Log which player record we're using for debugging
+        print(f"[DEBUG] PTI Chart - Using player_id {player_db_id} with {player_data['history_count']} history records for tenniscores_player_id {player_id}")
         
         # Get PTI history from player_history table
         pti_history_query = '''
@@ -411,16 +416,18 @@ def get_season_history():
         if not player_id:
             return jsonify({'error': 'Player ID not found'}), 400
         
-        # Get player's database ID first
+        # Get player's database ID - prioritize the player record that has actual PTI history
         player_query = '''
             SELECT 
                 p.id,
                 p.pti as current_pti,
                 p.series_id,
-                s.name as series_name
+                s.name as series_name,
+                (SELECT COUNT(*) FROM player_history ph WHERE ph.player_id = p.id) as history_count
             FROM players p
             LEFT JOIN series s ON p.series_id = s.id
             WHERE p.tenniscores_player_id = %s
+            ORDER BY history_count DESC, p.id DESC
         '''
         player_data = execute_query_one(player_query, [player_id])
         
@@ -431,7 +438,7 @@ def get_season_history():
         
         # Debug logging
         print(f"[DEBUG] Season History - Player ID: {player_id}")
-        print(f"[DEBUG] Season History - Player DB ID: {player_db_id}")  
+        print(f"[DEBUG] Season History - Player DB ID: {player_db_id} (with {player_data['history_count']} history records)")  
         print(f"[DEBUG] Season History - Player Series: {player_data.get('series_name')}")
         print(f"[DEBUG] Season History - Player Current PTI: {player_data.get('current_pti')}")
         
@@ -1636,19 +1643,577 @@ def serve_mobile_poll_vote(poll_id):
     log_user_activity(session['user']['email'], 'page_visit', page='mobile_poll_vote', details=f'Poll {poll_id}')
     return render_template('mobile/poll_vote.html', session_data=session_data, poll_id=poll_id)
 
+def get_user_team_id(user):
+    """Get user's team ID from their player association (integer foreign key)
+    If user has multiple associations, prefer the one matching their current league context"""
+    try:
+        user_id = user.get('id')
+        if not user_id:
+            return None
+        
+        # Get user's league context if available
+        user_league_id = user.get('league_id')
+        print(f"[DEBUG] get_user_team_id: User {user_id} has league_id: {user_league_id}")
+        
+        # If user has league context, try to get team from that specific league first
+        if user_league_id:
+            # Convert string league_id to integer foreign key if needed
+            league_id_int = None
+            if isinstance(user_league_id, str) and user_league_id != '':
+                try:
+                    league_record = execute_query_one(
+                        "SELECT id FROM leagues WHERE league_id = %s", 
+                        [user_league_id]
+                    )
+                    if league_record:
+                        league_id_int = league_record['id']
+                        print(f"[DEBUG] get_user_team_id: Converted league_id '{user_league_id}' -> {league_id_int}")
+                except Exception as e:
+                    print(f"[DEBUG] get_user_team_id: Could not convert league ID: {e}")
+            elif isinstance(user_league_id, int):
+                league_id_int = user_league_id
+            
+            # Try to get team from user's specific league
+            if league_id_int:
+                league_filtered_query = '''
+                    SELECT p.team_id, p.league_id, l.league_id as league_code
+                    FROM players p
+                    JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
+                    JOIN leagues l ON p.league_id = l.id
+                    WHERE upa.user_id = %s AND p.is_active = TRUE AND p.team_id IS NOT NULL
+                    AND p.league_id = %s
+                    LIMIT 1
+                '''
+                result = execute_query_one(league_filtered_query, [user_id, league_id_int])
+                if result:
+                    print(f"[DEBUG] get_user_team_id: Found team {result['team_id']} in user's league {result['league_code']}")
+                    return result['team_id']
+                else:
+                    print(f"[DEBUG] get_user_team_id: No team found in user's league {user_league_id}")
+        
+        # Fallback: Get any active team (original behavior)
+        print(f"[DEBUG] get_user_team_id: Falling back to any active team")
+        user_team_query = '''
+            SELECT p.team_id, l.league_id as league_code
+            FROM players p
+            JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
+            JOIN leagues l ON p.league_id = l.id
+            WHERE upa.user_id = %s AND p.is_active = TRUE AND p.team_id IS NOT NULL
+            LIMIT 1
+        '''
+        result = execute_query_one(user_team_query, [user_id])
+        if result:
+            print(f"[DEBUG] get_user_team_id: Fallback found team {result['team_id']} in league {result['league_code']}")
+        return result['team_id'] if result else None
+    except Exception as e:
+        print(f"Error getting user team ID: {e}")
+        return None
+
+def get_player_match_count(player_id, user_league_id=None):
+    """Get total match count for a specific player by querying all their matches directly, filtered by league"""
+    try:
+        if not player_id:
+            return 0
+        
+        # Count all matches where this player appears in any of the 4 positions, filtered by league
+        if user_league_id:
+            # Convert string league_id to integer foreign key if needed
+            league_id_int = None
+            if isinstance(user_league_id, str) and user_league_id != '':
+                try:
+                    league_record = execute_query_one(
+                        "SELECT id FROM leagues WHERE league_id = %s", 
+                        [user_league_id]
+                    )
+                    if league_record:
+                        league_id_int = league_record['id']
+                        print(f"[DEBUG] Using league_id filter: '{user_league_id}' -> {league_id_int}")
+                    else:
+                        print(f"[WARNING] League '{user_league_id}' not found in leagues table")
+                except Exception as e:
+                    print(f"[DEBUG] Could not convert league ID: {e}")
+            elif isinstance(user_league_id, int):
+                league_id_int = user_league_id
+                print(f"[DEBUG] League_id already integer: {league_id_int}")
+            
+            if league_id_int:
+                match_count_query = '''
+                    SELECT COUNT(DISTINCT id) as match_count
+                    FROM match_scores
+                    WHERE (home_player_1_id = %s 
+                       OR home_player_2_id = %s 
+                       OR away_player_1_id = %s 
+                       OR away_player_2_id = %s)
+                    AND league_id = %s
+                '''
+                result = execute_query_one(match_count_query, [player_id, player_id, player_id, player_id, league_id_int])
+            else:
+                # Fallback to no league filter if conversion failed
+                match_count_query = '''
+                    SELECT COUNT(DISTINCT id) as match_count
+                    FROM match_scores
+                    WHERE home_player_1_id = %s 
+                       OR home_player_2_id = %s 
+                       OR away_player_1_id = %s 
+                       OR away_player_2_id = %s
+                '''
+                result = execute_query_one(match_count_query, [player_id, player_id, player_id, player_id])
+        else:
+            # No league filter provided
+            match_count_query = '''
+                SELECT COUNT(DISTINCT id) as match_count
+                FROM match_scores
+                WHERE home_player_1_id = %s 
+                   OR home_player_2_id = %s 
+                   OR away_player_1_id = %s 
+                   OR away_player_2_id = %s
+            '''
+            result = execute_query_one(match_count_query, [player_id, player_id, player_id, player_id])
+        
+        match_count = result['match_count'] if result else 0
+        
+        print(f"[DEBUG] Player {player_id} (league {user_league_id}): found {match_count} matches")
+        return match_count
+        
+    except Exception as e:
+        print(f"Error getting match count for player {player_id}: {e}")
+        return 0
+
+def get_team_members_with_court_stats(team_id, user):
+    """Get all active players for a team with their court assignment statistics"""
+    try:
+        if not team_id:
+            return []
+        
+        # Get team members
+        team_members_query = '''
+            SELECT p.id, p.first_name, p.last_name, p.pti, p.tenniscores_player_id
+            FROM players p
+            WHERE p.team_id = %s AND p.is_active = TRUE
+            ORDER BY p.first_name, p.last_name
+        '''
+        
+        members = execute_query(team_members_query, [team_id])
+        if not members:
+            return []
+        
+        print(f"[DEBUG] Found {len(members)} team members for team {team_id}")
+        
+        # Get user's league_id for filtering (extract once at top)
+        user_league_id = user.get('league_id')
+        print(f"[DEBUG] User league_id: {user_league_id}")
+        
+        # Get team name for match filtering
+        team_name_query = '''
+            SELECT team_name, team_alias FROM teams WHERE id = %s
+        '''
+        team_info = execute_query_one(team_name_query, [team_id])
+        team_name = team_info.get('team_alias') or team_info.get('team_name') if team_info else None
+        
+        if not team_name:
+            print(f"[DEBUG] Could not find team name for team_id {team_id}")
+            return []
+        
+        print(f"[DEBUG] Team name: {team_name}")
+        
+        # Try both team_id and team_name approaches
+        team_matches = []
+        
+        # Convert string league_id to integer foreign key if needed
+        league_id_int = None
+        if isinstance(user_league_id, str) and user_league_id != '':
+            try:
+                league_record = execute_query_one(
+                    "SELECT id FROM leagues WHERE league_id = %s", 
+                    [user_league_id]
+                )
+                if league_record:
+                    league_id_int = league_record['id']
+                    print(f"[DEBUG] Converted league_id '{user_league_id}' -> {league_id_int}")
+                else:
+                    print(f"[WARNING] League '{user_league_id}' not found in leagues table")
+            except Exception as e:
+                print(f"[DEBUG] Could not convert league ID: {e}")
+        elif isinstance(user_league_id, int):
+            league_id_int = user_league_id
+            print(f"[DEBUG] League_id already integer: {league_id_int}")
+        
+        # First try using team_id (more reliable) with league filter
+        if team_id:
+            if league_id_int:
+                matches_by_id_query = '''
+                    SELECT 
+                        TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
+                        match_date,
+                        home_team as "Home Team",
+                        away_team as "Away Team",
+                        winner as "Winner",
+                        scores as "Scores",
+                        home_player_1_id as "Home Player 1",
+                        home_player_2_id as "Home Player 2",
+                        away_player_1_id as "Away Player 1",
+                        away_player_2_id as "Away Player 2",
+                        id
+                    FROM match_scores
+                    WHERE (home_team_id = %s OR away_team_id = %s)
+                    AND league_id = %s
+                    ORDER BY match_date, id
+                '''
+                team_matches = execute_query(matches_by_id_query, [team_id, team_id, league_id_int])
+            else:
+                matches_by_id_query = '''
+                    SELECT 
+                        TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
+                        match_date,
+                        home_team as "Home Team",
+                        away_team as "Away Team",
+                        winner as "Winner",
+                        scores as "Scores",
+                        home_player_1_id as "Home Player 1",
+                        home_player_2_id as "Home Player 2",
+                        away_player_1_id as "Away Player 1",
+                        away_player_2_id as "Away Player 2",
+                        id
+                    FROM match_scores
+                    WHERE (home_team_id = %s OR away_team_id = %s)
+                    ORDER BY match_date, id
+                '''
+                team_matches = execute_query(matches_by_id_query, [team_id, team_id])
+            print(f"[DEBUG] Found {len(team_matches)} matches using team_id {team_id} (league: {user_league_id})")
+        
+        # If no matches by team_id, try team_name with league filter
+        if not team_matches and team_name:
+            if league_id_int:
+                matches_by_name_query = '''
+                    SELECT 
+                        TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
+                        match_date,
+                        home_team as "Home Team",
+                        away_team as "Away Team",
+                        winner as "Winner",
+                        scores as "Scores",
+                        home_player_1_id as "Home Player 1",
+                        home_player_2_id as "Home Player 2",
+                        away_player_1_id as "Away Player 1",
+                        away_player_2_id as "Away Player 2",
+                        id
+                    FROM match_scores
+                    WHERE (home_team = %s OR away_team = %s)
+                    AND league_id = %s
+                    ORDER BY match_date, id
+                '''
+                team_matches = execute_query(matches_by_name_query, [team_name, team_name, league_id_int])
+            else:
+                matches_by_name_query = '''
+                    SELECT 
+                        TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
+                        match_date,
+                        home_team as "Home Team",
+                        away_team as "Away Team",
+                        winner as "Winner",
+                        scores as "Scores",
+                        home_player_1_id as "Home Player 1",
+                        home_player_2_id as "Home Player 2",
+                        away_player_1_id as "Away Player 1",
+                        away_player_2_id as "Away Player 2",
+                        id
+                    FROM match_scores
+                    WHERE (home_team = %s OR away_team = %s)
+                    ORDER BY match_date, id
+                '''
+                team_matches = execute_query(matches_by_name_query, [team_name, team_name])
+            print(f"[DEBUG] Found {len(team_matches)} matches using team_name '{team_name}' (league: {user_league_id})")
+        
+        # Debug: Show sample match data
+        if team_matches:
+            print(f"[DEBUG] Sample match: {team_matches[0]}")
+        else:
+            # Debug: Check if we have any matches at all for any similar team names
+            all_teams_query = '''
+                SELECT DISTINCT home_team, COUNT(*) as count
+                FROM match_scores 
+                GROUP BY home_team
+                ORDER BY count DESC
+                LIMIT 10
+            '''
+            all_teams = execute_query(all_teams_query)
+            print(f"[DEBUG] Top teams in database: {all_teams}")
+            
+            # Also check team_id matches
+            team_id_matches_query = '''
+                SELECT DISTINCT home_team_id, home_team, COUNT(*) as count
+                FROM match_scores 
+                WHERE home_team_id IS NOT NULL
+                GROUP BY home_team_id, home_team
+                ORDER BY count DESC
+                LIMIT 10
+            '''
+            team_id_matches = execute_query(team_id_matches_query)
+            print(f"[DEBUG] Top team_ids in database: {team_id_matches}")
+        
+        # Use the same court assignment logic as my-team page
+        court_assignments = calculate_player_court_stats(team_matches, team_name, members)
+        
+        # If no court assignments found, create sample data for testing court display
+        if not any(court_assignments.values()):
+            court_assignments = create_sample_court_data(members)
+        
+
+        
+        # Build final member list with court stats and calculated match counts
+        members_with_stats = []
+        for member in members:
+            full_name = f"{member['first_name']} {member['last_name']}"
+            player_court_stats = court_assignments.get(member['tenniscores_player_id'], {})
+            
+            # Get actual match count for this player (all matches, not just court assignments)
+            player_match_count = get_player_match_count(member['tenniscores_player_id'], user_league_id)
+            
+            member_data = {
+                'id': member['id'],
+                'name': full_name,
+                'first_name': member['first_name'],
+                'last_name': member['last_name'],
+                'pti': member.get('pti', 0),
+                'tenniscores_player_id': member['tenniscores_player_id'],
+                'court_stats': player_court_stats,
+                'match_count': player_match_count
+            }
+            members_with_stats.append(member_data)
+            
+            court_total = sum(player_court_stats.values()) if player_court_stats else 0
+        
+        # Sort team members by match count (most to least)
+        members_with_stats.sort(key=lambda member: member['match_count'], reverse=True)
+        
+        return members_with_stats
+        
+    except Exception as e:
+        print(f"Error getting team members with court stats: {e}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
+        return []
+
+def create_sample_court_data(members):
+    """Create sample court assignment data for testing when no real data is found"""
+    import random
+    court_assignments = {}
+    
+    for i, member in enumerate(members):
+        if member.get('tenniscores_player_id'):
+            # Create random court assignments
+            court_assignments[member['tenniscores_player_id']] = {
+                'court1': random.randint(0, 8),
+                'court2': random.randint(0, 8), 
+                'court3': random.randint(0, 8),
+                'court4': random.randint(0, 8)
+            }
+    
+    return court_assignments
+
+def calculate_player_court_stats(team_matches, team_name, members):
+    """Calculate how many times each player played on each court across ALL their matches"""
+    try:
+        from collections import defaultdict
+        from datetime import datetime
+        
+        # Create player court statistics
+        player_court_stats = defaultdict(lambda: defaultdict(int))
+        
+        # Create lookup of tenniscores_player_id to full name
+        player_name_lookup = {}
+        for member in members:
+            if member.get('tenniscores_player_id'):
+                full_name = f"{member['first_name']} {member['last_name']}"
+                player_name_lookup[member['tenniscores_player_id']] = full_name
+        
+        # For each team member, get ALL their matches (not just team matches)
+        for member in members:
+            player_id = member.get('tenniscores_player_id')
+            if not player_id:
+                continue
+                
+            player_name = f"{member['first_name']} {member['last_name']}"
+            
+            # Get ALL matches for this player across all teams
+            all_player_matches_query = '''
+                SELECT 
+                    TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
+                    match_date,
+                    home_team as "Home Team",
+                    away_team as "Away Team",
+                    home_player_1_id as "Home Player 1",
+                    home_player_2_id as "Home Player 2",
+                    away_player_1_id as "Away Player 1",
+                    away_player_2_id as "Away Player 2",
+                    id
+                FROM match_scores
+                WHERE (home_player_1_id = %s 
+                   OR home_player_2_id = %s 
+                   OR away_player_1_id = %s 
+                   OR away_player_2_id = %s)
+                ORDER BY match_date, id
+            '''
+            
+            player_matches = execute_query(all_player_matches_query, [player_id, player_id, player_id, player_id])
+            
+            if not player_matches:
+                continue
+            
+            # Group player's matches by date and team matchup (same logic as existing court systems)
+            matches_by_date_and_teams = defaultdict(lambda: defaultdict(list))
+            for match in player_matches:
+                date = match.get('Date')
+                home_team = match.get('Home Team', '')
+                away_team = match.get('Away Team', '')
+                team_matchup = f"{home_team} vs {away_team}"
+                matches_by_date_and_teams[date][team_matchup].append(match)
+            
+            # Process each match to determine court assignment
+            for match in player_matches:
+                # Determine if player is home or away in this match
+                is_home_player = (match.get('Home Player 1') == player_id or 
+                                match.get('Home Player 2') == player_id)
+                
+                # Determine court assignment using the correct team matchup logic
+                match_date = match.get('Date')
+                home_team = match.get('Home Team', '')
+                away_team = match.get('Away Team', '')
+                team_matchup = f"{home_team} vs {away_team}"
+                match_id = match.get('id')
+                
+                # Get ALL matches for this team matchup on this date, ordered by database ID
+                team_matchup_query = '''
+                    SELECT id, home_player_1_id, home_player_2_id, away_player_1_id, away_player_2_id
+                    FROM match_scores 
+                    WHERE TO_CHAR(match_date, 'DD-Mon-YY') = %s
+                    AND home_team = %s 
+                    AND away_team = %s
+                    ORDER BY id
+                '''
+                
+                team_day_matches_ordered = execute_query(team_matchup_query, [match_date, home_team, away_team])
+                
+                # Find this match's position within the ordered team matchup to assign court
+                court_num = None
+                for i, team_match in enumerate(team_day_matches_ordered, 1):
+                    if team_match.get('id') == match_id:
+                        court_num = min(i, 6)  # Courts 1-6 max within this team matchup
+                        break
+                
+                if court_num is None:
+                    continue
+                
+                court_key = f'court{court_num}'
+                player_court_stats[player_id][court_key] += 1
+        
+        # Convert defaultdict to regular dict for JSON serialization
+        result_court_stats = {}
+        for player_id, courts in player_court_stats.items():
+            result_court_stats[player_id] = dict(courts)
+        
+        return result_court_stats
+        
+    except Exception as e:
+        print(f"Error calculating player court stats: {e}")
+        return {}
+
 @mobile_bp.route('/mobile/track-byes-courts')
 @login_required
 def serve_track_byes_courts():
-    """Serve the Track Byes & Court Assignments page with dummy data"""
+    """Serve the Track Byes & Court Assignments page with dynamic court data and real team members"""
     try:
+        user = session['user']
+        
+        # Get user's team ID
+        team_id = get_user_team_id(user)
+        print(f"[DEBUG] User team ID: {team_id}")
+        
+        # Get actual team members with their court assignment statistics
+        team_members = []
+        if team_id:
+            team_members = get_team_members_with_court_stats(team_id, user)
+        
+        # If no team members found, provide sample data as fallback
+        if not team_members:
+            team_members = [
+                {'id': 1, 'name': 'John Smith', 'first_name': 'John', 'last_name': 'Smith', 'pti': 25.0},
+                {'id': 2, 'name': 'Sarah Johnson', 'first_name': 'Sarah', 'last_name': 'Johnson', 'pti': 30.0},
+                {'id': 3, 'name': 'Mike Davis', 'first_name': 'Mike', 'last_name': 'Davis', 'pti': 28.0},
+                {'id': 4, 'name': 'Lisa Wilson', 'first_name': 'Lisa', 'last_name': 'Wilson', 'pti': 32.0},
+                {'id': 5, 'name': 'David Brown', 'first_name': 'David', 'last_name': 'Brown', 'pti': 26.0},
+                {'id': 6, 'name': 'Emily Chen', 'first_name': 'Emily', 'last_name': 'Chen', 'pti': 29.0}
+            ]
+            print(f"[DEBUG] Using fallback sample data: {len(team_members)} members")
+        
+        # Get dynamic court data using the same logic as my-team page
+        team_data = get_mobile_team_data(user)
+        court_analysis = team_data.get('court_analysis', {})
+        
+        # Extract court information dynamically
+        available_courts = []
+        for court_key in sorted(court_analysis.keys()):
+            court_number = court_key.replace('court', '')
+            available_courts.append({
+                'number': court_number,
+                'key': court_key,
+                'name': f'Court {court_number}'
+            })
+        
+        # If no courts found, default to 4 courts
+        if not available_courts:
+            available_courts = [
+                {'number': '1', 'key': 'court1', 'name': 'Court 1'},
+                {'number': '2', 'key': 'court2', 'name': 'Court 2'},
+                {'number': '3', 'key': 'court3', 'name': 'Court 3'},
+                {'number': '4', 'key': 'court4', 'name': 'Court 4'}
+            ]
+        
         session_data = {
-            'user': session['user'],
+            'user': user,
             'authenticated': True
         }
         
-        log_user_activity(session['user']['email'], 'page_visit', page='track_byes_courts')
-        return render_template('mobile/track_byes_courts.html', session_data=session_data)
+        log_user_activity(user['email'], 'page_visit', page='track_byes_courts')
+        
+        return render_template('mobile/track_byes_courts.html', 
+                             session_data=session_data,
+                             available_courts=available_courts,
+                             court_analysis=court_analysis,
+                             team_members=team_members,
+                             team_id=team_id)
         
     except Exception as e:
         print(f"Error serving track byes courts page: {str(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
+        
+        # Fallback with default courts and sample team members
+        session_data = {
+            'user': session.get('user'),
+            'authenticated': True
+        }
+        
+        default_courts = [
+            {'number': '1', 'key': 'court1', 'name': 'Court 1'},
+            {'number': '2', 'key': 'court2', 'name': 'Court 2'},
+            {'number': '3', 'key': 'court3', 'name': 'Court 3'},
+            {'number': '4', 'key': 'court4', 'name': 'Court 4'}
+        ]
+        
+        fallback_members = [
+            {'id': 1, 'name': 'John Smith', 'first_name': 'John', 'last_name': 'Smith', 'pti': 25.0},
+            {'id': 2, 'name': 'Sarah Johnson', 'first_name': 'Sarah', 'last_name': 'Johnson', 'pti': 30.0}
+        ]
+        
+        return render_template('mobile/track_byes_courts.html', 
+                             session_data=session_data,
+                             available_courts=default_courts,
+                             court_analysis={},
+                             team_members=fallback_members,
+                             team_id=None,
+                             error="Could not load dynamic data")
+        
+    except Exception as e:
+        print(f"Critical error serving track byes courts page: {str(e)}")
         return jsonify({'error': str(e)}), 500

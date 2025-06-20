@@ -400,9 +400,11 @@ function renderSubsTable(players) {
         html += `<tr id="top-player-label-row"><td colspan="8" class="top-player-label text-center" style="background:#145a32;color:#fff;font-weight:bold;">` +
             `<strong>Top recommended subs based upon Rally's algorithm</strong></td></tr>`;
         topPlayers.forEach(player => {
+            // Transform series display from "Chicago XX" to "Series XX"
+            const displaySeries = player.series ? player.series.replace(/^Chicago\s+(\d+.*)$/i, 'Series $1') : player.series;
             html += `
             <tr class="top-player">
-                <td style="font-weight:bold">${player.series}</td>
+                <td style="font-weight:bold">${displaySeries}</td>
                 <td style="font-weight:bold">${player.name}</td>
                 <td class="text-end" style="font-weight:bold">${player.pti}</td>
                 <td class="text-end" style="font-weight:bold">${player.wins}</td>
@@ -416,9 +418,11 @@ function renderSubsTable(players) {
         });
     }
     restPlayers.forEach(player => {
+        // Transform series display from "Chicago XX" to "Series XX"
+        const displaySeries = player.series ? player.series.replace(/^Chicago\s+(\d+.*)$/i, 'Series $1') : player.series;
         html += `
         <tr>
-            <td>${player.series}</td>
+            <td>${displaySeries}</td>
             <td>${player.name}</td>
             <td class="text-end">${player.pti}</td>
             <td class="text-end">${player.wins}</td>

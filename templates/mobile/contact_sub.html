@@ -257,7 +257,7 @@ function loadContactInfo() {
                     <h2 class="text-2xl font-bold text-gray-900">${data.first_name} ${data.last_name}</h2>
                     <p class="text-lg text-gray-600 mt-1 flex items-center justify-center gap-2">
                         <i class="fas fa-trophy text-yellow-500"></i>
-                        ${data.series}
+                        ${data.series ? data.series.replace(/^Chicago\s+(\d+.*)$/i, 'Series $1') : data.series}
                     </p>
                 </div>
                 

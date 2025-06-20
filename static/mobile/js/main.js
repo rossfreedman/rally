@@ -222,7 +222,7 @@ function getLoadingTextForUrl(url) {
         // Act section
         '/mobile/availability': 'Loading Schedule...',
         '/mobile/availability-calendar': 'Loading Calendar...',
-        '/mobile/find-people-to-play': 'Finding Club Members...',
+        '/mobile/find-people-to-play': 'Search Players...',
         '/mobile/polls': 'Loading Team Polls...',
         '/mobile/improve': 'Loading Improvement Tools...',
         '/mobile/reserve-court': 'Loading Court Reservations...',

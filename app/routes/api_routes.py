@@ -1642,8 +1642,6 @@ def get_series_by_league():
         print(f"Error getting series by league: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-
-
 @api_bp.route('/api/teams')
 @login_required
 def get_teams():
@@ -1899,4 +1897,155 @@ def get_pti_analysis_match_history():
         
     except Exception as e:
         print(f"Error getting PTI analysis match history: {str(e)}")
-        return jsonify({'error': str(e)}), 500 
+        return jsonify({'error': str(e)}), 500
+
+@api_bp.route('/api/player-season-tracking', methods=['GET', 'POST'])
+@login_required
+def handle_player_season_tracking():
+    """Handle getting and updating player season tracking data"""
+    try:
+        user = session['user']
+        current_year = datetime.now().year
+        
+        # Determine current tennis season year (Aug-July seasons)
+        current_month = datetime.now().month
+        if current_month >= 8:  # Aug-Dec: current season
+            season_year = current_year
+        else:  # Jan-Jul: previous season
+            season_year = current_year - 1
+        
+        # Get user's league for filtering
+        user_league_id = user.get('league_id', '')
+        league_id_int = None
+        if isinstance(user_league_id, str) and user_league_id != '':
+            try:
+                league_record = execute_query_one(
+                    "SELECT id FROM leagues WHERE league_id = %s", 
+                    [user_league_id]
+                )
+                if league_record:
+                    league_id_int = league_record['id']
+            except Exception as e:
+                pass
+        elif isinstance(user_league_id, int):
+            league_id_int = user_league_id
+        
+        if request.method == 'GET':
+            # Return current season tracking data for all players in user's team/league
+            
+            # Get user's team ID to fetch team members
+            from app.routes.mobile_routes import get_user_team_id
+            team_id = get_user_team_id(user)
+            
+            if not team_id:
+                return jsonify({'error': 'No team found for user'}), 400
+            
+            # Get team members
+            team_members_query = '''
+                SELECT p.tenniscores_player_id, p.first_name, p.last_name
+                FROM players p
+                WHERE p.team_id = %s AND p.is_active = TRUE
+            '''
+            team_members = execute_query(team_members_query, [team_id])
+            
+            # Get existing tracking data for these players
+            if team_members and league_id_int:
+                player_ids = [member['tenniscores_player_id'] for member in team_members]
+                placeholders = ','.join(['%s'] * len(player_ids))
+                
+                tracking_query = f'''
+                    SELECT player_id, forced_byes, not_available, injury
+                    FROM player_season_tracking
+                    WHERE player_id IN ({placeholders})
+                    AND league_id = %s
+                    AND season_year = %s
+                '''
+                tracking_data = execute_query(tracking_query, player_ids + [league_id_int, season_year])
+                
+                # Build response with player names and tracking data
+                tracking_dict = {row['player_id']: row for row in tracking_data}
+                
+                result = []
+                for member in team_members:
+                    player_id = member['tenniscores_player_id']
+                    tracking = tracking_dict.get(player_id, {
+                        'forced_byes': 0, 'not_available': 0, 'injury': 0
+                    })
+                    
+                    result.append({
+                        'player_id': player_id,
+                        'name': f"{member['first_name']} {member['last_name']}",
+                        'forced_byes': tracking['forced_byes'],
+                        'not_available': tracking['not_available'],
+                        'injury': tracking['injury']
+                    })
+                
+                return jsonify({
+                    'season_year': season_year,
+                    'players': result
+                })
+            else:
+                return jsonify({
+                    'season_year': season_year,
+                    'players': []
+                })
+        
+        elif request.method == 'POST':
+            # Update tracking data for a specific player
+            data = request.get_json()
+            
+            if not data or not all(key in data for key in ['player_id', 'type', 'value']):
+                return jsonify({'error': 'Missing required fields: player_id, type, value'}), 400
+            
+            player_id = data['player_id']
+            tracking_type = data['type']  # 'forced_byes', 'not_available', or 'injury'
+            value = int(data['value'])
+            
+            # Validate tracking type
+            if tracking_type not in ['forced_byes', 'not_available', 'injury']:
+                return jsonify({'error': 'Invalid tracking type'}), 400
+            
+            # Validate value
+            if value < 0 or value > 50:  # Reasonable limits
+                return jsonify({'error': 'Value must be between 0 and 50'}), 400
+            
+            if not league_id_int:
+                return jsonify({'error': 'Could not determine user league'}), 400
+            
+            # Use UPSERT to insert or update the tracking record
+            upsert_query = f'''
+                INSERT INTO player_season_tracking (player_id, league_id, season_year, {tracking_type})
+                VALUES (%s, %s, %s, %s)
+                ON CONFLICT (player_id, league_id, season_year)
+                DO UPDATE SET 
+                    {tracking_type} = EXCLUDED.{tracking_type},
+                    updated_at = CURRENT_TIMESTAMP
+                RETURNING forced_byes, not_available, injury
+            '''
+            
+            result = execute_query_one(upsert_query, [player_id, league_id_int, season_year, value])
+            
+            if result:
+                # Log the activity
+                log_user_activity(
+                    user['email'], 
+                    'update_season_tracking', 
+                    action=f"Updated {tracking_type} to {value} for player {player_id}"
+                )
+                
+                return jsonify({
+                    'success': True,
+                    'player_id': player_id,
+                    'season_year': season_year,
+                    'forced_byes': result['forced_byes'],
+                    'not_available': result['not_available'],
+                    'injury': result['injury']
+                })
+            else:
+                return jsonify({'error': 'Failed to update tracking data'}), 500
+        
+    except Exception as e:
+        print(f"Error in player season tracking API: {str(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
+        return jsonify({'error': 'Internal server error'}), 500 

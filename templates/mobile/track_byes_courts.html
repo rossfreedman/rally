@@ -20,20 +20,7 @@
     <!-- Content -->
     <div class="px-4 py-6 space-y-6">
         
-        <!-- Coming Soon Notice -->
-        <div class="bg-yellow-300 border border-yellow-400 rounded-xl p-4">
-            <div class="flex items-start">
-                <div class="flex-shrink-0">
-                    <i class="fas fa-rocket text-black text-lg mt-0.5"></i>
-                </div>
-                <div class="ml-3">
-                    <div class="font-semibold text-black mb-2">🚀 Coming Soon!</div>
-                    <div class="text-sm text-black">
-                        This feature is in development. The data below shows a preview of functionality with sample data.
-                    </div>
-                </div>
-            </div>
-        </div>
+
 
 
 
@@ -61,8 +48,8 @@
                         <span>Not Available</span>
                     </div>
                     <div class="flex items-center">
-                        <i class="fas fa-bandage text-purple-500 text-lg mr-2"></i>
-                        <span class="text-purple-700 font-medium">Injury</span>
+                        <i class="fas fa-bandage text-red-500 text-lg mr-2"></i>
+                        <span class="text-red-700 font-medium">Injury</span>
                     </div>
                 </div>
             </div>
@@ -75,86 +62,67 @@
                     <i class="fas fa-users text-green-500 mr-2"></i>
                     Team Roster Tracking
                 </h2>
-                <p class="text-sm text-gray-500 mt-1">Click on numbers to edit (sample data)</p>
+                <p class="text-sm text-gray-500 mt-1">
+                    {% if team_members %}
+                    Current season court assignments for your {{ team_members|length }} team members. Click numbers to edit.
+                    {% else %}
+                    No team members found - using sample data for demonstration
+                    {% endif %}
+                </p>
             </div>
             
             <div class="p-6">
-                <div class="overflow-x-auto">
+                <!-- Scroll Indicator -->
+                <div class="flex items-center justify-center mb-4 text-sm text-gray-600 bg-blue-50 border border-blue-200 rounded-lg p-3" id="scrollIndicator">
+                    <i class="fas fa-arrows-alt-h text-blue-600 mr-2"></i>
+                    <span class="font-medium">Swipe left/right to see all court assignments</span>
+                    <i class="fas fa-arrow-right text-blue-600 ml-2 animate-pulse"></i>
+                </div>
+                
+                <div class="overflow-x-auto" id="tableContainer">
                     <table class="min-w-full table-auto">
                         <thead>
                             <tr class="bg-gray-50">
                                 <th class="px-3 py-3 text-left font-semibold text-gray-700 text-sm sticky left-0 bg-gray-50 z-10 border-r border-gray-200">Player</th>
+                                <th class="px-3 py-3 text-center font-semibold text-gray-700 text-sm bg-blue-100"># Matches Played</th>
                                 <th class="px-3 py-3 text-center font-semibold text-gray-700 text-sm bg-red-100">Forced Byes</th>
                                 <th class="px-3 py-3 text-center font-semibold text-gray-700 text-sm bg-yellow-100">Not Available</th>
-                                <th class="px-3 py-3 text-center font-semibold text-gray-700 text-sm bg-purple-200">Injury</th>
-                                <th class="px-3 py-3 text-center font-semibold text-gray-700 text-sm bg-green-100">Court 1</th>
-                                <th class="px-3 py-3 text-center font-semibold text-gray-700 text-sm bg-green-100">Court 2</th>
-                                <th class="px-3 py-3 text-center font-semibold text-gray-700 text-sm bg-green-100">Court 3</th>
-                                <th class="px-3 py-3 text-center font-semibold text-gray-700 text-sm bg-green-100">Court 4</th>
+                                <th class="px-3 py-3 text-center font-semibold text-gray-700 text-sm bg-red-200">Injury</th>
+                                {% for court in available_courts %}
+                                <th class="px-3 py-3 text-center font-semibold text-gray-700 text-sm bg-green-100">{{ court.name }}</th>
+                                {% endfor %}
                             </tr>
                         </thead>
                         <tbody id="rosterTableBody">
-                            <!-- Sample roster data -->
-                            <tr class="border-t border-gray-50 roster-row" data-event-type="match">
-                                <td class="px-3 py-3 font-medium text-gray-900 text-sm sticky left-0 bg-white z-10 border-r border-gray-200">John Smith</td>
-                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-red-100 px-2 py-1 rounded cursor-pointer hover:bg-red-200" data-player="John Smith" data-type="bye">1</span></td>
-                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-yellow-100 px-2 py-1 rounded cursor-pointer hover:bg-yellow-200" data-player="John Smith" data-type="unavailable">0</span></td>
-                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-purple-100 px-2 py-1 rounded cursor-pointer hover:bg-purple-200" data-player="John Smith" data-type="injury">0</span></td>
-                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-green-100 px-2 py-1 rounded cursor-pointer hover:bg-green-200" data-player="John Smith" data-type="court1">3</span></td>
-                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-green-100 px-2 py-1 rounded cursor-pointer hover:bg-green-200" data-player="John Smith" data-type="court2">2</span></td>
-                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-green-100 px-2 py-1 rounded cursor-pointer hover:bg-green-200" data-player="John Smith" data-type="court3">1</span></td>
-                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-green-100 px-2 py-1 rounded cursor-pointer hover:bg-green-200" data-player="John Smith" data-type="court4">2</span></td>
+                            <!-- Dynamic team roster data -->
+                            {% for member in team_members %}
+                            <tr class="border-t border-gray-50 roster-row" data-event-type="match" data-player-id="{{ member.id }}">
+                                <td class="px-3 py-3 font-medium text-gray-900 text-sm sticky left-0 bg-white z-10 border-r border-gray-200">
+                                    {{ member.name }}
+                                </td>
+                                <td class="px-3 py-3 text-center">
+                                    <span class="bg-blue-100 px-2 py-1 rounded font-semibold text-blue-800">{{ member.match_count }}</span>
+                                </td>
+                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-red-100 px-2 py-1 rounded cursor-pointer hover:bg-red-200" data-player="{{ member.name }}" data-type="bye">0</span></td>
+                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-yellow-100 px-2 py-1 rounded cursor-pointer hover:bg-yellow-200" data-player="{{ member.name }}" data-type="unavailable">0</span></td>
+                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-red-100 px-2 py-1 rounded cursor-pointer hover:bg-red-200" data-player="{{ member.name }}" data-type="injury">0</span></td>
+                                {% for court in available_courts %}
+                                {% set court_count = member.court_stats.get(court.key, 0) if member.court_stats else 0 %}
+                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-green-100 px-2 py-1 rounded cursor-pointer hover:bg-green-200" data-player="{{ member.name }}" data-type="{{ court.key }}">{{ court_count }}</span></td>
+                                {% endfor %}
                             </tr>
-                            <tr class="border-t border-gray-50 roster-row" data-event-type="practice">
-                                <td class="px-3 py-3 font-medium text-gray-900 text-sm sticky left-0 bg-white z-10 border-r border-gray-200">Sarah Johnson</td>
-                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-red-100 px-2 py-1 rounded cursor-pointer hover:bg-red-200" data-player="Sarah Johnson" data-type="bye">0</span></td>
-                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-yellow-100 px-2 py-1 rounded cursor-pointer hover:bg-yellow-200" data-player="Sarah Johnson" data-type="unavailable">1</span></td>
-                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-purple-100 px-2 py-1 rounded cursor-pointer hover:bg-purple-200" data-player="Sarah Johnson" data-type="injury">0</span></td>
-                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-green-100 px-2 py-1 rounded cursor-pointer hover:bg-green-200" data-player="Sarah Johnson" data-type="court1">2</span></td>
-                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-green-100 px-2 py-1 rounded cursor-pointer hover:bg-green-200" data-player="Sarah Johnson" data-type="court2">3</span></td>
-                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-green-100 px-2 py-1 rounded cursor-pointer hover:bg-green-200" data-player="Sarah Johnson" data-type="court3">2</span></td>
-                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-green-100 px-2 py-1 rounded cursor-pointer hover:bg-green-200" data-player="Sarah Johnson" data-type="court4">1</span></td>
+                            {% endfor %}
+                            
+                            {% if not team_members %}
+                            <!-- Fallback message if no team members found -->
+                            <tr class="border-t border-gray-50">
+                                <td colspan="{{ 5 + available_courts|length }}" class="px-3 py-6 text-center text-gray-500">
+                                    <i class="fas fa-users text-2xl mb-2 opacity-50"></i>
+                                    <div>No team members found</div>
+                                    <div class="text-sm">Check your team assignment or contact support</div>
+                                </td>
                             </tr>
-                            <tr class="border-t border-gray-50 roster-row" data-event-type="match">
-                                <td class="px-3 py-3 font-medium text-gray-900 text-sm sticky left-0 bg-white z-10 border-r border-gray-200">Mike Davis</td>
-                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-red-100 px-2 py-1 rounded cursor-pointer hover:bg-red-200" data-player="Mike Davis" data-type="bye">2</span></td>
-                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-yellow-100 px-2 py-1 rounded cursor-pointer hover:bg-yellow-200" data-player="Mike Davis" data-type="unavailable">0</span></td>
-                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-purple-100 px-2 py-1 rounded cursor-pointer hover:bg-purple-200" data-player="Mike Davis" data-type="injury">1</span></td>
-                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-green-100 px-2 py-1 rounded cursor-pointer hover:bg-green-200" data-player="Mike Davis" data-type="court1">1</span></td>
-                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-green-100 px-2 py-1 rounded cursor-pointer hover:bg-green-200" data-player="Mike Davis" data-type="court2">2</span></td>
-                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-green-100 px-2 py-1 rounded cursor-pointer hover:bg-green-200" data-player="Mike Davis" data-type="court3">3</span></td>
-                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-green-100 px-2 py-1 rounded cursor-pointer hover:bg-green-200" data-player="Mike Davis" data-type="court4">2</span></td>
-                            </tr>
-                            <tr class="border-t border-gray-50 roster-row" data-event-type="practice">
-                                <td class="px-3 py-3 font-medium text-gray-900 text-sm sticky left-0 bg-white z-10 border-r border-gray-200">Lisa Wilson</td>
-                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-red-100 px-2 py-1 rounded cursor-pointer hover:bg-red-200" data-player="Lisa Wilson" data-type="bye">0</span></td>
-                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-yellow-100 px-2 py-1 rounded cursor-pointer hover:bg-yellow-200" data-player="Lisa Wilson" data-type="unavailable">2</span></td>
-                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-purple-100 px-2 py-1 rounded cursor-pointer hover:bg-purple-200" data-player="Lisa Wilson" data-type="injury">0</span></td>
-                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-green-100 px-2 py-1 rounded cursor-pointer hover:bg-green-200" data-player="Lisa Wilson" data-type="court1">4</span></td>
-                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-green-100 px-2 py-1 rounded cursor-pointer hover:bg-green-200" data-player="Lisa Wilson" data-type="court2">1</span></td>
-                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-green-100 px-2 py-1 rounded cursor-pointer hover:bg-green-200" data-player="Lisa Wilson" data-type="court3">1</span></td>
-                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-green-100 px-2 py-1 rounded cursor-pointer hover:bg-green-200" data-player="Lisa Wilson" data-type="court4">2</span></td>
-                            </tr>
-                            <tr class="border-t border-gray-50 roster-row" data-event-type="match">
-                                <td class="px-3 py-3 font-medium text-gray-900 text-sm sticky left-0 bg-white z-10 border-r border-gray-200">David Brown</td>
-                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-red-100 px-2 py-1 rounded cursor-pointer hover:bg-red-200" data-player="David Brown" data-type="bye">1</span></td>
-                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-yellow-100 px-2 py-1 rounded cursor-pointer hover:bg-yellow-200" data-player="David Brown" data-type="unavailable">1</span></td>
-                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-purple-100 px-2 py-1 rounded cursor-pointer hover:bg-purple-200" data-player="David Brown" data-type="injury">0</span></td>
-                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-green-100 px-2 py-1 rounded cursor-pointer hover:bg-green-200" data-player="David Brown" data-type="court1">2</span></td>
-                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-green-100 px-2 py-1 rounded cursor-pointer hover:bg-green-200" data-player="David Brown" data-type="court2">2</span></td>
-                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-green-100 px-2 py-1 rounded cursor-pointer hover:bg-green-200" data-player="David Brown" data-type="court3">3</span></td>
-                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-green-100 px-2 py-1 rounded cursor-pointer hover:bg-green-200" data-player="David Brown" data-type="court4">1</span></td>
-                            </tr>
-                            <tr class="border-t border-gray-50 roster-row" data-event-type="practice">
-                                <td class="px-3 py-3 font-medium text-gray-900 text-sm sticky left-0 bg-white z-10 border-r border-gray-200">Emily Chen</td>
-                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-red-100 px-2 py-1 rounded cursor-pointer hover:bg-red-200" data-player="Emily Chen" data-type="bye">0</span></td>
-                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-yellow-100 px-2 py-1 rounded cursor-pointer hover:bg-yellow-200" data-player="Emily Chen" data-type="unavailable">0</span></td>
-                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-purple-100 px-2 py-1 rounded cursor-pointer hover:bg-purple-200" data-player="Emily Chen" data-type="injury">0</span></td>
-                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-green-100 px-2 py-1 rounded cursor-pointer hover:bg-green-200" data-player="Emily Chen" data-type="court1">1</span></td>
-                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-green-100 px-2 py-1 rounded cursor-pointer hover:bg-green-200" data-player="Emily Chen" data-type="court2">3</span></td>
-                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-green-100 px-2 py-1 rounded cursor-pointer hover:bg-green-200" data-player="Emily Chen" data-type="court3">2</span></td>
-                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-green-100 px-2 py-1 rounded cursor-pointer hover:bg-green-200" data-player="Emily Chen" data-type="court4">2</span></td>
-                            </tr>
+                            {% endif %}
                         </tbody>
                     </table>
                 </div>
@@ -194,10 +162,179 @@
 .shadow-sm {
     box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 }
+
+/* Animation utilities */
+.animate-pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: .5;
+    }
+}
+
+/* Scroll indicator transitions */
+#scrollIndicator {
+    transition: opacity 0.3s ease;
+}
+
+/* Table container smooth scroll */
+#tableContainer {
+    scroll-behavior: smooth;
+}
 </style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Global variable to store season tracking data
+    let seasonTrackingData = {};
+
+    // Load existing season tracking data
+    loadSeasonTrackingData();
+
+    // Auto-scroll animation on page load
+    const tableContainer = document.getElementById('tableContainer');
+    const scrollIndicator = document.getElementById('scrollIndicator');
+    
+    if (tableContainer) {
+        // Small delay to ensure everything is loaded
+        setTimeout(() => {
+            // Scroll right 50px
+            tableContainer.scrollTo({
+                left: 50,
+                behavior: 'smooth'
+            });
+            
+            // After 1 second, scroll back to left
+            setTimeout(() => {
+                tableContainer.scrollTo({
+                    left: 0,
+                    behavior: 'smooth'
+                });
+            }, 1000);
+        }, 500);
+        
+        // Hide scroll indicator when user manually scrolls
+        tableContainer.addEventListener('scroll', function() {
+            if (this.scrollLeft > 0) {
+                scrollIndicator.style.opacity = '0.7';
+            } else {
+                scrollIndicator.style.opacity = '1';
+            }
+        });
+    }
+
+    // Function to load existing season tracking data
+    function loadSeasonTrackingData() {
+        console.log('Loading season tracking data...');
+        fetch('/api/player-season-tracking')
+            .then(response => {
+                console.log('Load response status:', response.status);
+                return response.json();
+            })
+            .then(data => {
+                console.log('Load response data:', data);
+                if (data.players) {
+                    console.log('Found', data.players.length, 'players in tracking data');
+                    // Store data globally
+                    data.players.forEach(player => {
+                        console.log('Storing data for:', player.name, player);
+                        seasonTrackingData[player.name] = {
+                            player_id: player.player_id,
+                            forced_byes: player.forced_byes,
+                            not_available: player.not_available,
+                            injury: player.injury
+                        };
+                    });
+                    
+                    console.log('Final seasonTrackingData:', seasonTrackingData);
+                    // Update the UI with loaded data
+                    updateTrackingCells();
+                } else {
+                    console.log('No players found in response');
+                }
+            })
+            .catch(error => {
+                console.error('Error loading season tracking data:', error);
+            });
+    }
+
+    // Function to update tracking cells with loaded data
+    function updateTrackingCells() {
+        document.querySelectorAll('.editable-cell').forEach(cell => {
+            const playerName = cell.dataset.player;
+            const type = cell.dataset.type;
+            
+            // Skip court cells (they have different data types)
+            if (type.startsWith('court')) return;
+            
+            // Map frontend type names to database field names
+            const dbFieldMap = {
+                'bye': 'forced_byes',
+                'unavailable': 'not_available',
+                'injury': 'injury'
+            };
+            
+            const dbFieldName = dbFieldMap[type];
+            if (seasonTrackingData[playerName] && dbFieldName && seasonTrackingData[playerName][dbFieldName] !== undefined) {
+                cell.textContent = seasonTrackingData[playerName][dbFieldName];
+            }
+        });
+    }
+
+    // Function to save season tracking data
+    function saveSeasonTrackingData(playerName, type, value) {
+        console.log('Saving data:', { playerName, type, value });
+        
+        const playerData = seasonTrackingData[playerName];
+        if (!playerData || !playerData.player_id) {
+            console.error('Player data not found:', playerName, seasonTrackingData);
+            showToast('Error: Could not find player data', 'error');
+            return;
+        }
+
+        const requestData = {
+            player_id: playerData.player_id,
+            type: type,
+            value: parseInt(value)
+        };
+        
+        console.log('Sending request:', requestData);
+
+        fetch('/api/player-season-tracking', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(requestData)
+        })
+        .then(response => {
+            console.log('Response status:', response.status);
+            return response.json();
+        })
+        .then(data => {
+            console.log('Response data:', data);
+            if (data.success) {
+                // Update local data
+                seasonTrackingData[playerName].forced_byes = data.forced_byes;
+                seasonTrackingData[playerName].not_available = data.not_available;
+                seasonTrackingData[playerName].injury = data.injury;
+                
+                showToast(`Updated ${playerName}: ${type.replace('_', ' ')} = ${value}`, 'success');
+            } else {
+                console.error('API error:', data.error);
+                showToast(`Error: ${data.error}`, 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error saving season tracking data:', error);
+            showToast('Error saving data', 'error');
+        });
+    }
 
     // Editable cell functionality
     const editableCells = document.querySelectorAll('.editable-cell');
@@ -208,11 +345,17 @@ document.addEventListener('DOMContentLoaded', function() {
             const player = this.dataset.player;
             const type = this.dataset.type;
             
+            // Skip court cells (they're read-only for now)
+            if (type.startsWith('court')) {
+                showToast('Court assignments are read-only', 'info');
+                return;
+            }
+            
             // Create input element
             const input = document.createElement('input');
             input.type = 'number';
             input.min = '0';
-            input.max = '20';
+            input.max = '50';
             input.value = currentValue;
             input.className = 'w-12 text-center border border-gray-300 rounded px-1 py-0.5 text-sm';
             
@@ -225,10 +368,31 @@ document.addEventListener('DOMContentLoaded', function() {
             // Handle save on blur or enter
             function saveValue() {
                 const newValue = parseInt(input.value) || 0;
+                
+                // Validate value
+                if (newValue < 0 || newValue > 50) {
+                    showToast('Value must be between 0 and 50', 'error');
+                    cell.textContent = currentValue;
+                    return;
+                }
+                
+                // Update cell immediately for UI responsiveness
                 cell.textContent = newValue;
                 
-                // Show toast notification
-                showToast(`Updated ${player}: ${type.replace(/(\d+)/, ' $1').replace(/([A-Z])/g, ' $1').trim()} = ${newValue}`, 'success');
+                // Save to database (only for tracking types, not court assignments)
+                if (['bye', 'unavailable', 'injury'].includes(type)) {
+                    // Map frontend type names to database field names
+                    const dbFieldMap = {
+                        'bye': 'forced_byes',
+                        'unavailable': 'not_available',
+                        'injury': 'injury'
+                    };
+                    
+                    const dbFieldName = dbFieldMap[type];
+                    if (dbFieldName) {
+                        saveSeasonTrackingData(player, dbFieldName, newValue);
+                    }
+                }
             }
             
             input.addEventListener('blur', saveValue);
@@ -245,10 +409,30 @@ document.addEventListener('DOMContentLoaded', function() {
     // Toast notification function
     function showToast(message, type = 'success') {
         const toast = document.createElement('div');
-        toast.className = `fixed top-20 right-4 z-50 p-4 rounded-lg shadow-lg text-white text-sm max-w-sm transform translate-x-full transition-transform duration-300 ${type === 'success' ? 'bg-green-600' : 'bg-red-600'}`;
+        let bgColor, icon;
+        
+        switch(type) {
+            case 'success':
+                bgColor = 'bg-green-600';
+                icon = 'fa-check-circle';
+                break;
+            case 'error':
+                bgColor = 'bg-red-600';
+                icon = 'fa-exclamation-circle';
+                break;
+            case 'info':
+                bgColor = 'bg-blue-600';
+                icon = 'fa-info-circle';
+                break;
+            default:
+                bgColor = 'bg-gray-600';
+                icon = 'fa-info-circle';
+        }
+        
+        toast.className = `fixed top-20 right-4 z-50 p-4 rounded-lg shadow-lg text-white text-sm max-w-sm transform translate-x-full transition-transform duration-300 ${bgColor}`;
         toast.innerHTML = `
             <div class="flex items-center">
-                <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'} mr-2"></i>
+                <i class="fas ${icon} mr-2"></i>
                 <span>${message}</span>
             </div>
         `;

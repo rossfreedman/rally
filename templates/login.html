@@ -436,7 +436,9 @@
                     data.series.forEach(series => {
                         const option = document.createElement('option');
                         option.value = series;
-                        option.textContent = series;
+                        // Transform display text from "Chicago XX" to "Series XX"
+                        const displayText = series.replace(/^Chicago\s+(\d+.*)$/i, 'Series $1');
+                        option.textContent = displayText;
                         seriesSelect.appendChild(option);
                     });
                 } else {
@@ -458,7 +460,9 @@
                         data.all_series.forEach(series => {
                             const option = document.createElement('option');
                             option.value = series;
-                            option.textContent = series;
+                            // Transform display text from "Chicago XX" to "Series XX"
+                            const displayText = series.replace(/^Chicago\s+(\d+.*)$/i, 'Series $1');
+                            option.textContent = displayText;
                             seriesSelect.appendChild(option);
                         });
                     } else {
