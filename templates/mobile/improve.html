@@ -7,11 +7,11 @@
     <!-- Header -->
     <div class="bg-white border-b border-gray-100">
         <div class="flex items-center px-4 py-6">
-            <div class="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-full flex items-center justify-center shadow-sm">
+            <div class="w-12 h-12 bg-emerald-600 rounded-full flex items-center justify-center shadow-sm">
                 <i class="fas fa-chart-line text-white text-lg"></i>
             </div>
             <div class="ml-4">
-                <h1 class="text-xl font-bold text-gray-900">Improve<br>My Game</h1>
+                <h1 class="text-xl font-bold text-gray-900 whitespace-nowrap">Improve My Game</h1>
                 <p class="text-sm text-gray-500">Training resources and performance analysis</p>
             </div>
         </div>
@@ -19,50 +19,6 @@
 
     <!-- Content -->
     <div class="px-4 py-6 space-y-6">
-
-        <!-- Paddle Tips Section -->
-        {% if paddle_tips %}
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="bg-gradient-to-br from-blue-500 to-purple-600 p-6 text-white">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="flex items-center">
-                        <i class="fas fa-lightbulb text-yellow-300 text-2xl mr-3"></i>
-                        <h3 class="text-xl font-bold" id="tipHeader">Loading tip...</h3>
-                    </div>
-                    <button id="refreshTip" class="bg-white bg-opacity-90 hover:bg-opacity-100 text-blue-600 hover:text-blue-700 rounded-full p-2 transition-all duration-200 shadow-md">
-                        <i class="fas fa-refresh"></i>
-                    </button>
-                </div>
-                
-                <div id="tipContainer" class="min-h-[200px]">
-                    <div class="tip-content">
-                        <!-- Tip Image -->
-                        <div class="mb-3">
-                            <img id="tipImage" src="" alt="Paddle Tip" class="w-full h-48 object-cover rounded-lg border-2 border-white border-opacity-20 hidden">
-                        </div>
-                        
-                        <h4 class="text-lg font-semibold mb-2" id="tipTitle">Loading tip...</h4>
-                        <p class="text-sm text-blue-100 mb-3" id="tipMeta">Tip #</p>
-                        <p class="text-white leading-relaxed mb-3" id="tipDescription">Loading...</p>
-                        
-                        <div id="tipActions" class="flex justify-between items-center mb-3">
-                            <span class="text-xs text-blue-200" id="tipDate"></span>
-                            <a id="tipVideoLink" href="#" target="_blank" class="bg-white bg-opacity-90 hover:bg-opacity-100 text-blue-600 hover:text-blue-700 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hidden shadow-md">
-                                <i class="fas fa-play mr-1"></i> Watch Video
-                            </a>
-                        </div>
-                        
-                        <!-- View More Link -->
-                        <div class="border-t border-white border-opacity-20 pt-3">
-                            <button id="viewMoreTip" class="w-full bg-white bg-opacity-90 hover:bg-opacity-100 text-blue-600 hover:text-blue-700 rounded-lg py-2 px-4 font-medium transition-all duration-200 flex items-center justify-center shadow-md">
-                                <i class="fas fa-external-link-alt mr-2"></i> View Full Tip
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        {% endif %}
 
         <!-- Coach Rally Section -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -155,6 +111,50 @@
                 </div>
             </div>
         </div>
+
+        <!-- Paddle Tips Section -->
+        {% if paddle_tips %}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="bg-gradient-to-br from-blue-500 to-purple-600 p-6 text-white">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="flex items-center">
+                        <i class="fas fa-lightbulb text-yellow-300 text-2xl mr-3"></i>
+                        <h3 class="text-xl font-bold" id="tipHeader">Loading tip...</h3>
+                    </div>
+                    <button id="refreshTip" class="bg-white bg-opacity-90 hover:bg-opacity-100 text-blue-600 hover:text-blue-700 rounded-full p-2 transition-all duration-200 shadow-md">
+                        <i class="fas fa-refresh"></i>
+                    </button>
+                </div>
+                
+                <div id="tipContainer" class="min-h-[200px]">
+                    <div class="tip-content">
+                        <!-- Tip Image -->
+                        <div class="mb-3">
+                            <img id="tipImage" src="" alt="Paddle Tip" class="w-full h-48 object-cover rounded-lg border-2 border-white border-opacity-20 hidden">
+                        </div>
+                        
+                        <h4 class="text-lg font-semibold mb-2" id="tipTitle">Loading tip...</h4>
+                        <p class="text-sm text-blue-100 mb-3" id="tipMeta">Tip #</p>
+                        <p class="text-white leading-relaxed mb-3" id="tipDescription">Loading...</p>
+                        
+                        <div id="tipActions" class="flex justify-between items-center mb-3">
+                            <span class="text-xs text-blue-200" id="tipDate"></span>
+                            <a id="tipVideoLink" href="#" target="_blank" class="bg-white bg-opacity-90 hover:bg-opacity-100 text-blue-600 hover:text-blue-700 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 hidden shadow-md">
+                                <i class="fas fa-play mr-1"></i> Watch Video
+                            </a>
+                        </div>
+                        
+                        <!-- View More Link -->
+                        <div class="border-t border-white border-opacity-20 pt-3">
+                            <button id="viewMoreTip" class="w-full bg-white bg-opacity-90 hover:bg-opacity-100 text-blue-600 hover:text-blue-700 rounded-lg py-2 px-4 font-medium transition-all duration-200 flex items-center justify-center shadow-md">
+                                <i class="fas fa-external-link-alt mr-2"></i> View Full Tip
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
 
         <!-- Training Resources Section -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden relative z-1">
@@ -1257,6 +1257,7 @@ document.addEventListener('DOMContentLoaded', function() {
 /* Background utilities */
 .bg-gray-50 { background-color: #f9fafb; }
 .bg-white { background-color: #ffffff; }
+.bg-emerald-600 { background-color: #059669 !important; }
 
 /* Text colors */
 .text-gray-900 { color: #111827; }

@@ -108,9 +108,6 @@
         
         <!-- Right side -->
         <div class="flex items-center justify-end" style="flex: 1;">
-            <a href="/mobile/settings" class="profile-icon" aria-label="Profile" style="margin-right: 5px; margin-top: 2px;">
-                <i class="fas fa-user-circle text-white text-2xl hover:text-gray-300 transition-colors"></i>
-            </a>
             <button class="hamburger-btn" id="hamburgerToggle" aria-label="Open menu">
                 <span class="bar"></span>
                 <span class="bar"></span>
@@ -129,45 +126,37 @@
                     <span class="close-x"></span>
                 </button>
             </div>
-            <nav class="flex-1 overflow-y-auto px-4 pb-4 space-y-6" style="padding-top: 8px;">
+            <nav class="flex-1 overflow-y-auto px-6 pb-4 space-y-8" style="padding-top: 24px;">
                 <!-- Act Section -->
                 <div>
-                    <div class="font-bold text-lg mb-2 flex items-center gap-2 text-black"><i class="fas fa-bolt text-black"></i> Act</div>
-                    <ul class="space-y-2 ml-6">
-                        <li><a href="/mobile/availability" class="nav-link text-sm font-bold text-black">View Schedule</a></li>
-                        <li><a href="/mobile/availability-calendar" class="nav-link text-sm font-bold text-black">Update Availability</a></li>
-                        <li><a href="/mobile/find-people-to-play" class="nav-link text-sm font-bold text-black">Find Club Members</a></li>
-                        <li><a href="/mobile/polls" class="nav-link text-sm font-bold text-black">Team Polls</a></li>
-                        <li><a href="/mobile/reserve-court" class="nav-link text-sm font-bold text-black">Reserve a Court</a></li>
+                    <div class="text-2xl font-semibold mb-4 text-black" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">Act</div>
+                    <ul class="space-y-3 ml-0">
+                        <li><a href="/mobile/availability" class="nav-link block text-lg font-medium text-black hover:text-gray-600 transition-colors" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">View Schedule</a></li>
+                        <li><a href="/mobile/availability-calendar" class="nav-link block text-lg font-medium text-black hover:text-gray-600 transition-colors" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">Update Availability</a></li>
+                        <li><a href="/mobile/find-people-to-play" class="nav-link block text-lg font-medium text-black hover:text-gray-600 transition-colors" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">Find Club Members</a></li>
+                        <li><a href="/mobile/polls" class="nav-link block text-lg font-medium text-black hover:text-gray-600 transition-colors" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">Team Polls</a></li>
+                        <li><a href="/mobile/reserve-court" class="nav-link block text-lg font-medium text-black hover:text-gray-600 transition-colors" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">Reserve a Court</a></li>
                     </ul>
                 </div>
                 <!-- Analyze Section -->
                 <div>
-                    <div class="font-bold text-lg mb-2 flex items-center gap-2 text-black"><i class="fas fa-chart-bar text-black"></i> Analyze</div>
-                    <ul class="space-y-2 ml-6">
-                        <li><a href="/mobile/analyze-me" class="nav-link text-sm font-bold text-black">Me</a></li>
-                        <li><a href="/mobile/myteam" class="nav-link text-sm font-bold text-black">My Team</a></li>
-                        <li><a href="/mobile/myseries" class="nav-link text-sm font-bold text-black">My Series</a></li>
-                        <li><a href="/mobile/my-club" class="nav-link text-sm font-bold text-black">My Club</a></li>
-                        <li><a href="/mobile/player-search" class="nav-link text-sm font-bold text-black">Players</a></li>
-                        <li><a href="/mobile/teams-players" class="nav-link text-sm font-bold text-black">Teams</a></li>
+                    <div class="text-2xl font-semibold mb-4 text-black" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">Analyze</div>
+                    <ul class="space-y-3 ml-0">
+                        <li><a href="/mobile/analyze-me" class="nav-link block text-lg font-medium text-black hover:text-gray-600 transition-colors" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">Me</a></li>
+                        <li><a href="/mobile/myteam" class="nav-link block text-lg font-medium text-black hover:text-gray-600 transition-colors" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">My Team</a></li>
+                        <li><a href="/mobile/myseries" class="nav-link block text-lg font-medium text-black hover:text-gray-600 transition-colors" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">My Series</a></li>
+                        <li><a href="/mobile/my-club" class="nav-link block text-lg font-medium text-black hover:text-gray-600 transition-colors" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">My Club</a></li>
+                        <li><a href="/mobile/player-search" class="nav-link block text-lg font-medium text-black hover:text-gray-600 transition-colors" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">Players</a></li>
+                        <li><a href="/mobile/teams-players" class="nav-link block text-lg font-medium text-black hover:text-gray-600 transition-colors" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">Teams</a></li>
                     </ul>
                 </div>
-                <!-- Captain Stuff Section -->
+                <!-- Captain Stuff Section (simplified) -->
                 <div>
-                    <div class="font-bold text-lg mb-2 flex items-center gap-2 text-black"><i class="fas fa-star text-black"></i> Captain Stuff</div>
-                    <ul class="space-y-2 ml-6">
-                        <li><a href="/mobile/team-schedule" class="nav-link text-sm font-bold text-black">Team Availability</a></li>
-                        <li><a href="/mobile/find-subs" class="nav-link text-sm font-bold text-black">Find a Sub</a></li>
-                        <li><a href="/mobile/lineup" class="nav-link text-sm font-bold text-black">Create Lineup</a></li>
-                        <li><a href="/mobile/lineup-escrow" class="nav-link text-sm font-bold text-black">Lineup Escrow</a></li>
-                        <li><a href="/mobile/practice-times" class="nav-link text-sm font-bold text-black">Practice Times</a></li>
-                        <li><a href="/mobile/email-team" class="nav-link text-sm font-bold text-black">Email Team</a></li>
-                    </ul>
+                    <a href="/mobile?scroll=bottom" class="text-2xl font-semibold text-black hover:text-gray-600 transition-colors" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">Captain Stuff</a>
                 </div>
                 <!-- Settings Section -->
                 <div>
-                    <a href="/mobile/settings" class="font-bold text-lg mb-2 flex items-center gap-2 text-black hover:text-gray-700 transition-colors"><i class="fas fa-cog text-black"></i> Settings</a>
+                    <a href="/mobile/settings" class="text-2xl font-semibold text-black hover:text-gray-600 transition-colors" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">Settings</a>
                 </div>
             </nav>
         </div>
@@ -177,7 +166,7 @@
     <div id="drawerOverlay" class="fixed inset-0 bg-black bg-opacity-40 z-40 hidden"></div>
 
     <!-- Main Content Area -->
-    <main class="container mx-auto px-2 py-6" style="padding-top: 72px;">
+    <main class="container mx-auto px-2 py-6" style="padding-top: 72px; padding-bottom: 84px;">
         <!-- Player ID Missing Alert -->
         {% if session_data and session_data.user and session_data.authenticated and not session_data.user.tenniscores_player_id %}
         <div class="mb-4 p-3 rounded-lg shadow-sm" style="background-color: #F5C842; border: 1px solid #E5B332;">
@@ -193,9 +182,93 @@
         {% block content %}{% endblock %}
     </main>
 
+    <!-- Bottom Navigation Dock -->
+    <nav class="bottom-dock fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40" style="height: 72px; box-shadow: 0 -2px 8px rgba(0,0,0,0.08);">
+        <div class="flex items-center justify-around h-full px-2">
+            <!-- Home -->
+            <a href="/mobile" class="dock-item flex flex-col items-center justify-center flex-1 py-2 px-1 text-center transition-colors duration-200 hover:bg-gray-50 rounded-lg mx-1">
+                <i class="fas fa-home text-xl mb-1 text-gray-600"></i>
+                <span class="text-xs font-medium text-gray-600">Home</span>
+            </a>
+            
+            <!-- Search -->
+            <a href="/mobile/find-people-to-play" class="dock-item flex flex-col items-center justify-center flex-1 py-2 px-1 text-center transition-colors duration-200 hover:bg-gray-50 rounded-lg mx-1">
+                <i class="fas fa-search text-xl mb-1 text-gray-600"></i>
+                <span class="text-xs font-medium text-gray-600">Search</span>
+            </a>
+            
+            <!-- Availability -->
+            <a href="/mobile/availability-calendar" class="dock-item flex flex-col items-center justify-center flex-1 py-2 px-1 text-center transition-colors duration-200 hover:bg-gray-50 rounded-lg mx-1">
+                <i class="fas fa-calendar text-xl mb-1 text-gray-600"></i>
+                <span class="text-xs font-medium text-gray-600">Availability</span>
+            </a>
+            
+            <!-- Profile -->
+            <a href="/mobile/settings" class="dock-item flex flex-col items-center justify-center flex-1 py-2 px-1 text-center transition-colors duration-200 hover:bg-gray-50 rounded-lg mx-1">
+                <i class="fas fa-user text-xl mb-1 text-gray-600"></i>
+                <span class="text-xs font-medium text-gray-600">Profile</span>
+            </a>
+        </div>
+    </nav>
+
     <script>
+        // Initialize dock active state
+        function updateDockActiveState() {
+            const currentPath = window.location.pathname;
+            const dockItems = document.querySelectorAll('.dock-item');
+            
+            // Remove active class from all items
+            dockItems.forEach(item => item.classList.remove('active'));
+            
+            // Add active class to current page
+            dockItems.forEach(item => {
+                const itemPath = new URL(item.href).pathname;
+                const icon = item.querySelector('i');
+                
+                // Handle specific routing logic
+                if (currentPath === '/mobile' && itemPath === '/mobile') {
+                    // Home page
+                    item.classList.add('active');
+                } else if (currentPath === '/mobile/availability-calendar' && itemPath === '/mobile/availability-calendar') {
+                    // Availability calendar page
+                    item.classList.add('active');
+                } else if (currentPath === '/mobile/find-people-to-play' && itemPath === '/mobile/find-people-to-play') {
+                    // Search page
+                    item.classList.add('active');
+                } else if (currentPath === '/mobile/settings' && itemPath === '/mobile/settings') {
+                    // Profile/Settings page
+                    item.classList.add('active');
+                } else if (currentPath.startsWith('/mobile/settings') && itemPath === '/mobile/settings') {
+                    // Profile/Settings related pages
+                    item.classList.add('active');
+                } else if (currentPath.startsWith('/mobile/find-people-to-play') && itemPath === '/mobile/find-people-to-play') {
+                    // Find people to play related pages
+                    item.classList.add('active');
+                } else if (currentPath.startsWith('/mobile/availability') && itemPath === '/mobile/availability-calendar') {
+                    // Availability related pages
+                    item.classList.add('active');
+                }
+            });
+        }
+
         // Initialize drawer functionality
         document.addEventListener('DOMContentLoaded', function() {
+            // Set up dock active state
+            updateDockActiveState();
+            
+            // Update dock state on navigation (for SPA-like behavior)
+            window.addEventListener('popstate', updateDockActiveState);
+            
+            // Handle auto-scroll to bottom if scroll parameter is present
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('scroll') === 'bottom') {
+                setTimeout(() => {
+                    window.scrollTo({
+                        top: document.body.scrollHeight,
+                        behavior: 'smooth'
+                    });
+                }, 100);
+            }
             const drawer = document.getElementById('navDrawer');
             const overlay = document.getElementById('drawerOverlay');
             const hamburger = document.getElementById('hamburgerToggle');

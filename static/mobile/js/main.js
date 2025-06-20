@@ -57,6 +57,9 @@ function initLoadingIndicator() {
     
     // Initialize navigation drawer links (on all pages)
     initNavDrawerLinks();
+    
+    // Initialize bottom dock navigation (on all pages)
+    initDockNavigation();
 }
 
 /**
@@ -65,7 +68,8 @@ function initLoadingIndicator() {
 function initHomePageButtons() {
     console.log('Initializing home page buttons');
     
-    const homePageButtons = document.querySelectorAll('.icon-btn, .logout-btn');
+    // Target iOS-style cards and legacy buttons
+    const homePageButtons = document.querySelectorAll('.ios-card, .icon-btn, .logout-btn');
     
     homePageButtons.forEach(button => {
         // Skip if this button is inside the nav drawer
@@ -98,6 +102,21 @@ function initNavDrawerLinks() {
             });
         }
     }, 100);
+}
+
+/**
+ * Initialize loading indicator for bottom dock navigation
+ */
+function initDockNavigation() {
+    console.log('Initializing dock navigation');
+    
+    const dockItems = document.querySelectorAll('.dock-item');
+    
+    dockItems.forEach(item => {
+        item.addEventListener('click', function(e) {
+            handleNavigationClick(e, this, 'nav-link-loading');
+        });
+    });
 }
 
 /**
@@ -196,27 +215,41 @@ function hideLoadingIndicator() {
  */
 function getLoadingTextForUrl(url) {
     const loadingMessages = {
+        // Home navigation
+        '/mobile': 'Loading Home...',
+        '/mobile/': 'Loading Home...',
+        
+        // Act section
         '/mobile/availability': 'Loading Schedule...',
         '/mobile/availability-calendar': 'Loading Calendar...',
-        '/mobile/improve': 'Loading Improvement Tools...',
         '/mobile/find-people-to-play': 'Finding Club Members...',
+        '/mobile/polls': 'Loading Team Polls...',
+        '/mobile/improve': 'Loading Improvement Tools...',
         '/mobile/reserve-court': 'Loading Court Reservations...',
-        '/mobile/settings': 'Loading Profile...',
+        
+        // Analyze section
         '/mobile/analyze-me': 'Loading Your Analysis...',
         '/mobile/myteam': 'Loading Team Data...',
         '/mobile/myseries': 'Loading Series Data...',
         '/mobile/my-club': 'Loading Club Information...',
         '/mobile/player-search': 'Searching Players...',
         '/mobile/teams-players': 'Loading Teams...',
+        '/mobile/matchup-simulator': 'Loading Matchup Simulator...',
+        
+        // Captain section
         '/mobile/team-schedule': 'Loading Team Schedule...',
         '/mobile/find-subs': 'Finding Substitutes...',
         '/mobile/lineup': 'Loading Lineup Builder...',
-        '/mobile/lineup-escrow': 'Loading Lineup Escrow...',
         '/mobile/practice-times': 'Loading Practice Times...',
+        
+        // Additional pages
+        '/mobile/lineup-escrow': 'Loading Lineup Escrow...',
         '/mobile/email-team': 'Loading Email Tool...',
-        '/mobile/polls': 'Loading Team Polls...',
-        '/mobile/matchup-simulator': 'Loading Matchup Simulator...',
         '/mobile/training-videos': 'Loading Training Videos...',
+        '/mobile/settings': 'Loading Profile...',
+        '/mobile/track-byes-courts': 'Loading Court Tracking...',
+        
+        // Admin
         '/admin': 'Loading Admin Panel...'
     };
     
