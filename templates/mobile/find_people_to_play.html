@@ -687,7 +687,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="flex items-center justify-between mb-3">
                         <div class="min-w-0 flex-1">
                             <h3 class="font-bold text-lg text-gray-900 truncate">${player.name}</h3>
-                            <p class="text-sm text-gray-500">${player.series}</p>
+                            <p class="text-sm text-gray-500">${player.series ? player.series.replace(/^Chicago\s+(\d+.*)$/i, 'Series $1') : player.series}</p>
                         </div>
                         <button class="ml-3 contact-btn" 
                                 onclick="handleContactClick('${player.name}')"
@@ -781,7 +781,7 @@ document.addEventListener('DOMContentLoaded', function() {
             playerElement.innerHTML = `
                 <div>
                     <div class="font-semibold text-gray-800">${player.name}</div>
-                    <div class="text-sm text-gray-600">${player.series}</div>
+                    <div class="text-sm text-gray-600">${player.series ? player.series.replace(/^Chicago\s+(\d+.*)$/i, 'Series $1') : player.series}</div>
                 </div>
                 <div class="text-sm text-blue-600 font-mono">${player.phone || 'No phone available'}</div>
             `;

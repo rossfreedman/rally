@@ -38,8 +38,8 @@ def build_league_data_dir(league_id):
         str: The data directory path (e.g., 'data/leagues/APTACHICAGO')
     """
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    # Go up two levels: scrapers -> etl -> project_root
-    project_root = os.path.dirname(os.path.dirname(script_dir))
+    # Go up three levels: scrapers -> etl -> data -> project_root
+    project_root = os.path.dirname(os.path.dirname(os.path.dirname(script_dir)))
     
     league_data_dir = os.path.join(project_root, 'data', 'leagues', league_id)
     os.makedirs(league_data_dir, exist_ok=True)
@@ -137,7 +137,7 @@ def build_base_url(subdomain):
 
 def extract_series_name_from_team(team_name):
     """
-    Extract series name from team name, auto-detecting APTA vs NSTF format.
+    Extract series name from team name, auto-detecting APTA vs NSTF vs CNSWPL format.
     
     Args:
         team_name (str): Team name in various formats
@@ -149,6 +149,8 @@ def extract_series_name_from_team(team_name):
         APTA: "Birchwood - 6" -> "Chicago 6"
         NSTF: "Birchwood S1" -> "Series 1"
         NSTF: "Wilmette Sunday A" -> "Series A"
+        CNSWPL: "Birchwood 1" -> "Division 1"
+        CNSWPL: "Hinsdale PC 1a" -> "Division 1a"
     """
     if not team_name:
         return None
@@ -175,8 +177,15 @@ def extract_series_name_from_team(team_name):
     elif 'Sunday B' in team_name:
         return "Series B"
     
+    # CNSWPL format: "Club Number" or "Club NumberLetter" (e.g., "Birchwood 1", "Hinsdale PC 1a")
+    elif re.search(r'\s(\d+[a-zA-Z]?)$', team_name):
+        match = re.search(r'\s(\d+[a-zA-Z]?)$', team_name)
+        if match:
+            division_identifier = match.group(1)
+            return f"Division {division_identifier}"
+    
     # Direct series name (already formatted)
-    elif team_name.startswith('Series ') or team_name.startswith('Chicago '):
+    elif team_name.startswith('Series ') or team_name.startswith('Chicago ') or team_name.startswith('Division '):
         return team_name
     
     return None

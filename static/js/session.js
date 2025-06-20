@@ -41,7 +41,9 @@ function updateUI(sessionData) {
     const welcomeElem = document.getElementById('welcomeMessage');
     if (welcomeElem) {
         const user = sessionData.user;
-        welcomeElem.textContent = `Welcome back, ${user.first_name} ${user.last_name} (${user.series} at ${user.club})`;
+        // Transform series display from "Chicago XX" to "Series XX"
+        const displaySeries = user.series ? user.series.replace(/^Chicago\s+(\d+.*)$/i, 'Series $1') : user.series;
+        welcomeElem.textContent = `Welcome back, ${user.first_name} ${user.last_name} (${displaySeries} at ${user.club})`;
     }
 }
 

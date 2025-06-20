@@ -109,7 +109,7 @@
                                             </div>
                                             <div class="flex items-center gap-2">
                                                 <i class="fas fa-trophy text-yellow-500 w-4"></i>
-                                                <span>{{ player.series }}</span>
+                                                <span class="player-series">{{ player.series }}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -293,4 +293,17 @@
     .py-4 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
 }
 </style>
+
+<script>
+// Transform series display from "Chicago XX" to "Series XX"
+document.addEventListener('DOMContentLoaded', function() {
+    const seriesElements = document.querySelectorAll('.player-series');
+    seriesElements.forEach(element => {
+        const seriesText = element.textContent;
+        if (seriesText) {
+            element.textContent = seriesText.replace(/^Chicago\s+(\d+.*)$/i, 'Series $1');
+        }
+    });
+});
+</script>
 {% endblock %} 

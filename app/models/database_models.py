@@ -503,3 +503,28 @@ class PollResponse(Base):
     __table_args__ = (
         UniqueConstraint('poll_id', 'player_id', name='unique_poll_player_response'),
     )
+
+class PlayerSeasonTracking(Base):
+    """
+    Season-specific tracking statistics for players
+    Tracks forced byes, unavailability, and injury counts per season
+    """
+    __tablename__ = 'player_season_tracking'
+    
+    id = Column(Integer, primary_key=True)
+    player_id = Column(String(255), nullable=False)  # tenniscores_player_id
+    league_id = Column(Integer, ForeignKey('leagues.id'))
+    season_year = Column(Integer, nullable=False)  # e.g., 2024, 2025
+    forced_byes = Column(Integer, default=0)
+    not_available = Column(Integer, default=0)
+    injury = Column(Integer, default=0)
+    created_at = Column(DateTime(timezone=True), default=func.now())
+    updated_at = Column(DateTime(timezone=True), default=func.now(), onupdate=func.now())
+    
+    # Relationships
+    league = relationship("League")
+    
+    # Constraints
+    __table_args__ = (
+        UniqueConstraint('player_id', 'league_id', 'season_year', name='unique_player_season_tracking'),
+    )

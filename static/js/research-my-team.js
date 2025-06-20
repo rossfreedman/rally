@@ -539,7 +539,9 @@ async function setUserTeamInfoMyTeam() {
         const authResponse = await fetch('/api/check-auth');
         const authData = await authResponse.json();
         if (authData.authenticated && authData.user) {
-            document.getElementById('userSeriesMyTeam').textContent = authData.user.series || '';
+            // Transform series display from "Chicago XX" to "Series XX"
+            const displaySeries = authData.user.series ? authData.user.series.replace(/^Chicago\s+(\d+.*)$/i, 'Series $1') : authData.user.series;
+            document.getElementById('userSeriesMyTeam').textContent = displaySeries || '';
             document.getElementById('userClubMyTeam').textContent = authData.user.club || '';
         }
     } catch (e) {
