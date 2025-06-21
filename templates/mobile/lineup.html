@@ -85,80 +85,107 @@
                     </h2>
                 </div>
                 
-                <div class="p-6">
+                <div class="p-4">
+                    <!-- Mode Switch for Mobile -->
+                    <div class="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-sm font-medium text-blue-800">Interaction Mode:</span>
+                            <button id="mode-toggle" class="bg-blue-600 text-white px-3 py-1 rounded text-xs font-medium">
+                                Switch to Tap Mode
+                            </button>
+                        </div>
+                        <p id="mode-description" class="text-xs text-blue-700">
+                            Drag & Drop: Drag players to court positions
+                        </p>
+                    </div>
+
                     <!-- Available Players Pool -->
-                    <div class="mb-6">
-                        <h3 class="font-semibold mb-3 text-gray-900">Available Players</h3>
-                        <p class="text-sm text-gray-600 mb-3">Drag players from here to the courts below:</p>
-                        <div id="available-players-pool" class="min-h-24 bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg p-4">
-                            <div class="text-gray-400 text-center" id="loading-players">Loading players...</div>
+                    <div class="mb-4">
+                        <h3 class="font-semibold mb-2 text-gray-900 text-sm">Available Players</h3>
+                        <p class="text-xs text-gray-600 mb-2" id="instruction-text">Drag players from here to the courts below:</p>
+                        <div id="available-players-pool" class="min-h-20 bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg p-2 max-h-32 overflow-y-auto">
+                            <div class="text-gray-400 text-center text-sm" id="loading-players">Loading players...</div>
                         </div>
                     </div>
 
+                    <!-- Selected Player Indicator (for tap mode) -->
+                    <div id="selected-player-indicator" class="mb-4 p-3 bg-yellow-100 border border-yellow-300 rounded-lg hidden">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <span class="text-sm font-medium text-yellow-800">Selected: </span>
+                                <span id="selected-player-name" class="text-sm text-yellow-900"></span>
+                            </div>
+                            <button id="clear-selection" class="text-yellow-600 hover:text-yellow-800 text-xs">
+                                Clear
+                            </button>
+                        </div>
+                        <p class="text-xs text-yellow-700 mt-1">Tap a court position to assign this player</p>
+                    </div>
+
                     <!-- Courts -->
-                    <div class="space-y-4">
-                        <h3 class="font-semibold text-gray-900">Courts</h3>
+                    <div class="space-y-3">
+                        <h3 class="font-semibold text-gray-900 text-sm">Courts</h3>
                         
                         <!-- Court 1 -->
-                        <div class="court-container bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
-                            <h4 class="font-medium text-blue-800 mb-3 flex items-center">
-                                <i class="fas fa-volleyball-ball text-blue-500 mr-2"></i>
+                        <div class="court-container bg-blue-50 border border-blue-200 rounded-lg p-2">
+                            <h4 class="font-medium text-blue-800 mb-2 flex items-center text-sm">
+                                <i class="fas fa-volleyball-ball text-blue-500 mr-1 text-xs"></i>
                                 Court 1
                             </h4>
-                            <div class="grid grid-cols-2 gap-3">
-                                <div class="court-position bg-white border-2 border-dashed border-blue-300 rounded-lg p-3 min-h-16 flex items-center justify-center text-gray-400 text-sm" data-court="1" data-position="1">
-                                    Drop Player 1 Here
+                            <div class="grid grid-cols-2 gap-2">
+                                <div class="court-position bg-white border border-dashed border-blue-300 rounded p-2 min-h-12 flex items-center justify-center text-gray-400 text-xs cursor-pointer hover:bg-blue-50 transition-colors" data-court="1" data-position="1">
+                                    <span class="drop-text">Player 1</span>
                                 </div>
-                                <div class="court-position bg-white border-2 border-dashed border-blue-300 rounded-lg p-3 min-h-16 flex items-center justify-center text-gray-400 text-sm" data-court="1" data-position="2">
-                                    Drop Player 2 Here
+                                <div class="court-position bg-white border border-dashed border-blue-300 rounded p-2 min-h-12 flex items-center justify-center text-gray-400 text-xs cursor-pointer hover:bg-blue-50 transition-colors" data-court="1" data-position="2">
+                                    <span class="drop-text">Player 2</span>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Court 2 -->
-                        <div class="court-container bg-green-50 border-2 border-green-200 rounded-lg p-4">
-                            <h4 class="font-medium text-green-800 mb-3 flex items-center">
-                                <i class="fas fa-volleyball-ball text-green-500 mr-2"></i>
+                        <div class="court-container bg-green-50 border border-green-200 rounded-lg p-2">
+                            <h4 class="font-medium text-green-800 mb-2 flex items-center text-sm">
+                                <i class="fas fa-volleyball-ball text-green-500 mr-1 text-xs"></i>
                                 Court 2
                             </h4>
-                            <div class="grid grid-cols-2 gap-3">
-                                <div class="court-position bg-white border-2 border-dashed border-green-300 rounded-lg p-3 min-h-16 flex items-center justify-center text-gray-400 text-sm" data-court="2" data-position="1">
-                                    Drop Player 1 Here
+                            <div class="grid grid-cols-2 gap-2">
+                                <div class="court-position bg-white border border-dashed border-green-300 rounded p-2 min-h-12 flex items-center justify-center text-gray-400 text-xs cursor-pointer hover:bg-green-50 transition-colors" data-court="2" data-position="1">
+                                    <span class="drop-text">Player 1</span>
                                 </div>
-                                <div class="court-position bg-white border-2 border-dashed border-green-300 rounded-lg p-3 min-h-16 flex items-center justify-center text-gray-400 text-sm" data-court="2" data-position="2">
-                                    Drop Player 2 Here
+                                <div class="court-position bg-white border border-dashed border-green-300 rounded p-2 min-h-12 flex items-center justify-center text-gray-400 text-xs cursor-pointer hover:bg-green-50 transition-colors" data-court="2" data-position="2">
+                                    <span class="drop-text">Player 2</span>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Court 3 -->
-                        <div class="court-container bg-yellow-50 border-2 border-yellow-200 rounded-lg p-4">
-                            <h4 class="font-medium text-yellow-800 mb-3 flex items-center">
-                                <i class="fas fa-volleyball-ball text-yellow-500 mr-2"></i>
+                        <div class="court-container bg-yellow-50 border border-yellow-200 rounded-lg p-2">
+                            <h4 class="font-medium text-yellow-800 mb-2 flex items-center text-sm">
+                                <i class="fas fa-volleyball-ball text-yellow-500 mr-1 text-xs"></i>
                                 Court 3
                             </h4>
-                            <div class="grid grid-cols-2 gap-3">
-                                <div class="court-position bg-white border-2 border-dashed border-yellow-300 rounded-lg p-3 min-h-16 flex items-center justify-center text-gray-400 text-sm" data-court="3" data-position="1">
-                                    Drop Player 1 Here
+                            <div class="grid grid-cols-2 gap-2">
+                                <div class="court-position bg-white border border-dashed border-yellow-300 rounded p-2 min-h-12 flex items-center justify-center text-gray-400 text-xs cursor-pointer hover:bg-yellow-50 transition-colors" data-court="3" data-position="1">
+                                    <span class="drop-text">Player 1</span>
                                 </div>
-                                <div class="court-position bg-white border-2 border-dashed border-yellow-300 rounded-lg p-3 min-h-16 flex items-center justify-center text-gray-400 text-sm" data-court="3" data-position="2">
-                                    Drop Player 2 Here
+                                <div class="court-position bg-white border border-dashed border-yellow-300 rounded p-2 min-h-12 flex items-center justify-center text-gray-400 text-xs cursor-pointer hover:bg-yellow-50 transition-colors" data-court="3" data-position="2">
+                                    <span class="drop-text">Player 2</span>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Court 4 -->
-                        <div class="court-container bg-purple-50 border-2 border-purple-200 rounded-lg p-4">
-                            <h4 class="font-medium text-purple-800 mb-3 flex items-center">
-                                <i class="fas fa-volleyball-ball text-purple-500 mr-2"></i>
+                        <div class="court-container bg-purple-50 border border-purple-200 rounded-lg p-2">
+                            <h4 class="font-medium text-purple-800 mb-2 flex items-center text-sm">
+                                <i class="fas fa-volleyball-ball text-purple-500 mr-1 text-xs"></i>
                                 Court 4
                             </h4>
-                            <div class="grid grid-cols-2 gap-3">
-                                <div class="court-position bg-white border-2 border-dashed border-purple-300 rounded-lg p-3 min-h-16 flex items-center justify-center text-gray-400 text-sm" data-court="4" data-position="1">
-                                    Drop Player 1 Here
+                            <div class="grid grid-cols-2 gap-2">
+                                <div class="court-position bg-white border border-dashed border-purple-300 rounded p-2 min-h-12 flex items-center justify-center text-gray-400 text-xs cursor-pointer hover:bg-purple-50 transition-colors" data-court="4" data-position="1">
+                                    <span class="drop-text">Player 1</span>
                                 </div>
-                                <div class="court-position bg-white border-2 border-dashed border-purple-300 rounded-lg p-3 min-h-16 flex items-center justify-center text-gray-400 text-sm" data-court="4" data-position="2">
-                                    Drop Player 2 Here
+                                <div class="court-position bg-white border border-dashed border-purple-300 rounded p-2 min-h-12 flex items-center justify-center text-gray-400 text-xs cursor-pointer hover:bg-purple-50 transition-colors" data-court="4" data-position="2">
+                                    <span class="drop-text">Player 2</span>
                                 </div>
                             </div>
                         </div>
@@ -468,6 +495,10 @@ let selectedPlayers = new Set();
 let instructions = [];
 let generatedLineup = '';
 let manualLineup = {};
+
+// Manual lineup interaction mode
+let isDragMode = true;
+let selectedPlayerForTap = null;
 
 // Player position determination
 function getPlayerPosition(playerName, rating) {
@@ -872,28 +903,32 @@ function renderPlayersForManual() {
   
   players.forEach(player => {
     const playerDiv = document.createElement('div');
-    playerDiv.className = 'player-card bg-white border border-gray-200 rounded-lg p-3 m-2 inline-block cursor-move shadow-sm hover:shadow-md transition-shadow';
-    playerDiv.draggable = true;
+    playerDiv.className = 'player-card bg-white border border-gray-200 rounded p-2 m-1 inline-block cursor-pointer shadow-sm hover:shadow-md transition-all text-center';
     playerDiv.dataset.playerName = player.name;
     playerDiv.dataset.playerRating = player.rating;
     
+    // Set draggable based on mode
+    playerDiv.draggable = isDragMode;
+    
     playerDiv.innerHTML = `
-      <div class="text-center">
-        <div class="font-medium text-gray-900">${player.name}</div>
-      </div>
+      <div class="font-medium text-gray-900 text-sm">${player.name}</div>
     `;
     
-    // Add drag event listeners
-    playerDiv.addEventListener('dragstart', handleDragStart);
-    playerDiv.addEventListener('dragend', handleDragEnd);
-    
-    // Add touch event listeners for mobile
-    playerDiv.addEventListener('touchstart', handleTouchStart, { passive: false });
-    playerDiv.addEventListener('touchmove', handleTouchMove, { passive: false });
-    playerDiv.addEventListener('touchend', handleTouchEnd, { passive: false });
+    // Add event listeners based on mode
+    if (isDragMode) {
+      playerDiv.addEventListener('dragstart', handleDragStart);
+      playerDiv.addEventListener('dragend', handleDragEnd);
+      playerDiv.addEventListener('touchstart', handleTouchStart, { passive: false });
+      playerDiv.addEventListener('touchmove', handleTouchMove, { passive: false });
+      playerDiv.addEventListener('touchend', handleTouchEnd, { passive: false });
+    } else {
+      playerDiv.addEventListener('click', handlePlayerTap);
+    }
     
     pool.appendChild(playerDiv);
   });
+  
+  updateModeUI();
 }
 
 function handleDragStart(e) {
@@ -1015,9 +1050,13 @@ function setupDropZones() {
   const courtPositions = document.querySelectorAll('.court-position');
   
   courtPositions.forEach(position => {
+    // Drag events
     position.addEventListener('dragover', handleDragOver);
     position.addEventListener('drop', handleDrop);
     position.addEventListener('dragleave', handleDragLeave);
+    
+    // Tap events for tap mode
+    position.addEventListener('click', handleCourtPositionTap);
   });
   
   // Also set up the available players pool as a drop zone
@@ -1058,7 +1097,7 @@ function handleDrop(e) {
     draggedPlayer.remove();
     
     // Add to court position
-    draggedPlayer.className = 'player-card bg-white border border-gray-300 rounded-lg p-2 text-center cursor-move';
+    draggedPlayer.className = 'player-card bg-white border border-gray-300 rounded p-1 text-center cursor-move text-xs';
     courtPosition.innerHTML = '';
     courtPosition.appendChild(draggedPlayer);
     
@@ -1163,6 +1202,130 @@ function sendManualLineup() {
   showPage(4);
 }
 
+// Mode switching and tap functionality
+function toggleInteractionMode() {
+  isDragMode = !isDragMode;
+  selectedPlayerForTap = null;
+  updateModeUI();
+  renderPlayersForManual(); // Re-render to update event listeners
+}
+
+function updateModeUI() {
+  const toggleBtn = document.getElementById('mode-toggle');
+  const description = document.getElementById('mode-description');
+  const instructionText = document.getElementById('instruction-text');
+  const selectedIndicator = document.getElementById('selected-player-indicator');
+  
+  if (isDragMode) {
+    toggleBtn.textContent = 'Switch to Tap Mode';
+    description.textContent = 'Drag & Drop: Drag players to court positions';
+    instructionText.textContent = 'Drag players from here to the courts below:';
+    selectedIndicator.classList.add('hidden');
+  } else {
+    toggleBtn.textContent = 'Switch to Drag Mode';
+    description.textContent = 'Tap Mode: Tap a player, then tap a court position';
+    instructionText.textContent = 'Tap a player to select, then tap a court position:';
+    if (selectedPlayerForTap) {
+      showSelectedPlayer(selectedPlayerForTap);
+    } else {
+      selectedIndicator.classList.add('hidden');
+    }
+  }
+  
+  // Update player cards styling
+  document.querySelectorAll('.player-card').forEach(card => {
+    if (isDragMode) {
+      card.classList.remove('border-blue-400', 'bg-blue-50');
+      card.classList.add('cursor-move');
+      card.classList.remove('cursor-pointer');
+    } else {
+      card.classList.add('cursor-pointer');
+      card.classList.remove('cursor-move');
+    }
+  });
+}
+
+function handlePlayerTap(e) {
+  if (isDragMode) return;
+  
+  const playerName = e.currentTarget.dataset.playerName;
+  
+  // If clicking the same player, deselect
+  if (selectedPlayerForTap === playerName) {
+    clearPlayerSelection();
+    return;
+  }
+  
+  // Select new player
+  selectedPlayerForTap = playerName;
+  
+  // Update visual feedback
+  document.querySelectorAll('.player-card').forEach(card => {
+    card.classList.remove('border-blue-400', 'bg-blue-50');
+  });
+  e.currentTarget.classList.add('border-blue-400', 'bg-blue-50');
+  
+  showSelectedPlayer(playerName);
+}
+
+function showSelectedPlayer(playerName) {
+  const indicator = document.getElementById('selected-player-indicator');
+  const nameSpan = document.getElementById('selected-player-name');
+  
+  nameSpan.textContent = playerName;
+  indicator.classList.remove('hidden');
+}
+
+function clearPlayerSelection() {
+  selectedPlayerForTap = null;
+  
+  // Remove visual feedback
+  document.querySelectorAll('.player-card').forEach(card => {
+    card.classList.remove('border-blue-400', 'bg-blue-50');
+  });
+  
+  // Hide indicator
+  document.getElementById('selected-player-indicator').classList.add('hidden');
+}
+
+function handleCourtPositionTap(e) {
+  if (isDragMode || !selectedPlayerForTap) return;
+  
+  const courtPosition = e.currentTarget;
+  const court = courtPosition.dataset.court;
+  const position = courtPosition.dataset.position;
+  
+  // Check if position is already occupied
+  if (courtPosition.querySelector('.player-card')) {
+    const existingPlayer = courtPosition.querySelector('.player-card');
+    movePlayerToPool(existingPlayer);
+  }
+  
+  // Find and move the selected player
+  const selectedPlayerElement = document.querySelector(`[data-player-name="${selectedPlayerForTap}"]`);
+  if (selectedPlayerElement) {
+    // Remove from current location
+    selectedPlayerElement.remove();
+    
+    // Add to court position
+    selectedPlayerElement.className = 'player-card bg-white border border-gray-300 rounded p-1 text-center cursor-pointer text-xs';
+    courtPosition.innerHTML = '';
+    courtPosition.appendChild(selectedPlayerElement);
+    
+    // Update manual lineup data
+    if (!manualLineup[court]) manualLineup[court] = {};
+    manualLineup[court][position] = {
+      name: selectedPlayerForTap,
+      rating: selectedPlayerElement.dataset.playerRating
+    };
+    
+    // Clear selection
+    clearPlayerSelection();
+    
+    updateManualLineupSummary();
+  }
+}
+
 function updateSummary() {
   // Update player count and list
   const playersCount = document.getElementById('summary-players-count');
@@ -1222,6 +1385,10 @@ document.addEventListener('DOMContentLoaded', () => {
   // Manual mode navigation
   document.getElementById('manual-back').onclick = () => showPage(0);
   document.getElementById('manual-send').onclick = sendManualLineup;
+  
+  // Mode toggle and selection clearing
+  document.getElementById('mode-toggle').onclick = toggleInteractionMode;
+  document.getElementById('clear-selection').onclick = clearPlayerSelection;
   
   // AI mode page navigation
   document.getElementById('page1-next').onclick = () => {
@@ -1332,17 +1499,49 @@ document.addEventListener('DOMContentLoaded', () => {
 /* Mobile touch improvements */
 @media (max-width: 768px) {
     .player-card {
-        min-width: 120px;
-        margin: 0.25rem;
+        min-width: 80px;
+        margin: 0.125rem;
+        padding: 0.375rem;
+        font-size: 0.75rem;
     }
     
     .court-position {
-        min-height: 5rem;
-        padding: 1rem;
+        min-height: 3rem;
+        padding: 0.5rem;
+        font-size: 0.625rem;
     }
     
     .court-container {
-        margin-bottom: 1rem;
+        margin-bottom: 0.75rem;
+        padding: 0.5rem;
+    }
+    
+    #available-players-pool {
+        max-height: 6rem;
+        padding: 0.5rem;
+    }
+    
+    .court-container h4 {
+        font-size: 0.875rem;
+        margin-bottom: 0.5rem;
+    }
+}
+
+/* Extra small screens */
+@media (max-width: 375px) {
+    .player-card {
+        min-width: 70px;
+        padding: 0.25rem;
+        font-size: 0.625rem;
+    }
+    
+    .court-position {
+        min-height: 2.5rem;
+        padding: 0.25rem;
+    }
+    
+    #available-players-pool {
+        max-height: 5rem;
     }
 }
 
