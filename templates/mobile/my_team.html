@@ -34,7 +34,7 @@
                 <!-- Points and Record -->
                 <div class="grid grid-cols-2 gap-4 mb-6">
                     <div class="text-center">
-                        <div class="text-3xl font-bold text-yellow-600 mb-1">{{ team_data.points or 'N/A' }}</div>
+                        <div class="text-3xl font-bold text-yellow-600 mb-1">{% if team_data.points is not none %}{{ team_data.points }}{% else %}N/A{% endif %}</div>
                         <div class="text-sm text-gray-500 uppercase tracking-wide">Total Points</div>
                     </div>
                     

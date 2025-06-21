@@ -519,6 +519,7 @@ def get_player_analysis(user):
         if league_id_int:
             history_query = """
                 SELECT 
+                    id,
                     TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
                     home_team as "Home Team",
                     away_team as "Away Team",
@@ -538,6 +539,7 @@ def get_player_analysis(user):
             # No league filtering if we don't have a valid league_id
             history_query = """
                 SELECT 
+                    id,
                     TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
                     home_team as "Home Team",
                     away_team as "Away Team",
@@ -554,7 +556,35 @@ def get_player_analysis(user):
             player_matches = execute_query(history_query, [player_id, player_id, player_id, player_id])
         
         if not player_matches:
-            print(f"[DEBUG] get_player_analysis: No matches found for player {player_id} in league {league_id_int}")
+            print(f"[DEBUG] get_player_analysis: No detailed matches found for player {player_id} in league {league_id_int}")
+            print(f"[DEBUG] Falling back to aggregate player stats from players table...")
+            
+            # Fall back to aggregate stats from players table when detailed match data isn't available
+            try:
+                if league_id_int:
+                    aggregate_query = """
+                        SELECT wins, losses, pti, first_name, last_name
+                        FROM players 
+                        WHERE tenniscores_player_id = %s AND league_id = %s
+                    """
+                    aggregate_stats = execute_query_one(aggregate_query, [player_id, league_id_int])
+                else:
+                    aggregate_query = """
+                        SELECT wins, losses, pti, first_name, last_name
+                        FROM players 
+                        WHERE tenniscores_player_id = %s
+                    """
+                    aggregate_stats = execute_query_one(aggregate_query, [player_id])
+                
+                if aggregate_stats:
+                    print(f"[DEBUG] Found aggregate stats: will be used as fallback if detailed analysis fails")
+                    # Don't return early - continue to detailed court analysis
+                else:
+                    print(f"[DEBUG] No aggregate stats found in players table either")
+            except Exception as e:
+                print(f"[DEBUG] Error getting aggregate stats: {e}")
+            
+            # Final fallback - return zeros
             return {
                 'current_season': {
                     'winRate': 0,
@@ -2566,7 +2596,7 @@ def get_mobile_team_data(user):
         """
         team_stats = execute_query_one(team_stats_query, [team])
         
-        # Get team matches using team_id (much more efficient!)
+        # Get team matches using team name (simple and reliable!)
         matches_query = """
             SELECT 
                 TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
@@ -2577,12 +2607,13 @@ def get_mobile_team_data(user):
                 home_player_1_id as "Home Player 1",
                 home_player_2_id as "Home Player 2",
                 away_player_1_id as "Away Player 1",
-                away_player_2_id as "Away Player 2"
+                away_player_2_id as "Away Player 2",
+                id
             FROM match_scores
-            WHERE (home_team_id = %s OR away_team_id = %s)
+            WHERE (home_team = %s OR away_team = %s)
             ORDER BY match_date DESC
         """
-        team_matches = execute_query(matches_query, [team_id, team_id])
+        team_matches = execute_query(matches_query, [team, team])
         
         # DEBUG: Raw database query to understand the data structure
         print(f"[DEBUG DATABASE QUERY] Starting database debug...")
@@ -2687,10 +2718,15 @@ def get_mobile_team_data(user):
         # Calculate court analysis and top players
         court_analysis = {}
         top_players = []
+        max_courts = 4  # Default number of courts
+        
+        # Import defaultdict at function level for use in court analysis
+        from collections import defaultdict
+        
+        # Initialize variables that are used outside the conditional blocks
+        player_stats = defaultdict(lambda: {'matches': 0, 'wins': 0, 'courts': {}, 'partners': {}})
         
         if team_matches:
-            # Initialize court stats (always 4 courts)
-            from collections import defaultdict
             
             # Group by date to understand court patterns
             matches_by_date = defaultdict(list)
@@ -2701,105 +2737,28 @@ def get_mobile_team_data(user):
             court_stats = {f'court{i}': {'matches': 0, 'wins': 0, 'losses': 0, 'players': defaultdict(lambda: {'matches': 0, 'wins': 0, 'losses': 0})} for i in range(1, 5)}
             player_stats = defaultdict(lambda: {'matches': 0, 'wins': 0, 'courts': {}, 'partners': {}})
             
-            # CORRECT approach: Use database order (ORDER BY id) for court assignment
+                    # SIMPLIFIED approach: Assign courts based on match order within each date
+        from collections import defaultdict
+        
+        # Group team matches by date
+        matches_by_date = defaultdict(list)
+        for i, match in enumerate(team_matches):
+            date = match.get('Date')
+            matches_by_date[date].append((i, match))  # Store index with match
+        
+        # Create simple court assignments: 1, 2, 3, 4, then repeat
+        match_to_court = {}
+        for date, date_matches in matches_by_date.items():
+            # Sort by match ID to ensure consistent ordering
+            date_matches_sorted = sorted(date_matches, key=lambda x: x[1].get('id', 0))
             
-            # Get all matches on the dates this team played, ordered by database ID
-            team_dates = list(set([match.get('Date') for match in team_matches]))
-            
-            # Convert date strings back to date objects for database query
-            from datetime import datetime
-            date_objects = []
-            for date_str in team_dates:
-                try:
-                    # Parse "DD-Mon-YY" format
-                    date_obj = datetime.strptime(date_str, '%d-%b-%y').date()
-                    date_objects.append(date_obj)
-                except ValueError:
-                    pass
-            
-            # Determine maximum courts dynamically based on actual match data
-            max_courts = 4  # Default fallback
-            
-            if date_objects:
-                # Get all matches on those dates in database order
-                all_matches_query = """
-                    SELECT 
-                        TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
-                        home_team as "Home Team",
-                        away_team as "Away Team",
-                        home_player_1_id as "Home Player 1",
-                        home_player_2_id as "Home Player 2", 
-                        away_player_1_id as "Away Player 1",
-                        away_player_2_id as "Away Player 2",
-                        winner as "Winner",
-                        id
-                    FROM match_scores
-                    WHERE match_date = ANY(%s)
-                    ORDER BY match_date, id
-                """
-                all_matches = execute_query(all_matches_query, [date_objects])
+            # Assign courts 1-4 in order, repeating if more than 4 matches
+            for j, (original_index, match) in enumerate(date_matches_sorted):
+                court_num = (j % 4) + 1  # 1, 2, 3, 4, 1, 2, 3, 4, ...
+                match_to_court[original_index] = court_num
                 
-                # Group by date and team matchup to determine max courts per team match
-                matches_by_date_and_teams = defaultdict(lambda: defaultdict(list))
-                for match in all_matches:
-                    date = match.get('Date')
-                    home_team = match.get('Home Team', '')
-                    away_team = match.get('Away Team', '')
-                    team_matchup = f"{home_team} vs {away_team}"
-                    matches_by_date_and_teams[date][team_matchup].append(match)
-                
-                # Calculate the maximum courts used in any single team matchup
-                team_matchup_court_counts = []
-                for date, team_matchups in matches_by_date_and_teams.items():
-                    for matchup, matchup_matches in team_matchups.items():
-                        # Check if this team is involved in this matchup
-                        if team in matchup:
-                            team_matchup_court_counts.append(len(matchup_matches))
-                
-                if team_matchup_court_counts:
-                    max_courts = max(team_matchup_court_counts)
-                
-                # Group by date and assign courts sequentially
-                matches_by_date_ordered = defaultdict(list)
-                for match in all_matches:
-                    date = match.get('Date')
-                    matches_by_date_ordered[date].append(match)
-                
-                # Create mapping of team matches to courts
-                match_to_court = {}
-                
-                for date, date_matches in matches_by_date_ordered.items():
-                    # Group matches by team matchup within this date
-                    team_matchup_groups = defaultdict(list)
-                    for match in date_matches:
-                        home_team = match.get('Home Team', '')
-                        away_team = match.get('Away Team', '')
-                        team_matchup = f"{home_team} vs {away_team}"
-                        team_matchup_groups[team_matchup].append(match)
-                    
-                    # Assign courts within each team matchup
-                    for team_matchup, matchup_matches in team_matchup_groups.items():
-                        # Sort matches within this team matchup by database ID to ensure consistent ordering
-                        matchup_matches_sorted = sorted(matchup_matches, key=lambda x: x.get('id', 0))
-                        
-                        # Assign courts sequentially within this team matchup (1, 2, 3, 4, 5...)
-                        for court_index, match in enumerate(matchup_matches_sorted):
-                            court_num = court_index + 1  # Courts 1, 2, 3, 4, 5 within this matchup
-                            
-                            # Find corresponding team match and assign court
-                            for original_index, team_match in enumerate(team_matches):
-                                if (team_match.get('Date') == date and
-                                    team_match.get('Home Team') == match.get('Home Team') and
-                                    team_match.get('Away Team') == match.get('Away Team') and
-                                    team_match.get('Home Player 1') == match.get('Home Player 1') and
-                                    team_match.get('Home Player 2') == match.get('Home Player 2') and
-                                    team_match.get('Away Player 1') == match.get('Away Player 1') and
-                                    team_match.get('Away Player 2') == match.get('Away Player 2')):
-                                    match_to_court[original_index] = court_num
-                                    break
-        else:
-            # Fallback: create empty mapping
-            match_to_court = {}
+            # Update max_courts based on how many matches we actually have
+            max_courts = min(4, max(max_courts, len(date_matches_sorted)))
         
         # Initialize court stats dynamically based on detected max courts
         court_stats = {f'court{i}': {'matches': 0, 'wins': 0, 'losses': 0, 'players': defaultdict(lambda: {'matches': 0, 'wins': 0, 'losses': 0})} for i in range(1, max_courts + 1)}

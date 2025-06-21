@@ -1,0 +1,1004 @@
+{% extends "mobile/layout.html" %}
+{% set show_back_arrow = True %}
+
+{% block title %}Activity Dashboard | Rally{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-4 md:py-6 max-w-7xl">
+  <!-- Header Section -->
+  <div class="header-section mb-6 md:mb-8">
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <h1 class="text-2xl md:text-3xl font-bold text-gray-800">Activity Dashboard</h1>
+        <p class="text-sm md:text-base text-gray-600 mt-1">Real-time monitoring of Rally app activities</p>
+      </div>
+      <div class="flex items-center space-x-2">
+        <div class="status-indicator bg-green-500 w-3 h-3 rounded-full animate-pulse"></div>
+        <span class="text-sm font-medium text-gray-700">Live</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats Overview Cards -->
+  <div class="stats-section mb-6 md:mb-8">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+      <div class="stat-card bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow">
+        <div class="flex items-center">
+          <div class="p-2 bg-blue-100 rounded-lg">
+            <i class="fas fa-chart-line text-blue-600 text-xl"></i>
+          </div>
+          <div class="ml-3">
+            <p class="text-sm font-medium text-gray-600">Total Activities</p>
+            <p class="text-xl font-bold text-gray-900" id="total-activities">-</p>
+          </div>
+        </div>
+      </div>
+      
+      <div class="stat-card bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow">
+        <div class="flex items-center">
+          <div class="p-2 bg-green-100 rounded-lg">
+            <i class="fas fa-calendar-day text-green-600 text-xl"></i>
+          </div>
+          <div class="ml-3">
+            <p class="text-sm font-medium text-gray-600">Today</p>
+            <p class="text-xl font-bold text-gray-900" id="today-activities">-</p>
+          </div>
+        </div>
+      </div>
+      
+      <div class="stat-card bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow">
+        <div class="flex items-center">
+          <div class="p-2 bg-purple-100 rounded-lg">
+            <i class="fas fa-users text-purple-600 text-xl"></i>
+          </div>
+          <div class="ml-3">
+            <p class="text-sm font-medium text-gray-600">Active Users</p>
+            <p class="text-xl font-bold text-gray-900" id="active-users">-</p>
+          </div>
+        </div>
+      </div>
+      
+      <div class="stat-card bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow">
+        <div class="flex items-center">
+          <div class="p-2 bg-orange-100 rounded-lg">
+            <i class="fas fa-bolt text-orange-600 text-xl"></i>
+          </div>
+          <div class="ml-3">
+            <p class="text-sm font-medium text-gray-600">Activity Rate</p>
+            <p class="text-lg font-bold text-gray-900" id="activity-rate">-</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Dashboard Content -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+    
+    <!-- Activity Timeline - Left Column (2/3 width on large screens) -->
+    <div class="lg:col-span-2">
+      <!-- Filters Section -->
+      <div class="filters-section bg-white p-4 md:p-6 rounded-lg shadow mb-4 md:mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="filter-group">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Date Range</label>
+            <div class="space-y-2">
+              <input type="date" id="date-from" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm">
+              <input type="date" id="date-to" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm">
+            </div>
+          </div>
+          
+          <div class="filter-group">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Action Type</label>
+            <select id="action-type-filter" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm">
+              <option value="">All Actions</option>
+            </select>
+          </div>
+          
+          <div class="filter-group">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Team</label>
+            <select id="team-filter" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-sm">
+              <option value="">All Teams</option>
+            </select>
+          </div>
+          
+          <div class="filter-group">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Actions</label>
+            <div class="space-y-2">
+              <button id="apply-filters" class="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors text-sm font-medium">
+                <i class="fas fa-filter mr-2"></i>Apply Filters
+              </button>
+              <button id="clear-filters" class="w-full bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 transition-colors text-sm font-medium">
+                <i class="fas fa-times mr-2"></i>Clear
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Activity Timeline -->
+      <div class="timeline-section bg-white rounded-lg shadow">
+        <div class="p-4 border-b border-gray-200">
+          <div class="flex items-center justify-between">
+            <h2 class="text-lg font-semibold text-gray-900">
+              <i class="fas fa-clock mr-2 text-blue-600"></i>Activity Timeline
+            </h2>
+            <div class="flex items-center space-x-2">
+              <button id="refresh-timeline" class="text-gray-500 hover:text-blue-600 transition-colors">
+                <i class="fas fa-sync-alt"></i>
+              </button>
+              <span class="text-sm text-gray-500" id="timeline-status">Updated just now</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="timeline-container p-4" style="max-height: 600px; overflow-y: auto;">
+          <div id="timeline-content">
+            <!-- Timeline items will be loaded here -->
+            <div class="flex items-center justify-center py-8">
+              <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <span class="ml-2 text-gray-600">Loading activities...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Sidebar -->
+    <div class="space-y-4 md:space-y-6">
+      
+      <!-- Activity Heatmap -->
+      <div class="heatmap-section bg-white rounded-lg shadow">
+        <div class="p-4 border-b border-gray-200">
+          <h2 class="text-lg font-semibold text-gray-900">
+            <i class="fas fa-calendar-alt mr-2 text-green-600"></i>Activity Heatmap
+          </h2>
+          <p class="text-sm text-gray-600 mt-1">Last 30 days</p>
+        </div>
+        <div class="p-4">
+          <div id="heatmap-container">
+            <div class="flex items-center justify-center py-4">
+              <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-green-600"></div>
+              <span class="ml-2 text-gray-600 text-sm">Loading heatmap...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Top Active Players -->
+      <div class="top-players-section bg-white rounded-lg shadow">
+        <div class="p-4 border-b border-gray-200">
+          <h2 class="text-lg font-semibold text-gray-900">
+            <i class="fas fa-star mr-2 text-yellow-600"></i>Most Active Users
+          </h2>
+          <p class="text-sm text-gray-600 mt-1">Top performers this period</p>
+        </div>
+        <div class="p-4">
+          <div id="top-players-content">
+            <div class="flex items-center justify-center py-4">
+              <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-yellow-600"></div>
+              <span class="ml-2 text-gray-600 text-sm">Loading users...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Types Breakdown -->
+      <div class="action-types-section bg-white rounded-lg shadow">
+        <div class="p-4 border-b border-gray-200">
+          <h2 class="text-lg font-semibold text-gray-900">
+            <i class="fas fa-chart-pie mr-2 text-purple-600"></i>Action Types
+          </h2>
+          <p class="text-sm text-gray-600 mt-1">Activity breakdown</p>
+        </div>
+        <div class="p-4">
+          <div id="action-types-content">
+            <div class="flex items-center justify-center py-4">
+              <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600"></div>
+              <span class="ml-2 text-gray-600 text-sm">Loading breakdown...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Player Detail Modal -->
+<div id="player-modal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+  <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
+    <div class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" onclick="closePlayerModal()"></div>
+    
+    <div class="relative inline-block w-full max-w-4xl p-6 my-8 text-left align-middle transition-all transform bg-white shadow-xl rounded-lg">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-semibold text-gray-900" id="player-modal-title">Player Activity History</h3>
+        <button onclick="closePlayerModal()" class="text-gray-400 hover:text-gray-600">
+          <i class="fas fa-times text-xl"></i>
+        </button>
+      </div>
+      
+      <div id="player-modal-content" class="max-h-96 overflow-y-auto">
+        <!-- Player activity content will be loaded here -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Team Detail Modal -->
+<div id="team-modal" class="fixed inset-0 z-50 hidden overflow-y-auto">
+  <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
+    <div class="fixed inset-0 transition-opacity bg-gray-500 bg-opacity-75" onclick="closeTeamModal()"></div>
+    
+    <div class="relative inline-block w-full max-w-4xl p-6 my-8 text-left align-middle transition-all transform bg-white shadow-xl rounded-lg">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-semibold text-gray-900" id="team-modal-title">Team Activity History</h3>
+        <button onclick="closeTeamModal()" class="text-gray-400 hover:text-gray-600">
+          <i class="fas fa-times text-xl"></i>
+        </button>
+      </div>
+      
+      <div id="team-modal-content" class="max-h-96 overflow-y-auto">
+        <!-- Team activity content will be loaded here -->
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+/* Custom styles for the dashboard */
+.stat-card {
+  transition: transform 0.2s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+}
+
+.timeline-item {
+  border-left: 3px solid #e5e7eb;
+  padding-left: 1rem;
+  margin-bottom: 1.5rem;
+  position: relative;
+}
+
+.timeline-item:before {
+  content: '';
+  position: absolute;
+  left: -6px;
+  top: 0.5rem;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: #6b7280;
+}
+
+.timeline-item.login:before { background-color: #10b981; }
+.timeline-item.match_created:before { background-color: #f59e0b; }
+.timeline-item.poll_response:before { background-color: #8b5cf6; }
+.timeline-item.availability_update:before { background-color: #06b6d4; }
+.timeline-item.dashboard_access:before { background-color: #3b82f6; }
+
+.heatmap-day {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  background-color: #ebedf0;
+  margin: 1px;
+  display: inline-block;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.heatmap-day:hover {
+  transform: scale(1.2);
+}
+
+.heatmap-day.level-1 { background-color: #c6e48b; }
+.heatmap-day.level-2 { background-color: #7bc96f; }
+.heatmap-day.level-3 { background-color: #239a3b; }
+.heatmap-day.level-4 { background-color: #196127; }
+
+.player-rank {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem;
+  border-bottom: 1px solid #f3f4f6;
+  transition: background-color 0.2s ease;
+  cursor: pointer;
+}
+
+.player-rank:hover {
+  background-color: #f9fafb;
+}
+
+.player-rank:last-child {
+  border-bottom: none;
+}
+
+.action-type-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.action-type-bar:last-child {
+  border-bottom: none;
+}
+
+.action-bar {
+  height: 4px;
+  border-radius: 2px;
+  margin-top: 0.25rem;
+  transition: width 0.5s ease;
+}
+
+/* Loading states */
+.loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  
+  .stats-section .grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+  }
+  
+  .stat-card {
+    padding: 0.75rem;
+  }
+  
+  .stat-card .text-xl {
+    font-size: 1.125rem;
+  }
+  
+  .filters-section .grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .header-section h1 {
+    font-size: 1.5rem;
+  }
+  
+  .header-section p {
+    font-size: 0.875rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .stats-section .grid {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+  
+  .stat-card {
+    padding: 1rem;
+  }
+}
+</style>
+
+<script>
+// Dashboard JavaScript
+let dashboardData = {
+  activities: [],
+  stats: {},
+  heatmapData: [],
+  topPlayers: [],
+  filterOptions: {}
+};
+
+// Initialize dashboard on page load
+document.addEventListener('DOMContentLoaded', function() {
+  initializeDashboard();
+  setupEventListeners();
+  startAutoRefresh();
+});
+
+function initializeDashboard() {
+  loadDashboardStats();
+  loadFilterOptions();
+  loadTimelineActivities();
+  loadHeatmapData();
+  loadTopPlayers();
+}
+
+function setupEventListeners() {
+  // Filter controls
+  document.getElementById('apply-filters').addEventListener('click', applyFilters);
+  document.getElementById('clear-filters').addEventListener('click', clearFilters);
+  document.getElementById('refresh-timeline').addEventListener('click', refreshTimeline);
+  
+  // Set default date range (last 7 days)
+  const today = new Date();
+  const lastWeek = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+  document.getElementById('date-to').value = today.toISOString().split('T')[0];
+  document.getElementById('date-from').value = lastWeek.toISOString().split('T')[0];
+}
+
+function startAutoRefresh() {
+  // Refresh timeline every 30 seconds
+  setInterval(() => {
+    refreshTimeline();
+    updateTimestamp();
+  }, 30000);
+}
+
+async function loadDashboardStats() {
+  try {
+    const response = await fetch('/api/admin/dashboard/stats');
+    const data = await response.json();
+    
+    if (data.status === 'success') {
+      dashboardData.stats = data.stats;
+      updateStatsDisplay();
+      updateActionTypesDisplay();
+    }
+  } catch (error) {
+    console.error('Error loading dashboard stats:', error);
+  }
+}
+
+async function loadFilterOptions() {
+  try {
+    const response = await fetch('/api/admin/dashboard/filters');
+    const data = await response.json();
+    
+    if (data.status === 'success') {
+      dashboardData.filterOptions = data.filters;
+      populateFilterDropdowns();
+    }
+  } catch (error) {
+    console.error('Error loading filter options:', error);
+  }
+}
+
+async function loadTimelineActivities(filters = {}) {
+  try {
+    showTimelineLoading();
+    
+    const params = new URLSearchParams({
+      limit: '50',
+      ...filters
+    });
+    
+    const response = await fetch(`/api/admin/dashboard/activities?${params}`);
+    const data = await response.json();
+    
+    if (data.status === 'success') {
+      dashboardData.activities = data.activities;
+      renderTimeline();
+    }
+  } catch (error) {
+    console.error('Error loading timeline activities:', error);
+    showTimelineError();
+  }
+}
+
+async function loadHeatmapData() {
+  try {
+    const response = await fetch('/api/admin/dashboard/heatmap?days=30');
+    const data = await response.json();
+    
+    if (data.status === 'success') {
+      dashboardData.heatmapData = data.heatmap_data;
+      renderHeatmap();
+    }
+  } catch (error) {
+    console.error('Error loading heatmap data:', error);
+  }
+}
+
+async function loadTopPlayers() {
+  try {
+    const response = await fetch('/api/admin/dashboard/top-players?limit=10');
+    const data = await response.json();
+    
+    if (data.status === 'success') {
+      dashboardData.topPlayers = data.top_players;
+      renderTopPlayers();
+    }
+  } catch (error) {
+    console.error('Error loading top users:', error);
+  }
+}
+
+function updateStatsDisplay() {
+  const stats = dashboardData.stats;
+  
+  document.getElementById('total-activities').textContent = formatNumber(stats.total_activities || 0);
+  document.getElementById('today-activities').textContent = formatNumber(stats.today_activities || 0);
+  document.getElementById('active-users').textContent = formatNumber(stats.active_users_today || 0);
+  
+  // Calculate activity rate (activities per hour today)
+  const currentHour = new Date().getHours();
+  const rate = currentHour > 0 ? Math.round((stats.today_activities || 0) / currentHour) : (stats.today_activities || 0);
+  document.getElementById('activity-rate').textContent = `${rate}/hr`;
+}
+
+function updateActionTypesDisplay() {
+  const container = document.getElementById('action-types-content');
+  const actionTypes = dashboardData.stats.activity_types || [];
+  
+  if (actionTypes.length === 0) {
+    container.innerHTML = '<p class="text-gray-500 text-sm text-center py-4">No activity data available</p>';
+    return;
+  }
+  
+  const maxCount = Math.max(...actionTypes.map(type => type.count));
+  
+  const html = actionTypes.slice(0, 8).map(type => {
+    const percentage = (type.count / maxCount) * 100;
+    const actionIcon = getActionTypeIcon(type.type);
+    const actionColor = getActionTypeColor(type.type);
+    
+    return `
+      <div class="action-type-bar">
+        <div class="flex items-center space-x-2">
+          <i class="${actionIcon} text-${actionColor}-600"></i>
+          <span class="text-sm font-medium text-gray-700">${formatActionType(type.type)}</span>
+        </div>
+        <span class="text-sm font-bold text-gray-900">${formatNumber(type.count)}</span>
+      </div>
+      <div class="action-bar bg-${actionColor}-200" style="width: ${percentage}%"></div>
+    `;
+  }).join('');
+  
+  container.innerHTML = html;
+}
+
+function populateFilterDropdowns() {
+  const actionTypeSelect = document.getElementById('action-type-filter');
+  const teamSelect = document.getElementById('team-filter');
+  
+  // Populate action types
+  dashboardData.filterOptions.action_types?.forEach(actionType => {
+    const option = document.createElement('option');
+    option.value = actionType;
+    option.textContent = formatActionType(actionType);
+    actionTypeSelect.appendChild(option);
+  });
+  
+  // Populate teams
+  dashboardData.filterOptions.teams?.forEach(team => {
+    const option = document.createElement('option');
+    option.value = team.id;
+    option.textContent = `${team.name} (${team.club_name})`;
+    teamSelect.appendChild(option);
+  });
+}
+
+function renderTimeline() {
+  const container = document.getElementById('timeline-content');
+  const activities = dashboardData.activities;
+  
+  if (activities.length === 0) {
+    container.innerHTML = `
+      <div class="text-center py-8">
+        <i class="fas fa-clock text-gray-400 text-3xl mb-3"></i>
+        <p class="text-gray-500">No activities found for the selected filters.</p>
+        <button onclick="clearFilters()" class="mt-2 text-blue-600 hover:text-blue-800 text-sm">Clear filters to see all activities</button>
+      </div>
+    `;
+    return;
+  }
+  
+  const html = activities.map(activity => {
+    const timeAgo = getTimeAgo(activity.timestamp);
+    const actionIcon = getActionTypeIcon(activity.action_type);
+    const actionColor = getActionTypeColor(activity.action_type);
+    
+    return `
+      <div class="timeline-item ${activity.action_type}" data-activity-id="${activity.id}">
+        <div class="flex items-start space-x-3">
+          <div class="flex-shrink-0">
+            <div class="w-8 h-8 bg-${actionColor}-100 rounded-full flex items-center justify-center">
+              <i class="${actionIcon} text-${actionColor}-600 text-sm"></i>
+            </div>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between">
+              <p class="text-sm font-medium text-gray-900">
+                ${activity.action_description}
+              </p>
+              <p class="text-xs text-gray-500">${timeAgo}</p>
+            </div>
+            
+            ${activity.user ? `
+              <p class="text-xs text-gray-600 mt-1">
+                <i class="fas fa-user mr-1"></i>
+                ${activity.user.first_name} ${activity.user.last_name}
+                ${activity.user.email ? `(${activity.user.email})` : ''}
+              </p>
+            ` : ''}
+            
+            ${activity.player ? `
+              <p class="text-xs text-gray-600 mt-1">
+                <i class="fas fa-user-circle mr-1"></i>
+                <a href="#" onclick="showPlayerDetails(${activity.player.id || 0})" class="text-blue-600 hover:text-blue-800">
+                  ${activity.player.first_name} ${activity.player.last_name}
+                </a>
+              </p>
+            ` : ''}
+            
+            ${activity.team ? `
+              <p class="text-xs text-gray-600 mt-1">
+                <i class="fas fa-users mr-1"></i>
+                <a href="#" onclick="showTeamDetails(${activity.team.id || 0})" class="text-blue-600 hover:text-blue-800">
+                  ${activity.team.name}
+                </a>
+                ${activity.team.club_name ? `<span class="text-gray-500"> - ${activity.team.club_name}</span>` : ''}
+              </p>
+            ` : ''}
+            
+            ${activity.related_type && activity.related_id ? `
+              <p class="text-xs text-gray-500 mt-1">
+                <i class="fas fa-link mr-1"></i>
+                Related ${activity.related_type}: ${activity.related_id}
+              </p>
+            ` : ''}
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+  
+  container.innerHTML = html;
+}
+
+function renderHeatmap() {
+  const container = document.getElementById('heatmap-container');
+  const data = dashboardData.heatmapData;
+  
+  if (data.length === 0) {
+    container.innerHTML = '<p class="text-gray-500 text-sm text-center py-4">No heatmap data available</p>';
+    return;
+  }
+  
+  // Create a map of dates to counts
+  const dateMap = {};
+  data.forEach(item => {
+    dateMap[item.date] = item.count;
+  });
+  
+  // Generate last 30 days
+  const days = [];
+  const today = new Date();
+  for (let i = 29; i >= 0; i--) {
+    const date = new Date(today.getTime() - i * 24 * 60 * 60 * 1000);
+    const dateStr = date.toISOString().split('T')[0];
+    const count = dateMap[dateStr] || 0;
+    days.push({ date: dateStr, count });
+  }
+  
+  // Determine max count for scaling
+  const maxCount = Math.max(...days.map(day => day.count));
+  
+  const html = `
+    <div class="heatmap-grid" style="display: flex; flex-wrap: wrap; gap: 2px;">
+      ${days.map(day => {
+        const level = getHeatmapLevel(day.count, maxCount);
+        const date = new Date(day.date);
+        const title = `${date.toLocaleDateString()}: ${day.count} activities`;
+        
+        return `<div class="heatmap-day level-${level}" title="${title}"></div>`;
+      }).join('')}
+    </div>
+    <div class="heatmap-legend flex items-center justify-between mt-3 text-xs text-gray-600">
+      <span>Less</span>
+      <div class="flex space-x-1">
+        <div class="heatmap-day"></div>
+        <div class="heatmap-day level-1"></div>
+        <div class="heatmap-day level-2"></div>
+        <div class="heatmap-day level-3"></div>
+        <div class="heatmap-day level-4"></div>
+      </div>
+      <span>More</span>
+    </div>
+  `;
+  
+  container.innerHTML = html;
+}
+
+function renderTopPlayers() {
+  const container = document.getElementById('top-players-content');
+  const players = dashboardData.topPlayers;
+  
+  if (players.length === 0) {
+    container.innerHTML = '<p class="text-gray-500 text-sm text-center py-4">No player activity data available</p>';
+    return;
+  }
+  
+  const html = players.map((player, index) => {
+    const rankIcon = index < 3 ? ['🥇', '🥈', '🥉'][index] : `#${index + 1}`;
+    
+    return `
+      <div class="player-rank" onclick="showPlayerDetails(${player.id})">
+        <div class="flex items-center space-x-3">
+          <span class="text-sm font-bold" style="min-width: 30px;">${rankIcon}</span>
+          <div>
+            <p class="text-sm font-medium text-gray-900">
+              ${player.first_name} ${player.last_name}
+            </p>
+            <p class="text-xs text-gray-600">
+              ${player.club_name}${player.series_name ? ` • ${player.series_name}` : ''}
+            </p>
+          </div>
+        </div>
+        <div class="text-right">
+          <p class="text-sm font-bold text-gray-900">${formatNumber(player.activity_count)}</p>
+          <p class="text-xs text-gray-600">activities</p>
+        </div>
+      </div>
+    `;
+  }).join('');
+  
+  container.innerHTML = html;
+}
+
+// Filter and utility functions
+function applyFilters() {
+  const filters = {
+    date_from: document.getElementById('date-from').value,
+    date_to: document.getElementById('date-to').value,
+    action_type: document.getElementById('action-type-filter').value,
+    team_id: document.getElementById('team-filter').value
+  };
+  
+  // Remove empty filters
+  Object.keys(filters).forEach(key => {
+    if (filters[key] === '') {
+      delete filters[key];
+    }
+  });
+  
+  loadTimelineActivities(filters);
+}
+
+function clearFilters() {
+  document.getElementById('date-from').value = '';
+  document.getElementById('date-to').value = '';
+  document.getElementById('action-type-filter').value = '';
+  document.getElementById('team-filter').value = '';
+  
+  loadTimelineActivities();
+}
+
+function refreshTimeline() {
+  const refreshButton = document.getElementById('refresh-timeline');
+  refreshButton.classList.add('animate-spin');
+  
+  applyFilters();
+  
+  setTimeout(() => {
+    refreshButton.classList.remove('animate-spin');
+    updateTimestamp();
+  }, 1000);
+}
+
+function showTimelineLoading() {
+  document.getElementById('timeline-content').innerHTML = `
+    <div class="flex items-center justify-center py-8">
+      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <span class="ml-2 text-gray-600">Loading activities...</span>
+    </div>
+  `;
+}
+
+function showTimelineError() {
+  document.getElementById('timeline-content').innerHTML = `
+    <div class="text-center py-8">
+      <i class="fas fa-exclamation-triangle text-red-400 text-3xl mb-3"></i>
+      <p class="text-gray-500">Error loading activities. Please try again.</p>
+      <button onclick="refreshTimeline()" class="mt-2 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 text-sm">
+        Retry
+      </button>
+    </div>
+  `;
+}
+
+// Player and team detail modals
+async function showPlayerDetails(playerId) {
+  const modal = document.getElementById('player-modal');
+  const content = document.getElementById('player-modal-content');
+  const title = document.getElementById('player-modal-title');
+  
+  modal.classList.remove('hidden');
+  content.innerHTML = '<div class="text-center py-4"><div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div></div>';
+  
+  try {
+    const response = await fetch(`/api/admin/dashboard/player/${playerId}/activities`);
+    const data = await response.json();
+    
+    if (data.status === 'success') {
+      const activities = data.activities;
+      const player = dashboardData.topPlayers.find(p => p.id === playerId);
+      
+      title.textContent = player ? `${player.first_name} ${player.last_name} - Activity History` : 'Player Activity History';
+      
+      if (activities.length === 0) {
+        content.innerHTML = '<p class="text-gray-500 text-center py-4">No activities found for this player.</p>';
+        return;
+      }
+      
+      const html = activities.map(activity => {
+        const timeAgo = getTimeAgo(activity.timestamp);
+        const actionIcon = getActionTypeIcon(activity.action_type);
+        const actionColor = getActionTypeColor(activity.action_type);
+        
+        return `
+          <div class="border-l-3 border-${actionColor}-300 pl-4 py-2 mb-3">
+            <div class="flex items-center space-x-2 mb-1">
+              <i class="${actionIcon} text-${actionColor}-600"></i>
+              <span class="text-sm font-medium">${activity.action_description}</span>
+              <span class="text-xs text-gray-500">${timeAgo}</span>
+            </div>
+            ${activity.team ? `
+              <p class="text-xs text-gray-600">
+                <i class="fas fa-users mr-1"></i>
+                ${activity.team.name} - ${activity.team.club_name}
+              </p>
+            ` : ''}
+          </div>
+        `;
+      }).join('');
+      
+      content.innerHTML = html;
+    }
+  } catch (error) {
+    content.innerHTML = '<p class="text-red-500 text-center py-4">Error loading player activities.</p>';
+  }
+}
+
+async function showTeamDetails(teamId) {
+  const modal = document.getElementById('team-modal');
+  const content = document.getElementById('team-modal-content');
+  const title = document.getElementById('team-modal-title');
+  
+  modal.classList.remove('hidden');
+  content.innerHTML = '<div class="text-center py-4"><div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div></div>';
+  
+  try {
+    const response = await fetch(`/api/admin/dashboard/team/${teamId}/activities`);
+    const data = await response.json();
+    
+    if (data.status === 'success') {
+      const activities = data.activities;
+      const team = dashboardData.filterOptions.teams?.find(t => t.id === teamId);
+      
+      title.textContent = team ? `${team.name} - Activity History` : 'Team Activity History';
+      
+      if (activities.length === 0) {
+        content.innerHTML = '<p class="text-gray-500 text-center py-4">No activities found for this team.</p>';
+        return;
+      }
+      
+      const html = activities.map(activity => {
+        const timeAgo = getTimeAgo(activity.timestamp);
+        const actionIcon = getActionTypeIcon(activity.action_type);
+        const actionColor = getActionTypeColor(activity.action_type);
+        
+        return `
+          <div class="border-l-3 border-${actionColor}-300 pl-4 py-2 mb-3">
+            <div class="flex items-center space-x-2 mb-1">
+              <i class="${actionIcon} text-${actionColor}-600"></i>
+              <span class="text-sm font-medium">${activity.action_description}</span>
+              <span class="text-xs text-gray-500">${timeAgo}</span>
+            </div>
+            ${activity.user ? `
+              <p class="text-xs text-gray-600">
+                <i class="fas fa-user mr-1"></i>
+                ${activity.user.first_name} ${activity.user.last_name}
+              </p>
+            ` : ''}
+            ${activity.player ? `
+              <p class="text-xs text-gray-600">
+                <i class="fas fa-user-circle mr-1"></i>
+                ${activity.player.first_name} ${activity.player.last_name}
+              </p>
+            ` : ''}
+          </div>
+        `;
+      }).join('');
+      
+      content.innerHTML = html;
+    }
+  } catch (error) {
+    content.innerHTML = '<p class="text-red-500 text-center py-4">Error loading team activities.</p>';
+  }
+}
+
+function closePlayerModal() {
+  document.getElementById('player-modal').classList.add('hidden');
+}
+
+function closeTeamModal() {
+  document.getElementById('team-modal').classList.add('hidden');
+}
+
+// Utility functions
+function formatNumber(num) {
+  if (num >= 1000000) {
+    return (num / 1000000).toFixed(1) + 'M';
+  } else if (num >= 1000) {
+    return (num / 1000).toFixed(1) + 'K';
+  }
+  return num.toString();
+}
+
+function getTimeAgo(timestamp) {
+  const now = new Date();
+  const time = new Date(timestamp);
+  const diffMs = now - time;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+  
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return time.toLocaleDateString();
+}
+
+function getActionTypeIcon(actionType) {
+  const icons = {
+    'login': 'fas fa-sign-in-alt',
+    'logout': 'fas fa-sign-out-alt',
+    'match_created': 'fas fa-trophy',
+    'poll_response': 'fas fa-vote-yea',
+    'availability_update': 'fas fa-calendar-check',
+    'dashboard_access': 'fas fa-chart-line',
+    'page_visit': 'fas fa-eye',
+    'admin_action': 'fas fa-user-cog',
+    'data_update': 'fas fa-database',
+    'default': 'fas fa-circle'
+  };
+  return icons[actionType] || icons.default;
+}
+
+function getActionTypeColor(actionType) {
+  const colors = {
+    'login': 'green',
+    'logout': 'red',
+    'match_created': 'yellow',
+    'poll_response': 'purple',
+    'availability_update': 'blue',
+    'dashboard_access': 'indigo',
+    'page_visit': 'gray',
+    'admin_action': 'orange',
+    'data_update': 'teal',
+    'default': 'gray'
+  };
+  return colors[actionType] || colors.default;
+}
+
+function formatActionType(actionType) {
+  return actionType.split('_').map(word => 
+    word.charAt(0).toUpperCase() + word.slice(1)
+  ).join(' ');
+}
+
+function getHeatmapLevel(count, maxCount) {
+  if (count === 0) return 0;
+  const percentage = (count / maxCount) * 100;
+  if (percentage <= 25) return 1;
+  if (percentage <= 50) return 2;
+  if (percentage <= 75) return 3;
+  return 4;
+}
+
+function updateTimestamp() {
+  document.getElementById('timeline-status').textContent = 'Updated just now';
+}
+</script>
+{% endblock %} 

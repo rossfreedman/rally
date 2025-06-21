@@ -36,17 +36,13 @@
         <!-- Results Container -->
         <div id="subsResults" class="hidden space-y-6" style="margin-top: 0.875rem;">
             <!-- Algorithm Header -->
-            <div id="algorithmHeader" class="bg-black rounded-xl shadow-sm border border-gray-700 overflow-hidden">
-                <div class="p-6">
-                    <div class="flex items-center">
-                        <div class="w-10 h-10 bg-white rounded-full flex items-center justify-center mr-3">
-                            <i class="fas fa-robot text-black text-lg"></i>
-                        </div>
-                        <div>
-                            <div class="font-bold text-white text-lg">Recommended subs at {{ session_data.user.club }}</div>
-                            <div class="text-white text-sm">based upon Rally's algorithm</div>
-                        </div>
-                    </div>
+            <div id="algorithmHeader" class="bg-white rounded-xl shadow-sm border border-gray-300 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-50">
+                    <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                        <i class="fas fa-robot text-blue-500 mr-2"></i>
+                        Recommended subs at {{ session_data.user.club }}
+                    </h2>
+                    <p class="text-sm text-gray-500 mt-1">Rally's algorithm is calculated by weighting PTI (70%), win rate (20%), and series level (10%) to create a composite score</p>
                 </div>
             </div>
             
@@ -390,6 +386,7 @@ fetchAndRenderSubsMobile();
 /* Border utilities */
 .border-gray-50 { border-color: #f9fafb; }
 .border-gray-100 { border-color: #f3f4f6; }
+.border-gray-300 { border-color: #d1d5db; }
 .border-gray-700 { border-color: #374151; }
 .border-yellow-200 { border-color: #fef08a; }
 .border-yellow-300 { border-color: #fde047; }

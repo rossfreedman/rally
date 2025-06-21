@@ -6,8 +6,10 @@ from sqlalchemy import Column, Integer, String, Boolean, DateTime, Numeric, Text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy.sql import func
+from sqlalchemy.dialects.postgresql import UUID
 from datetime import datetime
 import os
+import uuid
 
 Base = declarative_base()
 
@@ -528,3 +530,31 @@ class PlayerSeasonTracking(Base):
     __table_args__ = (
         UniqueConstraint('player_id', 'league_id', 'season_year', name='unique_player_season_tracking'),
     )
+
+class ActivityLog(Base):
+    """
+    Comprehensive activity tracking for all app actions
+    Tracks every key action across the Rally application
+    """
+    __tablename__ = 'activity_log'
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    player_id = Column(Integer, ForeignKey('players.id'), nullable=True)  # Link to players table
+    team_id = Column(Integer, ForeignKey('teams.id'), nullable=True)     # Link to teams table
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=True)     # Link to users table
+    action_type = Column(String(255), nullable=False)  # 'login', 'match_created', 'poll_response', etc.
+    action_description = Column(Text, nullable=False)  # Human-readable description
+    related_id = Column(String(255), nullable=True)    # FK to related object (match_id, poll_id, etc.)
+    related_type = Column(String(100), nullable=True)  # Type of related object ('match', 'poll', etc.)
+    ip_address = Column(String(45), nullable=True)     # User's IP address
+    user_agent = Column(Text, nullable=True)           # Browser/device info
+    extra_data = Column(Text, nullable=True)           # JSON string for additional data
+    timestamp = Column(DateTime(timezone=True), default=func.now(), nullable=False)
+    
+    # Relationships
+    player = relationship("Player", backref="activity_logs")
+    team = relationship("Team", backref="activity_logs")  
+    user = relationship("User", backref="activity_logs")
+    
+    def __repr__(self):
+        return f"<ActivityLog(id={self.id}, action='{self.action_type}', player_id={self.player_id})>"

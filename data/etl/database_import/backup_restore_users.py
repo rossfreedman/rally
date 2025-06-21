@@ -21,7 +21,7 @@ def backup_user_associations():
     """Backup user associations with tenniscores_player_id for restoration"""
     print("📦 Backing up user associations...")
     
-    backup_file = f"user_associations_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+    backup_file = os.path.join("data", "backups", "user_data", f"user_associations_backup_{datetime.now().strftime(\'%Y%m%d_%H%M%S\')}.json")
     
     try:
         with get_db() as conn:

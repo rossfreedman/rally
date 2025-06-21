@@ -76,7 +76,7 @@ def get_backup_directory():
     parent_dir = os.path.dirname(rally_root)
     
     # Create backup directory as sibling to rally folder
-    backup_dir = os.path.join(parent_dir, 'rally_db_backups')
+    backup_dir = os.path.join(parent_dir, "data", "backups", "database")
     os.makedirs(backup_dir, exist_ok=True)
     
     return backup_dir

@@ -47,7 +47,7 @@ def get_local_connection_params():
 def create_backup_filename():
     """Create timestamped backup filename"""
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    return f"railway_backup_{timestamp}.sql"
+    return os.path.join("data", "backups", "database", f"railway_backup_{timestamp}.sql")
 
 def backup_railway_database():
     """Create backup of current Railway database using Python"""

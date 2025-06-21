@@ -1,11 +1,17 @@
 from flask import jsonify, request, session, render_template
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
 import json
 import time
+import re
 from utils.logging import log_user_activity
 from utils.ai import get_or_create_assistant, client, update_assistant_instructions
 from utils.auth import login_required
+# ADD: Database imports for PostgreSQL queries
+from database import get_db
+from app.models.database_models import User, Player, PlayerHistory, MatchScore, UserPlayerAssociation, League, Series, Club
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy import desc, func
 
 # Ultra-optimized context management settings for speed
 MAX_CONTEXT_CHARS = 4000  # Reduced from 6000 for faster processing
@@ -28,11 +34,11 @@ _thread_metadata = {}  # {thread_id: {last_message_time, message_count, context_
 _run_status_cache = {}  # {run_id: {status, last_check, completion_time}}
 RUN_CACHE_DURATION = 30  # Cache run status for 30 seconds
 
-# NEW: Response prefetch cache
+# NEW: Response prefetch cache - increased duration for speed
 _response_cache = {}  # {thread_id: {response, timestamp}}
-RESPONSE_CACHE_DURATION = 60  # Cache responses for 1 minute
+RESPONSE_CACHE_DURATION = 180  # Cache responses for 3 minutes (increased from 1 minute)
 
-# NEW: Training data cache for ultra-fast access
+# NEW: Training data cache for ultra-fast access - using database instead of JSON
 _training_data_cache = None
 _training_data_cache_time = None
 TRAINING_DATA_CACHE_DURATION = 3600  # Cache for 1 hour
@@ -42,8 +48,12 @@ OPTIMIZATION_LEVEL = os.environ.get('AI_OPTIMIZATION_LEVEL', 'ULTRA')  # Changed
 
 # NEW: Streaming configuration for ultra-fast responses
 USE_STREAMING = os.environ.get('USE_AI_STREAMING', 'true').lower() == 'true'  # Enable streaming to eliminate polling
-STREAMING_TIMEOUT = int(os.environ.get('AI_STREAMING_TIMEOUT', '15'))  # Timeout for streaming responses
-FALLBACK_TO_POLLING = os.environ.get('AI_FALLBACK_POLLING', 'true').lower() == 'true'  # Fallback to polling if streaming fails
+STREAMING_TIMEOUT = int(os.environ.get('AI_STREAMING_TIMEOUT', '12'))  # Balanced timeout for complete responses
+FALLBACK_TO_POLLING = os.environ.get('AI_FALLBACK_POLLING', 'true').lower() == 'true'
+
+# NEW: User context caching for speed
+_user_context_cache = {}  # {user_email: {context, timestamp}}
+USER_CONTEXT_CACHE_DURATION = 300  # Cache for 5 minutes
 
 # Set optimization parameters based on level - ULTRA SPEED SETTINGS
 if OPTIMIZATION_LEVEL == 'ULTRA':
@@ -181,7 +191,7 @@ def optimize_thread_context(thread_id):
     Returns: (context_size, message_count, was_optimized, summary)
     """
     try:
-        messages = client.beta.threads.messages.list(thread_id=thread_id, limit=50)
+        messages = client.beta.threads.messages.list(thread_id=thread_id, limit=5)
         messages_list = list(messages.data)
         
         if not messages_list:
@@ -511,10 +521,12 @@ def create_streaming_run(thread_id, assistant_id):
             elif event.event in ['thread.run.failed', 'thread.run.cancelled', 'thread.run.expired']:
                 raise Exception(f"Run failed: {event.event}")
         
-        # If we got a response through streaming, return it
-        if response_text.strip():
+        # Only return streaming response if it completed successfully (not timed out)
+        if response_text.strip() and time.time() - start_time <= STREAMING_TIMEOUT:
             print(f"✅ Streaming response received in {time.time() - start_time:.1f}s")
             return response_text, 1
+        elif response_text.strip():
+            print(f"⚠️ Streaming timed out with partial response ({len(response_text)} chars), falling back to polling")
         else:
             print("⚠️ No response through streaming, falling back to polling")
             
@@ -762,7 +774,7 @@ def cache_response(thread_id, response):
     }
 
 def get_cached_training_data():
-    """Get training data with caching for ultra-fast access"""
+    """Get training data with caching for ultra-fast access - using robust file path"""
     global _training_data_cache, _training_data_cache_time
     
     current_time = time.time()
@@ -771,10 +783,26 @@ def get_cached_training_data():
         current_time - _training_data_cache_time > TRAINING_DATA_CACHE_DURATION):
         
         print(f"📚 Loading training data into cache...")
-        from api.training_data import load_training_data
-        _training_data_cache = load_training_data()
-        _training_data_cache_time = current_time
-        print(f"✅ Training data cached: {len(_training_data_cache)} topics")
+        try:
+            import json
+            # Use absolute path to ensure reliability
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            project_root = os.path.dirname(os.path.dirname(current_dir))
+            training_guide_path = os.path.join(project_root, 'data', 'leagues', 'all', 'improve_data', 'complete_platform_tennis_training_guide.json')
+            
+            if os.path.exists(training_guide_path):
+                with open(training_guide_path, 'r', encoding='utf-8') as f:
+                    _training_data_cache = json.load(f)
+                _training_data_cache_time = current_time
+                print(f"✅ Training data cached: {len(_training_data_cache)} topics")
+            else:
+                print(f"⚠️ Training guide not found at {training_guide_path}, using empty cache")
+                _training_data_cache = {}
+                _training_data_cache_time = current_time
+        except Exception as e:
+            print(f"❌ Error loading training data: {str(e)}, using empty cache")
+            _training_data_cache = {}
+            _training_data_cache_time = current_time
     else:
         print(f"📋 Training data cache hit")
     
@@ -853,12 +881,8 @@ def cleanup_old_metadata():
         print(f"🧹 Cleaned up {len(old_threads)} old thread metadata entries")
 
 def get_user_playing_context(user):
-    """Get comprehensive user playing context for personalized AI assistance"""
+    """Get comprehensive user playing context for personalized AI assistance using database queries"""
     try:
-        import json
-        import os
-        from datetime import datetime, timedelta
-        
         user_context = {
             'name': f"{user.get('first_name', '')} {user.get('last_name', '')}".strip(),
             'email': user.get('email', 'unknown'),
@@ -871,82 +895,146 @@ def get_user_playing_context(user):
             'areas_for_improvement': []
         }
         
-        # Get current PTI and recent matches from player history
+        # Get player data from database
         try:
-            project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-            player_history_path = os.path.join(project_root, 'data', 'player_history.json')
-            
-            with open(player_history_path, 'r') as f:
-                player_history = json.load(f)
+            with get_db() as conn:
+                cursor = conn.cursor()
                 
-            # Find the player's record by matching name
-            player_name = user_context['name'].lower()
-            player_record = next((p for p in player_history if p.get('name', '').lower() == player_name), None)
-            
-            if player_record and player_record.get('matches'):
-                # Sort matches by date to find most recent
-                matches = sorted(player_record['matches'], key=lambda x: datetime.strptime(x['date'], '%m/%d/%Y'), reverse=True)
+                # Find the user's player record using email or name
+                user_email = user.get('email', '')
+                user_name = user_context['name']
                 
-                # Get current PTI
-                if matches:
-                    user_context['current_pti'] = matches[0].get('end_pti')
+                # First try to find player via user_player_associations
+                cursor.execute("""
+                    SELECT DISTINCT p.id, p.tenniscores_player_id, p.first_name, p.last_name, 
+                           p.pti, p.wins, p.losses, p.win_percentage,
+                           s.name as series_name, c.name as club_name, l.league_name
+                    FROM players p
+                    JOIN user_player_associations upa ON p.id = upa.player_id
+                    JOIN users u ON upa.user_id = u.id
+                    LEFT JOIN series s ON p.series_id = s.id
+                    LEFT JOIN clubs c ON p.club_id = c.id
+                    LEFT JOIN leagues l ON p.league_id = l.id
+                    WHERE u.email = %s
+                    ORDER BY upa.is_primary DESC, p.updated_at DESC
+                    LIMIT 1
+                """, (user_email,))
+                
+                player_record = cursor.fetchone()
+                
+                # If no association found, try to match by name
+                if not player_record and user_name:
+                    cursor.execute("""
+                        SELECT DISTINCT p.id, p.tenniscores_player_id, p.first_name, p.last_name, 
+                               p.pti, p.wins, p.losses, p.win_percentage,
+                               s.name as series_name, c.name as club_name, l.league_name
+                        FROM players p
+                        LEFT JOIN series s ON p.series_id = s.id
+                        LEFT JOIN clubs c ON p.club_id = c.id
+                        LEFT JOIN leagues l ON p.league_id = l.id
+                        WHERE LOWER(CONCAT(p.first_name, ' ', p.last_name)) = LOWER(%s)
+                        ORDER BY p.updated_at DESC
+                        LIMIT 1
+                    """, (user_name,))
+                    player_record = cursor.fetchone()
+                
+                if player_record:
+                    player_id, tenniscores_id, first_name, last_name, current_pti, wins, losses, win_pct, series_name, club_name, league_name = player_record
                     
-                    # Calculate weekly PTI change
-                    if len(matches) > 1:
-                        current_date = datetime.strptime(matches[0]['date'], '%m/%d/%Y')
-                        # Find the match closest to one week ago
-                        prev_match = None
-                        for match in matches[1:]:
-                            match_date = datetime.strptime(match['date'], '%m/%d/%Y')
-                            if (current_date - match_date).days >= 5:
-                                prev_match = match
-                                break
+                    # Update context with player info
+                    user_context.update({
+                        'name': f"{first_name} {last_name}",
+                        'current_pti': float(current_pti) if current_pti else None,
+                        'series': series_name or user_context['series'],
+                        'club': club_name or user_context['club']
+                    })
+                    
+                    # Get recent player history for PTI tracking
+                    cursor.execute("""
+                        SELECT date, end_pti, series
+                        FROM player_history
+                        WHERE player_id = %s
+                        ORDER BY date DESC
+                        LIMIT 10
+                    """, (player_id,))
+                    
+                    pti_history = cursor.fetchall()
+                    
+                    if pti_history and len(pti_history) > 1:
+                        # Calculate weekly PTI change
+                        current_date = pti_history[0][0]
+                        current_pti_hist = float(pti_history[0][1]) if pti_history[0][1] else None
                         
-                        if prev_match and 'end_pti' in prev_match:
-                            prev_pti = prev_match['end_pti']
-                            user_context['weekly_pti_change'] = user_context['current_pti'] - prev_pti
-                
-                # Get recent matches (last 5)
-                user_context['recent_matches'] = matches[:5]
-                
-                # Analyze playing trends
-                if len(matches) >= 3:
-                    recent_matches = matches[:10]  # Last 10 matches
-                    wins = sum(1 for m in recent_matches if m.get('result') == 'Win')
-                    losses = len(recent_matches) - wins
+                        # Find PTI from about a week ago
+                        for hist_record in pti_history[1:]:
+                            hist_date = hist_record[0]
+                            hist_pti = float(hist_record[1]) if hist_record[1] else None
+                            
+                            if hist_pti and current_pti_hist and (current_date - hist_date).days >= 5:
+                                user_context['weekly_pti_change'] = current_pti_hist - hist_pti
+                                break
                     
-                    user_context['playing_trends'] = {
-                        'recent_record': f"{wins}W-{losses}L",
-                        'win_percentage': round((wins / len(recent_matches)) * 100, 1) if recent_matches else 0,
-                        'avg_pti_change': round(sum(m.get('pti_change', 0) for m in recent_matches) / len(recent_matches), 1) if recent_matches else 0
-                    }
+                    # Get recent match results
+                    cursor.execute("""
+                        SELECT ms.match_date, ms.home_team, ms.away_team, ms.winner, ms.scores,
+                               ms.home_player_1_id, ms.home_player_2_id, ms.away_player_1_id, ms.away_player_2_id
+                        FROM match_scores ms
+                        WHERE ms.home_player_1_id = %s OR ms.home_player_2_id = %s 
+                           OR ms.away_player_1_id = %s OR ms.away_player_2_id = %s
+                        ORDER BY ms.match_date DESC
+                        LIMIT 10
+                    """, (tenniscores_id, tenniscores_id, tenniscores_id, tenniscores_id))
                     
-                    # Identify areas for improvement based on recent performance
-                    if user_context['weekly_pti_change'] and user_context['weekly_pti_change'] < -2:
-                        user_context['areas_for_improvement'].append("Recent PTI decline - focus on consistency")
+                    recent_matches = cursor.fetchall()
                     
-                    if user_context['playing_trends']['win_percentage'] < 40:
-                        user_context['areas_for_improvement'].append("Below average win rate - work on fundamentals")
-                    
-                    # Check for position-specific weaknesses (if available in match data)
-                    position_performance = {}
-                    for match in recent_matches:
-                        position = match.get('position', 'Unknown')
-                        if position != 'Unknown':
-                            if position not in position_performance:
-                                position_performance[position] = {'wins': 0, 'total': 0}
-                            position_performance[position]['total'] += 1
-                            if match.get('result') == 'Win':
-                                position_performance[position]['wins'] += 1
-                    
-                    for position, stats in position_performance.items():
-                        win_rate = (stats['wins'] / stats['total']) * 100 if stats['total'] > 0 else 0
-                        if win_rate < 30 and stats['total'] >= 2:
-                            user_context['areas_for_improvement'].append(f"Struggles at {position} position")
+                    if recent_matches:
+                        match_results = []
+                        wins = 0
+                        
+                        for match in recent_matches:
+                            match_date, home_team, away_team, winner, scores, hp1, hp2, ap1, ap2 = match
+                            
+                            # Determine if player was on home or away team
+                            is_home = tenniscores_id in [hp1, hp2]
+                            opponent_team = away_team if is_home else home_team
+                            
+                            # Determine if won
+                            won = (is_home and winner == 'home') or (not is_home and winner == 'away')
+                            if won:
+                                wins += 1
+                            
+                            match_results.append({
+                                'date': match_date.strftime('%m/%d/%Y') if match_date else 'Unknown',
+                                'opponent': opponent_team,
+                                'result': 'Win' if won else 'Loss',
+                                'scores': scores
+                            })
+                        
+                        user_context['recent_matches'] = match_results[:5]
+                        
+                        # Calculate playing trends
+                        total_matches = len(recent_matches)
+                        losses = total_matches - wins
+                        
+                        user_context['playing_trends'] = {
+                            'recent_record': f"{wins}W-{losses}L",
+                            'win_percentage': round((wins / total_matches) * 100, 1) if total_matches > 0 else 0,
+                            'total_matches': total_matches
+                        }
+                        
+                        # Identify areas for improvement
+                        if user_context['weekly_pti_change'] and user_context['weekly_pti_change'] < -2:
+                            user_context['areas_for_improvement'].append("Recent PTI decline - focus on consistency")
+                        
+                        if user_context['playing_trends']['win_percentage'] < 40:
+                            user_context['areas_for_improvement'].append("Below average win rate - work on fundamentals")
+                        
+                        if total_matches >= 5 and wins == 0:
+                            user_context['areas_for_improvement'].append("Recent losing streak - consider technique review")
                             
         except Exception as e:
-            print(f"Error loading player history: {str(e)}")
-            # Continue with basic info if player history fails
+            print(f"Error loading player data from database: {str(e)}")
+            # Continue with basic info if database query fails
             
         return user_context
         
@@ -999,6 +1087,9 @@ Series: {user_context['series']}"""
     return context_str
 
 def init_rally_ai_routes(app):
+    # Pre-warm caches for maximum speed
+    prewarm_caches()
+    
     @app.route('/mobile/ask-ai')
     def mobile_ask_ai():
         """Serve the mobile AI chat interface"""
@@ -1047,116 +1138,32 @@ def init_rally_ai_routes(app):
             # Get cached assistant (minimal API calls)
             assistant = get_cached_assistant()
             
+            # DEBUG: Print assistant instructions (system prompt)
+            print(f"\n=== DEBUG: SYSTEM PROMPT (Assistant Instructions) ===")
+            print(f"Assistant ID: {assistant.id}")
+            print(f"Assistant Name: {assistant.name}")
+            print(f"System Prompt Length: {len(assistant.instructions)} characters")
+            print("=" * 80)
+            print("COMPLETE SYSTEM PROMPT:")
+            print(assistant.instructions)
+            print("=" * 80)
+            print(f"=== END SYSTEM PROMPT DEBUG ===\n")
+            
             # Track request
             _api_stats['total_requests'] += 1
             
-            # PRE-FETCH TRAINING DATA to eliminate function calls (MAJOR SPEED BOOST)
-            enhanced_message = message
+            # ULTRA-FAST MESSAGE ENHANCEMENT (maximum speed optimization)
             try:
-                # Get user playing context for personalized advice
-                print(f"🎯 Getting user playing context for personalized advice...")
-                user_context = get_user_playing_context(session.get('user', {}))
-                user_context_str = format_user_context_for_assistant(user_context)
+                print(f"⚡ Getting cached user context and creating ultra-fast message...")
+                user_context = get_cached_user_context(session.get('user', {}))
+                enhanced_message = create_ultra_fast_enhanced_message(message, user_context)
                 
-                # Check if this looks like a training-related query
-                training_keywords = ['serve', 'volley', 'blitz', 'lob', 'overhead', 'return', 'forehand', 'backhand', 
-                                   'strategy', 'positioning', 'footwork', 'technique', 'drill', 'practice']
-                
-                if any(keyword in message.lower() for keyword in training_keywords):
-                    print(f"🚀 Pre-fetching training data for: '{message}'")
-                    
-                    # Get training data directly (ultra-fast from cache)
-                    from api.training_data import find_topic_data
-                    
-                    training_data = get_cached_training_data()
-                    topic_key, topic_data = find_topic_data(training_data, message)
-                    
-                    # Get video data directly
-                    video_result = find_training_video_direct(message)
-                    
-                    if topic_data or video_result:
-                        # Include the data directly in the message to eliminate function calls
-                        enhanced_message = f"""User Query: {message}
-{user_context_str}
-
-AVAILABLE TRAINING DATA (use this to provide detailed, specific advice):
-"""
-                        
-                        if topic_data:
-                            enhanced_message += f"""
-Training Topic: {topic_key}
-Fundamentals: {topic_data.get('Recommendation', [])}
-Drills: {topic_data.get('Drills to Improve', [])}
-Common Mistakes: {topic_data.get('Common Mistakes & Fixes', [])}
-Coach's Cues: {topic_data.get("Coach's Cues", [])}
-"""
-                        
-                        if video_result and video_result.get('video'):
-                            video = video_result['video']
-                            enhanced_message += f"""
-Training Video: [{video.get('title', 'Training Video')}]({video.get('url', '')})
-"""
-                        
-                        enhanced_message += f"""
-
-Please provide a comprehensive, personalized response using this training data and the player's profile. Consider their current PTI level, recent performance trends, and identified areas for improvement. Format it nicely with sections for technique, drills, common mistakes, and include the video link. Make specific recommendations based on their playing level and recent performance."""
-                        
-                        print(f"✅ Enhanced message with training data and user context")
-                        
-                        # DEBUG: Print the enhanced message to see what's being sent to the assistant
-                        print(f"\n=== DEBUG: COMPLETE Enhanced Message Being Sent to Assistant ===")
-                        print(f"Message Length: {len(enhanced_message)} characters")
-                        print(f"Complete Enhanced Message:")
-                        print("=" * 80)
-                        print(enhanced_message)
-                        print("=" * 80)
-                        print(f"=== END DEBUG ===\n")
-                        
-                    else:
-                        # No specific training data found, but still include user context
-                        enhanced_message = f"""User Query: {message}
-{user_context_str}
-
-Please provide personalized paddle tennis advice considering the player's profile, current performance level, and recent playing trends. Give specific recommendations appropriate for their skill level and areas needing improvement."""
-                        print(f"✅ Enhanced message with user context (no specific training data found)")
-                        
-                        # DEBUG: Print the enhanced message to see what's being sent to the assistant
-                        print(f"\n=== DEBUG: Enhanced Message (No Training Data) ===")
-                        print(f"Message Length: {len(enhanced_message)} characters")
-                        print(f"Complete Enhanced Message:")
-                        print("=" * 80)
-                        print(enhanced_message)
-                        print("=" * 80)
-                        print(f"=== END DEBUG ===\n")
-                else:
-                    # Not a training query, but still include user context for personalization
-                    enhanced_message = f"""User Query: {message}
-{user_context_str}
-
-Please provide a helpful response considering the player's profile and current performance level."""
-                    print(f"✅ Enhanced message with user context for general query")
-                    
-                    # DEBUG: Print the enhanced message to see what's being sent to the assistant
-                    print(f"\n=== DEBUG: Enhanced Message (General Query) ===")
-                    print(f"Message Length: {len(enhanced_message)} characters")
-                    print(f"Complete Enhanced Message:")
-                    print("=" * 80)
-                    print(enhanced_message)
-                    print("=" * 80)
-                    print(f"=== END DEBUG ===\n")
+                # Minimal debug output for speed
+                print(f"✅ Enhanced: {len(message)} → {len(enhanced_message)} chars")
                         
             except Exception as e:
-                print(f"⚠️ Error enhancing message with user context: {str(e)}, using original message")
+                print(f"⚠️ Error creating ultra-fast message: {str(e)}, using original")
                 enhanced_message = message
-                
-                # DEBUG: Print the fallback message
-                print(f"\n=== DEBUG: Fallback Message (Error Case) ===")
-                print(f"Error: {str(e)}")
-                print(f"Using original message: {message}")
-                print("=" * 80)
-                print(enhanced_message)
-                print("=" * 80)
-                print(f"=== END DEBUG ===\n")
             
             # Smart thread management with caching
             context_summary = ""
@@ -1516,74 +1523,67 @@ Please provide a helpful response considering the player's profile and current p
             return jsonify({'error': str(e)}), 500
 
 def format_response(text):
-    """Format the response to match OpenAI UI style"""
-    # Split into sections
+    """Simple text formatting - no visual styling"""
+    # Remove all markdown headers and clean up formatting
+    text = text.replace('###', '').replace('##', '').replace('#', '')
+    
+    # Remove all bold formatting
+    text = text.replace('**', '')
+    
+    # Remove HTML tags
+    text = re.sub(r'<[^>]+>', '', text)
+    
+    # Clean up extra spaces and normalize line breaks
+    lines = []
+    for line in text.split('\n'):
+        line = line.strip()
+        if line:
+            lines.append(line)
+    
+    text = '\n'.join(lines)
+    
+    # Split into sections and clean them up
     sections = text.split('\n\n')
     formatted_sections = []
     
     for section in sections:
-        # Skip empty sections
-        if not section.strip():
+        section = section.strip()
+        if not section:
             continue
-            
-        # Check if section is a list
-        if section.strip().startswith('- '):
-            # Format list items
-            items = section.split('\n')
-            formatted_items = []
-            for item in items:
-                if item.strip().startswith('- '):
-                    formatted_items.append(item.strip())
-            if formatted_items:
-                formatted_sections.append('\n'.join(formatted_items))
-        # Check if section is a drill
-        elif '🏹' in section or 'Drill:' in section:
-            formatted_sections.append(section.strip())
-        # Check if section is a video recommendation
-        elif '🎥' in section or 'Video:' in section:
-            formatted_sections.append(section.strip())
-        # Check if section is a question
-        elif '?' in section and len(section) < 100:
-            formatted_sections.append(section.strip())
-        # Regular section
-        else:
-            formatted_sections.append(section.strip())
+        
+        # Clean up section headers (remove numbers)
+        if any(keyword in section.lower() for keyword in ['contact point', 'routine', 'rhythm', 'recommended drills', 'technique', 'fundamentals', 'key technique points', 'drills', 'tips', 'common mistakes', 'strategy', 'positioning']) and len(section) < 100:
+            # Remove number prefixes from headers
+            section = section.replace('1.', '').replace('2.', '').replace('3.', '').replace('4.', '').replace('5.', '')
+            section = section.replace('6.', '').replace('7.', '').replace('8.', '').replace('9.', '')
+            section = section.strip()
+        
+        formatted_sections.append(section)
     
-    # Join sections with proper spacing
+    # Join sections with consistent spacing
     formatted_text = '\n\n'.join(formatted_sections)
     
-    # Add emojis for key sections if not present
-    if 'Drill:' in formatted_text:
-        # Remove existing drill icons and make bold
-        formatted_text = formatted_text.replace('🏹 Drill:', '**Drill:**')
-        formatted_text = formatted_text.replace('Drill:', '**Drill:**')
-    if 'Video:' in formatted_text and '🎥' not in formatted_text:
-        formatted_text = formatted_text.replace('Video:', '🎥 Video:')
+    # Final cleanup - remove double spaces
+    formatted_text = formatted_text.replace('  ', ' ')
     
     return formatted_text
 
 def find_training_video_direct(user_prompt):
-    """Direct function to find training videos without Flask request dependency"""
+    """Direct function to find training videos without Flask request dependency - using cached data"""
     try:
-        import os
-        import json
-        
         if not user_prompt:
             return {'videos': [], 'video': None}
         
         user_prompt = user_prompt.lower().strip()
         
-        # Load training guide data
+        # Use cached training data instead of loading from file
         try:
-            # Get project root from current file location
-            current_dir = os.path.dirname(os.path.abspath(__file__))
-            project_root = os.path.dirname(os.path.dirname(current_dir))
-            guide_path = os.path.join(project_root, 'data', 'improve_data', 'complete_platform_tennis_training_guide.json')
-            
-            with open(guide_path, 'r', encoding='utf-8') as f:
-                training_guide = json.load(f)
+            training_guide = get_cached_training_data()
+            if not training_guide:
+                print(f"No training guide data available")
+                return {'videos': [], 'video': None, 'error': 'No training data available'}
         except Exception as e:
-            print(f"Error loading training guide: {str(e)}")
+            print(f"Error getting cached training guide: {str(e)}")
             return {'videos': [], 'video': None, 'error': 'Could not load training guide'}
         
         # Search through training guide sections
@@ -1665,3 +1665,232 @@ def find_training_video_direct(user_prompt):
     except Exception as e:
         print(f"Error finding training video: {str(e)}")
         return {'videos': [], 'video': None, 'error': str(e)} 
+
+def create_optimized_enhanced_message(user_message, user_context):
+    """Create an optimized enhanced message with concise, targeted training data"""
+    try:
+        # Start with base message
+        enhanced_message = f"User Query: {user_message}"
+        
+        # Add concise user context if available
+        if user_context.get('name') and user_context['name'] != ' ':
+            enhanced_message += f"\nPlayer: {user_context['name']}"
+            
+            context_details = []
+            if user_context.get('current_pti'):
+                context_details.append(f"PTI: {user_context['current_pti']}")
+            if user_context.get('club') and user_context['club'] != 'Unknown':
+                context_details.append(f"Club: {user_context['club']}")
+            if user_context.get('series') and user_context['series'] != 'Unknown':
+                context_details.append(f"Series: {user_context['series']}")
+            
+            if context_details:
+                enhanced_message += f" ({', '.join(context_details)})"
+            
+            # Add performance insights if available
+            trends = user_context.get('playing_trends', {})
+            if trends.get('recent_record'):
+                enhanced_message += f"\nRecent: {trends['recent_record']}"
+                
+                # Add areas for improvement
+                improvements = user_context.get('areas_for_improvement', [])
+                if improvements:
+                    enhanced_message += f", Needs work on: {', '.join(improvements[:2])}"  # Max 2 items
+        
+        # Check for training-related keywords
+        training_keywords = {
+            'serve': ['Serve technique and consistency'],
+            'volley': ['Forehand volleys', 'Backhand volleys'],
+            'overhead': ['Overhead shots'],
+            'lob': ['Defensive lobbing', 'Offensive lobbing'],
+            'return': ['Return of serve'],
+            'forehand': ['Forehand groundstrokes', 'Forehand volleys'],
+            'backhand': ['Backhand groundstrokes', 'Backhand volleys'],
+            'strategy': ['Match strategy', 'Positioning'],
+            'positioning': ['Court positioning', 'Understanding and exploiting court geometry'],
+            'footwork': ['Footwork patterns'],
+            'technique': ['Basic technique fundamentals'],
+            'drill': ['Practice drills'],
+            'practice': ['Practicing match scenarios']
+        }
+        
+        # Find relevant training topics
+        message_lower = user_message.lower()
+        relevant_topics = []
+        
+        for keyword, topics in training_keywords.items():
+            if keyword in message_lower:
+                relevant_topics.extend(topics)
+                break  # Only use first match to keep concise
+        
+        # Get specific training data for the most relevant topic
+        if relevant_topics:
+            try:
+                training_data = get_cached_training_data()
+                if training_data:
+                    topic_name = relevant_topics[0]  # Use most relevant
+                    topic_data = training_data.get(topic_name)
+                    
+                    if topic_data:
+                        enhanced_message += f"\n\nTraining Focus: {topic_name}"
+                        
+                        # Add key fundamentals (concise)
+                        recommendations = topic_data.get('Recommendation', [])
+                        if recommendations and len(recommendations) > 0:
+                            first_rec = recommendations[0]
+                            if isinstance(first_rec, dict) and 'details' in first_rec:
+                                details = first_rec['details']
+                                if details and len(details) > 0:
+                                    enhanced_message += f"\nKey Points: {details[0]}"  # Just the first key point
+                        
+                        # Add one drill
+                        drills = topic_data.get('Drills to Improve', [])
+                        if drills and len(drills) > 0:
+                            drill = drills[0]
+                            if isinstance(drill, dict) and 'steps' in drill:
+                                steps = drill['steps']
+                                if steps and len(steps) > 0:
+                                    enhanced_message += f"\nDrill: {steps[0]}"  # Just the first step
+                        
+                        # Add one common mistake
+                        mistakes = topic_data.get('Common Mistakes & Fixes', [])
+                        if mistakes and len(mistakes) > 0:
+                            mistake = mistakes[0]
+                            if isinstance(mistake, dict):
+                                enhanced_message += f"\nCommon Issue: {mistake.get('Mistake', '')} - {mistake.get('Fix', '')}"
+                        
+                        # Add reference video if available
+                        videos = topic_data.get('Reference Videos', [])
+                        if videos and len(videos) > 0:
+                            video = videos[0]
+                            if isinstance(video, dict) and 'url' in video:
+                                enhanced_message += f"\nVideo: {video.get('title', 'Training Video')} - {video['url']}"
+            except Exception as e:
+                print(f"⚠️ Error adding training data: {str(e)}")
+        
+        enhanced_message += "\n\nProvide specific, actionable advice based on the player's level and recent performance."
+        
+        print(f"✅ Optimized enhanced message created: {len(enhanced_message)} chars (vs {len(user_message)} original)")
+        return enhanced_message
+        
+    except Exception as e:
+        print(f"❌ Error creating optimized message: {str(e)}")
+        return user_message  # Fallback to original message
+
+def get_cached_user_context(user):
+    """Get user context with aggressive caching for speed"""
+    global _user_context_cache
+    
+    user_email = user.get('email', 'unknown')
+    current_time = time.time()
+    
+    # Check cache first
+    if user_email in _user_context_cache:
+        cached_data = _user_context_cache[user_email]
+        if current_time - cached_data['timestamp'] < USER_CONTEXT_CACHE_DURATION:
+            print(f"📋 User context cache hit for {user_email}")
+            return cached_data['context']
+    
+    # Cache miss - get fresh data
+    print(f"🔄 Loading user context for {user_email}")
+    user_context = get_user_playing_context(user)
+    
+    # Cache the result
+    _user_context_cache[user_email] = {
+        'context': user_context,
+        'timestamp': current_time
+    }
+    
+    return user_context
+
+def create_ultra_fast_enhanced_message(user_message, user_context):
+    """Create an ultra-fast enhanced message with minimal processing"""
+    try:
+        # Start with just the message
+        enhanced_message = f"User Query: {user_message}"
+        
+        # Add only essential user context (no complex processing)
+        name = user_context.get('name', '').strip()
+        if name and name != ' ':
+            enhanced_message += f"\nPlayer: {name}"
+            
+            # Add only current PTI if available
+            pti = user_context.get('current_pti')
+            if pti:
+                enhanced_message += f" (PTI: {pti})"
+            
+            # Add only recent record if available
+            trends = user_context.get('playing_trends', {})
+            record = trends.get('recent_record')
+            if record:
+                enhanced_message += f", Recent: {record}"
+        
+        # Quick keyword check for training data (simplified)
+        message_lower = user_message.lower()
+        training_topic = None
+        
+        # Simple keyword mapping (fastest possible)
+        if 'serve' in message_lower:
+            training_topic = 'Serve technique and consistency'
+        elif 'volley' in message_lower:
+            training_topic = 'Forehand volleys'
+        elif 'lob' in message_lower:
+            training_topic = 'Defensive lobbing'
+        elif 'overhead' in message_lower:
+            training_topic = 'Overhead shots'
+        
+        # Add minimal training data if found
+        if training_topic:
+            try:
+                training_data = get_cached_training_data()
+                if training_data and training_topic in training_data:
+                    topic_data = training_data[training_topic]
+                    
+                    # Add only one key point and one video (ultra minimal)
+                    enhanced_message += f"\n\nTopic: {training_topic}"
+                    
+                    # Add first recommendation detail
+                    recommendations = topic_data.get('Recommendation', [])
+                    if recommendations and len(recommendations) > 0:
+                        first_rec = recommendations[0]
+                        if isinstance(first_rec, dict) and 'details' in first_rec:
+                            details = first_rec['details']
+                            if details and len(details) > 0:
+                                enhanced_message += f"\nKey: {details[0]}"
+                    
+                    # Add first video with title and URL
+                    videos = topic_data.get('Reference Videos', [])
+                    if videos and len(videos) > 0:
+                        video = videos[0]
+                        if isinstance(video, dict) and 'url' in video:
+                            video_title = video.get('title', 'Training Video')
+                            enhanced_message += f"\nVideo: {video_title} - {video['url']}"
+            except Exception as e:
+                print(f"⚠️ Quick training data lookup failed: {str(e)}")
+        
+        enhanced_message += "\n\nProvide specific advice for this player's level."
+        
+        print(f"⚡ Ultra-fast message: {len(enhanced_message)} chars")
+        return enhanced_message
+        
+    except Exception as e:
+        print(f"❌ Ultra-fast message failed: {str(e)}")
+        return user_message
+
+def prewarm_caches():
+    """Pre-warm all caches for maximum speed on first request"""
+    try:
+        print(f"🔥 Pre-warming caches for ultra-fast responses...")
+        
+        # Pre-warm training data cache
+        training_data = get_cached_training_data()
+        print(f"✅ Training data cache warmed: {len(training_data)} topics")
+        
+        # Pre-warm assistant cache
+        assistant = get_cached_assistant()
+        print(f"✅ Assistant cache warmed: {assistant.id}")
+        
+        print(f"🚀 All caches pre-warmed for maximum speed!")
+        
+    except Exception as e:
+        print(f"⚠️ Cache pre-warming failed: {str(e)}")

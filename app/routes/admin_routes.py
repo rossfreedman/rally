@@ -26,6 +26,11 @@ from app.services.admin_service import (
     update_club_name, update_series_name, delete_user_by_email,
     get_user_activity_logs, is_user_admin, log_admin_action
 )
+from app.services.dashboard_service import (
+    get_recent_activities, get_activity_heatmap_data, get_top_active_players,
+    get_activity_stats, get_player_activity_history, get_team_activity_history,
+    get_filter_options, log_activity, log_page_visit, log_user_action
+)
 import traceback
 
 # Create admin blueprint
@@ -140,6 +145,24 @@ def serve_admin_user_activity():
     """Serve the admin user activity page"""
     log_user_activity(session['user']['email'], 'page_visit', page='admin_user_activity')
     return render_template('mobile/admin_user_activity.html', session_data={'user': session['user']})
+
+@admin_bp.route('/admin/dashboard')
+@login_required
+@admin_required
+def serve_admin_dashboard():
+    """Serve the admin activity monitoring dashboard"""
+    # Log dashboard access using comprehensive logging
+    log_page_visit(
+        user_email=session['user']['email'],
+        page='admin_dashboard',
+        user_id=session['user'].get('id'),
+        player_id=session['user'].get('player_id'),  # Get from session if available
+        details=f"Admin accessed activity monitoring dashboard",
+        ip_address=request.remote_addr,
+        user_agent=request.headers.get('User-Agent')
+    )
+    
+    return render_template('mobile/admin_dashboard.html', session_data={'user': session['user']})
 
 # ==========================================
 # ETL API ENDPOINTS
@@ -1186,4 +1209,155 @@ def user_activity():
         print(f"Error logging user activity page visit: {str(e)}")
         print(traceback.format_exc())
     
-    return send_from_directory('static', 'user-activity.html') 
+    return send_from_directory('static', 'user-activity.html')
+
+# ==========================================
+# DASHBOARD API ENDPOINTS
+# ==========================================
+
+@admin_bp.route('/api/admin/dashboard/activities')
+@login_required
+@admin_required
+def get_dashboard_activities():
+    """Get recent activities for dashboard timeline"""
+    try:
+        # Get query parameters
+        limit = int(request.args.get('limit', 50))
+        date_from = request.args.get('date_from')
+        date_to = request.args.get('date_to')
+        action_type = request.args.get('action_type')
+        team_id = request.args.get('team_id')
+        player_id = request.args.get('player_id')
+        
+        # Build filters
+        filters = {}
+        if date_from:
+            filters['date_from'] = date_from
+        if date_to:
+            filters['date_to'] = date_to
+        if action_type:
+            filters['action_type'] = action_type
+        if team_id:
+            filters['team_id'] = int(team_id)
+        if player_id:
+            filters['player_id'] = int(player_id)
+        
+        activities = get_recent_activities(limit=limit, filters=filters)
+        
+        return jsonify({
+            'status': 'success',
+            'activities': activities,
+            'total_count': len(activities)
+        })
+        
+    except Exception as e:
+        print(f"Error getting dashboard activities: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@admin_bp.route('/api/admin/dashboard/heatmap')
+@login_required
+@admin_required
+def get_dashboard_heatmap():
+    """Get activity heatmap data for dashboard"""
+    try:
+        days = int(request.args.get('days', 30))
+        heatmap_data = get_activity_heatmap_data(days=days)
+        
+        return jsonify({
+            'status': 'success',
+            'heatmap_data': heatmap_data
+        })
+        
+    except Exception as e:
+        print(f"Error getting dashboard heatmap: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@admin_bp.route('/api/admin/dashboard/top-players')
+@login_required
+@admin_required
+def get_dashboard_top_players():
+    """Get top active players for dashboard"""
+    try:
+        limit = int(request.args.get('limit', 10))
+        top_players = get_top_active_players(limit=limit)
+        
+        return jsonify({
+            'status': 'success',
+            'top_players': top_players
+        })
+        
+    except Exception as e:
+        print(f"Error getting dashboard top players: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@admin_bp.route('/api/admin/dashboard/stats')
+@login_required
+@admin_required
+def get_dashboard_stats():
+    """Get overall activity statistics for dashboard"""
+    try:
+        stats = get_activity_stats()
+        
+        return jsonify({
+            'status': 'success',
+            'stats': stats
+        })
+        
+    except Exception as e:
+        print(f"Error getting dashboard stats: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@admin_bp.route('/api/admin/dashboard/filters')
+@login_required
+@admin_required
+def get_dashboard_filters():
+    """Get filter options for dashboard"""
+    try:
+        filter_options = get_filter_options()
+        
+        return jsonify({
+            'status': 'success',
+            'filters': filter_options
+        })
+        
+    except Exception as e:
+        print(f"Error getting dashboard filters: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@admin_bp.route('/api/admin/dashboard/player/<int:player_id>/activities')
+@login_required
+@admin_required
+def get_player_activities(player_id):
+    """Get activity history for a specific player"""
+    try:
+        limit = int(request.args.get('limit', 100))
+        activities = get_player_activity_history(player_id=player_id, limit=limit)
+        
+        return jsonify({
+            'status': 'success',
+            'player_id': player_id,
+            'activities': activities
+        })
+        
+    except Exception as e:
+        print(f"Error getting player activities: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@admin_bp.route('/api/admin/dashboard/team/<int:team_id>/activities')
+@login_required
+@admin_required
+def get_team_activities(team_id):
+    """Get activity history for a specific team"""
+    try:
+        limit = int(request.args.get('limit', 100))
+        activities = get_team_activity_history(team_id=team_id, limit=limit)
+        
+        return jsonify({
+            'status': 'success',
+            'team_id': team_id,
+            'activities': activities
+        })
+        
+    except Exception as e:
+        print(f"Error getting team activities: {str(e)}")
+        return jsonify({'error': str(e)}), 500 

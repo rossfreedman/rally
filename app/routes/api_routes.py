@@ -9,6 +9,7 @@ from flask import Blueprint, request, jsonify, session, g
 from functools import wraps
 from utils.logging import log_user_activity
 from database_utils import execute_query, execute_query_one, execute_update
+from app.services.dashboard_service import log_user_action
 from app.services.api_service import *
 from app.services.mobile_service import get_club_players_data
 from datetime import datetime
@@ -1069,12 +1070,33 @@ def update_availability():
             result = execute_update(insert_query, (player_db_id, player_name, formatted_date, availability_status, series_id, notes))
             print(f"Created new availability record: {result}")
         
-        # Log the activity
-        log_user_activity(
-            user_email,
-            'availability_update',
-            page='mobile_availability',
-            details=f'Set availability for {match_date} to status {availability_status} (Player: {player_name}, ID: {tenniscores_player_id})'
+        # Log the activity using comprehensive logging
+        status_descriptions = {1: 'available', 2: 'unavailable', 3: 'not sure'}
+        status_text = status_descriptions.get(availability_status, f'status {availability_status}')
+        
+        log_user_action(
+            action_type='availability_update',
+            action_description=f"Updated availability for {match_date} to {status_text}",
+            user_email=user_email,
+            user_id=session['user'].get('id'),
+            player_id=player_db_id,
+            team_id=None,  # We could look up team_id from player if needed
+            related_id=str(series_id),
+            related_type='series',
+            legacy_action='availability_update',
+            legacy_details=f'Set availability for {match_date} to status {availability_status} (Player: {player_name}, ID: {tenniscores_player_id})',
+            ip_address=request.remote_addr,
+            user_agent=request.headers.get('User-Agent'),
+            extra_data={
+                'match_date': match_date,
+                'availability_status': availability_status,
+                'status_text': status_text,
+                'player_name': player_name,
+                'tenniscores_player_id': tenniscores_player_id,
+                'series_id': series_id,
+                'notes': notes,
+                'was_new_record': not existing_record
+            }
         )
         
         return jsonify({

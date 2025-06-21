@@ -12,6 +12,9 @@ import time
 import os
 from datetime import datetime, timedelta
 
+# Import stealth browser manager for fingerprint evasion
+from stealth_browser import StealthBrowserManager
+
 print("🎾 TennisScores Match Scraper - Dynamic Discovery Mode")
 print("=" * 60)
 
@@ -31,6 +34,7 @@ def get_league_config(league_subdomain=None):
         'nstf': {'league_id': 'NSTF', 'type': 'nstf'},
         'cita': {'league_id': 'CITA', 'type': 'cita'},
         'tennaqua': {'league_id': 'CITA', 'type': 'cita'},  # CITA uses tennaqua subdomain
+        'cnswpl': {'league_id': 'CNSWPL', 'type': 'cnswpl'},  # Chicago North Shore Women's Platform Tennis League
     }
     
     # Get league configuration or use subdomain as fallback
@@ -186,8 +190,8 @@ def extract_series_name_from_team(team_name):
         APTA: "Birchwood - 6" -> "Chicago 6"
         NSTF: "Birchwood S1" -> "Series 1"
         NSTF: "Wilmette Sunday A" -> "Series A"
-        CNSWPL: "Birchwood 1" -> "Division 1"
-        CNSWPL: "Hinsdale PC 1a" -> "Division 1a"
+        CNSWPL: "Birchwood 1" -> "Series 1"
+        CNSWPL: "Hinsdale PC 1a" -> "Series 1a"
     """
     if not team_name:
         return None
@@ -218,11 +222,11 @@ def extract_series_name_from_team(team_name):
     elif re.search(r'\s(\d+[a-zA-Z]?)$', team_name):
         match = re.search(r'\s(\d+[a-zA-Z]?)$', team_name)
         if match:
-            division_identifier = match.group(1)
-            return f"Division {division_identifier}"
+            series_identifier = match.group(1)
+            return f"Series {series_identifier}"
     
     # Direct series name (already formatted)
-    elif team_name.startswith('Series ') or team_name.startswith('Chicago ') or team_name.startswith('Division '):
+    elif team_name.startswith('Series ') or team_name.startswith('Chicago '):
         return team_name
     
     return None
@@ -427,64 +431,317 @@ def lookup_player_id(series, team_name, first_name, last_name, league_id=None):
     """
     return lookup_player_id_enhanced(series, team_name, first_name, last_name, league_id)
 
-class ChromeManager:
-    """Context manager for handling Chrome WebDriver sessions."""
+# ChromeManager has been replaced with StealthBrowserManager for fingerprint evasion
+# See stealth_browser.py for the new implementation
+
+def parse_cnswpl_matches(container, series_name, league_id):
+    """Parse CNSWPL div-based match structure - container IS the match_results_table"""
+    matches_data = []
     
-    def __init__(self, max_retries=3):
-        """Initialize the Chrome WebDriver manager.
+    try:
+        print("🔍 Parsing CNSWPL div-based match structure...")
         
-        Args:
-            max_retries (int): Maximum number of retries for creating a new driver
-        """
-        self.driver = None
-        self.max_retries = max_retries
+        # Get the HTML content from the container
+        html_content = container.get_attribute('innerHTML')
+        soup = BeautifulSoup(html_content, 'html.parser')
         
-    def create_driver(self):
-        """Create and configure a new Chrome WebDriver instance."""
-        options = webdriver.ChromeOptions()
-        options.add_argument('--headless')
-        options.add_argument('--no-sandbox')
-        options.add_argument('--disable-dev-shm-usage')
-        options.add_argument('--disable-gpu')
-        options.add_argument('--window-size=1920x1080')
-        options.add_argument('--disable-features=NetworkService')
-        options.add_argument('--disable-features=VizDisplayCompositor')
-        options.add_argument('--disable-web-security')
-        options.add_argument('--disable-features=IsolateOrigins,site-per-process')
-        return webdriver.Chrome(options=options)
+        print(f"📊 HTML content length: {len(html_content)} characters")
+        
+        # IMPORTANT: The container parameter IS already a match_results_table div
+        # We don't need to search for more - just parse this one directly
+        print(f"  📋 Processing this container as a single match table")
+        
+        # Parse this container directly as a match table
+        match_data = parse_cnswpl_match_table(soup, None, series_name, league_id)
+        if match_data:
+            matches_data.extend(match_data)
+            print(f"    ✅ Container contributed {len(match_data)} matches")
+        else:
+            print(f"    ⚠️ Container contributed 0 matches")
+        
+        print(f"🎯 Successfully extracted {len(matches_data)} total matches from CNSWPL")
+        return matches_data
+        
+    except Exception as e:
+        print(f"❌ Error parsing CNSWPL matches: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return []
 
-    def __enter__(self):
-        """Create and return a Chrome WebDriver instance with retries."""
-        for attempt in range(self.max_retries):
+
+def parse_cnswpl_match_table(table_element, match_date, series_name, league_id):
+    """Parse a single CNSWPL match table using the correct row-based structure"""
+    try:
+        # Handle both BeautifulSoup objects and WebDriver elements
+        if hasattr(table_element, 'find_all'):
+            # It's already a BeautifulSoup object
+            all_divs = table_element.find_all('div')
+        else:
+            # It's a WebDriver element, convert to BeautifulSoup
+            soup = BeautifulSoup(table_element.get_attribute('innerHTML'), 'html.parser')
+            all_divs = soup.find_all('div')
+        
+        # Organize divs by their CSS classes in sequential order
+        divs_by_class = {
+            'points': [],
+            'team_name': [],
+            'match_rest': [],
+            'team_name2': [],
+            'points2': []
+        }
+        
+        # Collect all divs and their content (including empty ones and images)
+        for div in all_divs:
+            div_classes = div.get('class', [])
+            div_text = div.get_text(strip=True)
+            
+            # For points columns, also check for images (check marks)
+            has_check_mark = bool(div.find('img'))
+            if has_check_mark:
+                div_text = "check_mark"
+            
+            # Categorize divs by their CSS classes
+            for class_name in divs_by_class.keys():
+                if class_name in div_classes:
+                    divs_by_class[class_name].append(div_text)
+                    break
+        
+        print(f"  📊 Found divs by class: points={len(divs_by_class['points'])}, team_name={len(divs_by_class['team_name'])}, match_rest={len(divs_by_class['match_rest'])}, team_name2={len(divs_by_class['team_name2'])}, points2={len(divs_by_class['points2'])}")
+        
+        # Parse rows - each row consists of 5 divs (points, team_name, match_rest, team_name2, points2)
+        num_rows = min(len(divs_by_class['team_name']), len(divs_by_class['team_name2']), len(divs_by_class['match_rest']))
+        
+        if num_rows == 0:
+            print(f"  ⚠️ No complete rows found in match table")
+            return []
+        
+        print(f"  🔍 Processing {num_rows} rows...")
+        
+        # Extract header information from Row 0
+        current_date = match_date  # Use the date passed in
+        home_team = None
+        away_team = None
+        
+        if num_rows > 0:
             try:
-                if self.driver is not None:
-                    try:
-                        self.driver.quit()
-                    except:
-                        pass
-                self.driver = self.create_driver()
-                return self.driver
+                home_team = divs_by_class['team_name'][0].strip()
+                away_team = divs_by_class['team_name2'][0].strip()
+                match_rest_0 = divs_by_class['match_rest'][0].strip()
+                
+                # Check if Row 0 contains date information and update current_date
+                date_pattern = r'(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},\s+\d{4}'
+                date_match = re.search(date_pattern, match_rest_0)
+                if date_match:
+                    current_date = date_match.group(0)
+                    print(f"  📅 Found date in header: {current_date}")
+                
+                # Clean team names
+                home_team = re.sub(r'^\s*&nbsp;\s*', '', home_team).strip()
+                away_team = re.sub(r'\s*&nbsp;\s*$', '', away_team).strip()
+                
+                print(f"  🏆 Header teams: {home_team} vs {away_team}")
+                
             except Exception as e:
-                print(f"Error creating Chrome driver (attempt {attempt + 1}/{self.max_retries}): {str(e)}")
-                if attempt < self.max_retries - 1:
-                    print("Retrying...")
-                    time.sleep(5)
+                print(f"  ⚠️ Error parsing header row: {e}")
+        
+        if not home_team or not away_team:
+            print(f"  ⚠️ Could not extract team names from header")
+            return []
+        
+        # Parse individual matches (start from Row 1, skip header Row 0)
+        individual_match_data = []
+        
+        for i in range(1, num_rows):  # Skip Row 0 (header)
+            try:
+                # Get data for this row
+                points1 = divs_by_class['points'][i] if i < len(divs_by_class['points']) else ""
+                team1 = divs_by_class['team_name'][i] if i < len(divs_by_class['team_name']) else ""
+                match_rest = divs_by_class['match_rest'][i] if i < len(divs_by_class['match_rest']) else ""
+                team2 = divs_by_class['team_name2'][i] if i < len(divs_by_class['team_name2']) else ""
+                points2 = divs_by_class['points2'][i] if i < len(divs_by_class['points2']) else ""
+                
+                # Clean text
+                team1 = re.sub(r'^\s*&nbsp;\s*', '', team1).strip()
+                team2 = re.sub(r'\s*&nbsp;\s*$', '', team2).strip()
+                match_rest = match_rest.strip()
+                
+                # Skip empty rows or rows that don't look like matches
+                if not team1 or not team2 or not match_rest:
+                    continue
+                
+                # Check if this looks like a match row (should have "/" in player names)
+                if "/" not in team1 or "/" not in team2:
+                    print(f"  ⏭️ Row {i} doesn't look like a match (no '/' in names): '{team1}' vs '{team2}'")
+                    continue
+                
+                # Parse player names
+                home_players = [p.strip() for p in team1.split('/')]
+                away_players = [p.strip() for p in team2.split('/')]
+                
+                if len(home_players) < 2 or len(away_players) < 2:
+                    print(f"  ⏭️ Row {i} doesn't have enough players: home={home_players}, away={away_players}")
+                    continue
+                
+                # Determine winner from check marks or score
+                winner = "unknown"
+                if "check_mark" in points1:
+                    winner = "home"
+                elif "check_mark" in points2:
+                    winner = "away"
                 else:
-                    raise Exception("Failed to create Chrome driver after maximum retries")
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        """Clean up the Chrome WebDriver instance."""
-        self.quit()
-
-    def quit(self):
-        """Safely quit the Chrome WebDriver instance."""
-        if self.driver is not None:
-            try:
-                self.driver.quit()
+                    # Try to determine from score
+                    winner = determine_winner_from_score_cnswpl(match_rest, home_team, away_team, divs_by_class, i)
+                
+                # Clean player names
+                home_p1 = clean_player_name(home_players[0])
+                home_p2 = clean_player_name(home_players[1])
+                away_p1 = clean_player_name(away_players[0])
+                away_p2 = clean_player_name(away_players[1])
+                
+                # Split names for ID lookup
+                home_p1_first, home_p1_last = split_player_name_for_lookup(home_p1)
+                home_p2_first, home_p2_last = split_player_name_for_lookup(home_p2)
+                away_p1_first, away_p1_last = split_player_name_for_lookup(away_p1)
+                away_p2_first, away_p2_last = split_player_name_for_lookup(away_p2)
+                
+                # Get series names for player lookup
+                home_series = extract_series_name_from_team(home_team)
+                away_series = extract_series_name_from_team(away_team)
+                
+                # Lookup Player IDs
+                home_p1_id = lookup_player_id_enhanced(home_series or series_name, home_team, home_p1_first, home_p1_last, league_id)
+                home_p2_id = lookup_player_id_enhanced(home_series or series_name, home_team, home_p2_first, home_p2_last, league_id)
+                away_p1_id = lookup_player_id_enhanced(away_series or series_name, away_team, away_p1_first, away_p1_last, league_id)
+                away_p2_id = lookup_player_id_enhanced(away_series or series_name, away_team, away_p2_first, away_p2_last, league_id)
+                
+                # Parse and format date
+                try:
+                    if current_date and re.search(r'\w+ \d+, \d{4}', current_date):
+                        date_obj = datetime.strptime(current_date, '%B %d, %Y')
+                        formatted_date = date_obj.strftime('%d-%b-%y')
+                    else:
+                        formatted_date = current_date or match_date
+                except:
+                    formatted_date = current_date or match_date
+                
+                # Create match data
+                match_data = {
+                    "league_id": league_id,
+                    "Date": formatted_date,
+                    "Home Team": home_team,
+                    "Away Team": away_team,
+                    "Home Player 1": home_p1,
+                    "Home Player 1 ID": home_p1_id,
+                    "Home Player 2": home_p2,
+                    "Home Player 2 ID": home_p2_id,
+                    "Away Player 1": away_p1,
+                    "Away Player 1 ID": away_p1_id,
+                    "Away Player 2": away_p2,
+                    "Away Player 2 ID": away_p2_id,
+                    "Scores": match_rest,
+                    "Winner": winner
+                }
+                
+                individual_match_data.append(match_data)
+                
+                # Log the match
+                id_status = []
+                if home_p1_id: id_status.append(f"H1✓")
+                else: id_status.append(f"H1✗")
+                if home_p2_id: id_status.append(f"H2✓")
+                else: id_status.append(f"H2✗")
+                if away_p1_id: id_status.append(f"A1✓")
+                else: id_status.append(f"A1✗")
+                if away_p2_id: id_status.append(f"A2✓")
+                else: id_status.append(f"A2✗")
+                
+                print(f"    ✅ Row {i}: {home_p1}/{home_p2} vs {away_p1}/{away_p2} - {match_rest} (Winner: {winner}) [IDs: {' '.join(id_status)}]")
+                
             except Exception as e:
-                print(f"Error closing Chrome driver: {str(e)}")
-            finally:
-                self.driver = None
+                print(f"  ⚠️ Error parsing row {i}: {e}")
+                continue
+        
+        print(f"  🎯 Extracted {len(individual_match_data)} matches from this table")
+        return individual_match_data
+        
+    except Exception as e:
+        print(f"❌ Error parsing CNSWPL match table: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return []
+
+
+def determine_winner_from_score_cnswpl(score_text, home_team, away_team, divs_by_class, row_index):
+    """Determine winner from CNSWPL score and check mark indicators"""
+    try:
+        # Check for forfeit indicators
+        if "forfeit" in score_text.lower() or "by forfeit" in score_text.lower():
+            return "home"  # Assuming forfeit wins for home team
+        
+        # Check for check mark indicators in the points columns
+        # CNSWPL uses check mark images to indicate winners
+        if row_index < len(divs_by_class['points']) and row_index < len(divs_by_class['points2']):
+            home_points = divs_by_class['points'][row_index]
+            away_points = divs_by_class['points2'][row_index]
+            
+            # Look for check mark indicators
+            if "check" in home_points.lower() or "✓" in home_points:
+                return "home"
+            elif "check" in away_points.lower() or "✓" in away_points:
+                return "away"
+        
+        # Try to parse score to determine winner
+        # Standard tennis scores: "6-3, 6-1" or "7-6 [7-5], 6-3"
+        if re.search(r'\d+-\d+', score_text):
+            sets = re.findall(r'(\d+)-(\d+)', score_text)
+            if sets:
+                home_sets_won = 0
+                away_sets_won = 0
+                
+                for home_score, away_score in sets:
+                    if int(home_score) > int(away_score):
+                        home_sets_won += 1
+                    elif int(away_score) > int(home_score):
+                        away_sets_won += 1
+                
+                if home_sets_won > away_sets_won:
+                    return "home"
+                elif away_sets_won > home_sets_won:
+                    return "away"
+        
+        return "unknown"
+        
+    except Exception:
+        return "unknown"
+
+
+def clean_player_name(name):
+    """Clean player name from HTML artifacts"""
+    if not name:
+        return ""
+    
+    # Remove HTML entities and extra whitespace
+    name = re.sub(r'&nbsp;', ' ', name)
+    name = re.sub(r'\s+', ' ', name)
+    name = name.strip()
+    
+    # Remove common suffixes like "(S)", "(S↑)", etc.
+    name = re.sub(r'\s*\([^)]*\)\s*$', '', name)
+    
+    return name
+
+
+def split_player_name_for_lookup(full_name):
+    """Split player name into first and last name for ID lookup"""
+    if not full_name:
+        return "", ""
+    
+    parts = full_name.strip().split()
+    if len(parts) >= 2:
+        return parts[0], " ".join(parts[1:])
+    elif len(parts) == 1:
+        return parts[0], ""
+    return "", ""
 
 def scrape_matches(driver, url, series_name, league_id, max_retries=3, retry_delay=5):
     """Scrape match data from a single series URL with retries."""
@@ -716,17 +973,29 @@ def scrape_matches(driver, url, series_name, league_id, max_retries=3, retry_del
                     match_tables.extend(tables_strategy2)
                     print(f"Found {len(tables_strategy2)} tables using Strategy 2")
             
-            # Strategy 3: Look for div containers that might contain match data
-            if not match_tables:
-                print("Looking for match tables using Strategy 3: div containers")
-                tables_strategy3 = driver.find_elements(By.XPATH, "//div[contains(@class, 'match') or contains(@class, 'result')]")
-                if tables_strategy3:
-                    match_tables.extend(tables_strategy3)
-                    print(f"Found {len(tables_strategy3)} containers using Strategy 3")
+            # Strategy 3: CNSWPL-specific div parsing (match_results_container) - run first for CNSWPL
+            if not match_tables and league_id == 'CNSWPL':
+                print("Looking for match tables using Strategy 3: CNSWPL div containers")
+                try:
+                    # CNSWPL uses div-based layout inside match_results_container
+                    match_container = driver.find_element(By.ID, "match_results_container")
+                    if match_container:
+                        print("✅ Found CNSWPL match_results_container")
+                        match_tables.append(match_container)
+                except:
+                    print("❌ Could not find CNSWPL match_results_container")
             
-            # Strategy 4: Look for any table elements on the page
+            # Strategy 4: Look for div containers that might contain match data
             if not match_tables:
-                print("Looking for match tables using Strategy 4: all table elements")
+                print("Looking for match tables using Strategy 4: div containers")
+                tables_strategy4 = driver.find_elements(By.XPATH, "//div[contains(@class, 'match') or contains(@class, 'result')]")
+                if tables_strategy4:
+                    match_tables.extend(tables_strategy4)
+                    print(f"Found {len(tables_strategy4)} containers using Strategy 4")
+            
+            # Strategy 5: Look for any table elements on the page
+            if not match_tables:
+                print("Looking for match tables using Strategy 5: all table elements")
                 all_tables = driver.find_elements(By.TAG_NAME, "table")
                 # Filter for tables that likely contain match data
                 for table in all_tables:
@@ -738,15 +1007,15 @@ def scrape_matches(driver, url, series_name, league_id, max_retries=3, retry_del
                     except:
                         continue
                 if match_tables:
-                    print(f"Found {len(match_tables)} tables using Strategy 4")
+                    print(f"Found {len(match_tables)} tables using Strategy 5")
             
-            # Strategy 5: Look for structured div layouts (CITA might use this)
+            # Strategy 6: Look for structured div layouts (General fallback)
             if not match_tables:
-                print("Looking for match tables using Strategy 5: structured div layouts")
+                print("Looking for match tables using Strategy 6: structured div layouts")
                 div_containers = driver.find_elements(By.XPATH, "//div[count(./div) > 5]")  # Divs with multiple child divs
                 if div_containers:
                     match_tables.extend(div_containers)
-                    print(f"Found {len(div_containers)} structured divs using Strategy 5")
+                    print(f"Found {len(div_containers)} structured divs using Strategy 6")
             
             if not match_tables:
                 print("No match tables found with any strategy")
@@ -763,6 +1032,14 @@ def scrape_matches(driver, url, series_name, league_id, max_retries=3, retry_del
             for table_index, table in enumerate(match_tables, 1):
                 try:
                     print(f"\nProcessing match table {table_index} of {len(match_tables)}")
+                    
+                    # CNSWPL-specific div parsing
+                    if league_id == 'CNSWPL':
+                        print("Using CNSWPL-specific div parsing logic")
+                        matches_data.extend(parse_cnswpl_matches(table, series_name, league_id))
+                        continue
+                    
+                    # Standard table parsing for other leagues (NSTF, APTA, etc.)
                     # Find the match header (contains date and club names)
                     header_row = table.find_element(By.CSS_SELECTOR, "div[style*='background-color: #dcdcdc;']")
                     
@@ -958,8 +1235,8 @@ def scrape_all_matches(league_subdomain, max_retries=3, retry_delay=5):
         if not players_loaded:
             print("⚠️  Warning: Player ID lookups will not be available")
         
-        # Use context manager to ensure Chrome driver is properly closed
-        with ChromeManager() as driver:
+        # Use stealth browser manager to avoid bot detection
+        with StealthBrowserManager(headless=True) as driver:
             # Use dynamic base URL from config
             base_url = config['base_url']
             print(f"🌐 Target League: {league_id} ({config['subdomain']})")
@@ -1060,7 +1337,24 @@ def scrape_all_matches(league_subdomain, max_retries=3, retry_delay=5):
                                     print(f"📈 Found NSTF series: {series_name}")
                                 break
                     
-                    # Strategy C: Generic approach - look for any link that might contain series results
+                    # Strategy C: CNSWPL format - look for series links
+                    elif (config['league_id'] == 'CNSWPL' and 
+                          (text.startswith('Series ') or
+                           re.match(r'^Series\s+\d+[a-zA-Z]*$', text))):
+                        
+                        # CNSWPL uses specific mod parameters for series pages
+                        if 'mod=nndz-TjJiOWtOR3QzTU4yakRrY1NqN1FMcGpx' in href or 'mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx' in href:
+                            full_url = f"{base_url}{href}" if href.startswith('/') else f"{base_url}/{href}"
+                            
+                            # Map the text directly as series name
+                            series_name = text.strip()
+                            
+                            # Only add if this series was discovered
+                            if series_name in all_series:
+                                series_urls.append((series_name, full_url))
+                                print(f"📈 Found CNSWPL series: {series_name}")
+                    
+                    # Strategy D: Generic approach - look for any link that might contain series results
                     elif any(keyword in text.lower() for keyword in ['result', 'match', 'score', 'standing']) and len(text) < 50:
                         # This might be a results/matches page
                         if 'mod=' in href and 'team=' not in href:  # Series level, not team level
@@ -1081,7 +1375,14 @@ def scrape_all_matches(league_subdomain, max_retries=3, retry_delay=5):
                     for series_name in sorted(all_series):
                         series_team = None
                         for team_name, team_id in discovered_teams.items():
-                            if (series_name in team_name or 
+                            # CNSWPL-specific matching: "Series 12" matches "Tennaqua 12"
+                            if config['league_id'] == 'CNSWPL' and series_name.startswith('Series '):
+                                series_number = series_name.replace('Series ', '').strip()
+                                if team_name.endswith(f' {series_number}'):
+                                    series_team = team_id
+                                    break
+                            # Original matching logic for other leagues
+                            elif (series_name in team_name or 
                                 (series_name.startswith('Chicago ') and f" - {series_name.split()[1]}" in team_name) or
                                 (series_name.startswith('Series ') and f" S{series_name.split()[1]}" in team_name)):
                                 series_team = team_id
@@ -1111,6 +1412,20 @@ def scrape_all_matches(league_subdomain, max_retries=3, retry_delay=5):
                                     series_url = f"{base_url}/?mod=nndz-TjJiOWtOR2sxTnhI&team={series_team}"
                                     series_urls.append((series_name, series_url))
                                     print(f"📈 Found series (fallback): {series_name}")
+                            elif config['league_id'] == 'CNSWPL':
+                                # For CNSWPL, use specific mod parameters for series pages
+                                cnswpl_patterns = [
+                                    f"/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NjN1FMcGpx&did={series_team}",  # Series overview
+                                    f"/?mod=nndz-TjJiOWtOR3QzTU4yakRrY1NqN1FMcGpx&did={series_team}",  # Alternative mod
+                                    f"/?mod=nndz-TjJiOWtORzkwTlJFb0NVU1NzOD0%3D&tid={series_team}",  # Team standings
+                                ]
+                                
+                                # Try each pattern to see which one works
+                                for i, pattern in enumerate(cnswpl_patterns):
+                                    test_url = f"{base_url}{pattern}"
+                                    series_urls.append((series_name, test_url))
+                                    print(f"📈 Found series (CNSWPL pattern {i+1}): {series_name}")
+                                    break  # Only add the first pattern for now
                             else:
                                 # Original fallback for other leagues
                                 series_url = f"{base_url}/?mod=nndz-TjJiOWtOR2sxTnhI&team={series_team}"
@@ -1531,6 +1846,45 @@ def scrape_all_matches(league_subdomain, max_retries=3, retry_delay=5):
             with open(json_path, 'w', encoding='utf-8') as jsonfile:
                 json.dump(all_matches, jsonfile, indent=2)
             
+            # For CNSWPL league, automatically fix player IDs after saving matches
+            if league_id == 'CNSWPL' and total_matches > 0:
+                print(f"\n🔧 Auto-fixing CNSWPL player IDs...")
+                try:
+                    # Import the fix function - use absolute path approach
+                    import sys
+                    import os
+                    
+                    # Get the project root directory (rally/)
+                    current_file = os.path.abspath(__file__)  # data/etl/scrapers/scraper_match_scores.py
+                    scrapers_dir = os.path.dirname(current_file)  # data/etl/scrapers/
+                    etl_dir = os.path.dirname(scrapers_dir)  # data/etl/
+                    data_dir_parent = os.path.dirname(etl_dir)  # data/
+                    project_root = os.path.dirname(data_dir_parent)  # rally/
+                    scripts_dir = os.path.join(project_root, 'scripts')
+                    
+                    # Add the scripts directory to Python path
+                    if scripts_dir not in sys.path:
+                        sys.path.insert(0, scripts_dir)
+                    
+                    from fix_cnswpl_match_player_ids import fix_cnswpl_match_player_ids
+                    
+                    # Run the fix with minimal output
+                    fix_stats = fix_cnswpl_match_player_ids(league_data_dir=data_dir, verbose=False)
+                    
+                    if fix_stats and isinstance(fix_stats, dict):
+                        fixed_count = fix_stats.get('fixed_players', 0)
+                        null_count = fix_stats.get('still_null', 0)
+                        if fixed_count > 0:
+                            print(f"✅ Auto-fixed {fixed_count} player IDs")
+                        if null_count > 0:
+                            print(f"⚠️  {null_count} player IDs still null (may need manual review)")
+                    else:
+                        print(f"⚠️  Player ID auto-fix encountered an issue")
+                        
+                except Exception as e:
+                    print(f"⚠️  Could not auto-fix player IDs: {str(e)}")
+                    print("💡 You can manually run: python scripts/fix_cnswpl_match_player_ids.py")
+            
             # Calculate final timing
             end_time = datetime.now()
             total_duration = end_time - start_time
@@ -1566,6 +1920,8 @@ def scrape_all_matches(league_subdomain, max_retries=3, retry_delay=5):
             
             print(f"💾 Data saved to: {json_path}")
             print(f"🌐 League: {league_id} ({config['subdomain']})")
+            if league_id == 'CNSWPL':
+                print(f"🔧 CNSWPL Player IDs automatically processed")
             print("=" * 70)
 
     except Exception as e:

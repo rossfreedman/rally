@@ -23,119 +23,13 @@ import re
 import requests
 from webdriver_manager.chrome import ChromeDriverManager
 
+# Import stealth browser manager for fingerprint evasion
+from stealth_browser import StealthBrowserManager
+
 print("Starting tennis stats scraper...")
 
-class ChromeManager:
-    """Context manager for handling Chrome WebDriver sessions - Railway optimized."""
-    
-    def __init__(self, max_retries=3):
-        """Initialize the Chrome WebDriver manager.
-        
-        Args:
-            max_retries (int): Maximum number of retries for creating a new driver
-        """
-        self.driver = None
-        self.max_retries = max_retries
-        
-    def create_driver(self):
-        """Create and configure a new Chrome WebDriver instance for Railway."""
-        options = webdriver.ChromeOptions()
-        
-        # Essential options for Railway/containerized environments
-        options.add_argument('--headless')
-        options.add_argument('--no-sandbox')
-        options.add_argument('--disable-dev-shm-usage')
-        options.add_argument('--disable-gpu')
-        options.add_argument('--disable-software-rasterizer')
-        options.add_argument('--disable-extensions')
-        options.add_argument('--disable-plugins')
-        options.add_argument('--disable-images')
-        options.add_argument('--disable-javascript')
-        options.add_argument('--window-size=1920,1080')
-        
-        # Additional Railway-specific options
-        options.add_argument('--single-process')  # Reduces memory usage
-        options.add_argument('--disable-background-timer-throttling')
-        options.add_argument('--disable-renderer-backgrounding')
-        options.add_argument('--disable-backgrounding-occluded-windows')
-        options.add_argument('--disable-client-side-phishing-detection')
-        options.add_argument('--disable-default-apps')
-        options.add_argument('--disable-hang-monitor')
-        options.add_argument('--disable-popup-blocking')
-        options.add_argument('--disable-prompt-on-repost')
-        options.add_argument('--disable-sync')
-        options.add_argument('--disable-translate')
-        options.add_argument('--metrics-recording-only')
-        options.add_argument('--no-first-run')
-        options.add_argument('--safebrowsing-disable-auto-update')
-        options.add_argument('--password-store=basic')
-        options.add_argument('--use-mock-keychain')
-        
-        # Memory and performance optimizations
-        options.add_argument('--memory-pressure-off')
-        options.add_argument('--max_old_space_size=2048')
-        
-        # Set user data and cache directories to writable locations
-        cache_dir = '/tmp/chrome-cache'
-        user_data_dir = '/tmp/chrome-user-data'
-        os.makedirs(cache_dir, exist_ok=True)
-        os.makedirs(user_data_dir, exist_ok=True)
-        
-        options.add_argument(f'--disk-cache-dir={cache_dir}')
-        options.add_argument(f'--user-data-dir={user_data_dir}')
-        
-        # Set environment variables for Chrome
-        os.environ.setdefault('HOME', '/tmp')
-        os.environ.setdefault('XDG_CACHE_HOME', '/tmp/.cache')
-        os.environ.setdefault('XDG_CONFIG_HOME', '/tmp/.config')
-        
-        try:
-            # Try to use ChromeDriverManager for automatic driver management
-            print("Attempting to create Chrome WebDriver with ChromeDriverManager...")
-            chrome_service = Service(ChromeDriverManager().install())
-            return webdriver.Chrome(service=chrome_service, options=options)
-        except Exception as e:
-            print(f"ChromeDriverManager failed: {e}")
-            try:
-                # Fallback to system ChromeDriver
-                print("Falling back to system ChromeDriver...")
-                return webdriver.Chrome(options=options)
-            except Exception as e2:
-                print(f"System ChromeDriver also failed: {e2}")
-                raise Exception(f"All Chrome WebDriver creation methods failed. Original: {e}, Fallback: {e2}")
-
-    def __enter__(self):
-        """Create and return a Chrome WebDriver instance with retries."""
-        for attempt in range(self.max_retries):
-            try:
-                if self.driver is not None:
-                    try:
-                        self.driver.quit()
-                    except:
-                        pass
-                self.driver = self.create_driver()
-                return self.driver
-            except Exception as e:
-                print(f"Error creating Chrome driver (attempt {attempt + 1}/{self.max_retries}): {str(e)}")
-                if attempt < self.max_retries - 1:
-                    print("Retrying...")
-                    time.sleep(5)
-                else:
-                    raise Exception("Failed to create Chrome driver after maximum retries")
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        """Clean up the Chrome WebDriver instance."""
-        self.quit()
-
-    def quit(self):
-        """Safely quit the Chrome WebDriver instance."""
-        if self.driver is not None:
-            try:
-                self.driver.quit()
-            except Exception as e:
-                print(f"Error closing Chrome driver: {str(e)}")
-            finally:
-                self.driver = None
+# ChromeManager has been replaced with StealthBrowserManager for fingerprint evasion
+# See stealth_browser.py for the new implementation
 
 # Import centralized league utilities  
 import sys
@@ -186,8 +80,8 @@ def extract_series_name_from_team(team_name):
         APTA: "Birchwood - 6" -> "Chicago 6"
         NSTF: "Birchwood S1" -> "Series 1"
         NSTF: "Wilmette Sunday A" -> "Series A"
-        CNSWPL: "Birchwood 1" -> "Division 1"
-        CNSWPL: "Hinsdale PC 1a" -> "Division 1a"
+        CNSWPL: "Birchwood 1" -> "Series 1"
+        CNSWPL: "Hinsdale PC 1a" -> "Series 1a"
     """
     if not team_name:
         return None
@@ -218,11 +112,11 @@ def extract_series_name_from_team(team_name):
     elif re.search(r'\s(\d+[a-zA-Z]?)$', team_name):
         match = re.search(r'\s(\d+[a-zA-Z]?)$', team_name)
         if match:
-            division_identifier = match.group(1)
-            return f"Division {division_identifier}"
+            series_identifier = match.group(1)
+            return f"Series {series_identifier}"
     
     # Direct series name (already formatted)
-    elif team_name.startswith('Series ') or team_name.startswith('Chicago ') or team_name.startswith('Division '):
+    elif team_name.startswith('Series ') or team_name.startswith('Chicago '):
         return team_name
     
     return None
@@ -568,13 +462,13 @@ def scrape_all_stats(league_subdomain, max_retries=3, retry_delay=5):
         
         # Try Chrome WebDriver first, fall back to HTTP requests if it fails
         try:
-            print("🚀 Attempting Chrome WebDriver approach...")
-            chrome_manager = ChromeManager()
+            print("🚀 Attempting stealth Chrome WebDriver approach...")
+            chrome_manager = StealthBrowserManager(headless=True)
             driver = chrome_manager.__enter__()
-            print("✅ Chrome WebDriver created successfully!")
+            print("✅ Stealth Chrome WebDriver created successfully!")
             use_fallback = False
         except Exception as chrome_error:
-            print(f"❌ Chrome WebDriver failed: {chrome_error}")
+            print(f"❌ Stealth Chrome WebDriver failed: {chrome_error}")
             print("🔄 Switching to HTTP requests fallback method...")
             use_fallback = True
             driver = None
@@ -747,7 +641,7 @@ def scrape_all_stats(league_subdomain, max_retries=3, retry_delay=5):
         teams_per_minute = (total_teams / total_seconds * 60) if total_seconds > 0 else 0
         
         print(f"📊 PERFORMANCE METRICS")
-        print(f"🎯 Scraping Method: {'HTTP Fallback' if use_fallback else 'Chrome WebDriver'}")
+        print(f"🎯 Scraping Method: {'HTTP Fallback' if use_fallback else 'Stealth Chrome WebDriver'}")
         print(f"📈 Total series found: {len(series_urls)}")
         print(f"🏆 Series processed successfully: {processed_series_count}")
         print(f"⚠️  Series skipped/failed: {skipped_series_count}")

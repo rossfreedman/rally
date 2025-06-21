@@ -115,4 +115,161 @@ python etl/database_import/json_import_all_to_database.py
 2. **etl/scrapers/master_scraper.py** - Updated data directory calculation
 3. **etl/database_import/consolidate_league_jsons_to_all.py** - Updated `BASE_DIR` calculation
 
-All other scrapers appear to use relative imports or rely on the main scripts for path resolution, so no additional updates were required. 
+All other scrapers appear to use relative imports or rely on the main scripts for path resolution, so no additional updates were required.
+
+## League Backup Directory Cleanup (June 2025)
+
+### Problem
+- Multiple backup directories were being created in `data/leagues/all/` by the consolidation script
+- These backups were cluttering the active data directory 
+- Over 320MB of backup data was mixed with active JSON files
+- Poor organization made it difficult to find current vs historical data
+
+### Solution Implemented
+1. **Modified consolidation script** (`data/etl/database_import/consolidate_league_jsons_to_all.py`)
+   - Changed backup location from `data/leagues/all/backup_*` to `data/leagues/backups/consolidation/backup_*`
+   - Future backups will now be stored in the dedicated backup directory
+
+2. **Created cleanup script** (`scripts/cleanup_league_backups.py`)
+   - Moves existing backup directories to proper location
+   - Removes stray backup files  
+   - Automatically cleans up old backups (keeps 5 most recent)
+   - Provides disk usage analysis
+
+3. **Executed cleanup**
+   - Moved 7 backup directories (322.8 MB total)
+   - Removed 2 stray backup files
+   - Freed up 41 MB by removing oldest backups
+   - New backup location: `data/leagues/backups/consolidation/`
+
+### Directory Structure (After)
+```
+data/leagues/
+├── all/                           # Clean active data only
+│   ├── match_history.json
+│   ├── player_history.json  
+│   ├── players.json
+│   ├── schedules.json
+│   ├── series_stats.json
+│   ├── nickname_mappings.json
+│   ├── improve_data/
+│   └── club_directories/
+├── backups/                       # Organized backup storage
+│   └── consolidation/
+│       ├── backup_20250618_073014/
+│       ├── backup_20250618_075433/
+│       ├── backup_20250618_183302/
+│       ├── backup_20250619_155226/
+│       └── backup_20250620_153903/
+├── APTA_CHICAGO/
+├── CITA/
+├── CNSWPL/
+└── NSTF/
+```
+
+### Benefits
+- **Clean data directory**: `data/leagues/all/` now contains only active data files
+- **Organized backups**: All consolidation backups in dedicated location  
+- **Automated cleanup**: Old backups automatically removed to save space
+- **Better organization**: Clear separation between active data and backups
+- **Space savings**: 41MB freed immediately, ongoing space management
+
+### Future Maintenance
+- The consolidation script now automatically uses the proper backup location
+- Old backups are automatically cleaned up (keeps 5 most recent)
+- Run `python scripts/cleanup_league_backups.py` if manual cleanup needed
+
+### Files Modified
+- `data/etl/database_import/consolidate_league_jsons_to_all.py` - Updated backup path
+- ~~`scripts/cleanup_league_backups.py`~~ - Temporary cleanup utility (removed after completion)
+
+## Comprehensive Backup Centralization (June 2025)
+
+### Problem Expansion
+After the initial league backup cleanup, we discovered backups were still scattered across multiple locations:
+- Database backups in `sql/`, `data/etl/clone/`, and other directories
+- League data backups in `data/leagues/backups/consolidation/`
+- User data backups in various script directories
+- Miscellaneous backup files throughout the project
+
+### Solution: Centralized Backup Structure
+Created a unified `data/backups/` directory with organized subdirectories:
+
+```
+data/backups/
+├── database/          # All SQL/dump database backups (9.8 MB)
+├── league_data/       # JSON league consolidation backups (281.7 MB) 
+├── user_data/         # User association backups
+└── misc/              # Other backup files (60 KB)
+```
+
+### Actions Taken
+1. **Created centralization script** (~~`scripts/centralize_all_backups.py`~~ - removed after completion)
+   - Automatically finds and categorizes all backup files
+   - Moves files to appropriate backup category
+   - Updates backup scripts to use new locations
+   - Updates .gitignore patterns
+
+2. **Moved 291.6 MB of backup data**
+   - 7 database backup files → `data/backups/database/`
+   - 5 league data backup directories → `data/backups/league_data/`
+   - 4 miscellaneous backup files → `data/backups/misc/`
+
+3. **Updated 5 backup scripts**
+   - `scripts/backup_database.py`
+   - `scripts/backup_current_db.py`
+   - `data/etl/database_import/backup_restore_users.py`
+   - `scripts/complete_database_clone.py`
+   - `scripts/mirror_local_to_railway.py`
+
+### Directory Structure (Final)
+```
+data/
+├── backups/                       # 🆕 CENTRALIZED BACKUP LOCATION
+│   ├── database/                  # SQL/dump files (9.8 MB)
+│   │   ├── sql_current_db_backup_*.sql
+│   │   ├── sql_railway_backup.sql
+│   │   └── data_etl_clone_railway_backup_*.sql
+│   ├── league_data/               # League consolidation backups (281.7 MB)
+│   │   ├── backup_20250618_073014/
+│   │   ├── backup_20250618_075433/
+│   │   ├── backup_20250618_183302/
+│   │   ├── backup_20250619_155226/
+│   │   └── backup_20250620_153903/
+│   ├── user_data/                 # User association backups
+│   └── misc/                      # Other backup files (60 KB)
+├── leagues/
+│   ├── all/                       # Clean active data only
+│   ├── APTA_CHICAGO/
+│   ├── CITA/
+│   ├── CNSWPL/
+│   └── NSTF/
+└── etl/
+```
+
+### Benefits Achieved
+- ✅ **Single backup location**: All backups now in `data/backups/`
+- ✅ **Categorized organization**: Database, league data, user data, misc
+- ✅ **Clean project structure**: No more scattered backup files
+- ✅ **Updated automation**: All backup scripts use centralized location
+- ✅ **Future-proof**: New backups automatically go to correct location
+- ✅ **Space visibility**: Easy to monitor backup storage usage (291.6 MB total)
+
+### Clean Directories
+These directories are now clean of backup files:
+- `sql/` - Only active SQL scripts
+- `data/leagues/all/` - Only active JSON data
+- `data/etl/clone/` - No more backup files
+- `data/leagues/NSTF/` - No more stray backup files
+
+### Updated .gitignore
+Added patterns to exclude the centralized backup directory:
+```
+# Centralized backups
+data/backups/
+data/backups/**/*
+```
+
+---
+
+*This comprehensive reorganization establishes a clean, centralized backup system for the Rally application with automatic organization and easy maintenance.* 
