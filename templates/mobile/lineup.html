@@ -19,13 +19,166 @@
 
     <!-- Content -->
     <div class="px-4 py-6 space-y-6">
+
+        <!-- Lineup Method Choice -->
+        <div id="choice-page" class="wizard-page">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-50">
+                    <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                        <i class="fas fa-route text-blue-500 mr-2"></i>
+                        Choose Lineup Method
+                    </h2>
+                </div>
+                
+                <div class="p-6">
+                    <p class="text-sm text-gray-600 mb-6">How would you like to create your lineup?</p>
+                    
+                    <div class="space-y-4">
+                        <!-- AI Option -->
+                        <button id="choose-ai" class="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 text-left">
+                            <div class="flex items-center">
+                                <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mr-4">
+                                    <i class="fas fa-magic text-white text-2xl"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-xl font-bold mb-2">AI-Generated Lineup</h3>
+                                    <p class="text-white/90 text-sm">Let AI create the optimal lineup based on player stats, court preferences, and your custom instructions.</p>
+                                    <p class="text-white/80 text-xs mt-2">✨ Recommended for strategic optimization</p>
+                                </div>
+                            </div>
+                        </button>
+
+                        <!-- Manual Option -->
+                        <button id="choose-manual" class="w-full bg-gradient-to-r from-green-500 to-teal-600 text-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 text-left">
+                            <div class="flex items-center">
+                                <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mr-4">
+                                    <i class="fas fa-hand-paper text-white text-2xl"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-xl font-bold mb-2">Manual Drag & Drop</h3>
+                                    <p class="text-white/90 text-sm">Build your lineup manually by dragging players onto courts. Full control over court assignments.</p>
+                                    <p class="text-white/80 text-xs mt-2">🎯 Perfect for specific strategy needs</p>
+                                </div>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Manual Lineup Builder -->
+        <div id="manual-page" class="wizard-page hidden">
+            <div class="flex justify-between mb-4">
+                <button id="manual-back" class="bg-gray-600 text-white px-6 py-3 rounded-lg shadow-sm hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors font-semibold">
+                    ← Back to Choice
+                </button>
+                <button id="manual-send" class="bg-blue-600 text-white px-6 py-3 rounded-lg shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed" disabled>
+                    Send Lineup →
+                </button>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-50">
+                    <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                        <i class="fas fa-hand-paper text-green-500 mr-2"></i>
+                        Manual Lineup Builder
+                    </h2>
+                </div>
+                
+                <div class="p-6">
+                    <!-- Available Players Pool -->
+                    <div class="mb-6">
+                        <h3 class="font-semibold mb-3 text-gray-900">Available Players</h3>
+                        <p class="text-sm text-gray-600 mb-3">Drag players from here to the courts below:</p>
+                        <div id="available-players-pool" class="min-h-24 bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg p-4">
+                            <div class="text-gray-400 text-center" id="loading-players">Loading players...</div>
+                        </div>
+                    </div>
+
+                    <!-- Courts -->
+                    <div class="space-y-4">
+                        <h3 class="font-semibold text-gray-900">Courts</h3>
+                        
+                        <!-- Court 1 -->
+                        <div class="court-container bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+                            <h4 class="font-medium text-blue-800 mb-3 flex items-center">
+                                <i class="fas fa-volleyball-ball text-blue-500 mr-2"></i>
+                                Court 1
+                            </h4>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div class="court-position bg-white border-2 border-dashed border-blue-300 rounded-lg p-3 min-h-16 flex items-center justify-center text-gray-400 text-sm" data-court="1" data-position="1">
+                                    Drop Player 1 Here
+                                </div>
+                                <div class="court-position bg-white border-2 border-dashed border-blue-300 rounded-lg p-3 min-h-16 flex items-center justify-center text-gray-400 text-sm" data-court="1" data-position="2">
+                                    Drop Player 2 Here
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Court 2 -->
+                        <div class="court-container bg-green-50 border-2 border-green-200 rounded-lg p-4">
+                            <h4 class="font-medium text-green-800 mb-3 flex items-center">
+                                <i class="fas fa-volleyball-ball text-green-500 mr-2"></i>
+                                Court 2
+                            </h4>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div class="court-position bg-white border-2 border-dashed border-green-300 rounded-lg p-3 min-h-16 flex items-center justify-center text-gray-400 text-sm" data-court="2" data-position="1">
+                                    Drop Player 1 Here
+                                </div>
+                                <div class="court-position bg-white border-2 border-dashed border-green-300 rounded-lg p-3 min-h-16 flex items-center justify-center text-gray-400 text-sm" data-court="2" data-position="2">
+                                    Drop Player 2 Here
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Court 3 -->
+                        <div class="court-container bg-yellow-50 border-2 border-yellow-200 rounded-lg p-4">
+                            <h4 class="font-medium text-yellow-800 mb-3 flex items-center">
+                                <i class="fas fa-volleyball-ball text-yellow-500 mr-2"></i>
+                                Court 3
+                            </h4>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div class="court-position bg-white border-2 border-dashed border-yellow-300 rounded-lg p-3 min-h-16 flex items-center justify-center text-gray-400 text-sm" data-court="3" data-position="1">
+                                    Drop Player 1 Here
+                                </div>
+                                <div class="court-position bg-white border-2 border-dashed border-yellow-300 rounded-lg p-3 min-h-16 flex items-center justify-center text-gray-400 text-sm" data-court="3" data-position="2">
+                                    Drop Player 2 Here
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Court 4 -->
+                        <div class="court-container bg-purple-50 border-2 border-purple-200 rounded-lg p-4">
+                            <h4 class="font-medium text-purple-800 mb-3 flex items-center">
+                                <i class="fas fa-volleyball-ball text-purple-500 mr-2"></i>
+                                Court 4
+                            </h4>
+                            <div class="grid grid-cols-2 gap-3">
+                                <div class="court-position bg-white border-2 border-dashed border-purple-300 rounded-lg p-3 min-h-16 flex items-center justify-center text-gray-400 text-sm" data-court="4" data-position="1">
+                                    Drop Player 1 Here
+                                </div>
+                                <div class="court-position bg-white border-2 border-dashed border-purple-300 rounded-lg p-3 min-h-16 flex items-center justify-center text-gray-400 text-sm" data-court="4" data-position="2">
+                                    Drop Player 2 Here
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Lineup Summary -->
+                    <div id="manual-lineup-summary" class="mt-6 bg-gray-50 rounded-lg p-4 hidden">
+                        <h4 class="font-semibold text-gray-900 mb-3">Lineup Summary</h4>
+                        <div id="manual-lineup-text" class="text-sm text-gray-700 whitespace-pre-line font-mono"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
         
-        <!-- Enhanced Progress Flow -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <!-- Enhanced Progress Flow (for AI mode) -->
+        <div id="ai-progress" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hidden">
             <div class="px-6 py-4 border-b border-gray-50">
                 <h2 class="text-lg font-semibold text-gray-900 flex items-center">
                     <i class="fas fa-route text-blue-500 mr-2"></i>
-                    Progress
+                    AI Lineup Progress
                 </h2>
             </div>
             
@@ -308,11 +461,13 @@ const club = user.club;
 const teamId = club && series ? `${club} - ${series.split(' ').pop()}` : '';
 
 // Wizard state
-let currentPage = 1;
+let currentPage = 0; // Start at choice page
+let isAIMode = false;
 let players = [];
 let selectedPlayers = new Set();
 let instructions = [];
 let generatedLineup = '';
+let manualLineup = {};
 
 // Player position determination
 function getPlayerPosition(playerName, rating) {
@@ -340,12 +495,25 @@ function showPage(pageNumber) {
     page.classList.add('hidden');
   });
   
-  // Show current page with fade in
-  const currentPageElement = document.getElementById(`page${pageNumber}`);
-  currentPageElement.classList.remove('hidden');
-  
-  // Update progress indicators with enhanced animations
-  updateProgressIndicators(pageNumber);
+  // Show appropriate page
+  if (pageNumber === 0) {
+    // Choice page
+    document.getElementById('choice-page').classList.remove('hidden');
+    document.getElementById('ai-progress').classList.add('hidden');
+  } else if (pageNumber === 'manual') {
+    // Manual drag-and-drop page
+    document.getElementById('manual-page').classList.remove('hidden');
+    document.getElementById('ai-progress').classList.add('hidden');
+    loadPlayersForManual();
+  } else {
+    // AI pages (1-4)
+    const currentPageElement = document.getElementById(`page${pageNumber}`);
+    currentPageElement.classList.remove('hidden');
+    document.getElementById('ai-progress').classList.remove('hidden');
+    
+    // Update progress indicators for AI mode
+    updateProgressIndicators(pageNumber);
+  }
   
   currentPage = pageNumber;
 }
@@ -676,6 +844,326 @@ ${user.first_name || 'Captain'}`;
   preview.textContent = message;
 }
 
+// Manual lineup functions
+function loadPlayersForManual() {
+  fetch(`/api/players?series=${encodeURIComponent(series)}&team_id=${encodeURIComponent(teamId)}`)
+    .then(res => {
+      if (!res.ok) {
+        throw new Error(`Server error: ${res.status} ${res.statusText}`);
+      }
+      return res.json();
+    })
+    .then(data => {
+      if (data.error) {
+        throw new Error(data.error);
+      }
+      players = data;
+      renderPlayersForManual();
+    })
+    .catch(error => {
+      console.error('Error loading players:', error);
+      document.getElementById('available-players-pool').innerHTML = `<div class="text-red-500 text-center">Failed to load players: ${error.message}</div>`;
+    });
+}
+
+function renderPlayersForManual() {
+  const pool = document.getElementById('available-players-pool');
+  pool.innerHTML = '';
+  
+  players.forEach(player => {
+    const playerDiv = document.createElement('div');
+    playerDiv.className = 'player-card bg-white border border-gray-200 rounded-lg p-3 m-2 inline-block cursor-move shadow-sm hover:shadow-md transition-shadow';
+    playerDiv.draggable = true;
+    playerDiv.dataset.playerName = player.name;
+    playerDiv.dataset.playerRating = player.rating;
+    
+    playerDiv.innerHTML = `
+      <div class="text-center">
+        <div class="font-medium text-gray-900">${player.name}</div>
+        <div class="text-sm text-gray-600">PTI: ${player.rating}</div>
+      </div>
+    `;
+    
+    // Add drag event listeners
+    playerDiv.addEventListener('dragstart', handleDragStart);
+    playerDiv.addEventListener('dragend', handleDragEnd);
+    
+    // Add touch event listeners for mobile
+    playerDiv.addEventListener('touchstart', handleTouchStart, { passive: false });
+    playerDiv.addEventListener('touchmove', handleTouchMove, { passive: false });
+    playerDiv.addEventListener('touchend', handleTouchEnd, { passive: false });
+    
+    pool.appendChild(playerDiv);
+  });
+}
+
+function handleDragStart(e) {
+  e.dataTransfer.setData('text/plain', e.target.dataset.playerName);
+  e.target.classList.add('opacity-50');
+}
+
+function handleDragEnd(e) {
+  e.target.classList.remove('opacity-50');
+}
+
+// Touch event handlers for mobile support
+let touchedPlayer = null;
+let touchOffset = { x: 0, y: 0 };
+
+function handleTouchStart(e) {
+  e.preventDefault();
+  touchedPlayer = e.target.closest('.player-card');
+  if (touchedPlayer) {
+    const touch = e.touches[0];
+    const rect = touchedPlayer.getBoundingClientRect();
+    touchOffset.x = touch.clientX - rect.left;
+    touchOffset.y = touch.clientY - rect.top;
+    
+    touchedPlayer.classList.add('opacity-50', 'dragging');
+    
+    // Create a visual feedback element
+    touchedPlayer.style.position = 'fixed';
+    touchedPlayer.style.zIndex = '1000';
+    touchedPlayer.style.pointerEvents = 'none';
+  }
+}
+
+function handleTouchMove(e) {
+  if (!touchedPlayer) return;
+  e.preventDefault();
+  
+  const touch = e.touches[0];
+  touchedPlayer.style.left = (touch.clientX - touchOffset.x) + 'px';
+  touchedPlayer.style.top = (touch.clientY - touchOffset.y) + 'px';
+  
+  // Find element under touch point
+  const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+  const dropZone = elementBelow?.closest('.court-position') || elementBelow?.closest('#available-players-pool');
+  
+  // Remove previous highlights
+  document.querySelectorAll('.drop-zone-active').forEach(el => {
+    el.classList.remove('drop-zone-active');
+  });
+  
+  // Highlight current drop zone
+  if (dropZone) {
+    dropZone.classList.add('drop-zone-active');
+  }
+}
+
+function handleTouchEnd(e) {
+  if (!touchedPlayer) return;
+  e.preventDefault();
+  
+  const touch = e.changedTouches[0];
+  const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+  const dropZone = elementBelow?.closest('.court-position') || elementBelow?.closest('#available-players-pool');
+  
+  // Remove visual feedback
+  touchedPlayer.classList.remove('opacity-50', 'dragging');
+  touchedPlayer.style.position = '';
+  touchedPlayer.style.left = '';
+  touchedPlayer.style.top = '';
+  touchedPlayer.style.zIndex = '';
+  touchedPlayer.style.pointerEvents = '';
+  
+  // Remove highlights
+  document.querySelectorAll('.drop-zone-active').forEach(el => {
+    el.classList.remove('drop-zone-active');
+  });
+  
+  // Handle drop
+  if (dropZone) {
+    const playerName = touchedPlayer.dataset.playerName;
+    
+    if (dropZone.id === 'available-players-pool') {
+      // Dropping back to pool
+      if (touchedPlayer.parentElement.classList.contains('court-position')) {
+        movePlayerToPool(touchedPlayer);
+      }
+    } else if (dropZone.classList.contains('court-position')) {
+      // Dropping to court position
+      const court = dropZone.dataset.court;
+      const position = dropZone.dataset.position;
+      
+      // Check if position is already occupied
+      if (dropZone.querySelector('.player-card')) {
+        const existingPlayer = dropZone.querySelector('.player-card');
+        movePlayerToPool(existingPlayer);
+      }
+      
+      // Move player to court position
+      touchedPlayer.remove();
+      touchedPlayer.className = 'player-card bg-white border border-gray-300 rounded-lg p-2 text-center cursor-move';
+      dropZone.innerHTML = '';
+      dropZone.appendChild(touchedPlayer);
+      
+      // Update manual lineup data
+      if (!manualLineup[court]) manualLineup[court] = {};
+      manualLineup[court][position] = {
+        name: playerName,
+        rating: touchedPlayer.dataset.playerRating
+      };
+      
+      updateManualLineupSummary();
+    }
+  }
+  
+  touchedPlayer = null;
+}
+
+function setupDropZones() {
+  const courtPositions = document.querySelectorAll('.court-position');
+  
+  courtPositions.forEach(position => {
+    position.addEventListener('dragover', handleDragOver);
+    position.addEventListener('drop', handleDrop);
+    position.addEventListener('dragleave', handleDragLeave);
+  });
+  
+  // Also set up the available players pool as a drop zone
+  const pool = document.getElementById('available-players-pool');
+  pool.addEventListener('dragover', handleDragOver);
+  pool.addEventListener('drop', handleDropToPool);
+}
+
+function handleDragOver(e) {
+  e.preventDefault();
+  e.currentTarget.classList.add('border-blue-400', 'bg-blue-50');
+}
+
+function handleDragLeave(e) {
+  e.currentTarget.classList.remove('border-blue-400', 'bg-blue-50');
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('border-blue-400', 'bg-blue-50');
+  
+  const playerName = e.dataTransfer.getData('text/plain');
+  const courtPosition = e.currentTarget;
+  const court = courtPosition.dataset.court;
+  const position = courtPosition.dataset.position;
+  
+  // Check if position is already occupied
+  if (courtPosition.querySelector('.player-card')) {
+    // Move existing player back to pool
+    const existingPlayer = courtPosition.querySelector('.player-card');
+    movePlayerToPool(existingPlayer);
+  }
+  
+  // Find and move the dragged player
+  const draggedPlayer = document.querySelector(`[data-player-name="${playerName}"]`);
+  if (draggedPlayer) {
+    // Remove from current location
+    draggedPlayer.remove();
+    
+    // Add to court position
+    draggedPlayer.className = 'player-card bg-white border border-gray-300 rounded-lg p-2 text-center cursor-move';
+    courtPosition.innerHTML = '';
+    courtPosition.appendChild(draggedPlayer);
+    
+    // Update manual lineup data
+    if (!manualLineup[court]) manualLineup[court] = {};
+    manualLineup[court][position] = {
+      name: playerName,
+      rating: draggedPlayer.dataset.playerRating
+    };
+    
+    updateManualLineupSummary();
+  }
+}
+
+function handleDropToPool(e) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('border-blue-400', 'bg-blue-50');
+  
+  const playerName = e.dataTransfer.getData('text/plain');
+  const draggedPlayer = document.querySelector(`[data-player-name="${playerName}"]`);
+  
+  if (draggedPlayer && draggedPlayer.parentElement.classList.contains('court-position')) {
+    movePlayerToPool(draggedPlayer);
+  }
+}
+
+function movePlayerToPool(playerElement) {
+  const court = playerElement.parentElement.dataset.court;
+  const position = playerElement.parentElement.dataset.position;
+  
+  // Remove from lineup data
+  if (manualLineup[court] && manualLineup[court][position]) {
+    delete manualLineup[court][position];
+    if (Object.keys(manualLineup[court]).length === 0) {
+      delete manualLineup[court];
+    }
+  }
+  
+  // Move back to pool
+  playerElement.className = 'player-card bg-white border border-gray-200 rounded-lg p-3 m-2 inline-block cursor-move shadow-sm hover:shadow-md transition-shadow';
+  playerElement.parentElement.innerHTML = playerElement.parentElement.textContent; // Reset drop zone text
+  document.getElementById('available-players-pool').appendChild(playerElement);
+  
+  updateManualLineupSummary();
+}
+
+function updateManualLineupSummary() {
+  const summary = document.getElementById('manual-lineup-summary');
+  const summaryText = document.getElementById('manual-lineup-text');
+  const sendButton = document.getElementById('manual-send');
+  
+  if (Object.keys(manualLineup).length === 0) {
+    summary.classList.add('hidden');
+    sendButton.disabled = true;
+    return;
+  }
+  
+  let lineupText = 'LINEUP:\n\n';
+  
+  // Sort courts numerically
+  const sortedCourts = Object.keys(manualLineup).sort((a, b) => parseInt(a) - parseInt(b));
+  
+  sortedCourts.forEach(court => {
+    const courtData = manualLineup[court];
+    const player1 = courtData['1'];
+    const player2 = courtData['2'];
+    
+    lineupText += `Court ${court}: `;
+    
+    if (player1 && player2) {
+      lineupText += `${player1.name} (${player1.rating}) & ${player2.name} (${player2.rating})\n`;
+    } else if (player1) {
+      lineupText += `${player1.name} (${player1.rating}) & [Need Partner]\n`;
+    } else if (player2) {
+      lineupText += `[Need Partner] & ${player2.name} (${player2.rating})\n`;
+    }
+  });
+  
+  summaryText.textContent = lineupText;
+  summary.classList.remove('hidden');
+  
+  // Enable send button if we have at least one complete court
+  const hasCompleteCourt = sortedCourts.some(court => {
+    const courtData = manualLineup[court];
+    return courtData['1'] && courtData['2'];
+  });
+  
+  sendButton.disabled = !hasCompleteCourt;
+}
+
+function sendManualLineup() {
+  if (Object.keys(manualLineup).length === 0) {
+    alert('Please assign players to courts before sending.');
+    return;
+  }
+  
+  // Create lineup text from manual assignments
+  generatedLineup = document.getElementById('manual-lineup-text').textContent;
+  
+  // Update message preview and show page 4
+  updateMessagePreview();
+  showPage(4);
+}
+
 function updateSummary() {
   // Update player count and list
   const playersCount = document.getElementById('summary-players-count');
@@ -718,11 +1206,28 @@ function updateSummary() {
 
 // Event listeners
 document.addEventListener('DOMContentLoaded', () => {
-  // Load initial data
-  loadPlayers();
-  loadInstructions();
+  // Setup drop zones for manual mode
+  setupDropZones();
   
-  // Page navigation
+  // Choice page buttons
+  document.getElementById('choose-ai').onclick = () => {
+    isAIMode = true;
+    // Load data for AI mode
+    loadPlayers();
+    loadInstructions();
+    showPage(1);
+  };
+  
+  document.getElementById('choose-manual').onclick = () => {
+    isAIMode = false;
+    showPage('manual');
+  };
+  
+  // Manual mode navigation
+  document.getElementById('manual-back').onclick = () => showPage(0);
+  document.getElementById('manual-send').onclick = sendManualLineup;
+  
+  // AI mode page navigation
   document.getElementById('page1-next').onclick = () => {
     if (selectedPlayers.size === 0) {
       alert('Please select at least one player.');
@@ -739,7 +1244,13 @@ document.addEventListener('DOMContentLoaded', () => {
   
   document.getElementById('page3-prev').onclick = () => showPage(2);
   
-  document.getElementById('page4-prev').onclick = () => showPage(3);
+  document.getElementById('page4-prev').onclick = () => {
+    if (isAIMode) {
+      showPage(3);
+    } else {
+      showPage('manual');
+    }
+  };
   
   // Instructions
   document.getElementById('add-instruction-btn').onclick = addInstruction;
@@ -777,8 +1288,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('send-email').click();
   };
   
-  // Initialize wizard
-  showPage(1);
+  // Initialize wizard at choice page
+  showPage(0);
 });
 </script>
 
@@ -786,6 +1297,65 @@ document.addEventListener('DOMContentLoaded', () => {
 /* Custom styles for modern mobile design */
 .min-h-screen {
     min-height: 100vh;
+}
+
+/* Drag and Drop Styles */
+.player-card {
+    transition: all 0.2s ease;
+    touch-action: manipulation;
+    user-select: none;
+}
+
+.player-card:hover {
+    transform: translateY(-2px);
+}
+
+.player-card.dragging {
+    transform: rotate(5deg);
+    z-index: 1000;
+}
+
+.court-position {
+    transition: all 0.2s ease;
+    min-height: 4rem;
+}
+
+.court-position.drag-over {
+    transform: scale(1.02);
+    border-style: solid !important;
+}
+
+.court-container {
+    transition: all 0.2s ease;
+}
+
+#available-players-pool {
+    transition: all 0.2s ease;
+}
+
+/* Mobile touch improvements */
+@media (max-width: 768px) {
+    .player-card {
+        min-width: 120px;
+        margin: 0.25rem;
+    }
+    
+    .court-position {
+        min-height: 5rem;
+        padding: 1rem;
+    }
+    
+    .court-container {
+        margin-bottom: 1rem;
+    }
+}
+
+/* Visual feedback for drag operations */
+.drop-zone-active {
+    background-color: rgba(59, 130, 246, 0.1) !important;
+    border-color: rgb(59, 130, 246) !important;
+    border-width: 2px !important;
+    border-style: dashed !important;
 }
 
 /* Shadow utilities */

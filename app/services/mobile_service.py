@@ -555,6 +555,30 @@ def get_player_analysis(user):
             """
             player_matches = execute_query(history_query, [player_id, player_id, player_id, player_id])
         
+        # FIX: Calculate accurate wins/losses from match results
+        print(f"[DEBUG] Found {len(player_matches) if player_matches else 0} matches for analysis")
+        
+        # Calculate accurate match statistics
+        total_matches = len(player_matches) if player_matches else 0
+        wins = 0
+        losses = 0
+        
+        if player_matches:
+            for match in player_matches:
+                # Determine if player was on home or away team
+                is_home = player_id in [match.get('Home Player 1'), match.get('Home Player 2')]
+                match_winner = match.get('Winner', '').lower()
+                
+                # Calculate win/loss based on team position and winner
+                if is_home and match_winner == 'home':
+                    wins += 1
+                elif not is_home and match_winner == 'away':
+                    wins += 1
+                else:
+                    losses += 1
+            
+            print(f"[DEBUG] Calculated match stats: {wins} wins, {losses} losses from {total_matches} matches")
+        
         if not player_matches:
             print(f"[DEBUG] get_player_analysis: No detailed matches found for player {player_id} in league {league_id_int}")
             print(f"[DEBUG] Falling back to aggregate player stats from players table...")
@@ -584,7 +608,7 @@ def get_player_analysis(user):
             except Exception as e:
                 print(f"[DEBUG] Error getting aggregate stats: {e}")
             
-            # Final fallback - return zeros
+            # Final fallback - return zeros with corrected match stats
             return {
                 'current_season': {
                     'winRate': 0,
@@ -719,6 +743,7 @@ def get_player_analysis(user):
                 print(f"[DEBUG] PTI data available: Current={current_pti}, Change={pti_change:+.1f}")
             else:
                 print(f"[DEBUG] No current PTI found in players table for {player_id}")
+                print(f"[DEBUG] This is expected for leagues like CNSWPL that don't track PTI ratings")
                 
         except Exception as pti_error:
             print(f"[DEBUG] Error fetching PTI data: {pti_error}")
@@ -873,10 +898,10 @@ def get_player_analysis(user):
         for i in range(1, max_courts + 1):
             court_key = f'court{i}'
             stat = court_stats[court_key]
-            matches = stat['matches']
-            wins = stat['wins']
-            losses = stat['losses']
-            win_rate = round((wins / matches) * 100, 1) if matches > 0 else 0
+            court_matches = stat['matches']
+            court_wins = stat['wins']
+            court_losses = stat['losses']
+            court_win_rate = round((court_wins / court_matches) * 100, 1) if court_matches > 0 else 0
             
             # Get top partners with match counts and win/loss records
             top_partners = []
@@ -885,39 +910,29 @@ def get_player_analysis(user):
                     partner_wins = partner_stats['wins']
                     partner_losses = partner_stats['losses']
                     match_count = partner_stats['matches']
-                    win_rate = round((partner_wins / match_count) * 100, 1) if match_count > 0 else 0
+                    partner_win_rate = round((partner_wins / match_count) * 100, 1) if match_count > 0 else 0
                     
                     top_partners.append({
                         'name': partner_name,
                         'matches': match_count,
                         'wins': partner_wins,
                         'losses': partner_losses,
-                        'winRate': win_rate
+                        'winRate': partner_win_rate
                     })
             
             # Sort by number of matches together (descending)
             top_partners.sort(key=lambda p: p['matches'], reverse=True)
             
             court_analysis[court_key] = {
-                'winRate': win_rate,
-                'record': f"{wins}-{losses}",
+                'winRate': court_win_rate,
+                'record': f"{court_wins}-{court_losses}",
                 'topPartners': top_partners[:3]  # Top 3 partners
             }
         
-        # Calculate overall stats
-        total_matches = len(player_matches)
-        wins = 0
-        
-        for match in player_matches:
-            is_home = player_id in [match.get('Home Player 1'), match.get('Home Player 2')]
-            winner = match.get('Winner')
-            won = (is_home and winner.lower() == 'home') or (not is_home and winner.lower() == 'away')
-            
-            if won:
-                wins += 1
-        
-        losses = total_matches - wins
+        # Use the corrected win/loss calculations from earlier in the function
+        # (total_matches, wins, losses are already calculated correctly above)
         win_rate = round((wins / total_matches) * 100, 1) if total_matches > 0 else 0
+        print(f"[DEBUG] Using corrected stats: {wins}-{losses} = {win_rate}% win rate from {total_matches} matches")
         
         # Build current season stats
         # Calculate PTI change for current season (start to end of season)
@@ -2501,13 +2516,38 @@ def get_mobile_team_data(user):
         club = user.get('club')
         series = user.get('series')
         
+        # If club/series not in session, try to get from database using email
+        if not club or not series:
+            print(f"[DEBUG] Missing club/series in session, attempting database lookup...")
+            user_email = user.get('email')
+            if user_email:
+                user_lookup_query = """
+                    SELECT u.email, u.first_name, u.last_name, 
+                           c.name as club_name, s.name as series_name, l.league_name, l.id as league_db_id
+                    FROM users u 
+                    JOIN user_player_associations upa ON u.id = upa.user_id
+                    JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+                    LEFT JOIN clubs c ON p.club_id = c.id
+                    LEFT JOIN series s ON p.series_id = s.id  
+                    LEFT JOIN leagues l ON p.league_id = l.id
+                    WHERE u.email = %s AND upa.is_primary = true
+                """
+                user_data = execute_query_one(user_lookup_query, [user_email])
+                if user_data:
+                    club = user_data['club_name']
+                    series = user_data['series_name'] 
+                    print(f"[DEBUG] Found club/series from database: {club}/{series}")
+                else:
+                    print(f"[DEBUG] No user data found in database for {user_email}")
+        
         if not club or not series:
             print(f"[DEBUG ERROR] User club or series not found: club={club}, series={series}")
+            print(f"[DEBUG ERROR] Session keys available: {list(user.keys())}")
             return {
                 'team_data': None,
                 'court_analysis': {},
                 'top_players': [],
-                'error': 'User club or series not found'
+                'error': f'User club or series not found. Club: {club}, Series: {series}. Please check your profile settings.'
             }
         
         # Get team_id using proper database relationships instead of string construction

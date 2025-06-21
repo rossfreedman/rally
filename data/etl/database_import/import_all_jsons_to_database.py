@@ -904,13 +904,67 @@ class ComprehensiveETL:
         self.imported_counts['player_history'] = imported
         self.log(f"✅ Imported {imported:,} player history records ({errors} errors)")
         
+    def validate_and_correct_winner(self, scores: str, winner: str, home_team: str, away_team: str) -> str:
+        """
+        Validate winner against score data and correct if needed
+        """
+        if not scores or not scores.strip():
+            return winner
+            
+        # Clean up score string and remove tiebreak info
+        scores = scores.strip()
+        scores = re.sub(r'\s*\[[^\]]+\]', '', scores)
+        
+        # Split by comma to get individual sets
+        sets = [s.strip() for s in scores.split(',') if s.strip()]
+        
+        home_sets_won = 0
+        away_sets_won = 0
+        
+        for set_score in sets:
+            if '-' not in set_score:
+                continue
+                
+            try:
+                parts = set_score.split('-')
+                if len(parts) != 2:
+                    continue
+                    
+                home_games = int(parts[0].strip())
+                away_games = int(parts[1].strip())
+                
+                # Determine set winner
+                if home_games > away_games:
+                    home_sets_won += 1
+                elif away_games > home_games:
+                    away_sets_won += 1
+                    
+            except (ValueError, IndexError):
+                continue
+        
+        # Determine overall winner (best of 3 sets)
+        calculated_winner = None
+        if home_sets_won > away_sets_won:
+            calculated_winner = "home"
+        elif away_sets_won > home_sets_won:
+            calculated_winner = "away"
+        
+        # Return corrected winner if mismatch found
+        if calculated_winner and winner.lower() not in ['home', 'away']:
+            return calculated_winner
+        elif calculated_winner and winner.lower() in ['home', 'away'] and winner.lower() != calculated_winner:
+            return calculated_winner
+        else:
+            return winner
+
     def import_match_history(self, conn, match_history_data: List[Dict]):
-        """Import match history data into match_scores table"""
+        """Import match history data into match_scores table with winner validation"""
         self.log("📥 Importing match history...")
         
         cursor = conn.cursor()
         imported = 0
         errors = 0
+        winner_corrections = 0
         
         for record in match_history_data:
             try:
@@ -946,6 +1000,14 @@ class ComprehensiveETL:
                 
                 if not all([match_date, home_team, away_team]):
                     continue
+                
+                # ENHANCED: Validate winner against score data
+                original_winner = winner
+                winner = self.validate_and_correct_winner(scores, winner, home_team, away_team)
+                if winner != original_winner:
+                    winner_corrections += 1
+                    if winner_corrections <= 5:  # Log first 5 corrections
+                        self.log(f"🔧 Corrected winner for {home_team} vs {away_team} ({match_date_str}): {original_winner} → {winner}")
                 
                 # Validate winner field - only allow 'home', 'away', or None
                 if winner and winner.lower() not in ['home', 'away']:
@@ -1006,7 +1068,10 @@ class ComprehensiveETL:
                 
         conn.commit()
         self.imported_counts['match_scores'] = imported
-        self.log(f"✅ Imported {imported:,} match history records ({errors} errors)")
+        if winner_corrections > 0:
+            self.log(f"✅ Imported {imported:,} match history records ({errors} errors, {winner_corrections} winner corrections)")
+        else:
+            self.log(f"✅ Imported {imported:,} match history records ({errors} errors)")
         
     def import_series_stats(self, conn, series_stats_data: List[Dict]):
         """Import series stats data with validation and calculation fallback"""

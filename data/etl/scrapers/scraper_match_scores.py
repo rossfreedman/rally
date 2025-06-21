@@ -674,24 +674,12 @@ def parse_cnswpl_match_table(table_element, match_date, series_name, league_id):
 def determine_winner_from_score_cnswpl(score_text, home_team, away_team, divs_by_class, row_index):
     """Determine winner from CNSWPL score and check mark indicators"""
     try:
-        # Check for forfeit indicators
+        # Check for forfeit indicators first
         if "forfeit" in score_text.lower() or "by forfeit" in score_text.lower():
             return "home"  # Assuming forfeit wins for home team
         
-        # Check for check mark indicators in the points columns
-        # CNSWPL uses check mark images to indicate winners
-        if row_index < len(divs_by_class['points']) and row_index < len(divs_by_class['points2']):
-            home_points = divs_by_class['points'][row_index]
-            away_points = divs_by_class['points2'][row_index]
-            
-            # Look for check mark indicators
-            if "check" in home_points.lower() or "✓" in home_points:
-                return "home"
-            elif "check" in away_points.lower() or "✓" in away_points:
-                return "away"
-        
-        # Try to parse score to determine winner
-        # Standard tennis scores: "6-3, 6-1" or "7-6 [7-5], 6-3"
+        # PRIORITY: Try to parse score to determine winner FIRST
+        # This is more reliable than check mark detection which can be inconsistent
         if re.search(r'\d+-\d+', score_text):
             sets = re.findall(r'(\d+)-(\d+)', score_text)
             if sets:
@@ -699,19 +687,43 @@ def determine_winner_from_score_cnswpl(score_text, home_team, away_team, divs_by
                 away_sets_won = 0
                 
                 for home_score, away_score in sets:
-                    if int(home_score) > int(away_score):
+                    home_games = int(home_score)
+                    away_games = int(away_score)
+                    
+                    # Determine set winner
+                    if home_games > away_games:
                         home_sets_won += 1
-                    elif int(away_score) > int(home_score):
+                    elif away_games > home_games:
                         away_sets_won += 1
                 
+                # Determine overall match winner based on sets won
                 if home_sets_won > away_sets_won:
+                    print(f"      Score analysis: {score_text} -> HOME wins ({home_sets_won}-{away_sets_won} sets)")
                     return "home"
                 elif away_sets_won > home_sets_won:
+                    print(f"      Score analysis: {score_text} -> AWAY wins ({away_sets_won}-{home_sets_won} sets)")
                     return "away"
+                else:
+                    print(f"      Score analysis: {score_text} -> TIE ({home_sets_won}-{away_sets_won} sets)")
         
+        # FALLBACK: Check for check mark indicators only if score parsing fails
+        if row_index < len(divs_by_class['points']) and row_index < len(divs_by_class['points2']):
+            home_points = divs_by_class['points'][row_index]
+            away_points = divs_by_class['points2'][row_index]
+            
+            # Look for check mark indicators
+            if "check" in home_points.lower() or "✓" in home_points or "check_mark" in home_points.lower():
+                print(f"      Check mark analysis: HOME check mark found")
+                return "home"
+            elif "check" in away_points.lower() or "✓" in away_points or "check_mark" in away_points.lower():
+                print(f"      Check mark analysis: AWAY check mark found")
+                return "away"
+        
+        print(f"      Winner determination failed for: {score_text}")
         return "unknown"
         
-    except Exception:
+    except Exception as e:
+        print(f"      Error in winner determination: {e}")
         return "unknown"
 
 
