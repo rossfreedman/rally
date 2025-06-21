@@ -880,7 +880,6 @@ function renderPlayersForManual() {
     playerDiv.innerHTML = `
       <div class="text-center">
         <div class="font-medium text-gray-900">${player.name}</div>
-        <div class="text-sm text-gray-600">PTI: ${player.rating}</div>
       </div>
     `;
     
@@ -1130,11 +1129,11 @@ function updateManualLineupSummary() {
     lineupText += `Court ${court}: `;
     
     if (player1 && player2) {
-      lineupText += `${player1.name} (${player1.rating}) & ${player2.name} (${player2.rating})\n`;
+      lineupText += `${player1.name} & ${player2.name}\n`;
     } else if (player1) {
-      lineupText += `${player1.name} (${player1.rating}) & [Need Partner]\n`;
+      lineupText += `${player1.name} & [Need Partner]\n`;
     } else if (player2) {
-      lineupText += `[Need Partner] & ${player2.name} (${player2.rating})\n`;
+      lineupText += `[Need Partner] & ${player2.name}\n`;
     }
   });
   
@@ -1176,12 +1175,9 @@ function updateSummary() {
   } else {
     const selectedPlayerNames = Array.from(selectedPlayers).sort();
     playersList.innerHTML = selectedPlayerNames.map(name => {
-      // Find the player's rating for display
-      const player = players.find(p => p.name === name);
-      const rating = player ? ` (PTI: ${player.rating})` : '';
       return `<div class="flex items-center py-1">
         <i class="fas fa-user text-blue-400 mr-2 text-xs"></i>
-        <span class="text-gray-800">${name}${rating}</span>
+        <span class="text-gray-800">${name}</span>
       </div>`;
     }).join('');
   }
