@@ -27,8 +27,9 @@ def get_matches_for_user_club(user):
             user_team_pattern = f"{user_club} {series_code} - {user_series}"
         elif 'Division' in user_series:
             # CNSWPL format: "Division 12" -> "12"
+            # FIXED: Schedule uses "Series 16" format, not "Division 16"
             division_num = user_series.replace('Division ', '')
-            user_team_pattern = f"{user_club} {division_num} - {user_series}"
+            user_team_pattern = f"{user_club} {division_num} - Series {division_num}"
         else:
             # APTA format: "Chicago 22" -> extract number
             series_num = user_series.split()[-1] if user_series else ''
@@ -37,7 +38,12 @@ def get_matches_for_user_club(user):
         print(f"Looking for team pattern: {user_team_pattern}")
         
         # Create practice pattern for this user's club and series
-        practice_pattern = f"{user_club} Practice - {user_series}"
+        # FIXED: For CNSWPL, practices also use "Series" format
+        if 'Division' in user_series:
+            division_num = user_series.replace('Division ', '')
+            practice_pattern = f"{user_club} Practice - Series {division_num}"
+        else:
+            practice_pattern = f"{user_club} Practice - {user_series}"
         print(f"Looking for practice pattern: {practice_pattern}")
         
         # Query the database for matches where user's team is playing

@@ -13,9 +13,10 @@ from typing import List, Dict, Tuple, Optional
 # Add project root to path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../..')))
 
-def parse_score_to_determine_winner(score_str: str) -> Optional[str]:
+def parse_score_to_determine_winner(score_str: str, league_id: str = None) -> Optional[str]:
     """
     Analyze score string to determine winner based on set scores
+    Enhanced to handle league-specific formats including super tiebreaks
     Returns 'home' if home team won, 'away' if away team won, None if unclear
     """
     if not score_str or score_str.strip() == "":
@@ -25,15 +26,33 @@ def parse_score_to_determine_winner(score_str: str) -> Optional[str]:
     score_str = score_str.strip()
     
     # Handle tiebreak scores like "6-7 [1-7]" - remove tiebreak part for set counting
-    score_str = re.sub(r'\s*\[[^\]]+\]', '', score_str)
+    score_str_clean = re.sub(r'\s*\[[^\]]+\]', '', score_str)
     
     # Split by comma to get individual sets
-    sets = [s.strip() for s in score_str.split(',') if s.strip()]
+    sets = [s.strip() for s in score_str_clean.split(',') if s.strip()]
+    
+    # CITA League: Skip validation for problematic data
+    if league_id == 'CITA' and len(sets) >= 1:
+        # Check for incomplete/live match data patterns
+        for set_score in sets:
+            if '-' in set_score:
+                try:
+                    parts = set_score.split('-')
+                    if len(parts) == 2:
+                        home_games = int(parts[0].strip())
+                        away_games = int(parts[1].strip())
+                        # If we see scores like 2-2, 3-3, 4-5 etc, it's likely incomplete
+                        if (home_games < 6 and away_games < 6 and 
+                            abs(home_games - away_games) <= 2 and
+                            not (home_games == 0 and away_games == 0)):
+                            return None  # Skip validation for incomplete CITA matches
+                except (ValueError, IndexError):
+                    pass
     
     home_sets_won = 0
     away_sets_won = 0
     
-    for set_score in sets:
+    for i, set_score in enumerate(sets):
         if '-' not in set_score:
             continue
             
@@ -46,6 +65,17 @@ def parse_score_to_determine_winner(score_str: str) -> Optional[str]:
             home_games = int(parts[0].strip())
             away_games = int(parts[1].strip())
             
+            # NSTF/CITA: Handle super tiebreak format (third "set" is actually a tiebreak to 10)
+            if (i == 2 and len(sets) == 3 and 
+                (league_id in ['NSTF', 'CITA'] or home_games >= 10 or away_games >= 10)):
+                # This is a super tiebreak
+                if home_games > away_games:
+                    home_sets_won += 1
+                elif away_games > home_games:
+                    away_sets_won += 1
+                continue
+            
+            # Standard set scoring
             # Determine set winner
             if home_games > away_games:
                 home_sets_won += 1
@@ -56,7 +86,7 @@ def parse_score_to_determine_winner(score_str: str) -> Optional[str]:
         except (ValueError, IndexError):
             continue
     
-    # Determine overall winner (best of 3 sets)
+    # Determine overall winner (best of 3 sets or best of 3 with super tiebreak)
     if home_sets_won > away_sets_won:
         return "home"
     elif away_sets_won > home_sets_won:
@@ -67,13 +97,15 @@ def parse_score_to_determine_winner(score_str: str) -> Optional[str]:
 def validate_match_winner(match_data: Dict) -> Dict:
     """
     Validate a single match record and provide corrected winner if needed
+    Enhanced to handle league-specific formats
     Returns dict with validation results
     """
     scores = match_data.get('Scores', '')
     recorded_winner = match_data.get('Winner', '').lower()
+    league_id = match_data.get('league_id', '')
     
-    # Determine winner from score analysis
-    calculated_winner = parse_score_to_determine_winner(scores)
+    # Determine winner from score analysis with league-specific logic
+    calculated_winner = parse_score_to_determine_winner(scores, league_id)
     
     result = {
         'match_data': match_data,

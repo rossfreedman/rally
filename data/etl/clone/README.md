@@ -23,19 +23,6 @@ This directory contains tools for synchronizing data between local and Railway d
 
 ### Legacy Tools
 
-- **`fast_clone_local_to_railway.py`**
-  - Legacy fast cloning implementation
-  - Preserved for historical reference
-
-- **`fast_clone_compatible.py`**
-  - Legacy compatibility layer
-  - Preserved for historical reference
-
-- **`clone_railway_database_with_local.py`**
-  - Alternative cloning implementation
-  - Uses different approach than recommended tools
-
-### Utility Tools
 
 - **`mirror_railway_database.py`**
   - Reverse direction: Railway → Local

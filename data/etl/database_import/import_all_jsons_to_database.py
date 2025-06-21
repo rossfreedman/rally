@@ -114,11 +114,13 @@ class ComprehensiveETL:
             conn.rollback()
             raise
             
-    def extract_leagues(self, players_data: List[Dict]) -> List[Dict]:
-        """Extract unique leagues from players data"""
-        self.log("🔍 Extracting leagues from players data...")
+    def extract_leagues(self, players_data: List[Dict], series_stats_data: List[Dict] = None, schedules_data: List[Dict] = None) -> List[Dict]:
+        """Extract unique leagues from players data and all other data sources"""
+        self.log("🔍 Extracting leagues from all data sources...")
         
         leagues = set()
+        
+        # Extract from players data (original logic)
         for player in players_data:
             league = player.get('League', '').strip()
             if league:
@@ -126,6 +128,26 @@ class ComprehensiveETL:
                 normalized_league = normalize_league_id(league)
                 if normalized_league:
                     leagues.add(normalized_league)
+        
+        # Extract from series_stats data (new logic to catch all leagues)
+        if series_stats_data:
+            for record in series_stats_data:
+                league = record.get('league_id', '').strip()
+                if league:
+                    # Normalize the league ID
+                    normalized_league = normalize_league_id(league)
+                    if normalized_league:
+                        leagues.add(normalized_league)
+        
+        # Extract from schedules data (new logic to catch all leagues)
+        if schedules_data:
+            for record in schedules_data:
+                league = record.get('League', '').strip()
+                if league:
+                    # Normalize the league ID
+                    normalized_league = normalize_league_id(league)
+                    if normalized_league:
+                        leagues.add(normalized_league)
                 
         # Convert to standardized format
         league_records = []
@@ -203,16 +225,41 @@ class ComprehensiveETL:
         # Fallback: use the team name as-is
         return team_name
         
-    def extract_series(self, players_data: List[Dict]) -> List[Dict]:
-        """Extract unique series from players data"""
-        self.log("🔍 Extracting series from players data...")
+    def extract_series(self, players_data: List[Dict], series_stats_data: List[Dict] = None, schedules_data: List[Dict] = None) -> List[Dict]:
+        """Extract unique series from players data and team data"""
+        self.log("🔍 Extracting series from players data and team data...")
         
         series = set()
+        
+        # Extract from players data (original logic)
         for player in players_data:
             series_name = player.get('Series', '').strip()
             if series_name:
                 series.add(series_name)
+        
+        # Extract from series_stats data (new logic to fix missing series)
+        if series_stats_data:
+            for record in series_stats_data:
+                series_name = record.get('series', '').strip()
+                if series_name:
+                    # Clean any malformed series names like "Series eries 16"
+                    if "eries " in series_name:
+                        series_name = series_name.replace("eries ", "")
+                    series.add(series_name)
+        
+        # Extract from schedules data by parsing team names (new logic to fix missing series)
+        if schedules_data:
+            for record in schedules_data:
+                home_team = record.get('home_team', '').strip()
+                away_team = record.get('away_team', '').strip()
                 
+                for team_name in [home_team, away_team]:
+                    if team_name and team_name != 'BYE':
+                        # Parse team name to extract series
+                        club_name, series_name = self.parse_schedule_team_name(team_name)
+                        if series_name:
+                            series.add(series_name)
+        
         series_records = [{'name': series_name} for series_name in sorted(series)]
         
         self.log(f"✅ Found {len(series_records)} unique series")
@@ -288,6 +335,15 @@ class ComprehensiveETL:
             league_id = normalize_league_id(record.get('league_id', '').strip())
             
             if team_name and series_name and league_id:
+                # FIXED: Clean any malformed series names like "Series eries 16"
+                if "eries " in series_name:
+                    series_name = series_name.replace("eries ", "")
+                
+                # FIXED: Apply same series name conversion as in import_series_stats
+                # Convert "Series X" to "Division X" for CNSWPL compatibility
+                if series_name.startswith("Series ") and league_id == "CNSWPL":
+                    series_name = series_name.replace("Series ", "Division ")
+                
                 # Parse team name to extract club
                 club_name = self.parse_team_name_to_club(team_name, series_name)
                 if club_name:
@@ -304,6 +360,10 @@ class ComprehensiveETL:
                     # Parse team name to extract club and series
                     club_name, series_name = self.parse_schedule_team_name(team_name)
                     if club_name and series_name:
+                        # FIXED: Ensure consistent series name format for all sources
+                        # Clean any malformed series names like "Series eries 16"
+                        if "eries " in series_name:
+                            series_name = series_name.replace("eries ", "")
                         teams.add((club_name, series_name, league_id, team_name))
         
         # Convert to list of dictionaries
@@ -560,14 +620,95 @@ class ComprehensiveETL:
         self.log(f"✅ Imported {imported} series-league relationships")
         
     def import_teams(self, conn, teams_data: List[Dict]):
-        """Import teams into database"""
+        """Import teams into database with enhanced duplicate handling"""
         self.log("📥 Importing teams...")
         
         cursor = conn.cursor()
         imported = 0
+        updated = 0
         errors = 0
+        skipped = 0
+        
+        # First, let's deduplicate the teams_data based on BOTH database constraints:
+        # 1. unique_team_club_series_league: (club_id, series_id, league_id)
+        # 2. unique_team_name_per_league: (team_name, league_id)
+        
+        from collections import defaultdict
+        teams_by_club_series_league = defaultdict(list)  # Constraint 1
+        teams_by_name_league = defaultdict(list)          # Constraint 2
         
         for team in teams_data:
+            constraint_key_1 = (team['club_name'], team['series_name'], team['league_id'])
+            constraint_key_2 = (team['team_name'], team['league_id'])
+            
+            teams_by_club_series_league[constraint_key_1].append(team)
+            teams_by_name_league[constraint_key_2].append(team)
+        
+        # Log any duplicates found for first constraint
+        duplicates_found_1 = 0
+        for constraint_key, team_list in teams_by_club_series_league.items():
+            if len(team_list) > 1:
+                duplicates_found_1 += 1
+                if duplicates_found_1 <= 5:  # Log first 5 duplicates
+                    club_name, series_name, league_id = constraint_key
+                    self.log(f"🔍 DUPLICATE CONSTRAINT: {club_name} / {series_name} / {league_id}", "INFO")
+                    for i, team in enumerate(team_list, 1):
+                        self.log(f"   {i}. Team name: {team['team_name']}", "INFO")
+        
+        # Log any duplicates found for second constraint
+        duplicates_found_2 = 0
+        for constraint_key, team_list in teams_by_name_league.items():
+            if len(team_list) > 1:
+                duplicates_found_2 += 1
+                if duplicates_found_2 <= 5:  # Log first 5 duplicates
+                    team_name, league_id = constraint_key
+                    self.log(f"🔍 DUPLICATE CONSTRAINT 2: {team_name} / {league_id}", "INFO")
+                    for i, team in enumerate(team_list, 1):
+                        self.log(f"   {i}. Club/Series: {team['club_name']} / {team['series_name']}", "INFO")
+        
+        if duplicates_found_1 > 0:
+            self.log(f"📊 Found {duplicates_found_1} club/series/league duplicates", "INFO")
+        if duplicates_found_2 > 0:
+            self.log(f"📊 Found {duplicates_found_2} team name/league duplicates", "INFO")
+        
+        # Deduplicate by both constraints - use a two-stage approach
+        # Stage 1: Deduplicate by club/series/league (first constraint)
+        teams_stage_1 = []
+        for constraint_key, team_list in teams_by_club_series_league.items():
+            teams_stage_1.append(team_list[0])  # Use first occurrence
+        
+        # Stage 2: Deduplicate by team name/league (second constraint)
+        teams_by_name_league_stage_2 = defaultdict(list)
+        for team in teams_stage_1:
+            constraint_key_2 = (team['team_name'], team['league_id'])
+            teams_by_name_league_stage_2[constraint_key_2].append(team)
+        
+        teams_to_process = []
+        name_conflicts_resolved = 0
+        for constraint_key, team_list in teams_by_name_league_stage_2.items():
+            if len(team_list) > 1:
+                name_conflicts_resolved += 1
+                # For name conflicts, modify the team names to make them unique
+                team_name, league_id = constraint_key
+                for i, team in enumerate(team_list):
+                    if i > 0:  # Keep first one as-is, modify others
+                        original_name = team['team_name']
+                        # Make it unique by adding series info
+                        team['team_name'] = f"{original_name} ({team['series_name']})"
+                        if name_conflicts_resolved <= 3:  # Log first 3 resolutions
+                            self.log(f"🔧 Resolved name conflict: {original_name} → {team['team_name']}")
+                    # Add each team to the processing list (all teams in the conflict group)
+                    teams_to_process.append(team)
+            else:
+                # Only one team with this name in this league
+                teams_to_process.append(team_list[0])
+        
+        if name_conflicts_resolved > 0:
+            self.log(f"🔧 Resolved {name_conflicts_resolved} team name conflicts")
+        
+        self.log(f"📊 Processing {len(teams_to_process)} unique teams (deduplicated from {len(teams_data)})")
+        
+        for team in teams_to_process:
             try:
                 club_name = team['club_name']
                 series_name = team['series_name']
@@ -577,47 +718,70 @@ class ComprehensiveETL:
                 # Create team alias for display (optional)
                 team_alias = self.generate_team_alias(team_name, series_name)
                 
-                # FIXED: Check if team already exists by name+league first to prevent duplicates
+                # Check if team already exists by constraint (club_id, series_id, league_id)
                 cursor.execute("""
-                    SELECT t.id FROM teams t
+                    SELECT t.id, t.team_name FROM teams t
+                    JOIN clubs c ON t.club_id = c.id
+                    JOIN series s ON t.series_id = s.id
                     JOIN leagues l ON t.league_id = l.id
-                    WHERE l.league_id = %s AND t.team_name = %s
-                """, (league_id, team_name))
+                    WHERE c.name = %s AND s.name = %s AND l.league_id = %s
+                """, (club_name, series_name, league_id))
                 
                 existing_team = cursor.fetchone()
                 
                 if existing_team:
                     # Team already exists, update it if needed
+                    existing_id, existing_name = existing_team
                     cursor.execute("""
                         UPDATE teams SET 
+                            team_name = %s,
                             team_alias = %s,
                             updated_at = CURRENT_TIMESTAMP
                         WHERE id = %s
-                    """, (team_alias, existing_team[0]))
+                    """, (team_name, team_alias, existing_id))
+                    updated += 1
+                    
+                    if existing_name != team_name:
+                        self.log(f"📝 Updated team name: {existing_name} → {team_name}")
                 else:
+                    # Verify that the club, series, and league exist
+                    cursor.execute("""
+                        SELECT c.id, s.id, l.id 
+                        FROM clubs c, series s, leagues l
+                        WHERE c.name = %s AND s.name = %s AND l.league_id = %s
+                    """, (club_name, series_name, league_id))
+                    
+                    refs = cursor.fetchone()
+                    
+                    if not refs:
+                        self.log(f"⚠️  Skipping team {team_name}: missing references (club: {club_name}, series: {series_name}, league: {league_id})", "WARNING")
+                        skipped += 1
+                        continue
+                    
+                    club_id, series_id, league_db_id = refs
+                    
                     # Create new team
                     cursor.execute("""
                         INSERT INTO teams (club_id, series_id, league_id, team_name, team_alias, created_at)
-                        SELECT c.id, s.id, l.id, %s, %s, CURRENT_TIMESTAMP
-                        FROM clubs c, series s, leagues l
-                        WHERE c.name = %s AND s.name = %s AND l.league_id = %s
-                    """, (team_name, team_alias, club_name, series_name, league_id))
-                
-                if cursor.rowcount > 0:
+                        VALUES (%s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+                    """, (club_id, series_id, league_db_id, team_name, team_alias))
                     imported += 1
                     
             except Exception as e:
                 errors += 1
                 if errors <= 10:
-                    self.log(f"❌ Error importing team {team_name}: {str(e)}", "ERROR")
+                    self.log(f"❌ Error importing team {team.get('team_name', 'Unknown')}: {str(e)}", "ERROR")
                     
-                if errors > 50:
+                if errors > 25:  # Reduced threshold since we deduplicated
                     self.log(f"❌ Too many team import errors ({errors}), stopping", "ERROR")
                     raise Exception(f"Too many team import errors ({errors})")
                 
         conn.commit()
-        self.imported_counts['teams'] = imported
-        self.log(f"✅ Imported {imported} teams ({errors} errors)")
+        self.imported_counts['teams'] = imported + updated
+        self.log(f"✅ Team import complete: {imported} new, {updated} updated, {skipped} skipped, {errors} errors")
+        
+        if duplicates_found_1 > 0 or duplicates_found_2 > 0:
+            self.log(f"🔧 Successfully handled {duplicates_found_1 + duplicates_found_2} total constraint duplicates")
         
     def generate_team_alias(self, team_name: str, series_name: str) -> str:
         """Generate a user-friendly team alias"""
@@ -1173,7 +1337,9 @@ class ComprehensiveETL:
                 team = record.get('team', '').strip()
                 raw_league_id = record.get('league_id', '').strip()
                 league_id = normalize_league_id(raw_league_id) if raw_league_id else ''
-                points = record.get('points', 0)
+                # FIXED: Don't trust imported points - calculate from match performance
+                # points = record.get('points', 0)  # This data is often incorrect
+                points = 0  # We'll calculate proper points from match data later
                 
                 # Extract match stats
                 matches = record.get('matches', {})
@@ -1204,6 +1370,7 @@ class ComprehensiveETL:
                 
                 # FIX: Handle series name format mismatches
                 # Convert "Series X" to "Division X" for CNSWPL compatibility
+                original_series = series
                 if series.startswith("Series ") and league_id == "CNSWPL":
                     series = series.replace("Series ", "Division ")
                     self.log(f"🔧 Converted series name: {record.get('series')} → {series} for team {team}")
@@ -1272,7 +1439,10 @@ class ComprehensiveETL:
         
         self.log(f"✅ Imported {imported:,} series stats records ({errors} errors, {league_not_found_count} missing leagues, {skipped_count} skipped)")
         
-        # CRITICAL: Validate the import results
+        # CRITICAL: Always recalculate points after import to ensure accuracy
+        self.recalculate_all_team_points(conn)
+        
+        # Validate the import results
         self.validate_series_stats_import(conn)
         
     def validate_series_stats_import(self, conn):
@@ -1315,6 +1485,74 @@ class ComprehensiveETL:
         else:
             self.log(f"✅ Series stats validation passed ({coverage_percentage:.1f}% coverage)")
             
+    def recalculate_all_team_points(self, conn):
+        """Recalculate points for all teams based on actual match performance"""
+        self.log("🔧 Recalculating team points from match performance...")
+        
+        cursor = conn.cursor()
+        
+        # Get all teams in series_stats
+        cursor.execute("SELECT id, team, league_id FROM series_stats")
+        teams = cursor.fetchall()
+        
+        updated_count = 0
+        
+        for team_row in teams:
+            team_id = team_row[0]  # id is first column
+            team_name = team_row[1]  # team is second column
+            league_id = team_row[2]  # league_id is third column
+            
+            # Calculate correct points from match history
+            cursor.execute("""
+                SELECT home_team, away_team, winner, scores
+                FROM match_scores
+                WHERE (home_team = %s OR away_team = %s)
+                AND league_id = %s
+            """, [team_name, team_name, league_id])
+            
+            matches = cursor.fetchall()
+            total_points = 0
+            
+            for match in matches:
+                home_team = match[0]  # home_team is first column
+                away_team = match[1]  # away_team is second column
+                winner = match[2]     # winner is third column
+                scores_str = match[3] # scores is fourth column
+                
+                is_home = home_team == team_name
+                won_match = (is_home and winner == 'home') or (not is_home and winner == 'away')
+                
+                # 1 point for winning the match
+                if won_match:
+                    total_points += 1
+                    
+                # Additional points for sets won (even in losing matches)
+                scores = scores_str.split(', ') if scores_str else []
+                for score_str in scores:
+                    if '-' in score_str:
+                        try:
+                            # Extract just the numbers before any tiebreak info
+                            clean_score = score_str.split('[')[0].strip()
+                            our_score, their_score = map(int, clean_score.split('-'))
+                            if not is_home:  # Flip scores if we're away team
+                                our_score, their_score = their_score, our_score
+                            if our_score > their_score:
+                                total_points += 1
+                        except (ValueError, IndexError):
+                            continue
+            
+            # Update the points in series_stats
+            cursor.execute("""
+                UPDATE series_stats 
+                SET points = %s
+                WHERE id = %s
+            """, [total_points, team_id])
+            
+            updated_count += 1
+        
+        conn.commit()
+        self.log(f"✅ Recalculated points for {updated_count:,} teams")
+            
     def calculate_series_stats_from_matches(self, conn):
         """Calculate series stats from match_scores data as fallback"""
         self.log("🧮 Calculating series stats from match results...")
@@ -1345,11 +1583,11 @@ class ComprehensiveETL:
         
         # Process each match to calculate team stats
         for match in matches:
-            home_team = match['home_team']
-            away_team = match['away_team']
-            winner = match['winner']
-            scores = match['scores'] or ''
-            league_id = match['league_id']
+            home_team = match[0]  # home_team is first column
+            away_team = match[1]  # away_team is second column
+            winner = match[2]     # winner is third column
+            scores = match[3] or ''  # scores is fourth column
+            league_id = match[4]  # league_id is fifth column
             
             # Determine series from team name
             def extract_series_from_team(team_name):
@@ -1411,14 +1649,18 @@ class ComprehensiveETL:
             if winner and winner.lower() == 'home':
                 team_stats[home_team]['matches_won'] += 1
                 team_stats[away_team]['matches_lost'] += 1
-                team_stats[home_team]['points'] += 1
+                team_stats[home_team]['points'] += 1  # 1 point for match win
             elif winner and winner.lower() == 'away':
                 team_stats[away_team]['matches_won'] += 1
                 team_stats[home_team]['matches_lost'] += 1
-                team_stats[away_team]['points'] += 1
+                team_stats[away_team]['points'] += 1  # 1 point for match win
             else:
                 team_stats[home_team]['matches_tied'] += 1
                 team_stats[away_team]['matches_tied'] += 1
+            
+            # FIXED: Add points for sets won (even in losing matches)
+            team_stats[home_team]['points'] += home_sets  # Points for sets won
+            team_stats[away_team]['points'] += away_sets  # Points for sets won
             
             # Update detailed stats
             team_stats[home_team]['sets_won'] += home_sets
@@ -1600,9 +1842,9 @@ class ComprehensiveETL:
             
             # Step 2: Extract reference data from players.json
             self.log("\n📋 Step 2: Extracting reference data...")
-            leagues_data = self.extract_leagues(players_data)
+            leagues_data = self.extract_leagues(players_data, series_stats_data, schedules_data)
             clubs_data = self.extract_clubs(players_data)
-            series_data = self.extract_series(players_data)
+            series_data = self.extract_series(players_data, series_stats_data, schedules_data)
             club_league_rels = self.analyze_club_league_relationships(players_data)
             series_league_rels = self.analyze_series_league_relationships(players_data)
             
