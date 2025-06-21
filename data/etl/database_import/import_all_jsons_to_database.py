@@ -147,14 +147,60 @@ class ComprehensiveETL:
         
         clubs = set()
         for player in players_data:
-            club = player.get('Club', '').strip()
-            if club:
-                clubs.add(club)
-                
+            team_name = player.get('Club', '').strip()  # This is actually the full team name
+            if team_name:
+                # Parse the actual club name from the team name
+                club_name = self.extract_club_name_from_team(team_name)
+                if club_name:
+                    clubs.add(club_name)
+                    
         club_records = [{'name': club} for club in sorted(clubs)]
         
         self.log(f"✅ Found {len(club_records)} unique clubs")
         return club_records
+    
+    def extract_club_name_from_team(self, team_name: str) -> str:
+        """
+        Extract club name from team name, matching the logic used in scrapers.
+        
+        Args:
+            team_name (str): Team name in various formats
+            
+        Returns:
+            str: Club name
+            
+        Examples:
+            APTA: "Birchwood - 6" -> "Birchwood"
+            CNSWPL: "Birchwood 1" -> "Birchwood"
+            NSTF: "Birchwood S1" -> "Birchwood"
+            NSTF: "Wilmette Sunday A" -> "Wilmette"
+        """
+        import re
+        
+        if not team_name:
+            return "Unknown"
+            
+        team_name = team_name.strip()
+        
+        # APTA format: "Club - Number"
+        if ' - ' in team_name:
+            return team_name.split(' - ')[0].strip()
+        
+        # NSTF format: "Club SNumber" or "Club SNumberLetter" (e.g., S1, S2A, S2B)
+        elif re.search(r'S\d+[A-Z]*', team_name):
+            return re.sub(r'\s+S\d+[A-Z]*.*$', '', team_name).strip()
+        
+        # NSTF Sunday format: "Club Sunday A/B"
+        elif 'Sunday' in team_name:
+            club_name = team_name.replace('Sunday A', '').replace('Sunday B', '').strip()
+            return club_name if club_name else team_name
+        
+        # CNSWPL format: "Club Number" or "Club NumberLetter" (e.g., "Birchwood 1", "Hinsdale PC 1a")
+        elif re.search(r'\s+\d+[a-zA-Z]*$', team_name):
+            return re.sub(r'\s+\d+[a-zA-Z]*$', '', team_name).strip()
+        
+        # Fallback: use the team name as-is
+        return team_name
         
     def extract_series(self, players_data: List[Dict]) -> List[Dict]:
         """Extract unique series from players data"""
@@ -177,7 +223,8 @@ class ComprehensiveETL:
         
         club_league_map = {}
         for player in players_data:
-            club = player.get('Club', '').strip()
+            team_name = player.get('Club', '').strip()  # This is actually the full team name
+            club = self.extract_club_name_from_team(team_name)  # Parse the actual club name
             league = player.get('League', '').strip()
             
             if club and league:
@@ -604,7 +651,8 @@ class ComprehensiveETL:
                 last_name = player.get('Last Name', '').strip()
                 raw_league_id = player.get('League', '').strip()
                 league_id = normalize_league_id(raw_league_id) if raw_league_id else ''
-                club_name = player.get('Club', '').strip()
+                team_name = player.get('Club', '').strip()  # This is actually the full team name
+                club_name = self.extract_club_name_from_team(team_name)  # Parse the actual club name
                 series_name = player.get('Series', '').strip()
                 
                 # Parse PTI - handle both string and numeric types
@@ -961,13 +1009,14 @@ class ComprehensiveETL:
         self.log(f"✅ Imported {imported:,} match history records ({errors} errors)")
         
     def import_series_stats(self, conn, series_stats_data: List[Dict]):
-        """Import series stats data"""
+        """Import series stats data with validation and calculation fallback"""
         self.log("📥 Importing series stats...")
         
         cursor = conn.cursor()
         imported = 0
         errors = 0
         league_not_found_count = 0
+        skipped_count = 0
         
         # Debug: Check what leagues exist in the database
         cursor.execute("SELECT league_id FROM leagues ORDER BY league_id")
@@ -1006,7 +1055,14 @@ class ComprehensiveETL:
                 games_lost = games.get('lost', 0)
                 
                 if not all([series, team, league_id]):
+                    skipped_count += 1
                     continue
+                
+                # FIX: Handle series name format mismatches
+                # Convert "Series X" to "Division X" for CNSWPL compatibility
+                if series.startswith("Series ") and league_id == "CNSWPL":
+                    series = series.replace("Series ", "Division ")
+                    self.log(f"🔧 Converted series name: {record.get('series')} → {series} for team {team}")
                 
                 # Get league database ID with better error handling
                 cursor.execute("SELECT id FROM leagues WHERE league_id = %s", (league_id,))
@@ -1067,8 +1123,202 @@ class ComprehensiveETL:
         # Summary logging
         if league_not_found_count > 0:
             self.log(f"⚠️  {league_not_found_count} series stats records skipped due to missing leagues", "WARNING")
+        if skipped_count > 0:
+            self.log(f"⚠️  {skipped_count} series stats records skipped due to missing data", "WARNING")
         
-        self.log(f"✅ Imported {imported:,} series stats records ({errors} errors, {league_not_found_count} missing leagues)")
+        self.log(f"✅ Imported {imported:,} series stats records ({errors} errors, {league_not_found_count} missing leagues, {skipped_count} skipped)")
+        
+        # CRITICAL: Validate the import results
+        self.validate_series_stats_import(conn)
+        
+    def validate_series_stats_import(self, conn):
+        """Validate series stats import and trigger calculation fallback if needed"""
+        self.log("🔍 Validating series stats import...")
+        
+        cursor = conn.cursor()
+        
+        # Check total teams imported
+        cursor.execute("SELECT COUNT(*) FROM series_stats")
+        total_teams = cursor.fetchone()[0]
+        
+        # Check teams with matches in match_scores that should have series stats
+        cursor.execute("""
+            SELECT COUNT(DISTINCT COALESCE(home_team, away_team))
+            FROM (
+                SELECT home_team, NULL as away_team FROM match_scores WHERE home_team IS NOT NULL
+                UNION ALL
+                SELECT NULL as home_team, away_team FROM match_scores WHERE away_team IS NOT NULL
+            ) all_teams
+            WHERE COALESCE(home_team, away_team) IS NOT NULL
+        """)
+        expected_teams = cursor.fetchone()[0]
+        
+        # Calculate coverage percentage
+        coverage_percentage = (total_teams / expected_teams * 100) if expected_teams > 0 else 0
+        
+        self.log(f"📊 Series stats validation:")
+        self.log(f"   Imported teams: {total_teams:,}")
+        self.log(f"   Expected teams: {expected_teams:,}")
+        self.log(f"   Coverage: {coverage_percentage:.1f}%")
+        
+        # CRITICAL: If coverage is too low, trigger calculation fallback
+        if coverage_percentage < 90:
+            self.log(f"⚠️  WARNING: Series stats coverage ({coverage_percentage:.1f}%) is below 90% threshold", "WARNING")
+            self.log(f"🔧 Triggering calculation fallback to ensure data completeness...")
+            
+            # Clear existing data and recalculate from match results
+            self.calculate_series_stats_from_matches(conn)
+        else:
+            self.log(f"✅ Series stats validation passed ({coverage_percentage:.1f}% coverage)")
+            
+    def calculate_series_stats_from_matches(self, conn):
+        """Calculate series stats from match_scores data as fallback"""
+        self.log("🧮 Calculating series stats from match results...")
+        
+        cursor = conn.cursor()
+        
+        # Clear existing series_stats data
+        cursor.execute("DELETE FROM series_stats")
+        self.log("   Cleared existing series_stats data")
+        
+        # Get all matches and calculate team statistics
+        matches = cursor.execute("""
+            SELECT home_team, away_team, winner, scores, league_id
+            FROM match_scores
+            WHERE home_team IS NOT NULL AND away_team IS NOT NULL
+        """).fetchall()
+        
+        from collections import defaultdict
+        
+        team_stats = defaultdict(lambda: {
+            'matches_won': 0, 'matches_lost': 0, 'matches_tied': 0,
+            'lines_won': 0, 'lines_lost': 0,
+            'sets_won': 0, 'sets_lost': 0,
+            'games_won': 0, 'games_lost': 0,
+            'points': 0, 'league_id': None,
+            'series': None
+        })
+        
+        # Process each match to calculate team stats
+        for match in matches:
+            home_team = match['home_team']
+            away_team = match['away_team']
+            winner = match['winner']
+            scores = match['scores'] or ''
+            league_id = match['league_id']
+            
+            # Determine series from team name
+            def extract_series_from_team(team_name):
+                if not team_name:
+                    return 'Division 1'
+                parts = team_name.split()
+                if parts:
+                    last_part = parts[-1]
+                    if last_part.isdigit():
+                        return f'Division {last_part}'
+                    elif len(last_part) >= 2 and last_part[:-1].isdigit():
+                        return f'Division {last_part[:-1]}'
+                return 'Division 1'
+            
+            # Initialize team data
+            if 'series' not in team_stats[home_team]:
+                team_stats[home_team]['series'] = extract_series_from_team(home_team)
+                team_stats[home_team]['league_id'] = league_id
+            if 'series' not in team_stats[away_team]:
+                team_stats[away_team]['series'] = extract_series_from_team(away_team)
+                team_stats[away_team]['league_id'] = league_id
+            
+            # Parse scores for detailed statistics
+            def parse_scores(scores_str, is_home_perspective):
+                if not scores_str:
+                    return 0, 0, 0, 0
+                sets = scores_str.split(', ')
+                team_sets = opponent_sets = 0
+                team_games = opponent_games = 0
+                
+                for set_score in sets:
+                    if '-' in set_score:
+                        try:
+                            score1, score2 = map(int, set_score.split('-'))
+                            if is_home_perspective:
+                                team_games += score1
+                                opponent_games += score2
+                                if score1 > score2:
+                                    team_sets += 1
+                                else:
+                                    opponent_sets += 1
+                            else:
+                                team_games += score2
+                                opponent_games += score1
+                                if score2 > score1:
+                                    team_sets += 1
+                                else:
+                                    opponent_sets += 1
+                        except ValueError:
+                            continue
+                
+                return team_sets, opponent_sets, team_games, opponent_games
+            
+            # Calculate stats for both teams
+            home_sets, away_sets, home_games, away_games = parse_scores(scores, True)
+            away_sets, home_sets_check, away_games, home_games_check = parse_scores(scores, False)
+            
+            # Determine match winner and update stats
+            if winner and winner.lower() == 'home':
+                team_stats[home_team]['matches_won'] += 1
+                team_stats[away_team]['matches_lost'] += 1
+                team_stats[home_team]['points'] += 1
+            elif winner and winner.lower() == 'away':
+                team_stats[away_team]['matches_won'] += 1
+                team_stats[home_team]['matches_lost'] += 1
+                team_stats[away_team]['points'] += 1
+            else:
+                team_stats[home_team]['matches_tied'] += 1
+                team_stats[away_team]['matches_tied'] += 1
+            
+            # Update detailed stats
+            team_stats[home_team]['sets_won'] += home_sets
+            team_stats[home_team]['sets_lost'] += away_sets
+            team_stats[home_team]['games_won'] += home_games
+            team_stats[home_team]['games_lost'] += away_games
+            team_stats[home_team]['lines_won'] += home_sets
+            team_stats[home_team]['lines_lost'] += away_sets
+            
+            team_stats[away_team]['sets_won'] += away_sets
+            team_stats[away_team]['sets_lost'] += home_sets
+            team_stats[away_team]['games_won'] += away_games
+            team_stats[away_team]['games_lost'] += home_games
+            team_stats[away_team]['lines_won'] += away_sets
+            team_stats[away_team]['lines_lost'] += home_sets
+        
+        # Insert calculated stats into database
+        calculated_count = 0
+        for team_name, stats in team_stats.items():
+            try:
+                cursor.execute("""
+                    INSERT INTO series_stats (
+                        series, team, league_id, points,
+                        matches_won, matches_lost, matches_tied,
+                        lines_won, lines_lost,
+                        sets_won, sets_lost,
+                        games_won, games_lost,
+                        created_at
+                    )
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+                """, [
+                    stats['series'], team_name, stats['league_id'], stats['points'],
+                    stats['matches_won'], stats['matches_lost'], stats['matches_tied'],
+                    stats['lines_won'], stats['lines_lost'],
+                    stats['sets_won'], stats['sets_lost'],
+                    stats['games_won'], stats['games_lost']
+                ])
+                calculated_count += 1
+            except Exception as e:
+                self.log(f"❌ Error inserting calculated stats for {team_name}: {e}", "ERROR")
+        
+        conn.commit()
+        self.log(f"✅ Calculated and inserted {calculated_count:,} team statistics from match data")
+        self.imported_counts['series_stats'] = calculated_count
         
     def import_schedules(self, conn, schedules_data: List[Dict]):
         """Import schedules data"""
@@ -1161,8 +1411,6 @@ class ComprehensiveETL:
         conn.commit()
         self.imported_counts['schedule'] = imported
         self.log(f"✅ Imported {imported:,} schedule records ({errors} errors)")
-    
-
         
     def _parse_int(self, value: str) -> int:
         """Parse integer with error handling"""

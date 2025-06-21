@@ -374,7 +374,7 @@ def main():
     backup_file = None
     if not args.skip_backup:
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        backup_file = f"railway_backup_{timestamp}.dump"
+        backup_file = os.path.join("data", "backups", "database", f"railway_backup_{timestamp}.dump")
         
         if not backup_railway_database(backup_file):
             logger.error("❌ Failed to create Railway backup")

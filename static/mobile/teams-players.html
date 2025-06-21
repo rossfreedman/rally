@@ -255,10 +255,13 @@
             .then(data => {
                 teamSelect.innerHTML = '<option value="">Choose a team...</option>';
                 data.teams.forEach(team => {
-                    const opt = document.createElement('option');
-                    opt.value = team;
-                    opt.textContent = team;
-                    teamSelect.appendChild(opt);
+                    // Filter out teams that contain "BYE" (case insensitive)
+                    if (!team.toUpperCase().includes('BYE')) {
+                        const opt = document.createElement('option');
+                        opt.value = team;
+                        opt.textContent = team;
+                        teamSelect.appendChild(opt);
+                    }
                 });
             });
 

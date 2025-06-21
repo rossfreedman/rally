@@ -35,6 +35,7 @@ logger = logging.getLogger(__name__)
 # Navigate up four levels: data/etl/database_import -> data/etl -> data -> project_root
 BASE_DIR = Path(__file__).parent.parent.parent.parent / "data" / "leagues"
 ALL_DIR = BASE_DIR / "all"
+BACKUP_DIR = Path(__file__).parent.parent.parent.parent / "data" / "backups" / "league_data"  # Centralized backup location
 TARGET_FILES = [
     "match_history.json",
     "players.json", 
@@ -49,9 +50,9 @@ def ensure_directory_exists(directory: Path) -> None:
     logger.info(f"Ensured directory exists: {directory}")
 
 def create_backup() -> None:
-    """Create a timestamped backup of existing files in the 'all' directory."""
+    """Create a timestamped backup of existing files in a dedicated backup directory."""
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    backup_dir = ALL_DIR / f"backup_{timestamp}"
+    backup_dir = BACKUP_DIR / f"backup_{timestamp}"
     
     logger.info(f"Creating backup in: {backup_dir}")
     

@@ -18,12 +18,17 @@ def get_matches_for_user_club(user):
         
         # Handle different series name formats
         # For NSTF: "Series 2B" -> "Tennaqua S2B - Series 2B"
+        # For CNSWPL: "Division 12" -> "Tennaqua 12 - Division 12"
         # For APTA: "Chicago 22" -> "Tennaqua - 22"
         
         if 'Series' in user_series:
             # NSTF format: "Series 2B" -> "S2B"
             series_code = user_series.replace('Series ', 'S')
             user_team_pattern = f"{user_club} {series_code} - {user_series}"
+        elif 'Division' in user_series:
+            # CNSWPL format: "Division 12" -> "12"
+            division_num = user_series.replace('Division ', '')
+            user_team_pattern = f"{user_club} {division_num} - {user_series}"
         else:
             # APTA format: "Chicago 22" -> extract number
             series_num = user_series.split()[-1] if user_series else ''

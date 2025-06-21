@@ -15,7 +15,7 @@ def backup_database():
     
     # Create backup filename with timestamp
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    backup_filename = f"current_db_backup_{timestamp}.sql"
+    backup_filename = os.path.join("data", "backups", "database", f"current_db_backup_{timestamp}.sql")
     
     print(f"Creating backup: {backup_filename}")
     

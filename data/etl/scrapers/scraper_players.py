@@ -24,6 +24,9 @@ import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
 from utils.player_id_utils import extract_tenniscores_player_id, create_player_id
 
+# Import stealth browser manager for fingerprint evasion
+from stealth_browser import StealthBrowserManager
+
 # Import centralized league utilities
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
 from utils.league_utils import standardize_league_id
@@ -98,8 +101,8 @@ def extract_series_name_from_team(team_name):
         APTA: "Birchwood - 6" -> "Chicago 6"
         NSTF: "Birchwood S1" -> "Series 1"
         NSTF: "Wilmette Sunday A" -> "Series A"
-        CNSWPL: "Birchwood 1" -> "Division 1"
-        CNSWPL: "Hinsdale PC 1a" -> "Division 1a"
+        CNSWPL: "Birchwood 1" -> "Series 1"
+        CNSWPL: "Hinsdale PC 1a" -> "Series 1a"
     """
     if not team_name:
         return None
@@ -130,11 +133,11 @@ def extract_series_name_from_team(team_name):
     elif re.search(r'\s(\d+[a-zA-Z]?)$', team_name):
         match = re.search(r'\s(\d+[a-zA-Z]?)$', team_name)
         if match:
-            division_identifier = match.group(1)
-            return f"Division {division_identifier}"
+            series_identifier = match.group(1)
+            return f"Series {series_identifier}"
     
     # Direct series name (already formatted)
-    elif team_name.startswith('Series ') or team_name.startswith('Chicago ') or team_name.startswith('Division '):
+    elif team_name.startswith('Series ') or team_name.startswith('Chicago '):
         return team_name
     
     return None
@@ -553,128 +556,8 @@ def discover_all_leagues_and_series(driver, config, max_exploration_pages=5):
             'clubs': all_clubs
         }
 
-class ChromeManager:
-    """Context manager for handling Chrome WebDriver sessions."""
-    
-    def __init__(self, max_retries=3):
-        """Initialize the Chrome WebDriver manager.
-        
-        Args:
-            max_retries (int): Maximum number of retries for creating a new driver
-        """
-        self.driver = None
-        self.max_retries = max_retries
-        
-    def create_driver(self):
-        """Create and configure a new Chrome WebDriver instance."""
-        options = webdriver.ChromeOptions()
-        
-        # Essential options for headless operation
-        options.add_argument('--headless')
-        options.add_argument('--no-sandbox')
-        options.add_argument('--disable-dev-shm-usage')
-        options.add_argument('--disable-gpu')
-        options.add_argument('--window-size=1920x1080')
-        
-        # Additional stability options for environments where Chrome may not be fully installed
-        options.add_argument('--disable-features=NetworkService')
-        options.add_argument('--disable-features=VizDisplayCompositor')
-        options.add_argument('--disable-web-security')
-        options.add_argument('--disable-features=IsolateOrigins,site-per-process')
-        options.add_argument('--disable-blink-features=AutomationControlled')
-        options.add_argument('--disable-extensions')
-        options.add_argument('--disable-plugins')
-        # Note: Not disabling JavaScript as TennisScores sites may require it
-        
-        # Set a user agent to avoid detection
-        options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36')
-        
-        try:
-            # Try ChromeDriverManager first (automatic driver management)
-            service = Service(ChromeDriverManager().install())
-            return webdriver.Chrome(service=service, options=options)
-        except Exception as e:
-            print(f"      ⚠️ ChromeDriverManager failed: {e}")
-            
-            try:
-                # Fallback: Try system Chrome installation
-                return webdriver.Chrome(options=options)
-            except Exception as e2:
-                print(f"      ⚠️ System Chrome failed: {e2}")
-                
-                # Final fallback: Try with explicit Chrome binary paths
-                common_chrome_paths = [
-                    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",  # macOS
-                    "/usr/bin/google-chrome",  # Linux
-                    "/usr/bin/chromium-browser",  # Linux Chromium
-                    "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",  # Windows
-                    "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",  # Windows x86
-                ]
-                
-                for chrome_path in common_chrome_paths:
-                    try:
-                        if os.path.exists(chrome_path):
-                            options.binary_location = chrome_path
-                            print(f"      🔧 Trying Chrome at: {chrome_path}")
-                            return webdriver.Chrome(options=options)
-                    except Exception as e3:
-                        continue
-                
-                # If all else fails, raise the original error
-                raise Exception(f"Could not initialize Chrome WebDriver. Original error: {e}. System Chrome error: {e2}")
-
-    def __enter__(self):
-        """Create and return a Chrome WebDriver instance with retries."""
-        for attempt in range(self.max_retries):
-            try:
-                if self.driver is not None:
-                    try:
-                        self.driver.quit()
-                    except:
-                        pass
-                        
-                print(f"🌐 Initializing Chrome WebDriver (attempt {attempt + 1}/{self.max_retries})...")
-                self.driver = self.create_driver()
-                
-                # Test the driver with a simple page load
-                print("🧪 Testing Chrome WebDriver...")
-                self.driver.get("data:text/html,<html><body>Test</body></html>")
-                
-                print("✅ Chrome WebDriver initialized successfully")
-                return self.driver
-                
-            except Exception as e:
-                print(f"❌ Error creating Chrome driver (attempt {attempt + 1}/{self.max_retries}): {str(e)}")
-                if attempt < self.max_retries - 1:
-                    print("🔄 Retrying...")
-                    time.sleep(5)
-                else:
-                    print("\n" + "="*60)
-                    print("❌ CHROME DRIVER INITIALIZATION FAILED")
-                    print("="*60)
-                    print("🚨 Could not initialize Chrome WebDriver after maximum retries.")
-                    print("💡 Possible solutions:")
-                    print("   1. Install Google Chrome: brew install --cask google-chrome (macOS)")
-                    print("   2. Install ChromeDriver: brew install chromedriver (macOS)")
-                    print("   3. Update Chrome to latest version")
-                    print("   4. Check if Chrome is blocked by security settings")
-                    print("="*60)
-                    raise Exception("Failed to create Chrome driver after maximum retries")
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        """Clean up the Chrome WebDriver instance."""
-        self.quit()
-
-    def quit(self):
-        """Safely quit the Chrome WebDriver instance."""
-        if self.driver is not None:
-            try:
-                self.driver.quit()
-                print("🔒 Chrome WebDriver closed successfully")
-            except Exception as e:
-                print(f"⚠️ Error closing Chrome driver: {str(e)}")
-            finally:
-                self.driver = None
+# ChromeManager has been replaced with StealthBrowserManager for fingerprint evasion
+# See stealth_browser.py for the new implementation
 
 
 def get_player_stats(player_url, driver, config, max_retries=3, retry_delay=5):
@@ -1083,8 +966,8 @@ def scrape_league_players(league_subdomain, get_detailed_stats=False):
         print(f"🌟 Processing ALL discovered series from {config['subdomain']} dynamically")
         print("No filtering - comprehensive discovery and processing of all teams/series")
 
-        # Use context manager to ensure Chrome driver is properly closed
-        with ChromeManager() as driver:
+        # Use stealth browser manager to avoid bot detection
+        with StealthBrowserManager(headless=True) as driver:
             
             # Create dynamic data directory based on league
             data_dir = build_league_data_dir(league_id)

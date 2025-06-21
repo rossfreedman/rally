@@ -20,12 +20,18 @@ def get_user_team_id(user):
         if not user_id:
             return None
         
-        # Get user's player and their team_id
+        # Get user's player and their team_id, prioritizing primary associations
+        # and preferred leagues (APTA_CHICAGO over others)
         user_team_query = '''
             SELECT p.team_id
             FROM players p
             JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
+            JOIN leagues l ON p.league_id = l.id
             WHERE upa.user_id = %s AND p.is_active = TRUE AND p.team_id IS NOT NULL
+            ORDER BY 
+                upa.is_primary DESC,
+                CASE WHEN l.league_id = 'APTA_CHICAGO' THEN 1 ELSE 2 END,
+                p.id
             LIMIT 1
         '''
         result = execute_query_one(user_team_query, [user_id])

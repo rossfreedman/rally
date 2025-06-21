@@ -18,6 +18,7 @@ from app.models.database_models import (
 from database_config import get_db_engine
 from utils.logging import log_user_activity
 from utils.database_player_lookup import find_player_by_database_lookup
+from app.services.dashboard_service import log_activity
 
 logger = logging.getLogger(__name__)
 
@@ -471,12 +472,37 @@ def register_user(
             None: 'Registered without player search'
         }.get(player_association_result, 'Unknown association result')
         
+        # Log legacy activity
         log_user_activity(
             email, 
             'auth', 
             action='register', 
             details=f'Registration successful. {association_detail}'
         )
+        
+        # Log comprehensive activity (new system)
+        try:
+            primary_player = user_data['players'][0] if user_data['players'] else None
+            log_activity(
+                action_type='user_registration',
+                action_description=f"New user {first_name} {last_name} registered successfully",
+                user_id=new_user.id,
+                player_id=primary_player['id'] if primary_player else None,
+                team_id=None,
+                related_id=None,
+                related_type=None,
+                extra_data={
+                    'association_result': player_association_result,
+                    'association_detail': association_detail,
+                    'provided_league': league_name,
+                    'provided_club': club_name,
+                    'provided_series': series_name,
+                    'player_auto_linked': player_association_result == 'associated'
+                }
+            )
+        except Exception as e:
+            # Don't fail registration if activity logging fails
+            logger.warning(f"Failed to log comprehensive activity for registration: {str(e)}")
         
         return {
             'success': True,
@@ -648,13 +674,34 @@ def authenticate_user(email: str, password: str) -> Dict[str, Any]:
             'primary_player': primary_player
         }
         
-        # Log successful login
+        # Log successful login (legacy system)
         log_user_activity(
             email, 
             'auth', 
             action='login', 
             details=f'Login successful. {len(players_data)} associated players'
         )
+        
+        # Log comprehensive activity (new system)
+        try:
+            log_activity(
+                action_type='login',
+                action_description=f"User {user.first_name} {user.last_name} logged in successfully",
+                user_id=user.id,
+                player_id=primary_player['id'] if primary_player else None,
+                team_id=None,  # We don't have team context during login
+                related_id=None,
+                related_type=None,
+                extra_data={
+                    'associated_players_count': len(players_data),
+                    'has_primary_player': primary_player is not None,
+                    'primary_player_club': primary_player['club']['name'] if primary_player else None,
+                    'primary_player_series': primary_player['series']['name'] if primary_player else None
+                }
+            )
+        except Exception as e:
+            # Don't fail login if activity logging fails
+            logger.warning(f"Failed to log comprehensive activity for login: {str(e)}")
         
         return {
             'success': True,

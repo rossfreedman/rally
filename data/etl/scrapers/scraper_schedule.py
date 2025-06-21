@@ -48,8 +48,8 @@ def extract_series_name_from_team(team_name):
         APTA: "Birchwood - 6" -> "Chicago 6"
         NSTF: "Birchwood S1" -> "Series 1"
         NSTF: "Wilmette Sunday A" -> "Series A"
-        CNSWPL: "Birchwood 1" -> "Division 1"
-        CNSWPL: "Hinsdale PC 1a" -> "Division 1a"
+        CNSWPL: "Birchwood 1" -> "Series 1"
+        CNSWPL: "Hinsdale PC 1a" -> "Series 1a"
     """
     if not team_name:
         return None
@@ -80,11 +80,11 @@ def extract_series_name_from_team(team_name):
     elif re.search(r'\s(\d+[a-zA-Z]?)$', team_name):
         match = re.search(r'\s(\d+[a-zA-Z]?)$', team_name)
         if match:
-            division_identifier = match.group(1)
-            return f"Division {division_identifier}"
+            series_identifier = match.group(1)
+            return f"Series {series_identifier}"
     
     # Direct series name (already formatted)
-    elif team_name.startswith('Series ') or team_name.startswith('Chicago ') or team_name.startswith('Division '):
+    elif team_name.startswith('Series ') or team_name.startswith('Chicago '):
         return team_name
     
     return None

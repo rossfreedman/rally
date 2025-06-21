@@ -23,6 +23,9 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils.player_id_utils import extract_tenniscores_player_id, create_player_id
 from utils.league_utils import standardize_league_id
 
+# Import stealth browser manager for fingerprint evasion
+from stealth_browser import StealthBrowserManager
+
 # Removed hardcoded division and location lookups - now using dynamic discovery
 
 # Removed file-based configuration functions - now using user input
@@ -46,64 +49,8 @@ def build_league_data_dir(league_id):
     
     return league_data_dir
 
-class ChromeManager:
-    """Context manager for handling Chrome WebDriver sessions."""
-    
-    def __init__(self, max_retries=3):
-        """Initialize the Chrome WebDriver manager.
-        
-        Args:
-            max_retries (int): Maximum number of retries for creating a new driver
-        """
-        self.driver = None
-        self.max_retries = max_retries
-        
-    def create_driver(self):
-        """Create and configure a new Chrome WebDriver instance."""
-        options = webdriver.ChromeOptions()
-        options.add_argument('--headless')
-        options.add_argument('--no-sandbox')
-        options.add_argument('--disable-dev-shm-usage')
-        options.add_argument('--disable-gpu')
-        options.add_argument('--window-size=1920x1080')
-        options.add_argument('--disable-features=NetworkService')
-        options.add_argument('--disable-features=VizDisplayCompositor')
-        options.add_argument('--disable-web-security')
-        options.add_argument('--disable-features=IsolateOrigins,site-per-process')
-        return webdriver.Chrome(options=options)
-
-    def __enter__(self):
-        """Create and return a Chrome WebDriver instance with retries."""
-        for attempt in range(self.max_retries):
-            try:
-                if self.driver is not None:
-                    try:
-                        self.driver.quit()
-                    except:
-                        pass
-                self.driver = self.create_driver()
-                return self.driver
-            except Exception as e:
-                print(f"Error creating Chrome driver (attempt {attempt + 1}/{self.max_retries}): {str(e)}")
-                if attempt < self.max_retries - 1:
-                    print("Retrying...")
-                    time.sleep(5)
-                else:
-                    raise Exception("Failed to create Chrome driver after maximum retries")
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        """Clean up the Chrome WebDriver instance."""
-        self.quit()
-
-    def quit(self):
-        """Safely quit the Chrome WebDriver instance."""
-        if self.driver is not None:
-            try:
-                self.driver.quit()
-            except Exception as e:
-                print(f"Error closing Chrome driver: {str(e)}")
-            finally:
-                self.driver = None
+# ChromeManager has been replaced with StealthBrowserManager for fingerprint evasion
+# See stealth_browser.py for the new implementation
 
 # Removed active_series functionality - now processes all discovered series
 
@@ -149,8 +96,8 @@ def extract_series_name_from_team(team_name):
         APTA: "Birchwood - 6" -> "Chicago 6"
         NSTF: "Birchwood S1" -> "Series 1"
         NSTF: "Wilmette Sunday A" -> "Series A"
-        CNSWPL: "Birchwood 1" -> "Division 1"
-        CNSWPL: "Hinsdale PC 1a" -> "Division 1a"
+        CNSWPL: "Birchwood 1" -> "Series 1"
+        CNSWPL: "Hinsdale PC 1a" -> "Series 1a"
     """
     if not team_name:
         return None
@@ -181,11 +128,11 @@ def extract_series_name_from_team(team_name):
     elif re.search(r'\s(\d+[a-zA-Z]?)$', team_name):
         match = re.search(r'\s(\d+[a-zA-Z]?)$', team_name)
         if match:
-            division_identifier = match.group(1)
-            return f"Division {division_identifier}"
+            series_identifier = match.group(1)
+            return f"Series {series_identifier}"
     
     # Direct series name (already formatted)
-    elif team_name.startswith('Series ') or team_name.startswith('Chicago ') or team_name.startswith('Division '):
+    elif team_name.startswith('Series ') or team_name.startswith('Chicago '):
         return team_name
     
     return None
@@ -403,8 +350,8 @@ def scrape_player_history(league_subdomain):
         print(f"🌟 Processing ALL discovered series from {config['subdomain']} dynamically")
         print("No filtering - comprehensive discovery and processing of all players")
 
-        # Use context manager to ensure Chrome driver is properly closed
-        with ChromeManager() as driver:
+        # Use stealth browser manager to avoid bot detection
+        with StealthBrowserManager(headless=True) as driver:
             
             # Create dynamic data directory based on league
             data_dir = build_league_data_dir(league_id)
