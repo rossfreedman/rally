@@ -8,7 +8,7 @@ This document outlines the systematic improvements implemented and planned for t
 ## **✅ MEDIUM-TERM ACHIEVEMENTS (COMPLETED)**
 
 ### **1. ETL Validation Pipeline** ✅
-**File:** `scripts/etl_validation_pipeline.py`
+**File:** `data/etl/validation/etl_validation_pipeline.py`
 
 **Features Implemented:**
 - **Comprehensive Data Quality Checks**: Table completeness, foreign key integrity, statistical accuracy
@@ -19,7 +19,7 @@ This document outlines the systematic improvements implemented and planned for t
 
 **Sample Usage:**
 ```bash
-python scripts/etl_validation_pipeline.py
+python data/etl/validation/etl_validation_pipeline.py
 # Returns 0 if all validations pass, 1 if critical issues found
 ```
 
@@ -33,7 +33,7 @@ python scripts/etl_validation_pipeline.py
 ---
 
 ### **2. Integration Tests for User Features** ✅
-**File:** `scripts/integration_tests.py`
+**File:** `data/etl/validation/integration_tests.py`
 
 **Features Implemented:**
 - **End-to-End User Workflow Testing**: Simulates real user interactions
@@ -45,7 +45,7 @@ python scripts/etl_validation_pipeline.py
 
 **Sample Usage:**
 ```bash
-python scripts/integration_tests.py
+python data/etl/validation/integration_tests.py
 # Tests all user-facing features from a user perspective
 ```
 
@@ -59,7 +59,7 @@ python scripts/integration_tests.py
 ---
 
 ### **3. Data Quality Monitoring Dashboard** ✅
-**File:** `scripts/data_quality_monitor.py`
+**File:** `data/etl/validation/data_quality_monitor.py`
 
 **Features Implemented:**
 - **Health Score Generation**: 0-100 score based on data quality metrics
@@ -71,7 +71,7 @@ python scripts/integration_tests.py
 
 **Sample Usage:**
 ```bash
-python scripts/data_quality_monitor.py
+python data/etl/validation/data_quality_monitor.py
 # Generates comprehensive health report with actionable insights
 ```
 
@@ -86,7 +86,7 @@ python scripts/data_quality_monitor.py
 ---
 
 ### **4. Master ETL Process Orchestration** ✅
-**File:** `scripts/master_etl_process.py`
+**File:** `data/etl/validation/master_etl_process.py`
 
 **Features Implemented:**
 - **Complete Workflow Orchestration**: Runs all validation and monitoring steps
@@ -97,7 +97,7 @@ python scripts/data_quality_monitor.py
 
 **Sample Usage:**
 ```bash
-python scripts/master_etl_process.py
+python data/etl/validation/master_etl_process.py
 # Runs complete ETL reliability pipeline
 ```
 
@@ -302,28 +302,28 @@ class AdvancedMonitoring:
 ### **Run Medium-Term Tools:**
 ```bash
 # Run complete ETL reliability pipeline
-python scripts/master_etl_process.py
+python data/etl/validation/master_etl_process.py
 
 # Or run individual components:
-python scripts/etl_validation_pipeline.py
-python scripts/integration_tests.py
-python scripts/data_quality_monitor.py
+python data/etl/validation/etl_validation_pipeline.py
+python data/etl/validation/integration_tests.py
+python data/etl/validation/data_quality_monitor.py
 ```
 
 ### **Schedule Regular Monitoring:**
 ```bash
 # Add to crontab for daily monitoring
-0 8 * * * cd /path/to/rally && python scripts/data_quality_monitor.py
+0 8 * * * cd /path/to/rally && python data/etl/validation/data_quality_monitor.py
 ```
 
 ### **Integrate with CI/CD:**
 ```yaml
 # Example GitHub Actions integration
 - name: Run ETL Validation
-  run: python scripts/etl_validation_pipeline.py
+  run: python data/etl/validation/etl_validation_pipeline.py
   
 - name: Run Integration Tests
-  run: python scripts/integration_tests.py
+  run: python data/etl/validation/integration_tests.py
 ```
 
 ---
@@ -337,8 +337,8 @@ python scripts/data_quality_monitor.py
 4. **Quarterly**: Plan and implement long-term roadmap items
 
 ### **Emergency Procedures:**
-1. **Data Quality Alert**: Run `scripts/data_quality_monitor.py` for diagnosis
-2. **User Feature Issue**: Run `scripts/integration_tests.py` to identify problems
+1. **Data Quality Alert**: Run `data/etl/validation/data_quality_monitor.py` for diagnosis
+2. **User Feature Issue**: Run `data/etl/validation/integration_tests.py` to identify problems
 3. **ETL Failure**: Use enhanced validation to identify root cause
 4. **Critical System Issue**: Follow master ETL process for comprehensive assessment
 

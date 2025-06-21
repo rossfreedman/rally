@@ -8,28 +8,28 @@ Complete guide to the ETL reliability tools that prevent data quality issues lik
 ## **✅ WHAT WE'VE IMPLEMENTED**
 
 ### **1. ETL Validation Pipeline** 
-**File:** `scripts/etl_validation_pipeline.py`
+**File:** `data/etl/validation/etl_validation_pipeline.py`
 - Comprehensive post-import validation
 - Checks table completeness, foreign keys, statistical accuracy
 - Tests series stats coverage (the original issue!)
 - Exit code: 0 = success, 1 = critical issues
 
 ### **2. Integration Tests**
-**File:** `scripts/integration_tests.py`  
+**File:** `data/etl/validation/integration_tests.py`  
 - End-to-end testing of user-facing features
 - Tests my-series, analyze-me, availability systems
 - Simulates real user workflows
 - Exit code: 0 = features work, 1 = broken features
 
 ### **3. Data Quality Monitor**
-**File:** `scripts/data_quality_monitor.py`
+**File:** `data/etl/validation/data_quality_monitor.py`
 - Health score (0-100) based on data quality
 - Tracks completeness, freshness, performance
 - Historical tracking with JSON export
 - Exit code: 0 = healthy, 1 = issues found
 
 ### **4. Master ETL Process**
-**File:** `scripts/master_etl_process.py`
+**File:** `data/etl/validation/master_etl_process.py`
 - Orchestrates complete workflow
 - 5-phase process with comprehensive reporting
 - Clear go/no-go decisions for deployment
@@ -57,23 +57,23 @@ Complete guide to the ETL reliability tools that prevent data quality issues lik
 ### **After Any ETL Import:**
 ```bash
 # Run complete validation suite
-python scripts/master_etl_process.py
+python data/etl/validation/master_etl_process.py
 
 # OR run individual tools:
-python scripts/etl_validation_pipeline.py
-python scripts/integration_tests.py  
-python scripts/data_quality_monitor.py
+python data/etl/validation/etl_validation_pipeline.py
+python data/etl/validation/integration_tests.py  
+python data/etl/validation/data_quality_monitor.py
 ```
 
 ### **Daily Health Monitoring:**
 ```bash
-python scripts/data_quality_monitor.py
+python data/etl/validation/data_quality_monitor.py
 ```
 
 ### **Troubleshooting User Issues:**
 ```bash
-python scripts/integration_tests.py  # Test user features
-python scripts/data_quality_monitor.py  # Check data quality
+python data/etl/validation/integration_tests.py  # Test user features
+python data/etl/validation/data_quality_monitor.py  # Check data quality
 ```
 
 ---
@@ -96,7 +96,7 @@ python data/etl/database_import/import_all_jsons_to_database.py
 ### **3. Set Up Regular Monitoring**
 ```bash
 # Add to crontab for daily monitoring
-0 8 * * * cd /path/to/rally && python scripts/data_quality_monitor.py
+0 8 * * * cd /path/to/rally && python data/etl/validation/data_quality_monitor.py
 ```
 
 ---
