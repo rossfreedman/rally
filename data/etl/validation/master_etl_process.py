@@ -31,7 +31,7 @@ def run_script(script_path: str, description: str) -> Dict[str, Any]:
         # Run the script and capture output
         result = subprocess.run(
             [sys.executable, script_path],
-            cwd=os.path.dirname(os.path.abspath(__file__)) + '/..',  # Run from project root
+            cwd=os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../..'),  # Run from project root
             capture_output=True,
             text=True,
             timeout=300  # 5 minute timeout
@@ -88,7 +88,7 @@ def run_master_etl_process():
     
     # Phase 1: Data Quality Pre-Check (Optional)
     print("\n📋 PHASE 1: PRE-IMPORT DATA QUALITY CHECK")
-    pre_check = run_script('scripts/data_quality_monitor.py', 'Pre-import data quality baseline')
+    pre_check = run_script('data/etl/validation/data_quality_monitor.py', 'Pre-import data quality baseline')
     results.append(pre_check)
     
     # Phase 2: ETL Import Process
@@ -121,17 +121,17 @@ def run_master_etl_process():
     
     # Phase 3: Post-Import Validation
     print("\n🔍 PHASE 3: POST-IMPORT VALIDATION")
-    validation_result = run_script('scripts/etl_validation_pipeline.py', 'ETL validation pipeline')
+    validation_result = run_script('data/etl/validation/etl_validation_pipeline.py', 'ETL validation pipeline')
     results.append(validation_result)
     
     # Phase 4: Integration Testing
     print("\n🧪 PHASE 4: INTEGRATION TESTING")  
-    integration_result = run_script('scripts/integration_tests.py', 'User-facing feature integration tests')
+    integration_result = run_script('data/etl/validation/integration_tests.py', 'User-facing feature integration tests')
     results.append(integration_result)
     
     # Phase 5: Final Data Quality Monitoring
     print("\n📊 PHASE 5: FINAL DATA QUALITY MONITORING")
-    monitoring_result = run_script('scripts/data_quality_monitor.py', 'Comprehensive data quality monitoring')
+    monitoring_result = run_script('data/etl/validation/data_quality_monitor.py', 'Comprehensive data quality monitoring')
     results.append(monitoring_result)
     
     # Generate Master Report

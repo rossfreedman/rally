@@ -20,7 +20,7 @@ import json
 import traceback
 
 # Add project root to path
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.append(os.path.join(os.path.dirname(__file__), '../../..'))
 
 from database_utils import execute_query, execute_query_one
 
