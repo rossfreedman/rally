@@ -78,7 +78,7 @@
                 <!-- Points and Record -->
                 <div class="grid grid-cols-2 gap-4 mb-6">
                     <div class="text-center">
-                        <div class="text-3xl font-bold text-green-600 mb-1">{{ team_analysis_data.overview.points }}</div>
+                        <div class="text-3xl font-bold text-green-600 mb-1">{{ team_analysis_data.overview.points if team_analysis_data.overview.points else 0 }}</div>
                         <div class="text-sm text-gray-500 uppercase tracking-wide">Total Points</div>
                     </div>
                     

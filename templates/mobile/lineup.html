@@ -30,34 +30,34 @@
                     </h2>
                 </div>
                 
-                <div class="p-6">
-                    <p class="text-sm text-gray-600 mb-6">How would you like to create your lineup?</p>
+                <div class="p-4">
+                    <p class="text-sm text-gray-600 mb-4">How would you like to create your lineup?</p>
                     
-                    <div class="space-y-4">
+                    <div class="space-y-3">
                         <!-- AI Option -->
-                        <button id="choose-ai" class="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 text-left">
+                        <button id="choose-ai" class="w-full bg-blue-600 text-white rounded-lg p-4 shadow-md hover:shadow-lg transition-all duration-200 text-left touch-manipulation" style="background: linear-gradient(90deg, #3b82f6 0%, #8b5cf6 100%); color: white;">
                             <div class="flex items-center">
-                                <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mr-4">
-                                    <i class="fas fa-magic text-white text-2xl"></i>
+                                <div class="w-12 h-12 rounded-full flex items-center justify-center mr-3 flex-shrink-0" style="background-color: rgba(255,255,255,0.2);">
+                                    <i class="fas fa-magic text-white text-lg"></i>
                                 </div>
-                                <div>
-                                    <h3 class="text-xl font-bold mb-2">AI-Generated Lineup</h3>
-                                    <p class="text-white/90 text-sm">Let AI create the optimal lineup based on player stats, court preferences, and your custom instructions.</p>
-                                    <p class="text-white/80 text-xs mt-2">✨ Recommended for strategic optimization</p>
+                                <div class="flex-1 min-w-0">
+                                    <h3 class="text-lg font-bold mb-1 text-white">AI-Generated Lineup</h3>
+                                    <p class="text-xs leading-tight" style="color: rgba(255,255,255,0.9);">Let AI create the optimal lineup based on player stats and strategy.</p>
+                                    <p class="text-xs mt-1" style="color: rgba(255,255,255,0.8);">✨ Recommended</p>
                                 </div>
                             </div>
                         </button>
 
                         <!-- Manual Option -->
-                        <button id="choose-manual" class="w-full bg-gradient-to-r from-green-500 to-teal-600 text-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 text-left">
+                        <button id="choose-manual" class="w-full bg-green-600 text-white rounded-lg p-4 shadow-md hover:shadow-lg transition-all duration-200 text-left touch-manipulation" style="background: linear-gradient(90deg, #10b981 0%, #14b8a6 100%); color: white;">
                             <div class="flex items-center">
-                                <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mr-4">
-                                    <i class="fas fa-hand-paper text-white text-2xl"></i>
+                                <div class="w-12 h-12 rounded-full flex items-center justify-center mr-3 flex-shrink-0" style="background-color: rgba(255,255,255,0.2);">
+                                    <i class="fas fa-hand-paper text-white text-lg"></i>
                                 </div>
-                                <div>
-                                    <h3 class="text-xl font-bold mb-2">Manual Drag & Drop</h3>
-                                    <p class="text-white/90 text-sm">Build your lineup manually by dragging players onto courts. Full control over court assignments.</p>
-                                    <p class="text-white/80 text-xs mt-2">🎯 Perfect for specific strategy needs</p>
+                                <div class="flex-1 min-w-0">
+                                    <h3 class="text-lg font-bold mb-1 text-white">Manual Drag & Drop</h3>
+                                    <p class="text-xs leading-tight" style="color: rgba(255,255,255,0.9);">Build your lineup manually with full control over court assignments.</p>
+                                    <p class="text-xs mt-1" style="color: rgba(255,255,255,0.8);">🎯 Full Control</p>
                                 </div>
                             </div>
                         </button>
@@ -1460,6 +1460,38 @@ document.addEventListener('DOMContentLoaded', () => {
 /* Custom styles for modern mobile design */
 .min-h-screen {
     min-height: 100vh;
+}
+
+/* Choice page mobile optimization */
+#choice-page button {
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+}
+
+.touch-manipulation {
+    touch-action: manipulation;
+}
+
+/* Ensure choice buttons are visible on all screen sizes */
+@media (max-width: 480px) {
+    #choice-page .p-4 {
+        padding: 1rem;
+    }
+    
+    #choice-page button {
+        padding: 0.875rem;
+        min-height: auto;
+    }
+    
+    #choice-page h3 {
+        font-size: 1rem;
+        line-height: 1.25;
+    }
+    
+    #choice-page p {
+        font-size: 0.75rem;
+        line-height: 1.2;
+    }
 }
 
 /* Drag and Drop Styles */
