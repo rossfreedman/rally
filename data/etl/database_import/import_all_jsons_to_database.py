@@ -197,7 +197,8 @@ class ComprehensiveETL:
         
         # CNSWPL format: "Club Number" or "Club NumberLetter" (e.g., "Birchwood 1", "Hinsdale PC 1a")
         elif re.search(r'\s+\d+[a-zA-Z]*$', team_name):
-            return re.sub(r'\s+\d+[a-zA-Z]*$', '', team_name).strip()
+            club_part = re.sub(r'\s+\d+[a-zA-Z]*$', '', team_name).strip()
+            return club_part if club_part else team_name
         
         # Fallback: use the team name as-is
         return team_name
@@ -323,6 +324,7 @@ class ComprehensiveETL:
         # Examples: 
         # APTA_CHICAGO: "Tennaqua - 22" with series "Chicago 22" -> "Tennaqua"
         # NSTF: "Tennaqua S2B" with series "Series 2B" -> "Tennaqua"
+        # CNSWPL: "Tennaqua 1" with series "Division 16" -> "Tennaqua"
         
         # Handle APTA_CHICAGO format: "Club - Suffix"
         if ' - ' in team_name:
@@ -338,6 +340,13 @@ class ComprehensiveETL:
                 club_part = parts[0].strip()
                 return club_part
         
+        # Handle CNSWPL format: "Club Number" or "Club NumberLetter" (like "Tennaqua 1", "Hinsdale PC 1a")
+        # Must end with space + digit + optional letter(s)
+        if re.search(r'\s+\d+[a-zA-Z]*$', team_name):
+            club_part = re.sub(r'\s+\d+[a-zA-Z]*$', '', team_name).strip()
+            if club_part:  # Make sure we didn't remove everything
+                return club_part
+        
         # Fallback: return the whole team name as club
         return team_name
     
@@ -346,6 +355,7 @@ class ComprehensiveETL:
         # Examples: 
         # APTA_CHICAGO: "Tennaqua - 22" -> ("Tennaqua", "Chicago 22")
         # NSTF: "Tennaqua S2B" -> ("Tennaqua", "Series 2B")
+        # CNSWPL: "Tennaqua 1" -> ("Tennaqua", "Division 1")
         
         # Handle APTA_CHICAGO format: "Club - Suffix"
         if ' - ' in team_name:
@@ -371,6 +381,19 @@ class ComprehensiveETL:
                 series_name = self.map_series_suffix_to_full_name(f"S{series_suffix}")
                 return club_name, series_name
         
+        # Handle CNSWPL format: "Club Number" or "Club NumberLetter" (like "Tennaqua 1", "Hinsdale PC 1a")
+        # Must end with space + digit + optional letter(s)
+        if re.search(r'\s+\d+[a-zA-Z]*$', team_name):
+            club_name = re.sub(r'\s+\d+[a-zA-Z]*$', '', team_name).strip()
+            if club_name:
+                # Extract the series suffix (number + optional letters)
+                series_match = re.search(r'\s+(\d+[a-zA-Z]*)$', team_name)
+                if series_match:
+                    series_suffix = series_match.group(1)
+                    # For CNSWPL, map to "Division N" format to match player data
+                    series_name = f"Division {series_suffix}"
+                    return club_name, series_name
+        
         # Fallback for edge cases: treat entire name as club with default series
         return team_name, "Series A"
     
@@ -378,17 +401,26 @@ class ComprehensiveETL:
         """Map series suffix to full series name"""
         # Examples: "22" -> "Chicago 22", "21 SW" -> "Chicago 21 SW", "S2B" -> "Series 2B"
         try:
-            # If it's a pure number, assume it's a Chicago series
+            # If it's a pure number, check if it's a small number (likely CNSWPL Division N)
             series_num = int(suffix)
-            return f"Chicago {series_num}"
+            if series_num <= 20:  # CNSWPL divisions are typically 1-17, with some letters
+                return f"Division {series_num}"
+            else:
+                # Larger numbers are likely APTA Chicago series
+                return f"Chicago {series_num}"
         except ValueError:
             # If it's not a pure number, handle special cases
             if suffix.upper().startswith('S'):
                 # NSTF format like "S2B" -> "Series 2B"
                 return f"Series {suffix[1:]}"
             elif any(char.isdigit() for char in suffix):
-                # If it contains numbers but isn't pure number (like "21 SW"), assume Chicago
-                return f"Chicago {suffix}"
+                # If it contains numbers but isn't pure number
+                # Check if it's CNSWPL format (like "1a", "16b")
+                if len(suffix) <= 3 and suffix[0].isdigit():
+                    return f"Division {suffix}"
+                else:
+                    # Otherwise assume Chicago (like "21 SW")
+                    return f"Chicago {suffix}"
             
             # Default: assume it's already a series name
             return suffix
@@ -545,16 +577,31 @@ class ComprehensiveETL:
                 # Create team alias for display (optional)
                 team_alias = self.generate_team_alias(team_name, series_name)
                 
+                # FIXED: Check if team already exists by name+league first to prevent duplicates
                 cursor.execute("""
-                    INSERT INTO teams (club_id, series_id, league_id, team_name, team_alias, created_at)
-                    SELECT c.id, s.id, l.id, %s, %s, CURRENT_TIMESTAMP
-                    FROM clubs c, series s, leagues l
-                    WHERE c.name = %s AND s.name = %s AND l.league_id = %s
-                    ON CONFLICT (club_id, series_id, league_id) DO UPDATE SET
-                        team_name = EXCLUDED.team_name,
-                        team_alias = EXCLUDED.team_alias,
-                        updated_at = CURRENT_TIMESTAMP
-                """, (team_name, team_alias, club_name, series_name, league_id))
+                    SELECT t.id FROM teams t
+                    JOIN leagues l ON t.league_id = l.id
+                    WHERE l.league_id = %s AND t.team_name = %s
+                """, (league_id, team_name))
+                
+                existing_team = cursor.fetchone()
+                
+                if existing_team:
+                    # Team already exists, update it if needed
+                    cursor.execute("""
+                        UPDATE teams SET 
+                            team_alias = %s,
+                            updated_at = CURRENT_TIMESTAMP
+                        WHERE id = %s
+                    """, (team_alias, existing_team[0]))
+                else:
+                    # Create new team
+                    cursor.execute("""
+                        INSERT INTO teams (club_id, series_id, league_id, team_name, team_alias, created_at)
+                        SELECT c.id, s.id, l.id, %s, %s, CURRENT_TIMESTAMP
+                        FROM clubs c, series s, leagues l
+                        WHERE c.name = %s AND s.name = %s AND l.league_id = %s
+                    """, (team_name, team_alias, club_name, series_name, league_id))
                 
                 if cursor.rowcount > 0:
                     imported += 1
@@ -904,24 +951,46 @@ class ComprehensiveETL:
         self.imported_counts['player_history'] = imported
         self.log(f"✅ Imported {imported:,} player history records ({errors} errors)")
         
-    def validate_and_correct_winner(self, scores: str, winner: str, home_team: str, away_team: str) -> str:
+    def validate_and_correct_winner(self, scores: str, winner: str, home_team: str, away_team: str, league_id: str = None) -> str:
         """
         Validate winner against score data and correct if needed
+        Enhanced with league-specific validation logic
         """
         if not scores or not scores.strip():
             return winner
-            
+        
+        # Use the enhanced league-aware validation
+        from utils.league_utils import normalize_league_id
+        normalized_league = normalize_league_id(league_id) if league_id else None
+        
         # Clean up score string and remove tiebreak info
-        scores = scores.strip()
-        scores = re.sub(r'\s*\[[^\]]+\]', '', scores)
+        scores_clean = scores.strip()
+        scores_clean = re.sub(r'\s*\[[^\]]+\]', '', scores_clean)
         
         # Split by comma to get individual sets
-        sets = [s.strip() for s in scores.split(',') if s.strip()]
+        sets = [s.strip() for s in scores_clean.split(',') if s.strip()]
+        
+        # CITA League: Skip validation for problematic data patterns
+        if normalized_league == 'CITA' and len(sets) >= 1:
+            for set_score in sets:
+                if '-' in set_score:
+                    try:
+                        parts = set_score.split('-')
+                        if len(parts) == 2:
+                            home_games = int(parts[0].strip())
+                            away_games = int(parts[1].strip())
+                            # Skip incomplete CITA matches (like 2-2, 3-3, etc.)
+                            if (home_games < 6 and away_games < 6 and 
+                                abs(home_games - away_games) <= 2 and
+                                not (home_games == 0 and away_games == 0)):
+                                return winner  # Don't correct problematic CITA data
+                    except (ValueError, IndexError):
+                        pass
         
         home_sets_won = 0
         away_sets_won = 0
         
-        for set_score in sets:
+        for i, set_score in enumerate(sets):
             if '-' not in set_score:
                 continue
                 
@@ -933,7 +1002,17 @@ class ComprehensiveETL:
                 home_games = int(parts[0].strip())
                 away_games = int(parts[1].strip())
                 
-                # Determine set winner
+                # Handle super tiebreak format (NSTF, CITA)
+                if (i == 2 and len(sets) == 3 and 
+                    (normalized_league in ['NSTF', 'CITA'] or home_games >= 10 or away_games >= 10)):
+                    # This is a super tiebreak
+                    if home_games > away_games:
+                        home_sets_won += 1
+                    elif away_games > home_games:
+                        away_sets_won += 1
+                    continue
+                
+                # Standard set scoring
                 if home_games > away_games:
                     home_sets_won += 1
                 elif away_games > home_games:
@@ -942,7 +1021,7 @@ class ComprehensiveETL:
             except (ValueError, IndexError):
                 continue
         
-        # Determine overall winner (best of 3 sets)
+        # Determine overall winner
         calculated_winner = None
         if home_sets_won > away_sets_won:
             calculated_winner = "home"
@@ -1001,13 +1080,13 @@ class ComprehensiveETL:
                 if not all([match_date, home_team, away_team]):
                     continue
                 
-                # ENHANCED: Validate winner against score data
+                # ENHANCED: Validate winner against score data with league-specific logic
                 original_winner = winner
-                winner = self.validate_and_correct_winner(scores, winner, home_team, away_team)
+                winner = self.validate_and_correct_winner(scores, winner, home_team, away_team, league_id)
                 if winner != original_winner:
                     winner_corrections += 1
                     if winner_corrections <= 5:  # Log first 5 corrections
-                        self.log(f"🔧 Corrected winner for {home_team} vs {away_team} ({match_date_str}): {original_winner} → {winner}")
+                        self.log(f"🔧 Corrected winner for {home_team} vs {away_team} ({match_date_str}, {league_id}): {original_winner} → {winner}")
                 
                 # Validate winner field - only allow 'home', 'away', or None
                 if winner and winner.lower() not in ['home', 'away']:

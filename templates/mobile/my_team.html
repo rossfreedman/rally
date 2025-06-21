@@ -34,7 +34,7 @@
                 <!-- Points and Record -->
                 <div class="grid grid-cols-2 gap-4 mb-6">
                     <div class="text-center">
-                        <div class="text-3xl font-bold text-yellow-600 mb-1">{% if team_data.points is not none %}{{ team_data.points }}{% else %}N/A{% endif %}</div>
+                        <div class="text-3xl font-bold text-yellow-600 mb-1">{{ team_data.points if team_data.points else 0 }}</div>
                         <div class="text-sm text-gray-500 uppercase tracking-wide">Total Points</div>
                     </div>
                     
@@ -263,8 +263,33 @@
             <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <i class="fas fa-users text-gray-400 text-2xl"></i>
             </div>
-            <h3 class="text-lg font-semibold text-gray-900 mb-2">No Team Data</h3>
-            <p class="text-gray-500">Team data will appear here once your team starts playing matches.</p>
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">
+                {% if error %}Team Data Issue{% else %}No Team Data{% endif %}
+            </h3>
+            <div class="text-gray-500">
+                {% if error %}
+                    <!-- Show detailed error message -->
+                    <div class="text-left bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                        <div class="flex items-start">
+                            <i class="fas fa-exclamation-triangle text-yellow-500 mt-1 mr-3"></i>
+                            <div class="text-sm">
+                                {% for line in error.split('\n') %}
+                                    {% if line.strip() %}
+                                        <p class="mb-2">{{ line }}</p>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <p class="text-sm text-gray-600">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        If you believe this is an error, please contact support.
+                    </p>
+                {% else %}
+                    <p>Team data will appear here once your team starts playing matches.</p>
+                {% endif %}
+            </div>
         </div>
         {% endif %}
 
