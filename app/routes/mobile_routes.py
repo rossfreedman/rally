@@ -2127,7 +2127,6 @@ def serve_track_byes_courts():
         
         # Get user's team ID
         team_id = get_user_team_id(user)
-        print(f"[DEBUG] User team ID: {team_id}")
         
         # Get actual team members with their court assignment statistics
         team_members = []
@@ -2137,14 +2136,14 @@ def serve_track_byes_courts():
         # If no team members found, provide sample data as fallback
         if not team_members:
             team_members = [
-                {'id': 1, 'name': 'John Smith', 'first_name': 'John', 'last_name': 'Smith', 'pti': 25.0},
-                {'id': 2, 'name': 'Sarah Johnson', 'first_name': 'Sarah', 'last_name': 'Johnson', 'pti': 30.0},
-                {'id': 3, 'name': 'Mike Davis', 'first_name': 'Mike', 'last_name': 'Davis', 'pti': 28.0},
-                {'id': 4, 'name': 'Lisa Wilson', 'first_name': 'Lisa', 'last_name': 'Wilson', 'pti': 32.0},
-                {'id': 5, 'name': 'David Brown', 'first_name': 'David', 'last_name': 'Brown', 'pti': 26.0},
-                {'id': 6, 'name': 'Emily Chen', 'first_name': 'Emily', 'last_name': 'Chen', 'pti': 29.0}
+                {'id': 1, 'name': 'John Smith', 'first_name': 'John', 'last_name': 'Smith', 'pti': 25.0, 'match_count': 8, 'court_stats': {'court1': 0, 'court2': 0, 'court3': 0, 'court4': 0}},
+                {'id': 2, 'name': 'Sarah Johnson', 'first_name': 'Sarah', 'last_name': 'Johnson', 'pti': 30.0, 'match_count': 6, 'court_stats': {'court1': 0, 'court2': 0, 'court3': 0, 'court4': 0}},
+                {'id': 3, 'name': 'Mike Davis', 'first_name': 'Mike', 'last_name': 'Davis', 'pti': 28.0, 'match_count': 5, 'court_stats': {'court1': 0, 'court2': 0, 'court3': 0, 'court4': 0}},
+                {'id': 4, 'name': 'Lisa Wilson', 'first_name': 'Lisa', 'last_name': 'Wilson', 'pti': 32.0, 'match_count': 7, 'court_stats': {'court1': 0, 'court2': 0, 'court3': 0, 'court4': 0}},
+                {'id': 5, 'name': 'David Brown', 'first_name': 'David', 'last_name': 'Brown', 'pti': 26.0, 'match_count': 4, 'court_stats': {'court1': 0, 'court2': 0, 'court3': 0, 'court4': 0}},
+                {'id': 6, 'name': 'Emily Chen', 'first_name': 'Emily', 'last_name': 'Chen', 'pti': 29.0, 'match_count': 9, 'court_stats': {'court1': 0, 'court2': 0, 'court3': 0, 'court4': 0}}
             ]
-            print(f"[DEBUG] Using fallback sample data: {len(team_members)} members")
+
         
         # Get dynamic court data using the same logic as my-team page
         team_data = get_mobile_team_data(user)
@@ -2168,6 +2167,15 @@ def serve_track_byes_courts():
                 {'number': '3', 'key': 'court3', 'name': 'Court 3'},
                 {'number': '4', 'key': 'court4', 'name': 'Court 4'}
             ]
+            # Ensure team members have empty court stats for template rendering
+            for member in team_members:
+                if 'court_stats' not in member or not member['court_stats']:
+                    member['court_stats'] = {
+                        'court1': 0,
+                        'court2': 0, 
+                        'court3': 0,
+                        'court4': 0
+                    }
         
         session_data = {
             'user': user,
@@ -2202,8 +2210,8 @@ def serve_track_byes_courts():
         ]
         
         fallback_members = [
-            {'id': 1, 'name': 'John Smith', 'first_name': 'John', 'last_name': 'Smith', 'pti': 25.0},
-            {'id': 2, 'name': 'Sarah Johnson', 'first_name': 'Sarah', 'last_name': 'Johnson', 'pti': 30.0}
+            {'id': 1, 'name': 'John Smith', 'first_name': 'John', 'last_name': 'Smith', 'pti': 25.0, 'match_count': 0, 'court_stats': {'court1': 0, 'court2': 0, 'court3': 0, 'court4': 0}},
+            {'id': 2, 'name': 'Sarah Johnson', 'first_name': 'Sarah', 'last_name': 'Johnson', 'pti': 30.0, 'match_count': 0, 'court_stats': {'court1': 0, 'court2': 0, 'court3': 0, 'court4': 0}}
         ]
         
         return render_template('mobile/track_byes_courts.html', 
