@@ -2553,6 +2553,24 @@ def get_mobile_team_data(user):
         # Get team_id using proper database relationships instead of string construction
         league_id = user.get('league_id', '')
         
+        # If league_id not in session, try to get from database using email
+        if not league_id:
+            print(f"[DEBUG] Missing league_id in session, attempting database lookup...")
+            user_email = user.get('email')
+            if user_email:
+                league_lookup_query = """
+                    SELECT l.league_id, l.id as league_db_id
+                    FROM users u 
+                    JOIN user_player_associations upa ON u.id = upa.user_id
+                    JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+                    JOIN leagues l ON p.league_id = l.id
+                    WHERE u.email = %s AND upa.is_primary = true
+                """
+                league_data = execute_query_one(league_lookup_query, [user_email])
+                if league_data:
+                    league_id = league_data['league_id']
+                    print(f"[DEBUG] Found league_id from database: {league_id}")
+        
         # Convert league_id to integer foreign key for database queries
         league_id_int = None
         if isinstance(league_id, str) and league_id != '':
@@ -2570,7 +2588,7 @@ def get_mobile_team_data(user):
                         'team_data': None,
                         'court_analysis': {},
                         'top_players': [],
-                        'error': 'League not found'
+                        'error': f'League not found: {league_id}'
                     }
             except Exception as e:
                 print(f"[DEBUG] get_mobile_team_data: Could not convert league ID: {e}")
@@ -2578,11 +2596,19 @@ def get_mobile_team_data(user):
                     'team_data': None,
                     'court_analysis': {},
                     'top_players': [],
-                    'error': 'Failed to resolve league'
+                    'error': f'Failed to resolve league: {str(e)}'
                 }
         elif isinstance(league_id, int):
             league_id_int = league_id
             print(f"[DEBUG] get_mobile_team_data: League_id already integer: {league_id_int}")
+        else:
+            print(f"[DEBUG ERROR] No valid league_id found: {league_id}")
+            return {
+                'team_data': None,
+                'court_analysis': {},
+                'top_players': [],
+                'error': f'No valid league found. Please check your profile settings.'
+            }
         
         # Get the user's team using proper joins (much more reliable!)
         team_query = """
@@ -2598,13 +2624,84 @@ def get_mobile_team_data(user):
         
         team_record = execute_query_one(team_query, [club, series, league_id_int])
         
+        # FIXED: Handle CNSWPL series name mapping (Division X -> Series X)
+        if not team_record and 'Division' in series and league_id:
+            league_check = execute_query_one("SELECT league_id FROM leagues WHERE id = %s", [league_id_int])
+            if league_check and league_check['league_id'] == 'CNSWPL':
+                # For CNSWPL, try mapping "Division 16" -> "Series 16"
+                division_num = series.replace('Division ', '')
+                mapped_series = f'Series {division_num}'
+                print(f"[DEBUG] CNSWPL series mapping: '{series}' -> '{mapped_series}'")
+                
+                team_record = execute_query_one(team_query, [club, mapped_series, league_id_int])
+                if team_record:
+                    print(f"[DEBUG] Found team with mapped series: {team_record['team_name']}")
+        
+        # FIXED: Handle NSTF series name mapping (Series 2B -> S2B)
+        if not team_record and series.startswith('Series ') and league_id:
+            league_check = execute_query_one("SELECT league_id FROM leagues WHERE id = %s", [league_id_int])
+            if league_check and league_check['league_id'] == 'NSTF':
+                # For NSTF, try mapping "Series 2B" -> "S2B"
+                series_suffix = series.replace('Series ', '')
+                mapped_series = f'S{series_suffix}'
+                print(f"[DEBUG] NSTF series mapping: '{series}' -> '{mapped_series}'")
+                
+                team_record = execute_query_one(team_query, [club, mapped_series, league_id_int])
+                if team_record:
+                    print(f"[DEBUG] Found team with mapped series: {team_record['team_name']}")
+        
         if not team_record:
             print(f"[DEBUG] get_mobile_team_data: Team not found - club: {club}, series: {series}, league_id: {league_id_int}")
+            
+            # Check if this is a league with no teams (data issue)
+            league_teams_count_query = """
+                SELECT 
+                    (SELECT COUNT(*) FROM teams WHERE league_id = %s) as team_count,
+                    l.league_name
+                FROM leagues l
+                WHERE l.id = %s
+            """
+            league_info = execute_query_one(league_teams_count_query, [league_id_int, league_id_int])
+            
+            if league_info and league_info['team_count'] == 0:
+                # League has no teams - this is a data issue
+                error_msg = f'No team data available for {league_info["league_name"]} league.\n\n'
+                error_msg += f'Your player profile is set up correctly, but team/match data has not been imported for this league yet.\n\n'
+                error_msg += f'Team analysis will be available once match data is imported for {league_info["league_name"]}.'
+                
+                return {
+                    'team_data': None,
+                    'court_analysis': {},
+                    'top_players': [],
+                    'error': error_msg
+                }
+            
+            # Try to find similar teams to provide helpful error message
+            similar_teams_query = """
+                SELECT t.team_name, c.name as club, s.name as series, l.league_name
+                FROM teams t
+                JOIN clubs c ON t.club_id = c.id
+                JOIN series s ON t.series_id = s.id
+                JOIN leagues l ON t.league_id = l.id
+                WHERE (c.name ILIKE %s OR s.name ILIKE %s OR t.team_name ILIKE %s)
+                LIMIT 5
+            """
+            search_pattern = f"%{club}%"
+            series_pattern = f"%{series}%"
+            team_pattern = f"%{club}%{series}%"
+            similar_teams = execute_query(similar_teams_query, [search_pattern, series_pattern, team_pattern])
+            
+            error_msg = f'Team not found: {club} / {series}'
+            if similar_teams:
+                error_msg += f'\n\nSimilar teams found:'
+                for team in similar_teams:
+                    error_msg += f'\n- {team["team_name"]} ({team["club"]} / {team["series"]}, {team["league_name"]})'
+            
             return {
                 'team_data': None,
                 'court_analysis': {},
                 'top_players': [],
-                'error': f'Team not found: {club} / {series}'
+                'error': error_msg
             }
         
         team_id = team_record['id']

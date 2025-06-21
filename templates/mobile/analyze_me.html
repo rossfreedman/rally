@@ -126,7 +126,7 @@
         {% endif %}
 
         <!-- Career Stats -->
-        {% if analyze_data.career_stats %}
+        {% if analyze_data.career_stats and (analyze_data.career_stats.matches > 0 or analyze_data.career_stats.wins > 0 or analyze_data.career_stats.losses > 0) %}
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             <div class="px-6 py-4 border-b border-gray-50">
                 <h2 class="text-lg font-semibold text-gray-900 flex items-center">

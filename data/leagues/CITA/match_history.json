@@ -2381,7 +2381,7 @@
     "Away Player 2": "Jen Harding",
     "Away Player 2 ID": null,
     "Scores": "6-2, 0-6, 6-10",
-    "Winner": "home"
+    "Winner": "away"
   },
   {
     "league_id": "CITA",
@@ -4061,7 +4061,7 @@
     "Away Player 2": "",
     "Away Player 2 ID": null,
     "Scores": "6-5",
-    "Winner": "unknown"
+    "Winner": "home"
   },
   {
     "league_id": "CITA",
@@ -9805,7 +9805,7 @@
     "Away Player 2": "Dawn Brooke",
     "Away Player 2 ID": null,
     "Scores": "6-4, 6-4, 1-4",
-    "Winner": "away"
+    "Winner": "home"
   },
   {
     "league_id": "CITA",
@@ -11389,7 +11389,7 @@
     "Away Player 2": "Katie Schaffer",
     "Away Player 2 ID": null,
     "Scores": "6-7 [3-7], 6-6",
-    "Winner": "unknown"
+    "Winner": "away"
   },
   {
     "league_id": "CITA",
@@ -16365,7 +16365,7 @@
     "Away Player 2": "Michelle Nacheman",
     "Away Player 2 ID": null,
     "Scores": "6-2, 1-6, 5-6",
-    "Winner": "unknown"
+    "Winner": "away"
   },
   {
     "league_id": "CITA",
@@ -24701,7 +24701,7 @@
     "Away Player 2": "Curtis BaddeleyBy Default",
     "Away Player 2 ID": null,
     "Scores": "0-6, 6-2, 6-3",
-    "Winner": "away"
+    "Winner": "home"
   },
   {
     "league_id": "CITA",
@@ -24925,7 +24925,7 @@
     "Away Player 2": "Mark Campanile",
     "Away Player 2 ID": null,
     "Scores": "6-7 [4-7], 2-6, 1-5",
-    "Winner": "home"
+    "Winner": "away"
   },
   {
     "league_id": "CITA",
@@ -27661,7 +27661,7 @@
     "Away Player 2": "Tressa Hamann",
     "Away Player 2 ID": null,
     "Scores": "6-3, 0-6, 5-6",
-    "Winner": "unknown"
+    "Winner": "away"
   },
   {
     "league_id": "CITA",
@@ -30893,7 +30893,7 @@
     "Away Player 2": "Marcy Zirlin",
     "Away Player 2 ID": null,
     "Scores": "3-6, 6-3, 5-6",
-    "Winner": "unknown"
+    "Winner": "away"
   },
   {
     "league_id": "CITA",
@@ -33341,7 +33341,7 @@
     "Away Player 2": "",
     "Away Player 2 ID": null,
     "Scores": "2-6, 6-3, 7-9",
-    "Winner": "unknown"
+    "Winner": "away"
   },
   {
     "league_id": "CITA",
@@ -34013,7 +34013,7 @@
     "Away Player 2": "",
     "Away Player 2 ID": null,
     "Scores": "1-6, 7-5, 6-8",
-    "Winner": "unknown"
+    "Winner": "away"
   },
   {
     "league_id": "CITA",
@@ -34717,7 +34717,7 @@
     "Away Player 2": "",
     "Away Player 2 ID": null,
     "Scores": "4-6, 6-2, 3-8",
-    "Winner": "unknown"
+    "Winner": "away"
   },
   {
     "league_id": "CITA",
@@ -42189,7 +42189,7 @@
     "Away Player 2": "Lisa Trotter",
     "Away Player 2 ID": null,
     "Scores": "2-6, 6-3, 2-6",
-    "Winner": "home"
+    "Winner": "away"
   },
   {
     "league_id": "CITA",
@@ -42221,7 +42221,7 @@
     "Away Player 2": "Teodora Popov",
     "Away Player 2 ID": null,
     "Scores": "0-6, 1-6, 4-6",
-    "Winner": "home"
+    "Winner": "away"
   },
   {
     "league_id": "CITA",
@@ -66877,7 +66877,7 @@
     "Away Player 2": "Gavin Burns",
     "Away Player 2 ID": null,
     "Scores": "7-6 [7-5], 7-5, 6-0",
-    "Winner": "away"
+    "Winner": "home"
   },
   {
     "league_id": "CITA",
@@ -66893,7 +66893,7 @@
     "Away Player 2": "Tyler Claeys",
     "Away Player 2 ID": null,
     "Scores": "0-6, 3-6, 3-6",
-    "Winner": "home"
+    "Winner": "away"
   },
   {
     "league_id": "CITA",
@@ -66909,7 +66909,7 @@
     "Away Player 2": "mark swanson",
     "Away Player 2 ID": null,
     "Scores": "2-6, 0-6, 2-6",
-    "Winner": "home"
+    "Winner": "away"
   },
   {
     "league_id": "CITA",
@@ -70749,7 +70749,7 @@
     "Away Player 2": "Alison Hartline",
     "Away Player 2 ID": null,
     "Scores": "6-0, 5-7, 6-5",
-    "Winner": "unknown"
+    "Winner": "home"
   },
   {
     "league_id": "CITA",
@@ -71341,7 +71341,7 @@
     "Away Player 2": "Audrey Cohen",
     "Away Player 2 ID": null,
     "Scores": "6-0, 2-6, 6-5",
-    "Winner": "unknown"
+    "Winner": "home"
   },
   {
     "league_id": "CITA",
@@ -73453,7 +73453,7 @@
     "Away Player 2": "Alison Hartline",
     "Away Player 2 ID": null,
     "Scores": "6-0, 5-7, 6-5",
-    "Winner": "unknown"
+    "Winner": "home"
   },
   {
     "league_id": "CITA",
@@ -74045,7 +74045,7 @@
     "Away Player 2": "Audrey Cohen",
     "Away Player 2 ID": null,
     "Scores": "6-0, 2-6, 6-5",
-    "Winner": "unknown"
+    "Winner": "home"
   },
   {
     "league_id": "CITA",

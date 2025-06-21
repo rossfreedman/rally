@@ -1,0 +1,21 @@
+# UI Test Artifacts
+screenshots/
+test-results/
+playwright-report/
+*.html
+*.xml
+*.json
+
+# Browser downloads
+*.zip
+*.tar.gz
+*.dmg
+*.exe
+
+# Temporary files
+*.tmp
+*.log
+
+# OS Files
+.DS_Store
+Thumbs.db 

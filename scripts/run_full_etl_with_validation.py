@@ -151,33 +151,33 @@ def create_validation_report():
     from database_config import get_db
     
     try:
-        conn = get_db()
-        cursor = conn.cursor()
-        
-        # Collect key metrics
-        cursor.execute("SELECT COUNT(*) FROM match_scores")
-        total_matches = cursor.fetchone()[0]
-        
-        cursor.execute("SELECT COUNT(*) FROM match_scores WHERE winner IS NOT NULL")
-        matches_with_winners = cursor.fetchone()[0]
-        
-        cursor.execute("SELECT COUNT(*) FROM players")
-        total_players = cursor.fetchone()[0]
-        
-        cursor.execute("SELECT COUNT(DISTINCT league_id) FROM players")
-        leagues_count = cursor.fetchone()[0]
-        
-        # Check Jessica Freedman specifically
-        cursor.execute("""
-            SELECT wins, losses, tenniscores_player_id 
-            FROM players 
-            WHERE tenniscores_player_id = %s
-        """, ('nndz-WkMrK3dMMzdndz09',))
-        
-        jessica_stats = cursor.fetchone()
-        
-        # Create report
-        report = f"""
+        with get_db() as conn:
+            cursor = conn.cursor()
+            
+            # Collect key metrics
+            cursor.execute("SELECT COUNT(*) FROM match_scores")
+            total_matches = cursor.fetchone()[0]
+            
+            cursor.execute("SELECT COUNT(*) FROM match_scores WHERE winner IS NOT NULL")
+            matches_with_winners = cursor.fetchone()[0]
+            
+            cursor.execute("SELECT COUNT(*) FROM players")
+            total_players = cursor.fetchone()[0]
+            
+            cursor.execute("SELECT COUNT(DISTINCT league_id) FROM players")
+            leagues_count = cursor.fetchone()[0]
+            
+            # Check Jessica Freedman specifically
+            cursor.execute("""
+                SELECT wins, losses, tenniscores_player_id 
+                FROM players 
+                WHERE tenniscores_player_id = %s
+            """, ('nndz-WkMrK3dMMzdndz09',))
+            
+            jessica_stats = cursor.fetchone()
+            
+            # Create report
+            report = f"""
 📋 ETL VALIDATION REPORT
 ========================
 Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
@@ -211,7 +211,6 @@ Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
         
         log(f"📄 Validation report saved to: {report_path}")
         
-        conn.close()
         return True
         
     except Exception as e:
