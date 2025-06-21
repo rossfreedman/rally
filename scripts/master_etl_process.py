@@ -91,23 +91,33 @@ def run_master_etl_process():
     pre_check = run_script('scripts/data_quality_monitor.py', 'Pre-import data quality baseline')
     results.append(pre_check)
     
-    # Phase 2: ETL Import (This would be the actual import process)
-    # Note: This is where you'd call your actual ETL import script
-    # For now, we'll just report on the current state
+    # Phase 2: ETL Import Process
     print("\n📥 PHASE 2: ETL IMPORT PROCESS")
-    print("=" * 60)
-    print("⚠️  NOTE: This demo assumes ETL import has already been completed")
-    print("⚠️  In production, this would call: python data/etl/database_import/import_all_jsons_to_database.py")
-    print("✅ ETL import: ASSUMED COMPLETE")
     
-    etl_result = {
-        'success': True,
-        'return_code': 0,
-        'duration': datetime.now() - datetime.now(),
-        'description': 'ETL Import (simulated)',
-        'note': 'In production, this would run the actual ETL import'
-    }
-    results.append(etl_result)
+    # Step 2a: Consolidate league JSON files
+    consolidate_result = run_script(
+        'data/etl/database_import/consolidate_league_jsons_to_all.py', 
+        'Consolidate league JSON files to all/ directory'
+    )
+    results.append(consolidate_result)
+    
+    # Step 2b: Import consolidated data to database  
+    if consolidate_result['success']:
+        import_result = run_script(
+            'data/etl/database_import/import_all_jsons_to_database.py',
+            'Import all JSON data to database'
+        )
+        results.append(import_result)
+    else:
+        print("❌ Skipping database import due to consolidation failure")
+        import_result = {
+            'success': False,
+            'return_code': -1,
+            'duration': datetime.now() - datetime.now(),
+            'description': 'Import all JSON data to database (skipped)',
+            'error': 'Consolidation failed'
+        }
+        results.append(import_result)
     
     # Phase 3: Post-Import Validation
     print("\n🔍 PHASE 3: POST-IMPORT VALIDATION")
