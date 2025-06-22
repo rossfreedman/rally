@@ -16,6 +16,14 @@ function formatTimestamp(timestamp) {
     return date.toLocaleString();
 }
 
+// Helper function to escape HTML to prevent XSS attacks
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 // Initialize the admin dashboard
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Admin dashboard initializing...');
@@ -86,7 +94,7 @@ async function loadUsers() {
         document.getElementById('usersTableBody').innerHTML = `
             <tr>
                 <td colspan="6" class="text-center text-error">
-                    Failed to load users: ${error.message}
+                    Failed to load users: ${escapeHtml(error.message)}
                 </td>
             </tr>
         `;
@@ -106,19 +114,19 @@ function renderUsers() {
     users.forEach(user => {
         const row = document.createElement('tr');
         row.innerHTML = `
-            <td>${user.first_name} ${user.last_name}</td>
-            <td>${user.email}</td>
-            <td>${user.club_name || '-'}</td>
-            <td>${user.series_name || '-'}</td>
-            <td>${user.last_login ? formatTimestamp(user.last_login) : 'Never'}</td>
+            <td>${escapeHtml(user.first_name)} ${escapeHtml(user.last_name)}</td>
+            <td>${escapeHtml(user.email)}</td>
+            <td>${escapeHtml(user.club_name) || '-'}</td>
+            <td>${escapeHtml(user.series_name) || '-'}</td>
+            <td>${user.last_login ? escapeHtml(formatTimestamp(user.last_login)) : 'Never'}</td>
             <td class="space-x-2">
-                <button class="btn btn-sm" onclick="editUser('${user.id}')">
+                <button class="btn btn-sm" onclick="editUser('${escapeHtml(user.id)}')">
                     <i class="fas fa-edit"></i>
                 </button>
-                <button class="btn btn-sm" onclick="viewUserActivity('${user.email}')">
+                <button class="btn btn-sm" onclick="viewUserActivity('${escapeHtml(user.email)}')">
                     <i class="fas fa-history"></i>
                 </button>
-                <button class="btn btn-sm bg-red-600 hover:bg-red-700 text-white" onclick="showDeleteUserModal('${user.email}')">
+                <button class="btn btn-sm bg-red-600 hover:bg-red-700 text-white" onclick="showDeleteUserModal('${escapeHtml(user.email)}')">
                     <i class="fas fa-trash"></i>
                 </button>
             </td>
@@ -133,25 +141,25 @@ function renderUsers() {
             <div class="card bg-white shadow-sm p-4">
                 <div class="flex justify-between items-start mb-2">
                     <div>
-                        <h3 class="font-bold">${user.first_name} ${user.last_name}</h3>
-                        <p class="text-sm text-gray-600">${user.email}</p>
+                        <h3 class="font-bold">${escapeHtml(user.first_name)} ${escapeHtml(user.last_name)}</h3>
+                        <p class="text-sm text-gray-600">${escapeHtml(user.email)}</p>
                     </div>
                     <div class="flex gap-2">
-                        <button class="btn btn-sm bg-black hover:bg-gray-800 text-yellow-400" onclick="editUser('${user.id}')">
+                        <button class="btn btn-sm bg-black hover:bg-gray-800 text-yellow-400" onclick="editUser('${escapeHtml(user.id)}')">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button class="btn btn-sm bg-black hover:bg-gray-800 text-yellow-400" onclick="viewUserActivity('${user.email}')">
+                        <button class="btn btn-sm bg-black hover:bg-gray-800 text-yellow-400" onclick="viewUserActivity('${escapeHtml(user.email)}')">
                             <i class="fas fa-history"></i>
                         </button>
-                        <button class="btn btn-sm bg-red-600 hover:bg-red-700 text-white" onclick="showDeleteUserModal('${user.email}')">
+                        <button class="btn btn-sm bg-red-600 hover:bg-red-700 text-white" onclick="showDeleteUserModal('${escapeHtml(user.email)}')">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
                 </div>
                 <div class="text-sm">
-                    <p><span class="font-semibold">Club:</span> ${user.club_name || 'None'}</p>
-                    <p><span class="font-semibold">Series:</span> ${user.series_name || 'None'}</p>
-                    <p><span class="font-semibold">Last Login:</span> ${user.last_login ? formatTimestamp(user.last_login) : 'Never'}</p>
+                    <p><span class="font-semibold">Club:</span> ${escapeHtml(user.club_name) || 'None'}</p>
+                    <p><span class="font-semibold">Series:</span> ${escapeHtml(user.series_name) || 'None'}</p>
+                    <p><span class="font-semibold">Last Login:</span> ${user.last_login ? escapeHtml(formatTimestamp(user.last_login)) : 'Never'}</p>
                 </div>
             </div>
         `).join('');
@@ -370,7 +378,7 @@ async function loadClubs() {
             clubsTableBody.innerHTML = `
                 <tr>
                     <td colspan="3" class="text-center text-error">
-                        Failed to load clubs: ${error.message}
+                        Failed to load clubs: ${escapeHtml(error.message)}
                     </td>
                 </tr>
             `;
@@ -390,14 +398,14 @@ function renderClubs() {
     clubs.forEach(club => {
         const row = document.createElement('tr');
         row.innerHTML = `
-            <td class="py-2">${club.id}</td>
-            <td class="py-2">${club.name}</td>
+            <td class="py-2">${escapeHtml(club.id)}</td>
+            <td class="py-2">${escapeHtml(club.name)}</td>
             <td class="py-2 text-right">
                 <div class="flex gap-2 justify-end">
-                    <button class="btn btn-sm bg-black hover:bg-gray-800 text-yellow-400" onclick="showEditClubModal(${club.id})">
+                    <button class="btn btn-sm bg-black hover:bg-gray-800 text-yellow-400" onclick="showEditClubModal(${escapeHtml(club.id)})">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button class="btn btn-sm bg-black hover:bg-gray-800 text-yellow-400" onclick="deleteClub(${club.id})">
+                    <button class="btn btn-sm bg-black hover:bg-gray-800 text-yellow-400" onclick="deleteClub(${escapeHtml(club.id)})">
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
@@ -413,14 +421,14 @@ function renderClubs() {
             <div class="card bg-white shadow-sm p-4">
                 <div class="flex justify-between items-start">
                     <div>
-                        <h3 class="font-bold">${club.name}</h3>
-                        <p class="text-sm text-gray-600">ID: ${club.id}</p>
+                        <h3 class="font-bold">${escapeHtml(club.name)}</h3>
+                        <p class="text-sm text-gray-600">ID: ${escapeHtml(club.id)}</p>
                     </div>
                     <div class="flex gap-2">
-                        <button class="btn btn-sm bg-black hover:bg-gray-800 text-yellow-400" onclick="showEditClubModal(${club.id})">
+                        <button class="btn btn-sm bg-black hover:bg-gray-800 text-yellow-400" onclick="showEditClubModal(${escapeHtml(club.id)})">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button class="btn btn-sm bg-black hover:bg-gray-800 text-yellow-400" onclick="deleteClub(${club.id})">
+                        <button class="btn btn-sm bg-black hover:bg-gray-800 text-yellow-400" onclick="deleteClub(${escapeHtml(club.id)})">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
@@ -519,7 +527,7 @@ async function loadSeries() {
             seriesTableBody.innerHTML = `
                 <tr>
                     <td colspan="3" class="text-center text-error">
-                        Failed to load series: ${error.message}
+                        Failed to load series: ${escapeHtml(error.message)}
                     </td>
                 </tr>
             `;
@@ -539,14 +547,14 @@ function renderSeries() {
     series.forEach(s => {
         const row = document.createElement('tr');
         row.innerHTML = `
-            <td class="py-2">${s.id}</td>
-            <td class="py-2">${s.name}</td>
+            <td class="py-2">${escapeHtml(s.id)}</td>
+            <td class="py-2">${escapeHtml(s.name)}</td>
             <td class="py-2 text-right">
                 <div class="flex gap-2 justify-end">
-                    <button class="btn btn-sm bg-black hover:bg-gray-800 text-yellow-400" onclick="showEditSeriesModal(${s.id})">
+                    <button class="btn btn-sm bg-black hover:bg-gray-800 text-yellow-400" onclick="showEditSeriesModal(${escapeHtml(s.id)})">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button class="btn btn-sm bg-black hover:bg-gray-800 text-yellow-400" onclick="deleteSeries(${s.id})">
+                    <button class="btn btn-sm bg-black hover:bg-gray-800 text-yellow-400" onclick="deleteSeries(${escapeHtml(s.id)})">
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
@@ -562,14 +570,14 @@ function renderSeries() {
             <div class="card bg-white shadow-sm p-4">
                 <div class="flex justify-between items-start">
                     <div>
-                        <h3 class="font-bold">${s.name}</h3>
-                        <p class="text-sm text-gray-600">ID: ${s.id}</p>
+                        <h3 class="font-bold">${escapeHtml(s.name)}</h3>
+                        <p class="text-sm text-gray-600">ID: ${escapeHtml(s.id)}</p>
                     </div>
                     <div class="flex gap-2">
-                        <button class="btn btn-sm bg-black hover:bg-gray-800 text-yellow-400" onclick="showEditSeriesModal(${s.id})">
+                        <button class="btn btn-sm bg-black hover:bg-gray-800 text-yellow-400" onclick="showEditSeriesModal(${escapeHtml(s.id)})">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button class="btn btn-sm bg-black hover:bg-gray-800 text-yellow-400" onclick="deleteSeries(${s.id})">
+                        <button class="btn btn-sm bg-black hover:bg-gray-800 text-yellow-400" onclick="deleteSeries(${escapeHtml(s.id)})">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>

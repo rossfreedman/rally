@@ -64,8 +64,8 @@
                     <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
                         <i class="fas fa-user-slash text-blue-500 text-2xl"></i>
                     </div>
-                    <h3 class="text-lg font-semibold text-gray-900 mb-2">No Higher Series Found</h3>
-                    <p class="text-gray-500">No subs found in higher series at {{ session_data.user.club }}. You might already be in the highest series available!</p>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">No Subs Available</h3>
+                    <p class="text-gray-500">No subs found in higher series at {{ session_data.user.club }}. You might already be in the highest series available at your club!</p>
                 </div>
             </div>
         </div>
@@ -233,7 +233,7 @@ async function fetchAndRenderSubsMobile() {
         );
         const results = await Promise.all(promises);
         
-        // 4. Aggregate all players
+        // 4. Aggregate all players (only from same club - current restrictive logic)
         const allPlayers = results.flatMap(result =>
             result.players.map(player => ({
                 ...player,
@@ -241,7 +241,16 @@ async function fetchAndRenderSubsMobile() {
             }))
         );
         
-        if (allPlayers.length === 0) {
+        // Filter to only players from the same club
+        const sameClubPlayers = allPlayers.filter(player => 
+            player.club && player.club.toLowerCase() === '{{ session_data.user.club }}'.toLowerCase()
+        );
+        
+        console.log(`Found ${sameClubPlayers.length} players at same club from ${higherSeries.length} higher series`);
+        
+        // Fix: Show correct message - "No Subs Available" instead of "No Higher Series Found"
+        // when higher series exist but no players are found at user's club
+        if (sameClubPlayers.length === 0) {
             loadingDiv.classList.add('hidden');
             noResultsDiv.classList.remove('hidden');
             return;
@@ -256,7 +265,7 @@ async function fetchAndRenderSubsMobile() {
             return (normalizedPTI * 0.7) + (winRateDecimal * 0.2) + (normalizedSeries * 0.1);
         }
         
-        const playersWithScores = allPlayers.map(player => ({
+        const playersWithScores = sameClubPlayers.map(player => ({
             ...player,
             compositeScore: calculateCompositeScore(player.pti || player.rating, player.winRate, player.series)
         }));

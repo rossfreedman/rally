@@ -3,8 +3,7 @@ import sys
 from logging.config import fileConfig
 from urllib.parse import urlparse
 
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
+from sqlalchemy import engine_from_config, pool
 
 from alembic import context
 
@@ -14,8 +13,11 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 # Import the SQLAlchemy models and Base from your app
 try:
     from app.models.database_models import Base
+
     target_metadata = Base.metadata
-    print(f"✅ Successfully imported SQLAlchemy models. Found {len(target_metadata.tables)} tables in metadata.")
+    print(
+        f"✅ Successfully imported SQLAlchemy models. Found {len(target_metadata.tables)} tables in metadata."
+    )
 except (ImportError, AttributeError) as e:
     print(f"⚠️  Could not import SQLAlchemy models: {e}")
     print("Using schema-less migrations (manual SQL only)")
@@ -30,6 +32,7 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
+
 # Get database URL from environment
 def get_url():
     """Get the appropriate database URL based on environment"""
@@ -38,7 +41,10 @@ def get_url():
         return "postgresql://postgres:HKJnPmxKZmKiIglQhQPSmfcAjTgBsSIq@ballast.proxy.rlwy.net:40911/railway"
     else:
         # Use local database URL by default
-        return os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/rally")
+        return os.getenv(
+            "DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/rally"
+        )
+
 
 config.set_main_option("sqlalchemy.url", get_url())
 
@@ -87,9 +93,7 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
-        context.configure(
-            connection=connection, target_metadata=target_metadata
-        )
+        context.configure(connection=connection, target_metadata=target_metadata)
 
         with context.begin_transaction():
             context.run_migrations()

@@ -12,35 +12,37 @@ import re
 import sys
 from pathlib import Path
 
+
 def update_file_content(file_path, updates):
     """Update a file with multiple search/replace operations"""
     print(f"🔧 Updating {file_path}...")
-    
-    with open(file_path, 'r') as f:
+
+    with open(file_path, "r") as f:
         content = f.read()
-    
+
     original_content = content
     changes_made = 0
-    
+
     for old_pattern, new_pattern, description in updates:
         if old_pattern in content:
             content = content.replace(old_pattern, new_pattern)
             changes_made += 1
             print(f"   ✅ {description}")
-    
+
     if changes_made > 0:
-        with open(file_path, 'w') as f:
+        with open(file_path, "w") as f:
             f.write(content)
         print(f"   💾 Saved {changes_made} changes to {file_path}")
     else:
         print(f"   ℹ️  No changes needed in {file_path}")
-    
+
     return changes_made
+
 
 def update_api_routes():
     """Update app/routes/api_routes.py"""
     file_path = "app/routes/api_routes.py"
-    
+
     updates = [
         # Update primary association queries
         (
@@ -52,9 +54,8 @@ def update_api_routes():
                 UserPlayerAssociation.user_id == user_record.id,
                 UserPlayerAssociation.is_primary == True
             ).first()""",
-            "Primary association query (no change needed - still uses user_id)"
+            "Primary association query (no change needed - still uses user_id)",
         ),
-        
         # Update association existence checks - these need player lookups
         (
             """existing = db_session.query(UserPlayerAssociation).filter(
@@ -66,9 +67,8 @@ def update_api_routes():
                 UserPlayerAssociation.tenniscores_player_id == player_record.tenniscores_player_id,
                 UserPlayerAssociation.league_id == player_record.league_id
             ).first()""",
-            "Association existence check - updated to use tenniscores_player_id + league_id"
+            "Association existence check - updated to use tenniscores_player_id + league_id",
         ),
-        
         # Update association creation
         (
             """association = UserPlayerAssociation(
@@ -82,9 +82,8 @@ def update_api_routes():
                 league_id=player_record.league_id,
                 is_primary=is_primary
             )""",
-            "Association creation - updated to use tenniscores_player_id + league_id"
+            "Association creation - updated to use tenniscores_player_id + league_id",
         ),
-        
         # Update bulk primary flag reset
         (
             """db_session.query(UserPlayerAssociation).filter(
@@ -95,9 +94,8 @@ def update_api_routes():
                 UserPlayerAssociation.user_id == user_record.id,
                 UserPlayerAssociation.is_primary == True
             ).update({UserPlayerAssociation.is_primary: False})""",
-            "Bulk primary flag reset (no change needed - still uses user_id)"
+            "Bulk primary flag reset (no change needed - still uses user_id)",
         ),
-        
         # Update user associations query
         (
             """associations = db_session.query(UserPlayerAssociation).filter(
@@ -106,16 +104,17 @@ def update_api_routes():
             """associations = db_session.query(UserPlayerAssociation).filter(
                 UserPlayerAssociation.user_id == user_record.id
             ).all()""",
-            "User associations query (no change needed - still uses user_id)"
-        )
+            "User associations query (no change needed - still uses user_id)",
+        ),
     ]
-    
+
     return update_file_content(file_path, updates)
+
 
 def update_auth_service():
     """Update app/services/auth_service_refactored.py"""
     file_path = "app/services/auth_service_refactored.py"
-    
+
     updates = [
         # Update association existence checks
         (
@@ -128,9 +127,8 @@ def update_auth_service():
                 UserPlayerAssociation.tenniscores_player_id == player.tenniscores_player_id,
                 UserPlayerAssociation.league_id == player.league_id
             ).first()""",
-            "Association existence check in registration - updated to use tenniscores_player_id + league_id"
+            "Association existence check in registration - updated to use tenniscores_player_id + league_id",
         ),
-        
         # Update association creation in registration
         (
             """association = UserPlayerAssociation(
@@ -144,9 +142,8 @@ def update_auth_service():
                 league_id=player.league_id,
                 is_primary=is_primary
             )""",
-            "Association creation in registration - updated to use tenniscores_player_id + league_id"
+            "Association creation in registration - updated to use tenniscores_player_id + league_id",
         ),
-        
         # Update specific user-player association queries
         (
             """existing = db_session.query(UserPlayerAssociation).filter(
@@ -163,9 +160,8 @@ def update_auth_service():
                 UserPlayerAssociation.tenniscores_player_id == player_record.tenniscores_player_id,
                 UserPlayerAssociation.league_id == player_record.league_id
             ).first()""",
-            "User-player association query - updated to use player lookup first"
+            "User-player association query - updated to use player lookup first",
         ),
-        
         # Update association creation in add_player_association
         (
             """association = UserPlayerAssociation(
@@ -179,11 +175,12 @@ def update_auth_service():
                 league_id=player_record.league_id,
                 is_primary=is_primary
             )""",
-            "Association creation in add_player_association - updated to use tenniscores_player_id + league_id"
-        )
+            "Association creation in add_player_association - updated to use tenniscores_player_id + league_id",
+        ),
     ]
-    
+
     return update_file_content(file_path, updates)
+
 
 def create_helper_functions():
     """Create helper functions for common association operations"""
@@ -223,36 +220,40 @@ def get_user_associated_players(db_session, user_id):
     
     return players
 '''
-    
+
     with open("app/utils/association_helpers.py", "w") as f:
         f.write(helper_code)
-    
+
     print("✅ Created helper functions in app/utils/association_helpers.py")
+
 
 def main():
     """Update all application code for the new schema"""
     print("🔄 UPDATING APPLICATION CODE FOR TENNISCORES_PLAYER_ID SCHEMA")
     print("=" * 70)
-    
+
     total_changes = 0
-    
+
     # Update main application files
     total_changes += update_api_routes()
     total_changes += update_auth_service()
-    
+
     # Create helper functions
     create_helper_functions()
-    
+
     print("\n" + "=" * 70)
     print(f"✅ COMPLETED: Made {total_changes} total changes")
     print("\n📝 MANUAL UPDATES NEEDED:")
     print("   1. Review all updated queries for correctness")
     print("   2. Add imports for helper functions where needed:")
-    print("      from app.utils.association_helpers import find_user_player_association")
+    print(
+        "      from app.utils.association_helpers import find_user_player_association"
+    )
     print("   3. Test all user authentication and player association flows")
     print("   4. Update any remaining direct SQL queries in the codebase")
-    
+
     print("\n⚠️  IMPORTANT: Run migration script BEFORE deploying these code changes!")
 
+
 if __name__ == "__main__":
-    main() 
+    main()

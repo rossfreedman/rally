@@ -1,9 +1,10 @@
-from utils.db import execute_update, execute_query
+from utils.db import execute_query, execute_update
+
 
 def init_postgres():
     """Initialize PostgreSQL database with default data"""
     print("Initializing PostgreSQL database...")
-    
+
     # Create clubs table
     execute_update(
         """
@@ -13,7 +14,7 @@ def init_postgres():
         )
         """
     )
-    
+
     # Create series table
     execute_update(
         """
@@ -23,7 +24,7 @@ def init_postgres():
         )
         """
     )
-    
+
     # Create users table
     execute_update(
         """
@@ -41,7 +42,7 @@ def init_postgres():
         )
         """
     )
-    
+
     # Create index on email for faster lookups
     execute_update(
         """
@@ -49,7 +50,7 @@ def init_postgres():
         ON users(email)
         """
     )
-    
+
     # Create user_instructions table
     execute_update(
         """
@@ -64,22 +65,63 @@ def init_postgres():
         )
         """
     )
-    
+
     # Insert default clubs
     default_clubs = [
-        'Tennaqua', 'Wilmette PD', 'Sunset Ridge', 'Winnetka', 'Exmoor',
-        'Hinsdale PC', 'Onwentsia', 'Salt Creek', 'Lakeshore S&F', 'Glen View',
-        'Prairie Club', 'Lake Forest', 'Evanston', 'Midt-Bannockburn', 'Briarwood',
-        'Birchwood', 'Hinsdale GC', 'Butterfield', 'Chicago Highlands', 'Glen Ellyn',
-        'Skokie', 'Winter Club', 'Westmoreland', 'Valley Lo', 'South Barrington',
-        'Saddle & Cycle', 'Ruth Lake', 'Northmoor', 'North Shore', 'Midtown - Chicago',
-        'Michigan Shores', 'Lake Shore CC', 'Knollwood', 'Indian Hill', 'Glenbrook RC',
-        'Hawthorn Woods', 'Lake Bluff', 'Barrington Hills CC', 'River Forest PD',
-        'Edgewood Valley', 'Park Ridge CC', 'Medinah', 'LaGrange CC', 'Dunham Woods',
-        'Bryn Mawr', 'Glen Oak', 'Inverness', 'White Eagle', 'Legends',
-        'River Forest CC', 'Oak Park CC', 'Royal Melbourne'
+        "Tennaqua",
+        "Wilmette PD",
+        "Sunset Ridge",
+        "Winnetka",
+        "Exmoor",
+        "Hinsdale PC",
+        "Onwentsia",
+        "Salt Creek",
+        "Lakeshore S&F",
+        "Glen View",
+        "Prairie Club",
+        "Lake Forest",
+        "Evanston",
+        "Midt-Bannockburn",
+        "Briarwood",
+        "Birchwood",
+        "Hinsdale GC",
+        "Butterfield",
+        "Chicago Highlands",
+        "Glen Ellyn",
+        "Skokie",
+        "Winter Club",
+        "Westmoreland",
+        "Valley Lo",
+        "South Barrington",
+        "Saddle & Cycle",
+        "Ruth Lake",
+        "Northmoor",
+        "North Shore",
+        "Midtown - Chicago",
+        "Michigan Shores",
+        "Lake Shore CC",
+        "Knollwood",
+        "Indian Hill",
+        "Glenbrook RC",
+        "Hawthorn Woods",
+        "Lake Bluff",
+        "Barrington Hills CC",
+        "River Forest PD",
+        "Edgewood Valley",
+        "Park Ridge CC",
+        "Medinah",
+        "LaGrange CC",
+        "Dunham Woods",
+        "Bryn Mawr",
+        "Glen Oak",
+        "Inverness",
+        "White Eagle",
+        "Legends",
+        "River Forest CC",
+        "Oak Park CC",
+        "Royal Melbourne",
     ]
-    
+
     for club in default_clubs:
         execute_update(
             """
@@ -87,24 +129,65 @@ def init_postgres():
             VALUES (%(name)s)
             ON CONFLICT (name) DO NOTHING
             """,
-            {'name': club}
+            {"name": club},
         )
-    
+
     # Insert default series
     default_series = [
-        'Chicago 1', 'Chicago 2', 'Chicago 3', 'Chicago 4', 'Chicago 5',
-        'Chicago 6', 'Chicago 7', 'Chicago 8', 'Chicago 9', 'Chicago 10',
-        'Chicago 11', 'Chicago 12', 'Chicago 13', 'Chicago 14', 'Chicago 15',
-        'Chicago 16', 'Chicago 17', 'Chicago 18', 'Chicago 19', 'Chicago 20',
-        'Chicago 21', 'Chicago 22', 'Chicago 23', 'Chicago 24', 'Chicago 25',
-        'Chicago 26', 'Chicago 27', 'Chicago 28', 'Chicago 29', 'Chicago 30',
-        'Chicago 31', 'Chicago 32', 'Chicago 33', 'Chicago 34', 'Chicago 35',
-        'Chicago 36', 'Chicago 37', 'Chicago 38', 'Chicago 39', 'Chicago Legends',
-        'Chicago 7 SW', 'Chicago 9 SW', 'Chicago 11 SW', 'Chicago 13 SW',
-        'Chicago 15 SW', 'Chicago 17 SW', 'Chicago 19 SW', 'Chicago 21 SW',
-        'Chicago 23 SW', 'Chicago 25 SW', 'Chicago 27 SW', 'Chicago 29 SW'
+        "Chicago 1",
+        "Chicago 2",
+        "Chicago 3",
+        "Chicago 4",
+        "Chicago 5",
+        "Chicago 6",
+        "Chicago 7",
+        "Chicago 8",
+        "Chicago 9",
+        "Chicago 10",
+        "Chicago 11",
+        "Chicago 12",
+        "Chicago 13",
+        "Chicago 14",
+        "Chicago 15",
+        "Chicago 16",
+        "Chicago 17",
+        "Chicago 18",
+        "Chicago 19",
+        "Chicago 20",
+        "Chicago 21",
+        "Chicago 22",
+        "Chicago 23",
+        "Chicago 24",
+        "Chicago 25",
+        "Chicago 26",
+        "Chicago 27",
+        "Chicago 28",
+        "Chicago 29",
+        "Chicago 30",
+        "Chicago 31",
+        "Chicago 32",
+        "Chicago 33",
+        "Chicago 34",
+        "Chicago 35",
+        "Chicago 36",
+        "Chicago 37",
+        "Chicago 38",
+        "Chicago 39",
+        "Chicago Legends",
+        "Chicago 7 SW",
+        "Chicago 9 SW",
+        "Chicago 11 SW",
+        "Chicago 13 SW",
+        "Chicago 15 SW",
+        "Chicago 17 SW",
+        "Chicago 19 SW",
+        "Chicago 21 SW",
+        "Chicago 23 SW",
+        "Chicago 25 SW",
+        "Chicago 27 SW",
+        "Chicago 29 SW",
     ]
-    
+
     for series in default_series:
         execute_update(
             """
@@ -112,10 +195,11 @@ def init_postgres():
             VALUES (%(name)s)
             ON CONFLICT (name) DO NOTHING
             """,
-            {'name': series}
+            {"name": series},
         )
-    
+
     print("PostgreSQL database initialization complete.")
 
-if __name__ == '__main__':
-    init_postgres() 
+
+if __name__ == "__main__":
+    init_postgres()

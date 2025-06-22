@@ -5,15 +5,16 @@ Revises: fddbba0e1328, add_team_polls_001
 Create Date: 2025-06-17 19:49:25.525207
 
 """
+
 from typing import Sequence, Union
 
-from alembic import op
 import sqlalchemy as sa
 
+from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = '995937af9e55'
-down_revision: Union[str, None] = ('fddbba0e1328', 'add_team_polls_001')
+revision: str = "995937af9e55"
+down_revision: Union[str, None] = ("fddbba0e1328", "add_team_polls_001")
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
