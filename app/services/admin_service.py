@@ -231,6 +231,7 @@ def delete_user_by_email(email, admin_email):
         # Delete user and related data in the correct order to handle foreign key constraints
         execute_update(
             """
+            DELETE FROM polls WHERE created_by = %(user_id)s;
             DELETE FROM activity_log WHERE user_id = %(user_id)s;
             DELETE FROM user_activity_logs WHERE user_email = %(email)s;
             DELETE FROM user_instructions WHERE user_email = %(email)s;
