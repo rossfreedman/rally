@@ -1,462 +1,472 @@
 """
-Rally Test Data Scraper
-Automated scraper to pull real player data from TennisScores for testing purposes
-Generates both valid and intentionally invalid test data
+Rally Test Data Generator
+Generates test data by sampling from existing scraped league JSON files
+Much faster and more reliable than scraping external websites
 """
 
-import os
-import sys
 import json
+import os
 import random
-import time
+import sys
 from datetime import datetime
 from typing import Dict, List, Optional
-import tempfile
-import requests
-from bs4 import BeautifulSoup
 
 # Add parent directory to path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+sys.path.append(
+    os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+)
 
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.common.by import By
-from webdriver_manager.chrome import ChromeDriverManager
 
-class TennisScoresTestDataScraper:
-    """Scraper to generate test data from real TennisScores websites"""
-    
+class LocalLeagueDataSampler:
+    """Sample test data from local league JSON files"""
+
     def __init__(self, max_players_per_league=20, max_invalid_players=10):
         self.max_players_per_league = max_players_per_league
         self.max_invalid_players = max_invalid_players
+        self.project_root = os.path.dirname(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        )
+
+        # League data file paths
+        self.league_data_files = {
+            "all": os.path.join(
+                self.project_root, "data", "leagues", "all", "players.json"
+            ),
+            "APTA_CHICAGO": os.path.join(
+                self.project_root, "data", "leagues", "APTA_CHICAGO", "players.json"
+            ),
+            "NSTF": os.path.join(
+                self.project_root, "data", "leagues", "NSTF", "players.json"
+            ),
+            "CITA": os.path.join(
+                self.project_root, "data", "leagues", "CITA", "players.json"
+            ),
+            "CNSWPL": os.path.join(
+                self.project_root, "data", "leagues", "CNSWPL", "players.json"
+            ),
+        }
+
         self.valid_players = []
         self.invalid_players = []
-        self.leagues_scraped = []
-        
-        # Common TennisScores league configurations
-        self.league_configs = {
-            'APTA_CHICAGO': {
-                'base_url': 'https://aptachicago.tenniscores.com',
-                'main_page_mod': 'nndz-SkhmOW1PQ3V4Zz09',
-                'league_id': 'APTA_CHICAGO',
-                'league_name': 'APTA Chicago'
-            },
-            'NSTF': {
-                'base_url': 'https://nstf.tenniscores.com',
-                'main_page_mod': 'nndz-QXZNKzh4N0F0QT09',
-                'league_id': 'NSTF',
-                'league_name': 'North Shore Tennis Foundation'
-            },
-            'CITA': {
-                'base_url': 'https://cita.tenniscores.com',
-                'main_page_mod': 'basic',
-                'league_id': 'CITA',
-                'league_name': 'Connecticut Indoor Tennis Association'
-            }
-        }
-        
-        self.driver = None
-    
-    def setup_driver(self):
-        """Setup Chrome WebDriver with appropriate options"""
-        print("🚀 Setting up Chrome WebDriver...")
-        
-        chrome_options = Options()
-        chrome_options.add_argument('--headless')  # Run in background
-        chrome_options.add_argument('--no-sandbox')
-        chrome_options.add_argument('--disable-dev-shm-usage')
-        chrome_options.add_argument('--disable-gpu')
-        chrome_options.add_argument('--window-size=1920,1080')
-        chrome_options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36')
-        
-        # Create temporary user data directory
-        user_data_dir = tempfile.mkdtemp()
-        chrome_options.add_argument(f'--user-data-dir={user_data_dir}')
-        
+        self.leagues_sampled = []
+
+    def load_league_data(self, league_key: str) -> List[Dict]:
+        """Load player data from a specific league JSON file"""
+        file_path = self.league_data_files.get(league_key)
+
+        if not file_path or not os.path.exists(file_path):
+            print(f"❌ League data file not found: {file_path}")
+            return []
+
         try:
-            service = Service(ChromeDriverManager().install())
-            self.driver = webdriver.Chrome(service=service, options=chrome_options)
-            print("✅ Chrome WebDriver initialized successfully")
-            return True
+            print(f"📂 Loading {league_key} data from: {os.path.basename(file_path)}")
+
+            with open(file_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+
+            print(f"   ✅ Loaded {len(data)} total players from {league_key}")
+            return data
+
+        except json.JSONDecodeError as e:
+            print(f"❌ Error parsing JSON file {file_path}: {e}")
+            return []
         except Exception as e:
-            print(f"❌ Failed to initialize Chrome WebDriver: {e}")
-            return False
-    
-    def cleanup_driver(self):
-        """Clean up WebDriver resources"""
-        if self.driver:
-            try:
-                self.driver.quit()
-                print("✅ Chrome WebDriver cleaned up")
-            except Exception as e:
-                print(f"⚠️ Error cleaning up WebDriver: {e}")
-    
-    def scrape_league_players(self, league_key: str, sample_size: int = None) -> List[Dict]:
-        """Scrape player data from a specific league"""
+            print(f"❌ Error loading {file_path}: {e}")
+            return []
+
+    def sample_league_players(
+        self, league_key: str, sample_size: int = None
+    ) -> List[Dict]:
+        """Sample random players from a specific league"""
         if sample_size is None:
             sample_size = self.max_players_per_league
-            
-        config = self.league_configs.get(league_key)
-        if not config:
-            print(f"❌ Unknown league: {league_key}")
-            return []
-        
-        print(f"\n🎾 Scraping {config['league_name']} ({league_key})")
+
+        print(f"\n🎾 Sampling from {league_key}")
         print(f"   Target: {sample_size} players")
-        
-        players = []
-        
+
+        # Load all players from the league
+        all_players = self.load_league_data(league_key)
+
+        if not all_players:
+            return []
+
+        # Filter for valid players with required fields
+        valid_raw_players = []
+        for player in all_players:
+            if (
+                isinstance(player, dict)
+                and player.get("First Name")
+                and player.get("Last Name")
+                and player.get("League")
+            ):
+                valid_raw_players.append(player)
+
+        print(f"   📊 {len(valid_raw_players)} valid players available")
+
+        # Randomly sample from valid players
+        sample_count = min(sample_size, len(valid_raw_players))
+        sampled_players = random.sample(valid_raw_players, sample_count)
+
+        # Convert to test data format
+        test_players = []
+        for player in sampled_players:
+            test_player = self.convert_to_test_format(player)
+            if test_player:
+                test_players.append(test_player)
+                print(
+                    f"   ✓ {test_player['first_name']} {test_player['last_name']} | {test_player['club']} | {test_player['series']} | PTI: {test_player.get('pti', 'N/A')}"
+                )
+
+        print(f"   📈 Successfully converted {len(test_players)} players")
+        self.leagues_sampled.append(league_key)
+
+        return test_players
+
+    def convert_to_test_format(self, raw_player: Dict) -> Optional[Dict]:
+        """Convert raw league JSON player data to test format"""
         try:
-            # Build main URL
-            main_url = f"{config['base_url']}/?mod={config['main_page_mod']}"
-            print(f"   Loading: {main_url}")
-            
-            self.driver.get(main_url)
-            time.sleep(3)  # Wait for page to load
-            
-            # Parse page content
-            soup = BeautifulSoup(self.driver.page_source, 'html.parser')
-            
-            # Find player table(s)
-            tables = soup.find_all('table')
-            
-            for table in tables:
-                rows = table.find_all('tr')[1:]  # Skip header
-                
-                for row in rows[:sample_size]:  # Limit sample size
-                    try:
-                        player_data = self.extract_player_from_row(row, config)
-                        if player_data:
-                            players.append(player_data)
-                            print(f"   ✓ {player_data['first_name']} {player_data['last_name']} | {player_data['club']} | PTI: {player_data.get('pti', 'N/A')}")
-                    except Exception as e:
-                        print(f"   ⚠️ Error extracting player from row: {e}")
-                        continue
-                
-                if len(players) >= sample_size:
-                    break
-            
-            print(f"   📊 Collected {len(players)} players from {league_key}")
-            self.leagues_scraped.append(league_key)
-            
-        except Exception as e:
-            print(f"❌ Error scraping {league_key}: {e}")
-            
-        return players
-    
-    def extract_player_from_row(self, row, config: Dict) -> Optional[Dict]:
-        """Extract player information from a table row"""
-        cells = row.find_all('td')
-        if len(cells) < 2:
-            return None
-        
-        try:
-            # Basic player info
-            first_name = cells[0].get_text(strip=True)
-            last_name = cells[1].get_text(strip=True)
-            
+            first_name = raw_player.get("First Name", "").strip()
+            last_name = raw_player.get("Last Name", "").strip()
+
             if not first_name or not last_name:
                 return None
-            
-            # Extract PTI/rating if available
+
+            # Extract PTI and convert to float
+            pti_raw = raw_player.get("PTI", "N/A")
             pti = None
-            if len(cells) > 2:
-                pti_text = cells[2].get_text(strip=True)
+            if pti_raw and pti_raw != "N/A":
                 try:
-                    pti = float(pti_text) if pti_text and pti_text.replace('.', '').isdigit() else None
-                except ValueError:
+                    pti = float(str(pti_raw).replace("%", ""))
+                except (ValueError, TypeError):
                     pti = None
-            
-            # Extract series/division from row classes
-            row_classes = row.get('class', [])
-            series = self.extract_series_from_classes(row_classes, config)
-            
-            # Extract club information (try to determine from context)
-            club = self.extract_club_from_context(row, config)
-            
-            # Generate TennisScores player ID from link if available
-            player_link = row.find('a')
-            tenniscores_id = None
-            if player_link:
-                href = player_link.get('href', '')
-                tenniscores_id = self.extract_tenniscores_id(href)
-            
-            # Create player record
-            player_data = {
-                'first_name': first_name,
-                'last_name': last_name,
-                'full_name': f"{first_name} {last_name}",
-                'club': club or 'Unknown Club',
-                'series': series or 'Unknown Series',
-                'league': config['league_id'],  
-                'league_name': config['league_name'],
-                'pti': pti,
-                'tenniscores_player_id': tenniscores_id,
-                'scraped_at': datetime.now().isoformat(),
-                'valid_for_testing': True,
-                'source_url': config['base_url']
+
+            # Extract wins/losses
+            wins = self._safe_int_convert(raw_player.get("Wins", 0))
+            losses = self._safe_int_convert(raw_player.get("Losses", 0))
+
+            # Calculate win percentage
+            total_matches = wins + losses
+            win_percentage = (
+                round((wins / total_matches) * 100, 1) if total_matches > 0 else 0.0
+            )
+
+            # Clean up club and series names
+            club = raw_player.get("Club", "Unknown Club").strip()
+            series = raw_player.get("Series", "Unknown Series").strip()
+            series_mapping_id = raw_player.get("Series Mapping ID", series).strip()
+
+            # Create test player record
+            test_player = {
+                "first_name": first_name,
+                "last_name": last_name,
+                "full_name": f"{first_name} {last_name}",
+                "club": club,
+                "series": series,
+                "series_mapping_id": series_mapping_id,
+                "league": raw_player.get("League", "UNKNOWN"),
+                "league_name": self._get_league_display_name(
+                    raw_player.get("League", "UNKNOWN")
+                ),
+                "pti": pti,
+                "wins": wins,
+                "losses": losses,
+                "win_percentage": win_percentage,
+                "tenniscores_player_id": raw_player.get("Player ID"),
+                "location_id": raw_player.get("Location ID"),
+                "captain": raw_player.get("Captain") == "C",
+                "sampled_at": datetime.now().isoformat(),
+                "valid_for_testing": True,
+                "source": "local_json_file",
             }
-            
-            # Add some stats simulation
-            if pti:
-                # Simulate wins/losses based on PTI
-                total_matches = random.randint(5, 25)
-                win_rate = min(0.9, max(0.1, (pti - 1000) / 1000))  # PTI-based win rate
-                wins = int(total_matches * win_rate)
-                losses = total_matches - wins
-                
-                player_data.update({
-                    'wins': wins,
-                    'losses': losses,
-                    'win_percentage': round((wins / total_matches) * 100, 1) if total_matches > 0 else 0
-                })
-            
-            return player_data
-            
+
+            return test_player
+
         except Exception as e:
-            print(f"   ⚠️ Error extracting player data: {e}")
+            print(
+                f"   ⚠️ Error converting player {raw_player.get('First Name', 'Unknown')}: {e}"
+            )
             return None
-    
-    def extract_series_from_classes(self, row_classes: List[str], config: Dict) -> Optional[str]:
-        """Extract series/division information from row CSS classes"""
-        # Look for division ID patterns
-        for class_name in row_classes:
-            if class_name.startswith('diver_'):
-                div_id = class_name.replace('diver_', '')
-                
-                # Map division ID to series name (league-specific)
-                if config['league_id'] == 'APTA_CHICAGO':
-                    # Common APTA Chicago series patterns
-                    series_mapping = {
-                        '19048': 'Chicago 22',
-                        '19047': 'Chicago 21', 
-                        '19046': 'Chicago 20',
-                        '19029': 'Chicago 2',
-                        '19066': 'Chicago 6'
-                    }
-                    return series_mapping.get(div_id, f'Chicago Series {div_id}')
-                elif config['league_id'] == 'NSTF':
-                    return f'NSTF Series {div_id}'
-                
-        return None
-    
-    def extract_club_from_context(self, row, config: Dict) -> Optional[str]:
-        """Extract club name from row context"""
-        # Try to find club information in the row or nearby elements
-        # This is highly dependent on the specific league's HTML structure
-        
-        # Look for club names in common patterns
-        club_patterns = [
-            'Tennaqua', 'Birchwood', 'Exmoor', 'Onwentsia', 'Knollwood',
-            'Indian Hill', 'North Shore', 'Winnetka', 'Lake Forest',
-            'Wilmette', 'Evanston', 'Highland Park', 'Northbrook'
-        ]
-        
-        row_text = row.get_text()
-        for club in club_patterns:
-            if club.lower() in row_text.lower():
-                return club
-        
-        # Fallback: generate a random club for testing
-        return random.choice(['Test Club A', 'Test Club B', 'Test Club C'])
-    
-    def extract_tenniscores_id(self, href: str) -> Optional[str]:
-        """Extract TennisScores player ID from URL"""
-        if not href:
-            return None
-            
-        # Common patterns for TennisScores player IDs
-        patterns = ['uid=', 'player=', 'player_id=', 'id=']
-        
-        for pattern in patterns:
-            if pattern in href:
-                try:
-                    id_part = href.split(pattern)[1].split('&')[0]
-                    return id_part
-                except IndexError:
-                    continue
-        
-        return None
-    
+
+    def _safe_int_convert(self, value) -> int:
+        """Safely convert a value to integer"""
+        try:
+            return int(str(value).replace(",", ""))
+        except (ValueError, TypeError):
+            return 0
+
+    def _get_league_display_name(self, league_id: str) -> str:
+        """Get display name for league"""
+        league_names = {
+            "APTA_CHICAGO": "APTA Chicago",
+            "NSTF": "North Shore Tennis Foundation",
+            "CITA": "Connecticut Indoor Tennis Association",
+            "CNSWPL": "Chicago North Shore Women's Platform League",
+        }
+        return league_names.get(league_id, league_id)
+
     def generate_invalid_players(self) -> List[Dict]:
         """Generate intentionally invalid player data for negative testing"""
-        print(f"\n🔧 Generating {self.max_invalid_players} invalid players for negative testing")
-        
+        print(
+            f"\n🔧 Generating {self.max_invalid_players} invalid players for negative testing"
+        )
+
         invalid_players = []
-        
+
         # Pattern 1: Non-existent clubs
-        for i in range(self.max_invalid_players // 3):
-            invalid_players.append({
-                'first_name': f'Invalid{i}',
-                'last_name': 'Player',
-                'full_name': f'Invalid{i} Player',
-                'club': f'NonExistentClub{i}',
-                'series': 'FakeSeries',
-                'league': 'FAKE_LEAGUE',
-                'league_name': 'Fake League',
-                'pti': None,
-                'tenniscores_player_id': f'FAKE_{i:03d}',
-                'valid_for_testing': False,
-                'invalid_reason': 'non_existent_club'
-            })
-        
-        # Pattern 2: Malformed data
-        for i in range(self.max_invalid_players // 3):
-            invalid_players.append({
-                'first_name': '',  # Empty name
-                'last_name': 'Test',
-                'full_name': ' Test',
-                'club': 'ValidClub',
-                'series': '',  # Empty series
-                'league': 'APTA_CHICAGO',
-                'league_name': 'APTA Chicago',
-                'pti': -1,  # Invalid PTI
-                'tenniscores_player_id': None,
-                'valid_for_testing': False,
-                'invalid_reason': 'malformed_data'
-            })
-        
+        for i in range(max(1, self.max_invalid_players // 4)):
+            invalid_players.append(
+                {
+                    "first_name": f"Invalid{i}",
+                    "last_name": "Player",
+                    "full_name": f"Invalid{i} Player",
+                    "club": f"NonExistentClub{i}",
+                    "series": "FakeSeries",
+                    "series_mapping_id": "Fake Series - 1",
+                    "league": "FAKE_LEAGUE",
+                    "league_name": "Fake League",
+                    "pti": None,
+                    "wins": 0,
+                    "losses": 0,
+                    "win_percentage": 0.0,
+                    "tenniscores_player_id": f"FAKE_{i:03d}",
+                    "location_id": f"FAKE_LOCATION_{i}",
+                    "captain": False,
+                    "sampled_at": datetime.now().isoformat(),
+                    "valid_for_testing": False,
+                    "invalid_reason": "non_existent_club",
+                    "source": "generated_invalid",
+                }
+            )
+
+        # Pattern 2: Empty/malformed data
+        for i in range(max(1, self.max_invalid_players // 4)):
+            invalid_players.append(
+                {
+                    "first_name": "",  # Empty name
+                    "last_name": "Test",
+                    "full_name": " Test",
+                    "club": "ValidClub",
+                    "series": "",  # Empty series
+                    "series_mapping_id": "",
+                    "league": "APTA_CHICAGO",
+                    "league_name": "APTA Chicago",
+                    "pti": -1,  # Invalid PTI
+                    "wins": -5,  # Invalid wins
+                    "losses": -3,  # Invalid losses
+                    "win_percentage": 150.0,  # Invalid percentage
+                    "tenniscores_player_id": None,
+                    "location_id": "",
+                    "captain": False,
+                    "sampled_at": datetime.now().isoformat(),
+                    "valid_for_testing": False,
+                    "invalid_reason": "malformed_data",
+                    "source": "generated_invalid",
+                }
+            )
+
         # Pattern 3: SQL injection attempts (for security testing)
-        sql_payloads = ["'; DROP TABLE players; --", "Robert'); DROP TABLE students;--", "admin'--"]
-        for i, payload in enumerate(sql_payloads[:self.max_invalid_players // 3]):
-            invalid_players.append({
-                'first_name': payload,
-                'last_name': 'SecurityTest',
-                'full_name': f'{payload} SecurityTest',
-                'club': 'TestClub',
-                'series': 'TestSeries',
-                'league': 'APTA_CHICAGO',
-                'league_name': 'APTA Chicago',
-                'pti': 1500,
-                'tenniscores_player_id': f'SEC_{i:03d}',
-                'valid_for_testing': False,
-                'invalid_reason': 'security_payload'
-            })
-        
+        sql_payloads = [
+            "'; DROP TABLE players; --",
+            "Robert'); DROP TABLE users;--",
+            "admin'/*",
+            "1' OR '1'='1",
+            "'; UPDATE players SET pti=9999; --",
+        ]
+
+        for i, payload in enumerate(
+            sql_payloads[: max(1, self.max_invalid_players // 4)]
+        ):
+            invalid_players.append(
+                {
+                    "first_name": payload,
+                    "last_name": "SecurityTest",
+                    "full_name": f"{payload} SecurityTest",
+                    "club": "TestClub",
+                    "series": "TestSeries",
+                    "series_mapping_id": "Test Series - 1",
+                    "league": "APTA_CHICAGO",
+                    "league_name": "APTA Chicago",
+                    "pti": 1500,
+                    "wins": 10,
+                    "losses": 5,
+                    "win_percentage": 66.7,
+                    "tenniscores_player_id": f"SEC_{i:03d}",
+                    "location_id": "TEST_LOCATION",
+                    "captain": False,
+                    "sampled_at": datetime.now().isoformat(),
+                    "valid_for_testing": False,
+                    "invalid_reason": "security_payload",
+                    "source": "generated_invalid",
+                }
+            )
+
+        # Pattern 4: XSS attempts (for security testing)
+        xss_payloads = [
+            "<script>alert('XSS')</script>",
+            "javascript:alert('XSS')",
+            "<img src=x onerror=alert('XSS')>",
+            "';alert(String.fromCharCode(88,83,83))//'",
+        ]
+
+        for i, payload in enumerate(
+            xss_payloads[: max(1, self.max_invalid_players // 4)]
+        ):
+            invalid_players.append(
+                {
+                    "first_name": f"XSSTest{i}",
+                    "last_name": payload,
+                    "full_name": f"XSSTest{i} {payload}",
+                    "club": "TestClub",
+                    "series": payload,
+                    "series_mapping_id": f"{payload} - 1",
+                    "league": "APTA_CHICAGO",
+                    "league_name": "APTA Chicago",
+                    "pti": 1200,
+                    "wins": 8,
+                    "losses": 7,
+                    "win_percentage": 53.3,
+                    "tenniscores_player_id": f"XSS_{i:03d}",
+                    "location_id": "TEST_LOCATION",
+                    "captain": False,
+                    "sampled_at": datetime.now().isoformat(),
+                    "valid_for_testing": False,
+                    "invalid_reason": "xss_payload",
+                    "source": "generated_invalid",
+                }
+            )
+
         print(f"   ✓ Generated {len(invalid_players)} invalid test players")
         return invalid_players
-    
-    def scrape_all_leagues(self) -> Dict:
-        """Scrape player data from all configured leagues"""
-        print("🎯 Starting comprehensive test data scraping...")
+
+    def sample_all_leagues(self, use_combined_file: bool = True) -> Dict:
+        """Sample player data from league files"""
+        print("🎯 Starting local league data sampling...")
         print(f"   Target: {self.max_players_per_league} players per league")
-        print(f"   Leagues: {list(self.league_configs.keys())}")
-        
-        if not self.setup_driver():
-            return {'error': 'Failed to setup WebDriver'}
-        
-        try:
-            all_valid_players = []
-            
-            # Scrape each league
-            for league_key in self.league_configs.keys():
-                league_players = self.scrape_league_players(league_key)
+
+        all_valid_players = []
+
+        if use_combined_file:
+            # Use the combined 'all' file for maximum variety
+            print("📂 Using combined league data file (data/leagues/all/players.json)")
+            all_valid_players = self.sample_league_players(
+                "all", self.max_players_per_league * 3
+            )
+        else:
+            # Sample from individual league files
+            individual_leagues = ["APTA_CHICAGO", "NSTF", "CITA", "CNSWPL"]
+            print(f"📂 Sampling from individual league files: {individual_leagues}")
+
+            for league_key in individual_leagues:
+                league_players = self.sample_league_players(league_key)
                 all_valid_players.extend(league_players)
-                
-                # Add delay between leagues to be respectful
-                time.sleep(2)
-            
-            # Generate invalid players
-            invalid_players = self.generate_invalid_players()
-            
-            # Prepare final dataset
-            dataset = {
-                'metadata': {
-                    'scraped_at': datetime.now().isoformat(),
-                    'leagues_scraped': self.leagues_scraped,
-                    'total_valid_players': len(all_valid_players),
-                    'total_invalid_players': len(invalid_players),
-                    'scraper_version': '1.0',
-                    'purpose': 'Rally application testing'
-                },
-                'valid_players': all_valid_players,
-                'invalid_players': invalid_players
-            }
-            
-            print(f"\n📊 Scraping Summary:")
-            print(f"   ✅ Valid players: {len(all_valid_players)}")
-            print(f"   ❌ Invalid players: {len(invalid_players)}")
-            print(f"   🏆 Leagues covered: {len(self.leagues_scraped)}")
-            
-            return dataset
-            
-        finally:
-            self.cleanup_driver()
-    
+
+        # Generate invalid players for negative testing
+        invalid_players = self.generate_invalid_players()
+
+        # Prepare final dataset
+        dataset = {
+            "metadata": {
+                "sampled_at": datetime.now().isoformat(),
+                "leagues_sampled": self.leagues_sampled,
+                "total_valid_players": len(all_valid_players),
+                "total_invalid_players": len(invalid_players),
+                "sampler_version": "2.0",
+                "purpose": "Rally application testing",
+                "data_source": "local_json_files",
+                "max_players_per_league": self.max_players_per_league,
+                "use_combined_file": use_combined_file,
+            },
+            "valid_players": all_valid_players,
+            "invalid_players": invalid_players,
+        }
+
+        print(f"\n📊 Sampling Summary:")
+        print(f"   ✅ Valid players: {len(all_valid_players)}")
+        print(f"   ❌ Invalid players: {len(invalid_players)}")
+        print(f"   🏆 Leagues covered: {len(self.leagues_sampled)}")
+
+        return dataset
+
     def save_test_data(self, dataset: Dict, output_dir: str = None) -> str:
-        """Save scraped test data to JSON file"""
+        """Save sampled test data to JSON file"""
         if output_dir is None:
-            output_dir = os.path.join(os.path.dirname(__file__), '..', 'fixtures')
-        
+            output_dir = os.path.join(os.path.dirname(__file__), "..", "fixtures")
+
         os.makedirs(output_dir, exist_ok=True)
-        
+
         # Generate filename with timestamp
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = f'scraped_players_{timestamp}.json'
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"sampled_players_{timestamp}.json"
         filepath = os.path.join(output_dir, filename)
-        
+
         # Also save as the default name for test fixtures
-        default_filepath = os.path.join(output_dir, 'scraped_players.json')
-        
+        default_filepath = os.path.join(output_dir, "sampled_players.json")
+
         try:
             # Save timestamped version
-            with open(filepath, 'w', encoding='utf-8') as f:
+            with open(filepath, "w", encoding="utf-8") as f:
                 json.dump(dataset, f, indent=2, ensure_ascii=False)
-            
+
             # Save default version for tests
-            with open(default_filepath, 'w', encoding='utf-8') as f:
+            with open(default_filepath, "w", encoding="utf-8") as f:
                 json.dump(dataset, f, indent=2, ensure_ascii=False)
-            
+
             print(f"💾 Test data saved to:")
             print(f"   📁 {filepath}")
             print(f"   📁 {default_filepath}")
-            
+
             return filepath
-            
+
         except Exception as e:
             print(f"❌ Error saving test data: {e}")
             return None
 
+
 def main():
-    """Main function to run the test data scraper"""
-    print("🎾 Rally Test Data Scraper")
+    """Main function to run the test data sampler"""
+    print("🎾 Rally Test Data Sampler")
     print("=" * 50)
-    print("Scraping real player data from TennisScores for testing")
+    print("Sampling player data from local league JSON files")
     print()
-    
-    # Initialize scraper
-    scraper = TennisScoresTestDataScraper(
-        max_players_per_league=15,  # Reasonable sample size
-        max_invalid_players=10
+
+    # Initialize sampler
+    sampler = LocalLeagueDataSampler(
+        max_players_per_league=25, max_invalid_players=12  # Good sample size
     )
-    
+
     try:
-        # Scrape all leagues
-        dataset = scraper.scrape_all_leagues()
-        
-        if 'error' in dataset:
-            print(f"❌ Scraping failed: {dataset['error']}")
+        # Sample from all leagues (using combined file for efficiency)
+        dataset = sampler.sample_all_leagues(use_combined_file=True)
+
+        if "error" in dataset:
+            print(f"❌ Sampling failed: {dataset['error']}")
             return False
-        
+
         # Save the data
-        output_file = scraper.save_test_data(dataset)
-        
+        output_file = sampler.save_test_data(dataset)
+
         if output_file:
-            print(f"\n✅ Test data scraping completed successfully!")
-            print(f"📄 Use this data in your tests by loading: tests/fixtures/scraped_players.json")
+            print(f"\n✅ Test data sampling completed successfully!")
+            print(
+                f"📄 Use this data in your tests by loading: tests/fixtures/sampled_players.json"
+            )
+            print(f"🚀 This is much faster than scraping external websites!")
             return True
         else:
             print(f"\n❌ Failed to save test data")
             return False
-            
+
     except KeyboardInterrupt:
-        print(f"\n⚠️ Scraping interrupted by user")
+        print(f"\n⚠️ Sampling interrupted by user")
         return False
     except Exception as e:
         print(f"\n❌ Unexpected error: {e}")
+        import traceback
+
+        traceback.print_exc()
         return False
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     success = main()
-    exit(0 if success else 1) 
+    exit(0 if success else 1)

@@ -30,7 +30,7 @@ group = None
 
 # Performance tuning
 keepalive = 65
-forwarded_allow_ips = '*'
+forwarded_allow_ips = "*"
 
 # Prevent long-running requests from blocking workers
 graceful_timeout = 60
@@ -45,4 +45,4 @@ max_requests_jitter = 50
 
 # SSL (if needed)
 keyfile = None
-certfile = None 
+certfile = None

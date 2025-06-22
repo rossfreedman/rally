@@ -7,24 +7,26 @@ that gets both training data and video information in one round trip.
 """
 
 import os
-from openai import OpenAI
+
 from dotenv import load_dotenv
+from openai import OpenAI
 
 # Load environment variables
 load_dotenv()
 
 # Initialize OpenAI client
-client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
+client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+
 
 def update_assistant_no_functions():
     """Update the assistant to remove function calls for maximum speed"""
-    
+
     # Get the assistant ID from environment
-    assistant_id = os.environ.get('OPENAI_ASSISTANT_ID')
+    assistant_id = os.environ.get("OPENAI_ASSISTANT_ID")
     if not assistant_id:
         print("❌ OPENAI_ASSISTANT_ID environment variable not set")
         return False
-    
+
     try:
         # Update assistant with no function calls for maximum speed
         assistant = client.beta.assistants.update(
@@ -48,26 +50,27 @@ When no training data is provided:
 Always maintain an encouraging, professional coaching tone. Focus on practical, actionable advice that players can immediately apply to their game.""",
             tools=[],  # Remove all function calls for maximum speed
             model="gpt-4o",
-            temperature=0.7
+            temperature=0.7,
         )
-        
+
         print(f"✅ Successfully updated assistant {assistant_id}")
         print(f"   Name: {assistant.name}")
         print(f"   Tools: {len(assistant.tools)} (removed all function calls)")
         print(f"   Model: {assistant.model}")
-        
+
         return True
-        
+
     except Exception as e:
         print(f"❌ Error updating assistant: {str(e)}")
         return False
 
+
 if __name__ == "__main__":
     print("🚀 Updating Rally Coach Assistant for Ultra-Fast Performance...")
     print("   Removing all function calls to eliminate latency")
-    
+
     success = update_assistant_no_functions()
-    
+
     if success:
         print("\n🎉 Assistant updated successfully!")
         print("   Expected performance improvement: 80-90% faster responses")
@@ -75,4 +78,6 @@ if __name__ == "__main__":
         print("   Training data: Provided directly in prompts")
     else:
         print("\n❌ Failed to update assistant")
-        print("   Please check your OPENAI_API_KEY and OPENAI_ASSISTANT_ID environment variables") 
+        print(
+            "   Please check your OPENAI_API_KEY and OPENAI_ASSISTANT_ID environment variables"
+        )

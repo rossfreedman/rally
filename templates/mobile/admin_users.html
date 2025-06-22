@@ -127,6 +127,14 @@ function formatTimestamp(timestamp) {
     return date.toLocaleString();
 }
 
+// Helper function to escape HTML to prevent XSS attacks
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 async function loadUsers() {
     try {
         const response = await fetch('/api/admin/users');
@@ -138,7 +146,7 @@ async function loadUsers() {
         document.getElementById('usersContainer').innerHTML = `
             <div class="p-6 text-center text-red-500">
                 <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
-                <p>Error loading users</p>
+                <p>Error loading users: ${escapeHtml(error.message)}</p>
             </div>
         `;
     }
@@ -161,22 +169,22 @@ function renderUsers() {
         <div class="p-6 hover:bg-gray-50 transition-colors">
             <div class="flex items-start justify-between">
                 <div class="flex-1">
-                    <h3 class="text-lg font-semibold text-gray-900">${user.first_name} ${user.last_name}</h3>
-                    <p class="text-gray-600 mb-2">${user.email}</p>
+                    <h3 class="text-lg font-semibold text-gray-900">${escapeHtml(user.first_name)} ${escapeHtml(user.last_name)}</h3>
+                    <p class="text-gray-600 mb-2">${escapeHtml(user.email)}</p>
                     <div class="space-y-1 text-sm text-gray-600">
-                        <p><span class="font-medium">Club:</span> ${user.club_name || '-'}</p>
-                        <p><span class="font-medium">Series:</span> ${user.series_name || '-'}</p>
-                        <p><span class="font-medium">Last Login:</span> ${user.last_login ? formatTimestamp(user.last_login) : 'Never'}</p>
+                        <p><span class="font-medium">Club:</span> ${escapeHtml(user.club_name) || '-'}</p>
+                        <p><span class="font-medium">Series:</span> ${escapeHtml(user.series_name) || '-'}</p>
+                        <p><span class="font-medium">Last Login:</span> ${user.last_login ? escapeHtml(formatTimestamp(user.last_login)) : 'Never'}</p>
                     </div>
                 </div>
                 <div class="flex flex-col gap-2 ml-4">
-                    <button onclick="editUser('${user.id}')" class="px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-sm font-medium">
+                    <button onclick="editUser('${escapeHtml(user.id)}')" class="px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-sm font-medium">
                         <i class="fas fa-edit mr-1"></i> Edit
                     </button>
                     <a href="/admin/user-activity?email=${encodeURIComponent(user.email)}" class="px-3 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors text-sm font-medium">
                         <i class="fas fa-history mr-1"></i> Activity
                     </a>
-                    <button onclick="showDeleteUserModal('${user.email}')" class="px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors text-sm font-medium">
+                    <button onclick="showDeleteUserModal('${escapeHtml(user.email)}')" class="px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors text-sm font-medium">
                         <i class="fas fa-trash mr-1"></i> Delete
                     </button>
                 </div>
