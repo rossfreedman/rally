@@ -67,7 +67,7 @@
                             </div>
                         </div>
                         
-                        <div id="available-players-pool" class="min-h-20 bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg p-2 overflow-y-auto" style="max-height: calc(12rem + 5px);">
+                        <div id="available-players-pool" class="min-h-20 bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg p-2 overflow-y-auto" style="max-height: 200px; -webkit-overflow-scrolling: touch; padding-bottom: 0.75rem;">
                             <div class="text-gray-400 text-center text-sm" id="loading-players">Loading players...</div>
                         </div>
 
@@ -947,8 +947,32 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     #available-players-pool {
-        max-height: 6rem;
+        max-height: 150px;
         padding: 0.5rem;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        /* Ensure scrollbar is visible on mobile */
+        scrollbar-width: thin;
+        scrollbar-color: #cbd5e0 #f7fafc;
+    }
+    
+    /* Custom scrollbar for webkit browsers */
+    #available-players-pool::-webkit-scrollbar {
+        width: 6px;
+    }
+    
+    #available-players-pool::-webkit-scrollbar-track {
+        background: #f7fafc;
+        border-radius: 3px;
+    }
+    
+    #available-players-pool::-webkit-scrollbar-thumb {
+        background: #cbd5e0;
+        border-radius: 3px;
+    }
+    
+    #available-players-pool::-webkit-scrollbar-thumb:hover {
+        background: #a0aec0;
     }
     
     .court-container h4 {
@@ -981,7 +1005,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     #available-players-pool {
-        max-height: 5rem;
+        max-height: 120px;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
     }
 }
 
