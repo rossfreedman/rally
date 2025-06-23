@@ -1783,22 +1783,20 @@ def serve_mobile_poll_vote(poll_id):
 def get_user_team_id(user):
     """Get user's team ID from their player association (integer foreign key)
     If user has multiple associations, prefer the one matching their current league context
+    For multi-team players, prefer teams with more recent match activity
     """
     try:
         user_id = user.get("id")
-        if not user_id:
-            return None
-
+        first_name = user.get("first_name")
+        last_name = user.get("last_name")
+        email = user.get("email")
+        
         # Get user's league context if available
         user_league_id = user.get("league_id")
-        print(
-            f"[DEBUG] get_user_team_id: User {user_id} has league_id: {user_league_id}"
-        )
 
-        # If user has league context, try to get team from that specific league first
+        # Convert string league_id to integer foreign key if needed
+        league_id_int = None
         if user_league_id:
-            # Convert string league_id to integer foreign key if needed
-            league_id_int = None
             if isinstance(user_league_id, str) and user_league_id != "":
                 try:
                     league_record = execute_query_one(
@@ -1806,103 +1804,152 @@ def get_user_team_id(user):
                     )
                     if league_record:
                         league_id_int = league_record["id"]
-                        print(
-                            f"[DEBUG] get_user_team_id: Converted league_id '{user_league_id}' -> {league_id_int}"
-                        )
                 except Exception as e:
-                    print(f"[DEBUG] get_user_team_id: Could not convert league ID: {e}")
+                    pass
             elif isinstance(user_league_id, int):
                 league_id_int = user_league_id
 
-            # Try to get team from user's specific league
-            if league_id_int:
-                league_filtered_query = """
-                    SELECT p.team_id, p.league_id, l.league_id as league_code
-                    FROM players p
-                    JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
-                    JOIN leagues l ON p.league_id = l.id
-                    WHERE upa.user_id = %s AND p.is_active = TRUE AND p.team_id IS NOT NULL
-                    AND p.league_id = %s
-                    LIMIT 1
-                """
-                result = execute_query_one(
-                    league_filtered_query, [user_id, league_id_int]
-                )
-                if result:
-                    print(
-                        f"[DEBUG] get_user_team_id: Found team {result['team_id']} in user's league {result['league_code']}"
-                    )
-                    return result["team_id"]
-                else:
-                    print(
-                        f"[DEBUG] get_user_team_id: No team found in user's league {user_league_id}"
-                    )
+        # Try multiple approaches to find the user's team
+        team_id = None
+        
+        # Approach 1: If we have user_id, try user_player_associations with league filter
+        if user_id and league_id_int:
+            league_filtered_query = """
+                SELECT p.team_id, p.league_id, l.league_id as league_code
+                FROM players p
+                JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
+                JOIN leagues l ON p.league_id = l.id
+                WHERE upa.user_id = %s AND p.is_active = TRUE AND p.team_id IS NOT NULL
+                AND p.league_id = %s
+                LIMIT 1
+            """
+            result = execute_query_one(league_filtered_query, [user_id, league_id_int])
+            if result:
+                team_id = result["team_id"]
 
-        # Fallback: Get any active team (original behavior)
-        print(f"[DEBUG] get_user_team_id: Falling back to any active team")
-        user_team_query = """
-            SELECT p.team_id, l.league_id as league_code
-            FROM players p
-            JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
-            JOIN leagues l ON p.league_id = l.id
-            WHERE upa.user_id = %s AND p.is_active = TRUE AND p.team_id IS NOT NULL
-            LIMIT 1
-        """
-        result = execute_query_one(user_team_query, [user_id])
-        if result:
-            print(
-                f"[DEBUG] get_user_team_id: Fallback found team {result['team_id']} in league {result['league_code']}"
-            )
-        return result["team_id"] if result else None
+        # Approach 2: If no user_id success, try direct player lookup by name + league
+        if not team_id and first_name and last_name and league_id_int:
+            name_league_query = """
+                SELECT team_id, league_id
+                FROM players
+                WHERE first_name = %s AND last_name = %s AND is_active = TRUE 
+                AND team_id IS NOT NULL AND league_id = %s
+                LIMIT 1
+            """
+            result = execute_query_one(name_league_query, [first_name, last_name, league_id_int])
+            if result:
+                team_id = result["team_id"]
+
+        # Approach 3: For multi-team players, prefer team with most recent match activity
+        if not team_id and first_name and last_name:
+            # Get all teams for this player
+            all_teams_query = """
+                SELECT DISTINCT p.team_id, p.league_id, 
+                       (SELECT MAX(match_date) 
+                        FROM match_scores ms 
+                        WHERE (ms.home_player_1_id = p.tenniscores_player_id 
+                               OR ms.home_player_2_id = p.tenniscores_player_id
+                               OR ms.away_player_1_id = p.tenniscores_player_id 
+                               OR ms.away_player_2_id = p.tenniscores_player_id)
+                        AND (ms.home_team_id = p.team_id OR ms.away_team_id = p.team_id)
+                       ) as last_match_date
+                FROM players p
+                WHERE p.first_name = %s AND p.last_name = %s AND p.is_active = TRUE 
+                AND p.team_id IS NOT NULL
+                ORDER BY last_match_date DESC NULLS LAST, p.team_id DESC
+                LIMIT 1
+            """
+            result = execute_query_one(all_teams_query, [first_name, last_name])
+            if result:
+                team_id = result["team_id"]
+
+        # Approach 4: Final fallback - any team for this player
+        if not team_id and first_name and last_name:
+            fallback_query = """
+                SELECT team_id, league_id
+                FROM players
+                WHERE first_name = %s AND last_name = %s AND is_active = TRUE 
+                AND team_id IS NOT NULL
+                ORDER BY id DESC
+                LIMIT 1
+            """
+            result = execute_query_one(fallback_query, [first_name, last_name])
+            if result:
+                team_id = result["team_id"]
+            
+        return team_id
+
     except Exception as e:
         print(f"Error getting user team ID: {e}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
         return None
 
 
-def get_player_match_count(player_id, user_league_id=None):
-    """Get total match count for a specific player by querying all their matches directly, filtered by league"""
+def get_player_match_count(player_id, user_league_id=None, team_id=None):
+    """Get match count for a specific player, filtered by league and optionally by team"""
     try:
         if not player_id:
             return 0
 
-        # Count all matches where this player appears in any of the 4 positions, filtered by league
+                # Always use a simple, reliable count query
         if user_league_id:
             # Convert string league_id to integer foreign key if needed
             league_id_int = None
             if isinstance(user_league_id, str) and user_league_id != "":
                 try:
+                    # First try league_id column (string comparison only to avoid type errors)
                     league_record = execute_query_one(
-                        "SELECT id FROM leagues WHERE league_id = %s", [user_league_id]
+                        "SELECT id FROM leagues WHERE league_id = %s", 
+                        [user_league_id]
                     )
                     if league_record:
                         league_id_int = league_record["id"]
-                        print(
-                            f"[DEBUG] Using league_id filter: '{user_league_id}' -> {league_id_int}"
-                        )
                     else:
-                        print(
-                            f"[WARNING] League '{user_league_id}' not found in leagues table"
-                        )
+                        # Try using the league_id directly as an integer  
+                        try:
+                            league_id_int = int(user_league_id)
+                        except ValueError:
+                            pass
                 except Exception as e:
-                    print(f"[DEBUG] Could not convert league ID: {e}")
+                    print(f"Error converting league ID: {e}")
             elif isinstance(user_league_id, int):
                 league_id_int = user_league_id
-                print(f"[DEBUG] League_id already integer: {league_id_int}")
 
             if league_id_int:
-                match_count_query = """
-                    SELECT COUNT(DISTINCT id) as match_count
-                    FROM match_scores
-                    WHERE (home_player_1_id = %s 
-                       OR home_player_2_id = %s 
-                       OR away_player_1_id = %s 
-                       OR away_player_2_id = %s)
-                    AND league_id = %s
-                """
-                result = execute_query_one(
-                    match_count_query,
-                    [player_id, player_id, player_id, player_id, league_id_int],
-                )
+                # Use a more specific query that avoids any potential duplication
+                if team_id:
+                    # Filter by both league and team for team-specific counts
+                    # This ensures we ONLY count matches where this player played FOR this specific team
+                    match_count_query = """
+                        SELECT COUNT(DISTINCT id) as match_count
+                        FROM match_scores
+                        WHERE (home_player_1_id = %s 
+                           OR home_player_2_id = %s 
+                           OR away_player_1_id = %s 
+                           OR away_player_2_id = %s)
+                        AND league_id = %s
+                        AND (home_team_id = %s OR away_team_id = %s)
+                    """
+                    result = execute_query_one(
+                        match_count_query,
+                        [player_id, player_id, player_id, player_id, league_id_int, team_id, team_id],
+                    )
+                else:
+                    # Filter by league only
+                    match_count_query = """
+                        SELECT COUNT(DISTINCT id) as match_count
+                        FROM match_scores
+                        WHERE (home_player_1_id = %s 
+                           OR home_player_2_id = %s 
+                           OR away_player_1_id = %s 
+                           OR away_player_2_id = %s)
+                        AND league_id = %s
+                    """
+                    result = execute_query_one(
+                        match_count_query,
+                        [player_id, player_id, player_id, player_id, league_id_int],
+                    )
             else:
                 # Fallback to no league filter if conversion failed
                 match_count_query = """
@@ -1932,18 +1979,33 @@ def get_player_match_count(player_id, user_league_id=None):
 
         match_count = result["match_count"] if result else 0
 
-        print(
-            f"[DEBUG] Player {player_id} (league {user_league_id}): found {match_count} matches"
-        )
+        # Additional validation - ensure count is reasonable
+        if team_id and match_count > 25:
+            # With team filtering, counts should be much lower
+            print(f"[WARNING] Suspiciously high team-specific match count ({match_count}) for player {player_id}")
+            print(f"[WARNING] This suggests the team filter isn't working properly")
+        elif not team_id and match_count > 30:
+            print(f"[WARNING] Suspiciously high match count ({match_count}) for player {player_id}")
+            print(f"[WARNING] This might indicate a data issue or cross-league contamination")
+            
+            # If no team filter but we have league filter, still reasonable
+            if not user_league_id:
+                # For safety, cap at a reasonable maximum when no filters
+                match_count = min(match_count, 25)
+                print(f"[WARNING] Capped match count to {match_count} for safety (no filters)")
+
         return match_count
 
     except Exception as e:
         print(f"Error getting match count for player {player_id}: {e}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
         return 0
 
 
 def get_team_members_with_court_stats(team_id, user):
     """Get all active players for a team with their court assignment statistics"""
+    
     try:
         if not team_id:
             return []
@@ -1960,11 +2022,8 @@ def get_team_members_with_court_stats(team_id, user):
         if not members:
             return []
 
-        print(f"[DEBUG] Found {len(members)} team members for team {team_id}")
-
         # Get user's league_id for filtering (extract once at top)
         user_league_id = user.get("league_id")
-        print(f"[DEBUG] User league_id: {user_league_id}")
 
         # Get team name for match filtering
         team_name_query = """
@@ -1978,10 +2037,7 @@ def get_team_members_with_court_stats(team_id, user):
         )
 
         if not team_name:
-            print(f"[DEBUG] Could not find team name for team_id {team_id}")
             return []
-
-        print(f"[DEBUG] Team name: {team_name}")
 
         # Try both team_id and team_name approaches
         team_matches = []
@@ -1995,18 +2051,10 @@ def get_team_members_with_court_stats(team_id, user):
                 )
                 if league_record:
                     league_id_int = league_record["id"]
-                    print(
-                        f"[DEBUG] Converted league_id '{user_league_id}' -> {league_id_int}"
-                    )
-                else:
-                    print(
-                        f"[WARNING] League '{user_league_id}' not found in leagues table"
-                    )
             except Exception as e:
-                print(f"[DEBUG] Could not convert league ID: {e}")
+                pass
         elif isinstance(user_league_id, int):
             league_id_int = user_league_id
-            print(f"[DEBUG] League_id already integer: {league_id_int}")
 
         # First try using team_id (more reliable) with league filter
         if team_id:
@@ -2051,9 +2099,6 @@ def get_team_members_with_court_stats(team_id, user):
                     ORDER BY match_date, id
                 """
                 team_matches = execute_query(matches_by_id_query, [team_id, team_id])
-            print(
-                f"[DEBUG] Found {len(team_matches)} matches using team_id {team_id} (league: {user_league_id})"
-            )
 
         # If no matches by team_id, try team_name with league filter
         if not team_matches and team_name:
@@ -2100,40 +2145,12 @@ def get_team_members_with_court_stats(team_id, user):
                 team_matches = execute_query(
                     matches_by_name_query, [team_name, team_name]
                 )
-            print(
-                f"[DEBUG] Found {len(team_matches)} matches using team_name '{team_name}' (league: {user_league_id})"
-            )
 
-        # Debug: Show sample match data
-        if team_matches:
-            print(f"[DEBUG] Sample match: {team_matches[0]}")
-        else:
-            # Debug: Check if we have any matches at all for any similar team names
-            all_teams_query = """
-                SELECT DISTINCT home_team, COUNT(*) as count
-                FROM match_scores 
-                GROUP BY home_team
-                ORDER BY count DESC
-                LIMIT 10
-            """
-            all_teams = execute_query(all_teams_query)
-            print(f"[DEBUG] Top teams in database: {all_teams}")
 
-            # Also check team_id matches
-            team_id_matches_query = """
-                SELECT DISTINCT home_team_id, home_team, COUNT(*) as count
-                FROM match_scores 
-                WHERE home_team_id IS NOT NULL
-                GROUP BY home_team_id, home_team
-                ORDER BY count DESC
-                LIMIT 10
-            """
-            team_id_matches = execute_query(team_id_matches_query)
-            print(f"[DEBUG] Top team_ids in database: {team_id_matches}")
 
-        # Use the same court assignment logic as my-team page
+        # Use the same court assignment logic as my-team page with league filtering
         court_assignments = calculate_player_court_stats(
-            team_matches, team_name, members
+            team_matches, team_name, members, user_league_id
         )
 
         # If no court assignments found, create sample data for testing court display
@@ -2148,9 +2165,10 @@ def get_team_members_with_court_stats(team_id, user):
                 member["tenniscores_player_id"], {}
             )
 
-            # Get actual match count for this player (all matches, not just court assignments)
+            # Get actual match count for this player filtered by team and league
+            # For multi-team players, this ensures we count matches for THIS specific team
             player_match_count = get_player_match_count(
-                member["tenniscores_player_id"], user_league_id
+                member["tenniscores_player_id"], user_league_id, team_id
             )
 
             member_data = {
@@ -2199,8 +2217,8 @@ def create_sample_court_data(members):
     return court_assignments
 
 
-def calculate_player_court_stats(team_matches, team_name, members):
-    """Calculate how many times each player played on each court across ALL their matches"""
+def calculate_player_court_stats(team_matches, team_name, members, user_league_id=None):
+    """Calculate how many times each player played on each court, filtered by league context"""
     try:
         from collections import defaultdict
         from datetime import datetime
@@ -2215,7 +2233,30 @@ def calculate_player_court_stats(team_matches, team_name, members):
                 full_name = f"{member['first_name']} {member['last_name']}"
                 player_name_lookup[member["tenniscores_player_id"]] = full_name
 
-        # For each team member, get ALL their matches (not just team matches)
+        # Convert league_id for filtering if provided
+        league_id_int = None
+        if user_league_id:
+            if isinstance(user_league_id, str) and user_league_id != "":
+                try:
+                    # First try league_id column (string comparison only to avoid type errors)
+                    league_record = execute_query_one(
+                        "SELECT id FROM leagues WHERE league_id = %s", 
+                        [user_league_id]
+                    )
+                    if league_record:
+                        league_id_int = league_record["id"]
+                    else:
+                        # Try using the league_id directly as an integer
+                        try:
+                            league_id_int = int(user_league_id)
+                        except ValueError:
+                            pass
+                except Exception as e:
+                    pass
+            elif isinstance(user_league_id, int):
+                league_id_int = user_league_id
+
+        # For each team member, get their matches filtered by league context
         for member in members:
             player_id = member.get("tenniscores_player_id")
             if not player_id:
@@ -2223,29 +2264,53 @@ def calculate_player_court_stats(team_matches, team_name, members):
 
             player_name = f"{member['first_name']} {member['last_name']}"
 
-            # Get ALL matches for this player across all teams
-            all_player_matches_query = """
-                SELECT 
-                    TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
-                    match_date,
-                    home_team as "Home Team",
-                    away_team as "Away Team",
-                    home_player_1_id as "Home Player 1",
-                    home_player_2_id as "Home Player 2",
-                    away_player_1_id as "Away Player 1",
-                    away_player_2_id as "Away Player 2",
-                    id
-                FROM match_scores
-                WHERE (home_player_1_id = %s 
-                   OR home_player_2_id = %s 
-                   OR away_player_1_id = %s 
-                   OR away_player_2_id = %s)
-                ORDER BY match_date, id
-            """
-
-            player_matches = execute_query(
-                all_player_matches_query, [player_id, player_id, player_id, player_id]
-            )
+            # Get player matches filtered by league if available
+            if league_id_int:
+                all_player_matches_query = """
+                    SELECT 
+                        TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
+                        match_date,
+                        home_team as "Home Team",
+                        away_team as "Away Team",
+                        home_player_1_id as "Home Player 1",
+                        home_player_2_id as "Home Player 2",
+                        away_player_1_id as "Away Player 1",
+                        away_player_2_id as "Away Player 2",
+                        id
+                    FROM match_scores
+                    WHERE (home_player_1_id = %s 
+                       OR home_player_2_id = %s 
+                       OR away_player_1_id = %s 
+                       OR away_player_2_id = %s)
+                    AND league_id = %s
+                    ORDER BY match_date, id
+                """
+                player_matches = execute_query(
+                    all_player_matches_query, [player_id, player_id, player_id, player_id, league_id_int]
+                )
+            else:
+                # Fallback to all matches if no league filter available
+                all_player_matches_query = """
+                    SELECT 
+                        TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
+                        match_date,
+                        home_team as "Home Team",
+                        away_team as "Away Team",
+                        home_player_1_id as "Home Player 1",
+                        home_player_2_id as "Home Player 2",
+                        away_player_1_id as "Away Player 1",
+                        away_player_2_id as "Away Player 2",
+                        id
+                    FROM match_scores
+                    WHERE (home_player_1_id = %s 
+                       OR home_player_2_id = %s 
+                       OR away_player_1_id = %s 
+                       OR away_player_2_id = %s)
+                    ORDER BY match_date, id
+                """
+                player_matches = execute_query(
+                    all_player_matches_query, [player_id, player_id, player_id, player_id]
+                )
 
             if not player_matches:
                 continue

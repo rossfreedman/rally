@@ -1,0 +1,1718 @@
+{% extends "mobile/layout.html" %}
+{% set show_back_arrow = True %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    
+    <!-- Header -->
+    <div class="bg-white border-b border-gray-100">
+        <div class="flex items-center px-4 py-6">
+            <div class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center shadow-sm">
+                <span class="text-white text-lg">🪄✨</span>
+            </div>
+            <div class="ml-4">
+                <h1 class="text-xl font-bold text-gray-900">AI Lineup Creator</h1>
+                <p class="text-sm text-gray-500">AI-powered lineup generation wizard</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content -->
+    <div class="px-4 space-y-6" style="padding-top: calc(1.5rem - 5px); padding-bottom: 1.5rem;">
+
+        <!-- AI Wizard Step 1: Select Players -->
+        <div id="ai-step-1" class="wizard-page">
+            <div class="flex justify-end mb-4">
+                <button id="ai-next-1" class="px-6 py-3 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors font-semibold" style="background-color: #2563eb; color: white;" onmouseover="this.style.backgroundColor='#1d4ed8'" onmouseout="this.style.backgroundColor='#2563eb'">
+                    Next →
+                </button>
+            </div>
+
+            <!-- AI Lineup Progress -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
+                <div class="px-6 py-4 border-b border-gray-50">
+                    <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                        <span class="mr-2 text-blue-500">🪄✨</span>
+                        Rally AI Lineup Assistance
+                    </h2>
+                </div>
+                
+                <div class="p-6">
+                    <!-- Progress Steps -->
+                    <div class="flex items-center justify-between mb-8">
+                        <!-- Step 1 - Initially inactive -->
+                        <div class="flex flex-col items-center flex-1" id="progress-step-1">
+                            <div class="w-10 h-10 rounded-full flex items-center justify-center mb-2 text-sm font-bold" style="background-color: #d1d5db; color: #6b7280;">
+                                1
+                            </div>
+                            <div class="w-16 h-24 rounded-lg flex items-center justify-center mb-2" style="background-color: #d1d5db;">
+                                <i class="fas fa-clipboard-question text-gray-400 text-xl"></i>
+                            </div>
+                            <div class="text-center">
+                                <div class="font-semibold text-sm text-gray-500">Select</div>
+                                <div class="font-semibold text-sm text-gray-500">Players</div>
+                            </div>
+                        </div>
+
+                        <!-- Arrow 1 -->
+                        <div class="flex-shrink-0 mx-2">
+                            <i class="fas fa-chevron-right text-lg" style="color: #d1d5db;"></i>
+                        </div>
+
+                        <!-- Step 2 - Initially inactive -->
+                        <div class="flex flex-col items-center flex-1" id="progress-step-2">
+                            <div class="w-10 h-10 rounded-full flex items-center justify-center mb-2 text-sm font-bold" style="background-color: #d1d5db; color: #6b7280;">
+                                2
+                            </div>
+                            <div class="w-16 h-24 rounded-lg flex items-center justify-center mb-2" style="background-color: #d1d5db;">
+                                <i class="fas fa-magic-wand-sparkles text-gray-400 text-xl"></i>
+                            </div>
+                            <div class="text-center">
+                                <div class="font-semibold text-sm text-gray-500">Add</div>
+                                <div class="font-semibold text-sm text-gray-500">Instructions</div>
+                            </div>
+                        </div>
+
+                        <!-- Arrow 2 -->
+                        <div class="flex-shrink-0 mx-2">
+                            <i class="fas fa-chevron-right text-lg" style="color: #d1d5db;"></i>
+                        </div>
+
+                        <!-- Step 3 - Initially inactive -->
+                        <div class="flex flex-col items-center flex-1" id="progress-step-3">
+                            <div class="w-10 h-10 rounded-full flex items-center justify-center mb-2 text-sm font-bold" style="background-color: #d1d5db; color: #6b7280;">
+                                3
+                            </div>
+                            <div class="w-16 h-24 rounded-lg flex items-center justify-center mb-2" style="background-color: #d1d5db;">
+                                <i class="fas fa-wand-magic-sparkles text-gray-400 text-xl"></i>
+                            </div>
+                            <div class="text-center">
+                                <div class="font-semibold text-sm text-gray-500">Generate</div>
+                                <div class="font-semibold text-sm text-gray-500">Lineup</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Select Available Players -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-50">
+                    <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                        <i class="fas fa-users text-green-500 mr-2"></i>
+                        Select Available Players
+                    </h2>
+                </div>
+                
+                <div class="p-6">
+                    <p class="text-gray-600 mb-4">Choose which players are available for the lineup:</p>
+                    
+                    <!-- Legend -->
+                    <div class="bg-gray-50 rounded-lg p-4 mb-4 text-sm">
+                        <h4 class="font-semibold text-gray-900 mb-3">Player Preferences Legend:</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="flex flex-col space-y-2">
+                                <div class="font-medium text-gray-700 mb-2">Position Preference:</div>
+                                <div class="flex flex-col space-y-2">
+                                    <div class="flex items-center">
+                                        <span class="w-4 h-4 rounded-full mr-3 flex-shrink-0" style="background-color: #ef4444;"></span>
+                                        <span>Ad (left side)</span>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <span class="w-4 h-4 rounded-full mr-3 flex-shrink-0" style="background-color: #3b82f6;"></span>
+                                        <span>Deuce (right side)</span>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <span class="w-4 h-4 rounded-full mr-3 flex-shrink-0" style="background-color: #d1d5db;"></span>
+                                        <span>Not set</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex flex-col space-y-2">
+                                <div class="font-medium text-gray-700 mb-2">Hand Preference:</div>
+                                <div class="flex flex-col space-y-2">
+                                    <div class="flex items-center">
+                                        <span class="w-4 h-4 rounded-full mr-3 flex-shrink-0" style="background-color: #f59e0b;"></span>
+                                        <span>Left-handed</span>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <span class="w-4 h-4 rounded-full mr-3 flex-shrink-0" style="background-color: #10b981;"></span>
+                                        <span>Right-handed</span>
+                                    </div>
+                                    <div class="flex items-center">
+                                        <span class="w-4 h-4 rounded-full mr-3 flex-shrink-0" style="background-color: #d1d5db;"></span>
+                                        <span>Not set</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Player List -->
+                    <div id="ai-player-list" class="space-y-3">
+                        <div class="text-gray-400 text-center">Loading players...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Wizard Step 2: Add Instructions -->
+        <div id="ai-step-2" class="wizard-page hidden">
+            <div class="flex justify-between items-center mb-4">
+                <button id="ai-previous-2" class="px-6 py-3 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors font-semibold" style="background-color: #4b5563; color: white;" onmouseover="this.style.backgroundColor='#374151'" onmouseout="this.style.backgroundColor='#4b5563'">
+                    ← Previous
+                </button>
+                <button id="ai-next-2" class="px-6 py-3 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors font-semibold" style="background-color: #2563eb; color: white;" onmouseover="this.style.backgroundColor='#1d4ed8'" onmouseout="this.style.backgroundColor='#2563eb'">
+                    Next →
+                </button>
+            </div>
+
+            <!-- Progress section -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
+                <div class="px-6 py-4 border-b border-gray-50">
+                    <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                        <span class="mr-2 text-blue-500">🪄✨</span>
+                        Rally AI Lineup Assistance
+                    </h2>
+                </div>
+                
+                <div class="p-6">
+                    <!-- Progress Steps -->
+                    <div class="flex items-center justify-between mb-8">
+                        <!-- Step 1 - Initially inactive -->
+                        <div class="flex flex-col items-center flex-1" id="progress-step-1">
+                            <div class="w-10 h-10 rounded-full flex items-center justify-center mb-2 text-sm font-bold" style="background-color: #d1d5db; color: #6b7280;">
+                                1
+                            </div>
+                            <div class="w-16 h-24 rounded-lg flex items-center justify-center mb-2" style="background-color: #d1d5db;">
+                                <i class="fas fa-clipboard-question text-gray-400 text-xl"></i>
+                            </div>
+                            <div class="text-center">
+                                <div class="font-semibold text-sm text-gray-500">Select</div>
+                                <div class="font-semibold text-sm text-gray-500">Players</div>
+                            </div>
+                        </div>
+
+                        <!-- Arrow 1 -->
+                        <div class="flex-shrink-0 mx-2">
+                            <i class="fas fa-chevron-right text-lg" style="color: #d1d5db;"></i>
+                        </div>
+
+                        <!-- Step 2 - Initially inactive -->
+                        <div class="flex flex-col items-center flex-1" id="progress-step-2">
+                            <div class="w-10 h-10 rounded-full flex items-center justify-center mb-2 text-sm font-bold" style="background-color: #d1d5db; color: #6b7280;">
+                                2
+                            </div>
+                            <div class="w-16 h-24 rounded-lg flex items-center justify-center mb-2" style="background-color: #d1d5db;">
+                                <i class="fas fa-magic-wand-sparkles text-gray-400 text-xl"></i>
+                            </div>
+                            <div class="text-center">
+                                <div class="font-semibold text-sm text-gray-500">Add</div>
+                                <div class="font-semibold text-sm text-gray-500">Instructions</div>
+                            </div>
+                        </div>
+
+                        <!-- Arrow 2 -->
+                        <div class="flex-shrink-0 mx-2">
+                            <i class="fas fa-chevron-right text-lg" style="color: #d1d5db;"></i>
+                        </div>
+
+                        <!-- Step 3 - Initially inactive -->
+                        <div class="flex flex-col items-center flex-1" id="progress-step-3">
+                            <div class="w-10 h-10 rounded-full flex items-center justify-center mb-2 text-sm font-bold" style="background-color: #d1d5db; color: #6b7280;">
+                                3
+                            </div>
+                            <div class="w-16 h-24 rounded-lg flex items-center justify-center mb-2" style="background-color: #d1d5db;">
+                                <i class="fas fa-wand-magic-sparkles text-gray-400 text-xl"></i>
+                            </div>
+                            <div class="text-center">
+                                <div class="font-semibold text-sm text-gray-500">Generate</div>
+                                <div class="font-semibold text-sm text-gray-500">Lineup</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Update Saved Lineup Instructions -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-50">
+                    <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                        <i class="fas fa-clipboard-check text-purple-500 mr-2"></i>
+                        Update Saved Lineup Instructions
+                    </h2>
+                </div>
+                
+                <div class="p-6">
+                    <p class="text-gray-600 mb-4">Add any specific instructions for the AI to consider:</p>
+                    
+                    <!-- Add New Instruction -->
+                    <div class="flex gap-3 mb-6">
+                        <input 
+                            type="text" 
+                            id="new-instruction-input" 
+                            class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500" 
+                            placeholder="Add new instruction..."
+                            maxlength="200"
+                        />
+                        <button 
+                            id="add-instruction-btn" 
+                            class="px-6 py-3 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors font-semibold"
+                            style="background-color: #16a34a; color: white;" 
+                            onmouseover="this.style.backgroundColor='#15803d'" 
+                            onmouseout="this.style.backgroundColor='#16a34a'"
+                        >
+                            Add
+                        </button>
+                    </div>
+
+                    <!-- Existing Instructions List -->
+                    <div id="instructions-list" class="space-y-3">
+                        <div class="text-gray-400 text-center py-4">Loading saved instructions...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Wizard Step 3: Generate Lineup Summary -->
+        <div id="ai-step-3" class="wizard-page hidden">
+            <div class="flex justify-between items-center mb-4">
+                <button id="ai-previous-3" class="px-6 py-3 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors font-semibold" style="background-color: #4b5563; color: white;" onmouseover="this.style.backgroundColor='#374151'" onmouseout="this.style.backgroundColor='#4b5563'">
+                    ← Previous
+                </button>
+                <button id="ai-generate-lineup" class="px-6 py-3 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition-colors font-semibold" style="background-color: #ea580c; color: white;" onmouseover="this.style.backgroundColor='#dc2626'" onmouseout="this.style.backgroundColor='#ea580c'">
+                    Generate Lineup →
+                </button>
+            </div>
+
+            <!-- Progress section -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
+                <div class="px-6 py-4 border-b border-gray-50">
+                    <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                        <span class="mr-2 text-blue-500">🪄✨</span>
+                        Rally AI Lineup Assistance
+                    </h2>
+                </div>
+                
+                <div class="p-6">
+                    <!-- Progress Steps -->
+                    <div class="flex items-center justify-between mb-8">
+                        <!-- Step 1 - Initially inactive -->
+                        <div class="flex flex-col items-center flex-1" id="progress-step-1">
+                            <div class="w-10 h-10 rounded-full flex items-center justify-center mb-2 text-sm font-bold" style="background-color: #d1d5db; color: #6b7280;">
+                                1
+                            </div>
+                            <div class="w-16 h-24 rounded-lg flex items-center justify-center mb-2" style="background-color: #d1d5db;">
+                                <i class="fas fa-clipboard-question text-gray-400 text-xl"></i>
+                            </div>
+                            <div class="text-center">
+                                <div class="font-semibold text-sm text-gray-500">Select</div>
+                                <div class="font-semibold text-sm text-gray-500">Players</div>
+                            </div>
+                        </div>
+
+                        <!-- Arrow 1 -->
+                        <div class="flex-shrink-0 mx-2">
+                            <i class="fas fa-chevron-right text-lg" style="color: #d1d5db;"></i>
+                        </div>
+
+                        <!-- Step 2 - Initially inactive -->
+                        <div class="flex flex-col items-center flex-1" id="progress-step-2">
+                            <div class="w-10 h-10 rounded-full flex items-center justify-center mb-2 text-sm font-bold" style="background-color: #d1d5db; color: #6b7280;">
+                                2
+                            </div>
+                            <div class="w-16 h-24 rounded-lg flex items-center justify-center mb-2" style="background-color: #d1d5db;">
+                                <i class="fas fa-magic-wand-sparkles text-gray-400 text-xl"></i>
+                            </div>
+                            <div class="text-center">
+                                <div class="font-semibold text-sm text-gray-500">Add</div>
+                                <div class="font-semibold text-sm text-gray-500">Instructions</div>
+                            </div>
+                        </div>
+
+                        <!-- Arrow 2 -->
+                        <div class="flex-shrink-0 mx-2">
+                            <i class="fas fa-chevron-right text-lg" style="color: #d1d5db;"></i>
+                        </div>
+
+                        <!-- Step 3 - Initially inactive -->
+                        <div class="flex flex-col items-center flex-1" id="progress-step-3">
+                            <div class="w-10 h-10 rounded-full flex items-center justify-center mb-2 text-sm font-bold" style="background-color: #d1d5db; color: #6b7280;">
+                                3
+                            </div>
+                            <div class="w-16 h-24 rounded-lg flex items-center justify-center mb-2" style="background-color: #d1d5db;">
+                                <i class="fas fa-wand-magic-sparkles text-gray-400 text-xl"></i>
+                            </div>
+                            <div class="text-center">
+                                <div class="font-semibold text-sm text-gray-500">Generate</div>
+                                <div class="font-semibold text-sm text-gray-500">Lineup</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Generate Lineup Section -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-50">
+                    <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                        <i class="fas fa-magic-wand-sparkles text-orange-500 mr-2"></i>
+                        Generate Lineup
+                    </h2>
+                </div>
+                
+                <div class="p-6">
+                    <p class="text-gray-600 mb-6">Ready to generate your optimal lineup!</p>
+                    
+                    <!-- Summary Section -->
+                    <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                        <h3 class="font-semibold text-gray-900 mb-4">Summary:</h3>
+                        
+                        <!-- Selected Players -->
+                        <div class="mb-4">
+                            <h4 class="font-semibold text-gray-900 mb-3 flex items-center">
+                                <i class="fas fa-users text-blue-500 mr-2"></i>
+                                Selected Players (<span id="selected-players-count">0</span>):
+                            </h4>
+                            <div id="selected-players-summary" class="space-y-2">
+                                <!-- Players will be populated here -->
+                            </div>
+                        </div>
+
+                        <!-- Instructions -->
+                        <div id="instructions-summary-section" class="hidden">
+                            <h4 class="font-semibold text-gray-900 mb-3 flex items-center">
+                                <i class="fas fa-clipboard-check text-purple-500 mr-2"></i>
+                                Lineup Instructions:
+                            </h4>
+                            <div id="instructions-summary" class="space-y-2">
+                                <!-- Instructions will be populated here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Wizard Step 4: Generated Lineup (No Send Functionality) -->
+        <div id="ai-step-4" class="wizard-page hidden">
+            <div class="flex justify-between items-center mb-4">
+                <button id="ai-previous-4" class="px-6 py-3 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors font-semibold" style="background-color: #4b5563; color: white;" onmouseover="this.style.backgroundColor='#374151'" onmouseout="this.style.backgroundColor='#4b5563'">
+                    ← Back to Summary
+                </button>
+                <button id="ai-save-lineup" class="px-6 py-3 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors font-semibold" style="background-color: #16a34a; color: white;" onmouseover="this.style.backgroundColor='#15803d'" onmouseout="this.style.backgroundColor='#16a34a'">
+                    Save Lineup
+                </button>
+            </div>
+
+            <!-- Rally AI Lineup Assistance -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
+                <div class="px-6 py-4 border-b border-gray-50">
+                    <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                        <span class="mr-2 text-blue-500">🪄✨</span>
+                        Rally AI Lineup Assistance
+                    </h2>
+                </div>
+                
+                <div class="p-6">
+                    <!-- Progress Steps -->
+                    <div class="flex items-center justify-between mb-8">
+                        <!-- Step 1 - Initially inactive -->
+                        <div class="flex flex-col items-center flex-1" id="progress-step-1">
+                            <div class="w-10 h-10 rounded-full flex items-center justify-center mb-2 text-sm font-bold" style="background-color: #d1d5db; color: #6b7280;">
+                                1
+                            </div>
+                            <div class="w-16 h-24 rounded-lg flex items-center justify-center mb-2" style="background-color: #d1d5db;">
+                                <i class="fas fa-clipboard-question text-gray-400 text-xl"></i>
+                            </div>
+                            <div class="text-center">
+                                <div class="font-semibold text-sm text-gray-500">Select</div>
+                                <div class="font-semibold text-sm text-gray-500">Players</div>
+                            </div>
+                        </div>
+
+                        <!-- Arrow 1 -->
+                        <div class="flex-shrink-0 mx-2">
+                            <i class="fas fa-chevron-right text-lg" style="color: #d1d5db;"></i>
+                        </div>
+
+                        <!-- Step 2 - Initially inactive -->
+                        <div class="flex flex-col items-center flex-1" id="progress-step-2">
+                            <div class="w-10 h-10 rounded-full flex items-center justify-center mb-2 text-sm font-bold" style="background-color: #d1d5db; color: #6b7280;">
+                                2
+                            </div>
+                            <div class="w-16 h-24 rounded-lg flex items-center justify-center mb-2" style="background-color: #d1d5db;">
+                                <i class="fas fa-magic-wand-sparkles text-gray-400 text-xl"></i>
+                            </div>
+                            <div class="text-center">
+                                <div class="font-semibold text-sm text-gray-500">Add</div>
+                                <div class="font-semibold text-sm text-gray-500">Instructions</div>
+                            </div>
+                        </div>
+
+                        <!-- Arrow 2 -->
+                        <div class="flex-shrink-0 mx-2">
+                            <i class="fas fa-chevron-right text-lg" style="color: #d1d5db;"></i>
+                        </div>
+
+                        <!-- Step 3 - Initially inactive -->
+                        <div class="flex flex-col items-center flex-1" id="progress-step-3">
+                            <div class="w-10 h-10 rounded-full flex items-center justify-center mb-2 text-sm font-bold" style="background-color: #d1d5db; color: #6b7280;">
+                                3
+                            </div>
+                            <div class="w-16 h-24 rounded-lg flex items-center justify-center mb-2" style="background-color: #d1d5db;">
+                                <i class="fas fa-wand-magic-sparkles text-gray-400 text-xl"></i>
+                            </div>
+                            <div class="text-center">
+                                <div class="font-semibold text-sm text-gray-500">Generate</div>
+                                <div class="font-semibold text-sm text-gray-500">Lineup</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Generated Lineup -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-50">
+                    <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                        <i class="fas fa-trophy text-green-500 mr-2"></i>
+                        Your AI-Generated Lineup
+                    </h2>
+                </div>
+                
+                <div class="p-6">
+                    <!-- Loading State -->
+                    <div id="lineup-loading" class="text-center py-8">
+                        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                        <p class="text-gray-600">Generating optimal lineup...</p>
+                        <p class="text-sm text-gray-500 mt-2">Analyzing player data, preferences, and instructions</p>
+                    </div>
+
+                    <!-- Generated Lineup Content -->
+                    <div id="lineup-content" class="hidden">
+                        <!-- AI-Generated Lineup Pairings -->
+                        <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 mb-6 border border-blue-100">
+                            <div class="flex items-center mb-4">
+                                <div class="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center mr-3">
+                                    <i class="fas fa-users text-white"></i>
+                                </div>
+                                <h3 class="text-lg font-bold text-gray-900">AI-Generated Lineup</h3>
+                            </div>
+                            <div id="lineup-pairings" class="space-y-4">
+                                <!-- Lineup pairings will be populated here -->
+                            </div>
+                        </div>
+
+                        <!-- AI Reasoning Card -->
+                        <div id="lineup-reasoning" class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden mb-6 hidden">
+                            <div class="bg-gradient-to-r from-violet-500 to-purple-500 px-4 py-3">
+                                <h4 class="font-semibold text-white flex items-center">
+                                    <i class="fas fa-brain mr-2"></i>
+                                    AI Strategic Analysis
+                                </h4>
+                            </div>
+                            <div class="p-4">
+                                <div id="reasoning-text" class="text-sm text-gray-700 leading-relaxed"></div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center">
+                                    <i class="fas fa-lightbulb text-blue-500 mr-2"></i>
+                                    <span class="text-sm text-blue-800 font-medium">Ready to use this lineup?</span>
+                                </div>
+                                <div class="flex gap-2">
+                                                                         <button class="copy-lineup-btn px-3 py-1 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition-colors">
+                                         <i class="fas fa-copy mr-1"></i>
+                                         Copy Lineup
+                                     </button>
+                                    <a href="/mobile/lineup" class="px-3 py-1 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700 transition-colors">
+                                        <i class="fas fa-edit mr-1"></i>
+                                        Manual Builder
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Error State -->
+                    <div id="lineup-error" class="hidden text-center py-8">
+                        <div class="text-red-500 mb-4">
+                            <i class="fas fa-exclamation-triangle text-4xl"></i>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-900 mb-2">Lineup Generation Failed</h3>
+                        <p id="error-message" class="text-gray-600 mb-4"></p>
+                        <button id="retry-lineup" class="px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors" style="background-color: #2563eb; color: white;" onmouseover="this.style.backgroundColor='#1d4ed8'" onmouseout="this.style.backgroundColor='#2563eb'">
+                            Try Again
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+// Global variables
+let players = [];
+let selectedPlayers = new Set();
+let currentPage = 'ai-step-1';
+
+// Get user context from session
+const series = '{{ session_data.user.series }}';
+const teamId = '{{ session_data.user.team_id }}';
+
+// Global variable to store pairing data from backend
+let pairingData = {};
+
+function showPage(pageNumber) {
+  // Hide all pages with fade out
+  document.querySelectorAll('.wizard-page').forEach(page => {
+    page.classList.add('hidden');
+  });
+  
+  // Show the requested page
+  if (pageNumber === 'ai-step-1') {
+    document.getElementById('ai-step-1').classList.remove('hidden');
+    loadPlayersForAI();
+    updateProgressIndicators(1);
+  } else if (pageNumber === 'ai-step-2') {
+    document.getElementById('ai-step-2').classList.remove('hidden');
+    loadInstructions();
+    updateProgressIndicators(2);
+  } else if (pageNumber === 'ai-step-3') {
+    document.getElementById('ai-step-3').classList.remove('hidden');
+    loadStep3Summary();
+    updateProgressIndicators(3);
+  } else if (pageNumber === 'ai-step-4') {
+    document.getElementById('ai-step-4').classList.remove('hidden');
+    generateAILineup();
+    updateProgressIndicators(4);
+  }
+  
+  currentPage = pageNumber;
+}
+
+function updateProgressIndicators(currentStep) {
+  // Update all progress step indicators across all wizard pages
+  for (let step = 1; step <= 3; step++) {
+    const stepElements = document.querySelectorAll(`#progress-step-${step}`);
+    
+    stepElements.forEach(stepElement => {
+      const badge = stepElement.querySelector('.w-10.h-10');
+      const icon = stepElement.querySelector('.w-16.h-24');
+      const iconElement = icon.querySelector('i');
+      const labels = stepElement.querySelectorAll('.font-semibold');
+      
+      if (step < currentStep) {
+        // Completed step - show green with checkmark
+        badge.style.backgroundColor = '#16a34a';
+        badge.style.color = 'white';
+        badge.textContent = '✓';
+        
+        icon.style.backgroundColor = '#16a34a';
+        iconElement.className = 'fas fa-check text-white text-xl';
+        
+        labels.forEach(label => {
+          label.style.color = '#16a34a';
+          label.classList.remove('text-gray-500');
+        });
+        
+      } else if (step === currentStep) {
+        // Active step - show blue/purple with original icon
+        const activeColor = step === 1 ? '#2563eb' : step === 2 ? '#9333ea' : '#ea580c';
+        
+        badge.style.backgroundColor = activeColor;
+        badge.style.color = 'white';
+        badge.textContent = step.toString();
+        
+        icon.style.backgroundColor = activeColor;
+        
+        // Set appropriate icon for active step
+        if (step === 1) {
+          iconElement.className = 'fas fa-user-check text-white text-xl';
+        } else if (step === 2) {
+          iconElement.className = 'fas fa-clipboard-question text-white text-xl';
+        } else if (step === 3) {
+          iconElement.className = 'fas fa-magic-wand-sparkles text-white text-xl';
+        }
+        
+        labels.forEach(label => {
+          label.style.color = activeColor;
+          label.classList.remove('text-gray-500');
+        });
+        
+      } else {
+        // Inactive step - show gray
+        badge.style.backgroundColor = '#d1d5db';
+        badge.style.color = '#6b7280';
+        badge.textContent = step.toString();
+        
+        icon.style.backgroundColor = '#d1d5db';
+        
+        // Set appropriate icon for inactive step
+        if (step === 1) {
+          iconElement.className = 'fas fa-clipboard-question text-gray-400 text-xl';
+        } else if (step === 2) {
+          iconElement.className = 'fas fa-magic-wand-sparkles text-gray-400 text-xl';
+        } else if (step === 3) {
+          iconElement.className = 'fas fa-wand-magic-sparkles text-gray-400 text-xl';
+        }
+        
+        labels.forEach(label => {
+          label.style.color = '#6b7280';
+          label.classList.add('text-gray-500');
+        });
+      }
+    });
+  }
+}
+
+// AI wizard functions
+function loadPlayersForAI() {
+  fetch(`/api/players?series=${encodeURIComponent(series)}&team_id=${encodeURIComponent(teamId)}`)
+    .then(res => {
+      if (!res.ok) {
+        throw new Error(`Server error: ${res.status} ${res.statusText}`);
+      }
+      return res.json();
+    })
+    .then(data => {
+      if (data.error) {
+        throw new Error(data.error);
+      }
+      players = data;
+      
+      // Select all players by default
+      selectedPlayers.clear();
+      players.forEach(player => {
+        selectedPlayers.add(player.name);
+      });
+      
+      renderPlayersForAI();
+    })
+    .catch(error => {
+      console.error('Error loading players:', error);
+      document.getElementById('ai-player-list').innerHTML = `<div class="text-red-500 text-center">Failed to load players: ${error.message}</div>`;
+    });
+}
+
+function renderPlayersForAI() {
+  const playerList = document.getElementById('ai-player-list');
+  playerList.innerHTML = '';
+  
+  // Helper function to get position color and styling
+  function getPositionColor(preference) {
+    switch (preference) {
+      case 'Ad':
+        return '#8b5cf6'; // Purple
+      case 'Deuce':
+        return '#eab308'; // Yellow
+      case 'Not Set':
+        return '#ef4444'; // Red
+      default:
+        return '#6b7280'; // Gray
+    }
+  }
+  
+  // Helper function to get hand color and styling  
+  function getHandColor(preference) {
+    switch (preference) {
+      case 'Lefty':
+        return '#f59e0b'; // Amber
+      case 'Righty':
+        return '#10b981'; // Green
+      case 'Not Set':
+        return '#ef4444'; // Red
+      default:
+        return '#6b7280'; // Gray
+    }
+  }
+  
+  players.forEach(player => {
+    const playerDiv = document.createElement('div');
+    playerDiv.className = 'flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors';
+    
+    const isSelected = selectedPlayers.has(player.name);
+    if (isSelected) {
+      playerDiv.classList.add('border-blue-500', 'bg-blue-50');
+    }
+    
+    // Create preference indicators
+    let positionIndicator = '';
+    let handIndicator = '';
+    let positionText = '';
+    let handText = '';
+    
+    // Position preference indicator (Ad/Deuce/Not Set)
+    if (player.position_preference) {
+      positionText = player.position_preference;
+      const positionColor = getPositionColor(positionText);
+      positionIndicator = `<span class="inline-block w-3 h-3 rounded-full mr-1" style="background-color: ${positionColor};" title="${positionText} side"></span>`;
+    } else {
+      positionText = 'Not Set';
+      const positionColor = getPositionColor(positionText);
+      positionIndicator = `<span class="inline-block w-3 h-3 rounded-full mr-1" style="background-color: ${positionColor};" title="Position not set"></span>`;
+    }
+    
+    // Hand preference indicator (Lefty/Righty/Not Set)
+    if (player.hand_preference) {
+      handText = player.hand_preference;
+      const handColor = getHandColor(handText);
+      handIndicator = `<span class="inline-block w-3 h-3 rounded-full mr-1" style="background-color: ${handColor};" title="${handText}"></span>`;
+    } else {
+      handText = 'Not Set';
+      const handColor = getHandColor(handText);
+      handIndicator = `<span class="inline-block w-3 h-3 rounded-full mr-1" style="background-color: ${handColor};" title="Hand not set"></span>`;
+    }
+    
+    playerDiv.innerHTML = `
+      <div class="flex items-center">
+        <div class="w-5 h-5 border-2 border-gray-300 rounded mr-3 flex items-center justify-center ${isSelected ? 'bg-blue-600 border-blue-600' : ''}">
+          ${isSelected ? '<i class="fas fa-check text-white text-xs"></i>' : ''}
+        </div>
+        <div class="flex-1">
+          <div class="font-semibold text-gray-900">${player.name}</div>
+          <div class="text-sm text-gray-500 mb-1">PTI: ${player.rating || 'N/A'}</div>
+          <div class="text-xs space-y-1">
+            <div class="flex items-center">
+              ${positionIndicator}<span style="color: ${getPositionColor(positionText)};">Preferred court position: ${positionText}</span>
+            </div>
+            <div class="flex items-center">
+              ${handIndicator}<span style="color: ${getHandColor(handText)};">Dominant hand: ${handText}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <button class="text-blue-600 text-sm font-medium">
+        ${isSelected ? 'Remove' : 'Add'}
+      </button>
+    `;
+    
+    playerDiv.onclick = () => togglePlayerSelection(player.name);
+    playerList.appendChild(playerDiv);
+  });
+}
+
+function togglePlayerSelection(playerName) {
+  if (selectedPlayers.has(playerName)) {
+    selectedPlayers.delete(playerName);
+  } else {
+    selectedPlayers.add(playerName);
+  }
+  renderPlayersForAI();
+}
+
+// AI wizard step 2 functions
+function loadInstructions() {
+  fetch('/api/lineup-instructions')
+    .then(res => {
+      if (!res.ok) {
+        throw new Error(`Server error: ${res.status} ${res.statusText}`);
+      }
+      return res.json();
+    })
+    .then(data => {
+      if (data.error) {
+        throw new Error(data.error);
+      }
+      renderInstructions(data.instructions || []);
+    })
+    .catch(error => {
+      console.error('Error loading instructions:', error);
+      document.getElementById('instructions-list').innerHTML = `<div class="text-red-500 text-center">Failed to load instructions: ${error.message}</div>`;
+    });
+}
+
+function renderInstructions(instructionsList) {
+  const container = document.getElementById('instructions-list');
+  
+  if (instructionsList.length === 0) {
+    container.innerHTML = '<div class="text-gray-400 text-center py-4">No saved instructions yet. Add one above!</div>';
+    return;
+  }
+  
+  container.innerHTML = '';
+  
+  instructionsList.forEach(instruction => {
+    const instructionDiv = document.createElement('div');
+    instructionDiv.className = 'flex items-center justify-between p-3 border border-gray-200 rounded-lg bg-gray-50';
+    
+    instructionDiv.innerHTML = `
+      <span class="text-gray-800 flex-1">${escapeHtml(instruction)}</span>
+      <button 
+        class="text-red-600 hover:text-red-800 ml-3 px-2 py-1 text-sm"
+        onclick="deleteInstruction('${escapeHtml(instruction)}')"
+      >
+        <i class="fas fa-trash"></i>
+      </button>
+    `;
+    
+    container.appendChild(instructionDiv);
+  });
+}
+
+function addInstruction() {
+  const input = document.getElementById('new-instruction-input');
+  const instruction = input.value.trim();
+  
+  if (!instruction) {
+    alert('Please enter an instruction');
+    return;
+  }
+  
+  fetch('/api/lineup-instructions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      instruction: instruction
+    })
+  })
+  .then(res => {
+    if (!res.ok) {
+      throw new Error(`Server error: ${res.status} ${res.statusText}`);
+    }
+    return res.json();
+  })
+  .then(data => {
+    if (data.error) {
+      throw new Error(data.error);
+    }
+    input.value = '';
+    loadInstructions(); // Reload the list
+  })
+  .catch(error => {
+    console.error('Error adding instruction:', error);
+    alert('Failed to add instruction: ' + error.message);
+  });
+}
+
+function deleteInstruction(instruction) {
+  if (!confirm('Are you sure you want to delete this instruction?')) {
+    return;
+  }
+  
+  fetch('/api/lineup-instructions', {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      instruction: instruction
+    })
+  })
+  .then(res => {
+    if (!res.ok) {
+      throw new Error(`Server error: ${res.status} ${res.statusText}`);
+    }
+    return res.json();
+  })
+  .then(data => {
+    if (data.error) {
+      throw new Error(data.error);
+    }
+    loadInstructions(); // Reload the list
+  })
+  .catch(error => {
+    console.error('Error deleting instruction:', error);
+    alert('Failed to delete instruction: ' + error.message);
+  });
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// AI wizard step 3 functions
+function loadStep3Summary() {
+  // Update selected players count and list
+  const selectedPlayersCount = document.getElementById('selected-players-count');
+  const selectedPlayersSummary = document.getElementById('selected-players-summary');
+  
+  selectedPlayersCount.textContent = selectedPlayers.size;
+  
+  if (selectedPlayers.size === 0) {
+    selectedPlayersSummary.innerHTML = '<div class="text-gray-400 text-center py-2">No players selected</div>';
+  } else {
+    selectedPlayersSummary.innerHTML = '';
+    [...selectedPlayers].forEach(playerName => {
+      const playerDiv = document.createElement('div');
+      playerDiv.className = 'flex items-center text-gray-800';
+      playerDiv.innerHTML = `
+        <i class="fas fa-user text-blue-500 mr-2 text-sm"></i>
+        <span>${escapeHtml(playerName)}</span>
+      `;
+      selectedPlayersSummary.appendChild(playerDiv);
+    });
+  }
+  
+  // Load and display instructions
+  fetch('/api/lineup-instructions')
+    .then(res => res.json())
+    .then(data => {
+      const instructionsSummarySection = document.getElementById('instructions-summary-section');
+      const instructionsSummary = document.getElementById('instructions-summary');
+      
+      if (data.instructions && data.instructions.length > 0) {
+        instructionsSummarySection.classList.remove('hidden');
+        instructionsSummary.innerHTML = '';
+        
+        data.instructions.forEach(instruction => {
+          const instructionDiv = document.createElement('div');
+          instructionDiv.className = 'flex items-center text-gray-800';
+          instructionDiv.innerHTML = `
+            <i class="fas fa-check-circle text-purple-500 mr-2 text-sm"></i>
+            <span>${escapeHtml(instruction)}</span>
+          `;
+          instructionsSummary.appendChild(instructionDiv);
+        });
+      } else {
+        instructionsSummarySection.classList.add('hidden');
+      }
+    })
+    .catch(error => {
+      console.error('Error loading instructions for summary:', error);
+      document.getElementById('instructions-summary-section').classList.add('hidden');
+    });
+}
+
+// AI wizard step 4 functions
+function generateAILineup() {
+  // Show enhanced loading state with status indicators
+  const loadingElement = document.getElementById('lineup-loading');
+  const contentElement = document.getElementById('lineup-content');
+  const errorElement = document.getElementById('lineup-error');
+  
+  loadingElement.classList.remove('hidden');
+  contentElement.classList.add('hidden');
+  errorElement.classList.add('hidden');
+  
+  // Add enhanced status indicator
+  loadingElement.innerHTML = `
+    <div class="text-center py-8">
+      <div class="inline-block animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500 mb-4"></div>
+      <div class="space-y-3">
+        <p class="text-gray-800 font-semibold text-lg">🚀 Generating optimal lineup...</p>
+        <div id="status-messages" class="text-sm text-gray-600 space-y-1">
+          <div id="status-1" class="opacity-100 transition-opacity duration-500">📊 Analyzing player data and PTI rankings...</div>
+          <div id="status-2" class="opacity-50 transition-opacity duration-500">⚖️ Calculating optimal pairings...</div>
+          <div id="status-3" class="opacity-50 transition-opacity duration-500">🎯 Applying PTI-based court assignments...</div>
+          <div id="status-4" class="opacity-50 transition-opacity duration-500">✨ Finalizing strategic recommendations...</div>
+        </div>
+        <div class="text-xs text-gray-500 mt-3">
+          <span id="loading-timer">Expected: ~3-5 seconds</span>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  // Animate status messages
+  let currentStep = 1;
+  const statusInterval = setInterval(() => {
+    if (currentStep <= 4) {
+      const currentElement = document.getElementById(`status-${currentStep}`);
+      const nextElement = document.getElementById(`status-${currentStep + 1}`);
+      
+      if (currentElement) currentElement.classList.add('opacity-100');
+      if (nextElement) nextElement.classList.remove('opacity-50');
+      
+      currentStep++;
+    } else {
+      clearInterval(statusInterval);
+    }
+  }, 600);
+  
+  // Prepare lineup generation request
+  const selectedPlayersArray = [...selectedPlayers];
+  console.log('🔄 Sending players to API:', selectedPlayersArray);
+  
+  // Get current instructions
+  fetch('/api/lineup-instructions')
+    .then(res => res.json())
+    .then(data => {
+      const instructions = data.instructions || [];
+      
+      // Collect player preferences along with names
+      const playersWithPreferences = selectedPlayersArray.map(playerName => {
+        const player = players.find(p => p.name === playerName);
+        return {
+          name: playerName,
+          position_preference: player?.position_preference || null,
+          hand_preference: player?.hand_preference || null,
+          pti: player?.rating || null
+        };
+      });
+      
+      // Call the lineup generation API
+      return fetch('/api/generate-lineup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          players: selectedPlayersArray,
+          players_with_preferences: playersWithPreferences, // Enhanced player data
+          instructions: instructions,
+          series: series,
+          include_reasoning: true,
+          include_analytics: true
+        })
+      });
+    })
+    .then(res => {
+      if (!res.ok) {
+        throw new Error(`Server error: ${res.status} ${res.statusText}`);
+      }
+      return res.json();
+    })
+    .then(data => {
+      if (data.error) {
+        throw new Error(data.error);
+      }
+      
+      // Hide loading, show content
+      document.getElementById('lineup-loading').classList.add('hidden');
+      document.getElementById('lineup-content').classList.remove('hidden');
+      
+      // Populate the analytics dashboard
+      populateLineupAnalytics(data);
+    })
+    .catch(error => {
+      console.error('Error generating lineup:', error);
+      
+      // Hide loading, show error
+      document.getElementById('lineup-loading').classList.add('hidden');
+      document.getElementById('lineup-error').classList.remove('hidden');
+      document.getElementById('error-message').textContent = error.message;
+    });
+}
+
+function populateLineupAnalytics(data) {
+  try {
+    // Store pairing data from backend in global variable
+    if (data.pairing_data) {
+      pairingData = data.pairing_data;
+      console.log('✅ Received pairing data:', pairingData);
+      console.log('✅ Pairing data keys:', Object.keys(pairingData));
+    } else {
+      console.log('❌ No pairing_data in response');
+      console.log('❌ Full response:', data);
+    }
+    
+    // Parse lineup data - handle both simple text and structured responses
+    const lineupText = data.lineup || data.suggestion || '';
+    console.log('Received lineup data:', lineupText);
+    
+    const courts = parseLineupText(lineupText);
+    console.log('Parsed courts:', courts);
+    
+    // Display pairings with analytics
+    displayLineupPairings(courts);
+    
+    // Display AI reasoning if provided
+    if (data.reasoning) {
+      const reasoningElement = document.getElementById('lineup-reasoning');
+      const reasoningTextElement = document.getElementById('reasoning-text');
+      
+      if (reasoningElement && reasoningTextElement) {
+        reasoningElement.classList.remove('hidden');
+        reasoningTextElement.textContent = data.reasoning;
+      }
+    } else {
+      const reasoningElement = document.getElementById('lineup-reasoning');
+      if (reasoningElement) {
+        reasoningElement.classList.add('hidden');
+      }
+    }
+  } catch (error) {
+    console.error('Error populating lineup analytics:', error);
+    
+    // Show error message in lineup-pairings container
+    const container = document.getElementById('lineup-pairings');
+    if (container) {
+      container.innerHTML = `<div class="text-red-500 text-center py-4">Error displaying lineup: ${error.message}</div>`;
+    }
+  }
+}
+
+function parseLineupText(lineupText) {
+  const courts = [];
+  const lines = lineupText.split('\n');
+  
+  lines.forEach(line => {
+    const courtMatch = line.match(/Court (\d+):\s*(.+)/i);
+    if (courtMatch) {
+      const courtNum = parseInt(courtMatch[1]);
+      const fullLineText = courtMatch[2];
+      
+      // Extract player names (before the dash)
+      const playerSection = fullLineText.split(' - ')[0];
+      const playerNames = playerSection.split('/').map(name => {
+        // Clean up markdown formatting and trim whitespace
+        return name.replace(/\*\*/g, '').trim();
+      }).filter(name => name);
+      
+      // Extract PTI values from the strategy section
+      const strategySection = fullLineText.includes(' - ') ? fullLineText.split(' - ')[1] : '';
+      const ptiMatch = strategySection.match(/PTI:\s*([\d.]+)\/([\d.]+)/);
+      
+      if (playerNames.length >= 2) {
+        courts.push({
+          court: courtNum,
+          players: playerNames.slice(0, 2),
+          pti1: ptiMatch ? parseFloat(ptiMatch[1]) : 0,
+          pti2: ptiMatch ? parseFloat(ptiMatch[2]) : 0,
+          fullText: fullLineText
+        });
+      }
+    }
+  });
+  
+  return courts;
+}
+
+function displayLineupPairings(courts) {
+  const container = document.getElementById('lineup-pairings');
+  if (!container) {
+    console.error('lineup-pairings container not found');
+    return;
+  }
+  
+  container.innerHTML = '';
+  
+  if (courts.length === 0) {
+    container.innerHTML = '<div class="text-gray-500 text-center py-4">No pairings found in lineup</div>';
+    return;
+  }
+  
+  // Sort courts by number to ensure proper ordering (Court 1 = strongest)
+  const sortedCourts = courts.sort((a, b) => a.court - b.court);
+  
+  sortedCourts.forEach(court => {
+    const [player1Name, player2Name] = court.players;
+    
+    // Use parsed PTI values from the AI response
+    const pti1 = court.pti1 || 0;
+    const pti2 = court.pti2 || 0;
+    const combinedPTI = (pti1 + pti2);
+    
+    // Get actual pairing data from backend instead of parsing from text
+    let wins = 0;
+    let losses = 0;
+    let totalGames = 0;
+    let winRate = 0;
+    
+    // Create pairing key (alphabetically sorted)
+    const pairingKey = player1Name < player2Name ? 
+      `${player1Name}/${player2Name}` : 
+      `${player2Name}/${player1Name}`;
+    
+    console.log(`🔍 Court ${court.court}: Looking up "${pairingKey}"`);
+    
+    if (pairingData && pairingData[pairingKey]) {
+      const data = pairingData[pairingKey];
+      wins = data.wins || 0;
+      losses = data.losses || 0;
+      totalGames = data.total_games || 0;
+      winRate = parseFloat(data.win_rate) || 0;  // Ensure winRate is a valid number
+      console.log(`✅ Found data for ${pairingKey}:`, data);
+    } else {
+      console.log(`❌ No data found for ${pairingKey}`);
+    }
+    
+    // Create simplified commentary based on actual PTI data
+    const avgPTI = (pti1 + pti2) / 2;
+    let strengthLevel = '';
+    if (avgPTI >= 55) {
+      strengthLevel = 'Strong players';
+    } else if (avgPTI >= 50) {
+      strengthLevel = 'Solid players';
+    } else if (avgPTI >= 45) {
+      strengthLevel = 'Developing players';
+    } else {
+      strengthLevel = 'Lowest PTI pairing';
+    }
+    
+    const pairingDiv = document.createElement('div');
+    pairingDiv.className = 'bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden mb-4';
+    pairingDiv.innerHTML = `
+      <!-- Court Header (removed gradient) -->
+      <div class="bg-blue-600 px-4 py-3">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center">
+            <div class="w-8 h-8 bg-white bg-opacity-20 rounded-full flex items-center justify-center mr-3">
+              <span class="text-white font-bold text-sm">${court.court}</span>
+            </div>
+            <h4 class="font-semibold text-white">Court ${court.court}</h4>
+          </div>
+          <div class="text-white text-sm opacity-90">
+            <i class="fas fa-users mr-1"></i>
+            PTI: ${pti1.toFixed(2)}/${pti2.toFixed(2)}
+          </div>
+        </div>
+      </div>
+      
+      <!-- Pairing Content -->
+      <div class="p-6">
+        <!-- Player Names & Strategy -->
+        <div class="mb-4">
+          <h5 class="text-lg font-bold text-gray-900 mb-2">
+            ${player1Name} / ${player2Name}
+          </h5>
+          
+          <!-- Full AI Commentary -->
+          <div class="text-sm text-gray-700 leading-relaxed mb-4">
+            <strong>Commentary:</strong> ${court.fullText.includes(' - ') ? court.fullText.split(' - ')[1] : 'No strategy provided'}
+          </div>
+        </div>
+        
+        <!-- Visual Indicators/Metrics -->
+        <div class="grid grid-cols-3 gap-4">
+          <!-- Combined PTI -->
+          <div class="text-center p-3 bg-blue-50 rounded-lg border border-blue-100">
+            <div class="text-2xl font-bold text-blue-600 mb-1">${combinedPTI.toFixed(1)}</div>
+            <div class="text-xs text-blue-800 font-medium">Combined PTI</div>
+            <div class="text-xs text-gray-500 mt-1">${pti1.toFixed(1)} + ${pti2.toFixed(1)}</div>
+          </div>
+          
+          <!-- Record Together -->
+          <div class="text-center p-3 bg-green-50 rounded-lg border border-green-100">
+            <div class="text-2xl font-bold text-green-600 mb-1">${wins}-${losses}</div>
+            <div class="text-xs text-green-800 font-medium">Record Together</div>
+            <div class="text-xs text-gray-500 mt-1">${totalGames} games played</div>
+          </div>
+          
+          <!-- Win % Together -->
+          <div class="text-center p-3 bg-purple-50 rounded-lg border border-purple-100">
+            <div class="text-2xl font-bold text-purple-600 mb-1">${winRate.toFixed(1)}%</div>
+            <div class="text-xs text-purple-800 font-medium">Win % Together</div>
+            <div class="text-xs text-gray-500 mt-1">
+              ${winRate >= 70 ? 'Excellent' : winRate >= 60 ? 'Good' : winRate >= 50 ? 'Fair' : totalGames > 0 ? 'Developing' : 'No History'}
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    container.appendChild(pairingDiv);
+  });
+}
+
+function retryLineupGeneration() {
+  generateAILineup();
+}
+
+function copyLineupToClipboard() {
+  // Generate lineup text from pairings
+  const courts = [];
+  const pairingElements = document.querySelectorAll('#lineup-pairings .bg-white');
+  
+  pairingElements.forEach(pairingElement => {
+    const courtNumber = pairingElement.querySelector('.bg-white.bg-opacity-20 span').textContent;
+    const playersText = pairingElement.querySelector('h5').textContent;
+    courts.push(`Court ${courtNumber}: ${playersText.replace(' / ', ' & ')}`);
+  });
+  
+  const lineupText = courts.join('\n');
+  
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(lineupText).then(() => {
+      // Show success feedback
+      const btn = document.querySelector('.copy-lineup-btn');
+      if (btn) {
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-check mr-1"></i>Copied!';
+        btn.classList.add('bg-green-600');
+        btn.classList.remove('bg-blue-600');
+        
+        setTimeout(() => {
+          btn.innerHTML = originalText;
+          btn.classList.remove('bg-green-600');
+          btn.classList.add('bg-blue-600');
+        }, 2000);
+      }
+    }).catch(err => {
+      console.error('Failed to copy lineup:', err);
+      alert('Failed to copy lineup to clipboard');
+    });
+  } else {
+    // Fallback for older browsers
+    const textArea = document.createElement('textarea');
+    textArea.value = lineupText;
+    document.body.appendChild(textArea);
+    textArea.select();
+    try {
+      document.execCommand('copy');
+      alert('Lineup copied to clipboard!');
+    } catch (err) {
+      console.error('Failed to copy lineup:', err);
+      alert('Failed to copy lineup to clipboard');
+    }
+    document.body.removeChild(textArea);
+  }
+}
+
+// Event listeners
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('AI Lineup Creator - DOMContentLoaded fired');
+  
+  // AI wizard navigation  
+  const aiNext1Btn = document.getElementById('ai-next-1');
+  if (aiNext1Btn) {
+    aiNext1Btn.onclick = () => {
+      if (selectedPlayers.size === 0) {
+        alert('Please select at least one player to continue.');
+        return;
+      }
+      showPage('ai-step-2');
+    };
+  }
+
+  // Step 2 navigation
+  const aiPrevious2Btn = document.getElementById('ai-previous-2');
+  if (aiPrevious2Btn) {
+    aiPrevious2Btn.onclick = () => {
+      showPage('ai-step-1');
+    };
+  }
+
+  const aiNext2Btn = document.getElementById('ai-next-2');
+  if (aiNext2Btn) {
+    aiNext2Btn.onclick = () => {
+      showPage('ai-step-3');
+    };
+  }
+
+  // Step 3 navigation
+  const aiPrevious3Btn = document.getElementById('ai-previous-3');
+  if (aiPrevious3Btn) {
+    aiPrevious3Btn.onclick = () => {
+      showPage('ai-step-2');
+    };
+  }
+
+  const aiGenerateLineupBtn = document.getElementById('ai-generate-lineup');
+  if (aiGenerateLineupBtn) {
+    aiGenerateLineupBtn.onclick = () => {
+      showPage('ai-step-4');
+      // Auto scroll down 200px after clicking Generate Lineup
+      setTimeout(() => {
+        window.scrollBy({
+          top: 200,
+          behavior: 'smooth'
+        });
+      }, 100); // Small delay to ensure page transition starts
+    };
+  }
+
+  // Step 4 navigation
+  const aiPrevious4Btn = document.getElementById('ai-previous-4');
+  if (aiPrevious4Btn) {
+    aiPrevious4Btn.onclick = () => {
+      showPage('ai-step-3');
+    };
+  }
+
+  const aiSaveLineupBtn = document.getElementById('ai-save-lineup');
+  if (aiSaveLineupBtn) {
+    aiSaveLineupBtn.onclick = () => {
+      // Implement save functionality
+      alert('Save functionality not implemented yet');
+    };
+  }
+
+  // Retry button for errors
+  const retryLineupBtn = document.getElementById('retry-lineup');
+  if (retryLineupBtn) {
+    retryLineupBtn.onclick = retryLineupGeneration;
+  }
+  
+  // Copy lineup functionality
+  document.addEventListener('click', (e) => {
+    if (e.target.closest('.copy-lineup-btn')) {
+      copyLineupToClipboard();
+    }
+  });
+
+  // Add instruction functionality
+  const addInstructionBtn = document.getElementById('add-instruction-btn');
+  if (addInstructionBtn) {
+    addInstructionBtn.onclick = addInstruction;
+  }
+
+  // Enter key support for instruction input
+  const instructionInput = document.getElementById('new-instruction-input');
+  if (instructionInput) {
+    instructionInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        addInstruction();
+      }
+    });
+  }
+  
+  // Initialize at step 1
+  showPage('ai-step-1');
+});
+</script>
+
+<style>
+/* Custom styles for AI lineup creator */
+.min-h-screen {
+    min-height: 100vh;
+}
+
+.wizard-page {
+    opacity: 1;
+    transition: opacity 0.3s ease-in-out;
+}
+
+.wizard-page.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Gradient backgrounds */
+.bg-gradient-to-r {
+    background-image: linear-gradient(to right, var(--tw-gradient-stops));
+}
+.from-blue-50 { --tw-gradient-from: #eff6ff; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(239, 246, 255, 0)); }
+.to-indigo-50 { --tw-gradient-to: #eef2ff; }
+.from-green-500 { --tw-gradient-from: #10b981; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(16, 185, 129, 0)); }
+.to-emerald-500 { --tw-gradient-to: #10b981; }
+.from-purple-500 { --tw-gradient-from: #8b5cf6; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(139, 92, 246, 0)); }
+.to-violet-500 { --tw-gradient-to: #8b5cf6; }
+.from-orange-500 { --tw-gradient-from: #f97316; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(249, 115, 22, 0)); }
+.to-red-500 { --tw-gradient-to: #ef4444; }
+.from-indigo-500 { --tw-gradient-from: #6366f1; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(99, 102, 241, 0)); }
+.to-blue-500 { --tw-gradient-to: #3b82f6; }
+.from-teal-500 { --tw-gradient-from: #14b8a6; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(20, 184, 166, 0)); }
+.to-cyan-500 { --tw-gradient-to: #06b6d4; }
+.from-violet-500 { --tw-gradient-from: #8b5cf6; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(139, 92, 246, 0)); }
+
+/* Grid utilities */
+.grid { display: grid; }
+.grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+.grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.gap-4 { gap: 1rem; }
+.gap-3 { gap: 0.75rem; }
+.gap-2 { gap: 0.5rem; }
+
+/* Spacing utilities */
+.space-y-3 > * + * { margin-top: 0.75rem; }
+.space-y-1 > * + * { margin-top: 0.25rem; }
+.-space-x-2 > * + * { margin-left: -0.5rem; }
+
+/* Background colors */
+.bg-gray-50 { background-color: #f9fafb; }
+.bg-gray-100 { background-color: #f3f4f6; }
+.bg-gray-300 { background-color: #d1d5db; }
+.bg-white { background-color: #ffffff; }
+.bg-blue-50 { background-color: #eff6ff; }
+.bg-blue-100 { background-color: #dbeafe; }
+.bg-blue-600 { background-color: #2563eb; }
+.bg-blue-700 { background-color: #1d4ed8; }
+.bg-green-100 { background-color: #dcfce7; }
+.bg-green-600 { background-color: #16a34a; }
+.bg-green-700 { background-color: #15803d; }
+.bg-purple-100 { background-color: #f3e8ff; }
+.bg-purple-600 { background-color: #9333ea; }
+.bg-orange-50 { background-color: #fff7ed; }
+.bg-orange-100 { background-color: #fed7aa; }
+.bg-indigo-50 { background-color: #eef2ff; }
+.bg-indigo-600 { background-color: #4f46e5; }
+.bg-teal-50 { background-color: #f0fdfa; }
+.bg-teal-600 { background-color: #0d9488; }
+.bg-yellow-100 { background-color: #fef3c7; }
+.bg-amber-100 { background-color: #fef3c7; }
+.bg-red-100 { background-color: #fee2e2; }
+
+/* Text colors */
+.text-white { color: #ffffff; }
+.text-gray-500 { color: #6b7280; }
+.text-gray-600 { color: #4b5563; }
+.text-gray-700 { color: #374151; }
+.text-gray-800 { color: #1f2937; }
+.text-gray-900 { color: #111827; }
+.text-blue-800 { color: #1e40af; }
+.text-green-600 { color: #16a34a; }
+.text-green-800 { color: #166534; }
+.text-purple-600 { color: #9333ea; }
+.text-purple-800 { color: #6b21a8; }
+.text-orange-600 { color: #ea580c; }
+.text-indigo-600 { color: #4f46e5; }
+.text-teal-700 { color: #0f766e; }
+.text-yellow-800 { color: #92400e; }
+.text-amber-800 { color: #92400e; }
+.text-red-800 { color: #991b1b; }
+
+/* Border utilities */
+.border { border-width: 1px; }
+.border-t { border-top-width: 1px; }
+.border-2 { border-width: 2px; }
+.border-gray-100 { border-color: #f3f4f6; }
+.border-gray-200 { border-color: #e5e7eb; }
+.border-blue-100 { border-color: #dbeafe; }
+.border-blue-200 { border-color: #bfdbfe; }
+.border-orange-100 { border-color: #fed7aa; }
+.border-teal-100 { border-color: #ccfbf1; }
+
+/* Animation utilities */
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.transition-opacity {
+    transition-property: opacity;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+}
+
+.duration-500 {
+    transition-duration: 500ms;
+}
+
+.opacity-50 {
+    opacity: 0.5;
+}
+
+.opacity-100 {
+    opacity: 1;
+}
+.border-white { border-color: #ffffff; }
+
+/* Border radius */
+.rounded-full { border-radius: 9999px; }
+.rounded-xl { border-radius: 0.75rem; }
+.rounded-lg { border-radius: 0.5rem; }
+
+/* Shadow utilities */
+.shadow-sm { box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); }
+
+/* Overflow utilities */
+.overflow-hidden { overflow: hidden; }
+
+/* Padding and margin utilities */
+.p-4 { padding: 1rem; }
+.p-3 { padding: 0.75rem; }
+.px-4 { padding-left: 1rem; padding-right: 1rem; }
+.px-3 { padding-left: 0.75rem; padding-right: 0.75rem; }
+.px-2 { padding-left: 0.5rem; padding-right: 0.5rem; }
+.py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+.py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
+.pt-4 { padding-top: 1rem; }
+.mb-6 { margin-bottom: 1.5rem; }
+.mb-4 { margin-bottom: 1rem; }
+.mb-2 { margin-bottom: 0.5rem; }
+.mb-1 { margin-bottom: 0.25rem; }
+.mt-4 { margin-top: 1rem; }
+.mr-3 { margin-right: 0.75rem; }
+.mr-2 { margin-right: 0.5rem; }
+.mr-1 { margin-right: 0.25rem; }
+.ml-1 { margin-left: 0.25rem; }
+
+/* Typography */
+.text-lg { font-size: 1.125rem; line-height: 1.75rem; }
+.text-sm { font-size: 0.875rem; line-height: 1.25rem; }
+.text-xs { font-size: 0.75rem; line-height: 1rem; }
+.text-2xl { font-size: 1.5rem; line-height: 2rem; }
+.font-bold { font-weight: 700; }
+.font-semibold { font-weight: 600; }
+.font-medium { font-weight: 500; }
+.leading-relaxed { line-height: 1.625; }
+
+/* Layout utilities */
+.flex { display: flex; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.text-center { text-center: center; }
+.text-right { text-align: right; }
+
+/* Width and height */
+.w-8 { width: 2rem; }
+.w-6 { width: 1.5rem; }
+.w-10 { width: 2.5rem; }
+.h-8 { height: 2rem; }
+.h-6 { height: 1.5rem; }
+.h-10 { height: 2.5rem; }
+
+/* Custom animation for loading spinner */
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
+
+/* Button hover effects */
+button:hover {
+    transform: translateY(-1px);
+    transition: all 0.2s ease;
+}
+
+button:active {
+    transform: translateY(0);
+}
+
+/* Transition utilities */
+.transition-colors {
+    transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+}
+
+/* Hover effects */
+.hover\:bg-blue-700:hover { background-color: #1d4ed8; }
+.hover\:bg-green-700:hover { background-color: #15803d; }
+
+/* Ensure Font Awesome icons load properly */
+.fas, .fa {
+    font-family: "Font Awesome 6 Free" !important;
+    font-weight: 900 !important;
+    font-style: normal !important;
+    display: inline-block !important;
+}
+
+/* Ensure buttons have proper visibility */
+button {
+    cursor: pointer !important;
+    border: none !important;
+}
+
+/* Additional icon visibility fixes */
+i.fas {
+    display: inline-block !important;
+    font-style: normal !important;
+    font-variant: normal !important;
+    text-rendering: auto !important;
+    line-height: 1 !important;
+}
+
+/* Progress step styling */
+.progress-step {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Loading spinner override */
+.animate-spin {
+    border-color: transparent;
+    border-top-color: #2563eb;
+    border-right-color: #2563eb;
+}
+</style>
+
+{% endblock %} 

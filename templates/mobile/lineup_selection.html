@@ -1,0 +1,356 @@
+{% extends "mobile/layout.html" %}
+{% set show_back_arrow = True %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6">
+  <!-- Header Section -->
+  <div class="welcome-section text-center mb-8">
+    <h1 class="text-2xl font-bold text-gray-800">
+      Create Lineup
+    </h1>
+    <p class="text-sm text-gray-500 mt-2">
+      Choose your lineup creation method
+    </p>
+  </div>
+
+  <!-- Lineup Creation Options -->
+  <div class="icon-section mb-8">
+    <div class="flex items-center justify-center mb-6">
+      <div class="flex-grow border-t-2 border-gray-400"></div>
+      <div class="section-header text-xl font-bold px-4 text-center">
+        Lineup Tools
+      </div>
+      <div class="flex-grow border-t-2 border-gray-400"></div>
+    </div>
+    <div class="icon-grid grid grid-cols-1 gap-4" aria-label="Lineup Tools">
+      <a href="/mobile/lineup" class="ios-card bg-amber-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+        <i class="fas fa-clipboard-list text-white text-3xl mb-4 opacity-90"></i>
+        <div class="text-left">
+          <span class="block text-lg font-semibold mb-1">Create Lineup</span>
+          <span class="block text-sm opacity-80">Step-by-step lineup creation wizard</span>
+        </div>
+      </a>
+      
+      <a href="/mobile/lineup-ai" class="ios-card bg-blue-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+        <i class="fas fa-magic text-white text-3xl mb-4 opacity-90"></i>
+        <div class="text-left">
+          <span class="block text-lg font-semibold mb-1">Get Lineup Ideas from Rally AI</span>
+          <span class="block text-sm opacity-80">AI-powered lineup generation with smart recommendations</span>
+        </div>
+      </a>
+    </div>
+  </div>
+
+  <!-- Saved Lineups Section -->
+  <div class="icon-section mb-8">
+    <div class="flex items-center justify-center mb-6">
+      <div class="flex-grow border-t-2 border-gray-400"></div>
+      <div class="section-header text-xl font-bold px-4 text-center">
+        Saved Lineups
+      </div>
+      <div class="flex-grow border-t-2 border-gray-400"></div>
+    </div>
+    
+    <!-- Saved Lineups Card -->
+    <div class="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+      <div class="p-6">
+        <div class="flex items-center mb-4">
+          <i class="fas fa-history text-gray-600 mr-2"></i>
+          <h3 class="text-lg font-semibold text-gray-900">Your Lineup History</h3>
+        </div>
+        
+        <!-- Mock Data Table -->
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-gray-200">
+                <th class="text-left py-3 px-2 font-semibold text-gray-700">Date</th>
+                <th class="text-left py-3 px-2 font-semibold text-gray-700">Lineup Name</th>
+                <th class="text-left py-3 px-2 font-semibold text-gray-700">Record</th>
+                <th class="text-left py-3 px-2 font-semibold text-gray-700">Action</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+              <tr class="hover:bg-gray-50">
+                <td class="py-3 px-2 text-gray-800">12/15/24</td>
+                <td class="py-3 px-2 text-gray-800">Playoff Lineup</td>
+                <td class="py-3 px-2">
+                  <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    3-1 Win
+                  </span>
+                </td>
+                <td class="py-3 px-2">
+                  <button class="bg-blue-600 text-white px-3 py-1 rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors">
+                    <i class="fas fa-eye mr-1"></i>
+                    View
+                  </button>
+                </td>
+              </tr>
+              <tr class="hover:bg-gray-50">
+                <td class="py-3 px-2 text-gray-800">12/8/24</td>
+                <td class="py-3 px-2 text-gray-800">Test Lineup</td>
+                <td class="py-3 px-2">
+                  <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                    1-3 Loss
+                  </span>
+                </td>
+                <td class="py-3 px-2">
+                  <button class="bg-blue-600 text-white px-3 py-1 rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors">
+                    <i class="fas fa-eye mr-1"></i>
+                    View
+                  </button>
+                </td>
+              </tr>
+              <tr class="hover:bg-gray-50">
+                <td class="py-3 px-2 text-gray-800">12/1/24</td>
+                <td class="py-3 px-2 text-gray-800">Lineup A</td>
+                <td class="py-3 px-2">
+                  <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    4-0 Win
+                  </span>
+                </td>
+                <td class="py-3 px-2">
+                  <button class="bg-blue-600 text-white px-3 py-1 rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors">
+                    <i class="fas fa-eye mr-1"></i>
+                    View
+                  </button>
+                </td>
+              </tr>
+              <tr class="hover:bg-gray-50">
+                <td class="py-3 px-2 text-gray-800">11/24/24</td>
+                <td class="py-3 px-2 text-gray-800">Lineup B</td>
+                <td class="py-3 px-2">
+                  <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                    2-2 Tie
+                  </span>
+                </td>
+                <td class="py-3 px-2">
+                  <button class="bg-blue-600 text-white px-3 py-1 rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors">
+                    <i class="fas fa-eye mr-1"></i>
+                    View
+                  </button>
+                </td>
+              </tr>
+              <tr class="hover:bg-gray-50">
+                <td class="py-3 px-2 text-gray-800">11/17/24</td>
+                <td class="py-3 px-2 text-gray-800">Strong Start Lineup</td>
+                <td class="py-3 px-2">
+                  <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                    3-1 Win
+                  </span>
+                </td>
+                <td class="py-3 px-2">
+                  <button class="bg-blue-600 text-white px-3 py-1 rounded-lg text-xs font-medium hover:bg-blue-700 transition-colors">
+                    <i class="fas fa-eye mr-1"></i>
+                    View
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        
+        <!-- Coming Soon Notice -->
+        <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <div class="flex items-center">
+            <i class="fas fa-info-circle text-blue-500 mr-2"></i>
+            <p class="text-sm text-blue-800">
+              <span class="font-semibold">Coming Soon:</span> Save lineups, track performance, and reuse successful combinations automatically.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+/* Mobile-optimized styles matching the home page */
+.container {
+    max-width: 100%;
+}
+
+.ios-card {
+    background: linear-gradient(135deg, var(--tw-bg-opacity) 0%, var(--tw-bg-opacity) 100%);
+    transition: all 0.3s ease;
+    border: none;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.ios-card:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.icon-grid {
+    display: grid;
+    gap: 1rem;
+}
+
+.welcome-section h1 {
+    font-weight: 700;
+    color: #1f2937;
+}
+
+/* Remove custom section-header styling to match mobile home page */
+
+/* Table styling */
+table {
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+tbody tr:hover {
+    background-color: #f9fafb;
+}
+
+/* Badge styling for win/loss records */
+.bg-green-100 { background-color: #dcfce7; }
+.text-green-800 { color: #166534; }
+.bg-red-100 { background-color: #fee2e2; }
+.text-red-800 { color: #991b1b; }
+.bg-yellow-100 { background-color: #fef3c7; }
+.text-yellow-800 { color: #92400e; }
+.bg-blue-100 { background-color: #dbeafe; }
+.text-blue-800 { color: #1e40af; }
+
+/* Responsive design */
+@media (max-width: 640px) {
+    .px-6 { padding-left: 1rem; padding-right: 1rem; }
+    .py-6 { padding-top: 1.5rem; padding-bottom: 1.5rem; }
+    .text-2xl { font-size: 1.5rem; line-height: 2rem; }
+    .text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+    .text-lg { font-size: 1.125rem; line-height: 1.75rem; }
+    
+    /* Make table more mobile-friendly */
+    table {
+        font-size: 0.875rem;
+    }
+    
+    .py-3 {
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+    }
+    
+    .px-2 {
+        padding-left: 0.25rem;
+        padding-right: 0.25rem;
+    }
+}
+
+/* Ensure Font Awesome icons load properly */
+.fas, .fa {
+    font-family: "Font Awesome 6 Free" !important;
+    font-weight: 900 !important;
+    font-style: normal !important;
+    display: inline-block !important;
+}
+
+/* Loading state for future functionality */
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+/* Animation utilities */
+.transition-all {
+    transition-property: all;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 300ms;
+}
+
+.transform {
+    transform: translateZ(0);
+}
+
+.hover\:scale-105:hover {
+    transform: scale(1.05);
+}
+
+.duration-300 {
+    transition-duration: 300ms;
+}
+
+/* Border utilities */
+.border-t-2 { border-top-width: 2px; }
+.border-gray-400 { border-color: #9ca3af; }
+.border-gray-100 { border-color: #f3f4f6; }
+.border-gray-200 { border-color: #e5e7eb; }
+.border-blue-200 { border-color: #bfdbfe; }
+
+/* Background utilities */
+.bg-gray-50 { background-color: #f9fafb; }
+.bg-blue-50 { background-color: #eff6ff; }
+
+/* Flex utilities */
+.flex-grow { flex-grow: 1; }
+.items-center { align-items: center; }
+.justify-center { justify-content: center; }
+
+/* Spacing utilities */
+.space-y-6 > * + * { margin-top: 1.5rem; }
+.mb-8 { margin-bottom: 2rem; }
+.mb-6 { margin-bottom: 1.5rem; }
+.mb-4 { margin-bottom: 1rem; }
+.mb-1 { margin-bottom: 0.25rem; }
+.mt-2 { margin-top: 0.5rem; }
+.mt-4 { margin-top: 1rem; }
+.mr-2 { margin-right: 0.5rem; }
+
+/* Text utilities */
+.text-center { text-align: center; }
+.text-left { text-align: left; }
+.font-bold { font-weight: 700; }
+.font-semibold { font-weight: 600; }
+.font-medium { font-weight: 500; }
+
+/* Color utilities */
+.text-gray-800 { color: #1f2937; }
+.text-gray-700 { color: #374151; }
+.text-gray-600 { color: #4b5563; }
+.text-gray-500 { color: #6b7280; }
+.text-white { color: #ffffff; }
+
+/* Border radius utilities */
+.rounded-2xl { border-radius: 1rem; }
+.rounded-lg { border-radius: 0.5rem; }
+.rounded-full { border-radius: 9999px; }
+
+/* Shadow utilities */
+.shadow-lg {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* Padding utilities */
+.p-6 { padding: 1.5rem; }
+.p-3 { padding: 0.75rem; }
+.px-4 { padding-left: 1rem; padding-right: 1rem; }
+.py-6 { padding-top: 1.5rem; padding-bottom: 1.5rem; }
+.py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+.py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
+.px-2\.5 { padding-left: 0.625rem; padding-right: 0.625rem; }
+
+/* Overflow utilities */
+.overflow-hidden { overflow: hidden; }
+.overflow-x-auto { overflow-x: auto; }
+
+/* Width utilities */
+.w-full { width: 100%; }
+
+/* Display utilities */
+.inline-flex { display: inline-flex; }
+.block { display: block; }
+
+/* Divide utilities */
+.divide-y > * + * { border-top-width: 1px; }
+.divide-gray-100 > * + * { border-color: #f3f4f6; }
+
+/* View button styles */
+.bg-blue-600 { background-color: #2563eb; }
+.hover\:bg-blue-700:hover { background-color: #1d4ed8; }
+.text-xs { font-size: 0.75rem; line-height: 1rem; }
+.px-3 { padding-left: 0.75rem; padding-right: 0.75rem; }
+.py-1 { padding-top: 0.25rem; padding-bottom: 0.25rem; }
+.mr-1 { margin-right: 0.25rem; }
+</style>
+{% endblock %} 

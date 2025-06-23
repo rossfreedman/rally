@@ -19,10 +19,6 @@
 
     <!-- Content -->
     <div class="px-4 py-6 space-y-6">
-        
-
-
-
 
         <!-- Legend -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -48,8 +44,8 @@
                         <span>Not Available</span>
                     </div>
                     <div class="flex items-center">
-                        <i class="fas fa-bandage text-red-500 text-lg mr-2"></i>
-                        <span class="text-red-700 font-medium">Injury</span>
+                        <i class="fas fa-bandage text-purple-500 text-lg mr-2"></i>
+                        <span class="text-purple-700 font-medium">Injury</span>
                     </div>
                 </div>
             </div>
@@ -73,10 +69,18 @@
             
             <div class="p-6">
                 <!-- Scroll Indicator -->
-                <div class="flex items-center justify-center mb-4 text-sm text-gray-600 bg-blue-50 border border-blue-200 rounded-lg p-3" id="scrollIndicator">
-                    <i class="fas fa-arrows-alt-h text-blue-600 mr-2"></i>
+                <div class="flex items-center justify-center mb-4 text-sm text-gray-600 bg-blue-50 border border-blue-200 rounded-lg p-3 animate-bounce-gentle" id="scrollIndicator">
+                    <i class="fas fa-arrows-alt-h text-blue-600 mr-2 animate-wiggle"></i>
                     <span class="font-medium">Swipe left/right to see all court assignments</span>
                     <i class="fas fa-arrow-right text-blue-600 ml-2 animate-pulse"></i>
+                </div>
+                
+                <!-- Directions -->
+                <div class="mb-4 px-6 py-3 bg-green-50 border border-green-200 rounded-lg animate-fade-in-up">
+                    <div class="flex items-center">
+                        <i class="fas fa-pencil-alt text-green-600 mr-2 animate-bounce-slow"></i>
+                        <span class="text-sm text-green-700 font-medium">Click on a cell to edit a player's status</span>
+                    </div>
                 </div>
                 
                 <div class="overflow-x-auto" id="tableContainer">
@@ -84,12 +88,12 @@
                         <thead>
                             <tr class="bg-gray-50">
                                 <th class="px-3 py-3 text-left font-semibold text-gray-700 text-sm sticky left-0 bg-gray-50 z-10 border-r border-gray-200">Player</th>
-                                <th class="px-3 py-3 text-center font-semibold text-gray-700 text-sm bg-blue-100"># Matches Played</th>
-                                <th class="px-3 py-3 text-center font-semibold text-gray-700 text-sm bg-red-100">Forced Byes</th>
-                                <th class="px-3 py-3 text-center font-semibold text-gray-700 text-sm bg-yellow-100">Not Available</th>
-                                <th class="px-3 py-3 text-center font-semibold text-gray-700 text-sm bg-red-200">Injury</th>
+                                <th class="px-3 py-3 text-center font-semibold text-gray-600 text-sm bg-gray-100" title="Read-only data"># Matches Played</th>
+                                <th class="px-3 py-3 text-center font-semibold text-red-700 text-sm bg-red-100 border-2 border-dashed border-red-200" title="Click cells below to edit">Forced Byes ✏️</th>
+                                <th class="px-3 py-3 text-center font-semibold text-yellow-700 text-sm bg-yellow-100 border-2 border-dashed border-yellow-200" title="Click cells below to edit">Not Available ✏️</th>
+                                <th class="px-3 py-3 text-center font-semibold text-purple-700 text-sm bg-purple-100 border-2 border-dashed border-purple-200" title="Click cells below to edit">Injury ✏️</th>
                                 {% for court in available_courts %}
-                                <th class="px-3 py-3 text-center font-semibold text-gray-700 text-sm bg-green-100">{{ court.name }}</th>
+                                <th class="px-3 py-3 text-center font-semibold text-gray-600 text-sm bg-gray-100" title="Read-only data">{{ court.name }}</th>
                                 {% endfor %}
                             </tr>
                         </thead>
@@ -101,14 +105,14 @@
                                     {{ member.name }}
                                 </td>
                                 <td class="px-3 py-3 text-center">
-                                    <span class="bg-blue-100 px-2 py-1 rounded font-semibold text-blue-800">{{ member.match_count }}</span>
+                                    <span class="px-2 py-1 rounded font-semibold text-gray-700 bg-gray-50" title="Total matches for this player (read-only)">{{ member.match_count }}</span>
                                 </td>
-                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-red-100 px-2 py-1 rounded cursor-pointer hover:bg-red-200" data-player="{{ member.name }}" data-type="bye">0</span></td>
-                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-yellow-100 px-2 py-1 rounded cursor-pointer hover:bg-yellow-200" data-player="{{ member.name }}" data-type="unavailable">0</span></td>
-                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-red-100 px-2 py-1 rounded cursor-pointer hover:bg-red-200" data-player="{{ member.name }}" data-type="injury">0</span></td>
+                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-red-100 px-2 py-1 rounded cursor-pointer hover:bg-red-200 border-2 border-dashed border-red-300 hover:border-red-400 transition-all duration-200" data-player="{{ member.name }}" data-type="bye" title="Click to edit forced byes">0</span></td>
+                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-yellow-100 px-2 py-1 rounded cursor-pointer hover:bg-yellow-200 border-2 border-dashed border-yellow-300 hover:border-yellow-400 transition-all duration-200" data-player="{{ member.name }}" data-type="unavailable" title="Click to edit not available">0</span></td>
+                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-purple-100 px-2 py-1 rounded cursor-pointer hover:bg-purple-200 border-2 border-dashed border-purple-300 hover:border-purple-400 transition-all duration-200" data-player="{{ member.name }}" data-type="injury" title="Click to edit injury">0</span></td>
                                 {% for court in available_courts %}
                                 {% set court_count = member.court_stats.get(court.key, 0) if member.court_stats else 0 %}
-                                <td class="px-3 py-3 text-center"><span class="editable-cell bg-green-100 px-2 py-1 rounded cursor-pointer hover:bg-green-200" data-player="{{ member.name }}" data-type="{{ court.key }}">{{ court_count }}</span></td>
+                                <td class="px-3 py-3 text-center"><span class="px-2 py-1 rounded text-gray-600 bg-gray-50" title="Court assignments (read-only)" data-player="{{ member.name }}" data-type="{{ court.key }}">{{ court_count }}</span></td>
                                 {% endfor %}
                             </tr>
                             {% endfor %}
@@ -126,14 +130,6 @@
                         </tbody>
                     </table>
                 </div>
-                
-                <!-- Directions -->
-                <div class="mt-4 px-6 py-3 bg-blue-50 border border-blue-200 rounded-lg">
-                    <div class="flex items-center">
-                        <i class="fas fa-hand-pointer text-blue-600 mr-2"></i>
-                        <span class="text-sm text-blue-700 font-medium">Click on a cell to edit a player's status</span>
-                    </div>
-                </div>
             </div>
         </div>
 
@@ -145,6 +141,7 @@
 /* Background utilities */
 .bg-gray-50 { background-color: #f9fafb; }
 .bg-white { background-color: #ffffff; }
+.bg-green-50 { background-color: #f0fdf4; }
 .bg-green-100 { background-color: #dcfce7; }
 .bg-yellow-100 { background-color: #fef3c7; }
 .bg-red-100 { background-color: #fee2e2; }
@@ -152,6 +149,8 @@
 .bg-blue-100 { background-color: #dbeafe; }
 .bg-gray-100 { background-color: #f3f4f6; }
 .bg-purple-600 { background-color: #9333ea; }
+.bg-purple-100 { background-color: #f3e8ff; }
+.bg-purple-200 { background-color: #e9d5ff; }
 
 /* Border radius utilities */
 .rounded-xl { border-radius: 0.75rem; }
@@ -168,12 +167,69 @@
     animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
+.animate-bounce-gentle {
+    animation: bounce-gentle 3s ease-in-out infinite;
+}
+
+.animate-wiggle {
+    animation: wiggle 2s ease-in-out infinite;
+}
+
+.animate-fade-in-up {
+    animation: fade-in-up 0.8s ease-out;
+}
+
+.animate-bounce-slow {
+    animation: bounce-slow 2s ease-in-out infinite;
+}
+
 @keyframes pulse {
     0%, 100% {
         opacity: 1;
     }
     50% {
         opacity: .5;
+    }
+}
+
+@keyframes bounce-gentle {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-3px);
+    }
+}
+
+@keyframes wiggle {
+    0%, 100% {
+        transform: rotate(0deg);
+    }
+    25% {
+        transform: rotate(-5deg);
+    }
+    75% {
+        transform: rotate(5deg);
+    }
+}
+
+@keyframes fade-in-up {
+    0% {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes bounce-slow {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-4px);
     }
 }
 
@@ -186,6 +242,36 @@
 #tableContainer {
     scroll-behavior: smooth;
 }
+
+/* Text color utilities */
+.text-green-600 { color: #16a34a; }
+.text-green-700 { color: #15803d; }
+.text-gray-600 { color: #4b5563; }
+.text-gray-700 { color: #374151; }
+.text-red-700 { color: #b91c1c; }
+.text-yellow-700 { color: #a16207; }
+.text-purple-500 { color: #a855f7; }
+.text-purple-700 { color: #7c3aed; }
+
+/* Border color utilities */
+.border-green-200 { border-color: #bbf7d0; }
+.border-red-200 { border-color: #fecaca; }
+.border-red-300 { border-color: #fca5a5; }
+.border-red-400 { border-color: #f87171; }
+.border-yellow-200 { border-color: #fef08a; }
+.border-yellow-300 { border-color: #fcd34d; }
+.border-yellow-400 { border-color: #f59e0b; }
+.border-purple-200 { border-color: #e9d5ff; }
+.border-purple-300 { border-color: #d8b4fe; }
+.border-purple-400 { border-color: #c084fc; }
+.border-dashed { border-style: dashed; }
+
+/* Additional background utilities */
+.bg-gray-50 { background-color: #f9fafb; }
+
+/* Transition utilities */
+.transition-all { transition: all; }
+.duration-200 { transition-duration: 200ms; }
 </style>
 
 <script>
@@ -201,22 +287,22 @@ document.addEventListener('DOMContentLoaded', function() {
     const scrollIndicator = document.getElementById('scrollIndicator');
     
     if (tableContainer) {
-        // Small delay to ensure everything is loaded
+        // Wait 3 seconds before starting autoscroll animation
         setTimeout(() => {
-            // Scroll right 50px
+            // Scroll right much further (200px) to show more court columns
             tableContainer.scrollTo({
-                left: 50,
+                left: 200,
                 behavior: 'smooth'
             });
             
-            // After 1 second, scroll back to left
+            // After 2 seconds, scroll back to left
             setTimeout(() => {
                 tableContainer.scrollTo({
                     left: 0,
                     behavior: 'smooth'
                 });
-            }, 1000);
-        }, 500);
+            }, 2000);
+        }, 3000);
         
         // Hide scroll indicator when user manually scrolls
         tableContainer.addEventListener('scroll', function() {
@@ -339,17 +425,23 @@ document.addEventListener('DOMContentLoaded', function() {
     // Editable cell functionality
     const editableCells = document.querySelectorAll('.editable-cell');
     
+    // Add click handlers for read-only cells to provide feedback
+    const readOnlyCells = document.querySelectorAll('span[title*="read-only"]');
+    readOnlyCells.forEach(cell => {
+        cell.addEventListener('click', function() {
+            const titleText = this.getAttribute('title');
+            showToast(titleText, 'info');
+        });
+        
+        // Add visual feedback on hover
+        cell.style.cursor = 'not-allowed';
+    });
+    
     editableCells.forEach(cell => {
         cell.addEventListener('click', function() {
             const currentValue = this.textContent;
             const player = this.dataset.player;
             const type = this.dataset.type;
-            
-            // Skip court cells (they're read-only for now)
-            if (type.startsWith('court')) {
-                showToast('Court assignments are read-only', 'info');
-                return;
-            }
             
             // Create input element
             const input = document.createElement('input');

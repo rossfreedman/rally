@@ -380,17 +380,20 @@ def get_players_by_league_and_series(league_id, series_name, club_name=None):
         club_name (str, optional): Club name for additional filtering
 
     Returns:
-        list: List of player dictionaries with stats
+        list: List of player dictionaries with stats and position preference
     """
     try:
         base_query = """
             SELECT DISTINCT p.tenniscores_player_id, p.first_name, p.last_name,
                    p.club_id, p.series_id, c.name as club_name, s.name as series_name,
-                   l.league_name, l.league_id, p.pti, p.wins, p.losses, p.win_percentage
+                   l.league_name, l.league_id, p.pti, p.wins, p.losses, p.win_percentage,
+                   u.ad_deuce_preference, u.dominant_hand
             FROM players p
             JOIN leagues l ON p.league_id = l.id
             LEFT JOIN clubs c ON p.club_id = c.id
             LEFT JOIN series s ON p.series_id = s.id
+            LEFT JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
+            LEFT JOIN users u ON upa.user_id = u.id
             WHERE l.league_id = %(league_id)s 
             AND p.is_active = true
         """
@@ -422,6 +425,10 @@ def get_players_by_league_and_series(league_id, series_name, club_name=None):
                 f"{(wins / total_matches * 100):.1f}%" if total_matches > 0 else "0.0%"
             )
 
+            # Get preferences from database, default to None if not set
+            position_preference = player.get("ad_deuce_preference")
+            hand_preference = player.get("dominant_hand")
+
             formatted_players.append(
                 {
                     "name": f"{player['first_name']} {player['last_name']}",
@@ -434,6 +441,8 @@ def get_players_by_league_and_series(league_id, series_name, club_name=None):
                     "wins": wins,
                     "losses": losses,
                     "winRate": win_rate,
+                    "position_preference": position_preference,  # Ad/Deuce preference
+                    "hand_preference": hand_preference,  # Lefty/Righty preference
                 }
             )
 

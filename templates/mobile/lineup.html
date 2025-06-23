@@ -18,94 +18,59 @@
     </div>
 
     <!-- Content -->
-    <div class="px-4 py-6 space-y-6">
+    <div class="px-4 space-y-6" style="padding-top: calc(1.5rem - 5px); padding-bottom: 1.5rem;">
 
-        <!-- Lineup Method Choice -->
-        <div id="choice-page" class="wizard-page">
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-50">
-                    <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-                        <i class="fas fa-route text-blue-500 mr-2"></i>
-                        Choose Lineup Method
-                    </h2>
-                </div>
-                
-                <div class="p-4">
-                    <p class="text-sm text-gray-600 mb-4">How would you like to create your lineup?</p>
-                    
-                    <div class="space-y-3">
-                        <!-- AI Option -->
-                        <button id="choose-ai" class="w-full bg-blue-600 text-white rounded-lg p-4 shadow-md hover:shadow-lg transition-all duration-200 text-left touch-manipulation" style="background: linear-gradient(90deg, #3b82f6 0%, #8b5cf6 100%); color: white;">
-                            <div class="flex items-center">
-                                <div class="w-12 h-12 rounded-full flex items-center justify-center mr-3 flex-shrink-0" style="background-color: rgba(255,255,255,0.2);">
-                                    <i class="fas fa-magic text-white text-lg"></i>
-                                </div>
-                                <div class="flex-1 min-w-0">
-                                    <h3 class="text-lg font-bold mb-1 text-white">AI-Generated Lineup</h3>
-                                    <p class="text-xs leading-tight" style="color: rgba(255,255,255,0.9);">Let AI create the optimal lineup based on player stats and strategy.</p>
-                                    <p class="text-xs mt-1" style="color: rgba(255,255,255,0.8);">✨ Recommended</p>
-                                </div>
-                            </div>
-                        </button>
 
-                        <!-- Manual Option -->
-                        <button id="choose-manual" class="w-full bg-green-600 text-white rounded-lg p-4 shadow-md hover:shadow-lg transition-all duration-200 text-left touch-manipulation" style="background: linear-gradient(90deg, #10b981 0%, #14b8a6 100%); color: white;">
-                            <div class="flex items-center">
-                                <div class="w-12 h-12 rounded-full flex items-center justify-center mr-3 flex-shrink-0" style="background-color: rgba(255,255,255,0.2);">
-                                    <i class="fas fa-hand-paper text-white text-lg"></i>
-                                </div>
-                                <div class="flex-1 min-w-0">
-                                    <h3 class="text-lg font-bold mb-1 text-white">Manual Drag & Drop</h3>
-                                    <p class="text-xs leading-tight" style="color: rgba(255,255,255,0.9);">Build your lineup manually with full control over court assignments.</p>
-                                    <p class="text-xs mt-1" style="color: rgba(255,255,255,0.8);">🎯 Full Control</p>
-                                </div>
-                            </div>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
+
+        <!-- AI wizard steps removed - now handled by separate AI page -->
 
         <!-- Manual Lineup Builder -->
-        <div id="manual-page" class="wizard-page hidden">
-            <div class="flex justify-between mb-4">
-                <button id="manual-back" class="bg-gray-600 text-white px-6 py-3 rounded-lg shadow-sm hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors font-semibold">
-                    ← Back to Choice
-                </button>
+        <div id="manual-page" class="wizard-page">
+            <div class="flex justify-end items-center mb-4">
                 <button id="manual-send" class="bg-blue-600 text-white px-6 py-3 rounded-lg shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed" disabled>
-                    Send Lineup →
+                    Next →
                 </button>
             </div>
 
             <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
                 <div class="px-6 py-4 border-b border-gray-50">
                     <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-                        <i class="fas fa-hand-paper text-green-500 mr-2"></i>
-                        Manual Lineup Builder
+                        <i class="fas fa-tools text-green-500 mr-2"></i>
+                        Lineup Builder
                     </h2>
                 </div>
                 
                 <div class="p-4">
-                    <!-- Mode Switch for Mobile -->
-                    <div class="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="text-sm font-medium text-blue-800">Interaction Mode:</span>
-                            <button id="mode-toggle" class="bg-blue-600 text-white px-3 py-1 rounded text-xs font-medium">
-                                Switch to Tap Mode
-                            </button>
-                        </div>
-                        <p id="mode-description" class="text-xs text-blue-700">
-                            Drag & Drop: Drag players to court positions
-                        </p>
-                    </div>
 
                     <!-- Available Players Pool -->
                     <div class="mb-4">
                         <h3 class="font-semibold mb-2 text-gray-900 text-sm">Available Players</h3>
                         <p class="text-xs text-gray-600 mb-2" id="instruction-text">Drag players from here to the courts below:</p>
-                        <div id="available-players-pool" class="min-h-20 bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg p-2 max-h-32 overflow-y-auto">
+                        
+                        <!-- Color Legend -->
+                        <div class="mb-2 flex gap-4 text-xs">
+                            <div class="flex items-center gap-1">
+                                <div class="w-2 h-2 rounded" style="background-color: #70e6bb;"></div>
+                                <span class="text-gray-500">Ad</span>
+                            </div>
+                            <div class="flex items-center gap-1">
+                                <div class="w-2 h-2 rounded" style="background-color: #6f90d6;"></div>
+                                <span class="text-gray-500">Deuce</span>
+                            </div>
+                            <div class="flex items-center gap-1">
+                                <div class="w-2 h-2 rounded" style="background-color: #fbbf24;"></div>
+                                <span class="text-gray-500">Either</span>
+                            </div>
+                            <div class="flex items-center gap-1">
+                                <div class="w-2 h-2 rounded" style="background-color: #d1d5db;"></div>
+                                <span class="text-gray-500">No preference</span>
+                            </div>
+                        </div>
+                        
+                        <div id="available-players-pool" class="min-h-20 bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg p-2 overflow-y-auto" style="max-height: calc(12rem + 5px);">
                             <div class="text-gray-400 text-center text-sm" id="loading-players">Loading players...</div>
                         </div>
+
                     </div>
 
                     <!-- Selected Player Indicator (for tap mode) -->
@@ -127,65 +92,89 @@
                         <h3 class="font-semibold text-gray-900 text-sm">Courts</h3>
                         
                         <!-- Court 1 -->
-                        <div class="court-container bg-blue-50 border border-blue-200 rounded-lg p-2">
-                            <h4 class="font-medium text-blue-800 mb-2 flex items-center text-sm">
-                                <i class="fas fa-volleyball-ball text-blue-500 mr-1 text-xs"></i>
+                        <div class="court-container bg-gray-50 border border-gray-200 rounded-lg p-2">
+                            <h4 class="font-medium text-gray-800 mb-2 flex items-center text-sm">
+                                <i class="fas fa-volleyball-ball text-gray-500 mr-1 text-xs"></i>
                                 Court 1
                             </h4>
                             <div class="grid grid-cols-2 gap-2">
-                                <div class="court-position bg-white border border-dashed border-blue-300 rounded p-2 min-h-12 flex items-center justify-center text-gray-400 text-xs cursor-pointer hover:bg-blue-50 transition-colors" data-court="1" data-position="1">
-                                    <span class="drop-text">Player 1</span>
+                                <div class="flex flex-col">
+                                    <div class="text-xs font-semibold text-gray-700 mb-1 text-center">Ad</div>
+                                    <div class="court-position bg-white border border-dashed border-gray-300 rounded p-2 min-h-12 flex items-center justify-center text-gray-400 text-xs cursor-pointer hover:bg-gray-50 transition-colors" data-court="1" data-position="1">
+                                        <span class="drop-text">Player 1</span>
+                                    </div>
                                 </div>
-                                <div class="court-position bg-white border border-dashed border-blue-300 rounded p-2 min-h-12 flex items-center justify-center text-gray-400 text-xs cursor-pointer hover:bg-blue-50 transition-colors" data-court="1" data-position="2">
-                                    <span class="drop-text">Player 2</span>
+                                <div class="flex flex-col">
+                                    <div class="text-xs font-semibold text-gray-700 mb-1 text-center">Deuce</div>
+                                    <div class="court-position bg-white border border-dashed border-gray-300 rounded p-2 min-h-12 flex items-center justify-center text-gray-400 text-xs cursor-pointer hover:bg-gray-50 transition-colors" data-court="1" data-position="2">
+                                        <span class="drop-text">Player 2</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Court 2 -->
-                        <div class="court-container bg-green-50 border border-green-200 rounded-lg p-2">
-                            <h4 class="font-medium text-green-800 mb-2 flex items-center text-sm">
-                                <i class="fas fa-volleyball-ball text-green-500 mr-1 text-xs"></i>
+                        <div class="court-container bg-gray-50 border border-gray-200 rounded-lg p-2">
+                            <h4 class="font-medium text-gray-800 mb-2 flex items-center text-sm">
+                                <i class="fas fa-volleyball-ball text-gray-500 mr-1 text-xs"></i>
                                 Court 2
                             </h4>
                             <div class="grid grid-cols-2 gap-2">
-                                <div class="court-position bg-white border border-dashed border-green-300 rounded p-2 min-h-12 flex items-center justify-center text-gray-400 text-xs cursor-pointer hover:bg-green-50 transition-colors" data-court="2" data-position="1">
-                                    <span class="drop-text">Player 1</span>
+                                <div class="flex flex-col">
+                                    <div class="text-xs font-semibold text-gray-700 mb-1 text-center">Ad</div>
+                                    <div class="court-position bg-white border border-dashed border-gray-300 rounded p-2 min-h-12 flex items-center justify-center text-gray-400 text-xs cursor-pointer hover:bg-gray-50 transition-colors" data-court="2" data-position="1">
+                                        <span class="drop-text">Player 1</span>
+                                    </div>
                                 </div>
-                                <div class="court-position bg-white border border-dashed border-green-300 rounded p-2 min-h-12 flex items-center justify-center text-gray-400 text-xs cursor-pointer hover:bg-green-50 transition-colors" data-court="2" data-position="2">
-                                    <span class="drop-text">Player 2</span>
+                                <div class="flex flex-col">
+                                    <div class="text-xs font-semibold text-gray-700 mb-1 text-center">Deuce</div>
+                                    <div class="court-position bg-white border border-dashed border-gray-300 rounded p-2 min-h-12 flex items-center justify-center text-gray-400 text-xs cursor-pointer hover:bg-gray-50 transition-colors" data-court="2" data-position="2">
+                                        <span class="drop-text">Player 2</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Court 3 -->
-                        <div class="court-container bg-yellow-50 border border-yellow-200 rounded-lg p-2">
-                            <h4 class="font-medium text-yellow-800 mb-2 flex items-center text-sm">
-                                <i class="fas fa-volleyball-ball text-yellow-500 mr-1 text-xs"></i>
+                        <div class="court-container bg-gray-50 border border-gray-200 rounded-lg p-2">
+                            <h4 class="font-medium text-gray-800 mb-2 flex items-center text-sm">
+                                <i class="fas fa-volleyball-ball text-gray-500 mr-1 text-xs"></i>
                                 Court 3
                             </h4>
                             <div class="grid grid-cols-2 gap-2">
-                                <div class="court-position bg-white border border-dashed border-yellow-300 rounded p-2 min-h-12 flex items-center justify-center text-gray-400 text-xs cursor-pointer hover:bg-yellow-50 transition-colors" data-court="3" data-position="1">
-                                    <span class="drop-text">Player 1</span>
+                                <div class="flex flex-col">
+                                    <div class="text-xs font-semibold text-gray-700 mb-1 text-center">Ad</div>
+                                    <div class="court-position bg-white border border-dashed border-gray-300 rounded p-2 min-h-12 flex items-center justify-center text-gray-400 text-xs cursor-pointer hover:bg-gray-50 transition-colors" data-court="3" data-position="1">
+                                        <span class="drop-text">Player 1</span>
+                                    </div>
                                 </div>
-                                <div class="court-position bg-white border border-dashed border-yellow-300 rounded p-2 min-h-12 flex items-center justify-center text-gray-400 text-xs cursor-pointer hover:bg-yellow-50 transition-colors" data-court="3" data-position="2">
-                                    <span class="drop-text">Player 2</span>
+                                <div class="flex flex-col">
+                                    <div class="text-xs font-semibold text-gray-700 mb-1 text-center">Deuce</div>
+                                    <div class="court-position bg-white border border-dashed border-gray-300 rounded p-2 min-h-12 flex items-center justify-center text-gray-400 text-xs cursor-pointer hover:bg-gray-50 transition-colors" data-court="3" data-position="2">
+                                        <span class="drop-text">Player 2</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Court 4 -->
-                        <div class="court-container bg-purple-50 border border-purple-200 rounded-lg p-2">
-                            <h4 class="font-medium text-purple-800 mb-2 flex items-center text-sm">
-                                <i class="fas fa-volleyball-ball text-purple-500 mr-1 text-xs"></i>
+                        <div class="court-container bg-gray-50 border border-gray-200 rounded-lg p-2">
+                            <h4 class="font-medium text-gray-800 mb-2 flex items-center text-sm">
+                                <i class="fas fa-volleyball-ball text-gray-500 mr-1 text-xs"></i>
                                 Court 4
                             </h4>
                             <div class="grid grid-cols-2 gap-2">
-                                <div class="court-position bg-white border border-dashed border-purple-300 rounded p-2 min-h-12 flex items-center justify-center text-gray-400 text-xs cursor-pointer hover:bg-purple-50 transition-colors" data-court="4" data-position="1">
-                                    <span class="drop-text">Player 1</span>
+                                <div class="flex flex-col">
+                                    <div class="text-xs font-semibold text-gray-700 mb-1 text-center">Ad</div>
+                                    <div class="court-position bg-white border border-dashed border-gray-300 rounded p-2 min-h-12 flex items-center justify-center text-gray-400 text-xs cursor-pointer hover:bg-gray-50 transition-colors" data-court="4" data-position="1">
+                                        <span class="drop-text">Player 1</span>
+                                    </div>
                                 </div>
-                                <div class="court-position bg-white border border-dashed border-purple-300 rounded p-2 min-h-12 flex items-center justify-center text-gray-400 text-xs cursor-pointer hover:bg-purple-50 transition-colors" data-court="4" data-position="2">
-                                    <span class="drop-text">Player 2</span>
+                                <div class="flex flex-col">
+                                    <div class="text-xs font-semibold text-gray-700 mb-1 text-center">Deuce</div>
+                                    <div class="court-position bg-white border border-dashed border-gray-300 rounded p-2 min-h-12 flex items-center justify-center text-gray-400 text-xs cursor-pointer hover:bg-gray-50 transition-colors" data-court="4" data-position="2">
+                                        <span class="drop-text">Player 2</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -199,295 +188,21 @@
                 </div>
             </div>
         </div>
-        
-        <!-- Enhanced Progress Flow (for AI mode) -->
-        <div id="ai-progress" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hidden">
-            <div class="px-6 py-4 border-b border-gray-50">
-                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-                    <i class="fas fa-route text-blue-500 mr-2"></i>
-                    AI Lineup Progress
-                </h2>
-            </div>
-            
-            <div class="p-6">
-                <div class="flex items-center justify-between">
-    <!-- Step 1 -->
-    <div class="flex flex-col items-center flex-1">
-      <div class="bg-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold text-blue-600 shadow-md mb-2 border-2 border-blue-300">1</div>
-      <div id="step1-card" class="bg-blue-500 rounded-xl p-4 shadow-lg transform transition-all duration-300 scale-105 border-2 border-blue-300 w-16 h-16 flex items-center justify-center">
-        <i class="fas fa-users text-white text-2xl"></i>
-      </div>
-      <div class="text-xs text-center mt-2 font-semibold text-blue-600 max-w-20">
-        <div>Select</div>
-        <div>Players</div>
-      </div>
-    </div>
-    
-    <!-- Arrow 1 -->
-    <div class="flex-shrink-0 mx-2">
-      <i class="fas fa-chevron-right text-blue-400 text-lg"></i>
-    </div>
-    
-    <!-- Step 2 -->
-    <div class="flex flex-col items-center flex-1">
-      <div class="bg-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold text-gray-600 shadow-md mb-2 border-2 border-gray-300">2</div>
-      <div id="step2-card" class="bg-gray-200 rounded-xl p-4 shadow-lg transform transition-all duration-300 w-16 h-16 flex items-center justify-center">
-        <i class="fas fa-clipboard-check text-gray-600 text-2xl"></i>
-      </div>
-      <div class="text-xs text-center mt-2 font-semibold text-gray-500 max-w-20">
-        <div>Add</div>
-        <div>Instructions</div>
-      </div>
-    </div>
-    
-    <!-- Arrow 2 -->
-    <div class="flex-shrink-0 mx-2">
-      <i class="fas fa-chevron-right text-gray-300 text-lg"></i>
-    </div>
-    
-    <!-- Step 3 -->
-    <div class="flex flex-col items-center flex-1">
-      <div class="bg-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold text-gray-600 shadow-md mb-2 border-2 border-gray-300">3</div>
-      <div id="step3-card" class="bg-gray-200 rounded-xl p-4 shadow-lg transform transition-all duration-300 w-16 h-16 flex items-center justify-center">
-        <i class="fas fa-magic text-gray-600 text-2xl"></i>
-      </div>
-      <div class="text-xs text-center mt-2 font-semibold text-gray-500 max-w-20">
-        <div>Generate</div>
-        <div>Lineup</div>
-      </div>
-    </div>
-    
-    <!-- Arrow 3 -->
-    <div class="flex-shrink-0 mx-2">
-      <i class="fas fa-chevron-right text-gray-300 text-lg"></i>
-    </div>
-    
-    <!-- Step 4 -->
-    <div class="flex flex-col items-center flex-1">
-      <div class="bg-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold text-gray-600 shadow-md mb-2 border-2 border-gray-300">4</div>
-      <div id="step4-card" class="bg-gray-200 rounded-xl p-4 shadow-lg transform transition-all duration-300 w-16 h-16 flex items-center justify-center">
-        <i class="fas fa-paper-plane text-gray-600 text-2xl"></i>
-      </div>
-      <div class="text-xs text-center mt-2 font-semibold text-gray-500 max-w-20">
-        <div>Send to</div>
-        <div>Team</div>
-      </div>
-                </div>
-            </div>
-        </div>
 
-        <!-- Page 1: Select Available Players -->
-        <div id="page1" class="wizard-page">
-            <!-- Navigation Buttons at Top -->
-            <div class="flex justify-end mb-4">
-                <button id="page1-next" class="bg-blue-600 text-white px-6 py-3 rounded-lg shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors font-semibold">
-                    Next →
-                </button>
-            </div>
-            
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-50">
-                    <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-                        <i class="fas fa-users text-green-500 mr-2"></i>
-                        Select Available Players
-                    </h2>
-                </div>
-                
-                <div class="p-6">
-                    <p class="text-sm text-gray-600 mb-4">Choose which players are available for the lineup:</p>
-                    <div id="players-list" class="space-y-3">
-                        <!-- Player checkboxes will be loaded here -->
-                    </div>
-                </div>
-            </div>
-        </div>
 
-        <!-- Page 2: Lineup Instructions -->
-        <div id="page2" class="wizard-page hidden">
-            <!-- Navigation Buttons at Top -->
-            <div class="flex justify-between mb-4">
-                <button id="page2-prev" class="bg-gray-600 text-white px-6 py-3 rounded-lg shadow-sm hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors font-semibold">
-                    ← Previous
-                </button>
-                <button id="page2-next" class="bg-blue-600 text-white px-6 py-3 rounded-lg shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors font-semibold">
-                    Next →
-                </button>
-            </div>
-            
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-50">
-                    <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-                        <i class="fas fa-clipboard-check text-purple-500 mr-2"></i>
-                        Update Saved Lineup Instructions
-                    </h2>
-                </div>
-                
-                <div class="p-6">
-                    <p class="text-sm text-gray-600 mb-4">Add any specific instructions for the AI to consider:</p>
-                    
-                    <ul id="instructions-list" class="mb-4 space-y-3">
-                        <!-- Instructions will be loaded here -->
-                    </ul>
-                    
-                    <div class="flex gap-3">
-                        <input 
-                            id="new-instruction" 
-                            type="text" 
-                            class="flex-1 px-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                            placeholder="Add new instruction..." 
-                        />
-                        <button 
-                            id="add-instruction-btn" 
-                            class="bg-green-600 text-white px-4 py-3 rounded-lg shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors font-semibold"
-                        >
-                            Add
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
 
-        <!-- Page 3: Generate Lineup -->
-        <div id="page3" class="wizard-page hidden">
-            <!-- Navigation Buttons at Top -->
-            <div class="flex justify-between mb-4">
-                <button id="page3-prev" class="bg-gray-600 text-white px-6 py-3 rounded-lg shadow-sm hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors font-semibold">
-                    ← Previous
-                </button>
-                <button id="generate-lineup-btn" class="bg-orange-600 text-white px-6 py-3 rounded-lg shadow-sm hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition-colors font-semibold">
-                    Generate Lineup →
-                </button>
-            </div>
-            
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-50">
-                    <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-                        <i class="fas fa-magic text-orange-500 mr-2"></i>
-                        Generate Lineup
-                    </h2>
-                </div>
-                
-                <div class="p-6">
-                    <div id="generation-controls" class="mb-4">
-                        <p class="text-sm text-gray-600 mb-4">Ready to generate your optimal lineup!</p>
-                        <div class="bg-gray-50 p-4 rounded-lg mb-4 border border-gray-200">
-                            <h3 class="font-semibold mb-3 text-gray-900">Summary:</h3>
-                            
-                            <!-- Selected Players Section -->
-                            <div class="mb-4">
-                                <div class="flex items-center mb-2">
-                                    <i class="fas fa-users text-blue-500 mr-2"></i>
-                                    <span class="font-medium text-gray-800">Selected Players (<span id="summary-players-count">0</span>):</span>
-                                </div>
-                                <div id="summary-players-list" class="text-sm text-gray-700 ml-6">
-                                    <div class="text-gray-500 italic">No players selected</div>
-                                </div>
-                            </div>
-
-                            <!-- Instructions Section -->
-                            <div>
-                                <div class="flex items-center mb-2">
-                                    <i class="fas fa-clipboard-check text-purple-500 mr-2"></i>
-                                    <span class="font-medium text-gray-800">Instructions (<span id="summary-instructions-count">0</span>):</span>
-                                </div>
-                                <div id="summary-instructions-list" class="text-sm text-gray-700 ml-6">
-                                    <div class="text-gray-500 italic">No instructions added</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div id="loading-indicator" class="hidden text-center py-8">
-                        <div class="animate-spin rounded-full h-16 w-16 border-b-2 border-orange-500 mx-auto mb-4"></div>
-                        <p class="text-gray-600">Generating optimal lineup...</p>
-                    </div>
-                    
-                    <div id="generated-lineup-container" class="hidden">
-                        <h3 class="font-semibold mb-3 text-lg text-green-800">🏓 Your Generated Lineup</h3>
-                        <div class="bg-green-50 border-2 border-green-200 p-6 rounded-lg shadow-sm">
-                            <pre id="generated-lineup" class="whitespace-pre-wrap text-sm leading-relaxed text-gray-800"></pre>
-                        </div>
-                        <div class="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
-                            <p class="text-sm text-green-700 font-medium">✅ Lineup successfully generated! Click "Send to Team" to share with your players.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Page 4: Send Lineup -->
-        <div id="page4" class="wizard-page hidden">
-            <!-- Navigation Buttons at Top -->
-            <div class="flex justify-between mb-4">
-                <button id="page4-prev" class="bg-gray-600 text-white px-6 py-3 rounded-lg shadow-sm hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors font-semibold">
-                    ← Previous
-                </button>
-                <button id="send-to-team" class="bg-green-600 text-white px-6 py-3 rounded-lg shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors font-semibold">
-                    Send to Team →
-                </button>
-            </div>
-            
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                <div class="px-6 py-4 border-b border-gray-50">
-                    <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-                        <i class="fas fa-paper-plane text-blue-500 mr-2"></i>
-                        Send Lineup to Team
-                    </h2>
-                </div>
-                
-                <div class="p-6">
-                    <p class="text-sm text-gray-600 mb-6">Choose how to share the lineup with your team:</p>
-                    
-                    <!-- Message Preview -->
-                    <div class="mb-6">
-                        <h3 class="font-semibold mb-3 text-gray-900">Message Preview:</h3>
-                        <div class="bg-gray-50 p-4 rounded-lg border border-gray-200">
-                            <div class="text-sm text-gray-700">
-                                <div class="font-semibold mb-2 text-gray-900">Subject: Lineup for [Match Date]</div>
-                                <div id="message-preview" class="whitespace-pre-wrap"></div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Send Options -->
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-                        <button id="send-email" class="flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-3 rounded-lg shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors font-semibold">
-                            <i class="fas fa-envelope"></i>
-                            Send via Email
-                        </button>
-                        <button id="send-text" class="flex items-center justify-center gap-2 bg-purple-600 text-white px-4 py-3 rounded-lg shadow-sm hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 transition-colors font-semibold">
-                            <i class="fas fa-sms"></i>
-                            Send via Text
-                        </button>
-                    </div>
-                    
-                    <!-- Additional Options -->
-                    <div class="border-t border-gray-200 pt-6">
-                        <h3 class="font-semibold mb-3 text-gray-900">Additional Options:</h3>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <button id="copy-lineup" class="flex items-center justify-center gap-2 bg-white border border-gray-300 text-gray-700 px-4 py-3 rounded-lg shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors font-semibold">
-                                <i class="fas fa-copy"></i>
-                                Copy to Clipboard
-                            </button>
-                            <button id="save-lineup" class="flex items-center justify-center gap-2 bg-white border border-gray-300 text-gray-700 px-4 py-3 rounded-lg shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors font-semibold">
-                                <i class="fas fa-save"></i>
-                                Save as Draft
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
 </div>
 
 <script>
+// Initialize session data
+window.sessionData = {{ session_data | tojson | safe }};
 const user = window.sessionData?.user || {};
 const series = user.series;
 const club = user.club;
 const teamId = club && series ? `${club} - ${series.split(' ').pop()}` : '';
 
-// Wizard state
+// Wizard state - Initialize all variables
 let currentPage = 0; // Start at choice page
 let isAIMode = false;
 let players = [];
@@ -496,9 +211,10 @@ let instructions = [];
 let generatedLineup = '';
 let manualLineup = {};
 
-// Manual lineup interaction mode
-let isDragMode = true;
+// Manual lineup interaction - both drag and tap work simultaneously
 let selectedPlayerForTap = null;
+
+// Functions are loaded and ready
 
 // Player position determination
 function getPlayerPosition(playerName, rating) {
@@ -526,354 +242,17 @@ function showPage(pageNumber) {
     page.classList.add('hidden');
   });
   
-  // Show appropriate page
-  if (pageNumber === 0) {
-    // Choice page
-    document.getElementById('choice-page').classList.remove('hidden');
-    document.getElementById('ai-progress').classList.add('hidden');
-  } else if (pageNumber === 'manual') {
-    // Manual drag-and-drop page
+  // Show the requested page
+  if (pageNumber === 'manual') {
     document.getElementById('manual-page').classList.remove('hidden');
-    document.getElementById('ai-progress').classList.add('hidden');
-    loadPlayersForManual();
-  } else {
-    // AI pages (1-4)
-    const currentPageElement = document.getElementById(`page${pageNumber}`);
-    currentPageElement.classList.remove('hidden');
-    document.getElementById('ai-progress').classList.remove('hidden');
-    
-    // Update progress indicators for AI mode
-    updateProgressIndicators(pageNumber);
   }
   
   currentPage = pageNumber;
 }
 
-function updateProgressIndicators(pageNumber) {
-  // Update step cards with enhanced styling
-  for (let i = 1; i <= 4; i++) {
-    const card = document.getElementById(`step${i}-card`);
-    const labels = card.parentElement.querySelector('.text-xs');
-    const numberBadge = card.parentElement.querySelector('.bg-white.rounded-full');
-    const arrow = document.querySelector(`.mx-2:nth-of-type(${i})`);
-    
-    if (i < pageNumber) {
-      // Completed steps - green with checkmark
-      card.className = 'bg-green-500 rounded-xl p-4 shadow-lg transform transition-all duration-300 scale-105 border-2 border-green-300 w-16 h-16 flex items-center justify-center';
-      card.innerHTML = '<i class="fas fa-check text-white text-2xl"></i>';
-      numberBadge.className = 'bg-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold text-green-600 shadow-md mb-2 border-2 border-green-300';
-      numberBadge.textContent = '✓';
-      labels.className = 'text-xs text-center mt-2 font-semibold text-green-600 max-w-20';
-      // Update arrow color to show completion
-      if (arrow && i < 4) {
-        const chevron = arrow.querySelector('i');
-        if (chevron) chevron.className = 'fas fa-chevron-right text-green-400 text-lg';
-      }
-    } else if (i === pageNumber) {
-      // Current step - solid colors with pulse and scale
-      const solidColors = [
-        'bg-blue-500 border-blue-300',
-        'bg-purple-500 border-purple-300', 
-        'bg-pink-500 border-pink-300',
-        'bg-orange-500 border-orange-300'
-      ];
-      const colors = ['text-blue-600', 'text-purple-600', 'text-pink-600', 'text-orange-600'];
-      const borderColors = ['border-blue-300', 'border-purple-300', 'border-pink-300', 'border-orange-300'];
-      const arrowColors = ['text-blue-400', 'text-purple-400', 'text-pink-400', 'text-orange-400'];
-      
-      card.className = `${solidColors[i-1]} rounded-xl p-4 shadow-lg transform transition-all duration-300 scale-105 border-2 animate-pulse w-16 h-16 flex items-center justify-center`;
-      numberBadge.className = `bg-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold ${colors[i-1]} shadow-md mb-2 border-2 ${borderColors[i-1]}`;
-      numberBadge.textContent = i;
-      
-      const iconColors = ['text-blue-900', 'text-purple-900', 'text-pink-900', 'text-orange-900'];
-      
-      switch(i) {
-        case 1: card.innerHTML = `<i class="fas fa-users ${iconColors[i-1]} text-2xl"></i>`; break;
-        case 2: card.innerHTML = `<i class="fas fa-clipboard-check ${iconColors[i-1]} text-2xl"></i>`; break;
-        case 3: card.innerHTML = `<i class="fas fa-magic ${iconColors[i-1]} text-2xl"></i>`; break;
-        case 4: card.innerHTML = `<i class="fas fa-paper-plane ${iconColors[i-1]} text-2xl"></i>`; break;
-      }
-      labels.className = `text-xs text-center mt-2 font-semibold ${colors[i-1]} max-w-20`;
-      
-      // Update current arrow color
-      if (arrow && i < 4) {
-        const chevron = arrow.querySelector('i');
-        if (chevron) chevron.className = `fas fa-chevron-right ${arrowColors[i-1]} text-lg`;
-      }
-    } else {
-      // Future steps - gray
-      card.className = 'bg-gray-200 rounded-xl p-4 shadow-lg transform transition-all duration-300 w-16 h-16 flex items-center justify-center';
-      numberBadge.className = 'bg-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold text-gray-600 shadow-md mb-2 border-2 border-gray-300';
-      numberBadge.textContent = i;
-      
-      switch(i) {
-        case 1: card.innerHTML = '<i class="fas fa-users text-gray-600 text-2xl"></i>'; break;
-        case 2: card.innerHTML = '<i class="fas fa-clipboard-check text-gray-600 text-2xl"></i>'; break;
-        case 3: card.innerHTML = '<i class="fas fa-magic text-gray-600 text-2xl"></i>'; break;
-        case 4: card.innerHTML = '<i class="fas fa-paper-plane text-gray-600 text-2xl"></i>'; break;
-      }
-      labels.className = 'text-xs text-center mt-2 font-semibold text-gray-500 max-w-20';
-      
-      // Reset arrow color
-      if (arrow && i < 4) {
-        const chevron = arrow.querySelector('i');
-        if (chevron) chevron.className = 'fas fa-chevron-right text-gray-300 text-lg';
-      }
-    }
-  }
-}
 
-// Page 1: Load and render players with position info
-function loadPlayers() {
-  fetch(`/api/players?series=${encodeURIComponent(series)}&team_id=${encodeURIComponent(teamId)}`)
-    .then(res => {
-      if (!res.ok) {
-        throw new Error(`Server error: ${res.status} ${res.statusText}`);
-      }
-      return res.json();
-    })
-    .then(data => {
-      if (data.error) {
-        throw new Error(data.error);
-      }
-      players = data;
-      // Select all players by default
-      selectedPlayers = new Set(players.map(p => p.name));
-      renderPlayers();
-    })
-    .catch(error => {
-      console.error('Error loading players:', error);
-      document.getElementById('players-list').innerHTML = `<span class="text-error">Failed to load players: ${error.message}</span>`;
-    });
-}
 
-function renderPlayers() {
-  const list = document.getElementById('players-list');
-  list.innerHTML = '';
-  players.forEach(player => {
-    const id = `player-${player.name.replace(/\s+/g, '-')}`;
-    const checked = selectedPlayers.has(player.name);
-    const position = getPlayerPosition(player.name, player.rating);
-    const positionColor = {
-      'Ad': 'text-blue-600 bg-blue-100',
-      'Deuce': 'text-orange-600 bg-orange-100', 
-      'Either': 'text-green-600 bg-green-100',
-      'Unknown': 'text-gray-600 bg-gray-100'
-    }[position];
-    
-    const div = document.createElement('div');
-    div.className = 'grid grid-cols-4 gap-4 items-center p-4 bg-white rounded-lg hover:bg-gray-50 transition-colors border border-gray-200 shadow-sm';
-    div.innerHTML = `
-      <div class="flex justify-center">
-        <input type="checkbox" id="${id}" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2" ${checked ? 'checked' : ''} />
-      </div>
-      <div>
-        <label for="${id}" class="cursor-pointer font-medium text-base text-gray-900">${player.name}</label>
-      </div>
-      <div class="text-center font-semibold text-sm text-gray-900">
-        ${player.rating}
-      </div>
-      <div class="flex justify-center">
-        <div class="px-2 py-1 rounded-full text-xs font-medium ${positionColor}">
-          ${position}
-        </div>
-      </div>
-    `;
-    const checkbox = div.querySelector('input');
-    checkbox.checked = checked;
-    checkbox.addEventListener('change', e => {
-      if (e.target.checked) selectedPlayers.add(player.name);
-      else selectedPlayers.delete(player.name);
-      updateSummary();
-    });
-    list.appendChild(div);
-  });
-  updateSummary();
-}
-
-// Page 2: Instructions management
-function loadInstructions() {
-  fetch(`/api/lineup-instructions?team_id=${encodeURIComponent(teamId)}`)
-    .then(res => {
-      if (!res.ok) {
-        throw new Error(`Server error: ${res.status} ${res.statusText}`);
-      }
-      return res.json();
-    })
-    .then(data => {
-      if (data.error) {
-        throw new Error(data.error);
-      }
-      instructions = data.instructions || [];
-      renderInstructions();
-    })
-    .catch(error => {
-      console.error('Error loading instructions:', error);
-      document.getElementById('instructions-list').innerHTML = `<li class="text-error">Failed to load instructions: ${error.message}</li>`;
-    });
-}
-
-function renderInstructions() {
-  const list = document.getElementById('instructions-list');
-  list.innerHTML = '';
-  instructions.forEach(instr => {
-    const li = document.createElement('li');
-    li.className = 'flex items-center justify-between bg-gray-50 rounded-lg px-4 py-3 border border-gray-200';
-    li.innerHTML = `
-      <span class="flex-1 text-sm text-gray-700">${instr}</span>
-      <button class="bg-red-600 text-white px-2 py-1 rounded text-xs hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors ml-3">
-        <i class="fas fa-trash"></i>
-      </button>
-    `;
-    li.querySelector('button').onclick = () => deleteInstruction(instr);
-    list.appendChild(li);
-  });
-  updateSummary();
-}
-
-function addInstruction() {
-  const input = document.getElementById('new-instruction');
-  const value = input.value.trim();
-  if (!value) return;
-  
-  fetch(`/api/lineup-instructions`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ instruction: value, team_id: teamId })
-  })
-    .then(res => {
-      if (!res.ok) {
-        throw new Error(`Server error: ${res.status} ${res.statusText}`);
-      }
-      return res.json();
-    })
-    .then(data => {
-      if (data.error) {
-        throw new Error(data.error);
-      }
-      input.value = '';
-      loadInstructions();
-    })
-    .catch(error => {
-      console.error('Error adding instruction:', error);
-      alert(`Failed to add instruction: ${error.message}`);
-    });
-}
-
-function deleteInstruction(instr) {
-  fetch(`/api/lineup-instructions`, {
-    method: 'DELETE',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ instruction: instr, team_id: teamId })
-  })
-    .then(res => {
-      if (!res.ok) {
-        throw new Error(`Server error: ${res.status} ${res.statusText}`);
-      }
-      return res.json();
-    })
-    .then(data => {
-      if (data.error) {
-        throw new Error(data.error);
-      }
-      loadInstructions();
-    })
-    .catch(error => {
-      console.error('Error deleting instruction:', error);
-      alert(`Failed to delete instruction: ${error.message}`);
-    });
-}
-
-// Page 3: Generate lineup
-function generateLineup() {
-  const selected = Array.from(selectedPlayers);
-  if (selected.length === 0) {
-    alert('Please select at least one player.');
-    return;
-  }
-  
-  document.getElementById('generation-controls').classList.add('hidden');
-  document.getElementById('loading-indicator').classList.remove('hidden');
-  document.getElementById('generated-lineup-container').classList.add('hidden');
-  
-  fetch('/api/generate-lineup', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ players: selected, instructions })
-  })
-    .then(res => res.json())
-    .then(data => {
-      document.getElementById('loading-indicator').classList.add('hidden');
-      
-      if (data.suggestion) {
-        generatedLineup = data.suggestion;
-        document.getElementById('generated-lineup').textContent = data.suggestion;
-        document.getElementById('generated-lineup-container').classList.remove('hidden');
-        
-        // Hide the generation controls permanently after successful generation
-        document.getElementById('generation-controls').classList.add('hidden');
-        
-        // Change the button to "Send to Team" after successful generation
-        document.getElementById('generate-lineup-btn').textContent = 'Send to Team →';
-        document.getElementById('generate-lineup-btn').onclick = () => {
-          updateMessagePreview();
-          showPage(4);
-        };
-      } else {
-        // Handle case where API responds but without a successful lineup
-        document.getElementById('generation-controls').classList.remove('hidden');
-        const container = document.getElementById('generated-lineup-container');
-        container.innerHTML = `
-          <h3 class="font-semibold mb-3 text-lg text-red-600">❌ Lineup Generation Failed</h3>
-          <div class="bg-red-50 border-2 border-red-300 p-6 rounded-lg shadow-sm">
-            <p class="text-red-700 text-base">${data.error || 'No lineup generated.'}</p>
-          </div>
-          <div class="mt-4 p-3 bg-red-50 rounded-lg border border-red-200">
-            <p class="text-sm text-red-700 font-medium">❌ Please check your selections and try generating the lineup again.</p>
-          </div>
-        `;
-        container.classList.remove('hidden');
-      }
-    })
-    .catch((error) => {
-      document.getElementById('loading-indicator').classList.add('hidden');
-      document.getElementById('generation-controls').classList.remove('hidden');
-      // Show error message without the success container styling
-      document.getElementById('generated-lineup').textContent = 'Error generating lineup.';
-      document.getElementById('generated-lineup-container').classList.remove('hidden');
-      
-      // Remove the success styling and show error styling instead
-      const container = document.getElementById('generated-lineup-container');
-      container.innerHTML = `
-        <h3 class="font-semibold mb-3 text-lg text-red-600">❌ Lineup Generation Failed</h3>
-        <div class="bg-red-50 border-2 border-red-300 p-6 rounded-lg shadow-sm">
-          <p class="text-red-700 text-base">Error generating lineup. Please try again.</p>
-        </div>
-        <div class="mt-4 p-3 bg-red-50 rounded-lg border border-red-200">
-          <p class="text-sm text-red-700 font-medium">❌ Please check your selections and try generating the lineup again.</p>
-        </div>
-      `;
-      
-      console.error('Error generating lineup:', error);
-    });
-}
-
-// Page 4: Message preview and sending
-function updateMessagePreview() {
-  const preview = document.getElementById('message-preview');
-  const message = `Hi Team!
-
-Here's our lineup for the upcoming match:
-
-${generatedLineup}
-
-Please confirm your availability and let me know if you have any questions.
-
-Thanks!
-${user.first_name || 'Captain'}`;
-  
-  preview.textContent = message;
-}
+// AI wizard functions removed - now handled by separate AI page
 
 // Manual lineup functions
 function loadPlayersForManual() {
@@ -901,29 +280,61 @@ function renderPlayersForManual() {
   const pool = document.getElementById('available-players-pool');
   pool.innerHTML = '';
   
+  // Player type colors
+  const playerTypeColors = {
+    'Ad': '#70e6bb',
+    'Deuce': '#6f90d6',
+    'Either': '#fbbf24'
+  };
+  
+  // Gray color for no preference
+  const grayColor = '#d1d5db';
+  
   players.forEach(player => {
     const playerDiv = document.createElement('div');
-    playerDiv.className = 'player-card bg-white border border-gray-200 rounded p-2 m-1 inline-block cursor-pointer shadow-sm hover:shadow-md transition-all text-center';
+    
+    // Get position preference from database, fallback to no preference
+    const positionPreference = player.position_preference;
+    let playerType = '';
+    let typeColor = grayColor;
+    
+    if (positionPreference && playerTypeColors[positionPreference]) {
+      playerType = positionPreference;
+      typeColor = playerTypeColors[positionPreference];
+    }
+    
+    playerDiv.className = 'player-card border border-gray-300 rounded p-2 m-1 inline-block cursor-pointer shadow-sm hover:shadow-md transition-all text-center';
     playerDiv.dataset.playerName = player.name;
     playerDiv.dataset.playerRating = player.rating;
+    playerDiv.dataset.playerType = playerType;
     
-    // Set draggable based on mode
-    playerDiv.draggable = isDragMode;
+    // Set background color based on player type
+    playerDiv.style.backgroundColor = typeColor;
+    
+    // Always enable dragging
+    playerDiv.draggable = true;
+    playerDiv.style.cursor = 'grab';
+    
+    // Always show position type - either preference or "Ct pref not set" for uniform height
+    const typeDisplay = playerType 
+      ? `<div class="text-xs text-gray-700 mt-1">${playerType}</div>` 
+      : `<div class="text-xs text-gray-500 mt-1" style="font-size: 0.625rem;">Ct pref not set</div>`;
     
     playerDiv.innerHTML = `
       <div class="font-medium text-gray-900 text-sm">${player.name}</div>
+      ${typeDisplay}
     `;
     
-    // Add event listeners based on mode
-    if (isDragMode) {
-      playerDiv.addEventListener('dragstart', handleDragStart);
-      playerDiv.addEventListener('dragend', handleDragEnd);
-      playerDiv.addEventListener('touchstart', handleTouchStart, { passive: false });
-      playerDiv.addEventListener('touchmove', handleTouchMove, { passive: false });
-      playerDiv.addEventListener('touchend', handleTouchEnd, { passive: false });
-    } else {
-      playerDiv.addEventListener('click', handlePlayerTap);
-    }
+    // Add both drag and tap event listeners simultaneously
+    // Drag events
+    playerDiv.addEventListener('dragstart', handleDragStart);
+    playerDiv.addEventListener('dragend', handleDragEnd);
+    playerDiv.addEventListener('touchstart', handleTouchStart, { passive: false });
+    playerDiv.addEventListener('touchmove', handleTouchMove, { passive: false });
+    playerDiv.addEventListener('touchend', handleTouchEnd, { passive: false });
+    
+    // Tap events
+    playerDiv.addEventListener('click', handlePlayerTap);
     
     pool.appendChild(playerDiv);
   });
@@ -1096,8 +507,17 @@ function handleDrop(e) {
     // Remove from current location
     draggedPlayer.remove();
     
-    // Add to court position
-    draggedPlayer.className = 'player-card bg-white border border-gray-300 rounded p-1 text-center cursor-move text-xs';
+    // Add to court position - preserve player type color
+    const playerType = draggedPlayer.dataset.playerType;
+    const playerTypeColors = {
+      'Ad': '#70e6bb',
+      'Deuce': '#6f90d6', 
+      'Either': '#fbbf24'
+    };
+    const grayColor = '#d1d5db';
+    
+    draggedPlayer.className = 'player-card border border-gray-300 rounded p-1 text-center cursor-move text-xs';
+    draggedPlayer.style.backgroundColor = playerType && playerTypeColors[playerType] ? playerTypeColors[playerType] : grayColor;
     courtPosition.innerHTML = '';
     courtPosition.appendChild(draggedPlayer);
     
@@ -1136,9 +556,22 @@ function movePlayerToPool(playerElement) {
     }
   }
   
-  // Move back to pool
-  playerElement.className = 'player-card bg-white border border-gray-200 rounded-lg p-3 m-2 inline-block cursor-move shadow-sm hover:shadow-md transition-shadow';
-  playerElement.parentElement.innerHTML = playerElement.parentElement.textContent; // Reset drop zone text
+  // Move back to pool - preserve player type color
+  const playerType = playerElement.dataset.playerType;
+  const playerTypeColors = {
+    'Ad': '#70e6bb',
+    'Deuce': '#6f90d6',
+    'Either': '#fbbf24'
+  };
+  const grayColor = '#d1d5db';
+  
+  playerElement.className = 'player-card border border-gray-300 rounded p-2 m-1 inline-block cursor-pointer shadow-sm hover:shadow-md transition-all text-center';
+  playerElement.style.backgroundColor = playerType && playerTypeColors[playerType] ? playerTypeColors[playerType] : grayColor;
+  playerElement.style.cursor = 'grab';
+  // Reset drop zone text properly
+  const currentCourt = playerElement.parentElement.dataset.court;
+  const currentPosition = playerElement.parentElement.dataset.position;
+  playerElement.parentElement.innerHTML = `<span class="drop-text">Player ${currentPosition}</span>`;
   document.getElementById('available-players-pool').appendChild(playerElement);
   
   updateManualLineupSummary();
@@ -1195,59 +628,42 @@ function sendManualLineup() {
   }
   
   // Create lineup text from manual assignments
-  generatedLineup = document.getElementById('manual-lineup-text').textContent;
+  const lineupText = document.getElementById('manual-lineup-text').textContent;
   
-  // Update message preview and show page 4
-  updateMessagePreview();
-  showPage(4);
+  // Store lineup in sessionStorage for the confirmation page
+  sessionStorage.setItem('createdLineup', lineupText);
+  
+  // Redirect to lineup confirmation page (Step 2)
+  window.location.href = '/mobile/lineup-confirmation';
 }
+
+// goToRallyAI function removed - now redirects to separate AI page
 
 // Mode switching and tap functionality
-function toggleInteractionMode() {
-  isDragMode = !isDragMode;
-  selectedPlayerForTap = null;
-  updateModeUI();
-  renderPlayersForManual(); // Re-render to update event listeners
-}
+// Removed toggleInteractionMode - both drag and tap work simultaneously
 
 function updateModeUI() {
-  const toggleBtn = document.getElementById('mode-toggle');
-  const description = document.getElementById('mode-description');
   const instructionText = document.getElementById('instruction-text');
   const selectedIndicator = document.getElementById('selected-player-indicator');
   
-  if (isDragMode) {
-    toggleBtn.textContent = 'Switch to Tap Mode';
-    description.textContent = 'Drag & Drop: Drag players to court positions';
-    instructionText.textContent = 'Drag players from here to the courts below:';
-    selectedIndicator.classList.add('hidden');
+  // Update instruction text to show both methods work
+  if (instructionText) instructionText.textContent = 'Drag players to courts OR tap a player, then tap a court position:';
+  
+  // Show/hide selected player indicator based on current selection
+  if (selectedPlayerForTap) {
+    showSelectedPlayer(selectedPlayerForTap);
   } else {
-    toggleBtn.textContent = 'Switch to Drag Mode';
-    description.textContent = 'Tap Mode: Tap a player, then tap a court position';
-    instructionText.textContent = 'Tap a player to select, then tap a court position:';
-    if (selectedPlayerForTap) {
-      showSelectedPlayer(selectedPlayerForTap);
-    } else {
-      selectedIndicator.classList.add('hidden');
-    }
+    if (selectedIndicator) selectedIndicator.classList.add('hidden');
   }
   
-  // Update player cards styling
+  // Update player cards styling to show both drag and tap are available
   document.querySelectorAll('.player-card').forEach(card => {
-    if (isDragMode) {
-      card.classList.remove('border-blue-400', 'bg-blue-50');
-      card.classList.add('cursor-move');
-      card.classList.remove('cursor-pointer');
-    } else {
-      card.classList.add('cursor-pointer');
-      card.classList.remove('cursor-move');
-    }
+    card.classList.add('cursor-pointer'); // For tap functionality
+    card.style.cursor = 'grab'; // Visual indication for drag functionality
   });
 }
 
 function handlePlayerTap(e) {
-  if (isDragMode) return;
-  
   const playerName = e.currentTarget.dataset.playerName;
   
   // If clicking the same player, deselect
@@ -1272,8 +688,8 @@ function showSelectedPlayer(playerName) {
   const indicator = document.getElementById('selected-player-indicator');
   const nameSpan = document.getElementById('selected-player-name');
   
-  nameSpan.textContent = playerName;
-  indicator.classList.remove('hidden');
+  if (nameSpan) nameSpan.textContent = playerName;
+  if (indicator) indicator.classList.remove('hidden');
 }
 
 function clearPlayerSelection() {
@@ -1285,11 +701,12 @@ function clearPlayerSelection() {
   });
   
   // Hide indicator
-  document.getElementById('selected-player-indicator').classList.add('hidden');
+  const indicator = document.getElementById('selected-player-indicator');
+  if (indicator) indicator.classList.add('hidden');
 }
 
 function handleCourtPositionTap(e) {
-  if (isDragMode || !selectedPlayerForTap) return;
+  if (!selectedPlayerForTap) return;
   
   const courtPosition = e.currentTarget;
   const court = courtPosition.dataset.court;
@@ -1307,8 +724,17 @@ function handleCourtPositionTap(e) {
     // Remove from current location
     selectedPlayerElement.remove();
     
-    // Add to court position
-    selectedPlayerElement.className = 'player-card bg-white border border-gray-300 rounded p-1 text-center cursor-pointer text-xs';
+    // Add to court position - preserve player type color
+    const playerType = selectedPlayerElement.dataset.playerType;
+    const playerTypeColors = {
+      'Ad': '#70e6bb',
+      'Deuce': '#6f90d6',
+      'Either': '#fbbf24'
+    };
+    const grayColor = '#d1d5db';
+    
+    selectedPlayerElement.className = 'player-card border border-gray-300 rounded p-1 text-center cursor-pointer text-xs';
+    selectedPlayerElement.style.backgroundColor = playerType && playerTypeColors[playerType] ? playerTypeColors[playerType] : grayColor;
     courtPosition.innerHTML = '';
     courtPosition.appendChild(selectedPlayerElement);
     
@@ -1326,134 +752,37 @@ function handleCourtPositionTap(e) {
   }
 }
 
-function updateSummary() {
-  // Update player count and list
-  const playersCount = document.getElementById('summary-players-count');
-  const playersList = document.getElementById('summary-players-list');
-  
-  playersCount.textContent = selectedPlayers.size;
-  
-  if (selectedPlayers.size === 0) {
-    playersList.innerHTML = '<div class="text-gray-500 italic">No players selected</div>';
-  } else {
-    const selectedPlayerNames = Array.from(selectedPlayers).sort();
-    playersList.innerHTML = selectedPlayerNames.map(name => {
-      return `<div class="flex items-center py-1">
-        <i class="fas fa-user text-blue-400 mr-2 text-xs"></i>
-        <span class="text-gray-800">${name}</span>
-      </div>`;
-    }).join('');
-  }
-  
-  // Update instructions count and list
-  const instructionsCount = document.getElementById('summary-instructions-count');
-  const instructionsList = document.getElementById('summary-instructions-list');
-  
-  instructionsCount.textContent = instructions.length;
-  
-  if (instructions.length === 0) {
-    instructionsList.innerHTML = '<div class="text-gray-500 italic">No instructions added</div>';
-  } else {
-    instructionsList.innerHTML = instructions.map((instruction, index) => {
-      return `<div class="flex items-start py-1">
-        <i class="fas fa-arrow-right text-purple-400 mr-2 text-xs mt-1"></i>
-        <span class="text-gray-800">${instruction}</span>
-      </div>`;
-    }).join('');
-  }
-}
+
 
 // Event listeners
 document.addEventListener('DOMContentLoaded', () => {
+  console.log('DOMContentLoaded fired - setting up event listeners');
+  
   // Setup drop zones for manual mode
   setupDropZones();
   
-  // Choice page buttons
-  document.getElementById('choose-ai').onclick = () => {
-    isAIMode = true;
-    // Load data for AI mode
-    loadPlayers();
-    loadInstructions();
-    showPage(1);
-  };
-  
-  document.getElementById('choose-manual').onclick = () => {
-    isAIMode = false;
-    showPage('manual');
-  };
+  // Set manual mode as default
+  isAIMode = false;
   
   // Manual mode navigation
-  document.getElementById('manual-back').onclick = () => showPage(0);
   document.getElementById('manual-send').onclick = sendManualLineup;
   
-  // Mode toggle and selection clearing
-  document.getElementById('mode-toggle').onclick = toggleInteractionMode;
-  document.getElementById('clear-selection').onclick = clearPlayerSelection;
+  // AI wizard navigation removed - now handled by separate AI page
   
-  // AI mode page navigation
-  document.getElementById('page1-next').onclick = () => {
-    if (selectedPlayers.size === 0) {
-      alert('Please select at least one player.');
-      return;
-    }
-    showPage(2);
-  };
+  // Removed AI mode page navigation and functions since they no longer exist
   
-  document.getElementById('page2-prev').onclick = () => showPage(1);
-  document.getElementById('page2-next').onclick = () => {
-    updateSummary();
-    showPage(3);
-  };
-  
-  document.getElementById('page3-prev').onclick = () => showPage(2);
-  
-  document.getElementById('page4-prev').onclick = () => {
-    if (isAIMode) {
-      showPage(3);
-    } else {
-      showPage('manual');
-    }
-  };
-  
-  // Instructions
-  document.getElementById('add-instruction-btn').onclick = addInstruction;
-  document.getElementById('new-instruction').addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') addInstruction();
-  });
-  
-  // Generate lineup
-  document.getElementById('generate-lineup-btn').onclick = generateLineup;
-  
-  // Page 4 actions
-  document.getElementById('send-email').onclick = () => {
-    // TODO: Implement email sending
-    alert('Email functionality coming soon!');
-  };
-  
-  document.getElementById('send-text').onclick = () => {
-    // TODO: Implement SMS sending
-    alert('Text messaging functionality coming soon!');
-  };
-  
-  document.getElementById('copy-lineup').onclick = () => {
-    navigator.clipboard.writeText(document.getElementById('message-preview').textContent);
-    alert('Lineup copied to clipboard!');
-  };
-  
-  document.getElementById('save-lineup').onclick = () => {
-    // TODO: Implement save functionality
-    alert('Save functionality coming soon!');
-  };
-  
-  document.getElementById('send-to-team').onclick = () => {
-    // For now, show the email option since it's the main sending method
-    // This could be enhanced to show a menu of sending options
-    document.getElementById('send-email').click();
-  };
-  
-  // Initialize wizard at choice page
-  showPage(0);
+  // Initialize wizard at manual page
+  try {
+    console.log('Initializing wizard at manual page');
+    loadPlayersForManual(); // Load players for manual mode
+    showPage('manual');
+    console.log('Wizard initialization complete');
+  } catch (error) {
+    console.error('Error during wizard initialization:', error);
+  }
 });
+
+
 </script>
 
 <style>
@@ -1462,36 +791,8 @@ document.addEventListener('DOMContentLoaded', () => {
     min-height: 100vh;
 }
 
-/* Choice page mobile optimization */
-#choice-page button {
-    -webkit-tap-highlight-color: transparent;
-    user-select: none;
-}
-
 .touch-manipulation {
     touch-action: manipulation;
-}
-
-/* Ensure choice buttons are visible on all screen sizes */
-@media (max-width: 480px) {
-    #choice-page .p-4 {
-        padding: 1rem;
-    }
-    
-    #choice-page button {
-        padding: 0.875rem;
-        min-height: auto;
-    }
-    
-    #choice-page h3 {
-        font-size: 1rem;
-        line-height: 1.25;
-    }
-    
-    #choice-page p {
-        font-size: 0.75rem;
-        line-height: 1.2;
-    }
 }
 
 /* Drag and Drop Styles */
@@ -1615,14 +916,19 @@ document.addEventListener('DOMContentLoaded', () => {
 .text-gray-700 { color: #374151; }
 .text-gray-600 { color: #4b5563; }
 .text-gray-500 { color: #6b7280; }
+.text-gray-400 { color: #9ca3af; }
 .text-blue-500 { color: #3b82f6; }
 .text-blue-600 { color: #2563eb; }
 .text-green-500 { color: #10b981; }
+.text-green-600 { color: #16a34a; }
 .text-green-700 { color: #047857; }
 .text-green-800 { color: #065f46; }
 .text-purple-500 { color: #8b5cf6; }
 .text-purple-600 { color: #9333ea; }
 .text-orange-500 { color: #f97316; }
+.text-orange-600 { color: #ea580c; }
+.text-red-600 { color: #dc2626; }
+.text-red-800 { color: #991b1b; }
 .text-white { color: #ffffff; }
 
 /* Hover colors */
@@ -1633,9 +939,11 @@ document.addEventListener('DOMContentLoaded', () => {
 .hover\:bg-purple-700:hover { background-color: #7c2d12; }
 .hover\:bg-red-700:hover { background-color: #b91c1c; }
 .hover\:bg-gray-50:hover { background-color: #f9fafb; }
+.hover\:text-red-800:hover { color: #991b1b; }
 
 /* Focus utilities */
 .focus\:border-blue-500:focus { border-color: #3b82f6; }
+.focus\:border-purple-500:focus { border-color: #8b5cf6; }
 .focus\:ring-blue-500:focus { --tw-ring-color: #3b82f6; }
 .focus\:ring-gray-500:focus { --tw-ring-color: #6b7280; }
 .focus\:ring-orange-500:focus { --tw-ring-color: #f97316; }
@@ -1708,6 +1016,11 @@ document.addEventListener('DOMContentLoaded', () => {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
+
+/* Additional utility classes for lineup generation */
+.bg-purple-50 { background-color: #faf5ff; }
+.whitespace-pre-wrap { white-space: pre-wrap; }
+.font-mono { font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace; }
 
 /* Responsive design */
 @media (max-width: 640px) {

@@ -1343,7 +1343,8 @@ def get_user_settings():
         # Get basic user data (no more foreign keys)
         user_data = execute_query_one(
             """
-            SELECT u.first_name, u.last_name, u.email, u.club_automation_password, u.is_admin
+            SELECT u.first_name, u.last_name, u.email, u.club_automation_password, u.is_admin, 
+                   u.ad_deuce_preference, u.dominant_hand
             FROM users u
             WHERE u.email = %s
         """,
@@ -1406,6 +1407,8 @@ def get_user_settings():
             "league_id": league_id,
             "league_name": league_name,
             "tenniscores_player_id": tenniscores_player_id,
+            "ad_deuce_preference": user_data["ad_deuce_preference"] or "",
+            "dominant_hand": user_data["dominant_hand"] or "",
         }
 
         return jsonify(response_data)
@@ -1637,7 +1640,8 @@ def update_settings():
         success = execute_update(
             """
             UPDATE users 
-            SET first_name = %s, last_name = %s, email = %s, club_automation_password = %s
+            SET first_name = %s, last_name = %s, email = %s, club_automation_password = %s,
+                ad_deuce_preference = %s, dominant_hand = %s
             WHERE email = %s
         """,
             (
@@ -1645,6 +1649,8 @@ def update_settings():
                 data["lastName"],
                 data["email"],
                 data.get("clubAutomationPassword", ""),
+                data.get("adDeuce", ""),
+                data.get("dominantHand", ""),
                 user_email,
             ),
         )
@@ -1695,6 +1701,8 @@ def update_settings():
                 "email": user_record.email,
                 "first_name": user_record.first_name,
                 "last_name": user_record.last_name,
+                "ad_deuce_preference": user_record.ad_deuce_preference,
+                "dominant_hand": user_record.dominant_hand,
                 "club": (
                     primary_player["club"] if primary_player else data.get("club", "")
                 ),

@@ -69,7 +69,7 @@
                     </div>
                     
                     <!-- Player Preferences Section -->
-                    <div class="pt-6 border-t border-gray-100">
+                    <div class="pt-6 border-t border-gray-100" id="player-preferences">
                         <h3 class="text-md font-semibold text-gray-900 mb-4 flex items-center">
                             <i class="fas fa-user-cog text-blue-500 mr-2"></i>
                             Player Preferences
@@ -297,6 +297,27 @@ form.addEventListener('submit', function(e) {
   .catch(() => {
     window.app && window.app.showToast && window.app.showToast('Update failed', 'error');
   });
+});
+</script>
+
+<script>
+// Handle auto-scroll to anchor on page load
+document.addEventListener('DOMContentLoaded', function() {
+  // Check if there's a hash in the URL
+  if (window.location.hash === '#player-preferences') {
+    // Wait a short moment for the page to fully render
+    setTimeout(() => {
+      const element = document.getElementById('player-preferences');
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        // Add a subtle highlight effect
+        element.style.backgroundColor = '#FEF3C7';
+        setTimeout(() => {
+          element.style.backgroundColor = '';
+        }, 2000);
+      }
+    }, 500);
+  }
 });
 </script>
 

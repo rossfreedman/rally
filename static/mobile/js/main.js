@@ -239,7 +239,10 @@ function getLoadingTextForUrl(url) {
         // Captain section
         '/mobile/team-schedule': 'Loading Team Schedule...',
         '/mobile/find-subs': 'Finding Substitutes...',
+        '/mobile/lineup-selection': 'Loading Lineup Options...',
         '/mobile/lineup': 'Loading Lineup Builder...',
+        '/mobile/lineup-confirmation': 'Loading Lineup Confirmation...',
+    '/mobile/lineup-ai': 'Loading AI Lineup Creator...',
         '/mobile/practice-times': 'Loading Practice Times...',
         
         // Additional pages

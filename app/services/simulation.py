@@ -26,11 +26,11 @@ class AdvancedMatchupSimulator:
             "average_pti": 0.25,  # Team average PTI - strongest predictor
             "individual_win_rates": 0.20,  # Individual player win percentages
             "recent_individual_form": 0.15,  # Recent match performance per player
-            "experience_level": 0.10,  # Total matches played by players
+            "head_to_head_record": 0.15,  # Direct matchups between players
+            "experience_level": 0.15,  # Total matches played by players (increased to balance)
             # Head-to-Head & Comparative (30% total weight)
-            "pti_advantage": 0.15,  # PTI difference between teams
-            "head_to_head_record": 0.10,  # Direct matchups between players
             "consistency_factor": 0.05,  # PTI consistency/volatility
+            "pti_advantage": 0.05,  # PTI difference between teams
         }
 
         # Validate weights sum to 1.0
@@ -610,13 +610,13 @@ class AdvancedMatchupSimulator:
         """Normalize metrics to 0-1 scale."""
         normalized = {}
 
-        # Normalization parameters based on real data ranges
+        # Normalization parameters based on realistic competitive ranges
         normalization_params = {
-            "average_pti": {"min": 15.0, "max": 45.0, "higher_better": True},
-            "individual_win_rates": {"min": 0.0, "max": 100.0, "higher_better": True},
+            "average_pti": {"min": 18.0, "max": 38.0, "higher_better": True}, # Tighter range for more sensitivity
+            "individual_win_rates": {"min": 20.0, "max": 80.0, "higher_better": True}, # Realistic competitive range
             "recent_individual_form": {"min": 0.0, "max": 100.0, "higher_better": True},
-            "experience_level": {"min": 0, "max": 50, "higher_better": True},
-            "pti_advantage": {"min": -10.0, "max": 10.0, "higher_better": True},
+            "experience_level": {"min": 0, "max": 40, "higher_better": True}, # More realistic max experience
+            "pti_advantage": {"min": -8.0, "max": 8.0, "higher_better": True}, # Tighter range for more impact
             "head_to_head_record": {"min": 0.0, "max": 100.0, "higher_better": True},
             "consistency_factor": {"min": 0.0, "max": 100.0, "higher_better": True},
         }
@@ -667,11 +667,14 @@ class AdvancedMatchupSimulator:
                         f"[DEBUG] {metric_name}: {metric_value:.3f} * {weight:.3f} = {weighted_contribution:.3f}"
                     )
 
-            # Normalize by actual weights used
-            if total_weight_used > 0:
+            # Don't divide by total_weight_used - the weights already sum to 1.0
+            # If some metrics are missing, we want the score to reflect the actual weighted sum
+            # Only normalize if we have less than 80% of the total weight
+            if total_weight_used < 0.8:
                 composite_score = composite_score / total_weight_used
+                print(f"[DEBUG] Normalized due to missing data: {total_weight_used:.3f} weight used")
 
-            print(f"[DEBUG] Final composite score: {composite_score:.3f}")
+            print(f"[DEBUG] Final composite score: {composite_score:.3f} (total weight used: {total_weight_used:.3f})")
 
             return composite_score
 
@@ -682,20 +685,21 @@ class AdvancedMatchupSimulator:
     def _calculate_win_probability(self, score_a: float, score_b: float) -> float:
         """Calculate win probability using logistic function."""
         try:
-            # Calculate PTI advantage for Team A
+            # Calculate score difference for Team A
             score_diff = score_a - score_b
 
             print(f"[DEBUG] Score difference: {score_diff:.3f}")
 
-            # Apply logistic function with scaling
-            scaling_factor = 3.0  # Less aggressive than before
+            # Apply logistic function with moderate scaling
+            # Balanced scaling factor for reasonable but not extreme predictions
+            scaling_factor = 5.0  # Moderate sensitivity to differences
             win_probability = 1 / (1 + math.exp(-scaling_factor * score_diff))
 
             # Convert to percentage and apply reasonable bounds
             win_probability_pct = win_probability * 100
             win_probability_pct = max(
-                20.0, min(80.0, win_probability_pct)
-            )  # Keep between 20-80%
+                30.0, min(70.0, win_probability_pct)
+            )  # Keep between 30-70% for balanced predictions
 
             print(f"[DEBUG] Win probability: {win_probability_pct:.1f}%")
 
