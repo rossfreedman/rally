@@ -216,8 +216,6 @@ class ProductionStagingCloner:
             
             dump_cmd = [
                 'pg_dump',
-                '--clean',          # Add DROP statements  
-                '--create',         # Add CREATE DATABASE statement
                 '--no-owner',       # Don't dump ownership
                 '--no-privileges',  # Don't dump privileges
                 self.production_db_url,

@@ -287,9 +287,9 @@ async function fetchAndRenderSubsMobile() {
                 <div class="p-6">
                     <div class="flex items-center justify-between mb-4">
                         <div class="flex-1">
-                            <div class="flex items-center gap-3 mb-2">
+                            ${isTopThree ? '<div class="mb-2"><div class="bg-yellow-400 text-yellow-900 px-3 py-1 rounded-md text-xs font-medium inline-block">TOP PICK</div></div>' : ''}
+                            <div class="mb-2">
                                 <h3 class="text-lg font-bold text-gray-900">${player.name}</h3>
-                                ${isTopThree ? '<div class="bg-yellow-400 text-yellow-900 px-3 py-1 rounded-md text-xs font-medium">TOP PICK</div>' : ''}
                             </div>
                             <div class="text-sm text-gray-600 flex items-center gap-2">
                                 <i class="fas fa-trophy text-yellow-500 w-4"></i>

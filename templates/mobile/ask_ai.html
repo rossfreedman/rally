@@ -216,10 +216,28 @@ function appendMessage(text, sender) {
 }
 // On page load, show the AI intro as conversation bubbles
 window.addEventListener('DOMContentLoaded', function() {
-    appendMessage("👋 Hello! I'm your Rally Assistant.", 'ai');
-    appendMessage("Ask me about a specific player", 'ai');
-    appendMessage("Request stats on a team", 'ai');
-    appendMessage("Ask me anything about league rules", 'ai');
+    // Check for AI chat context from lineup wizard
+    const aiChatContext = sessionStorage.getItem('aiChatContext');
+    
+    if (aiChatContext) {
+        // Clear the context message so it doesn't persist
+        sessionStorage.removeItem('aiChatContext');
+        
+        // Auto-populate and submit the context message
+        const input = document.getElementById('ai-chat-input');
+        input.value = aiChatContext;
+        
+        // Auto-submit the form after a brief delay
+        setTimeout(() => {
+            document.getElementById('ai-chat-form').dispatchEvent(new Event('submit'));
+        }, 500);
+    } else {
+        // Show normal intro messages
+        appendMessage("👋 Hello! I'm your Rally Assistant.", 'ai');
+        appendMessage("Ask me about a specific player", 'ai');
+        appendMessage("Request stats on a team", 'ai');
+        appendMessage("Ask me anything about league rules", 'ai');
+    }
 });
 // Track conversation thread
 let threadId = null;

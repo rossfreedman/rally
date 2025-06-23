@@ -35,101 +35,123 @@
             
             <div class="p-6">
                 <p class="text-sm text-gray-600 leading-relaxed">
-                    Lineup Escrow™ is designed for each captain to send their lineup before a match, with both lineups being disclosed at the same time. This ensures fairness and transparency for both teams.
+                    Lineup Escrow™ is designed for each captain to send their lineup to the opposing captain before a match, with both lineups being disclosed at the exact same time. This ensures fairness and transparency for both teams.
                 </p>
             </div>
         </div>
 
-        <!-- Lineup Form -->
+        <!-- Message Type Toggle -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             <div class="px-6 py-4 border-b border-gray-50">
                 <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-                    <i class="fas fa-envelope text-green-500 mr-2"></i>
-                    Send Lineup
+                    <i class="fas fa-toggle-on text-blue-500 mr-2"></i>
+                    Message Type
                 </h2>
             </div>
             
             <div class="p-6">
-                <form class="space-y-6">
-                    <!-- Captain Name -->
-                    <div>
-                        <label for="captain-name" class="block text-sm font-medium text-gray-700 mb-2">
-                            <i class="fas fa-user text-blue-500 mr-2"></i>
-                            Captain Name
-                        </label>
-                        <input 
-                            type="text" 
-                            id="captain-name"
-                            class="w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                            placeholder="Enter captain's name"
-                        />
+                <div class="flex bg-gray-100 rounded-lg p-1">
+                    <button id="sms-toggle" class="flex-1 py-3 px-4 rounded-md text-sm font-medium transition-all duration-200 flex items-center justify-center">
+                        <i class="fas fa-mobile-alt mr-2"></i>
+                        Text Message
+                    </button>
+                    <button id="email-toggle" class="flex-1 py-3 px-4 rounded-md text-sm font-medium transition-all duration-200 flex items-center justify-center active-toggle">
+                        <i class="fas fa-envelope mr-2"></i>
+                        Email
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recipient Selection -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-user text-green-500 mr-2"></i>
+                    Opposing Captain
+                </h2>
+            </div>
+            
+            <div class="p-6 space-y-4">
+                <!-- Captain Name -->
+                <div>
+                    <label for="captain-name" class="block text-sm font-medium text-gray-700 mb-2">
+                        Captain Name
+                    </label>
+                    <input 
+                        type="text" 
+                        id="captain-name"
+                        class="w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                        placeholder="Enter captain's name"
+                    />
+                </div>
+
+                <!-- Captain Contact -->
+                <div id="captain-contact-section">
+                    <label for="captain-contact" class="block text-sm font-medium text-gray-700 mb-2">
+                        <span id="contact-label">Captain Email</span>
+                    </label>
+                    <input 
+                        type="email" 
+                        id="captain-contact"
+                        class="w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                        placeholder="captain@example.com"
+                    />
+                </div>
+            </div>
+        </div>
+
+        <!-- Message Composition -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-edit text-purple-500 mr-2"></i>
+                    <span id="message-type-label">Email</span>
+                </h2>
+            </div>
+            
+            <div class="p-6">
+                <!-- Email Subject -->
+                <div id="email-subject" class="mb-4">
+                    <label for="subject-input" class="block text-sm font-medium text-gray-700 mb-2">Subject</label>
+                    <input type="text" id="subject-input" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Lineup Escrow for Tomorrow's Match" value="Lineup Escrow™">
+                </div>
+
+                <!-- Message Body -->
+                <div class="mb-4">
+                    <label for="lineup-message" class="block text-sm font-medium text-gray-700 mb-2">Message</label>
+                    <textarea 
+                        id="lineup-message" 
+                        rows="10"
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm resize-vertical" 
+                        placeholder="Your lineup message will appear here..."
+                    ></textarea>
+                </div>
+
+                <!-- Character Count (for SMS) -->
+                <div id="char-count" class="flex justify-between items-center text-xs text-gray-500 mb-4">
+                    <span>Character count: <span id="char-number">0</span></span>
+                    <span id="sms-parts" class="hidden">SMS parts: <span id="parts-number">1</span></span>
+                </div>
+
+                <!-- Preview -->
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <h4 class="text-sm font-medium text-gray-700 mb-2">Preview</h4>
+                    <div id="message-preview" class="text-sm text-gray-600 whitespace-pre-wrap font-mono"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Send Button -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="p-6 flex justify-center">
+                <button id="send-message-btn" class="ios-card bg-purple-600 text-white rounded-lg px-6 py-2 shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-102 inline-flex">
+                    <div class="flex items-center">
+                        <i class="fas fa-envelope text-white text-base mr-2 opacity-90" id="send-btn-icon"></i>
+                        <span class="text-lg font-semibold" id="send-btn-text">Send Email</span>
+                        <span class="text-sm opacity-75 ml-2" id="send-btn-subtitle">to captain</span>
                     </div>
-
-                    <!-- Captain Email -->
-                    <div>
-                        <label for="captain-email" class="block text-sm font-medium text-gray-700 mb-2">
-                            <i class="fas fa-envelope text-green-500 mr-2"></i>
-                            Captain Email
-                        </label>
-                        <input 
-                            type="email" 
-                            id="captain-email"
-                            class="w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                            placeholder="captain@example.com"
-                        />
-                    </div>
-
-                    <!-- Subject Line -->
-                    <div>
-                        <label for="subject" class="block text-sm font-medium text-gray-700 mb-2">
-                            <i class="fas fa-tag text-purple-500 mr-2"></i>
-                            Subject Line
-                        </label>
-                        <input 
-                            type="text" 
-                            id="subject"
-                            class="w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                            placeholder="Lineup Escrow for Tomorrow's Match"
-                        />
-                    </div>
-
-                    <!-- Lineup Message -->
-                    <div>
-                        <label for="lineup-message" class="block text-sm font-medium text-gray-700 mb-2">
-                            <i class="fas fa-clipboard-list text-orange-500 mr-2"></i>
-                            Lineup Message
-                        </label>
-                        <textarea 
-                            id="lineup-message" 
-                            rows="12"
-                            class="w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm resize-vertical" 
-                            placeholder="Enter your lineup message..."
-                        >Name:
-
-Lineup Escrow™ is designed for each captain to send their lineup before a match, with both lineups being disclosed at the same time. This ensures fairness and transparency for both teams.
-
-Here is our lineup for tomorrow night:
-
-Court 1: Player1/Player3
-Court 2: Player3/Player4
-Court 3: Player5/Player6
-Court 4: Player7/Player8
-
-Looking forward to the match tomorrow!</textarea>
-                    </div>
-
-                    <!-- Send Button -->
-                    <div class="pt-4">
-                        <button 
-                            type="button" 
-                            disabled
-                            class="w-full bg-gray-400 text-white py-3 px-4 rounded-lg font-semibold cursor-not-allowed"
-                        >
-                            <i class="fas fa-paper-plane mr-2"></i>
-                            Send Lineup (Coming Soon)
-                        </button>
-                    </div>
-                </form>
+                </button>
             </div>
         </div>
     </div>
@@ -141,9 +163,52 @@ Looking forward to the match tomorrow!</textarea>
     min-height: 100vh;
 }
 
+/* Active toggle style */
+.active-toggle {
+    background-color: #3b82f6;
+    color: white;
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+}
+
+/* iOS-style card enhancements */
+.ios-card {
+    background: linear-gradient(135deg, var(--tw-bg-opacity) 0%, var(--tw-bg-opacity) 100%);
+    transition: all 0.3s ease;
+    border: none;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.ios-card:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.ios-card:active {
+    transform: scale(0.98);
+    transition: all 0.1s ease;
+}
+
+.ios-card:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
 /* Shadow utilities */
 .shadow-sm {
     box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.shadow-md {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.shadow-lg {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.hover\:shadow-lg:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
 }
 
 /* Border utilities */
@@ -153,8 +218,10 @@ Looking forward to the match tomorrow!</textarea>
 
 /* Background utilities */
 .bg-gray-50 { background-color: #f9fafb; }
+.bg-gray-100 { background-color: #f3f4f6; }
 .bg-white { background-color: #ffffff; }
 .bg-gray-400 { background-color: #9ca3af; }
+.bg-purple-600 { background-color: #9333ea; }
 
 /* Text colors */
 .text-gray-900 { color: #111827; }
@@ -191,20 +258,91 @@ Looking forward to the match tomorrow!</textarea>
 
 /* Spacing utilities */
 .space-y-6 > * + * { margin-top: 1.5rem; }
+.space-y-4 > * + * { margin-top: 1rem; }
+
+/* Flex utilities */
+.flex { display: flex; }
+.flex-1 { flex: 1 1 0%; }
+.items-center { align-items: center; }
+.justify-center { justify-content: center; }
+.justify-between { justify-content: space-between; }
+.inline-flex { display: inline-flex; }
 
 /* Border radius utilities */
 .rounded-xl { border-radius: 0.75rem; }
 .rounded-lg { border-radius: 0.5rem; }
+.rounded-md { border-radius: 0.375rem; }
 .rounded-full { border-radius: 9999px; }
 
 /* Overflow utilities */
 .overflow-hidden { overflow: hidden; }
 
-/* Utility classes */
+/* Display utilities */
+.hidden { display: none; }
+.block { display: block; }
+
+/* Size utilities */
+.w-full { width: 100%; }
+
+/* Typography */
 .font-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+.font-semibold { font-weight: 600; }
+.font-medium { font-weight: 500; }
+.text-sm { font-size: 0.875rem; line-height: 1.25rem; }
+.text-base { font-size: 1rem; line-height: 1.5rem; }
+.text-lg { font-size: 1.125rem; line-height: 1.75rem; }
+.text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+.text-xs { font-size: 0.75rem; line-height: 1rem; }
+
+/* Utility classes */
 .resize-vertical { resize: vertical; }
 .cursor-not-allowed { cursor: not-allowed; }
 .leading-relaxed { line-height: 1.625; }
+.whitespace-pre-wrap { white-space: pre-wrap; }
+
+/* Transitions */
+.transition-all { transition-property: all; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); }
+.duration-200 { transition-duration: 200ms; }
+.transform { transform: translateZ(0); }
+.hover\:scale-102:hover { transform: scale(1.02); }
+
+/* Spacing */
+.px-4 { padding-left: 1rem; padding-right: 1rem; }
+.px-6 { padding-left: 1.5rem; padding-right: 1.5rem; }
+.px-3 { padding-left: 0.75rem; padding-right: 0.75rem; }
+.py-6 { padding-top: 1.5rem; padding-bottom: 1.5rem; }
+.py-4 { padding-top: 1rem; padding-bottom: 1rem; }
+.py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+.py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+.p-6 { padding: 1.5rem; }
+.p-4 { padding: 1rem; }
+.p-1 { padding: 0.25rem; }
+.ml-4 { margin-left: 1rem; }
+.mr-2 { margin-right: 0.5rem; }
+.mb-2 { margin-bottom: 0.5rem; }
+.mb-4 { margin-bottom: 1rem; }
+
+/* Opacity */
+.opacity-75 { opacity: 0.75; }
+.opacity-90 { opacity: 0.9; }
+
+/* Loading animation */
+.fa-spin {
+    animation: fa-spin 2s infinite linear;
+}
+
+@keyframes fa-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Font Awesome icons */
+.fas, .fa {
+    font-family: "Font Awesome 6 Free" !important;
+    font-weight: 900 !important;
+    font-style: normal !important;
+    display: inline-block !important;
+}
 
 /* Responsive design */
 @media (max-width: 640px) {
@@ -214,5 +352,206 @@ Looking forward to the match tomorrow!</textarea>
     .text-lg { font-size: 1.125rem; line-height: 1.75rem; }
 }
 </style>
+
+<script>
+// Initialize session data
+window.sessionData = {{ session_data | tojson | safe }};
+
+// Message state
+let isEmailMode = true; // Default to email for escrow
+let lineupText = '';
+
+// Load and setup the page
+document.addEventListener('DOMContentLoaded', () => {
+    // Load the lineup from sessionStorage
+    const createdLineup = sessionStorage.getItem('createdLineup');
+    if (createdLineup) {
+        lineupText = createdLineup;
+        // Clear the sessionStorage after using it
+        sessionStorage.removeItem('createdLineup');
+    } else {
+        lineupText = 'No lineup found';
+    }
+    
+    // Initialize the message body with default text
+    updateMessageBody();
+    
+    // Setup event listeners
+    setupEventListeners();
+    
+    // Initialize UI state
+    updateUIForMessageType();
+});
+
+function setupEventListeners() {
+    // Toggle between SMS and Email
+    document.getElementById('sms-toggle').onclick = () => switchToSMS();
+    document.getElementById('email-toggle').onclick = () => switchToEmail();
+    
+    // Message body changes
+    document.getElementById('lineup-message').oninput = updatePreviewAndCount;
+    document.getElementById('subject-input').oninput = updatePreview;
+    
+    // Actions
+    document.getElementById('send-message-btn').onclick = sendMessage;
+}
+
+function switchToSMS() {
+    isEmailMode = false;
+    updateToggleButtons();
+    updateUIForMessageType();
+    updateMessageBody();
+}
+
+function switchToEmail() {
+    isEmailMode = true;
+    updateToggleButtons();
+    updateUIForMessageType();
+    updateMessageBody();
+}
+
+function updateToggleButtons() {
+    const smsBtn = document.getElementById('sms-toggle');
+    const emailBtn = document.getElementById('email-toggle');
+    
+    if (isEmailMode) {
+        smsBtn.classList.remove('active-toggle');
+        emailBtn.classList.add('active-toggle');
+    } else {
+        emailBtn.classList.remove('active-toggle');
+        smsBtn.classList.add('active-toggle');
+    }
+}
+
+function updateUIForMessageType() {
+    const messageTypeLabel = document.getElementById('message-type-label');
+    const emailSubject = document.getElementById('email-subject');
+    const smsPartsSpan = document.getElementById('sms-parts');
+    const sendBtnText = document.getElementById('send-btn-text');
+    const sendBtnIcon = document.getElementById('send-btn-icon');
+    const contactLabel = document.getElementById('contact-label');
+    const captainContact = document.getElementById('captain-contact');
+    
+    if (isEmailMode) {
+        messageTypeLabel.textContent = 'Email';
+        emailSubject.classList.remove('hidden');
+        smsPartsSpan.classList.add('hidden');
+        sendBtnText.textContent = 'Send Email';
+        sendBtnIcon.className = 'fas fa-envelope text-white text-base mr-2 opacity-90';
+        contactLabel.textContent = 'Captain Email';
+        captainContact.type = 'email';
+        captainContact.placeholder = 'captain@example.com';
+    } else {
+        messageTypeLabel.textContent = 'Text Message';
+        emailSubject.classList.add('hidden');
+        smsPartsSpan.classList.remove('hidden');
+        sendBtnText.textContent = 'Send Text Message';
+        sendBtnIcon.className = 'fas fa-mobile-alt text-white text-base mr-2 opacity-90';
+        contactLabel.textContent = 'Captain Phone';
+        captainContact.type = 'tel';
+        captainContact.placeholder = '(555) 123-4567';
+    }
+    
+    updatePreviewAndCount();
+}
+
+function updateMessageBody() {
+    const messageBody = document.getElementById('lineup-message');
+    
+    if (isEmailMode) {
+        messageBody.value = `Dear [Captain Name],
+
+Lineup Escrow™ is designed for each captain to send their lineup to the opposing captain before a match, with both lineups being disclosed at the exact same time. This ensures fairness and transparency for both teams.
+
+Here is our lineup for tomorrow's match:
+
+${lineupText}
+
+Please reply with your lineup when ready. Both lineups will be disclosed simultaneously once both captains have submitted.
+
+Best regards,
+[Your Name]`;
+    } else {
+        messageBody.value = `Lineup Escrow™ 
+
+Our lineup:
+${lineupText}
+
+Send your lineup - both will be disclosed simultaneously. Thanks!`;
+    }
+    
+    updatePreviewAndCount();
+}
+
+function updatePreviewAndCount() {
+    const messageBody = document.getElementById('lineup-message').value;
+    const preview = document.getElementById('message-preview');
+    const charNumber = document.getElementById('char-number');
+    const partsNumber = document.getElementById('parts-number');
+    
+    // Update preview
+    if (isEmailMode) {
+        const subject = document.getElementById('subject-input').value;
+        preview.innerHTML = `<strong>Subject:</strong> ${subject}\n\n${messageBody}`;
+    } else {
+        preview.textContent = messageBody;
+    }
+    
+    // Update character count
+    charNumber.textContent = messageBody.length;
+    
+    // Update SMS parts count
+    if (!isEmailMode) {
+        const parts = Math.ceil(messageBody.length / 160);
+        partsNumber.textContent = parts;
+    }
+}
+
+function updatePreview() {
+    updatePreviewAndCount();
+}
+
+function sendMessage() {
+    const btn = document.getElementById('send-message-btn');
+    const originalHTML = btn.innerHTML;
+    const captainName = document.getElementById('captain-name').value.trim();
+    const captainContact = document.getElementById('captain-contact').value.trim();
+    const messageBody = document.getElementById('lineup-message').value.trim();
+    
+    // Validate required fields
+    if (!captainName) {
+        alert('Please enter the captain\'s name.');
+        return;
+    }
+    
+    if (!captainContact) {
+        const contactType = isEmailMode ? 'email' : 'phone number';
+        alert(`Please enter the captain's ${contactType}.`);
+        return;
+    }
+    
+    if (!messageBody) {
+        alert('Please enter a message.');
+        return;
+    }
+    
+    // Show loading state
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Sending...';
+    btn.disabled = true;
+    
+    // Simulate sending delay
+    setTimeout(() => {
+        const messageType = isEmailMode ? 'Email' : 'Text message';
+        alert(`${messageType} sent successfully to ${captainName}!`);
+        
+        // Reset button and redirect
+        btn.innerHTML = originalHTML;
+        btn.disabled = false;
+        
+        // Redirect back to home or lineup page
+        window.location.href = '/mobile';
+    }, 2000);
+}
+</script>
 
 {% endblock %} 

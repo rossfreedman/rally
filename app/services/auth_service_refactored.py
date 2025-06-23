@@ -852,6 +852,8 @@ def authenticate_user(email: str, password: str) -> Dict[str, Any]:
             "first_name": user.first_name,
             "last_name": user.last_name,
             "is_admin": user.is_admin,
+            "ad_deuce_preference": user.ad_deuce_preference,
+            "dominant_hand": user.dominant_hand,
             "created_at": user.created_at.isoformat() if user.created_at else None,
             "last_login": user.last_login.isoformat() if user.last_login else None,
             "players": players_data,
@@ -1034,6 +1036,8 @@ def create_session_data(user_data: Dict[str, Any]) -> Dict[str, Any]:
         "first_name": user.get("first_name"),
         "last_name": user.get("last_name"),
         "is_admin": user.get("is_admin", False),
+        "ad_deuce_preference": user.get("ad_deuce_preference"),
+        "dominant_hand": user.get("dominant_hand"),
         "settings": "{}",  # Default empty settings for legacy compatibility
     }
 

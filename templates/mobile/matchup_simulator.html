@@ -41,7 +41,7 @@
             <div class="p-6">
                 <div class="space-y-4">
                     <p class="text-sm text-gray-700 leading-relaxed">
-                        Our data-driven matchup simulator analyzes <strong>7 key metrics</strong> using real player statistics and performance data from the database.
+                        Rally's data-driven matchup simulator analyzes <strong>7 key metrics</strong> using real player statistics and performance data to see which team has the advantage.
                     </p>
                     
                     <div class="space-y-3">
@@ -50,7 +50,7 @@
                                 <span class="text-xs font-bold text-blue-700">1</span>
                             </div>
                             <div class="flex-1">
-                                <h4 class="text-sm font-semibold text-gray-900 mb-1">Average PTI (25%)</h4>
+                                <h4 class="text-sm font-semibold text-gray-900 mb-1">Average PTI (25% weighted)</h4>
                                 <p class="text-xs text-gray-600">Team's combined Performance Tracking Index - the strongest predictor</p>
                             </div>
                         </div>
@@ -60,28 +60,28 @@
                                 <span class="text-xs font-bold text-green-700">2</span>
                             </div>
                             <div class="flex-1">
-                                <h4 class="text-sm font-semibold text-gray-900 mb-1">Individual Win Rates (20%)</h4>
+                                <h4 class="text-sm font-semibold text-gray-900 mb-1">Individual Win Rates (20% weighted)</h4>
                                 <p class="text-xs text-gray-600">Each player's actual win percentage from match records</p>
                             </div>
                         </div>
                         
                         <div class="flex items-start space-x-3">
-                            <div class="w-6 h-6 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                                <span class="text-xs font-bold text-purple-700">3</span>
+                            <div class="w-6 h-6 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <span class="text-xs font-bold text-orange-700">3</span>
                             </div>
                             <div class="flex-1">
-                                <h4 class="text-sm font-semibold text-gray-900 mb-1">PTI Skill Gap (15%)</h4>
-                                <p class="text-xs text-gray-600">Difference in average PTI between the two teams</p>
+                                <h4 class="text-sm font-semibold text-gray-900 mb-1">Recent Performance (15% weighted)</h4>
+                                <p class="text-xs text-gray-600">Performance in each player's last 5 matches</p>
                             </div>
                         </div>
                         
                         <div class="flex items-start space-x-3">
-                            <div class="w-6 h-6 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                                <span class="text-xs font-bold text-orange-700">4</span>
+                            <div class="w-6 h-6 bg-yellow-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <span class="text-xs font-bold text-yellow-700">4</span>
                             </div>
                             <div class="flex-1">
-                                <h4 class="text-sm font-semibold text-gray-900 mb-1">Recent Performance (15%)</h4>
-                                <p class="text-xs text-gray-600">Performance in each player's last 5 matches</p>
+                                <h4 class="text-sm font-semibold text-gray-900 mb-1">Head-to-Head History (15% weighted)</h4>
+                                <p class="text-xs text-gray-600">Direct matchups and performance against common opponents</p>
                             </div>
                         </div>
                         
@@ -90,28 +90,28 @@
                                 <span class="text-xs font-bold text-red-700">5</span>
                             </div>
                             <div class="flex-1">
-                                <h4 class="text-sm font-semibold text-gray-900 mb-1">Experience Level (10%)</h4>
+                                <h4 class="text-sm font-semibold text-gray-900 mb-1">Experience Level (15% weighted)</h4>
                                 <p class="text-xs text-gray-600">Total number of matches played by each player</p>
                             </div>
                         </div>
                         
                         <div class="flex items-start space-x-3">
-                            <div class="w-6 h-6 bg-yellow-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                                <span class="text-xs font-bold text-yellow-700">6</span>
+                            <div class="w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <span class="text-xs font-bold text-gray-700">6</span>
                             </div>
                             <div class="flex-1">
-                                <h4 class="text-sm font-semibold text-gray-900 mb-1">Head-to-Head History (10%)</h4>
-                                <p class="text-xs text-gray-600">Direct matchups and performance against common opponents</p>
+                                <h4 class="text-sm font-semibold text-gray-900 mb-1">Consistency Factor (5% weighted)</h4>
+                                <p class="text-xs text-gray-600">Individual player PTI stability (low volatility = more predictable)</p>
                             </div>
                         </div>
                         
                         <div class="flex items-start space-x-3">
-                            <div class="w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                                <span class="text-xs font-bold text-gray-700">7</span>
+                            <div class="w-6 h-6 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <span class="text-xs font-bold text-purple-700">7</span>
                             </div>
                             <div class="flex-1">
-                                <h4 class="text-sm font-semibold text-gray-900 mb-1">Consistency Factor (5%)</h4>
-                                <p class="text-xs text-gray-600">PTI stability and performance reliability over time</p>
+                                <h4 class="text-sm font-semibold text-gray-900 mb-1">PTI Skill Gap (5% weighted)</h4>
+                                <p class="text-xs text-gray-600">Difference in average PTI between the two teams</p>
                             </div>
                         </div>
                     </div>
@@ -266,35 +266,43 @@
                 </div>
             </div>
 
-            <!-- Team Comparison Cards -->
-            <div class="grid grid-cols-1 gap-6">
-                <!-- Team A Stats -->
-                <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                    <div class="px-6 py-4 border-b border-gray-50 bg-gradient-to-r from-blue-50 to-blue-100">
-                        <h3 class="text-lg font-semibold text-blue-800 flex items-center">
-                            <i class="fas fa-chart-bar text-blue-600 mr-2"></i>
-                            Team A Statistics
-                        </h3>
-                    </div>
-                    <div class="p-6">
-                        <div id="teamAStats" class="space-y-3">
-                            <!-- Will be populated by JavaScript -->
-                        </div>
-                    </div>
+            <!-- Team Comparison Card -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <!-- Header -->
+                <div class="px-6 py-4 border-b border-gray-50 bg-gradient-to-r from-gray-50 to-gray-100">
+                    <h3 class="text-lg font-semibold text-gray-800 flex items-center justify-center">
+                        <i class="fas fa-chart-bar text-gray-600 mr-2"></i>
+                        Team Comparison
+                    </h3>
                 </div>
-
-                <!-- Team B Stats -->
-                <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                    <div class="px-6 py-4 border-b border-gray-50 bg-gradient-to-r from-red-50 to-red-100">
-                        <h3 class="text-lg font-semibold text-red-800 flex items-center">
-                            <i class="fas fa-chart-bar text-red-600 mr-2"></i>
-                            Team B Statistics
-                        </h3>
+                
+                <!-- Three Column Layout -->
+                <div class="p-4">
+                    <!-- Column Headers -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;" class="mb-4 pb-3 border-b border-gray-200">
+                        <div class="text-sm font-semibold text-gray-700">Metric</div>
+                        <div class="text-center">
+                            <h4 class="text-sm font-semibold text-green-800">Favorite</h4>
+                        </div>
+                        <div class="text-center">
+                            <h4 class="text-sm font-semibold text-red-800">Underdog</h4>
+                        </div>
                     </div>
-                    <div class="p-6">
-                        <div id="teamBStats" class="space-y-3">
+                    
+                    <!-- Team Names Row -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;" class="mb-4 pb-3 border-b border-gray-200">
+                        <div class="text-xs font-medium text-gray-600">Team</div>
+                        <div class="text-center" id="favoriteTeam">
                             <!-- Will be populated by JavaScript -->
                         </div>
+                        <div class="text-center" id="underdogTeam">
+                            <!-- Will be populated by JavaScript -->
+                        </div>
+                    </div>
+                    
+                    <!-- Metrics Data -->
+                    <div id="metricsTable">
+                        <!-- Will be populated by JavaScript -->
                     </div>
                 </div>
             </div>
@@ -375,13 +383,25 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
+    // Auto-scroll helper function with progressive doubling
+    let scrollAmount = 30;
+    function autoScroll() {
+        window.scrollBy({
+            top: scrollAmount,
+            behavior: 'smooth'
+        });
+        scrollAmount *= 2; // Double for next selection
+    }
+    
     // Team selection event listeners
     teamA_team.addEventListener('change', function() {
         loadTeamPlayers(this.value, teamA_playerSection, teamA_player1, teamA_player2);
+        autoScroll();
     });
     
     teamB_team.addEventListener('change', function() {
         loadTeamPlayers(this.value, teamB_playerSection, teamB_player1, teamB_player2);
+        autoScroll();
     });
     
     // Check if all selections are made and valid
@@ -413,7 +433,10 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Add event listeners to all player selects
     [teamA_player1, teamA_player2, teamB_player1, teamB_player2].forEach(select => {
-        select.addEventListener('change', checkFormValidity);
+        select.addEventListener('change', function() {
+            checkFormValidity();
+            autoScroll();
+        });
     });
     
     // Run simulation
@@ -472,9 +495,28 @@ document.addEventListener('DOMContentLoaded', function() {
         // Display overall prediction
         displayPrediction(result.prediction, result.team_a.players, result.team_b.players);
         
-        // Display team stats
-        displayTeamStats('teamAStats', result.team_a);
-        displayTeamStats('teamBStats', result.team_b);
+        // Determine favorite vs underdog based on prediction
+        const teamAName = teamA_team.options[teamA_team.selectedIndex]?.text?.split(' - ')[0] || 'Team A';
+        const teamBName = teamB_team.options[teamB_team.selectedIndex]?.text?.split(' - ')[0] || 'Team B';
+        
+        const teamAIsFavorite = result.prediction.team_a_probability > result.prediction.team_b_probability;
+        const favoriteTeamData = teamAIsFavorite ? result.team_a : result.team_b;
+        const underdogTeamData = teamAIsFavorite ? result.team_b : result.team_a;
+        const favoriteTeamName = teamAIsFavorite ? teamAName : teamBName;
+        const underdogTeamName = teamAIsFavorite ? teamBName : teamAName;
+        
+        // Update team names and players in favorite/underdog order
+        document.getElementById('favoriteTeam').innerHTML = `
+            <div class="text-xs font-semibold text-green-800">${favoriteTeamName}</div>
+            <div class="text-xs text-gray-600 leading-tight mt-1">${favoriteTeamData.players.map(p => p.name).join('<br/>')}</div>
+        `;
+        document.getElementById('underdogTeam').innerHTML = `
+            <div class="text-xs font-semibold text-red-800">${underdogTeamName}</div>
+            <div class="text-xs text-gray-600 leading-tight mt-1">${underdogTeamData.players.map(p => p.name).join('<br/>')}</div>
+        `;
+        
+        // Display metrics table with favorite/underdog order
+        displayMetricsTable(favoriteTeamData, underdogTeamData);
         
         // Auto-scroll to Match Prediction section with proper timing
         setTimeout(() => {
@@ -510,6 +552,11 @@ document.addEventListener('DOMContentLoaded', function() {
     function displayPrediction(prediction, teamA, teamB) {
         const display = document.getElementById('predictionDisplay');
         const winnerTeam = prediction.predicted_winner;
+        
+        // Extract club names from team selections
+        const teamAName = teamA_team.options[teamA_team.selectedIndex]?.text?.split(' - ')[0] || 'Team A';
+        const teamBName = teamB_team.options[teamB_team.selectedIndex]?.text?.split(' - ')[0] || 'Team B';
+        const winnerName = prediction.predicted_winner === 'Team A' ? teamAName : teamBName;
         
         // Generate analysis based on prediction data
         function generateAnalysis(prediction, teamA, teamB) {
@@ -588,23 +635,41 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const confidenceColor = getConfidenceColor(prediction.confidence);
         
+        // Convert percentages to betting lines
+        function convertToBettingLine(probability) {
+            if (probability >= 50) {
+                // Favorite: negative line
+                const line = Math.round((probability / (100 - probability)) * 100);
+                return `-${line}`;
+            } else {
+                // Underdog: positive line
+                const line = Math.round(((100 - probability) / probability) * 100);
+                return `+${line}`;
+            }
+        }
+        
+        // Debug the probabilities
+        console.log(`[DEBUG] Probabilities: Team A = ${prediction.team_a_probability}%, Team B = ${prediction.team_b_probability}%`);
+        
+        const teamALine = convertToBettingLine(prediction.team_a_probability);
+        const teamBLine = convertToBettingLine(prediction.team_b_probability);
+        
+        console.log(`[DEBUG] Betting lines: Team A = ${teamALine}, Team B = ${teamBLine}`);
+        
         display.innerHTML = `
             <!-- Winner Announcement -->
             <div class="text-center mb-6">
-                <div class="text-2xl font-bold text-gray-900 mb-2">
-                    ${winnerTeam} Predicted to Win
+                <div class="text-2xl font-bold text-gray-900 mb-4">
+                    ${winnerName} Predicted to Win
                 </div>
-                <div class="flex items-center justify-center mb-4">
-                    <div class="text-center">
-                        <div class="text-3xl font-bold text-blue-600">${prediction.team_a_probability}%</div>
-                        <div class="text-sm text-gray-500">Team A</div>
+                <div class="space-y-2 text-left bg-gray-50 rounded-lg p-4 max-w-md mx-auto">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm font-medium text-gray-700">${teamAName}:</span>
+                        <span class="text-sm text-gray-600">~${prediction.team_a_probability}% chance → <span class="font-bold text-blue-600">${teamALine}</span> ${prediction.team_a_probability < 50 ? '(underdog)' : '(favorite)'}</span>
                     </div>
-                    <div class="flex-1 flex justify-center items-center px-8">
-                        <div class="text-2xl font-bold text-gray-400 px-6 py-2 border border-gray-200 rounded-lg bg-gray-50">vs</div>
-                    </div>
-                    <div class="text-center">
-                        <div class="text-3xl font-bold text-red-600">${prediction.team_b_probability}%</div>
-                        <div class="text-sm text-gray-500">Team B</div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm font-medium text-gray-700">${teamBName}:</span>
+                        <span class="text-sm text-gray-600">~${prediction.team_b_probability}% chance → <span class="font-bold text-red-600">${teamBLine}</span> ${prediction.team_b_probability < 50 ? '(underdog)' : '(favorite)'}</span>
                     </div>
                 </div>
                 <div class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium ${confidenceColor}">
@@ -630,18 +695,10 @@ document.addEventListener('DOMContentLoaded', function() {
         `;
     }
     
-    function displayTeamStats(elementId, teamData) {
-        const display = document.getElementById(elementId);
-        const metrics = teamData.metrics;
+    function displayMetricsTable(favoriteTeam, underdogTeam) {
+        const tableDisplay = document.getElementById('metricsTable');
         
-        // Helper function to get color for win rate
-        function getWinRateColor(rate) {
-            if (rate >= 70) return 'text-green-600 bg-green-50';
-            if (rate >= 50) return 'text-yellow-600 bg-yellow-50';
-            return 'text-red-600 bg-red-50';
-        }
-        
-        // Helper function to get color for PTI
+        // Helper functions for colors (same as before)
         function getPTIColor(pti) {
             if (pti >= 30) return 'text-green-600';
             if (pti >= 25) return 'text-blue-600';
@@ -649,14 +706,18 @@ document.addEventListener('DOMContentLoaded', function() {
             return 'text-red-600';
         }
         
-        // Helper function to get color for recent performance
-        function getFormColor(form) {
-            if (form >= 70) return 'text-green-600 bg-green-50';
-            if (form >= 50) return 'text-yellow-600 bg-yellow-50';
-            return 'text-red-600 bg-red-50';
+        function getWinRateColor(rate) {
+            if (rate >= 70) return 'text-green-600';
+            if (rate >= 50) return 'text-yellow-600';
+            return 'text-red-600';
         }
         
-        // Helper function to get color for experience
+        function getFormColor(form) {
+            if (form >= 70) return 'text-green-600';
+            if (form >= 50) return 'text-yellow-600';
+            return 'text-red-600';
+        }
+        
         function getExperienceColor(exp) {
             if (exp >= 50) return 'text-green-600';
             if (exp >= 20) return 'text-blue-600';
@@ -664,148 +725,92 @@ document.addEventListener('DOMContentLoaded', function() {
             return 'text-red-600';
         }
         
-        // Helper function to get color for consistency
         function getConsistencyColor(cons) {
             if (cons >= 80) return 'text-green-600';
             if (cons >= 60) return 'text-yellow-600';
             return 'text-red-600';
         }
         
-        // Helper function to get color for H2H and PTI gap (these will be comparative)
         function getComparativeColor(value) {
             if (value > 0) return 'text-green-600';
             if (value === 0) return 'text-gray-600';
             return 'text-red-600';
         }
         
-        const avgPTI = metrics.average_pti || 0;
-        const individualWinRate = metrics.individual_win_rates || 0;
-        const recentForm = metrics.recent_individual_form || 0;
-        const experience = metrics.experience_level || 0;
-        const consistency = metrics.consistency_factor || 0;
-        const ptiSkillGap = metrics.pti_advantage || 0;
-        const headToHead = metrics.head_to_head_record || 0;
+        // Extract metrics
+        const favoriteMetrics = favoriteTeam.metrics;
+        const underdogMetrics = underdogTeam.metrics;
         
-        display.innerHTML = `
-            <div class="bg-gray-50 rounded-lg p-4 mb-4">
-                <div class="text-lg font-semibold text-gray-900 mb-2">
-                    ${teamData.players.map(p => p.name).join(' & ')}
-                </div>
-                <div class="text-sm text-gray-600">Detailed Algorithm Metrics</div>
-            </div>
+        // Helper function to determine who has advantage and add checkmark
+        function getAdvantageIndicator(favoriteValue, underdogValue, higherIsBetter = true) {
+            let favoriteAdvantage, underdogAdvantage;
             
-            <!-- Primary Metrics Grid -->
-            <div class="grid grid-cols-2 gap-4 mb-6">
-                <div class="text-center p-3 bg-blue-50 rounded-lg">
-                    <div class="text-2xl font-bold ${getPTIColor(avgPTI)}">${avgPTI.toFixed(1)}</div>
-                    <div class="text-xs text-gray-600 font-medium">Average PTI</div>
-                    <div class="text-xs text-blue-600 font-bold">(25% weight)</div>
-                </div>
-                <div class="text-center p-3 bg-green-50 rounded-lg">
-                    <div class="text-2xl font-bold ${getExperienceColor(experience)}">${experience.toFixed(0)}</div>
-                    <div class="text-xs text-gray-600 font-medium">Avg Experience</div>
-                    <div class="text-xs text-green-600 font-bold">(10% weight)</div>
-                </div>
-            </div>
+            if (higherIsBetter) {
+                favoriteAdvantage = favoriteValue > underdogValue;
+                underdogAdvantage = underdogValue > favoriteValue;
+            } else {
+                favoriteAdvantage = favoriteValue < underdogValue;
+                underdogAdvantage = underdogValue < favoriteValue;
+            }
             
-            <!-- All 7 Algorithm Metrics -->
-            <div class="space-y-3">
-                <div class="bg-blue-50 p-3 rounded-lg">
-                    <div class="flex justify-between items-center">
-                        <div class="flex-1">
-                            <div class="text-sm font-semibold text-gray-800">1. Average PTI</div>
-                            <div class="text-xs text-gray-600">Performance Tracking Index</div>
-                        </div>
-                        <div class="text-right">
-                            <div class="text-lg font-bold ${getPTIColor(avgPTI)}">${avgPTI.toFixed(1)}</div>
-                            <div class="text-xs font-bold text-blue-600">25%</div>
-                        </div>
-                    </div>
+            return {
+                favorite: favoriteAdvantage ? ' <i class="fas fa-check text-green-600 ml-1"></i>' : '',
+                underdog: underdogAdvantage ? ' <i class="fas fa-check text-green-600 ml-1"></i>' : ''
+            };
+        }
+        
+        // Calculate advantages for each metric
+        const ptiAdvantage = getAdvantageIndicator(favoriteMetrics.average_pti || 0, underdogMetrics.average_pti || 0);
+        const winRateAdvantage = getAdvantageIndicator(favoriteMetrics.individual_win_rates || 0, underdogMetrics.individual_win_rates || 0);
+        const formAdvantage = getAdvantageIndicator(favoriteMetrics.recent_individual_form || 0, underdogMetrics.recent_individual_form || 0);
+        const h2hAdvantage = getAdvantageIndicator(favoriteMetrics.head_to_head_record || 0, underdogMetrics.head_to_head_record || 0);
+        const expAdvantage = getAdvantageIndicator(favoriteMetrics.experience_level || 0, underdogMetrics.experience_level || 0);
+        const consistencyAdvantage = getAdvantageIndicator(favoriteMetrics.consistency_factor || 0, underdogMetrics.consistency_factor || 0);
+        const gapAdvantage = getAdvantageIndicator(favoriteMetrics.pti_advantage || 0, underdogMetrics.pti_advantage || 0);
+        
+        tableDisplay.innerHTML = `
+            <div class="space-y-2">
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;" class="py-2 border-b border-gray-100">
+                    <div class="text-xs font-medium text-gray-700">Avg PTI</div>
+                    <div class="text-center text-sm font-bold ${getPTIColor(favoriteMetrics.average_pti || 0)}">${(favoriteMetrics.average_pti || 0).toFixed(1)}${ptiAdvantage.favorite}</div>
+                    <div class="text-center text-sm font-bold ${getPTIColor(underdogMetrics.average_pti || 0)}">${(underdogMetrics.average_pti || 0).toFixed(1)}${ptiAdvantage.underdog}</div>
                 </div>
                 
-                <div class="bg-green-50 p-3 rounded-lg">
-                    <div class="flex justify-between items-center">
-                        <div class="flex-1">
-                            <div class="text-sm font-semibold text-gray-800">2. Individual Win Rates</div>
-                            <div class="text-xs text-gray-600">Actual win percentage from matches</div>
-                        </div>
-                        <div class="text-right">
-                            <div class="text-lg font-bold ${getWinRateColor(individualWinRate).includes('green') ? 'text-green-600' : getWinRateColor(individualWinRate).includes('yellow') ? 'text-yellow-600' : 'text-red-600'}">${individualWinRate.toFixed(1)}%</div>
-                            <div class="text-xs font-bold text-green-600">20%</div>
-                        </div>
-                    </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;" class="py-2 border-b border-gray-100">
+                    <div class="text-xs font-medium text-gray-700">Win Rate</div>
+                    <div class="text-center text-sm font-bold ${getWinRateColor(favoriteMetrics.individual_win_rates || 0)}">${(favoriteMetrics.individual_win_rates || 0).toFixed(1)}%${winRateAdvantage.favorite}</div>
+                    <div class="text-center text-sm font-bold ${getWinRateColor(underdogMetrics.individual_win_rates || 0)}">${(underdogMetrics.individual_win_rates || 0).toFixed(1)}%${winRateAdvantage.underdog}</div>
                 </div>
                 
-                <div class="bg-purple-50 p-3 rounded-lg">
-                    <div class="flex justify-between items-center">
-                        <div class="flex-1">
-                            <div class="text-sm font-semibold text-gray-800">3. PTI Skill Gap</div>
-                            <div class="text-xs text-gray-600">Advantage vs opposing team</div>
-                        </div>
-                        <div class="text-right">
-                            <div class="text-lg font-bold ${getComparativeColor(ptiSkillGap)}">${ptiSkillGap > 0 ? '+' : ''}${ptiSkillGap.toFixed(1)}</div>
-                            <div class="text-xs font-bold text-purple-600">15%</div>
-                        </div>
-                    </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;" class="py-2 border-b border-gray-100">
+                    <div class="text-xs font-medium text-gray-700">Recent Form</div>
+                    <div class="text-center text-sm font-bold ${getFormColor(favoriteMetrics.recent_individual_form || 0)}">${(favoriteMetrics.recent_individual_form || 0).toFixed(1)}%${formAdvantage.favorite}</div>
+                    <div class="text-center text-sm font-bold ${getFormColor(underdogMetrics.recent_individual_form || 0)}">${(underdogMetrics.recent_individual_form || 0).toFixed(1)}%${formAdvantage.underdog}</div>
                 </div>
                 
-                <div class="bg-orange-50 p-3 rounded-lg">
-                    <div class="flex justify-between items-center">
-                        <div class="flex-1">
-                            <div class="text-sm font-semibold text-gray-800">4. Recent Performance</div>
-                            <div class="text-xs text-gray-600">Last 5 matches performance</div>
-                        </div>
-                        <div class="text-right">
-                            <div class="text-lg font-bold ${getFormColor(recentForm).includes('green') ? 'text-green-600' : getFormColor(recentForm).includes('yellow') ? 'text-yellow-600' : 'text-red-600'}">${recentForm.toFixed(1)}%</div>
-                            <div class="text-xs font-bold text-orange-600">15%</div>
-                        </div>
-                    </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;" class="py-2 border-b border-gray-100">
+                    <div class="text-xs font-medium text-gray-700">Head-to-Head</div>
+                    <div class="text-center text-sm font-bold ${getComparativeColor(favoriteMetrics.head_to_head_record || 0)}">${(favoriteMetrics.head_to_head_record || 0) > 0 ? '+' : ''}${(favoriteMetrics.head_to_head_record || 0).toFixed(1)}${h2hAdvantage.favorite}</div>
+                    <div class="text-center text-sm font-bold ${getComparativeColor(underdogMetrics.head_to_head_record || 0)}">${(underdogMetrics.head_to_head_record || 0) > 0 ? '+' : ''}${(underdogMetrics.head_to_head_record || 0).toFixed(1)}${h2hAdvantage.underdog}</div>
                 </div>
                 
-                <div class="bg-indigo-50 p-3 rounded-lg">
-                    <div class="flex justify-between items-center">
-                        <div class="flex-1">
-                            <div class="text-sm font-semibold text-gray-800">5. Experience Level</div>
-                            <div class="text-xs text-gray-600">Total matches played</div>
-                        </div>
-                        <div class="text-right">
-                            <div class="text-lg font-bold ${getExperienceColor(experience)}">${experience.toFixed(0)}</div>
-                            <div class="text-xs font-bold text-indigo-600">10%</div>
-                        </div>
-                    </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;" class="py-2 border-b border-gray-100">
+                    <div class="text-xs font-medium text-gray-700">Experience</div>
+                    <div class="text-center text-sm font-bold ${getExperienceColor(favoriteMetrics.experience_level || 0)}">${(favoriteMetrics.experience_level || 0).toFixed(0)}${expAdvantage.favorite}</div>
+                    <div class="text-center text-sm font-bold ${getExperienceColor(underdogMetrics.experience_level || 0)}">${(underdogMetrics.experience_level || 0).toFixed(0)}${expAdvantage.underdog}</div>
                 </div>
                 
-                <div class="bg-yellow-50 p-3 rounded-lg">
-                    <div class="flex justify-between items-center">
-                        <div class="flex-1">
-                            <div class="text-sm font-semibold text-gray-800">6. Head-to-Head History</div>
-                            <div class="text-xs text-gray-600">Direct & common opponent matchups</div>
-                        </div>
-                        <div class="text-right">
-                            <div class="text-lg font-bold ${getComparativeColor(headToHead)}">${headToHead > 0 ? '+' : ''}${headToHead.toFixed(1)}</div>
-                            <div class="text-xs font-bold text-yellow-600">10%</div>
-                        </div>
-                    </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;" class="py-2 border-b border-gray-100">
+                    <div class="text-xs font-medium text-gray-700">Consistency</div>
+                    <div class="text-center text-sm font-bold ${getConsistencyColor(favoriteMetrics.consistency_factor || 0)}">${(favoriteMetrics.consistency_factor || 0).toFixed(1)}${consistencyAdvantage.favorite}</div>
+                    <div class="text-center text-sm font-bold ${getConsistencyColor(underdogMetrics.consistency_factor || 0)}">${(underdogMetrics.consistency_factor || 0).toFixed(1)}${consistencyAdvantage.underdog}</div>
                 </div>
                 
-                <div class="bg-gray-50 p-3 rounded-lg">
-                    <div class="flex justify-between items-center">
-                        <div class="flex-1">
-                            <div class="text-sm font-semibold text-gray-800">7. Consistency Factor</div>
-                            <div class="text-xs text-gray-600">PTI stability over time</div>
-                        </div>
-                        <div class="text-right">
-                            <div class="text-lg font-bold ${getConsistencyColor(consistency)}">${consistency.toFixed(1)}</div>
-                            <div class="text-xs font-bold text-gray-600">5%</div>
-                        </div>
-                    </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;" class="py-2">
+                    <div class="text-xs font-medium text-gray-700">PTI Gap</div>
+                    <div class="text-center text-sm font-bold ${getComparativeColor(favoriteMetrics.pti_advantage || 0)}">${(favoriteMetrics.pti_advantage || 0) > 0 ? '+' : ''}${(favoriteMetrics.pti_advantage || 0).toFixed(1)}${gapAdvantage.favorite}</div>
+                    <div class="text-center text-sm font-bold ${getComparativeColor(underdogMetrics.pti_advantage || 0)}">${(underdogMetrics.pti_advantage || 0) > 0 ? '+' : ''}${(underdogMetrics.pti_advantage || 0).toFixed(1)}${gapAdvantage.underdog}</div>
                 </div>
-            </div>
-            
-            <!-- Calculation Summary -->
-            <div class="mt-4 p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg border border-blue-200">
-                <div class="text-xs font-semibold text-blue-800 mb-1">Algorithm Weights</div>
-                <div class="text-xs text-blue-700">Each metric is normalized (0-1), weighted by importance, and combined for the final prediction score.</div>
             </div>
         `;
     }

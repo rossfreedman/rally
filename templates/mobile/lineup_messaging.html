@@ -1,0 +1,687 @@
+{% extends "mobile/layout.html" %}
+{% set show_back_arrow = True %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    
+    <!-- Header -->
+    <div class="bg-white border-b border-gray-100">
+        <div class="flex items-center px-4 py-6">
+            <div class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center shadow-sm">
+                <i class="fas fa-paper-plane text-white text-lg"></i>
+            </div>
+            <div class="ml-4">
+                <h1 class="text-xl font-bold text-gray-900">Send Lineup</h1>
+                <p class="text-sm text-gray-500">Share your lineup with team members</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content -->
+    <div class="px-4 space-y-6" style="padding-top: calc(1.5rem - 5px); padding-bottom: 1.5rem;">
+        
+        <!-- Message Type Toggle -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-toggle-on text-blue-500 mr-2"></i>
+                    Message Type
+                </h2>
+            </div>
+            
+            <div class="p-6">
+                <div class="flex bg-gray-100 rounded-lg p-1">
+                    <button id="sms-toggle" class="flex-1 py-3 px-4 rounded-md text-sm font-medium transition-all duration-200 flex items-center justify-center active-toggle">
+                        <i class="fas fa-mobile-alt mr-2"></i>
+                        Text Message
+                    </button>
+                    <button id="email-toggle" class="flex-1 py-3 px-4 rounded-md text-sm font-medium transition-all duration-200 flex items-center justify-center">
+                        <i class="fas fa-envelope mr-2"></i>
+                        Email
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recipients -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-users text-green-500 mr-2"></i>
+                    Recipients
+                </h2>
+            </div>
+            
+            <div class="p-6">
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div class="flex items-center">
+                            <input type="checkbox" id="all-team" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" checked>
+                            <label for="all-team" class="ml-3 text-sm font-medium text-gray-700">All Team Members</label>
+                        </div>
+                        <span id="recipient-count" class="text-xs text-gray-500">Loading...</span>
+                    </div>
+                    
+                    <!-- Individual team members would be loaded here -->
+                    <div id="individual-recipients" class="space-y-2 hidden">
+                        <!-- Individual checkboxes will be dynamically added here -->
+                    </div>
+                    
+                    <button id="toggle-individual" class="text-sm text-blue-600 hover:text-blue-800 transition-colors">
+                        Select individual members
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Message Composition -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-edit text-purple-500 mr-2"></i>
+                    <span id="message-type-label">Text Message</span>
+                </h2>
+            </div>
+            
+            <div class="p-6">
+                <!-- SMS Subject (hidden by default) -->
+                <div id="email-subject" class="mb-4 hidden">
+                    <label for="subject-input" class="block text-sm font-medium text-gray-700 mb-2">Subject</label>
+                    <input type="text" id="subject-input" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="Team Lineup for [Date]" value="Team Lineup">
+                </div>
+
+                <!-- Message Body -->
+                <div class="mb-4">
+                    <label for="message-body" class="block text-sm font-medium text-gray-700 mb-2">Message</label>
+                    <textarea id="message-body" rows="8" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm" placeholder="Your lineup message will appear here..."></textarea>
+                </div>
+
+                <!-- Character Count (for SMS) -->
+                <div id="char-count" class="flex justify-between items-center text-xs text-gray-500 mb-4">
+                    <span>Character count: <span id="char-number">0</span></span>
+                    <span id="sms-parts" class="hidden">SMS parts: <span id="parts-number">1</span></span>
+                </div>
+
+                <!-- Preview -->
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <h4 class="text-sm font-medium text-gray-700 mb-2">Preview</h4>
+                    <div id="message-preview" class="text-sm text-gray-600 whitespace-pre-wrap font-mono"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Send Button -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="p-4">
+                <button id="send-message-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg p-3 font-semibold transition-colors flex items-center justify-center">
+                    <i class="fas fa-paper-plane mr-2" id="send-btn-icon"></i>
+                    <span id="send-btn-text">Send Text Message</span>
+                    <span class="ml-2" id="send-btn-subtitle">(10)</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Back to Actions Option -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="p-4">
+                <button id="back-to-actions-btn" class="w-full text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg p-3 font-semibold transition-colors flex items-center justify-center">
+                    <i class="fas fa-arrow-left mr-2"></i>
+                    Back to Lineup Actions
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Initialize session data
+window.sessionData = {{ session_data | tojson | safe }};
+
+// Message state
+let isEmailMode = false;
+let lineupText = '';
+
+// Load and setup the page
+document.addEventListener('DOMContentLoaded', () => {
+    // Load the lineup from sessionStorage
+    lineupText = sessionStorage.getItem('createdLineup') || 'No lineup found';
+    
+    // Initialize the message body with default text
+    updateMessageBody();
+    
+    // Setup event listeners
+    setupEventListeners();
+    
+    // Initialize UI state
+    updateUIForMessageType();
+    
+    // Load actual team member count
+    loadTeamMemberCount();
+});
+
+function setupEventListeners() {
+    // Toggle between SMS and Email
+    document.getElementById('sms-toggle').onclick = () => switchToSMS();
+    document.getElementById('email-toggle').onclick = () => switchToEmail();
+    
+    // Recipient selection
+    document.getElementById('all-team').onchange = toggleIndividualRecipients;
+    document.getElementById('toggle-individual').onclick = showIndividualRecipients;
+    
+    // Message body changes
+    document.getElementById('message-body').oninput = updatePreviewAndCount;
+    document.getElementById('subject-input').oninput = updatePreview;
+    
+    // Actions
+    document.getElementById('send-message-btn').onclick = sendMessage;
+    document.getElementById('back-to-actions-btn').onclick = () => {
+        window.location.href = '/mobile/lineup-confirmation';
+    };
+}
+
+function switchToSMS() {
+    isEmailMode = false;
+    updateToggleButtons();
+    updateUIForMessageType();
+    updateMessageBody();
+}
+
+function switchToEmail() {
+    isEmailMode = true;
+    updateToggleButtons();
+    updateUIForMessageType();
+    updateMessageBody();
+}
+
+function updateToggleButtons() {
+    const smsBtn = document.getElementById('sms-toggle');
+    const emailBtn = document.getElementById('email-toggle');
+    
+    if (isEmailMode) {
+        smsBtn.classList.remove('active-toggle');
+        emailBtn.classList.add('active-toggle');
+    } else {
+        emailBtn.classList.remove('active-toggle');
+        smsBtn.classList.add('active-toggle');
+    }
+}
+
+function updateUIForMessageType() {
+    const messageTypeLabel = document.getElementById('message-type-label');
+    const emailSubject = document.getElementById('email-subject');
+    const charCount = document.getElementById('char-count');
+    const smsPartsSpan = document.getElementById('sms-parts');
+    const sendBtnText = document.getElementById('send-btn-text');
+    const sendBtnIcon = document.getElementById('send-btn-icon');
+    
+    if (isEmailMode) {
+        messageTypeLabel.textContent = 'Email';
+        emailSubject.classList.remove('hidden');
+        smsPartsSpan.classList.add('hidden');
+        sendBtnText.textContent = 'Send Email';
+        sendBtnIcon.className = 'fas fa-envelope mr-2';
+    } else {
+        messageTypeLabel.textContent = 'Text Message';
+        emailSubject.classList.add('hidden');
+        smsPartsSpan.classList.remove('hidden');
+        sendBtnText.textContent = 'Send Text Message';
+        sendBtnIcon.className = 'fas fa-mobile-alt mr-2';
+    }
+    
+    updatePreviewAndCount();
+}
+
+function updateMessageBody() {
+    const messageBody = document.getElementById('message-body');
+    
+    if (isEmailMode) {
+        messageBody.value = `Hi team,
+
+Here's our lineup for the upcoming match:
+
+${lineupText}
+
+Please confirm your availability and let me know if you have any questions.
+
+Thanks!`;
+    } else {
+        messageBody.value = `Team Lineup:
+
+${lineupText}
+
+Please confirm availability. Thanks!`;
+    }
+    
+    updatePreviewAndCount();
+}
+
+function updatePreviewAndCount() {
+    const messageBody = document.getElementById('message-body').value;
+    const preview = document.getElementById('message-preview');
+    const charNumber = document.getElementById('char-number');
+    const partsNumber = document.getElementById('parts-number');
+    
+    // Update preview
+    if (isEmailMode) {
+        const subject = document.getElementById('subject-input').value;
+        preview.innerHTML = `<strong>Subject:</strong> ${subject}\n\n${messageBody}`;
+    } else {
+        preview.textContent = messageBody;
+    }
+    
+    // Update character count
+    charNumber.textContent = messageBody.length;
+    
+    // Update SMS parts count
+    if (!isEmailMode) {
+        const parts = Math.ceil(messageBody.length / 160);
+        partsNumber.textContent = parts;
+    }
+}
+
+function updatePreview() {
+    updatePreviewAndCount();
+}
+
+function toggleIndividualRecipients() {
+    const allTeamChecked = document.getElementById('all-team').checked;
+    const individualDiv = document.getElementById('individual-recipients');
+    
+    if (!allTeamChecked) {
+        showIndividualRecipients();
+    } else {
+        individualDiv.classList.add('hidden');
+    }
+}
+
+function showIndividualRecipients() {
+    const individualDiv = document.getElementById('individual-recipients');
+    const allTeamCheckbox = document.getElementById('all-team');
+    
+    // Get team members from the API using session data
+    const user = window.sessionData?.user || {};
+    const series = user.series;
+    const club = user.club;
+    const teamId = club && series ? `${club} - ${series.split(' ').pop()}` : '';
+    
+    if (!teamId) {
+        console.error('No team ID found in session data');
+        // Fallback to mock data if no team info available
+        showMockTeamMembers(individualDiv, allTeamCheckbox);
+        return;
+    }
+    
+    // Fetch actual team members
+    fetch(`/api/players?series=${encodeURIComponent(series)}&team_id=${encodeURIComponent(teamId)}`)
+        .then(res => {
+            if (!res.ok) {
+                throw new Error(`Server error: ${res.status} ${res.statusText}`);
+            }
+            return res.json();
+        })
+        .then(players => {
+            if (players.error) {
+                throw new Error(players.error);
+            }
+            
+            // Phone number mapping from club directory
+            const phoneDirectory = {
+                'Ross Freedman': '(773) 213-8911',
+                'Jonathan Blume': '(773) 354-1484', 
+                'Howard Dakoff': '(312) 804-9899',
+                'Victor Forman': '(703) 463-1853',
+                'Andrew Franger': '(847) 946-5507',
+                'Mike Lieberman': '(847) 644-6034',
+                'Paul Patt': '(262) 888-0366',
+                'Adam Seyb': '(312) 493-5764',
+                'Stephen Statkus': '(773) 450-1688',
+                'Brian Stutland': '(312) 318-9191'
+            };
+            
+            // Email mapping from club directory
+            const emailDirectory = {
+                'Ross Freedman': 'rossfreedman@gmail.com',
+                'Jonathan Blume': 'jablume33@gmail.com',
+                'Howard Dakoff': 'howardfrda@hotmail.com',
+                'Victor Forman': 'vicforman@yahoo.com',
+                'Andrew Franger': 'ajfranger@gmail.com',
+                'Mike Lieberman': 'mike.liebs@gmail.com',
+                'Paul Patt': 'tennis1562@yahoo.com',
+                'Adam Seyb': 'adamseyb@gmail.com',
+                'Stephen Statkus': 'stephen.statkus@gmail.com',
+                'Brian Stutland': 'bstutland@gmail.com'
+            };
+            
+            // Convert players to team member format
+            const teamMembers = players.map(player => ({
+                name: player.name,
+                phone: phoneDirectory[player.name] || player.phone || `(555) ${Math.floor(Math.random() * 900) + 100}-${Math.floor(Math.random() * 9000) + 1000}`,
+                email: emailDirectory[player.name] || player.email || `${player.name.toLowerCase().replace(' ', '.')}@example.com`
+            }));
+            
+            displayTeamMembers(teamMembers, individualDiv, allTeamCheckbox);
+        })
+        .catch(error => {
+            console.error('Error loading team members:', error);
+            // Fallback to mock data on error
+            showMockTeamMembers(individualDiv, allTeamCheckbox);
+        });
+}
+
+function showMockTeamMembers(individualDiv, allTeamCheckbox) {
+    // Real team members from club directory (Series 22)
+    const teamMembers = [
+        { name: 'Ross Freedman', phone: '(773) 213-8911', email: 'rossfreedman@gmail.com' },
+        { name: 'Jonathan Blume', phone: '(773) 354-1484', email: 'jablume33@gmail.com' },
+        { name: 'Howard Dakoff', phone: '(312) 804-9899', email: 'howardfrda@hotmail.com' },
+        { name: 'Victor Forman', phone: '(703) 463-1853', email: 'vicforman@yahoo.com' },
+        { name: 'Andrew Franger', phone: '(847) 946-5507', email: 'ajfranger@gmail.com' },
+        { name: 'Mike Lieberman', phone: '(847) 644-6034', email: 'mike.liebs@gmail.com' },
+        { name: 'Paul Patt', phone: '(262) 888-0366', email: 'tennis1562@yahoo.com' },
+        { name: 'Adam Seyb', phone: '(312) 493-5764', email: 'adamseyb@gmail.com' },
+        { name: 'Stephen Statkus', phone: '(773) 450-1688', email: 'stephen.statkus@gmail.com' },
+        { name: 'Brian Stutland', phone: '(312) 318-9191', email: 'bstutland@gmail.com' }
+    ];
+    
+    displayTeamMembers(teamMembers, individualDiv, allTeamCheckbox);
+}
+
+function displayTeamMembers(teamMembers, individualDiv, allTeamCheckbox) {
+    individualDiv.innerHTML = '';
+    teamMembers.forEach((member, index) => {
+        const div = document.createElement('div');
+        div.className = 'flex items-center p-2 bg-gray-50 rounded';
+        div.innerHTML = `
+            <input type="checkbox" id="member-${index}" class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded member-checkbox" checked>
+            <label for="member-${index}" class="ml-3 text-sm text-gray-700 flex-1">${member.name}</label>
+            <span class="text-xs text-gray-500">${isEmailMode ? member.email : member.phone}</span>
+        `;
+        individualDiv.appendChild(div);
+    });
+    
+    individualDiv.classList.remove('hidden');
+    allTeamCheckbox.checked = false;
+    
+    // Add event listeners to individual checkboxes
+    document.querySelectorAll('.member-checkbox').forEach(checkbox => {
+        checkbox.onchange = updateRecipientCount;
+    });
+    
+    // Update the recipient count display
+    const recipientCount = document.getElementById('recipient-count');
+    recipientCount.textContent = `${teamMembers.length} members`;
+    
+    updateRecipientCount();
+}
+
+function updateRecipientCount() {
+    const checkedBoxes = document.querySelectorAll('.member-checkbox:checked');
+    const recipientCount = document.getElementById('recipient-count');
+    const sendBtnSubtitle = document.getElementById('send-btn-subtitle');
+    
+    const count = checkedBoxes.length;
+    recipientCount.textContent = `${count} member${count !== 1 ? 's' : ''}`;
+    sendBtnSubtitle.textContent = `(${count})`;
+}
+
+function sendMessage() {
+    const btn = document.getElementById('send-message-btn');
+    const originalHTML = btn.innerHTML;
+    
+    // Show loading state
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Sending...';
+    btn.disabled = true;
+    
+    // Simulate sending delay
+    setTimeout(() => {
+        if (isEmailMode) {
+            alert('Email sent successfully!');
+        } else {
+            alert('Texting functionality not implemented yet.');
+        }
+        
+        // Reset button and redirect
+        btn.innerHTML = originalHTML;
+        btn.disabled = false;
+        
+        // Redirect back to home or lineup confirmation
+        window.location.href = '/mobile';
+    }, 2000);
+}
+
+function loadTeamMemberCount() {
+    const user = window.sessionData?.user || {};
+    const series = user.series;
+    const club = user.club;
+    const teamId = club && series ? `${club} - ${series.split(' ').pop()}` : '';
+    
+    if (!teamId) {
+        console.error('No team ID found in session data');
+        return;
+    }
+    
+    // Fetch actual team members to get count
+    fetch(`/api/players?series=${encodeURIComponent(series)}&team_id=${encodeURIComponent(teamId)}`)
+        .then(res => {
+            if (!res.ok) {
+                throw new Error(`Server error: ${res.status} ${res.statusText}`);
+            }
+            return res.json();
+        })
+        .then(players => {
+            if (players.error) {
+                throw new Error(players.error);
+            }
+            
+            // Update the recipient count display
+            const recipientCount = document.getElementById('recipient-count');
+            const sendBtnSubtitle = document.getElementById('send-btn-subtitle');
+            
+            const count = players.length;
+            recipientCount.textContent = `${count} member${count !== 1 ? 's' : ''}`;
+            sendBtnSubtitle.textContent = `to ${count} member${count !== 1 ? 's' : ''}`;
+        })
+        .catch(error => {
+            console.error('Error loading team member count:', error);
+            // Keep default text on error
+        });
+}
+</script>
+
+<style>
+/* Custom styles for the messaging interface */
+.active-toggle {
+    background-color: #3b82f6;
+    color: white;
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.3);
+}
+
+/* iOS-style card enhancements */
+.ios-card {
+    background: linear-gradient(135deg, var(--tw-bg-opacity) 0%, var(--tw-bg-opacity) 100%);
+    transition: all 0.3s ease;
+    border: none;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.ios-card:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.ios-card:active {
+    transform: scale(0.98);
+    transition: all 0.1s ease;
+}
+
+.ios-card:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Ensure Font Awesome icons load properly */
+.fas, .fa {
+    font-family: "Font Awesome 6 Free" !important;
+    font-weight: 900 !important;
+    font-style: normal !important;
+    display: inline-block !important;
+}
+
+/* Form styling */
+input[type="text"], textarea {
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+input[type="text"]:focus, textarea:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Checkbox styling */
+input[type="checkbox"] {
+    accent-color: #3b82f6;
+}
+
+/* Animation utilities */
+.transition-all {
+    transition-property: all;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 300ms;
+}
+
+.transition-colors {
+    transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+}
+
+.transform {
+    transform: translateZ(0);
+}
+
+.hover\:scale-105:hover {
+    transform: scale(1.05);
+}
+
+.duration-300 {
+    transition-duration: 300ms;
+}
+
+.duration-200 {
+    transition-duration: 200ms;
+}
+
+/* Loading state styles */
+.fa-spin {
+    animation: fa-spin 2s infinite linear;
+}
+
+@keyframes fa-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Utility classes */
+.min-h-screen { min-height: 100vh; }
+.w-full { width: 100%; }
+.w-12 { width: 3rem; }
+.h-12 { height: 3rem; }
+.h-4 { height: 1rem; }
+.w-4 { width: 1rem; }
+.flex { display: flex; }
+.flex-1 { flex: 1 1 0%; }
+.items-center { align-items: center; }
+.items-start { align-items: flex-start; }
+.justify-center { justify-content: center; }
+.justify-between { justify-content: space-between; }
+.space-y-6 > * + * { margin-top: 1.5rem; }
+.space-y-3 > * + * { margin-top: 0.75rem; }
+.space-y-2 > * + * { margin-top: 0.5rem; }
+.hidden { display: none; }
+.block { display: block; }
+.rounded-xl { border-radius: 0.75rem; }
+.rounded-lg { border-radius: 0.5rem; }
+.rounded-md { border-radius: 0.375rem; }
+.rounded-full { border-radius: 9999px; }
+.rounded { border-radius: 0.25rem; }
+.shadow-sm { box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); }
+.shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
+.border { border-width: 1px; }
+.border-b { border-bottom-width: 1px; }
+.overflow-hidden { overflow: hidden; }
+.whitespace-pre-wrap { white-space: pre-wrap; }
+
+/* Colors */
+.bg-gray-50 { background-color: #f9fafb; }
+.bg-gray-100 { background-color: #f3f4f6; }
+.bg-gray-200 { background-color: #e5e7eb; }
+.bg-white { background-color: #ffffff; }
+.bg-blue-600 { background-color: #2563eb; }
+.border-gray-100 { border-color: #f3f4f6; }
+.border-gray-50 { border-color: #f9fafb; }
+.border-gray-300 { border-color: #d1d5db; }
+.text-gray-900 { color: #111827; }
+.text-gray-800 { color: #1f2937; }
+.text-gray-700 { color: #374151; }
+.text-gray-600 { color: #4b5563; }
+.text-gray-500 { color: #6b7280; }
+.text-white { color: #ffffff; }
+.text-blue-600 { color: #2563eb; }
+.text-blue-800 { color: #1e40af; }
+.text-blue-500 { color: #3b82f6; }
+.text-green-500 { color: #10b981; }
+.text-purple-500 { color: #8b5cf6; }
+.hover\:text-blue-800:hover { color: #1e40af; }
+.hover\:bg-gray-200:hover { background-color: #e5e7eb; }
+
+/* Typography */
+.text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+.text-lg { font-size: 1.125rem; line-height: 1.75rem; }
+.text-base { font-size: 1rem; line-height: 1.5rem; }
+.text-sm { font-size: 0.875rem; line-height: 1.25rem; }
+.text-xs { font-size: 0.75rem; line-height: 1rem; }
+.text-2xl { font-size: 1.5rem; line-height: 2rem; }
+.font-bold { font-weight: 700; }
+.font-semibold { font-weight: 600; }
+.font-medium { font-weight: 500; }
+.font-mono { font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace; }
+.text-left { text-align: left; }
+
+/* Spacing */
+.px-4 { padding-left: 1rem; padding-right: 1rem; }
+.px-6 { padding-left: 1.5rem; padding-right: 1.5rem; }
+.px-3 { padding-left: 0.75rem; padding-right: 0.75rem; }
+.py-6 { padding-top: 1.5rem; padding-bottom: 1.5rem; }
+.py-4 { padding-top: 1rem; padding-bottom: 1rem; }
+.py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+.py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+.p-6 { padding: 1.5rem; }
+.p-4 { padding: 1rem; }
+.p-3 { padding: 0.75rem; }
+.p-2 { padding: 0.5rem; }
+.p-1 { padding: 0.25rem; }
+.ml-4 { margin-left: 1rem; }
+.ml-3 { margin-left: 0.75rem; }
+.mr-2 { margin-right: 0.5rem; }
+.mr-3 { margin-right: 0.75rem; }
+.mb-2 { margin-bottom: 0.5rem; }
+.mb-4 { margin-bottom: 1rem; }
+
+/* Focus styles */
+.focus\:ring-2:focus {
+    --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
+    --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
+    box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
+}
+
+.focus\:ring-blue-500:focus {
+    --tw-ring-color: #3b82f6;
+}
+
+.focus\:border-blue-500:focus {
+    border-color: #3b82f6;
+}
+</style>
+{% endblock %} 
