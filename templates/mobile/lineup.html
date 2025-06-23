@@ -333,8 +333,18 @@ function renderPlayersForManual() {
     playerDiv.addEventListener('touchmove', handleTouchMove, { passive: false });
     playerDiv.addEventListener('touchend', handleTouchEnd, { passive: false });
     
-    // Tap events
+    // Tap events - add both click and touch for better mobile support
     playerDiv.addEventListener('click', handlePlayerTap);
+    playerDiv.addEventListener('touchend', (e) => {
+      // If not dragging and touch is quick, treat as tap
+      if (!touchedPlayer && e.timeStamp - (e.currentTarget.touchStartStamp || 0) < 300) {
+        e.preventDefault();
+        handlePlayerTap(e);
+      }
+    }, { passive: false });
+    playerDiv.addEventListener('touchstart', (e) => {
+      e.currentTarget.touchStartStamp = e.timeStamp;
+    }, { passive: true });
     
     pool.appendChild(playerDiv);
   });
@@ -466,8 +476,15 @@ function setupDropZones() {
     position.addEventListener('drop', handleDrop);
     position.addEventListener('dragleave', handleDragLeave);
     
-    // Tap events for tap mode
+    // Tap events for tap mode - support both click and touch
     position.addEventListener('click', handleCourtPositionTap);
+    position.addEventListener('touchstart', (e) => {
+      // Track touch start time for distinguishing taps from drags
+      if (selectedPlayerForTap) {
+        e.currentTarget.touchStartTime = Date.now();
+      }
+    }, { passive: false });
+    position.addEventListener('touchend', handleCourtPositionTouch, { passive: false });
   });
   
   // Also set up the available players pool as a drop zone
@@ -664,15 +681,22 @@ function updateModeUI() {
 }
 
 function handlePlayerTap(e) {
+  console.log('👤 Player tap event triggered for:', e.currentTarget.dataset.playerName);
+  
+  // Prevent event bubbling
+  e.stopPropagation();
+  
   const playerName = e.currentTarget.dataset.playerName;
   
   // If clicking the same player, deselect
   if (selectedPlayerForTap === playerName) {
+    console.log('🔄 Deselecting same player');
     clearPlayerSelection();
     return;
   }
   
   // Select new player
+  console.log('✅ Selecting new player:', playerName);
   selectedPlayerForTap = playerName;
   
   // Update visual feedback
@@ -690,14 +714,29 @@ function showSelectedPlayer(playerName) {
   
   if (nameSpan) nameSpan.textContent = playerName;
   if (indicator) indicator.classList.remove('hidden');
+  
+  // Highlight court positions as available targets
+  document.querySelectorAll('.court-position').forEach(position => {
+    position.classList.add('border-blue-300', 'bg-blue-50');
+    position.style.borderStyle = 'dashed';
+    position.style.borderWidth = '2px';
+  });
 }
 
 function clearPlayerSelection() {
+  console.log('🔄 Clearing player selection');
   selectedPlayerForTap = null;
   
-  // Remove visual feedback
+  // Remove visual feedback from player cards
   document.querySelectorAll('.player-card').forEach(card => {
     card.classList.remove('border-blue-400', 'bg-blue-50');
+  });
+  
+  // Remove visual feedback from court positions
+  document.querySelectorAll('.court-position').forEach(position => {
+    position.classList.remove('border-blue-300', 'bg-blue-50');
+    position.style.borderStyle = '';
+    position.style.borderWidth = '';
   });
   
   // Hide indicator
@@ -706,6 +745,10 @@ function clearPlayerSelection() {
 }
 
 function handleCourtPositionTap(e) {
+  // Prevent event propagation to avoid conflicts
+  e.preventDefault();
+  e.stopPropagation();
+  
   if (!selectedPlayerForTap) return;
   
   const courtPosition = e.currentTarget;
@@ -752,6 +795,39 @@ function handleCourtPositionTap(e) {
   }
 }
 
+function handleCourtPositionTouch(e) {
+  console.log('🎯 Court position touch event triggered');
+  
+  // Only handle if we're in tap mode and have a selected player
+  if (!selectedPlayerForTap) {
+    console.log('❌ No selected player for tap');
+    return;
+  }
+  
+  console.log('✅ Selected player:', selectedPlayerForTap);
+  
+  // Prevent default touch behavior and event propagation
+  e.preventDefault();
+  e.stopPropagation();
+  
+  // Check if this is a simple tap (not a drag operation)
+  const touch = e.changedTouches[0];
+  const startTime = e.currentTarget.touchStartTime || 0;
+  const currentTime = Date.now();
+  const touchDuration = currentTime - startTime;
+  
+  console.log('⏱️ Touch duration:', touchDuration, 'ms');
+  
+  // Only process as tap if it's a quick touch (less than 300ms)
+  if (touchDuration < 300) {
+    console.log('✅ Processing as tap');
+    // Call the same handler as click
+    handleCourtPositionTap(e);
+  } else {
+    console.log('❌ Touch too long, not processing as tap');
+  }
+}
+
 
 
 // Event listeners
@@ -766,6 +842,21 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Manual mode navigation
   document.getElementById('manual-send').onclick = sendManualLineup;
+  
+  // Clear selection button event handler
+  const clearButton = document.getElementById('clear-selection');
+  if (clearButton) {
+    clearButton.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      clearPlayerSelection();
+    });
+    clearButton.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      clearPlayerSelection();
+    });
+  }
   
   // AI wizard navigation removed - now handled by separate AI page
   
@@ -836,12 +927,18 @@ document.addEventListener('DOMContentLoaded', () => {
         margin: 0.125rem;
         padding: 0.375rem;
         font-size: 0.75rem;
+        /* Improve touch target size */
+        min-height: 44px;
     }
     
     .court-position {
         min-height: 3rem;
         padding: 0.5rem;
         font-size: 0.625rem;
+        /* Improve touch target size and responsiveness */
+        min-height: 48px;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
     }
     
     .court-container {
@@ -857,6 +954,16 @@ document.addEventListener('DOMContentLoaded', () => {
     .court-container h4 {
         font-size: 0.875rem;
         margin-bottom: 0.5rem;
+    }
+    
+    /* Better touch targets */
+    .court-position:active {
+        background-color: rgba(59, 130, 246, 0.1) !important;
+        transform: scale(0.98);
+    }
+    
+    .player-card:active {
+        transform: scale(0.95);
     }
 }
 
