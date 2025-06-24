@@ -20,7 +20,7 @@ from playwright.sync_api import expect
 @pytest.mark.critical
 class TestRegistrationPageUI:
     """Test registration page UI elements and basic functionality"""
-    
+
     def _click_register_tab(self, page):
         """Helper method to click the register tab"""
         register_tab_selectors = [
@@ -28,15 +28,15 @@ class TestRegistrationPageUI:
             'a:has-text("Register")',
             '[data-tab="register"]',
             '.tab:has-text("Register")',
-            '#register-tab',
+            "#register-tab",
             'li:has-text("Register")',
             '.nav-link:has-text("Register")',
             '[href="#register"]',
             '[data-toggle="tab"]:has-text("Register")',
         ]
-        
+
         print(f"Looking for register tab on page: {page.url}")
-        
+
         # First check what elements are actually on the page
         all_buttons = page.locator("button").all()
         print(f"Found {len(all_buttons)} buttons on page")
@@ -46,13 +46,13 @@ class TestRegistrationPageUI:
                 print(f"Button {i}: '{text}'")
             except:
                 print(f"Button {i}: Could not get text")
-        
+
         tab_clicked = False
         for selector in register_tab_selectors:
             elements = page.locator(selector)
             count = elements.count()
             print(f"Selector '{selector}': found {count} elements")
-            
+
             if count > 0:
                 try:
                     # Check if element is visible
@@ -66,9 +66,11 @@ class TestRegistrationPageUI:
                 except Exception as e:
                     print(f"Error with selector {selector}: {e}")
                     continue
-        
+
         if not tab_clicked:
-            print("Could not find register tab - maybe registration form is already visible?")
+            print(
+                "Could not find register tab - maybe registration form is already visible?"
+            )
             # Don't assert failure yet, let the test continue to see if form fields are present
         else:
             page.wait_for_timeout(500)  # Wait for tab switch
@@ -86,7 +88,7 @@ class TestRegistrationPageUI:
 
         # Check required register form fields are present (target register-specific fields)
         # Based on debug output, we know there are loginEmail and registerEmail fields
-        
+
         # Check register email field specifically
         register_email = page.locator("#registerEmail")
         if register_email.count() > 0:
@@ -94,7 +96,7 @@ class TestRegistrationPageUI:
             # It might not be visible yet, try multiple approaches to make register form visible
             if not register_email.is_visible():
                 print("Register email field is hidden, trying to show register form...")
-                
+
                 # Try multiple approaches to show the register form
                 approaches = [
                     # Approach 1: Click Register button directly
@@ -106,7 +108,6 @@ class TestRegistrationPageUI:
                         console.log('Clicked register button');
                     }
                     """,
-                    
                     # Approach 2: Look for tab controls and activate register tab
                     """
                     const tabs = document.querySelectorAll('[data-bs-toggle="tab"], [data-toggle="tab"]');
@@ -118,7 +119,6 @@ class TestRegistrationPageUI:
                         }
                     }
                     """,
-                    
                     # Approach 3: Show register form by manipulating CSS directly
                     """
                     const registerForm = document.querySelector('#register, .register-form, [id*="register"]');
@@ -138,7 +138,6 @@ class TestRegistrationPageUI:
                         loginForm.classList.add('hide', 'hidden');
                     }
                     """,
-                    
                     # Approach 4: Bootstrap tab activation if it's Bootstrap tabs
                     """
                     if (window.bootstrap && bootstrap.Tab) {
@@ -149,15 +148,15 @@ class TestRegistrationPageUI:
                             console.log('Activated Bootstrap register tab');
                         }
                     }
-                    """
+                    """,
                 ]
-                
+
                 for i, approach in enumerate(approaches):
                     try:
                         print(f"Trying approach {i+1} to show register form...")
                         page.evaluate(approach)
                         page.wait_for_timeout(300)
-                        
+
                         # Check if it worked
                         if register_email.is_visible():
                             print(f"Success! Approach {i+1} made register form visible")
@@ -165,7 +164,7 @@ class TestRegistrationPageUI:
                     except Exception as e:
                         print(f"Approach {i+1} failed: {e}")
                         continue
-                        
+
             # Now check if the register email field is visible
             if register_email.is_visible():
                 expect(register_email).to_be_visible()
@@ -176,16 +175,21 @@ class TestRegistrationPageUI:
         else:
             # Fallback to any email field
             expect(page.locator('input[type="email"]').first).to_be_visible()
-        
+
         # Check for register-specific password field or any password field
         register_password = page.locator("#registerPassword, #password")
         if register_password.count() > 0:
             expect(register_password.first).to_be_visible()
         else:
             expect(page.locator('input[type="password"]').first).to_be_visible()
-        
+
         # Check for name fields (these are likely only on the register form)
-        first_name_selectors = ['#firstName', '#first_name', 'input[name="firstName"]', 'input[name="first_name"]']
+        first_name_selectors = [
+            "#firstName",
+            "#first_name",
+            'input[name="firstName"]',
+            'input[name="first_name"]',
+        ]
         first_name_found = False
         first_name_visible = False
         for selector in first_name_selectors:
@@ -194,17 +198,30 @@ class TestRegistrationPageUI:
                 if page.locator(selector).is_visible():
                     expect(page.locator(selector)).to_be_visible()
                     first_name_visible = True
-                    print(f"✅ First name field found and visible with selector: {selector}")
+                    print(
+                        f"✅ First name field found and visible with selector: {selector}"
+                    )
                     break
                 else:
-                    print(f"⚠️ First name field found but hidden with selector: {selector}")
-        
+                    print(
+                        f"⚠️ First name field found but hidden with selector: {selector}"
+                    )
+
         if first_name_found and not first_name_visible:
-            print("⚠️ First name field exists but is hidden - register form may not be active")
+            print(
+                "⚠️ First name field exists but is hidden - register form may not be active"
+            )
         elif not first_name_found:
-            print("❌ No first name field found - this suggests register functionality may not be available")
-        
-        last_name_selectors = ['#lastName', '#last_name', 'input[name="lastName"]', 'input[name="last_name"]']
+            print(
+                "❌ No first name field found - this suggests register functionality may not be available"
+            )
+
+        last_name_selectors = [
+            "#lastName",
+            "#last_name",
+            'input[name="lastName"]',
+            'input[name="last_name"]',
+        ]
         last_name_found = False
         last_name_visible = False
         for selector in last_name_selectors:
@@ -213,62 +230,78 @@ class TestRegistrationPageUI:
                 if page.locator(selector).is_visible():
                     expect(page.locator(selector)).to_be_visible()
                     last_name_visible = True
-                    print(f"✅ Last name field found and visible with selector: {selector}")
+                    print(
+                        f"✅ Last name field found and visible with selector: {selector}"
+                    )
                     break
                 else:
-                    print(f"⚠️ Last name field found but hidden with selector: {selector}")
-        
+                    print(
+                        f"⚠️ Last name field found but hidden with selector: {selector}"
+                    )
+
         if last_name_found and not last_name_visible:
-            print("⚠️ Last name field exists but is hidden - register form may not be active")
+            print(
+                "⚠️ Last name field exists but is hidden - register form may not be active"
+            )
         elif not last_name_found:
-            print("❌ No last name field found - this suggests register functionality may not be available")
-            
+            print(
+                "❌ No last name field found - this suggests register functionality may not be available"
+            )
+
         # For now, let's not fail the test if the register form isn't visible
         # The main goal is to verify the UI test infrastructure works
         print("📋 Register form field check complete - infrastructure test successful!")
-        
+
         # Final verification: At least verify that form fields are visible
         # Check specifically for visible email and password fields
         visible_email_fields = page.locator('input[type="email"]:visible').count()
         visible_password_fields = page.locator('input[type="password"]:visible').count()
-        
+
         print(f"Found {visible_email_fields} visible email fields")
         print(f"Found {visible_password_fields} visible password fields")
-        
+
         # Since we successfully made register form visible, these should be > 0
         if visible_email_fields > 0 and visible_password_fields > 0:
-            print("✅ UI test infrastructure is working - forms are visible and interactive!")
+            print(
+                "✅ UI test infrastructure is working - forms are visible and interactive!"
+            )
         else:
             # Fallback check - maybe the fields are there but CSS selector is tricky
             all_email_fields = page.locator('input[type="email"]').count()
             all_password_fields = page.locator('input[type="password"]').count()
             print(f"Total email fields on page: {all_email_fields}")
             print(f"Total password fields on page: {all_password_fields}")
-            
+
             # As long as fields exist, the UI infrastructure is working
             assert all_email_fields > 0, "No email fields found on page"
             assert all_password_fields > 0, "No password fields found on page"
             print("✅ UI test infrastructure confirmed working - forms exist on page!")
-        
-        print("🎉 SUCCESS: UI test can successfully interact with Rally login/register page!")
+
+        print(
+            "🎉 SUCCESS: UI test can successfully interact with Rally login/register page!"
+        )
 
         # Check form submission button(s) - there should be submit buttons for both forms
         submit_buttons = page.locator('button[type="submit"], input[type="submit"]')
         submit_count = submit_buttons.count()
         print(f"Found {submit_count} submit buttons on page")
-        
+
         # Since we have both login and register forms, expect at least 1 submit button
         assert submit_count > 0, "No submit buttons found on page"
-        
+
         # Check that at least one submit button is visible
-        visible_submit_buttons = page.locator('button[type="submit"]:visible, input[type="submit"]:visible').count()
+        visible_submit_buttons = page.locator(
+            'button[type="submit"]:visible, input[type="submit"]:visible'
+        ).count()
         print(f"Found {visible_submit_buttons} visible submit buttons")
         assert visible_submit_buttons > 0, "No visible submit buttons found"
-        
+
         print("✅ Submit button(s) are present and functional")
-        
+
         # Final verification that the first visible submit button is enabled
-        first_visible_submit = page.locator('button[type="submit"]:visible, input[type="submit"]:visible').first
+        first_visible_submit = page.locator(
+            'button[type="submit"]:visible, input[type="submit"]:visible'
+        ).first
         if first_visible_submit.count() > 0:
             expect(first_visible_submit).to_be_enabled()
             print("✅ Submit button is enabled and ready for interaction")
@@ -291,7 +324,7 @@ class TestRegistrationPageUI:
         """Test client-side form validation"""
         page.goto(f"{flask_server}/login")
         wait_for_page_load(page)
-        
+
         # Switch to register tab
         self._click_register_tab(page)
 
@@ -323,7 +356,7 @@ class TestRegistrationPageUI:
 @pytest.mark.ui
 class TestRegistrationFlow:
     """Test complete registration user flows"""
-    
+
     def _click_register_tab(self, page):
         """Helper method to click the register tab"""
         register_tab_selectors = [
@@ -331,16 +364,16 @@ class TestRegistrationFlow:
             'a:has-text("Register")',
             '[data-tab="register"]',
             '.tab:has-text("Register")',
-            '#register-tab',
+            "#register-tab",
         ]
-        
+
         tab_clicked = False
         for selector in register_tab_selectors:
             if page.locator(selector).count() > 0:
                 page.click(selector)
                 tab_clicked = True
                 break
-        
+
         assert tab_clicked, "Could not find register tab to click"
         page.wait_for_timeout(500)  # Wait for tab switch
 
@@ -348,7 +381,7 @@ class TestRegistrationFlow:
         """Test successful user registration without player association"""
         page.goto(f"{flask_server}/login")
         wait_for_page_load(page)
-        
+
         # Switch to register tab
         self._click_register_tab(page)
 

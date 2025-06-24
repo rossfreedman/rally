@@ -159,28 +159,32 @@ def build_season_history(player):
 
 
 def search_players_with_fuzzy_logic(first_name_query, last_name_query):
-    """Search for players using fuzzy logic matching"""
+    """Search for players using fuzzy logic matching - FIXED: Uses database instead of JSON"""
     try:
-        app_dir = os.path.dirname(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        )
-
-        # Load all player data
-        players_path = os.path.join(app_dir, "data", "leagues", "apta", "players.json")
-        player_history_path = os.path.join(
-            app_dir, "data", "leagues", "apta", "player_history.json"
-        )
-
+        from database_utils import execute_query
+        
         results = []
 
-        # Search in players.json
+        # FIXED: Search players in database instead of JSON
         try:
-            with open(players_path, "r") as f:
-                players_data = json.load(f)
+            # Get all players from database with basic info
+            players_query = """
+                SELECT p.first_name, p.last_name, p.pti,
+                       s.name as series_name, c.name as club_name,
+                       l.league_id
+                FROM players p
+                LEFT JOIN series s ON p.series_id = s.id
+                LEFT JOIN clubs c ON p.club_id = c.id
+                LEFT JOIN leagues l ON p.league_id = l.id
+                WHERE p.is_active = true
+                ORDER BY p.first_name, p.last_name
+            """
+            
+            players_data = execute_query(players_query)
 
             for player in players_data:
-                first_name = player.get("First Name", "")
-                last_name = player.get("Last Name", "")
+                first_name = player.get("first_name", "")
+                last_name = player.get("last_name", "")
 
                 # Calculate fuzzy match scores
                 first_score = (
@@ -202,70 +206,69 @@ def search_players_with_fuzzy_logic(first_name_query, last_name_query):
                             "name": full_name,
                             "source": "players",
                             "match_score": (first_score + last_score) / 2,
-                            "series": player.get("Series", ""),
-                            "club": player.get("Club", ""),
-                            "pti": player.get("PTI", "N/A"),
+                            "series": player.get("series_name", ""),
+                            "club": player.get("club_name", ""),
+                            "pti": player.get("pti", "N/A"),
+                            "league": player.get("league_id", ""),
                         }
                     )
         except Exception as e:
-            print(f"Error searching players.json: {str(e)}")
+            print(f"Error searching players database: {str(e)}")
 
-        # Search in player_history.json
+        # FIXED: Search player history in database instead of JSON
         try:
-            with open(player_history_path, "r") as f:
-                history_data = json.load(f)
+            # Get recent PTI data from player_history table
+            history_query = """
+                SELECT p.first_name, p.last_name, ph.end_pti, ph.series
+                FROM player_history ph
+                JOIN players p ON ph.player_id = p.id
+                WHERE ph.date = (
+                    SELECT MAX(date) 
+                    FROM player_history ph2 
+                    WHERE ph2.player_id = ph.player_id
+                )
+                GROUP BY p.first_name, p.last_name, ph.end_pti, ph.series
+            """
+            
+            history_data = execute_query(history_query)
 
             for player in history_data:
-                name = player.get("name", "")
-                # Split name into parts for matching
-                name_parts = name.split()
-                if len(name_parts) >= 2:
-                    first_name = name_parts[0]
-                    last_name = " ".join(name_parts[1:])
+                first_name = player.get("first_name", "")
+                last_name = player.get("last_name", "")
+                full_name = f"{first_name} {last_name}"
 
-                    # Calculate fuzzy match scores
-                    first_score = (
-                        fuzz.partial_ratio(first_name_query.lower(), first_name.lower())
-                        if first_name_query
-                        else 100
-                    )
-                    last_score = (
-                        fuzz.partial_ratio(last_name_query.lower(), last_name.lower())
-                        if last_name_query
-                        else 100
-                    )
+                # Calculate fuzzy match scores
+                first_score = (
+                    fuzz.partial_ratio(first_name_query.lower(), first_name.lower())
+                    if first_name_query
+                    else 100
+                )
+                last_score = (
+                    fuzz.partial_ratio(last_name_query.lower(), last_name.lower())
+                    if last_name_query
+                    else 100
+                )
 
-                    # Only include if both scores are reasonably high and not already in results
-                    if first_score >= 70 and last_score >= 70:
-                        # Check if already in results from players.json
-                        already_exists = any(
-                            r["name"].lower() == name.lower() for r in results
+                # Only include if both scores are reasonably high and not already in results
+                if first_score >= 70 and last_score >= 70:
+                    # Check if already in results from players query
+                    already_exists = any(
+                        r["name"].lower() == full_name.lower() for r in results
+                    )
+                    if not already_exists:
+                        results.append(
+                            {
+                                "name": full_name,
+                                "source": "history",
+                                "match_score": (first_score + last_score) / 2,
+                                "series": player.get("series", ""),
+                                "club": "",  # Not available in history data
+                                "pti": player.get("end_pti", "N/A"),
+                                "league": "",  # Would need join to get this
+                            }
                         )
-                        if not already_exists:
-                            current_pti = "N/A"
-                            if player.get("matches") and len(player["matches"]) > 0:
-                                # Get most recent PTI
-                                sorted_matches = sorted(
-                                    player["matches"],
-                                    key=lambda x: datetime.strptime(
-                                        x["date"], "%m/%d/%Y"
-                                    ),
-                                    reverse=True,
-                                )
-                                current_pti = sorted_matches[0].get("end_pti", "N/A")
-
-                            results.append(
-                                {
-                                    "name": name,
-                                    "source": "history",
-                                    "match_score": (first_score + last_score) / 2,
-                                    "series": "",  # Not available in history data
-                                    "club": "",  # Not available in history data
-                                    "pti": current_pti,
-                                }
-                            )
         except Exception as e:
-            print(f"Error searching player_history.json: {str(e)}")
+            print(f"Error searching player history database: {str(e)}")
 
         # Sort by match score (descending) and limit results
         results.sort(key=lambda x: x["match_score"], reverse=True)
@@ -279,89 +282,137 @@ def search_players_with_fuzzy_logic(first_name_query, last_name_query):
 def find_player_in_history(user, player_history=None):
     """
     Find a player in the player history data based on user information.
-    Enhanced to handle multiple name formats and fuzzy matching.
+    FIXED: Uses database instead of JSON, with player ID lookup for reliability.
     """
-    if player_history is None:
-        # Load player history data if not provided
-        try:
-            app_dir = os.path.dirname(
-                os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            )
-            user_league_id = user.get("league_id", "")
-
-            # Use dynamic path based on league
-            if user_league_id and not user_league_id.startswith("APTA"):
-                players_path = os.path.join(
-                    app_dir, "data", "leagues", user_league_id, "player_history.json"
-                )
-            else:
-                players_path = os.path.join(
-                    app_dir, "data", "leagues", "all", "player_history.json"
-                )
-
-            with open(players_path, "r") as f:
-                all_player_history = json.load(f)
-
-            # Filter player history by league
-            player_history = []
-            for player in all_player_history:
-                player_league = player.get("League", player.get("league_id"))
-                if user_league_id.startswith("APTA"):
-                    # For APTA users, only include players from the same APTA league
-                    if player_league == user_league_id:
-                        player_history.append(player)
-                else:
-                    # For other leagues, match the league_id
-                    if player_league == user_league_id:
-                        player_history.append(player)
-
-        except Exception as e:
-            print(f"Error loading player history for find_player_in_history: {e}")
-            return None
-
     try:
-        # Build possible name variations for the user
+        from database_utils import execute_query, execute_query_one
+        
+        # FIXED: Use player ID from session for reliable identification
+        player_id = user.get("tenniscores_player_id")
+        user_league_id = user.get("league_id", "")
+
+        if player_id:
+            # Convert string league_id to integer foreign key if needed
+            league_id_int = None
+            if user_league_id:
+                if isinstance(user_league_id, str) and user_league_id != "":
+                    try:
+                        league_record = execute_query_one(
+                            "SELECT id FROM leagues WHERE league_id = %s", [user_league_id]
+                        )
+                        if league_record:
+                            league_id_int = league_record["id"]
+                    except Exception as e:
+                        pass
+                elif isinstance(user_league_id, int):
+                    league_id_int = user_league_id
+
+            # Get player's database ID first
+            if league_id_int:
+                player_db_query = """
+                    SELECT id, first_name, last_name, pti 
+                    FROM players 
+                    WHERE tenniscores_player_id = %s AND league_id = %s
+                """
+                player_db_data = execute_query_one(player_db_query, [player_id, league_id_int])
+            else:
+                # Fallback without league filter
+                player_db_query = """
+                    SELECT id, first_name, last_name, pti 
+                    FROM players 
+                    WHERE tenniscores_player_id = %s
+                    ORDER BY id DESC
+                    LIMIT 1
+                """
+                player_db_data = execute_query_one(player_db_query, [player_id])
+
+            if player_db_data:
+                player_db_id = player_db_data["id"]
+
+                # Get PTI history from player_history table
+                pti_history_query = """
+                    SELECT 
+                        date,
+                        end_pti,
+                        series,
+                        TO_CHAR(date, 'MM/DD/YYYY') as formatted_date
+                    FROM player_history
+                    WHERE player_id = %s
+                    ORDER BY date ASC
+                """
+
+                pti_records = execute_query(pti_history_query, [player_db_id])
+
+                # Format response to match expected structure
+                player_record = {
+                    "name": f"{player_db_data['first_name']} {player_db_data['last_name']}",
+                    "current_pti": float(player_db_data.get("pti", 0.0)),
+                    "matches": []
+                }
+
+                # Convert PTI history to matches format
+                for record in pti_records:
+                    player_record["matches"].append({
+                        "date": record["formatted_date"],
+                        "end_pti": float(record["end_pti"]),
+                        "series": record["series"]
+                    })
+
+                return player_record
+
+        # FALLBACK: If no player ID, try name-based search (as backup only)
         first_name = user.get("first_name", "").strip()
         last_name = user.get("last_name", "").strip()
 
         if not first_name or not last_name:
             return None
 
-        # Try different name formats
-        name_variations = [
-            f"{first_name} {last_name}",
-            f"{last_name} {first_name}",
-            f"{first_name.lower()} {last_name.lower()}",
-            f"{last_name.lower()} {first_name.lower()}",
-        ]
+        # Search by name in database
+        name_search_query = """
+            SELECT id, first_name, last_name, pti 
+            FROM players 
+            WHERE LOWER(first_name) = LOWER(%s) AND LOWER(last_name) = LOWER(%s)
+        """
+        
+        if league_id_int:
+            name_search_query += " AND league_id = %s"
+            player_db_data = execute_query_one(name_search_query, [first_name, last_name, league_id_int])
+        else:
+            player_db_data = execute_query_one(name_search_query, [first_name, last_name])
+            
+        if player_db_data:
+            player_db_id = player_db_data["id"]
 
-        # Also try without middle names/initials if present
-        first_parts = first_name.split()
-        if len(first_parts) > 1:
-            name_variations.extend(
-                [f"{first_parts[0]} {last_name}", f"{last_name} {first_parts[0]}"]
-            )
+            # Get PTI history
+            pti_history_query = """
+                SELECT 
+                    date,
+                    end_pti,
+                    series,
+                    TO_CHAR(date, 'MM/DD/YYYY') as formatted_date
+                FROM player_history
+                WHERE player_id = %s
+                ORDER BY date ASC
+            """
 
-        def normalize_for_matching(name):
-            """Normalize name for fuzzy matching"""
-            return re.sub(r"[^\w\s]", "", name.lower()).strip()
+            pti_records = execute_query(pti_history_query, [player_db_id])
 
-        # Try exact matches first
-        for variation in name_variations:
-            for player in player_history:
-                if player.get("name", "").lower() == variation.lower():
-                    return player
+            # Format response to match expected structure
+            player_record = {
+                "name": f"{player_db_data['first_name']} {player_db_data['last_name']}",
+                "current_pti": float(player_db_data.get("pti", 0.0)),
+                "matches": []
+            }
 
-        # If no exact match, try fuzzy matching
-        normalized_variations = [normalize_for_matching(v) for v in name_variations]
+            # Convert PTI history to matches format
+            for record in pti_records:
+                player_record["matches"].append({
+                    "date": record["formatted_date"],
+                    "end_pti": float(record["end_pti"]),
+                    "series": record["series"]
+                })
 
-        for player in player_history:
-            player_name_normalized = normalize_for_matching(player.get("name", ""))
-
-            # Check if any variation has a high fuzzy match score
-            for normalized_var in normalized_variations:
-                if fuzz.ratio(normalized_var, player_name_normalized) >= 85:
-                    return player
+            return player_record
 
         return None
 

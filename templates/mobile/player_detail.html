@@ -845,10 +845,21 @@ async function loadSeasonHistory() {
     data.seasons.forEach((season, index) => {
       console.log(`  Row ${index + 1}: ${season.season} | ${season.series} | ${season.pti_start} → ${season.pti_end}`);
       
+      // Create alias from series name (extract number and format as "Series X")
+      let seriesDisplay = season.series;
+      
+             // Extract series number from names like "Chicago 12", "APTA Men's 16", "Chicago 11 SW", etc.
+       const numberMatch = season.series.match(/(\d+)(\s+\w+)*$/);
+       if (numberMatch) {
+         const seriesNumber = numberMatch[1];
+         const suffix = numberMatch[2] || '';
+         seriesDisplay = `Series ${seriesNumber}${suffix}`;
+       }
+      
       // Truncate series name if longer than 15 characters
-      const truncatedSeries = season.series.length > 15 
-        ? season.series.substring(0, 15) + '...' 
-        : season.series;
+      const truncatedSeries = seriesDisplay.length > 15 
+        ? seriesDisplay.substring(0, 15) + '...' 
+        : seriesDisplay;
       
       tableHTML += `
         <tr class="border-b border-gray-50 hover:bg-gray-50">

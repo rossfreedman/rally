@@ -17,13 +17,32 @@ from utils.series_matcher import normalize_series_for_storage, series_match
 
 
 def calculate_points_progression(series_stats, matches_path):
-    """Calculate cumulative points progression over time for teams in the series"""
+    """Calculate cumulative points progression over time for teams in the series - FIXED: Uses database instead of JSON"""
     try:
-        if not os.path.exists(matches_path):
-            return {}
-
-        with open(matches_path, "r") as f:
-            all_matches = json.load(f)
+        from database_utils import execute_query
+        
+        # FIXED: Get matches from database instead of JSON
+        all_matches_query = """
+            SELECT 
+                TO_CHAR(match_date, 'DD-Mon-YY') as date,
+                home_team,
+                away_team,
+                winner
+            FROM match_scores
+            ORDER BY match_date ASC
+        """
+        
+        db_matches = execute_query(all_matches_query)
+        
+        # Convert to expected format
+        all_matches = []
+        for match in db_matches:
+            all_matches.append({
+                "Date": match["date"],
+                "Home Team": match["home_team"],
+                "Away Team": match["away_team"],
+                "Winner": match["winner"]
+            })
 
         # Get team names from series stats
         team_names = [team["team"] for team in series_stats]
@@ -377,59 +396,110 @@ def get_players_by_series_data():
         print(f"User series: {session['user'].get('series')}")
         print(f"User club: {session['user'].get('club')}")
 
-        # Get project root directory - fix path resolution for modular structure
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        app_dir = os.path.dirname(current_dir)  # app directory
-        project_root = os.path.dirname(app_dir)  # rally directory
-
-        # Use the user's league to determine the correct data path
+        # FIXED: Get data from database instead of JSON files
+        from database_utils import execute_query, execute_query_one
+        
+        # Get user's league context
         user_league = session["user"].get("league_id", "APTA").upper()
-        if user_league == "NSTF":
-            players_path = os.path.join(
-                project_root, "data", "leagues", "NSTF", "players.json"
-            )
-            matches_path = os.path.join(
-                project_root, "data", "leagues", "NSTF", "match_history.json"
-            )
-        else:
-            # Default to 'all' directory which contains consolidated data
-            players_path = os.path.join(
-                project_root, "data", "leagues", "all", "players.json"
-            )
-            matches_path = os.path.join(
-                project_root, "data", "leagues", "all", "match_history.json"
-            )
-
-        print(f"Players path: {players_path}")
-        print(f"Matches path: {matches_path}")
-        print(f"Players file exists: {os.path.exists(players_path)}")
-        print(f"Matches file exists: {os.path.exists(matches_path)}")
-
-        # Load player data
-        with open(players_path, "r") as f:
-            all_players = json.load(f)
-
-        # Load matches data if team filtering is needed
-        team_players = set()
-        if team_id and os.path.exists(matches_path):
+        
+        # Convert string league_id to integer foreign key if needed
+        league_id_int = None
+        if user_league:
             try:
-                with open(matches_path, "r") as f:
-                    matches = json.load(f)
-                # Get all players who have played for this team
-                for match in matches:
-                    if match.get("Home Team") == team_id:
-                        if match.get("Home Player 1"):
-                            team_players.add(match["Home Player 1"])
-                        if match.get("Home Player 2"):
-                            team_players.add(match["Home Player 2"])
-                    elif match.get("Away Team") == team_id:
-                        if match.get("Away Player 1"):
-                            team_players.add(match["Away Player 1"])
-                        if match.get("Away Player 2"):
-                            team_players.add(match["Away Player 2"])
+                league_record = execute_query_one(
+                    "SELECT id FROM leagues WHERE league_id = %s", [user_league]
+                )
+                if league_record:
+                    league_id_int = league_record["id"]
+            except Exception as e:
+                print(f"Warning: Could not convert league ID: {e}")
+
+        print(f"User league: {user_league} (DB ID: {league_id_int})")
+
+        # FIXED: Load player data from database instead of JSON
+        if league_id_int:
+            players_query = """
+                SELECT p.first_name, p.last_name, p.pti, p.wins, p.losses, p.win_percentage,
+                       s.name as series_name, c.name as club_name
+                FROM players p
+                LEFT JOIN series s ON p.series_id = s.id
+                LEFT JOIN clubs c ON p.club_id = c.id
+                WHERE p.league_id = %s AND p.is_active = true
+                ORDER BY p.first_name, p.last_name
+            """
+            all_players_db = execute_query(players_query, [league_id_int])
+        else:
+            # Fallback without league filter
+            players_query = """
+                SELECT p.first_name, p.last_name, p.pti, p.wins, p.losses, p.win_percentage,
+                       s.name as series_name, c.name as club_name
+                FROM players p
+                LEFT JOIN series s ON p.series_id = s.id
+                LEFT JOIN clubs c ON p.club_id = c.id
+                WHERE p.is_active = true
+                ORDER BY p.first_name, p.last_name
+            """
+            all_players_db = execute_query(players_query)
+        
+        # Convert to expected format
+        all_players = []
+        for player in all_players_db:
+            # Calculate win percentage if not stored
+            wins = player.get("wins", 0) or 0
+            losses = player.get("losses", 0) or 0
+            total_matches = wins + losses
+            win_percentage = f"{(wins / total_matches * 100):.1f}%" if total_matches > 0 else "0.0%"
+            
+            all_players.append({
+                "First Name": player["first_name"],
+                "Last Name": player["last_name"],
+                "PTI": player.get("pti", 0.0),
+                "Wins": wins,
+                "Losses": losses,
+                "Win %": win_percentage,
+                "Series": player.get("series_name", ""),
+                "Club": player.get("club_name", "")
+            })
+
+        # FIXED: Load matches data from database if team filtering is needed
+        team_players = set()
+        if team_id:
+            try:
+                if league_id_int:
+                    team_matches_query = """
+                        SELECT home_player_1_id, home_player_2_id, away_player_1_id, away_player_2_id
+                        FROM match_scores
+                        WHERE (home_team = %s OR away_team = %s) AND league_id = %s
+                    """
+                    team_matches = execute_query(team_matches_query, [team_id, team_id, league_id_int])
+                else:
+                    team_matches_query = """
+                        SELECT home_player_1_id, home_player_2_id, away_player_1_id, away_player_2_id
+                        FROM match_scores
+                        WHERE home_team = %s OR away_team = %s
+                    """
+                    team_matches = execute_query(team_matches_query, [team_id, team_id])
+                
+                # Get player names from player IDs
+                for match in team_matches:
+                    for player_id in [match["home_player_1_id"], match["home_player_2_id"], 
+                                    match["away_player_1_id"], match["away_player_2_id"]]:
+                        if player_id:
+                            try:
+                                player_name_query = """
+                                    SELECT first_name, last_name FROM players 
+                                    WHERE tenniscores_player_id = %s
+                                """
+                                player_data = execute_query_one(player_name_query, [player_id])
+                                if player_data:
+                                    player_name = f"{player_data['first_name']} {player_data['last_name']}"
+                                    team_players.add(player_name)
+                            except Exception as e:
+                                continue
+                                
                 print(f"Found {len(team_players)} team players for {team_id}")
             except Exception as e:
-                print(f"Warning: Error loading matches data: {str(e)}")
+                print(f"Warning: Error loading team matches from database: {str(e)}")
                 # Continue without team filtering if matches data can't be loaded
                 team_id = None
 

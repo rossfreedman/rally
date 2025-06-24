@@ -55,6 +55,10 @@ NAME_VARIATIONS = {
     "edward": ["ed"],
     "andy": ["andrew"],
     "andrew": ["andy"],
+    "p": ["peter"],
+    "peter": ["p"],
+    "rj": ["ryan"],
+    "ryan": ["rj"],
 }
 
 
@@ -272,6 +276,55 @@ def find_player_by_database_lookup(
             )
 
         # ===========================================
+        # FALLBACK 2.5: last_name + club + series + league (drop first name only)
+        # This is often the most reliable fallback - exact club and series with right last name
+        # ===========================================
+        logger.info(f"FALLBACK 2.5: Last name + club + series search (no first name)")
+
+        fallback2_5_query = """
+            SELECT p.tenniscores_player_id, p.first_name, p.last_name, c.name as club_name, s.name as series_name
+            FROM players p
+            JOIN clubs c ON p.club_id = c.id
+            JOIN series s ON p.series_id = s.id  
+            WHERE p.league_id = %s
+            AND p.is_active = true
+            AND LOWER(TRIM(p.last_name)) = %s
+            AND LOWER(TRIM(c.name)) = %s
+            AND LOWER(TRIM(s.name)) = %s
+        """
+
+        fallback2_5_matches = execute_query(
+            fallback2_5_query, (league_db_id, norm_last, norm_club, norm_series)
+        )
+
+        if len(fallback2_5_matches) == 1:
+            player = fallback2_5_matches[0]
+            match_info = f"{player['first_name']} {player['last_name']} ({player['club_name']}, {player['series_name']})"
+            logger.info(
+                f"✅ FALLBACK 2.5: Found unique match - {first_name} {last_name} → {match_info}: {player['tenniscores_player_id']}"
+            )
+            logger.info(
+                f"✅ FALLBACK 2.5: Exact club + series + last name match (first name differs: '{first_name}' vs '{player['first_name']}')"
+            )
+            return {
+                "match_type": "high_confidence",
+                "player": player,
+                "message": f"High-confidence match: Exact club, series, and last name match (first name: {player['first_name']} vs requested {first_name})",
+            }
+        elif len(fallback2_5_matches) > 1:
+            match_names = [
+                f"{m['first_name']} {m['last_name']}"
+                for m in fallback2_5_matches
+            ]
+            logger.info(
+                f"⚠️ FALLBACK 2.5: Multiple matches for {last_name} + {club_name} + {series_name}: {match_names}"
+            )
+        else:
+            logger.info(
+                f"❌ FALLBACK 2.5: No matches found for {last_name} + {club_name} + {series_name}"
+            )
+
+        # ===========================================
         # FALLBACK 3: last_name + series + league (drop first name and club)
         # ===========================================
         logger.info(f"FALLBACK 3: Last name + series search (no first name)")
@@ -341,10 +394,13 @@ def find_player_by_database_lookup(
             logger.info(
                 f"✅ FALLBACK 4: Found unique match - {first_name} {last_name} → {match_info}: {player['tenniscores_player_id']}"
             )
+            logger.info(
+                f"✅ FALLBACK 4: Auto-associating based on last name + club + league match (first name/series may differ)"
+            )
             return {
-                "match_type": "possible",
+                "match_type": "high_confidence",
                 "player": player,
-                "message": f"Possible match: Last name + club match (different first name/series)",
+                "message": f"High-confidence match: Last name + club + league match (first name: {player['first_name']} vs requested {first_name}, series: {player['series_name']} vs requested {series_name})",
             }
         elif len(fallback4_matches) > 1:
             match_names = [

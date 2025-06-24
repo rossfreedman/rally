@@ -158,31 +158,26 @@ def init_schedule_routes(app):
     def serve_schedule():
         """Serve the schedule data from database"""
         try:
-            # Query match history from the database instead of JSON file
-            query = """
-                SELECT 
-                    ms.match_date as "Date",
-                    ms.home_team as "Home Team",
-                    ms.away_team as "Away Team", 
-                    ms.home_player_1_id as "Home Player 1 ID",
-                    ms.home_player_2_id as "Home Player 2 ID",
-                    ms.away_player_1_id as "Away Player 1 ID",
-                    ms.away_player_2_id as "Away Player 2 ID",
-                    ms.scores as "Scores",
-                    ms.winner as "Winner",
-                    l.league_id
-                FROM match_scores ms
-                LEFT JOIN leagues l ON ms.league_id = l.id
-                ORDER BY ms.match_date DESC
-            """
-            data = execute_query(query)
+            # ✅ FIX: Return user-specific schedule data in expected format
+            user = session.get("user")
+            if not user:
+                return jsonify({"error": "User not found in session"}), 401
 
-            # Convert date objects to strings for JSON serialization
-            for row in data:
-                if row.get("Date"):
-                    row["Date"] = row["Date"].strftime("%d-%b-%y")
-
-            return jsonify(data)
+            # Get user's matches using existing function
+            user_matches = get_matches_for_user_club(user)
+            
+            # Convert to expected format
+            schedule_data = {
+                "matches": user_matches,
+                "user": {
+                    "club": user.get("club"),
+                    "series": user.get("series")
+                },
+                "total_matches": len(user_matches)
+            }
+            
+            return jsonify(schedule_data)
+            
         except Exception as e:
             print(f"Error loading schedule from database: {str(e)}")
             return jsonify({"error": str(e)}), 500

@@ -305,6 +305,8 @@ def register_user(
     club_name: str = None,
     series_name: str = None,
     selected_player_id: int = None,
+    ad_deuce_preference: str = None,
+    dominant_hand: str = None,
 ) -> Dict[str, Any]:
     """
     Register a new user with optional player association and automatic team assignment
@@ -320,6 +322,21 @@ def register_user(
     db_session = SessionLocal()
 
     try:
+        # ✅ FIX: Validate required fields FIRST
+        if not email or not email.strip():
+            return {"success": False, "error": "Email is required"}
+        if not password or not password.strip():
+            return {"success": False, "error": "Password is required"}
+        if not first_name or not first_name.strip():
+            return {"success": False, "error": "First name is required"}
+        if not last_name or not last_name.strip():
+            return {"success": False, "error": "Last name is required"}
+
+        # Clean input data
+        email = email.strip().lower()
+        first_name = first_name.strip()
+        last_name = last_name.strip()
+
         # Hash the password
         hashed_password = hash_password(password)
 
@@ -343,16 +360,24 @@ def register_user(
         if series_name:
             series_record = get_or_create_series(series_name, db_session)
 
-        # Create new user (clean authentication data only)
+        # ✅ FIX: Create new user with explicit non-null values
         new_user = User(
             email=email,
             password_hash=hashed_password,
             first_name=first_name,
             last_name=last_name,
+            is_admin=False,  # ✅ FIX: Explicit default value
+            ad_deuce_preference=ad_deuce_preference if ad_deuce_preference else None,
+            dominant_hand=dominant_hand if dominant_hand else None,
         )
 
         db_session.add(new_user)
         db_session.flush()  # Get the user ID
+
+        # ✅ FIX: Ensure user was created with valid ID
+        if not new_user.id:
+            db_session.rollback()
+            return {"success": False, "error": "Failed to create user account"}
 
         user_data = {
             "id": new_user.id,
@@ -360,6 +385,8 @@ def register_user(
             "first_name": new_user.first_name,
             "last_name": new_user.last_name,
             "is_admin": new_user.is_admin,
+            "ad_deuce_preference": new_user.ad_deuce_preference,
+            "dominant_hand": new_user.dominant_hand,
             "players": [],
         }
 

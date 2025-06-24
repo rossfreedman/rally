@@ -62,7 +62,7 @@ class ProductionStagingCloner:
         print()
         print("This will:")
         print("1. ✅ Create backup of current staging data")
-        print("2. ❌ DROP ALL tables/data in staging database") 
+        print("2. ❌ DROP ALL tables/data in staging database")
         print("3. ✅ Copy complete production schema and data to staging")
         print()
         print("⚠️  This creates a COMPLETE MIRROR of production")
@@ -71,9 +71,9 @@ class ProductionStagingCloner:
         print(f"Production: {self.production_url[:50]}...")
         print(f"Staging:    {self.staging_url[:50]}...")
         print()
-        
+
         response = input("Type 'yes' to proceed: ")
-        return response.lower() == 'yes'
+        return response.lower() == "yes"
 
     def test_connections(self):
         """Test both production and staging database connections"""
@@ -114,7 +114,7 @@ class ProductionStagingCloner:
         backup_file = f"staging_backup_before_prod_clone_{self.backup_timestamp}.sql"
         backup_path = os.path.join("data", "backups", backup_file)
         os.makedirs(os.path.dirname(backup_path), exist_ok=True)
-        
+
         logger.info(f"Creating staging database backup: {backup_path}")
 
         try:
@@ -155,7 +155,7 @@ class ProductionStagingCloner:
     def get_table_counts(self, db_url, db_name):
         """Get row counts for all tables in a database"""
         logger.info(f"Getting table counts for {db_name} database...")
-        
+
         try:
             params = parse_db_url(db_url)
             params["connect_timeout"] = 30
@@ -164,13 +164,15 @@ class ProductionStagingCloner:
 
             with conn.cursor() as cursor:
                 # Get all table names
-                cursor.execute("""
+                cursor.execute(
+                    """
                     SELECT table_name 
                     FROM information_schema.tables 
                     WHERE table_schema = 'public' 
                     AND table_type = 'BASE TABLE'
                     ORDER BY table_name
-                """)
+                """
+                )
 
                 tables = [row[0] for row in cursor.fetchall()]
                 logger.info(f"{db_name} has {len(tables)} tables")
@@ -220,7 +222,9 @@ class ProductionStagingCloner:
             env = os.environ.copy()
             env["PGPASSWORD"] = parsed.password
 
-            result = subprocess.run(cmd, env=env, capture_output=True, text=True, timeout=600)
+            result = subprocess.run(
+                cmd, env=env, capture_output=True, text=True, timeout=600
+            )
 
             if result.returncode == 0:
                 logger.info(f"✅ Production dump created: {dump_path}")
@@ -234,9 +238,13 @@ class ProductionStagingCloner:
                         data_statements = insert_count + copy_count
 
                         if data_statements > 0:
-                            logger.info(f"✅ Dump verification: {data_statements} data statements found")
+                            logger.info(
+                                f"✅ Dump verification: {data_statements} data statements found"
+                            )
                         else:
-                            logger.warning("⚠️  Dump verification: No data statements found!")
+                            logger.warning(
+                                "⚠️  Dump verification: No data statements found!"
+                            )
 
                         file_size = os.path.getsize(dump_path)
                         logger.info(f"Dump file size: {file_size:,} bytes")
@@ -265,7 +273,8 @@ class ProductionStagingCloner:
 
             with conn.cursor() as cursor:
                 # Drop all tables, views, sequences, etc. in public schema
-                cursor.execute("""
+                cursor.execute(
+                    """
                     DO $$ DECLARE
                         r RECORD;
                     BEGIN
@@ -289,7 +298,8 @@ class ProductionStagingCloner:
                             EXECUTE 'DROP FUNCTION IF EXISTS ' || quote_ident(r.routine_name) || ' CASCADE';
                         END LOOP;
                     END $$;
-                """)
+                """
+                )
 
                 logger.info("✅ Staging database cleared successfully")
 
@@ -321,7 +331,9 @@ class ProductionStagingCloner:
             env = os.environ.copy()
             env["PGPASSWORD"] = parsed.password
 
-            result = subprocess.run(cmd, env=env, capture_output=True, text=True, timeout=600)
+            result = subprocess.run(
+                cmd, env=env, capture_output=True, text=True, timeout=600
+            )
 
             # Check if data was actually inserted
             data_copied = False
@@ -330,7 +342,9 @@ class ProductionStagingCloner:
                 insert_count = result.stdout.count("INSERT ")
                 data_copied = copy_count > 0 or insert_count > 0
                 if data_copied:
-                    logger.info(f"✅ Data detected: {copy_count} COPY ops, {insert_count} INSERT ops")
+                    logger.info(
+                        f"✅ Data detected: {copy_count} COPY ops, {insert_count} INSERT ops"
+                    )
 
             if result.returncode == 0:
                 logger.info("✅ Production dump restored to staging successfully")
@@ -338,7 +352,9 @@ class ProductionStagingCloner:
                     logger.warning(f"Restore warnings: {result.stderr}")
                 return True
             elif data_copied:
-                logger.warning(f"⚠️  Restore completed with warnings (exit code {result.returncode})")
+                logger.warning(
+                    f"⚠️  Restore completed with warnings (exit code {result.returncode})"
+                )
                 logger.warning("⚠️  But data was successfully copied")
                 if result.stderr:
                     logger.warning(f"Warnings: {result.stderr}")
@@ -375,7 +391,9 @@ class ProductionStagingCloner:
                 if prod_count == staging_count:
                     logger.info(f"✅ {table}: {prod_count} rows (matches)")
                 else:
-                    logger.error(f"❌ {table}: Prod={prod_count}, Staging={staging_count} (MISMATCH)")
+                    logger.error(
+                        f"❌ {table}: Prod={prod_count}, Staging={staging_count} (MISMATCH)"
+                    )
                     mismatches.append(table)
                     all_match = False
 
@@ -387,7 +405,9 @@ class ProductionStagingCloner:
             if all_match:
                 logger.info("🎉 Clone verification SUCCESS - all table counts match!")
             else:
-                logger.error(f"❌ Clone verification FAILED - {len(mismatches)} mismatches: {mismatches}")
+                logger.error(
+                    f"❌ Clone verification FAILED - {len(mismatches)} mismatches: {mismatches}"
+                )
 
             return all_match
 
@@ -455,7 +475,7 @@ class ProductionStagingCloner:
             logger.info("🎉 Production → Staging clone completed successfully!")
             logger.info(f"💾 Staging backup preserved at: {backup_file}")
             logger.info("✅ Staging now contains complete production data")
-            
+
             return True
 
         except Exception as e:
@@ -472,16 +492,18 @@ def main():
     try:
         cloner = ProductionStagingCloner()
         success = cloner.clone_database()
-        
+
         if success:
             print("\n🎉 SUCCESS! Production data cloned to staging.")
-            print("Your staging environment now has complete production data for testing.")
+            print(
+                "Your staging environment now has complete production data for testing."
+            )
             sys.exit(0)
         else:
             print("\n❌ FAILED! Clone operation was not successful.")
             print("Check the logs for details.")
             sys.exit(1)
-            
+
     except KeyboardInterrupt:
         logger.info("❌ Operation cancelled by user")
         sys.exit(1)
@@ -491,4 +513,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main() 
+    main()

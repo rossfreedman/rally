@@ -558,8 +558,67 @@ def get_player_analysis(user):
         # Query player history and match data from database
         # Note: execute_query and execute_query_one are already imported at module level
 
-        # Get player history - only filter by league if we have a valid league_id
-        if league_id_int:
+        # Use player_id to get the correct team for this league (fixes multi-team issue)
+        user_team_id = None
+        user_team_name = None
+        
+        # Get the player's team for the current league using their unique player_id
+        if player_id and league_id_int:
+            try:
+                # For multi-team players, prefer team with most recent match activity in this league
+                team_selection_query = """
+                    SELECT p.team_id, t.team_name,
+                           (SELECT MAX(match_date) 
+                            FROM match_scores ms 
+                            WHERE (ms.home_player_1_id = p.tenniscores_player_id 
+                                   OR ms.home_player_2_id = p.tenniscores_player_id
+                                   OR ms.away_player_1_id = p.tenniscores_player_id 
+                                   OR ms.away_player_2_id = p.tenniscores_player_id)
+                            AND (ms.home_team_id = p.team_id OR ms.away_team_id = p.team_id)
+                            AND ms.league_id = p.league_id
+                           ) as last_match_date
+                    FROM players p
+                    JOIN teams t ON p.team_id = t.id
+                    WHERE p.tenniscores_player_id = %s AND p.league_id = %s AND p.is_active = TRUE
+                    ORDER BY last_match_date DESC NULLS LAST, p.team_id DESC
+                    LIMIT 1
+                """
+                team_result = execute_query_one(team_selection_query, [player_id, league_id_int])
+                if team_result:
+                    user_team_id = team_result['team_id']
+                    user_team_name = team_result['team_name']
+                    print(f"[DEBUG] Selected team using player_id: team_id={user_team_id}, team_name={user_team_name}")
+            except Exception as e:
+                print(f"[DEBUG] Error getting team for player_id {player_id}: {e}")
+
+        # Get player history - filter by league AND team to fix multi-team issue
+        if league_id_int and user_team_id:
+            # Use team_id filtering like track-byes-courts for most reliable results
+            history_query = """
+                SELECT 
+                    id,
+                    TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
+                    home_team as "Home Team",
+                    away_team as "Away Team",
+                    winner as "Winner",
+                    scores as "Scores",
+                    home_player_1_id as "Home Player 1",
+                    home_player_2_id as "Home Player 2",
+                    away_player_1_id as "Away Player 1",
+                    away_player_2_id as "Away Player 2"
+                FROM match_scores
+                WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
+                AND league_id = %s
+                AND (home_team_id = %s OR away_team_id = %s)
+                ORDER BY match_date DESC
+            """
+            player_matches = execute_query(
+                history_query,
+                [player_id, player_id, player_id, player_id, league_id_int, user_team_id, user_team_id],
+            )
+            print(f"[DEBUG] Filtered matches by team_id {user_team_id} ('{user_team_name}'): {len(player_matches) if player_matches else 0} matches")
+        elif league_id_int:
+            # Fallback: filter by league only (original behavior for single-team players)
             history_query = """
                 SELECT 
                     id,

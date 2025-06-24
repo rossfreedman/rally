@@ -13,9 +13,23 @@
     </h1>
     {% if session_data and session_data.user and session_data.user.series and session_data.user.club %}
     <p class="text-sm text-gray-500 mt-2" id="userSeriesDisplay">
-      {% set transformed_series = session_data.user.series.replace('Chicago ', 'Series ') if session_data.user.series.startswith('Chicago ') else session_data.user.series %}
-      {{ transformed_series }} @ {{ session_data.user.club }}
+      <span id="seriesNameDisplay">{{ session_data.user.series }}</span> @ {{ session_data.user.club }}
     </p>
+    <script>
+             // Apply series alias transformation to the display
+       document.addEventListener('DOMContentLoaded', function() {
+         const seriesElement = document.getElementById('seriesNameDisplay');
+         if (seriesElement) {
+           const seriesName = seriesElement.textContent;
+           const numberMatch = seriesName.match(/(\d+)(\s+\w+)*$/);
+           if (numberMatch) {
+             const seriesNumber = numberMatch[1];
+             const suffix = numberMatch[2] || '';
+             seriesElement.textContent = `Series ${seriesNumber}${suffix}`;
+           }
+         }
+       });
+    </script>
     {% endif %}
     
     <!-- Profile completion notification -->
