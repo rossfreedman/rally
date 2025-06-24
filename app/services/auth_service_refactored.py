@@ -623,6 +623,37 @@ def register_user(
                             f"Registration: Found {match_type} match but no active Player record for {tenniscores_player_id}"
                         )
 
+                elif match_type == "multiple_high_confidence" and lookup_result.get("matches"):
+                    # Multiple high-confidence matches found - return them for user selection
+                    matches = lookup_result.get("matches", [])
+                    match_options = []
+                    
+                    for match in matches:
+                        match_options.append({
+                            "tenniscores_player_id": match["tenniscores_player_id"],
+                            "first_name": match["first_name"],
+                            "last_name": match["last_name"],
+                            "club_name": match["club_name"],
+                            "series_name": match["series_name"],
+                            "display_text": f"{match['first_name']} {match['last_name']} ({match['club_name']}, {match['series_name']})"
+                        })
+                    
+                    logger.info(
+                        f"Registration: Found {len(matches)} high-confidence matches for {first_name} {last_name}"
+                    )
+                    logger.info(
+                        f"Registration: Returning matches for user selection: {[m['display_text'] for m in match_options]}"
+                    )
+                    
+                    # User creation successful, but need player selection
+                    return {
+                        "success": True,
+                        "user": user_data,
+                        "player_association": "multiple_matches_found",
+                        "message": "Registration successful - please select your player profile",
+                        "player_matches": match_options,
+                    }
+
                 elif match_type in ["probable", "possible"] and player_data:
                     # Good matches but not high confidence - avoid auto-association
                     logger.info(
@@ -678,6 +709,7 @@ def register_user(
             "associated": "Player association created with exact match and team assignment verified",
             "associated_legacy": "Player ID found but stored in legacy format - no association record created",
             "no_matches": "No player matches found - registered without association",
+            "multiple_matches_found": "Multiple high-confidence player matches found - user needs to select correct player",
             "probable_matches_available": "Probable player matches found but skipped auto-association - user can link manually",
             "risky_matches_skipped": "Risky player matches found but skipped to avoid incorrect association",
             None: "Registered without player search",
