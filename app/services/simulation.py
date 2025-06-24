@@ -615,8 +615,8 @@ class AdvancedMatchupSimulator:
             "average_pti": {
                 "min": 18.0,
                 "max": 38.0,
-                "higher_better": True,
-            },  # Tighter range for more sensitivity
+                "higher_better": False,
+            },  # Lower PTI = stronger player
             "individual_win_rates": {
                 "min": 20.0,
                 "max": 80.0,
@@ -649,6 +649,10 @@ class AdvancedMatchupSimulator:
                     normalized_value = (clamped_value - params["min"]) / (
                         params["max"] - params["min"]
                     )
+                    
+                    # Invert if lower values are better (like PTI)
+                    if not params.get("higher_better", True):
+                        normalized_value = 1.0 - normalized_value
                 else:
                     normalized_value = 0.5
 
@@ -744,17 +748,17 @@ class AdvancedMatchupSimulator:
                 "key_factors": [],
             }
 
-            # Compare PTI
+            # Compare PTI (lower PTI = stronger player)
             pti_diff = team_a_metrics.get("average_pti", 0) - team_b_metrics.get(
                 "average_pti", 0
             )
-            if pti_diff > 2:
+            if pti_diff < -2:  # Team A has lower PTI (stronger)
                 advantages["team_a_advantages"].append(
-                    f'Higher average PTI ({team_a_metrics["average_pti"]:.1f} vs {team_b_metrics["average_pti"]:.1f})'
+                    f'Lower average PTI ({team_a_metrics["average_pti"]:.1f} vs {team_b_metrics["average_pti"]:.1f})'
                 )
-            elif pti_diff < -2:
+            elif pti_diff > 2:  # Team B has lower PTI (stronger)
                 advantages["team_b_advantages"].append(
-                    f'Higher average PTI ({team_b_metrics["average_pti"]:.1f} vs {team_a_metrics["average_pti"]:.1f})'
+                    f'Lower average PTI ({team_b_metrics["average_pti"]:.1f} vs {team_a_metrics["average_pti"]:.1f})'
                 )
 
             # Compare win rates
