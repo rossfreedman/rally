@@ -223,6 +223,8 @@ function getLoadingTextForUrl(url) {
         '/mobile/availability': 'Loading Schedule...',
         '/mobile/availability-calendar': 'Loading Calendar...',
         '/mobile/find-people-to-play': 'Search Players...',
+        '/mobile/pickup-games': 'Loading Pickup Games...',
+        '/mobile/schedule-lesson': 'Loading Lesson Booking...',
         '/mobile/polls': 'Loading Team Polls...',
         '/mobile/improve': 'Loading Improvement Tools...',
         '/mobile/reserve-court': 'Loading Court Reservations...',

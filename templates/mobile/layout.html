@@ -133,8 +133,12 @@
                     <ul class="space-y-3 ml-0">
                         <li><a href="/mobile/availability" class="nav-link block text-lg font-medium text-black hover:text-gray-600 transition-colors" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">View Schedule</a></li>
                         <li><a href="/mobile/availability-calendar" class="nav-link block text-lg font-medium text-black hover:text-gray-600 transition-colors" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">Update Availability</a></li>
-                        <li><a href="/mobile/find-people-to-play" class="nav-link block text-lg font-medium text-black hover:text-gray-600 transition-colors" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">Find Club Members</a></li>
+                        <li><a href="/mobile/track-byes-courts" class="nav-link block text-lg font-medium text-black hover:text-gray-600 transition-colors" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">Track Assignments</a></li>
+                        <li><a href="/mobile/find-people-to-play" class="nav-link block text-lg font-medium text-black hover:text-gray-600 transition-colors" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">Search Players</a></li>
+                        <li><a href="/mobile/pickup-games" class="nav-link block text-lg font-medium text-black hover:text-gray-600 transition-colors" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">View Pickup Games</a></li>
                         <li><a href="/mobile/polls" class="nav-link block text-lg font-medium text-black hover:text-gray-600 transition-colors" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">Team Polls</a></li>
+                        <li><a href="/mobile/improve" class="nav-link block text-lg font-medium text-black hover:text-gray-600 transition-colors" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">Improve My Game</a></li>
+                        <li><a href="/mobile/schedule-lesson" class="nav-link block text-lg font-medium text-black hover:text-gray-600 transition-colors" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">Schedule Lesson with Pro</a></li>
                         <li><a href="/mobile/reserve-court" class="nav-link block text-lg font-medium text-black hover:text-gray-600 transition-colors" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">Reserve a Court</a></li>
                     </ul>
                 </div>
@@ -243,6 +247,9 @@
                     item.classList.add('active');
                 } else if (currentPath.startsWith('/mobile/find-people-to-play') && itemPath === '/mobile/find-people-to-play') {
                     // Find people to play related pages
+                    item.classList.add('active');
+                } else if (currentPath.startsWith('/mobile/pickup-games') && itemPath === '/mobile/find-people-to-play') {
+                    // Pickup games page should also highlight search dock item
                     item.classList.add('active');
                 } else if (currentPath.startsWith('/mobile/availability') && itemPath === '/mobile/availability-calendar') {
                     // Availability related pages

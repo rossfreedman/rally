@@ -968,57 +968,114 @@ def get_players_by_team(
                 f"[DEBUG] get_players_by_team: League_id already integer: {league_id_int}"
             )
 
-        # Parse team name to extract club and series
-        # Team names are typically like "Tennaqua - 22" or "Skokie Country Club - 22"
-        if " - " not in team_name:
+        # Handle multiple team name formats:
+        # Format 1: "Club - Series" (e.g., "Tennaqua - 22", "Michigan Shores - 12") 
+        # Format 2: "Club Number" (e.g., "Midtown 1", "Michigan Shores 1")
+        
+        if " - " in team_name:
+            # Format 1: Parse "Club - Series" format
+            parts = team_name.split(" - ")
+            if len(parts) != 2:
+                print(
+                    f"[WARNING] get_players_by_team: Could not parse team name with separator: '{team_name}'"
+                )
+                return []
+
+            club_name = parts[0].strip()
+            series_suffix = parts[1].strip()
+
+            # Map series suffix to full series name (e.g., "22" -> "Chicago 22")
+            if (
+                series_suffix.isdigit()
+                or series_suffix.replace("A", "").replace("B", "").isdigit()
+            ):
+                # For Chicago league, convert "22" to "Chicago 22"
+                series_name = f"Chicago {series_suffix}"
+            else:
+                # Use as-is for other formats
+                series_name = series_suffix
+
             print(
-                f"[WARNING] get_players_by_team: Invalid team name format: '{team_name}'"
+                f"[DEBUG] get_players_by_team: Format 1 - Looking for players from club '{club_name}' in series '{series_name}' (mapped from '{series_suffix}')"
             )
-            return []
 
-        parts = team_name.split(" - ")
-        if len(parts) != 2:
-            print(
-                f"[WARNING] get_players_by_team: Could not parse team name: '{team_name}'"
-            )
-            return []
+            # Get players from this club and series
+            query = """
+                SELECT DISTINCT p.id, p.first_name, p.last_name, p.pti
+                FROM players p
+                JOIN clubs c ON p.club_id = c.id
+                JOIN series s ON p.series_id = s.id
+                WHERE c.name = %s AND s.name = %s
+            """
+            params = [club_name, series_name]
 
-        club_name = parts[0].strip()
-        series_suffix = parts[1].strip()
+            if league_id_int:
+                query += " AND p.league_id = %s"
+                params.append(league_id_int)
 
-        # Map series suffix to full series name (e.g., "22" -> "Chicago 22")
-        # This handles the difference between team names in series_stats and actual series names
-        if (
-            series_suffix.isdigit()
-            or series_suffix.replace("A", "").replace("B", "").isdigit()
-        ):
-            # For Chicago league, convert "22" to "Chicago 22"
-            series_name = f"Chicago {series_suffix}"
+            query += " ORDER BY p.first_name, p.last_name"
+
+            players = execute_query(query, params)
+            
         else:
-            # Use as-is for other formats
-            series_name = series_suffix
+            # Format 2: Handle "Club Number" format (e.g., "Midtown 1", "Michigan Shores 1")
+            # Try to find players directly from match_scores table using the exact team name
+            print(
+                f"[DEBUG] get_players_by_team: Format 2 - Looking for players in team '{team_name}' via match records"
+            )
+            
+            # Get players who have played for this team from match_scores
+            query = """
+                SELECT DISTINCT 
+                    p.id, 
+                    p.first_name, 
+                    p.last_name, 
+                    p.pti
+                FROM players p
+                WHERE p.tenniscores_player_id IN (
+                    SELECT DISTINCT home_player_1_id FROM match_scores 
+                    WHERE home_team = %s AND home_player_1_id IS NOT NULL
+                    UNION
+                    SELECT DISTINCT home_player_2_id FROM match_scores 
+                    WHERE home_team = %s AND home_player_2_id IS NOT NULL
+                    UNION
+                    SELECT DISTINCT away_player_1_id FROM match_scores 
+                    WHERE away_team = %s AND away_player_1_id IS NOT NULL
+                    UNION
+                    SELECT DISTINCT away_player_2_id FROM match_scores 
+                    WHERE away_team = %s AND away_player_2_id IS NOT NULL
+                )
+            """
+            params = [team_name, team_name, team_name, team_name]
 
-        print(
-            f"[DEBUG] get_players_by_team: Looking for players from club '{club_name}' in series '{series_name}' (mapped from '{series_suffix}')"
-        )
+            if league_id_int:
+                # Add league filter to the subquery
+                query = """
+                    SELECT DISTINCT 
+                        p.id, 
+                        p.first_name, 
+                        p.last_name, 
+                        p.pti
+                    FROM players p
+                    WHERE p.tenniscores_player_id IN (
+                        SELECT DISTINCT home_player_1_id FROM match_scores 
+                        WHERE home_team = %s AND home_player_1_id IS NOT NULL AND league_id = %s
+                        UNION
+                        SELECT DISTINCT home_player_2_id FROM match_scores 
+                        WHERE home_team = %s AND home_player_2_id IS NOT NULL AND league_id = %s
+                        UNION
+                        SELECT DISTINCT away_player_1_id FROM match_scores 
+                        WHERE away_team = %s AND away_player_1_id IS NOT NULL AND league_id = %s
+                        UNION
+                        SELECT DISTINCT away_player_2_id FROM match_scores 
+                        WHERE away_team = %s AND away_player_2_id IS NOT NULL AND league_id = %s
+                    )
+                """
+                params = [team_name, league_id_int, team_name, league_id_int, 
+                         team_name, league_id_int, team_name, league_id_int]
 
-        # Get players from this club and series
-        query = """
-            SELECT DISTINCT p.id, p.first_name, p.last_name, p.pti
-            FROM players p
-            JOIN clubs c ON p.club_id = c.id
-            JOIN series s ON p.series_id = s.id
-            WHERE c.name = %s AND s.name = %s
-        """
-        params = [club_name, series_name]
-
-        if league_id_int:
-            query += " AND p.league_id = %s"
-            params.append(league_id_int)
-
-        query += " ORDER BY p.first_name, p.last_name"
-
-        players = execute_query(query, params)
+            query += " ORDER BY p.first_name, p.last_name"
+            players = execute_query(query, params)
 
         print(
             f"[DEBUG] get_players_by_team: Found {len(players)} players for team '{team_name}'"

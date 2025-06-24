@@ -1,0 +1,515 @@
+{% extends "mobile/layout.html" %}
+{% set show_back_arrow = True %}
+{% set cache_buster = range(100000, 999999) | random %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    
+    <!-- Header -->
+    <div class="bg-white border-b border-gray-100">
+        <div class="flex items-center px-4 py-6">
+            <div class="w-12 h-12 bg-violet-600 rounded-full flex items-center justify-center shadow-sm">
+                <i class="fas fa-user-graduate text-white text-lg"></i>
+            </div>
+            <div class="ml-4">
+                <h1 class="text-xl font-bold text-gray-900">Schedule Lesson with Pro</h1>
+                <p class="text-sm text-gray-500">Improve your game with personalized instruction</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content -->
+    <div class="px-4 py-6 space-y-6">
+
+        <!-- Schedule New Lesson Section -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-calendar-plus text-violet-600 mr-2"></i>
+                    Schedule a New Lesson
+                </h2>
+            </div>
+            
+            <div class="p-6">
+                <form id="scheduleForm" class="space-y-6">
+                    <!-- Choose a Pro -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-4">Choose Your Pro</label>
+                        <div class="space-y-4">
+                            {% for pro in available_pros %}
+                            <div class="pro-option bg-gray-50 rounded-lg p-4 border-2 border-gray-200 cursor-pointer hover:border-violet-500 hover:bg-violet-50 transition-all duration-200" data-pro-id="{{ pro.id }}">
+                                <div class="flex items-start space-x-4">
+                                    <!-- Pro Image/Avatar - Force Load with Cache Buster -->
+                                    <div style="width: 64px; height: 64px; min-width: 64px; min-height: 64px; margin-right: 16px; border-radius: 50%; overflow: hidden; background: #f3f4f6; border: 2px solid #e5e7eb;">
+                                        {% if pro.image_url %}
+                                            <img src="{{ pro.image_url }}?v={{ cache_buster }}_{{ loop.index }}" 
+                                                 alt="{{ pro.name }}" 
+                                                 style="width: 100%; height: 100%; object-fit: cover; display: block; border-radius: 50%;"
+                                                 onerror="this.style.display='none'; this.parentNode.innerHTML='<div style=\'width:100%; height:100%; display: flex; align-items: center; justify-content: center; background: #ede9fe; color: #7c3aed; font-size: 24px;\'><i class=\'fas fa-user\'></i></div>'">
+                                        {% else %}
+                                            <div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: #ede9fe; color: #7c3aed; font-size: 24px;">
+                                                <i class="fas fa-user"></i>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <!-- Pro Details -->
+                                    <div class="flex-1 min-w-0">
+                                        <h3 class="text-lg font-semibold text-gray-900 mb-1">{{ pro.name }}</h3>
+                                        <p class="text-sm text-gray-700 mb-2 line-clamp-3">{{ pro.bio }}</p>
+                                        <div class="flex flex-wrap gap-2 mb-2">
+                                            <span class="text-xs bg-violet-100 text-violet-800 px-2 py-1 rounded-full">
+                                                Specialties: {{ pro.specialties }}
+                                            </span>
+                                        </div>
+                                        <p class="text-sm font-medium text-gray-900">${{ pro.hourly_rate }}/hour</p>
+                                    </div>
+                                    
+                                    <!-- Selection Radio -->
+                                    <div class="flex-shrink-0">
+                                        <input type="radio" name="pro_id" value="{{ pro.id }}" class="h-5 w-5 text-violet-600 focus:ring-violet-500">
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Date and Time -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label for="lesson_date" class="block text-sm font-medium text-gray-700 mb-2">Preferred Date</label>
+                            <input type="date" id="lesson_date" name="lesson_date" required 
+                                   class="w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500">
+                        </div>
+                        
+                        <div>
+                            <label for="lesson_time" class="block text-sm font-medium text-gray-700 mb-2">Preferred Time</label>
+                            <select id="lesson_time" name="lesson_time" required 
+                                    class="w-full px-3 py-3 border border-gray-300 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500">
+                                <option value="">Select Time</option>
+                                <option value="08:00">8:00 AM</option>
+                                <option value="09:00">9:00 AM</option>
+                                <option value="10:00">10:00 AM</option>
+                                <option value="11:00">11:00 AM</option>
+                                <option value="12:00">12:00 PM</option>
+                                <option value="13:00">1:00 PM</option>
+                                <option value="14:00">2:00 PM</option>
+                                <option value="15:00">3:00 PM</option>
+                                <option value="16:00">4:00 PM</option>
+                                <option value="17:00">5:00 PM</option>
+                                <option value="18:00">6:00 PM</option>
+                                <option value="19:00">7:00 PM</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Focus Areas -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-3">What would you like to work on?</label>
+                        <div class="grid grid-cols-2 gap-3">
+                            <label class="flex items-center space-x-2 cursor-pointer p-2 rounded-lg hover:bg-gray-50">
+                                <input type="checkbox" name="focus_areas" value="Overheads" class="h-4 w-4 text-violet-600 rounded focus:ring-violet-500">
+                                <span class="text-sm text-gray-700">Overheads</span>
+                            </label>
+                            <label class="flex items-center space-x-2 cursor-pointer p-2 rounded-lg hover:bg-gray-50">
+                                <input type="checkbox" name="focus_areas" value="Backhands" class="h-4 w-4 text-violet-600 rounded focus:ring-violet-500">
+                                <span class="text-sm text-gray-700">Backhands</span>
+                            </label>
+                            <label class="flex items-center space-x-2 cursor-pointer p-2 rounded-lg hover:bg-gray-50">
+                                <input type="checkbox" name="focus_areas" value="Serves" class="h-4 w-4 text-violet-600 rounded focus:ring-violet-500">
+                                <span class="text-sm text-gray-700">Serves</span>
+                            </label>
+                            <label class="flex items-center space-x-2 cursor-pointer p-2 rounded-lg hover:bg-gray-50">
+                                <input type="checkbox" name="focus_areas" value="Volleys" class="h-4 w-4 text-violet-600 rounded focus:ring-violet-500">
+                                <span class="text-sm text-gray-700">Volleys</span>
+                            </label>
+                            <label class="flex items-center space-x-2 cursor-pointer p-2 rounded-lg hover:bg-gray-50">
+                                <input type="checkbox" name="focus_areas" value="Forehands" class="h-4 w-4 text-violet-600 rounded focus:ring-violet-500">
+                                <span class="text-sm text-gray-700">Forehands</span>
+                            </label>
+                            <label class="flex items-center space-x-2 cursor-pointer p-2 rounded-lg hover:bg-gray-50">
+                                <input type="checkbox" name="focus_areas" value="Footwork" class="h-4 w-4 text-violet-600 rounded focus:ring-violet-500">
+                                <span class="text-sm text-gray-700">Footwork</span>
+                            </label>
+                            <label class="flex items-center space-x-2 cursor-pointer p-2 rounded-lg hover:bg-gray-50">
+                                <input type="checkbox" name="focus_areas" value="Strategy" class="h-4 w-4 text-violet-600 rounded focus:ring-violet-500">
+                                <span class="text-sm text-gray-700">Strategy</span>
+                            </label>
+                            <label class="flex items-center space-x-2 cursor-pointer p-2 rounded-lg hover:bg-gray-50">
+                                <input type="checkbox" name="focus_areas" value="Mental Game" class="h-4 w-4 text-violet-600 rounded focus:ring-violet-500">
+                                <span class="text-sm text-gray-700">Mental Game</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Additional Notes -->
+                    <div>
+                        <label for="notes" class="block text-sm font-medium text-gray-700 mb-2">Additional Notes (Optional)</label>
+                        <textarea id="notes" name="notes" rows="3" 
+                                  placeholder="Any specific goals or areas you'd like to focus on..."
+                                  class="w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500"></textarea>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="text-center pt-4">
+                        <button type="submit" class="w-full bg-violet-600 hover:bg-violet-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 shadow-sm hover:shadow-md">
+                            <i class="fas fa-calendar-check mr-2"></i>
+                            Request Lesson
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Past Lessons Section -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-history text-violet-600 mr-2"></i>
+                    Your Lesson History
+                </h2>
+            </div>
+
+            <div class="p-6">
+                {% if past_lessons %}
+                    <div class="space-y-4">
+                        {% for lesson in past_lessons %}
+                        <div class="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:shadow-sm transition-shadow duration-200">
+                            <div class="flex items-start justify-between">
+                                <div class="flex-1">
+                                    <div class="flex items-center space-x-3 mb-2">
+                                        <div class="w-10 h-10 bg-violet-100 rounded-full flex items-center justify-center">
+                                            <i class="fas fa-user text-violet-600"></i>
+                                        </div>
+                                        <div>
+                                            <h3 class="font-semibold text-gray-800">{{ lesson.pro_name or 'Pro TBD' }}</h3>
+                                            <p class="text-sm text-gray-600">{{ lesson.lesson_date|pretty_date }} at {{ lesson.lesson_time }}</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="ml-13">
+                                        <p class="text-sm text-gray-700 mb-1">
+                                            <strong>Focus Areas:</strong> {{ lesson.focus_areas }}
+                                        </p>
+                                        {% if lesson.notes %}
+                                        <p class="text-sm text-gray-600">
+                                            <strong>Notes:</strong> {{ lesson.notes }}
+                                        </p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                
+                                <div class="flex-shrink-0">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                                        {% if lesson.status == 'completed' %}bg-green-100 text-green-800
+                                        {% elif lesson.status == 'scheduled' %}bg-blue-100 text-blue-800
+                                        {% elif lesson.status == 'cancelled' %}bg-red-100 text-red-800
+                                        {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                                        {{ lesson.status|title }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-12">
+                        <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <i class="fas fa-calendar text-gray-400 text-2xl"></i>
+                        </div>
+                        <h3 class="text-lg font-medium text-gray-600 mb-2">No lessons yet</h3>
+                        <p class="text-gray-500">Schedule your first lesson above to get started!</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Quick Tips Section -->
+        <div class="bg-yellow-100 border border-yellow-200 rounded-xl p-4 shadow-sm">
+            <div class="flex items-center justify-center">
+                <div class="text-sm text-yellow-800 text-center font-medium">
+                    <p class="mb-2"><i class="fas fa-lightbulb mr-1"></i> Pro Tips for Your Lesson:</p>
+                    <div class="text-left space-y-1 text-xs">
+                        <p>• Arrive 10 minutes early to warm up</p>
+                        <p>• Bring water and wear appropriate tennis attire</p>
+                        <p>• Communicate your goals and areas you want to improve</p>
+                        <p>• Take notes or record key tips (with pro's permission)</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Success/Error Messages -->
+<div id="messageContainer" class="fixed top-4 right-4 z-50"></div>
+
+<style>
+/* Custom styles for modern mobile design */
+.min-h-screen {
+    min-height: 100vh;
+}
+
+/* Shadow utilities */
+.shadow-sm {
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.shadow-md {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* Border utilities */
+.border-gray-50 { border-color: #f9fafb; }
+.border-gray-100 { border-color: #f3f4f6; }
+.border-gray-200 { border-color: #e5e7eb; }
+.border-yellow-200 { border-color: #fde047; }
+
+/* Background utilities */
+.bg-gray-50 { background-color: #f9fafb; }
+.bg-white { background-color: #ffffff; }
+.bg-yellow-100 { background-color: #fef3c7; }
+.bg-violet-50 { background-color: #f5f3ff; }
+.bg-violet-100 { background-color: #ede9fe; }
+.bg-violet-600 { background-color: #7c3aed !important; }
+.bg-violet-700 { background-color: #6d28d9 !important; }
+
+/* Text colors */
+.text-gray-900 { color: #111827; }
+.text-gray-800 { color: #1f2937; }
+.text-gray-700 { color: #374151; }
+.text-gray-600 { color: #4b5563; }
+.text-gray-500 { color: #6b7280; }
+.text-gray-400 { color: #9ca3af; }
+.text-yellow-800 { color: #92400e; }
+.text-violet-600 { color: #7c3aed; }
+.text-violet-800 { color: #5b21b6; }
+.text-white { color: #ffffff; }
+
+/* Spacing utilities */
+.space-y-6 > * + * { margin-top: 1.5rem; }
+.space-y-4 > * + * { margin-top: 1rem; }
+.space-y-3 > * + * { margin-top: 0.75rem; }
+.space-y-1 > * + * { margin-top: 0.25rem; }
+
+/* Border radius utilities */
+.rounded-xl { border-radius: 0.75rem; }
+.rounded-lg { border-radius: 0.5rem; }
+.rounded-full { border-radius: 9999px; }
+
+/* Overflow utilities */
+.overflow-hidden { overflow: hidden; }
+.min-w-0 { min-width: 0px; }
+
+/* Text utilities */
+.line-clamp-3 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+}
+
+/* Transition utilities */
+.transition-all {
+    transition-property: all;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+}
+
+.transition-colors {
+    transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+}
+
+.transition-shadow {
+    transition-property: box-shadow;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+}
+
+.duration-200 {
+    transition-duration: 200ms;
+}
+
+/* Hover utilities */
+.hover\:bg-gray-50:hover { background-color: #f9fafb; }
+.hover\:bg-violet-50:hover { background-color: #f5f3ff; }
+.hover\:bg-violet-700:hover { background-color: #6d28d9 !important; }
+.hover\:border-violet-500:hover { border-color: #8b5cf6; }
+.hover\:shadow-sm:hover { box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); }
+.hover\:shadow-md:hover { box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
+
+/* Focus utilities */
+.focus\:ring-violet-500:focus {
+    --tw-ring-color: #8b5cf6;
+    box-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
+}
+
+.focus\:border-violet-500:focus { border-color: #8b5cf6; }
+
+/* Grid utilities */
+.grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+@media (min-width: 640px) {
+    .sm\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Force refresh pro images to bypass cache with stronger cache busting
+    console.log('🖼️ Force refreshing pro images with new cache buster...');
+    const proImages = document.querySelectorAll('img[src*="/static/images/"]');
+    proImages.forEach(img => {
+        const originalSrc = img.src.split('?')[0]; // Remove existing query params
+        const strongCacheBuster = '?v=' + Date.now() + '_' + Math.floor(Math.random() * 999999) + '_new';
+        img.src = originalSrc + strongCacheBuster;
+        console.log('🔄 STRONG refresh:', originalSrc + strongCacheBuster);
+        
+        // Force reload the image element
+        img.onload = function() {
+            console.log('✅ Image loaded successfully:', this.src);
+        };
+        img.onerror = function() {
+            console.error('❌ Image failed to load:', this.src);
+        };
+    });
+
+    // Pro selection functionality
+    const proOptions = document.querySelectorAll('.pro-option');
+    const radioInputs = document.querySelectorAll('input[name="pro_id"]');
+    
+    proOptions.forEach(option => {
+        option.addEventListener('click', function() {
+            // Remove selected class from all options
+            proOptions.forEach(opt => {
+                opt.classList.remove('border-violet-500', 'bg-violet-50');
+                opt.classList.add('border-gray-200');
+            });
+            
+            // Add selected class to clicked option
+            this.classList.remove('border-gray-200');
+            this.classList.add('border-violet-500', 'bg-violet-50');
+            
+            // Check the radio button
+            const radioInput = this.querySelector('input[type="radio"]');
+            radioInput.checked = true;
+        });
+    });
+    
+    // Form submission
+    const form = document.getElementById('scheduleForm');
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(form);
+        const data = {};
+        
+        // Get form data
+        for (let [key, value] of formData.entries()) {
+            if (key === 'focus_areas') {
+                if (!data[key]) data[key] = [];
+                data[key].push(value);
+            } else {
+                data[key] = value;
+            }
+        }
+        
+        // Convert focus areas to string
+        if (data.focus_areas) {
+            data.focus_areas = data.focus_areas.join(', ');
+        }
+        
+        // Validate form
+        if (!data.pro_id) {
+            showMessage('Please select a pro', 'error');
+            return;
+        }
+        
+        if (!data.lesson_date || !data.lesson_time) {
+            showMessage('Please select both date and time', 'error');
+            return;
+        }
+        
+        if (!data.focus_areas) {
+            showMessage('Please select at least one focus area', 'error');
+            return;
+        }
+        
+        // Submit form to API
+        submitLessonRequest(data);
+    });
+    
+    // Set minimum date to today
+    const dateInput = document.getElementById('lesson_date');
+    const today = new Date().toISOString().split('T')[0];
+    dateInput.setAttribute('min', today);
+});
+
+async function submitLessonRequest(data) {
+    try {
+        const response = await fetch('/api/schedule-lesson', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (response.ok && result.success) {
+            showMessage(result.message, 'success');
+            
+            // Reset form
+            const form = document.getElementById('scheduleForm');
+            form.reset();
+            
+            // Reset pro selection styling
+            const proOptions = document.querySelectorAll('.pro-option');
+            proOptions.forEach(opt => {
+                opt.classList.remove('border-violet-500', 'bg-violet-50');
+                opt.classList.add('border-gray-200');
+            });
+            
+            // Reload page after a brief delay to show updated lesson history
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+        } else {
+            showMessage(result.error || 'Failed to submit lesson request', 'error');
+        }
+    } catch (error) {
+        console.error('Error submitting lesson request:', error);
+        showMessage('Failed to submit lesson request. Please try again.', 'error');
+    }
+}
+
+function showMessage(message, type) {
+    const container = document.getElementById('messageContainer');
+    const messageDiv = document.createElement('div');
+    
+    const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
+    messageDiv.className = `${bgColor} text-white px-6 py-3 rounded-lg shadow-lg mb-2 transform transition-all duration-300 translate-x-full`;
+    messageDiv.textContent = message;
+    
+    container.appendChild(messageDiv);
+    
+    // Animate in
+    setTimeout(() => {
+        messageDiv.classList.remove('translate-x-full');
+    }, 100);
+    
+    // Remove after 5 seconds
+    setTimeout(() => {
+        messageDiv.classList.add('translate-x-full');
+        setTimeout(() => {
+            container.removeChild(messageDiv);
+        }, 300);
+    }, 5000);
+}
+</script>
+{% endblock %} 

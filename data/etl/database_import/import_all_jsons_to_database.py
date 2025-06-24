@@ -177,10 +177,13 @@ class ComprehensiveETL:
         return league_records
 
     def extract_clubs(self, players_data: List[Dict]) -> List[Dict]:
-        """Extract unique clubs from players data"""
+        """Extract unique clubs from players data with case-insensitive deduplication"""
         self.log("🔍 Extracting clubs from players data...")
 
-        clubs = set()
+        # Use a dict to track normalized names and their preferred capitalization
+        clubs_normalized = {}
+        case_variants = {}
+        
         for player in players_data:
             team_name = player.get(
                 "Club", ""
@@ -189,12 +192,58 @@ class ComprehensiveETL:
                 # Parse the actual club name from the team name
                 club_name = self.extract_club_name_from_team(team_name)
                 if club_name:
-                    clubs.add(club_name)
+                    # Normalize for case-insensitive comparison
+                    normalized_name = club_name.lower().strip()
+                    
+                    if normalized_name not in clubs_normalized:
+                        # First occurrence - use this capitalization
+                        clubs_normalized[normalized_name] = club_name
+                        case_variants[normalized_name] = [club_name]
+                    else:
+                        # Track case variants for logging
+                        if club_name not in case_variants[normalized_name]:
+                            case_variants[normalized_name].append(club_name)
+                            
+                        # Use the most common capitalization or prefer title case
+                        current_name = clubs_normalized[normalized_name]
+                        if self._is_better_capitalization(club_name, current_name):
+                            clubs_normalized[normalized_name] = club_name
 
-        club_records = [{"name": club} for club in sorted(clubs)]
+        # Log any case variants detected
+        duplicates_detected = 0
+        for normalized_name, variants in case_variants.items():
+            if len(variants) > 1:
+                duplicates_detected += 1
+                self.log(f"🔍 Case variants detected for '{clubs_normalized[normalized_name]}': {variants}", "WARNING")
 
-        self.log(f"✅ Found {len(club_records)} unique clubs")
+        if duplicates_detected > 0:
+            self.log(f"⚠️  Detected {duplicates_detected} clubs with case variants - using normalized names", "WARNING")
+
+        club_records = [{"name": club} for club in sorted(clubs_normalized.values())]
+
+        self.log(f"✅ Found {len(club_records)} unique clubs (after case normalization)")
         return club_records
+
+    def _is_better_capitalization(self, new_name: str, current_name: str) -> bool:
+        """Determine if new_name has better capitalization than current_name"""
+        # Prefer names with proper title case over all uppercase or all lowercase
+        
+        # If current is all caps and new is not, prefer new
+        if current_name.isupper() and not new_name.isupper():
+            return True
+            
+        # If current is all lowercase and new has proper case, prefer new  
+        if current_name.islower() and not new_name.islower():
+            return True
+            
+        # If new has more title case words, prefer it
+        current_title_words = sum(1 for word in current_name.split() if word.istitle())
+        new_title_words = sum(1 for word in new_name.split() if word.istitle())
+        
+        if new_title_words > current_title_words:
+            return True
+            
+        return False
 
     def extract_club_name_from_team(self, team_name: str) -> str:
         """
@@ -552,24 +601,58 @@ class ComprehensiveETL:
         self.log(f"✅ Imported {imported} leagues")
 
     def import_clubs(self, conn, clubs_data: List[Dict]):
-        """Import clubs into database"""
+        """Import clubs into database with case-insensitive duplicate prevention"""
         self.log("📥 Importing clubs...")
 
         cursor = conn.cursor()
         imported = 0
+        skipped_duplicates = 0
 
         for club in clubs_data:
             try:
+                club_name = club["name"]
+                
+                # Check for case-insensitive duplicates in existing database
                 cursor.execute(
                     """
-                    INSERT INTO clubs (name)
-                    VALUES (%s)
-                    ON CONFLICT (name) DO NOTHING
+                    SELECT id, name FROM clubs 
+                    WHERE LOWER(name) = LOWER(%s)
                 """,
-                    (club["name"],),
+                    (club_name,),
                 )
-
-                if cursor.rowcount > 0:
+                
+                existing_club = cursor.fetchone()
+                
+                if existing_club:
+                    existing_id, existing_name = existing_club
+                    
+                    if existing_name != club_name:
+                        # Case-insensitive duplicate detected
+                        self.log(
+                            f"🔍 Case-insensitive duplicate detected: '{club_name}' (existing: '{existing_name}')",
+                            "WARNING"
+                        )
+                        
+                        # Update to better capitalization if needed
+                        if self._is_better_capitalization(club_name, existing_name):
+                            cursor.execute(
+                                """
+                                UPDATE clubs SET name = %s WHERE id = %s
+                                """,
+                                (club_name, existing_id),
+                            )
+                            self.log(f"📝 Updated club capitalization: '{existing_name}' → '{club_name}'")
+                    
+                    skipped_duplicates += 1
+                else:
+                    # Insert new club
+                    cursor.execute(
+                        """
+                        INSERT INTO clubs (name)
+                        VALUES (%s)
+                    """,
+                        (club_name,),
+                    )
                     imported += 1
 
             except Exception as e:
@@ -578,7 +661,11 @@ class ComprehensiveETL:
 
         conn.commit()
         self.imported_counts["clubs"] = imported
-        self.log(f"✅ Imported {imported} clubs")
+        
+        if skipped_duplicates > 0:
+            self.log(f"✅ Imported {imported} clubs, skipped {skipped_duplicates} case-insensitive duplicates")
+        else:
+            self.log(f"✅ Imported {imported} clubs")
 
     def import_series(self, conn, series_data: List[Dict]):
         """Import series into database"""
