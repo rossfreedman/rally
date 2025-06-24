@@ -1946,25 +1946,54 @@ def get_mobile_club_data(user):
         # Calculate club standings (for all teams in the club across all series) - filtered by user's league
         from database_utils import execute_query, execute_query_one
 
-        # Get user league information for filtering
+        # Get user league information for filtering - ensure we use session context
         user_league_name = user.get("league_name", "")
+        
+        print(f"[DEBUG] Session league context - league_id: '{user_league_id}', league_name: '{user_league_name}'")
 
         # FIXED: Convert string league_id to integer primary key for proper filtering
         user_league_db_id = None
         if user_league_id:
             try:
-                league_lookup = execute_query_one(
-                    "SELECT id FROM leagues WHERE league_id = %s", (user_league_id,)
-                )
-                if league_lookup:
-                    user_league_db_id = league_lookup["id"]
-                    print(
-                        f"[DEBUG] Converted user league_id '{user_league_id}' to database ID: {user_league_db_id}"
+                # Handle both string and integer league_id from session
+                if isinstance(user_league_id, str) and user_league_id != "":
+                    league_lookup = execute_query_one(
+                        "SELECT id FROM leagues WHERE league_id = %s", (user_league_id,)
                     )
-                else:
-                    print(f"[DEBUG] No league found for league_id '{user_league_id}'")
+                    if league_lookup:
+                        user_league_db_id = league_lookup["id"]
+                        print(f"[DEBUG] Converted string league_id '{user_league_id}' to database ID: {user_league_db_id}")
+                    else:
+                        print(f"[DEBUG] No league found for league_id '{user_league_id}'")
+                elif isinstance(user_league_id, int):
+                    user_league_db_id = user_league_id
+                    print(f"[DEBUG] Using integer league_id directly: {user_league_db_id}")
             except Exception as e:
                 print(f"[DEBUG] Error looking up league ID: {e}")
+                
+        # If we still don't have a league_db_id, try to get it from user's primary player association
+        if user_league_db_id is None:
+            try:
+                user_email = user.get("email", "")
+                if user_email:
+                    print(f"[DEBUG] No league in session, looking up primary association for {user_email}")
+                    primary_league_query = """
+                        SELECT l.id, l.league_id, l.league_name
+                        FROM users u
+                        JOIN user_player_associations upa ON u.id = upa.user_id AND upa.is_primary = true
+                        JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+                        JOIN leagues l ON p.league_id = l.id
+                        WHERE u.email = %s
+                        LIMIT 1
+                    """
+                    primary_league = execute_query_one(primary_league_query, [user_email])
+                    if primary_league:
+                        user_league_db_id = primary_league["id"]
+                        print(f"[DEBUG] Found primary league: {primary_league['league_name']} (DB ID: {user_league_db_id})")
+                    else:
+                        print(f"[DEBUG] No primary league association found for {user_email}")
+            except Exception as e:
+                print(f"[DEBUG] Error looking up primary league: {e}")
 
         tennaqua_standings = []
         try:
@@ -1999,7 +2028,7 @@ def get_mobile_club_data(user):
                     f"[DEBUG]   {team.get('team')} - {team.get('series')} - league: {team.get('league_id')}"
                 )
 
-            # Filter stats_data by user's league
+            # Filter stats_data by user's current league session context
             def is_user_league(team_data):
                 team_league_id = team_data.get("league_id")
 
@@ -2008,14 +2037,14 @@ def get_mobile_club_data(user):
                     # If user has no league specified, include all teams
                     return True
 
-                # FIXED: Use integer-to-integer comparison
+                # FIXED: Use integer-to-integer comparison for current league only
                 return team_league_id == user_league_db_id
 
             league_filtered_stats = [
                 team for team in stats_data if is_user_league(team)
             ]
             print(
-                f"[DEBUG] Filtered from {len(stats_data)} total teams to {len(league_filtered_stats)} teams in user's league (user_league_id: '{user_league_id}' -> db_id: {user_league_db_id}, user_league_name: '{user_league_name}')"
+                f"[DEBUG] Filtered from {len(stats_data)} total teams to {len(league_filtered_stats)} teams in user's current league (session league_id: '{user_league_id}' -> db_id: {user_league_db_id}, league_name: '{user_league_name}')"
             )
 
             for team_stats in league_filtered_stats:
@@ -2094,7 +2123,7 @@ def get_mobile_club_data(user):
             """
             )
 
-            # Filter match history by user's league
+            # Filter match history by user's current league session context
             def is_match_in_user_league(match):
                 match_league_id = match.get("league_id")
 
@@ -2103,14 +2132,14 @@ def get_mobile_club_data(user):
                     # If user has no league specified, include all matches
                     return True
 
-                # FIXED: Use integer-to-integer comparison
+                # FIXED: Use integer-to-integer comparison for current league only
                 return match_league_id == user_league_db_id
 
             league_filtered_matches = [
                 match for match in all_match_history if is_match_in_user_league(match)
             ]
             print(
-                f"[DEBUG] Filtered from {len(all_match_history)} total matches to {len(league_filtered_matches)} matches in user's league (user_league_id: '{user_league_id}' -> db_id: {user_league_db_id}, user_league_name: '{user_league_name}')"
+                f"[DEBUG] Filtered from {len(all_match_history)} total matches to {len(league_filtered_matches)} matches in user's current league (session league_id: '{user_league_id}' -> db_id: {user_league_db_id}, league_name: '{user_league_name}')"
             )
 
             for match in league_filtered_matches:
@@ -2204,7 +2233,7 @@ def get_mobile_club_data(user):
             reverse=True,
         )
 
-        # Calculate player streaks (filtered by user's league)
+        # Calculate player streaks (filtered by user's current league)
         player_streaks = calculate_player_streaks(club_name, user_league_db_id)
 
         return {
