@@ -1352,38 +1352,16 @@ def get_mobile_availability_data(user):
 def get_recent_matches_for_user_club(user):
     """
     Get the last 10 weeks of matches for a user's club, grouped by date.
+    FIXED: Only queries matches from user's specific league and club from session.
 
     Args:
-        user: User object containing club information
+        user: User object containing club and league information from session
 
     Returns:
         Dict with matches grouped by date for the last 10 weeks
     """
     try:
         from database_utils import execute_query, execute_query_one
-
-        # Query match history from database instead of JSON file
-        all_matches = execute_query(
-            """
-            SELECT 
-                TO_CHAR(ms.match_date, 'DD-Mon-YY') as "Date",
-                ms.home_team as "Home Team",
-                ms.away_team as "Away Team",
-                ms.scores as "Scores",
-                ms.winner as "Winner",
-                ms.home_player_1_id as "Home Player 1",
-                ms.home_player_2_id as "Home Player 2", 
-                ms.away_player_1_id as "Away Player 1",
-                ms.away_player_2_id as "Away Player 2",
-                ms.league_id,
-                '' as "Time",
-                '' as "Location",
-                '' as "Court",
-                '' as "Series"
-            FROM match_scores ms
-            ORDER BY ms.match_date DESC
-        """
-        )
 
         if not user or not user.get("club"):
             return {}
@@ -1392,78 +1370,129 @@ def get_recent_matches_for_user_club(user):
         user_league_id = user.get("league_id", "")
         user_league_name = user.get("league_name", "")
 
-        # FIXED: Convert string league_id to integer primary key for proper filtering
+        print(f"[DEBUG] get_recent_matches: Filtering by session - club: '{user_club}', league_id: '{user_league_id}', league_name: '{user_league_name}'")
+
+        # FIXED: Convert string league_id to integer primary key for database filtering
         user_league_db_id = None
         if user_league_id:
             try:
-                league_lookup = execute_query_one(
-                    "SELECT id FROM leagues WHERE league_id = %s", (user_league_id,)
-                )
-                if league_lookup:
-                    user_league_db_id = league_lookup["id"]
-                    print(
-                        f"[DEBUG] get_recent_matches: Converted user league_id '{user_league_id}' to database ID: {user_league_db_id}"
+                # Handle both string and integer league_id from session
+                if isinstance(user_league_id, str) and user_league_id != "":
+                    league_lookup = execute_query_one(
+                        "SELECT id FROM leagues WHERE league_id = %s", (user_league_id,)
                     )
-                else:
-                    print(
-                        f"[DEBUG] get_recent_matches: No league found for league_id '{user_league_id}'"
-                    )
+                    if league_lookup:
+                        user_league_db_id = league_lookup["id"]
+                        print(f"[DEBUG] get_recent_matches: Converted user league_id '{user_league_id}' to database ID: {user_league_db_id}")
+                    else:
+                        print(f"[DEBUG] get_recent_matches: No league found for league_id '{user_league_id}'")
+                elif isinstance(user_league_id, int):
+                    user_league_db_id = user_league_id
+                    print(f"[DEBUG] get_recent_matches: Using integer league_id directly: {user_league_db_id}")
             except Exception as e:
                 print(f"[DEBUG] get_recent_matches: Error looking up league ID: {e}")
 
-        # Filter matches by user's league first
-        def is_match_in_user_league(match):
-            match_league_id = match.get("league_id")
+        # If no league context, try to get from user's primary association
+        if user_league_db_id is None:
+            try:
+                user_email = user.get("email", "")
+                if user_email:
+                    print(f"[DEBUG] get_recent_matches: No league in session, looking up primary association for {user_email}")
+                    primary_league_query = """
+                        SELECT l.id, l.league_id, l.league_name
+                        FROM users u
+                        JOIN user_player_associations upa ON u.id = upa.user_id AND upa.is_primary = true
+                        JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+                        JOIN leagues l ON p.league_id = l.id
+                        WHERE u.email = %s
+                        LIMIT 1
+                    """
+                    primary_league = execute_query_one(primary_league_query, [user_email])
+                    if primary_league:
+                        user_league_db_id = primary_league["id"]
+                        print(f"[DEBUG] get_recent_matches: Found primary league: {primary_league['league_name']} (DB ID: {user_league_db_id})")
+                    else:
+                        print(f"[DEBUG] get_recent_matches: No primary league association found for {user_email}")
+            except Exception as e:
+                print(f"[DEBUG] get_recent_matches: Error looking up primary league: {e}")
 
-            # Handle case where user_league_db_id is None or empty
-            if user_league_db_id is None:
-                # If user has no league specified, include all matches
-                return True
+        # FIXED: Query matches directly with league and club filtering in the SQL query
+        if user_league_db_id:
+            matches_query = """
+                SELECT 
+                    TO_CHAR(ms.match_date, 'DD-Mon-YY') as "Date",
+                    ms.home_team as "Home Team",
+                    ms.away_team as "Away Team",
+                    ms.scores as "Scores",
+                    ms.winner as "Winner",
+                    ms.home_player_1_id as "Home Player 1",
+                    ms.home_player_2_id as "Home Player 2", 
+                    ms.away_player_1_id as "Away Player 1",
+                    ms.away_player_2_id as "Away Player 2",
+                    ms.league_id,
+                    '' as "Time",
+                    '' as "Location",
+                    '' as "Court",
+                    '' as "Series"
+                FROM match_scores ms
+                WHERE ms.league_id = %s 
+                AND (ms.home_team LIKE %s OR ms.away_team LIKE %s)
+                ORDER BY ms.match_date DESC
+                LIMIT 200
+            """
+            club_pattern = f"%{user_club}%"
+            league_filtered_matches = execute_query(matches_query, [user_league_db_id, club_pattern, club_pattern])
+        else:
+            # Fallback: no league filtering if we can't determine league
+            print(f"[DEBUG] get_recent_matches: No league context available, falling back to club-only filtering")
+            matches_query = """
+                SELECT 
+                    TO_CHAR(ms.match_date, 'DD-Mon-YY') as "Date",
+                    ms.home_team as "Home Team",
+                    ms.away_team as "Away Team",
+                    ms.scores as "Scores",
+                    ms.winner as "Winner",
+                    ms.home_player_1_id as "Home Player 1",
+                    ms.home_player_2_id as "Home Player 2", 
+                    ms.away_player_1_id as "Away Player 1",
+                    ms.away_player_2_id as "Away Player 2",
+                    ms.league_id,
+                    '' as "Time",
+                    '' as "Location",
+                    '' as "Court",
+                    '' as "Series"
+                FROM match_scores ms
+                WHERE (ms.home_team LIKE %s OR ms.away_team LIKE %s)
+                ORDER BY ms.match_date DESC
+                LIMIT 200
+            """
+            club_pattern = f"%{user_club}%"
+            league_filtered_matches = execute_query(matches_query, [club_pattern, club_pattern])
 
-            # FIXED: Use integer-to-integer comparison
-            return match_league_id == user_league_db_id
+        print(f"[DEBUG] get_recent_matches_for_user_club: Found {len(league_filtered_matches)} matches for club '{user_club}' in league {user_league_db_id} ('{user_league_name}')")
 
-        league_filtered_matches = [
-            match for match in all_matches if is_match_in_user_league(match)
-        ]
-        print(
-            f"[DEBUG] get_recent_matches_for_user_club: Filtered from {len(all_matches)} to {len(league_filtered_matches)} matches for user's league (user_league_id: '{user_league_id}' -> db_id: {user_league_db_id}, user_league_name: '{user_league_name}')"
-        )
-
-        # Filter matches where user's club is either home or away team
-        # Make sure to capture ALL teams from this club across ALL series
+        # FIXED: Since we filtered in SQL, normalize the match data directly
         club_matches = []
         for match in league_filtered_matches:
-            home_team = match.get("Home Team", "")
-            away_team = match.get("Away Team", "")
+            # Normalize keys to snake_case for consistent usage
+            normalized_match = {
+                "date": match.get("Date", ""),
+                "time": match.get("Time", ""),
+                "location": match.get("Location", ""),
+                "home_team": match.get("Home Team", ""),
+                "away_team": match.get("Away Team", ""),
+                "winner": match.get("Winner", ""),
+                "scores": match.get("Scores", ""),
+                "home_player_1": match.get("Home Player 1", ""),
+                "home_player_2": match.get("Home Player 2", ""),
+                "away_player_1": match.get("Away Player 1", ""),
+                "away_player_2": match.get("Away Player 2", ""),
+                "court": match.get("Court", ""),
+                "series": match.get("Series", ""),
+            }
+            club_matches.append(normalized_match)
 
-            # Check if either team belongs to the user's club
-            # Use more flexible matching to catch all team variations
-            home_club_match = (user_club in home_team) if home_team else False
-            away_club_match = (user_club in away_team) if away_team else False
-
-            if home_club_match or away_club_match:
-                # Normalize keys to snake_case
-                normalized_match = {
-                    "date": match.get("Date", ""),
-                    "time": match.get("Time", ""),
-                    "location": match.get("Location", ""),
-                    "home_team": home_team,
-                    "away_team": away_team,
-                    "winner": match.get("Winner", ""),
-                    "scores": match.get("Scores", ""),
-                    "home_player_1": match.get("Home Player 1", ""),
-                    "home_player_2": match.get("Home Player 2", ""),
-                    "away_player_1": match.get("Away Player 1", ""),
-                    "away_player_2": match.get("Away Player 2", ""),
-                    "court": match.get("Court", ""),
-                    "series": match.get("Series", ""),
-                }
-                club_matches.append(normalized_match)
-
-        print(
-            f"[DEBUG] Found {len(club_matches)} total matches for club '{user_club}' across all series"
-        )
+        print(f"[DEBUG] Processing {len(club_matches)} matches for club '{user_club}' in league '{user_league_name}'")
 
         # Sort matches by date to get chronological order
         def parse_date(date_str):
