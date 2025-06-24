@@ -1,0 +1,320 @@
+{% extends "mobile/layout.html" %}
+{% set show_back_arrow = True %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    
+    <!-- Header -->
+    <div class="bg-white border-b border-gray-100">
+        <div class="flex items-center px-4 py-6">
+            <div class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center shadow-sm">
+                <i class="fas fa-plus text-white text-lg"></i>
+            </div>
+            <div class="ml-4">
+                <h1 class="text-xl font-bold text-gray-900">Create a New Pickup Game</h1>
+                <p class="text-sm text-gray-500">Invite players to join based upon ability and experience</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content -->
+    <div class="px-4 py-6 space-y-6">
+
+        <!-- Create New Pickup Game Form -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-plus text-blue-500 mr-2"></i>
+                    Create a New Pickup Game
+                </h2>
+                <p class="text-sm text-gray-600 mt-2">Set a date and time for a pickup game and choose your criteria for the types of players you wish to include. Players will be notified by Rally via text.</p>
+            </div>
+            
+            <div class="p-6 space-y-4">
+    
+                <!-- Date and Time Filters -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label for="dateFilter" class="block text-sm font-medium text-gray-700 mb-2">Date</label>
+                        <input type="date" id="dateFilter" 
+                               class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    <div>
+                        <label for="timeFilter" class="block text-sm font-medium text-gray-700 mb-2">Time</label>
+                        <input type="time" id="timeFilter" 
+                               class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                </div>
+
+                <!-- Series Filter -->
+                <div>
+                    <label for="seriesFilter" class="block text-sm font-medium text-gray-700 mb-2">Series</label>
+                    <select id="seriesFilter" class="w-full p-3 border border-gray-300 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">All Series</option>
+                    </select>
+                </div>
+
+                <!-- PTI Range Filter -->
+                <div id="ptiFiltersSection" style="display: none;">
+                    <label class="block text-sm font-medium text-gray-700 mb-3">PTI Range</label>
+                    <div class="bg-gray-50 rounded-lg p-4 space-y-4">
+                        <div>
+                            <label for="ptiMinSlider" class="block text-xs font-medium text-gray-600 mb-2">Minimum PTI</label>
+                            <input type="range" id="ptiMinSlider" class="slider w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" 
+                                   min="0" max="100" value="0" step="0.1">
+                            <div class="text-xs text-gray-500 mt-1">Min: <span id="ptiMinValue">0</span></div>
+                        </div>
+                        <div>
+                            <label for="ptiMaxSlider" class="block text-xs font-medium text-gray-600 mb-2">Maximum PTI</label>
+                            <input type="range" id="ptiMaxSlider" class="slider w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" 
+                                   min="0" max="100" value="100" step="0.1">
+                            <div class="text-xs text-gray-500 mt-1">Max: <span id="ptiMaxValue">100</span></div>
+                        </div>
+                        <div class="text-xs text-gray-500 text-center">
+                            Available Range: <span id="ptiRangeDisplay">0 - 100</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Club Filter Checkbox -->
+                <div>
+                    <label class="flex items-center cursor-pointer">
+                        <input type="checkbox" id="clubOnlyFilter" checked 
+                               class="w-5 h-5 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2">
+                        <span class="text-sm font-medium text-gray-700" style="margin-left: 5px;">
+                            Only include <span id="clubOnlyLabel">My Club</span> players
+                        </span>
+                    </label>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex gap-3 pt-4">
+                    <button id="createGame" class="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200 font-medium">
+                        <i class="fas fa-plus mr-2"></i>Create New Pickup Game
+                    </button>
+                    <button id="resetFilters" class="px-4 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors duration-200 font-medium">
+                        <i class="fas fa-undo-alt mr-2"></i>Reset
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<style>
+/* Custom styles for modern mobile design */
+.min-h-screen {
+    min-height: 100vh;
+}
+
+/* Grid responsive */
+@media (max-width: 640px) {
+    .grid-cols-2 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+/* Shadow utilities */
+.shadow-sm {
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+/* Border utilities */
+.border-gray-50 { border-color: #f9fafb; }
+.border-gray-100 { border-color: #f3f4f6; }
+
+/* Background utilities */
+.bg-gray-50 { background-color: #f9fafb; }
+.bg-white { background-color: #ffffff; }
+.bg-gray-100 { background-color: #f3f4f6; }
+.bg-blue-600 { background-color: #2563eb !important; }
+
+/* Text colors */
+.text-gray-900 { color: #111827; }
+.text-gray-700 { color: #374151; }
+.text-gray-600 { color: #4b5563; }
+.text-gray-500 { color: #6b7280; }
+.text-white { color: #ffffff; }
+
+/* Spacing utilities */
+.space-y-6 > * + * { margin-top: 1.5rem; }
+.space-y-4 > * + * { margin-top: 1rem; }
+
+/* Border radius utilities */
+.rounded-xl { border-radius: 0.75rem; }
+.rounded-lg { border-radius: 0.5rem; }
+.rounded-full { border-radius: 9999px; }
+
+/* Overflow utilities */
+.overflow-hidden { overflow: hidden; }
+
+/* Hover utilities */
+.hover\:bg-blue-700:hover { background-color: #1d4ed8 !important; }
+.hover\:bg-gray-200:hover { background-color: #e5e7eb !important; }
+
+/* Transition utilities */
+.transition-colors {
+    transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+}
+
+.duration-200 {
+    transition-duration: 200ms;
+}
+
+/* Custom slider styles */
+.slider {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 8px;
+    background: #e5e7eb;
+    outline: none;
+    border-radius: 4px;
+    transition: background 0.3s ease;
+}
+
+.slider:hover {
+    background: #d1d5db;
+}
+
+.slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    background: #3b82f6;
+    cursor: pointer;
+    border-radius: 50%;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: all 0.2s ease;
+}
+
+.slider::-webkit-slider-thumb:hover {
+    background: #2563eb;
+    transform: scale(1.1);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    background: #3b82f6;
+    cursor: pointer;
+    border-radius: 50%;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: all 0.2s ease;
+}
+
+.slider::-moz-range-thumb:hover {
+    background: #2563eb;
+    transform: scale(1.1);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Date and time input styling */
+input[type="date"], input[type="time"] {
+    background-color: white;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Global variables
+    let availableSeries = [];
+    let ptiRange = { min: 0, max: 100 };
+    
+    // UI Elements
+    const seriesFilter = document.getElementById('seriesFilter');
+    const dateFilter = document.getElementById('dateFilter');
+    const timeFilter = document.getElementById('timeFilter');
+    const ptiMinSlider = document.getElementById('ptiMinSlider');
+    const ptiMaxSlider = document.getElementById('ptiMaxSlider');
+    const ptiMinValue = document.getElementById('ptiMinValue');
+    const ptiMaxValue = document.getElementById('ptiMaxValue');
+    const ptiRangeDisplay = document.getElementById('ptiRangeDisplay');
+    const clubOnlyFilter = document.getElementById('clubOnlyFilter');
+    const clubOnlyLabel = document.getElementById('clubOnlyLabel');
+    const createGameBtn = document.getElementById('createGame');
+    const resetFiltersBtn = document.getElementById('resetFilters');
+    
+    // Initialize PTI sliders
+    function initializePTISliders() {
+        if (ptiMinSlider && ptiMaxSlider) {
+            ptiMinSlider.addEventListener('input', function() {
+                const minVal = parseFloat(this.value);
+                const maxVal = parseFloat(ptiMaxSlider.value);
+                
+                if (minVal >= maxVal) {
+                    this.value = maxVal - 0.1;
+                }
+                
+                ptiMinValue.textContent = parseFloat(this.value).toFixed(1);
+                updatePTIRangeDisplay();
+            });
+            
+            ptiMaxSlider.addEventListener('input', function() {
+                const minVal = parseFloat(ptiMinSlider.value);
+                const maxVal = parseFloat(this.value);
+                
+                if (maxVal <= minVal) {
+                    this.value = minVal + 0.1;
+                }
+                
+                ptiMaxValue.textContent = parseFloat(this.value).toFixed(1);
+                updatePTIRangeDisplay();
+            });
+        }
+    }
+    
+    function updatePTIRangeDisplay() {
+        if (ptiRangeDisplay) {
+            const min = parseFloat(ptiMinSlider.value).toFixed(1);
+            const max = parseFloat(ptiMaxSlider.value).toFixed(1);
+            ptiRangeDisplay.textContent = `${min} - ${max}`;
+        }
+    }
+    
+    // Reset filters
+    if (resetFiltersBtn) {
+        resetFiltersBtn.addEventListener('click', function() {
+            if (dateFilter) dateFilter.value = '';
+            if (timeFilter) timeFilter.value = '';
+            if (seriesFilter) seriesFilter.value = '';
+            if (clubOnlyFilter) clubOnlyFilter.checked = true;
+            
+            if (ptiMinSlider) {
+                ptiMinSlider.value = 0;
+                ptiMinValue.textContent = '0';
+            }
+            if (ptiMaxSlider) {
+                ptiMaxSlider.value = 100;
+                ptiMaxValue.textContent = '100';
+            }
+            updatePTIRangeDisplay();
+        });
+    }
+    
+    // Create game button
+    if (createGameBtn) {
+        createGameBtn.addEventListener('click', function() {
+            // Add your create game logic here
+            alert('Create game functionality will be implemented here');
+        });
+    }
+    
+    // Initialize everything
+    initializePTISliders();
+    updatePTIRangeDisplay();
+});
+</script>
+
+{% endblock %} 
