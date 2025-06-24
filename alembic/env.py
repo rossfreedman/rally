@@ -37,8 +37,11 @@ if config.config_file_name is not None:
 def get_url():
     """Get the appropriate database URL based on environment"""
     if os.getenv("SYNC_RAILWAY") == "true":
-        # Use Railway's proxy URL when syncing with Railway
+        # Use Railway production proxy URL when syncing with Railway production
         return "postgresql://postgres:HKJnPmxKZmKiIglQhQPSmfcAjTgBsSIq@ballast.proxy.rlwy.net:40911/railway"
+    elif os.getenv("SYNC_RAILWAY_STAGING") == "true":
+        # Use Railway staging proxy URL when syncing with Railway staging
+        return "postgresql://postgres:SNDcbFXgqCOkjBRzAzqGbdRvyhftepsY@switchback.proxy.rlwy.net:28473/railway"
     else:
         # Use local database URL by default
         return os.getenv(

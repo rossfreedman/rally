@@ -864,7 +864,7 @@ def remove_practice_times_data():
 
 
 def get_team_schedule_data_data():
-    """Get team schedule data - implementation from working backup"""
+    """Get team schedule data - OPTIMIZED for faster loading"""
     try:
         import json
         import os
@@ -878,7 +878,7 @@ def get_team_schedule_data_data():
         # Import the get_matches_for_user_club function
         from routes.act.schedule import get_matches_for_user_club
 
-        print("\n=== TEAM SCHEDULE DATA API REQUEST ===")
+        print("\n=== TEAM SCHEDULE DATA API REQUEST (OPTIMIZED) ===")
         # Get the team from user's session data
         user = session.get("user")
         if not user:
@@ -1068,81 +1068,106 @@ def get_team_schedule_data_data():
         event_dates = sorted(list(set(event_dates)))  # Remove duplicates and sort
         print(f"✓ Found {len(event_dates)} total event dates (matches + practices)")
 
+        # OPTIMIZATION: Batch fetch all availability data in one query instead of N+M individual queries
+        print("\n=== OPTIMIZATION: Batch fetching all availability data ===")
+        availability_lookup = {}  # (player_id, date) -> {status, notes}
+        
+        if series_record["id"] is not None and team_players and event_dates:
+            try:
+                # Get all player IDs for the query
+                player_ids = [p["internal_id"] for p in team_players if p.get("internal_id")]
+                player_names = [p["player_name"] for p in team_players]
+                
+                # Convert event_dates to date objects for the query
+                date_objects = []
+                for event_date in event_dates:
+                    try:
+                        date_obj = datetime.strptime(event_date, "%Y-%m-%d").date()
+                        date_objects.append(date_obj)
+                    except ValueError:
+                        continue
+                
+                if player_ids and date_objects:
+                    # Single optimized query to get ALL availability data at once
+                    batch_query = """
+                        SELECT 
+                            player_id,
+                            player_name,
+                            DATE(match_date AT TIME ZONE 'UTC') as match_date,
+                            availability_status,
+                            notes
+                        FROM player_availability 
+                        WHERE series_id = %(series_id)s 
+                        AND (
+                            player_id = ANY(%(player_ids)s) 
+                            OR player_name = ANY(%(player_names)s)
+                        )
+                        AND DATE(match_date AT TIME ZONE 'UTC') = ANY(%(dates)s)
+                    """
+                    
+                    batch_params = {
+                        "series_id": series_record["id"],
+                        "player_ids": player_ids,
+                        "player_names": player_names,
+                        "dates": date_objects,
+                    }
+                    
+                    print(f"✓ Executing single batch query for {len(player_ids)} players and {len(date_objects)} dates")
+                    availability_records = execute_query(batch_query, batch_params)
+                    
+                    # Build lookup dictionaries for fast access
+                    for record in availability_records:
+                        player_id = record.get("player_id")
+                        player_name = record.get("player_name")
+                        match_date = record.get("match_date")
+                        status = record.get("availability_status", 0)
+                        notes = record.get("notes", "")
+                        
+                        # Create lookup keys for both player_id and player_name
+                        if player_id and match_date:
+                            availability_lookup[(player_id, match_date)] = {"status": status, "notes": notes}
+                        if player_name and match_date:
+                            availability_lookup[(player_name, match_date)] = {"status": status, "notes": notes}
+                    
+                    print(f"✓ Built availability lookup with {len(availability_records)} records")
+                
+            except Exception as e:
+                print(f"Warning: Batch availability query failed, falling back to defaults: {e}")
+                availability_lookup = {}
+
+        # Build player schedules using the optimized lookup
         players_schedule = {}
-        print("\nProcessing player availability:")
+        print("\nProcessing player availability (OPTIMIZED):")
+        
         for player in team_players:
             availability = []
             player_name = player["player_name"]
-            player_id = player.get("player_id")
-            internal_player_id = player.get(
-                "internal_id"
-            )  # Use the internal DB ID we already have
-            print(
-                f"\nChecking availability for {player_name} (ID: {player_id}, Internal ID: {internal_player_id})"
-            )
+            internal_player_id = player.get("internal_id")
+            
+            print(f"✓ Processing {player_name} (ID: {internal_player_id})")
 
             for event_date in event_dates:
                 try:
-                    # Convert event_date string to datetime.date object
+                    # Convert event_date string to datetime.date object for lookup
                     event_date_obj = datetime.strptime(event_date, "%Y-%m-%d").date()
 
-                    # Get availability status for this player and date
-                    status = 0  # Default to unavailable
-
-                    if series_record["id"] is not None:
-                        try:
-                            avail_record = None
-
-                            if internal_player_id:
-                                # Primary search: Use the internal player_id we already have
-                                avail_query = """
-                                    SELECT availability_status, notes
-                                    FROM player_availability 
-                                    WHERE player_id = %(player_id)s 
-                                    AND series_id = %(series_id)s 
-                                    AND DATE(match_date AT TIME ZONE 'UTC') = DATE(%(date)s AT TIME ZONE 'UTC')
-                                """
-                                avail_params = {
-                                    "player_id": internal_player_id,
-                                    "series_id": series_record["id"],
-                                    "date": event_date_obj,
-                                }
-                                avail_record = execute_query(avail_query, avail_params)
-
-                            if not avail_record and player_name:
-                                # Fallback search: Use player_name
-                                print(
-                                    f"No availability found with player ID {internal_player_id}, falling back to name search for {player_name}"
-                                )
-                                avail_query = """
-                                    SELECT availability_status, notes
-                                    FROM player_availability 
-                                    WHERE player_name = %(player)s 
-                                    AND series_id = %(series_id)s 
-                                    AND DATE(match_date AT TIME ZONE 'UTC') = DATE(%(date)s AT TIME ZONE 'UTC')
-                                """
-                                avail_params = {
-                                    "player": player_name,
-                                    "series_id": series_record["id"],
-                                    "date": event_date_obj,
-                                }
-                                avail_record = execute_query(avail_query, avail_params)
-
-                            status = (
-                                avail_record[0]["availability_status"]
-                                if avail_record
-                                and avail_record[0]["availability_status"] is not None
-                                else 0
-                            )
-                            notes = (
-                                avail_record[0]["notes"]
-                                if avail_record and avail_record[0]["notes"] is not None
-                                else ""
-                            )
-                        except Exception as e:
-                            print(f"Error querying availability for {player_name}: {e}")
-                            status = 0
-                            notes = ""
+                    # Fast lookup instead of database query
+                    status = 0  # Default
+                    notes = ""
+                    
+                    # Try lookup by internal player_id first
+                    if internal_player_id:
+                        lookup_data = availability_lookup.get((internal_player_id, event_date_obj))
+                        if lookup_data:
+                            status = lookup_data["status"]
+                            notes = lookup_data["notes"]
+                    
+                    # Fallback to player_name lookup if needed
+                    if status == 0 and not notes:
+                        lookup_data = availability_lookup.get((player_name, event_date_obj))
+                        if lookup_data:
+                            status = lookup_data["status"]
+                            notes = lookup_data["notes"]
 
                     # Get event details for this date
                     event_info = event_details.get(event_date, {})
@@ -1166,17 +1191,18 @@ def get_team_schedule_data_data():
                     # Skip this date if there's an error
                     continue
 
-            # Store both player name and club name in the schedule
-            display_name = player_name
-            players_schedule[display_name] = availability
-            print(f"✓ Added {display_name} with {len(availability)} dates")
+            # Store player schedule
+            players_schedule[player_name] = availability
+            print(f"✓ Added {player_name} with {len(availability)} dates")
 
         if not players_schedule:
             print("❌ No player schedules created")
             return jsonify({"error": "No player schedules found for your series"}), 404
 
-        print(f"\n✓ Final players_schedule has {len(players_schedule)} players")
+        print(f"\n✅ OPTIMIZATION COMPLETE:")
+        print(f"✓ Final players_schedule has {len(players_schedule)} players")
         print(f"✓ Event details for {len(event_details)} dates")
+        print(f"✓ Used single batch query instead of {len(team_players) * len(event_dates)} individual queries")
 
         # Return JSON response
         return jsonify(

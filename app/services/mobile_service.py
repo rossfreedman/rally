@@ -19,116 +19,33 @@ from utils.logging import log_user_activity
 def _load_players_data():
     """Load player data fresh from database with all statistics - no caching"""
     try:
-        from database_utils import execute_query, execute_query_one
+        from database_utils import execute_query
 
-        # First, let's check if players table exists and what columns it has
-        try:
-            table_check = execute_query_one(
-                """
-                SELECT table_name FROM information_schema.tables 
-                WHERE table_schema = 'public' AND table_name = 'players'
-            """
-            )
-
-            if not table_check:
-                print("❌ Players table does not exist, cannot load player data")
-                return []
-
-            # Get column information for players table
-            columns_query = """
-                SELECT column_name 
-                FROM information_schema.columns 
-                WHERE table_schema = 'public' AND table_name = 'players'
-                ORDER BY ordinal_position
-            """
-            columns_result = execute_query(columns_query)
-            available_columns = [col["column_name"] for col in columns_result]
-            print(f"Available columns in players table: {available_columns}")
-
-        except Exception as check_error:
-            print(f"Error checking players table: {check_error}")
-            return []
-
-        # Build query based on available columns
-        base_columns = {
-            "first_name": '"First Name"',
-            "last_name": '"Last Name"',
-            "tenniscores_player_id": '"Player ID"',
-        }
-
-        optional_columns = {
-            "pti": "CASE WHEN p.pti IS NULL THEN 'N/A' ELSE p.pti::TEXT END as \"PTI\"",
-            "wins": 'COALESCE(p.wins, 0) as "Wins"',
-            "losses": 'COALESCE(p.losses, 0) as "Losses"',
-            "club_id": 'c.name as "Club"',
-            "series_id": 's.name as "Series"',
-            "league_id": "COALESCE(l.league_id, 'all') as \"League\"",
-        }
-
-        # Start with base required columns
-        select_parts = []
-        joins = []
-
-        for col, select_expr in base_columns.items():
-            if col in available_columns:
-                select_parts.append(f"p.{col} as {select_expr}")
-
-        # Add optional columns if they exist
-        for col, select_expr in optional_columns.items():
-            if col in available_columns:
-                select_parts.append(select_expr)
-
-                # Add necessary joins
-                if col == "club_id" and "club_id" in available_columns:
-                    joins.append("LEFT JOIN clubs c ON p.club_id = c.id")
-                elif col == "series_id" and "series_id" in available_columns:
-                    joins.append("LEFT JOIN series s ON p.series_id = s.id")
-                elif col == "league_id" and "league_id" in available_columns:
-                    joins.append("LEFT JOIN leagues l ON p.league_id = l.id")
-
-        # Add calculated win percentage if we have wins/losses
-        if "wins" in available_columns and "losses" in available_columns:
-            select_parts.append(
-                """
+        # Simple query that loads all players (we'll filter by league afterward)
+        players_query = """
+            SELECT 
+                p.first_name as "First Name",
+                p.last_name as "Last Name", 
+                p.tenniscores_player_id as "Player ID",
+                CASE WHEN p.pti IS NULL THEN 'N/A' ELSE p.pti::TEXT END as "PTI",
+                COALESCE(p.wins, 0) as "Wins",
+                COALESCE(p.losses, 0) as "Losses",
+                c.name as "Club",
+                s.name as "Series",
+                l.league_id as "League",
                 CASE 
                     WHEN COALESCE(p.wins, 0) + COALESCE(p.losses, 0) > 0 
                     THEN ROUND((COALESCE(p.wins, 0)::NUMERIC / (COALESCE(p.wins, 0) + COALESCE(p.losses, 0))) * 100, 1)::TEXT || '%'
                     ELSE '0%'
                 END as "Win %"
-            """
-            )
-        else:
-            # Add default values if columns don't exist
-            select_parts.extend(
-                [
-                    "'N/A' as \"PTI\"",
-                    '0 as "Wins"',
-                    '0 as "Losses"',
-                    "'0%' as \"Win %\"",
-                ]
-            )
-
-        # Add default values for missing optional fields
-        if "club_id" not in available_columns:
-            select_parts.append("'Unknown Club' as \"Club\"")
-        if "series_id" not in available_columns:
-            select_parts.append("'Unknown Series' as \"Series\"")
-        if "league_id" not in available_columns:
-            select_parts.append("'all' as \"League\"")
-
-        # Remove duplicate joins
-        joins = list(set(joins))
-
-        # Build final query
-        players_query = f"""
-            SELECT {', '.join(select_parts)}
             FROM players p
-            {' '.join(joins)}
+            LEFT JOIN clubs c ON p.club_id = c.id
+            LEFT JOIN series s ON p.series_id = s.id  
+            LEFT JOIN leagues l ON p.league_id = l.id
             WHERE p.tenniscores_player_id IS NOT NULL
             ORDER BY p.first_name, p.last_name
         """
-
-        print(f"Executing query: {players_query}")
+        
         players_data = execute_query(players_query)
         print(f"Loaded fresh player data ({len(players_data)} players) from database")
         return players_data
@@ -136,7 +53,6 @@ def _load_players_data():
     except Exception as e:
         print(f"Error loading player data from database: {e}")
         import traceback
-
         print(f"Full traceback: {traceback.format_exc()}")
         return []
 
@@ -2608,7 +2524,7 @@ def get_club_players_data(
             f"Filters - Series: {series_filter}, First: {first_name_filter}, Last: {last_name_filter}, PTI: {pti_min}-{pti_max}"
         )
 
-        # Load fresh player data
+        # Load fresh player data - revert to original working approach for now
         all_players = _load_players_data()
 
         if not all_players:
@@ -2620,32 +2536,32 @@ def get_club_players_data(
                 "error": "Error loading player data",
             }
 
-        # Filter players by user's league first
-        def is_player_in_user_league(player):
-            player_league = player.get("League")
-
-            # Handle case where user_league_id is None but we have league_name
-            if user_league_id is None or user_league_id == "":
-                user_league_name = user.get("league_name", "")
-                if "APTA" in user_league_name:
-                    # User is in APTA league, match APTA_CHICAGO records
-                    return player_league == "APTA_CHICAGO" or not player_league
-                else:
-                    # For other leagues, be more permissive during transition
-                    return True
-
-            # Normal league matching
-            return player_league == user_league_id
-
-        league_filtered_players = [
-            player for player in all_players if is_player_in_user_league(player)
-        ]
-        print(
-            f"Filtered from {len(all_players)} total players to {len(league_filtered_players)} players in user's league (user_league_id: '{user_league_id}')"
-        )
-
-        # Use the league-filtered players for all subsequent processing
-        all_players = league_filtered_players
+        # Filter players by user's league (using database ID comparison)
+        if user_league_id:
+            try:
+                user_league_db_id = int(user_league_id)  # Convert to int for comparison
+                print(f"Filtering by user league database ID: {user_league_db_id}")
+                
+                # Filter using database approach - check which players have matching league
+                from database_utils import execute_query
+                league_players = execute_query(
+                    "SELECT tenniscores_player_id FROM players WHERE league_id = %s", 
+                    (user_league_db_id,)
+                )
+                league_player_ids = {player["tenniscores_player_id"] for player in league_players}
+                
+                # Filter all_players to only include those in the user's league
+                league_filtered_players = [
+                    player for player in all_players 
+                    if player.get("Player ID") in league_player_ids
+                ]
+                
+                print(f"Filtered from {len(all_players)} total players to {len(league_filtered_players)} players in user's league")
+                all_players = league_filtered_players
+                
+            except (ValueError, TypeError) as e:
+                print(f"Invalid league_id '{user_league_id}', showing all players: {e}")
+                # Keep all players if league filtering fails
 
         if not all_players:
             return {
@@ -3394,10 +3310,15 @@ def get_mobile_team_data(user):
             else:
                 court_stats[court_key]["losses"] += 1
 
+            # Get player names from IDs and track partnerships
+            player_names = []
             for p in players:
-                # Convert player ID to readable name
-                player_name = get_player_name_from_id(p) if p else p
-
+                if p and p.strip():
+                    player_name = get_player_name_from_id(p)
+                    player_names.append(player_name)
+            
+            # Update individual player stats and partnerships
+            for i, player_name in enumerate(player_names):
                 court_stats[court_key]["players"][player_name]["matches"] += 1
                 if won:
                     court_stats[court_key]["players"][player_name]["wins"] += 1
@@ -3417,6 +3338,18 @@ def get_mobile_team_data(user):
                 player_stats[player_name]["courts"][court_key]["matches"] += 1
                 if won:
                     player_stats[player_name]["courts"][court_key]["wins"] += 1
+                
+                # Track partnerships (this was the missing piece!)
+                for j, partner_name in enumerate(player_names):
+                    if i != j:  # Don't partner with yourself
+                        if partner_name not in player_stats[player_name]["partners"]:
+                            player_stats[player_name]["partners"][partner_name] = {
+                                "matches": 0,
+                                "wins": 0,
+                            }
+                        player_stats[player_name]["partners"][partner_name]["matches"] += 1
+                        if won:
+                            player_stats[player_name]["partners"][partner_name]["wins"] += 1
 
         # Build court_analysis (dynamic courts based on detected max)
         for i in range(1, max_courts + 1):

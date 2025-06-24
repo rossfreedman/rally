@@ -413,6 +413,18 @@ def serve_component(filename):
     return send_from_directory("static/components", filename)
 
 
+@app.route("/static/images/<path:filename>")
+def serve_image(filename):
+    """Serve image files without authentication"""
+    return send_from_directory("static/images", filename)
+
+
+@app.route("/static/<path:filename>")
+def serve_static_files(filename):
+    """Serve static files without authentication"""
+    return send_from_directory("static", filename)
+
+
 @app.route("/health")
 def healthcheck():
     """Health check endpoint"""
