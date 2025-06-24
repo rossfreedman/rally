@@ -56,9 +56,22 @@ NAME_VARIATIONS = {
     "andy": ["andrew"],
     "andrew": ["andy"],
     "p": ["peter"],
-    "peter": ["p"],
+    "peter": ["p", "pete"],
+    "pete": ["peter"],
     "rj": ["ryan"],
     "ryan": ["rj"],
+    "nick": ["nicholas"],
+    "nicholas": ["nick"],
+    "zach": ["zachary"],
+    "zachary": ["zach"],
+    "tim": ["timothy"],
+    "timothy": ["tim"],
+    "frank": ["francis"],
+    "francis": ["frank"],
+    "ted": ["theodore"],
+    "theodore": ["ted"],
+    "ken": ["kenneth"],
+    "kenneth": ["ken"],
 }
 
 
@@ -319,6 +332,21 @@ def find_player_by_database_lookup(
             logger.info(
                 f"⚠️ FALLBACK 2.5: Multiple matches for {last_name} + {club_name} + {series_name}: {match_names}"
             )
+            
+            # CRITICAL FIX: High-confidence fallback found multiple matches
+            # This is a very strong signal - same last name + club + series + league
+            # Return the matches for user selection instead of continuing to weaker fallbacks
+            logger.info(
+                f"✅ FALLBACK 2.5: Found multiple high-confidence matches - returning for user selection"
+            )
+            logger.info(
+                f"✅ FALLBACK 2.5: Exact club + series + last name match with multiple first names"
+            )
+            return {
+                "match_type": "multiple_high_confidence",
+                "matches": fallback2_5_matches,
+                "message": f"Multiple high-confidence matches found: {match_names}. Exact club, series, and last name match with different first names.",
+            }
         else:
             logger.info(
                 f"❌ FALLBACK 2.5: No matches found for {last_name} + {club_name} + {series_name}"
@@ -410,6 +438,21 @@ def find_player_by_database_lookup(
             logger.info(
                 f"⚠️ FALLBACK 4: Multiple matches for {last_name} + {club_name}: {match_names}"
             )
+            
+            # CONSISTENT FIX: High-confidence fallback found multiple matches  
+            # Same last name + club + league is also high confidence
+            # Return the matches for user selection instead of continuing to riskier fallbacks
+            logger.info(
+                f"✅ FALLBACK 4: Found multiple high-confidence matches - returning for user selection"
+            )
+            logger.info(
+                f"✅ FALLBACK 4: Exact club + last name match with multiple first names/series"
+            )
+            return {
+                "match_type": "multiple_high_confidence",
+                "matches": fallback4_matches,
+                "message": f"Multiple high-confidence matches found: {match_names}. Exact club and last name match with different first names/series.",
+            }
         else:
             logger.info(
                 f"❌ FALLBACK 4: No matches found for {last_name} + {club_name}"
