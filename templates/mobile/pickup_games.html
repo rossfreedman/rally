@@ -1,0 +1,441 @@
+{% extends "mobile/layout.html" %}
+{% set show_back_arrow = True %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    
+    <!-- Header -->
+    <div class="bg-white border-b border-gray-100">
+        <div class="flex items-center px-4 py-6">
+            <div class="w-12 h-12 bg-indigo-600 rounded-full flex items-center justify-center shadow-sm">
+                <i class="fas fa-table-tennis text-white text-lg"></i>
+            </div>
+            <div class="ml-4">
+                <h1 class="text-xl font-bold text-gray-900">View Pickup Games</h1>
+                <p class="text-sm text-gray-500">Find pickup games to join</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content -->
+    <div class="px-4 py-6 space-y-6">
+
+        <!-- Create Button -->
+        <div class="flex justify-center">
+            <a href="/mobile/create-pickup-game" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center gap-2 shadow-sm">
+                <i class="fas fa-plus"></i>
+                <span>Create new pickup game</span>
+            </a>
+        </div>
+
+        <!-- Upcoming Pickup Games Section -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-calendar-alt text-green-500 mr-2"></i>
+                    Upcoming Pickup Games
+                </h2>
+                <p class="text-sm text-gray-600 mt-2">Players who meet the criteria set by the organizer will be notified by text about upcoming games and can choose to join.</p>
+            </div>
+            
+            <div class="p-4 space-y-4">
+                <!-- Game 1 -->
+                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-900">Looking for 8 Saturday morning</h3>
+                            <p class="text-sm text-gray-600">Saturday, Jan 20 at 9:00 AM</p>
+                        </div>
+                        <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">Open</span>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4 mb-3">
+                        <div class="text-center">
+                            <div class="text-xl font-bold text-gray-900">8</div>
+                            <div class="text-xs text-gray-500">Players Requested</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-xl font-bold text-green-600">5</div>
+                            <div class="text-xs text-gray-500">Committed Players</div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <p class="text-sm text-gray-700"><strong>Criteria:</strong> PTI Range: 33.3-43.1, All Series</p>
+                    </div>
+                    
+                    <button class="w-full bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors">
+                        <i class="fas fa-plus mr-1"></i>Join Game
+                    </button>
+                </div>
+
+                <!-- Game 2 -->
+                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-900">Monday night - Series 28 or lower</h3>
+                            <p class="text-sm text-gray-600">Monday, Jan 22 at 6:30 PM</p>
+                        </div>
+                        <span class="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded-full">Nearly Full</span>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4 mb-3">
+                        <div class="text-center">
+                            <div class="text-xl font-bold text-gray-900">6</div>
+                            <div class="text-xs text-gray-500">Players Requested</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-xl font-bold text-orange-600">5</div>
+                            <div class="text-xs text-gray-500">Committed Players</div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <p class="text-sm text-gray-700"><strong>Criteria:</strong> Series 28 or lower, Tennaqua only</p>
+                    </div>
+                    
+                    <button class="w-full bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors">
+                        <i class="fas fa-plus mr-1"></i>Join Game
+                    </button>
+                </div>
+
+                <!-- Game 3 -->
+                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-900">Sunday afternoon - inter club play</h3>
+                            <p class="text-sm text-gray-600">Sunday, Jan 21 at 2:00 PM</p>
+                        </div>
+                        <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">Open</span>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4 mb-3">
+                        <div class="text-center">
+                            <div class="text-xl font-bold text-gray-900">8</div>
+                            <div class="text-xs text-gray-500">Players Requested</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-xl font-bold text-blue-600">3</div>
+                            <div class="text-xs text-gray-500">Committed Players</div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <p class="text-sm text-gray-700"><strong>Criteria:</strong> Series 7 to 15, all clubs</p>
+                    </div>
+                    
+                    <button class="w-full bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors">
+                        <i class="fas fa-plus mr-1"></i>Join Game
+                    </button>
+                </div>
+            </div>
+        </div>
+
+
+
+    </div>
+</div>
+
+<!-- Join Game Button -->
+<div id="joinGameContainer" class="fixed bottom-0 left-0 right-0 w-full p-4 bg-white border-t border-gray-200 shadow-lg z-50" style="display: none;">
+    <div class="flex justify-center">
+        <button id="joinGameBtn" class="px-6 py-3 rounded-lg shadow-xl focus:outline-none focus:ring-2 focus:ring-green-500 transition-all duration-200 flex items-center gap-2 text-sm font-semibold" 
+                style="background-color: #16a34a !important; color: white !important; border: none !important;"
+                onmouseover="this.style.backgroundColor='#15803d !important'"
+                onmouseout="this.style.backgroundColor='#16a34a !important'">
+            <i class="fas fa-plus text-lg"></i>
+            <span>Join Selected Game</span>
+        </button>
+    </div>
+</div>
+
+<!-- Modal for Game Details -->
+<div id="gameDetailsModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl max-w-md w-full max-h-[80vh] overflow-hidden shadow-xl">
+        <!-- Modal Header -->
+        <div class="px-6 py-4 border-b border-gray-100">
+            <div class="flex justify-between items-center">
+                <h3 class="text-lg font-semibold text-gray-900">Game Details</h3>
+                <button id="closeGameModal" class="text-gray-400 hover:text-gray-600 focus:outline-none">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Modal Body -->
+        <div class="p-6 overflow-y-auto max-h-96">
+            <div id="gameDetailsContent">
+                <!-- Game details will be populated here -->
+            </div>
+        </div>
+        
+        <!-- Modal Footer -->
+        <div class="px-6 py-4 border-t border-gray-100 bg-gray-50">
+            <div id="gameActionsContainer" class="text-center">
+                <!-- Game action buttons will be populated here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Custom styles for modern mobile design */
+.min-h-screen {
+    min-height: 100vh;
+}
+
+/* Grid responsive */
+@media (max-width: 640px) {
+    .grid-cols-2 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .sm\:grid-cols-4 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 640px) {
+    .sm\:grid-cols-4 {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+    .sm\:inline {
+        display: inline;
+    }
+}
+
+/* Shadow utilities */
+.shadow-sm {
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.shadow-xl {
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Border utilities */
+.border-gray-50 { border-color: #f9fafb; }
+.border-gray-100 { border-color: #f3f4f6; }
+.border-blue-100 { border-color: #dbeafe; }
+.border-yellow-200 { border-color: #fde047; }
+
+/* Background utilities */
+.bg-gray-50 { background-color: #f9fafb; }
+.bg-white { background-color: #ffffff; }
+.bg-green-100 { background-color: #dcfce7; }
+.bg-yellow-100 { background-color: #fef3c7; }
+.bg-red-100 { background-color: #fee2e2; }
+.bg-blue-50 { background-color: #eff6ff; }
+.bg-blue-100 { background-color: #dbeafe; }
+.bg-gray-100 { background-color: #f3f4f6; }
+.bg-green-600 { background-color: #16a34a !important; }
+.bg-indigo-600 { background-color: #4f46e5 !important; }
+
+/* Text colors */
+.text-gray-900 { color: #111827; }
+.text-gray-700 { color: #374151; }
+.text-gray-600 { color: #4b5563; }
+.text-gray-500 { color: #6b7280; }
+.text-gray-400 { color: #9ca3af; }
+.text-green-500 { color: #10b981; }
+.text-green-600 { color: #059669; }
+.text-green-700 { color: #047857; }
+.text-yellow-600 { color: #d97706; }
+.text-yellow-700 { color: #b45309; }
+.text-yellow-800 { color: #92400e; }
+.text-red-700 { color: #b91c1c; }
+.text-blue-500 { color: #3b82f6; }
+.text-blue-600 { color: #2563eb; }
+.text-blue-700 { color: #1d4ed8; }
+.text-white { color: #ffffff; }
+
+/* Spacing utilities */
+.space-y-6 > * + * { margin-top: 1.5rem; }
+.space-y-4 > * + * { margin-top: 1rem; }
+.space-y-3 > * + * { margin-top: 0.75rem; }
+
+/* Border radius utilities */
+.rounded-xl { border-radius: 0.75rem; }
+.rounded-lg { border-radius: 0.5rem; }
+.rounded-full { border-radius: 9999px; }
+
+/* Text utilities */
+.uppercase { text-transform: uppercase; }
+.tracking-wide { letter-spacing: 0.025em; }
+.truncate { 
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Overflow utilities */
+.overflow-hidden { overflow: hidden; }
+.min-w-0 { min-width: 0px; }
+
+/* Hover utilities */
+.hover\:bg-green-700:hover { background-color: #15803d !important; }
+.hover\:bg-blue-700:hover { background-color: #1d4ed8 !important; }
+.hover\:bg-gray-200:hover { background-color: #e5e7eb !important; }
+
+/* Transition utilities */
+.transition-colors {
+    transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 150ms;
+}
+
+.duration-150 {
+    transition-duration: 150ms;
+}
+
+.duration-200 {
+    transition-duration: 200ms;
+}
+
+/* Custom slider styles */
+.slider {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 8px;
+    background: #e5e7eb;
+    outline: none;
+    border-radius: 4px;
+    transition: background 0.3s ease;
+}
+
+.slider:hover {
+    background: #d1d5db;
+}
+
+.slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    background: #3b82f6;
+    cursor: pointer;
+    border-radius: 50%;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: all 0.2s ease;
+}
+
+.slider::-webkit-slider-thumb:hover {
+    background: #2563eb;
+    transform: scale(1.1);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    background: #3b82f6;
+    cursor: pointer;
+    border-radius: 50%;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    transition: all 0.2s ease;
+}
+
+.slider::-moz-range-thumb:hover {
+    background: #2563eb;
+    transform: scale(1.1);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Loading spinner */
+.loading {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+}
+
+.loading-lg {
+    width: 2.5rem;
+    height: 2.5rem;
+}
+
+.loading-spinner {
+    animation: spin 1s linear infinite;
+    border: 2px solid transparent;
+    border-top: 2px solid currentColor;
+    border-radius: 50%;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Hide elements */
+.hidden {
+    display: none;
+}
+
+/* Date and time input styling */
+input[type="date"], input[type="time"] {
+    /* Allow native date/time picker appearance */
+    background-color: white;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="time"]::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    /* Allow native calendar icon to show */
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Game selection UI Elements
+    const joinGameContainer = document.getElementById('joinGameContainer');
+    const joinGameBtn = document.getElementById('joinGameBtn');
+    const gameDetailsModal = document.getElementById('gameDetailsModal');
+    const closeGameModal = document.getElementById('closeGameModal');
+    const gameDetailsContent = document.getElementById('gameDetailsContent');
+    const gameActionsContainer = document.getElementById('gameActionsContainer');
+
+    // Initialize page
+    function initializePage() {
+        setupEventListeners();
+        console.log('Pickup games page initialized');
+    }
+
+    // Setup event listeners
+    function setupEventListeners() {
+        // Modal listeners
+        if (closeGameModal) {
+            closeGameModal.addEventListener('click', () => {
+                gameDetailsModal.classList.add('hidden');
+            });
+        }
+        
+        // Join game listeners for upcoming games
+        document.querySelectorAll('.w-full.bg-green-600').forEach(btn => {
+            btn.addEventListener('click', handleJoinUpcomingGame);
+        });
+        
+        // Close modal when clicking outside
+        if (gameDetailsModal) {
+            gameDetailsModal.addEventListener('click', (e) => {
+                if (e.target === gameDetailsModal) {
+                    gameDetailsModal.classList.add('hidden');
+                }
+            });
+        }
+    }
+
+    // Handle join upcoming game
+    function handleJoinUpcomingGame(event) {
+        const gameCard = event.target.closest('.bg-gray-50');
+        const gameTitle = gameCard.querySelector('h3').textContent;
+        
+        // In a real app, this would make an API call to join the game
+        alert(`Joining "${gameTitle}"! The organizer will be notified.`);
+    }
+
+    // Initialize the page
+    initializePage();
+});
+</script>
+{% endblock %} 
