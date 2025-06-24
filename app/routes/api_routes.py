@@ -1343,7 +1343,7 @@ def get_user_settings():
         # Get basic user data (no more foreign keys)
         user_data = execute_query_one(
             """
-            SELECT u.first_name, u.last_name, u.email, u.club_automation_password, u.is_admin, 
+            SELECT u.first_name, u.last_name, u.email, u.is_admin, 
                    u.ad_deuce_preference, u.dominant_hand
             FROM users u
             WHERE u.email = %s
@@ -1401,7 +1401,6 @@ def get_user_settings():
             "first_name": user_data["first_name"] or "",
             "last_name": user_data["last_name"] or "",
             "email": user_data["email"] or "",
-            "club_automation_password": user_data["club_automation_password"] or "",
             "club": club_name,
             "series": series_name,
             "league_id": league_id,
@@ -1640,7 +1639,7 @@ def update_settings():
         success = execute_update(
             """
             UPDATE users 
-            SET first_name = %s, last_name = %s, email = %s, club_automation_password = %s,
+            SET first_name = %s, last_name = %s, email = %s,
                 ad_deuce_preference = %s, dominant_hand = %s
             WHERE email = %s
         """,
@@ -1648,7 +1647,6 @@ def update_settings():
                 data["firstName"],
                 data["lastName"],
                 data["email"],
-                data.get("clubAutomationPassword", ""),
                 data.get("adDeuce", ""),
                 data.get("dominantHand", ""),
                 user_email,
@@ -1717,7 +1715,6 @@ def update_settings():
                     else data.get("league_id")
                 ),
                 "league_name": primary_player["league_name"] if primary_player else "",
-                "club_automation_password": data.get("clubAutomationPassword", ""),
                 "is_admin": user_record.is_admin,
                 "tenniscores_player_id": current_player_id,
                 "settings": "{}",  # Default empty settings for consistency with auth

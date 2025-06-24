@@ -1,7 +1,7 @@
+import hashlib
 import json
 import os
 import time
-import hashlib
 from datetime import datetime, timedelta
 
 from flask import jsonify, render_template, request, session
@@ -16,35 +16,37 @@ from utils.series_matcher import normalize_series_for_display
 LINEUP_CACHE = {}
 CACHE_DURATION = timedelta(minutes=15)  # Cache for 15 minutes
 
+
 def get_cache_key(players, instructions, series):
     """Generate a cache key for lineup requests"""
     data = {
-        'players': sorted(players),  # Sort for consistent cache keys
-        'instructions': sorted(instructions) if instructions else [],
-        'series': series
+        "players": sorted(players),  # Sort for consistent cache keys
+        "instructions": sorted(instructions) if instructions else [],
+        "series": series,
     }
     return hashlib.md5(json.dumps(data, sort_keys=True).encode()).hexdigest()
+
 
 def get_cached_lineup(cache_key):
     """Get cached lineup if available and not expired"""
     if cache_key in LINEUP_CACHE:
         cached_data = LINEUP_CACHE[cache_key]
-        if datetime.now() - cached_data['timestamp'] < CACHE_DURATION:
-            return cached_data['lineup']
+        if datetime.now() - cached_data["timestamp"] < CACHE_DURATION:
+            return cached_data["lineup"]
     return None
+
 
 def cache_lineup(cache_key, lineup):
     """Cache a lineup suggestion"""
-    LINEUP_CACHE[cache_key] = {
-        'lineup': lineup,
-        'timestamp': datetime.now()
-    }
-    
+    LINEUP_CACHE[cache_key] = {"lineup": lineup, "timestamp": datetime.now()}
+
     # Clean old cache entries (keep cache size manageable)
     if len(LINEUP_CACHE) > 100:
-        oldest_key = min(LINEUP_CACHE.keys(), 
-                        key=lambda k: LINEUP_CACHE[k]['timestamp'])
+        oldest_key = min(
+            LINEUP_CACHE.keys(), key=lambda k: LINEUP_CACHE[k]["timestamp"]
+        )
         del LINEUP_CACHE[oldest_key]
+
 
 def get_user_instructions(user_email, team_id=None):
     """Get lineup instructions for a user"""
@@ -129,7 +131,7 @@ def get_player_data_for_lineup(players, series, players_with_preferences=None):
     try:
         if not players:
             return "No player data available."
-        
+
         # Query for player stats using correct column names
         query = """
             SELECT DISTINCT ON (first_name || ' ' || last_name)
@@ -144,9 +146,9 @@ def get_player_data_for_lineup(players, series, players_with_preferences=None):
             WHERE (first_name || ' ' || last_name) = ANY(%s)
             ORDER BY first_name || ' ' || last_name, pti DESC NULLS LAST
         """
-        
+
         player_records = execute_query(query, [players])
-        
+
         # Get pairing consistency data from match_scores table - Show actual partnership history
         pairing_query = """
             WITH player_mappings AS (
@@ -207,98 +209,114 @@ def get_player_data_for_lineup(players, series, players_with_preferences=None):
             HAVING COUNT(*) >= 1  -- Show any partnerships, even single matches
             ORDER BY COUNT(*) DESC, AVG(won) DESC
         """
-        
+
         try:
             pairing_records = execute_query(pairing_query, [players])
         except Exception as e:
             print(f"Error getting pairing data: {e}")
             pairing_records = []
-        
+
         if not player_records:
             return f"No database records found for selected players in {series}. Cannot provide data-driven recommendations."
-        
+
         # Format the comprehensive data for the AI
         data_lines = []
         data_lines.append(f"PLAYER DATA for {series}:")
         data_lines.append("=" * 40)
-        
+
         # Create a map of player preferences for easy lookup
         preferences_map = {}
         if players_with_preferences:
             for player_pref in players_with_preferences:
-                preferences_map[player_pref['name']] = player_pref
-        
+                preferences_map[player_pref["name"]] = player_pref
+
         # Player individual stats
         data_lines.append("INDIVIDUAL PLAYER STATS:")
         for player in player_records:
-            name = player['name']
-            pti = player['pti'] if player['pti'] else 'No PTI'
-            wins = player['wins'] if player['wins'] else 0
-            losses = player['losses'] if player['losses'] else 0
-            total_matches = player['total_matches'] if player['total_matches'] else 0
-            win_pct = player['win_percentage'] if player['win_percentage'] else 0
-            
+            name = player["name"]
+            pti = player["pti"] if player["pti"] else "No PTI"
+            wins = player["wins"] if player["wins"] else 0
+            losses = player["losses"] if player["losses"] else 0
+            total_matches = player["total_matches"] if player["total_matches"] else 0
+            win_pct = player["win_percentage"] if player["win_percentage"] else 0
+
             data_lines.append(f"• {name}:")
             data_lines.append(f"  - PTI: {pti}")
-            data_lines.append(f"  - Overall Record: {wins}-{losses} ({win_pct}% win rate, {total_matches} matches)")
-            
+            data_lines.append(
+                f"  - Overall Record: {wins}-{losses} ({win_pct}% win rate, {total_matches} matches)"
+            )
+
             # Add preferences if available
             if name in preferences_map:
                 player_prefs = preferences_map[name]
-                ad_deuce_pref = player_prefs.get('position_preference')
-                dominant_hand = player_prefs.get('hand_preference')
-                
+                ad_deuce_pref = player_prefs.get("position_preference")
+                dominant_hand = player_prefs.get("hand_preference")
+
                 if ad_deuce_pref:
-                    data_lines.append(f"  - Court Position Preference: {ad_deuce_pref} side")
+                    data_lines.append(
+                        f"  - Court Position Preference: {ad_deuce_pref} side"
+                    )
                 if dominant_hand:
                     data_lines.append(f"  - Dominant Hand: {dominant_hand}")
-                    
+
                 if ad_deuce_pref or dominant_hand:
                     data_lines.append("")  # Add blank line for readability
-        
+
         # Successful pairings
         if pairing_records:
             data_lines.append("\nSUCCESSFUL PAIRINGS (2+ matches together):")
             for pairing in pairing_records:
-                pair_name = pairing['pairing']
-                matches = pairing['matches_together']
-                wins = pairing['wins_together']
+                pair_name = pairing["pairing"]
+                matches = pairing["matches_together"]
+                wins = pairing["wins_together"]
                 losses = matches - wins
                 win_rate = round((wins / matches) * 100, 1) if matches > 0 else 0
-                
-                data_lines.append(f"• {pair_name}: {wins}-{losses} together ({win_rate}% win rate, {matches} matches)")
-        
+
+                data_lines.append(
+                    f"• {pair_name}: {wins}-{losses} together ({win_rate}% win rate, {matches} matches)"
+                )
+
         # Add any missing players
-        found_names = {p['name'] for p in player_records}
+        found_names = {p["name"] for p in player_records}
         missing_players = [p for p in players if p not in found_names]
-        
+
         if missing_players:
             data_lines.append("\nPLAYERS NOT FOUND IN DATABASE:")
             for player in missing_players:
-                data_lines.append(f"• {player}: No data available - use general strategy")
-        
+                data_lines.append(
+                    f"• {player}: No data available - use general strategy"
+                )
+
         data_lines.append("\nDATA SUMMARY:")
-        data_lines.append(f"• Found data for {len(player_records)} of {len(players)} selected players")
+        data_lines.append(
+            f"• Found data for {len(player_records)} of {len(players)} selected players"
+        )
         data_lines.append(f"• {len(pairing_records)} successful pairings identified")
         data_lines.append("• Recommendations should be based ONLY on this actual data")
-        
+
         return "\n".join(data_lines)
-        
+
     except Exception as e:
         print(f"Error getting comprehensive player data: {e}")
         import traceback
+
         print(f"Full traceback: {traceback.format_exc()}")
         return f"Error retrieving player data. Cannot provide data-driven recommendations for: {', '.join(players)}"
+
 
 def get_pairing_data_for_frontend(players):
     """Get pairing data in a format suitable for frontend display"""
     try:
         if not players or len(players) < 2:
-            print(f"[DEBUG] get_pairing_data_for_frontend: Not enough players ({len(players) if players else 0})")
+            print(
+                f"[DEBUG] get_pairing_data_for_frontend: Not enough players ({len(players) if players else 0})"
+            )
             return {}
-        
-        print(f"[DEBUG] get_pairing_data_for_frontend: Processing {len(players)} players: {players}")
-        
+
+        print(
+            f"[DEBUG] get_pairing_data_for_frontend: Processing {len(players)} players: {players}"
+        )
+
         # Get pairing consistency data from match_scores table - Show actual partnership history
         pairing_query = """
             WITH player_mappings AS (
@@ -358,36 +376,41 @@ def get_pairing_data_for_frontend(players):
                 END
             ORDER BY COUNT(*) DESC, AVG(won) DESC
         """
-        
+
         pairing_records = execute_query(pairing_query, [players])
-        
+
         print(f"[DEBUG] Found {len(pairing_records)} pairing records")
         for record in pairing_records:
-            print(f"[DEBUG] - {record['pairing']}: {record['wins_together']}-{record['matches_together'] - record['wins_together']} ({record['matches_together']} matches)")
-        
+            print(
+                f"[DEBUG] - {record['pairing']}: {record['wins_together']}-{record['matches_together'] - record['wins_together']} ({record['matches_together']} matches)"
+            )
+
         # Convert to dict for easy lookup by pairing name
         pairing_data = {}
         for pairing in pairing_records:
-            pairing_data[pairing['pairing']] = {
-                'wins': pairing['wins_together'],
-                'losses': pairing['matches_together'] - pairing['wins_together'],
-                'total_games': pairing['matches_together'],
-                'win_rate': pairing['win_rate']
+            pairing_data[pairing["pairing"]] = {
+                "wins": pairing["wins_together"],
+                "losses": pairing["matches_together"] - pairing["wins_together"],
+                "total_games": pairing["matches_together"],
+                "win_rate": pairing["win_rate"],
             }
-        
-        print(f"[DEBUG] Returning pairing_data with {len(pairing_data)} entries: {list(pairing_data.keys())}")
+
+        print(
+            f"[DEBUG] Returning pairing_data with {len(pairing_data)} entries: {list(pairing_data.keys())}"
+        )
         return pairing_data
-        
+
     except Exception as e:
         print(f"Error getting pairing data for frontend: {e}")
         return {}
 
+
 def generate_fast_lineup(players, instructions, series, players_with_preferences=None):
     """Generate lineup using optimized Chat Completions API with real player data"""
-    
+
     # Get real player data from database
     player_data = get_player_data_for_lineup(players, series, players_with_preferences)
-    
+
     # Build data-driven prompt with sophisticated analysis rules
     prompt = f"""Create a strategic lineup for {series} using ONLY the actual player data provided below and following advanced tennis strategy principles.
 
@@ -430,38 +453,41 @@ Court 4: Player7/Player8 - [PTI: X/Y, reasoning: specific data-driven explanatio
 - Any playing style characteristics not shown in the data
 
 Focus ONLY on: PTI scores, actual win/loss records, proven partnership success rates, and court positioning strategy."""
-    
+
     # Add instructions if provided
     if instructions:
-        prompt += f"\n\nSpecial instructions:\n" + "\n".join(f"• {inst}" for inst in instructions)
-    
+        prompt += f"\n\nSpecial instructions:\n" + "\n".join(
+            f"• {inst}" for inst in instructions
+        )
+
     # Use Chat Completions API - much faster than Assistant API
     try:
         response = client.chat.completions.create(
             model="gpt-4o-mini",  # Faster and cheaper than gpt-4
             messages=[
                 {
-                    "role": "system", 
-                    "content": "You are an expert paddle tennis coach. Create concise, strategic lineups quickly."
+                    "role": "system",
+                    "content": "You are an expert paddle tennis coach. Create concise, strategic lineups quickly.",
                 },
-                {"role": "user", "content": prompt}
+                {"role": "user", "content": prompt},
             ],
             max_tokens=500,  # Limit response length for speed
-            temperature=0.7
+            temperature=0.7,
         )
-        
+
         return response.choices[0].message.content
-        
+
     except Exception as e:
         print(f"Error with Chat Completions API: {e}")
         # Fallback to a simple algorithmic approach if API fails
         return generate_algorithmic_lineup(players, instructions)
 
+
 def generate_algorithmic_lineup(players, instructions):
     """Fallback algorithmic lineup generation using available data"""
     if len(players) < 4:
         return f"Need at least 4 players. You selected: {', '.join(players)}"
-    
+
     # Try to get player data for smarter pairing
     try:
         # Quick query for PTI ratings to do skill-based pairing
@@ -473,48 +499,62 @@ def generate_algorithmic_lineup(players, instructions):
             WHERE (first_name || ' ' || last_name) = ANY(%s)
             ORDER BY pti DESC
         """
-        
+
         player_records = execute_query(query, [players])
-        player_ptis = {p['name']: p['pti'] for p in player_records}
-        
+        player_ptis = {p["name"]: p["pti"] for p in player_records}
+
         # Sort players by PTI (lowest first for proper court assignment), use default PTI for unknown players
-        sorted_players = sorted(players, key=lambda p: player_ptis.get(p, 40), reverse=False)
-        
+        sorted_players = sorted(
+            players, key=lambda p: player_ptis.get(p, 40), reverse=False
+        )
+
         # Assign courts following PTI rule: lower PTI = lower court number
         courts = []
         used_players = set()
-        
+
         for court_num in range(1, 5):  # Up to 4 courts
             if len(used_players) >= len(sorted_players):
                 break
-                
+
             # Get available players (sorted lowest PTI first)
             available = [p for p in sorted_players if p not in used_players]
             if len(available) < 2:
                 break
-            
+
             # For Court 1: use lowest PTI players
-            # For higher courts: use progressively higher PTI players  
+            # For higher courts: use progressively higher PTI players
             base_index = (court_num - 1) * 2
             if base_index < len(available):
-                player1 = available[base_index] if base_index < len(available) else available[0]
-                player2 = available[base_index + 1] if base_index + 1 < len(available) else available[-1]
-            
+                player1 = (
+                    available[base_index]
+                    if base_index < len(available)
+                    else available[0]
+                )
+                player2 = (
+                    available[base_index + 1]
+                    if base_index + 1 < len(available)
+                    else available[-1]
+                )
+
             p1_pti = player_ptis.get(player1, 40)
             p2_pti = player_ptis.get(player2, 40)
-            
-            courts.append(f"Court {court_num}: {player1}/{player2} - PTI-based pairing (PTI: {p1_pti}/{p2_pti})")
+
+            courts.append(
+                f"Court {court_num}: {player1}/{player2} - PTI-based pairing (PTI: {p1_pti}/{p2_pti})"
+            )
             used_players.add(player1)
             used_players.add(player2)
-        
+
         # Add remaining players as substitutes
         remaining = [p for p in players if p not in used_players]
         if remaining:
             courts.append(f"Substitutes: {'/'.join(remaining)}")
-        
+
         result = "\n".join(courts)
-        result += "\n\nNote: PTI-based court assignment (lower PTI = lower court number)."
-        
+        result += (
+            "\n\nNote: PTI-based court assignment (lower PTI = lower court number)."
+        )
+
     except Exception as e:
         # Ultimate fallback - simple pairing
         print(f"Error in algorithmic lineup: {e}")
@@ -522,15 +562,18 @@ def generate_algorithmic_lineup(players, instructions):
         for i in range(0, min(len(players), 8), 2):
             if i + 1 < len(players):
                 court_num = (i // 2) + 1
-                courts.append(f"Court {court_num}: {players[i]}/{players[i+1]} - General pairing")
-        
+                courts.append(
+                    f"Court {court_num}: {players[i]}/{players[i+1]} - General pairing"
+                )
+
         result = "\n".join(courts)
         result += "\n\nNote: Basic pairing (data unavailable)."
-    
+
     if instructions:
         result += f"\n\nInstructions to consider: {', '.join(instructions)}"
-    
+
     return result
+
 
 def init_lineup_routes(app):
     @app.route("/mobile/lineup-selection")
@@ -542,7 +585,9 @@ def init_lineup_routes(app):
             log_user_activity(
                 session["user"]["email"], "page_visit", page="mobile_lineup_selection"
             )
-            return render_template("mobile/lineup_selection.html", session_data=session_data)
+            return render_template(
+                "mobile/lineup_selection.html", session_data=session_data
+            )
         except Exception as e:
             print(f"Error serving lineup selection page: {str(e)}")
             return jsonify({"error": str(e)}), 500
@@ -582,9 +627,13 @@ def init_lineup_routes(app):
         try:
             session_data = {"user": session["user"], "authenticated": True}
             log_user_activity(
-                session["user"]["email"], "page_visit", page="mobile_lineup_confirmation"
+                session["user"]["email"],
+                "page_visit",
+                page="mobile_lineup_confirmation",
             )
-            return render_template("mobile/lineup_confirmation.html", session_data=session_data)
+            return render_template(
+                "mobile/lineup_confirmation.html", session_data=session_data
+            )
         except Exception as e:
             print(f"Error serving lineup confirmation page: {str(e)}")
             return jsonify({"error": str(e)}), 500
@@ -611,7 +660,9 @@ def init_lineup_routes(app):
             log_user_activity(
                 session["user"]["email"], "page_visit", page="mobile_lineup_messaging"
             )
-            return render_template("mobile/lineup_messaging.html", session_data=session_data)
+            return render_template(
+                "mobile/lineup_messaging.html", session_data=session_data
+            )
         except Exception as e:
             print(f"Error serving lineup messaging page: {str(e)}")
             return jsonify({"error": str(e)}), 500
@@ -686,37 +737,37 @@ def init_lineup_routes(app):
             display_series = normalize_series_for_display(user_series)
 
             start_time = time.time()
-            
+
             # Check cache first (include preferences in cache key for future enhancement)
             cache_key = get_cache_key(selected_players, instructions, display_series)
             cached_lineup = get_cached_lineup(cache_key)
-            
+
             if cached_lineup:
                 # Also get pairing data for cached responses
                 pairing_data = get_pairing_data_for_frontend(selected_players)
-                return jsonify({
-                    "suggestion": cached_lineup,
-                    "pairing_data": pairing_data
-                })
+                return jsonify(
+                    {"suggestion": cached_lineup, "pairing_data": pairing_data}
+                )
 
             # Generate new lineup using fast Chat Completions API with preferences
-            suggestion = generate_fast_lineup(selected_players, instructions, display_series, players_with_preferences)
-            
+            suggestion = generate_fast_lineup(
+                selected_players, instructions, display_series, players_with_preferences
+            )
+
             # Get actual pairing data from database
             pairing_data = get_pairing_data_for_frontend(selected_players)
-            
+
             # Cache the result
             cache_lineup(cache_key, suggestion)
-            
+
             processing_time = time.time() - start_time
 
             if instructions:
-                print(f"✅ Used {len(instructions)} user instructions in lineup generation")
+                print(
+                    f"✅ Used {len(instructions)} user instructions in lineup generation"
+                )
 
-            return jsonify({
-                "suggestion": suggestion,
-                "pairing_data": pairing_data
-            })
+            return jsonify({"suggestion": suggestion, "pairing_data": pairing_data})
 
         except Exception as e:
             print(f"Error generating lineup: {str(e)}")

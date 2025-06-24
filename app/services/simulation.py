@@ -612,11 +612,27 @@ class AdvancedMatchupSimulator:
 
         # Normalization parameters based on realistic competitive ranges
         normalization_params = {
-            "average_pti": {"min": 18.0, "max": 38.0, "higher_better": True}, # Tighter range for more sensitivity
-            "individual_win_rates": {"min": 20.0, "max": 80.0, "higher_better": True}, # Realistic competitive range
+            "average_pti": {
+                "min": 18.0,
+                "max": 38.0,
+                "higher_better": True,
+            },  # Tighter range for more sensitivity
+            "individual_win_rates": {
+                "min": 20.0,
+                "max": 80.0,
+                "higher_better": True,
+            },  # Realistic competitive range
             "recent_individual_form": {"min": 0.0, "max": 100.0, "higher_better": True},
-            "experience_level": {"min": 0, "max": 40, "higher_better": True}, # More realistic max experience
-            "pti_advantage": {"min": -8.0, "max": 8.0, "higher_better": True}, # Tighter range for more impact
+            "experience_level": {
+                "min": 0,
+                "max": 40,
+                "higher_better": True,
+            },  # More realistic max experience
+            "pti_advantage": {
+                "min": -8.0,
+                "max": 8.0,
+                "higher_better": True,
+            },  # Tighter range for more impact
             "head_to_head_record": {"min": 0.0, "max": 100.0, "higher_better": True},
             "consistency_factor": {"min": 0.0, "max": 100.0, "higher_better": True},
         }
@@ -672,9 +688,13 @@ class AdvancedMatchupSimulator:
             # Only normalize if we have less than 80% of the total weight
             if total_weight_used < 0.8:
                 composite_score = composite_score / total_weight_used
-                print(f"[DEBUG] Normalized due to missing data: {total_weight_used:.3f} weight used")
+                print(
+                    f"[DEBUG] Normalized due to missing data: {total_weight_used:.3f} weight used"
+                )
 
-            print(f"[DEBUG] Final composite score: {composite_score:.3f} (total weight used: {total_weight_used:.3f})")
+            print(
+                f"[DEBUG] Final composite score: {composite_score:.3f} (total weight used: {total_weight_used:.3f})"
+            )
 
             return composite_score
 

@@ -53,11 +53,11 @@ class User(Base):
     last_name = Column(String(255))
     club_automation_password = Column(String(255))  # For club automation features
     is_admin = Column(Boolean, nullable=False, default=False)
-    
+
     # Player preferences - personal attributes that don't change across leagues
     ad_deuce_preference = Column(String(50))  # 'Ad', 'Deuce', 'Either'
     dominant_hand = Column(String(20))  # 'Righty', 'Lefty'
-    
+
     created_at = Column(DateTime(timezone=True), default=func.now())
     last_login = Column(DateTime(timezone=True))
 

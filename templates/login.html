@@ -253,57 +253,98 @@
                 </form>
                 
                 <form id="registerForm" class="auth-form">
-                    <div class="form-row">
-                        <div class="form-floating">
-                            <input type="text" class="form-control" id="firstName" placeholder="First Name" required>
-                            <label for="firstName">First Name</label>
+                    <!-- Account Information Section -->
+                    <div class="form-section mb-4" style="background-color: #f8f9fa; border-radius: 8px; padding: 20px; border-left: 3px solid #007bff;">
+                        <h6 class="section-title mb-3" style="color: #495057; font-weight: 600; font-size: 0.9rem; margin-bottom: 1rem;">About you</h6>
+                        
+                        <div class="form-row">
+                            <div class="form-floating">
+                                <input type="text" class="form-control" id="firstName" placeholder="First Name" required>
+                                <label for="firstName">First Name</label>
+                            </div>
+                            
+                            <div class="form-floating">
+                                <input type="text" class="form-control" id="lastName" placeholder="Last Name" required>
+                                <label for="lastName">Last Name</label>
+                            </div>
                         </div>
                         
-                        <div class="form-floating">
-                            <input type="text" class="form-control" id="lastName" placeholder="Last Name" required>
-                            <label for="lastName">Last Name</label>
+                        <div class="form-floating mb-3">
+                            <input type="email" class="form-control" id="registerEmail" placeholder="name@example.com" required>
+                            <label for="registerEmail">Email address</label>
+                        </div>
+                        
+                        <div class="form-floating mb-3">
+                            <input type="password" class="form-control" id="registerPassword" placeholder="Password" required>
+                            <label for="registerPassword">Password</label>
+                        </div>
+                        
+                        <div class="form-floating mb-3">
+                            <input type="password" class="form-control" id="confirmPassword" placeholder="Confirm Password" required>
+                            <label for="confirmPassword">Confirm Password</label>
+                        </div>
+                        
+                        <div class="password-feedback" id="passwordFeedback" style="display: none;">
+                            <i class="fas fa-check-circle"></i>
+                            <span id="passwordFeedbackText"></span>
                         </div>
                     </div>
                     
-                    <div class="form-floating">
-                        <input type="email" class="form-control" id="registerEmail" placeholder="name@example.com" required>
-                        <label for="registerEmail">Email address</label>
+                    <!-- Organization Settings Section -->
+                    <div class="form-section mb-4" style="background-color: #f8f9fa; border-radius: 8px; padding: 20px; border-left: 3px solid #28a745;">
+                        <h6 class="section-title mb-3" style="color: #495057; font-weight: 600; font-size: 0.9rem; margin-bottom: 1rem;">Where you play</h6>
+                        
+                        <div class="form-floating mb-3">
+                            <select class="form-control" id="league" required>
+                                <option value="">Select your league</option>
+                            </select>
+                            <label for="league">League</label>
+                        </div>
+                        
+                        <div class="form-floating mb-3">
+                            <select class="form-control" id="club" required>
+                                <option value="">Select your club</option>
+                            </select>
+                            <label for="club">Club</label>
+                        </div>
+                        
+                        <div class="form-floating mb-3">
+                            <select class="form-control" id="series" required>
+                                <option value="">Select your series</option>
+                            </select>
+                            <label for="series">Series/Division</label>
+                        </div>
                     </div>
                     
-                    <div class="form-floating">
-                        <input type="password" class="form-control" id="registerPassword" placeholder="Password" required>
-                        <label for="registerPassword">Password</label>
+                    <!-- Player Preferences Section -->
+                    <div class="form-section mb-4" style="background-color: #f8f9fa; border-radius: 8px; padding: 20px; border-left: 3px solid #ffc107;">
+                        <h6 class="section-title mb-3" style="color: #495057; font-weight: 600; font-size: 0.9rem; margin-bottom: 1rem;">How you play</h6>
+                        
+                        <div class="form-floating mb-3">
+                            <select class="form-control" id="adDeuce" required>
+                                <option value="">Select preference...</option>
+                                <option value="Ad">Ad</option>
+                                <option value="Deuce">Deuce</option>
+                                <option value="Either">Either</option>
+                            </select>
+                            <label for="adDeuce">Ad/Deuce Preference</label>
+                        </div>
+                        
+                        <div class="form-floating mb-3">
+                            <select class="form-control" id="dominantHand" required>
+                                <option value="">Select hand...</option>
+                                <option value="Righty">Righty</option>
+                                <option value="Lefty">Lefty</option>
+                            </select>
+                            <label for="dominantHand">Dominant Hand</label>
+                        </div>
                     </div>
                     
-                    <div class="form-floating">
-                        <input type="password" class="form-control" id="confirmPassword" placeholder="Confirm Password" required>
-                        <label for="confirmPassword">Confirm Password</label>
-                    </div>
-                    
-                    <div class="password-feedback" id="passwordFeedback" style="display: none;">
-                        <i class="fas fa-check-circle"></i>
-                        <span id="passwordFeedbackText"></span>
-                    </div>
-                    
-                    <div class="form-floating">
-                        <select class="form-control" id="league" required>
-                            <option value="">Select your league</option>
-                        </select>
-                        <label for="league">League</label>
-                    </div>
-                    
-                    <div class="form-floating">
-                        <select class="form-control" id="club" required>
-                            <option value="">Select your club</option>
-                        </select>
-                        <label for="club">Club</label>
-                    </div>
-                    
-                    <div class="form-floating">
-                        <select class="form-control" id="series" required>
-                            <option value="">Select your series</option>
-                        </select>
-                        <label for="series">Series</label>
+                    <div class="form-check mb-4" style="text-align: left;">
+                        <input class="form-check-input" type="checkbox" id="textNotifications" required>
+                        <label class="form-check-label" for="textNotifications" style="font-size: 0.85rem;">
+                            I agree to receive text notifications from my team captain through Rally.
+                        </label>
                     </div>
                     
                     <div class="error-message" id="registerErrorMessage"></div>
@@ -433,11 +474,30 @@
                 
                 if (data.series && Array.isArray(data.series)) {
                     console.log(`Adding ${data.series.length} series options`);
+                    
+                    // Create a map to track unique display names and prevent duplicates
+                    const uniqueSeries = new Map();
+                    
                     data.series.forEach(series => {
+                        // Create alias from series name (extract number and format as "Series X [suffix]")
+                        let seriesDisplay = series;
+                        const numberMatch = series.match(/(\d+)(\s+\w+)*$/);
+                        if (numberMatch) {
+                            const seriesNumber = numberMatch[1];
+                            const suffix = numberMatch[2] || '';
+                            seriesDisplay = `Series ${seriesNumber}${suffix}`;
+                        }
+                        
+                        // Only add if we haven't seen this display name before
+                        if (!uniqueSeries.has(seriesDisplay)) {
+                            uniqueSeries.set(seriesDisplay, series);
+                        }
+                    });
+                    
+                    // Add the unique options to the select
+                    uniqueSeries.forEach((originalValue, displayText) => {
                         const option = document.createElement('option');
-                        option.value = series;
-                        // Transform display text from "Chicago XX" to "Series XX"
-                        const displayText = series.replace(/^Chicago\s+(\d+.*)$/i, 'Series $1');
+                        option.value = originalValue;
                         option.textContent = displayText;
                         seriesSelect.appendChild(option);
                     });
@@ -457,11 +517,30 @@
                     seriesSelect.innerHTML = '<option value="">Select your series</option>';
                     if (data.all_series && Array.isArray(data.all_series)) {
                         console.log(`Adding ${data.all_series.length} fallback series options`);
+                        
+                        // Create a map to track unique display names and prevent duplicates
+                        const uniqueSeries = new Map();
+                        
                         data.all_series.forEach(series => {
+                            // Create alias from series name (extract number and format as "Series X [suffix]")
+                            let seriesDisplay = series;
+                            const numberMatch = series.match(/(\d+)(\s+\w+)*$/);
+                            if (numberMatch) {
+                                const seriesNumber = numberMatch[1];
+                                const suffix = numberMatch[2] || '';
+                                seriesDisplay = `Series ${seriesNumber}${suffix}`;
+                            }
+                            
+                            // Only add if we haven't seen this display name before
+                            if (!uniqueSeries.has(seriesDisplay)) {
+                                uniqueSeries.set(seriesDisplay, series);
+                            }
+                        });
+                        
+                        // Add the unique options to the select
+                        uniqueSeries.forEach((originalValue, displayText) => {
                             const option = document.createElement('option');
-                            option.value = series;
-                            // Transform display text from "Chicago XX" to "Series XX"
-                            const displayText = series.replace(/^Chicago\s+(\d+.*)$/i, 'Series $1');
+                            option.value = originalValue;
                             option.textContent = displayText;
                             seriesSelect.appendChild(option);
                         });
@@ -612,6 +691,8 @@
             const league = document.getElementById('league').value;
             const club = document.getElementById('club').value;
             const series = document.getElementById('series').value;
+            const adDeuce = document.getElementById('adDeuce').value;
+            const dominantHand = document.getElementById('dominantHand').value;
             const errorMessage = document.getElementById('registerErrorMessage');
             const authErrorContainer = document.getElementById('authErrorContainer');
             const authErrorMessage = document.getElementById('authErrorMessage');
@@ -638,6 +719,21 @@
             }
             
             try {
+                // Debug logging to help troubleshoot registration issues
+                console.log('🔍 Registration Debug - Form Values:');
+                console.log('  Email:', email);
+                console.log('  First Name:', firstName);
+                console.log('  Last Name:', lastName);
+                console.log('  League:', league);
+                console.log('  Club:', club);
+                console.log('  Series:', series);
+                
+                // Check what the selected series option actually contains
+                const seriesSelect = document.getElementById('series');
+                const selectedOption = seriesSelect.options[seriesSelect.selectedIndex];
+                console.log('  Series Display Text:', selectedOption?.textContent);
+                console.log('  Series Value (submitted):', selectedOption?.value);
+                
                 const response = await fetch('/api/register', {
                     method: 'POST',
                     headers: {
@@ -651,12 +747,21 @@
                         lastName,
                         league,
                         club,
-                        series
+                        series,
+                        adDeuce,
+                        dominantHand
                     })
                 });
                 
                 const data = await response.json();
+                
+                // Debug logging for the API response
+                console.log('🔍 Registration API Response:');
+                console.log('  Status Code:', response.status);
+                console.log('  Response Data:', data);
+                
                 if (response.ok && data.status === 'success') {
+                    console.log('✅ Registration successful, redirecting...');
                     if (data.redirect) {
                         window.location.href = data.redirect;
                     } else {
@@ -665,6 +770,7 @@
                     authErrorContainer.classList.remove('active');
                     errorMessage.style.display = 'none';
                 } else {
+                    console.log('❌ Registration failed:', data.error);
                     authErrorMessage.textContent = data.error || 'Registration failed';
                     authErrorContainer.classList.add('active');
                     errorMessage.style.display = 'none';

@@ -22,59 +22,56 @@
         
         <!-- Main Settings Form -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="px-6 py-4 border-b border-gray-50">
-                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-                    <i class="fas fa-user text-blue-500 mr-2"></i>
-                    Account Information
-                </h2>
-            </div>
             
-            <div class="p-6">
-                <form id="user-settings-form" class="space-y-4">
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2" for="firstName">First Name</label>
-                            <input type="text" id="firstName" name="firstName" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                        <div class="p-6">
+                <form id="user-settings-form" class="space-y-6">
+                    
+                    <!-- Account Information Section -->
+                    <div class="form-section" style="background-color: #f8f9fa; border-radius: 8px; padding: 20px; border-left: 3px solid #007bff;">
+                        <h6 class="section-title" style="color: #495057; font-weight: 600; font-size: 0.9rem; margin-bottom: 1rem;">About you</h6>
+                        
+                        <div class="grid grid-cols-2 gap-4 mb-3">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2" for="firstName">First Name</label>
+                                <input type="text" id="firstName" name="firstName" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2" for="lastName">Last Name</label>
+                                <input type="text" id="lastName" name="lastName" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                            </div>
                         </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2" for="lastName">Last Name</label>
-                            <input type="text" id="lastName" name="lastName" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                        
+                        <div class="mb-3">
+                            <label class="block text-sm font-medium text-gray-700 mb-2" for="email">Email Address</label>
+                            <input type="email" id="email" name="email" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
                         </div>
                     </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2" for="email">Email Address</label>
-                        <input type="email" id="email" name="email" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2" for="league">League</label>
-                        <select id="league" name="league" class="w-full p-3 border border-gray-300 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required></select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2" for="club">Club</label>
-                        <select id="club" name="club" class="w-full p-3 border border-gray-300 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required></select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2" for="series">Series/Division</label>
-                        <select id="series" name="series" class="w-full p-3 border border-gray-300 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required></select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2" for="clubAutomationPassword">Club Automation Password</label>
-                        <div class="relative">
-                            <input type="password" id="clubAutomationPassword" name="clubAutomationPassword" class="w-full p-3 pr-12 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" autocomplete="off">
-                            <button type="button" id="togglePassword" tabindex="-1" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none" aria-label="Show/Hide Password">
-                                <i class="fas fa-eye"></i>
-                            </button>
+
+                    <!-- Organization Settings Section -->
+                    <div class="form-section" style="background-color: #f8f9fa; border-radius: 8px; padding: 20px; border-left: 3px solid #28a745;">
+                        <h6 class="section-title" style="color: #495057; font-weight: 600; font-size: 0.9rem; margin-bottom: 1rem;">Where you play</h6>
+                        
+                        <div class="mb-3">
+                            <label class="block text-sm font-medium text-gray-700 mb-2" for="league">League</label>
+                            <select id="league" name="league" class="w-full p-3 border border-gray-300 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required></select>
                         </div>
-                        <div class="text-xs text-gray-500 mt-1">This is used to automatically log you into Club Automation when reserving</div>
+                        
+                        <div class="mb-3">
+                            <label class="block text-sm font-medium text-gray-700 mb-2" for="club">Club</label>
+                            <select id="club" name="club" class="w-full p-3 border border-gray-300 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required></select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="block text-sm font-medium text-gray-700 mb-2" for="series">Series/Division</label>
+                            <select id="series" name="series" class="w-full p-3 border border-gray-300 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required></select>
+                        </div>
                     </div>
                     
                     <!-- Player Preferences Section -->
-                    <div class="pt-6 border-t border-gray-100" id="player-preferences">
-                        <h3 class="text-md font-semibold text-gray-900 mb-4 flex items-center">
-                            <i class="fas fa-user-cog text-blue-500 mr-2"></i>
-                            Player Preferences
-                        </h3>
-                        <div class="grid grid-cols-2 gap-4">
+                    <div class="form-section" id="player-preferences" style="background-color: #f8f9fa; border-radius: 8px; padding: 20px; border-left: 3px solid #ffc107;">
+                        <h6 class="section-title" style="color: #495057; font-weight: 600; font-size: 0.9rem; margin-bottom: 1rem;">How you play</h6>
+                        
+                        <div class="grid grid-cols-2 gap-4 mb-3">
                             <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-2" for="adDeuce">Ad/Deuce</label>
                                 <select id="adDeuce" name="adDeuce" class="w-full p-3 border border-gray-300 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
@@ -93,7 +90,8 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="text-xs text-gray-500 mt-2">These preferences will be used for match planning and lineups.</div>
+                        
+                        <div class="text-xs text-gray-500">These preferences will be used for match planning and lineups.</div>
                     </div>
                     
                     <div class="pt-4">
@@ -146,9 +144,6 @@ function fillUserSettingsForm(user) {
   document.getElementById('lastName').value = user.last_name || '';
   document.getElementById('email').value = user.email || '';
   // League/club/series will be set after dropdowns are loaded
-  if (user.club_automation_password !== undefined) {
-    document.getElementById('clubAutomationPassword').value = user.club_automation_password || '';
-  }
   
   // Player preferences (placeholders for now)
   document.getElementById('adDeuce').value = user.ad_deuce_preference || '';
@@ -213,8 +208,36 @@ function loadSeriesByLeague(leagueId, selectedSeries = null) {
   
   fetch(url).then(r=>r.json()).then(data => {
     const seriesSel = document.getElementById('series');
-    seriesSel.innerHTML = '<option value="">Select a series...</option>' + 
-      data.series.map(s => `<option value="${s}">${s}</option>`).join('');
+    seriesSel.innerHTML = '<option value="">Select a series...</option>';
+    
+    if (data.series && Array.isArray(data.series)) {
+      // Create a map to track unique display names and prevent duplicates
+      const uniqueSeries = new Map();
+      
+      data.series.forEach(series => {
+        // Create alias from series name (extract number and format as "Series X [suffix]")
+        let seriesDisplay = series;
+        const numberMatch = series.match(/(\d+)(\s+\w+)*$/);
+        if (numberMatch) {
+          const seriesNumber = numberMatch[1];
+          const suffix = numberMatch[2] || '';
+          seriesDisplay = `Series ${seriesNumber}${suffix}`;
+        }
+        
+        // Only add if we haven't seen this display name before
+        if (!uniqueSeries.has(seriesDisplay)) {
+          uniqueSeries.set(seriesDisplay, series);
+        }
+      });
+      
+      // Add the unique options to the select
+      uniqueSeries.forEach((originalValue, displayText) => {
+        const option = document.createElement('option');
+        option.value = originalValue;
+        option.textContent = displayText;
+        seriesSel.appendChild(option);
+      });
+    }
     
     // Set selected series if provided
     if (selectedSeries) {
@@ -225,24 +248,43 @@ function loadSeriesByLeague(leagueId, selectedSeries = null) {
     // Fallback to all series
     fetch('/api/get-series').then(r=>r.json()).then(data => {
       const seriesSel = document.getElementById('series');
-      seriesSel.innerHTML = data.all_series.map(s => `<option value="${s}">${s}</option>`).join('');
+      seriesSel.innerHTML = '<option value="">Select a series...</option>';
+      
+      if (data.all_series && Array.isArray(data.all_series)) {
+        // Create a map to track unique display names and prevent duplicates
+        const uniqueSeries = new Map();
+        
+        data.all_series.forEach(series => {
+          // Create alias from series name (extract number and format as "Series X [suffix]")
+          let seriesDisplay = series;
+          const numberMatch = series.match(/(\d+)(\s+\w+)*$/);
+          if (numberMatch) {
+            const seriesNumber = numberMatch[1];
+            const suffix = numberMatch[2] || '';
+            seriesDisplay = `Series ${seriesNumber}${suffix}`;
+          }
+          
+          // Only add if we haven't seen this display name before
+          if (!uniqueSeries.has(seriesDisplay)) {
+            uniqueSeries.set(seriesDisplay, series);
+          }
+        });
+        
+        // Add the unique options to the select
+        uniqueSeries.forEach((originalValue, displayText) => {
+          const option = document.createElement('option');
+          option.value = originalValue;
+          option.textContent = displayText;
+          seriesSel.appendChild(option);
+        });
+      }
+      
       if (selectedSeries) seriesSel.value = selectedSeries;
     });
   });
 }
 
-// Show/hide password
-const toggleBtn = document.getElementById('togglePassword');
-toggleBtn.addEventListener('click', function() {
-  const pwd = document.getElementById('clubAutomationPassword');
-  if (pwd.type === 'password') {
-    pwd.type = 'text';
-    this.innerHTML = '<i class="fas fa-eye-slash"></i>';
-  } else {
-    pwd.type = 'password';
-    this.innerHTML = '<i class="fas fa-eye"></i>';
-  }
-});
+
 
 // On page load, fetch user settings
 fetch('/api/get-user-settings').then(r=>r.json()).then(user => {
@@ -272,11 +314,24 @@ form.addEventListener('submit', function(e) {
     league_id: form.league.value,
     club: form.club.value,
     series: form.series.value,
-    clubAutomationPassword: form.clubAutomationPassword.value,
     // Player preferences (placeholders for now)
     adDeuce: form.adDeuce.value,
     dominantHand: form.dominantHand.value
   };
+  
+  // Debug logging to help troubleshoot settings vs registration differences
+  console.log('🔍 Settings Update Debug - Form Values:');
+  console.log('  First Name:', data.firstName);
+  console.log('  Last Name:', data.lastName);
+  console.log('  League ID:', data.league_id);
+  console.log('  Club:', data.club);
+  console.log('  Series:', data.series);
+  
+  // Check what the selected series option actually contains
+  const seriesSelect = document.getElementById('series');
+  const selectedOption = seriesSelect.options[seriesSelect.selectedIndex];
+  console.log('  Series Display Text:', selectedOption?.textContent);
+  console.log('  Series Value (submitted):', selectedOption?.value);
   
   fetch('/api/update-settings', {
     method: 'POST',
@@ -285,12 +340,18 @@ form.addEventListener('submit', function(e) {
   })
   .then(r => r.json())
   .then(resp => {
+    // Debug logging for the API response
+    console.log('🔍 Settings Update API Response:');
+    console.log('  Response:', resp);
+    
     if (resp.success) {
+      console.log('✅ Settings update successful');
       window.app && window.app.showToast && window.app.showToast('Settings updated!', 'success');
       
       // Reload page after a short delay to ensure all components are updated
       setTimeout(() => window.location.reload(), 1000);
     } else {
+      console.log('❌ Settings update failed:', resp.message);
       window.app && window.app.showToast && window.app.showToast(resp.message || 'Update failed', 'error');
     }
   })
@@ -331,6 +392,15 @@ document.addEventListener('DOMContentLoaded', function() {
 @media (max-width: 640px) {
     .grid-cols-2 {
         grid-template-columns: repeat(1, minmax(0, 1fr));
+    }
+    
+    .form-section {
+        padding: 16px !important;
+        margin-bottom: 1rem;
+    }
+    
+    .section-title {
+        font-size: 0.85rem !important;
     }
 }
 
@@ -403,6 +473,16 @@ document.addEventListener('DOMContentLoaded', function() {
 /* Spacing utilities */
 .space-y-6 > * + * { margin-top: 1.5rem; }
 .space-y-4 > * + * { margin-top: 1rem; }
+
+/* Form sections (matching registration page style) */
+.form-section {
+    margin-bottom: 1.5rem;
+}
+
+.section-title {
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
 
 /* Border radius utilities */
 .rounded-xl { border-radius: 0.75rem; }

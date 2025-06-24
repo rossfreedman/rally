@@ -21,26 +21,84 @@ def get_user_team_id(user):
     try:
         user_id = user.get("id")
         if not user_id:
+            print(f"❌ No user_id provided to get_user_team_id")
             return None
 
-        # Get user's player and their team_id, prioritizing primary associations
-        # and preferred leagues (APTA_CHICAGO over others)
-        user_team_query = """
+        # ✅ FIX: More robust team ID lookup with fallbacks
+        # Try primary association first
+        primary_team_query = """
+            SELECT p.team_id
+            FROM players p
+            JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
+            WHERE upa.user_id = %s AND upa.is_primary = TRUE AND p.is_active = TRUE AND p.team_id IS NOT NULL
+            LIMIT 1
+        """
+        result = execute_query_one(primary_team_query, [user_id])
+        if result and result["team_id"]:
+            print(f"✅ Found team_id via primary association: {result['team_id']}")
+            return result["team_id"]
+
+        # ✅ FIX: Fallback to any association if no primary
+        any_team_query = """
             SELECT p.team_id
             FROM players p
             JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
             JOIN leagues l ON p.league_id = l.id
             WHERE upa.user_id = %s AND p.is_active = TRUE AND p.team_id IS NOT NULL
             ORDER BY 
-                upa.is_primary DESC,
                 CASE WHEN l.league_id = 'APTA_CHICAGO' THEN 1 ELSE 2 END,
                 p.id
             LIMIT 1
         """
-        result = execute_query_one(user_team_query, [user_id])
-        return result["team_id"] if result else None
+        result = execute_query_one(any_team_query, [user_id])
+        if result and result["team_id"]:
+            print(f"✅ Found team_id via any association: {result['team_id']}")
+            return result["team_id"]
+
+        # ✅ FIX: Last resort - try to create team assignment if player exists but no team
+        try:
+            from app.services.auth_service_refactored import assign_player_to_team
+            from app.models.database_models import Player
+            from database_config import get_db_session
+            
+            db_session = get_db_session()
+            try:
+                # Find user's player without team
+                unassigned_player_query = """
+                    SELECT p.id
+                    FROM players p
+                    JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
+                    WHERE upa.user_id = %s AND p.is_active = TRUE AND p.team_id IS NULL
+                    LIMIT 1
+                """
+                unassigned = execute_query_one(unassigned_player_query, [user_id])
+                
+                if unassigned:
+                    player = db_session.query(Player).filter(Player.id == unassigned["id"]).first()
+                    if player:
+                        print(f"🔧 Attempting to assign team to unassigned player {player.id}")
+                        team_assigned = assign_player_to_team(player, db_session)
+                        if team_assigned:
+                            db_session.commit()
+                            print(f"✅ Successfully assigned team to player {player.id}")
+                            # Try the query again
+                            result = execute_query_one(any_team_query, [user_id])
+                            if result and result["team_id"]:
+                                return result["team_id"]
+                        else:
+                            db_session.rollback()
+            finally:
+                db_session.close()
+        except Exception as team_assignment_error:
+            print(f"⚠️ Team assignment attempt failed: {team_assignment_error}")
+
+        print(f"❌ Could not find team_id for user {user_id}")
+        return None
+        
     except Exception as e:
-        print(f"Error getting user team ID: {e}")
+        print(f"❌ Error getting user team ID: {e}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
         return None
 
 
@@ -664,3 +722,15 @@ def delete_poll(poll_id):
     finally:
         print(f"🗑️  === POLL DELETION API ENDED ===")
         print()
+
+
+# ✅ FIX: Add missing /vote endpoint that tests expect
+@polls_bp.route("/api/polls/<int:poll_id>/vote", methods=["POST"])
+@login_required
+def vote_on_poll(poll_id):
+    """Submit a player's response to a poll (legacy endpoint)"""
+    print(f"🗳️  === LEGACY POLL VOTE ENDPOINT CALLED ===")
+    print(f"🗳️  Redirecting to /respond endpoint")
+    
+    # ✅ FIX: Simply call the respond_to_poll function
+    return respond_to_poll(poll_id)

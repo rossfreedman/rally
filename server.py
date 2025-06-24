@@ -362,6 +362,15 @@ def serve_pti_analysis():
     )
 
 
+@app.route("/schedule")
+@login_required
+def serve_schedule_page():
+    """Serve the schedule page"""
+    session_data = {"user": session["user"], "authenticated": True}
+    log_user_activity(session["user"]["email"], "page_visit", page="schedule")
+    return render_template("mobile/view_schedule.html", session_data=session_data)
+
+
 @app.route("/<path:path>")
 @login_required
 def serve_static(path):

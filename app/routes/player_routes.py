@@ -58,43 +58,72 @@ def get_players_by_series():
         # Handle team filtering if requested
         team_players = set()
         if team_id:
-            # Load matches data for team filtering (still from JSON for now)
+            # FIXED: Get team players from database instead of JSON
             try:
-                app_dir = os.path.dirname(
-                    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-                )
-                if user_league_id and not user_league_id.startswith("APTA"):
-                    matches_path = os.path.join(
-                        app_dir, "data", "leagues", user_league_id, "match_history.json"
-                    )
-                else:
-                    matches_path = os.path.join(
-                        app_dir, "data", "leagues", "all", "match_history.json"
-                    )
+                from database_utils import execute_query
+                
+                # Convert string league_id to integer foreign key if needed
+                league_id_int = None
+                if user_league_id:
+                    if isinstance(user_league_id, str) and user_league_id != "":
+                        try:
+                            from database_utils import execute_query_one
+                            league_record = execute_query_one(
+                                "SELECT id FROM leagues WHERE league_id = %s", [user_league_id]
+                            )
+                            if league_record:
+                                league_id_int = league_record["id"]
+                        except Exception as e:
+                            pass
+                    elif isinstance(user_league_id, int):
+                        league_id_int = user_league_id
 
-                if os.path.exists(matches_path):
-                    with open(matches_path, "r") as f:
-                        matches = json.load(f)
-
-                    # Get all players who have played for this team
-                    for match in matches:
-                        match_league_id = match.get("league_id")
-                        if user_league_id.startswith("APTA"):
-                            if match_league_id != user_league_id:
-                                continue
-                        else:
-                            if match_league_id != user_league_id:
-                                continue
-
-                        if match["Home Team"] == team_id:
-                            team_players.add(match["Home Player 1"])
-                            team_players.add(match["Home Player 2"])
-                        elif match["Away Team"] == team_id:
-                            team_players.add(match["Away Player 1"])
-                            team_players.add(match["Away Player 2"])
+                # Get all players who have played for this team from database
+                if league_id_int:
+                    team_players_query = """
+                        SELECT DISTINCT 
+                            home_player_1_id as player_id FROM match_scores 
+                        WHERE home_team = %s AND league_id = %s AND home_player_1_id IS NOT NULL
+                        UNION
+                        SELECT DISTINCT 
+                            home_player_2_id as player_id FROM match_scores 
+                        WHERE home_team = %s AND league_id = %s AND home_player_2_id IS NOT NULL
+                        UNION
+                        SELECT DISTINCT 
+                            away_player_1_id as player_id FROM match_scores 
+                        WHERE away_team = %s AND league_id = %s AND away_player_1_id IS NOT NULL
+                        UNION
+                        SELECT DISTINCT 
+                            away_player_2_id as player_id FROM match_scores 
+                        WHERE away_team = %s AND league_id = %s AND away_player_2_id IS NOT NULL
+                    """
+                    team_player_records = execute_query(team_players_query, [
+                        team_id, league_id_int, team_id, league_id_int,
+                        team_id, league_id_int, team_id, league_id_int
+                    ])
+                    
+                    # Convert player IDs to names for filtering
+                    for record in team_player_records:
+                        player_id = record['player_id']
+                        if player_id:
+                            # Get player name from database
+                            try:
+                                from database_utils import execute_query_one
+                                player_name_query = """
+                                    SELECT first_name, last_name FROM players 
+                                    WHERE tenniscores_player_id = %s
+                                """
+                                player_data = execute_query_one(player_name_query, [player_id])
+                                if player_data:
+                                    player_name = f"{player_data['first_name']} {player_data['last_name']}"
+                                    team_players.add(player_name)
+                            except Exception as e:
+                                # Fallback: use player ID as name if lookup fails
+                                team_players.add(player_id)
+                                
             except Exception as e:
                 print(
-                    f"Warning: Error loading matches data for team filtering: {str(e)}"
+                    f"Warning: Error loading team players from database: {str(e)}"
                 )
                 team_id = None  # Continue without team filtering
 
@@ -125,123 +154,132 @@ def get_players_by_series():
 @player_bp.route("/api/team-players/<team_id>")
 @login_required
 def get_team_players(team_id):
-    """Get all players for a specific team"""
+    """Get all players for a specific team - FIXED: Uses database instead of JSON"""
     try:
-        app_dir = os.path.dirname(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        )
+        from database_utils import execute_query, execute_query_one
+        from collections import defaultdict
+        
         user_league_id = session["user"].get("league_id", "")
 
-        # Load player PTI data from JSON with dynamic path
-        if user_league_id and not user_league_id.startswith("APTA"):
-            # For non-APTA leagues, use league-specific path
-            players_path = os.path.join(
-                app_dir, "data", "leagues", user_league_id, "players.json"
-            )
-        else:
-            # For APTA leagues, use the main players file
-            players_path = os.path.join(
-                app_dir, "data", "leagues", "all", "players.json"
-            )
+        # Convert string league_id to integer foreign key if needed
+        league_id_int = None
+        if user_league_id:
+            if isinstance(user_league_id, str) and user_league_id != "":
+                try:
+                    league_record = execute_query_one(
+                        "SELECT id FROM leagues WHERE league_id = %s", [user_league_id]
+                    )
+                    if league_record:
+                        league_id_int = league_record["id"]
+                except Exception as e:
+                    pass
+            elif isinstance(user_league_id, int):
+                league_id_int = user_league_id
 
-        with open(players_path, "r") as f:
-            all_players = json.load(f)
+        if not league_id_int:
+            return jsonify({"error": "League context required"}), 400
 
-        pti_dict = {}
-        for player in all_players:
-            # Check league filtering for PTI data
-            player_league = player.get("League", player.get("league_id"))
-            if user_league_id.startswith("APTA"):
-                # For APTA users, only include players from the same APTA league
-                if player_league != user_league_id:
-                    continue
-            else:
-                # For other leagues, match the league_id
-                if player_league != user_league_id:
-                    continue
-
-            player_name = f"{player['Last Name']} {player['First Name']}"
-            pti_dict[player_name] = float(player["PTI"])
-
-        # Use dynamic path for matches
-        if user_league_id and not user_league_id.startswith("APTA"):
-            matches_path = os.path.join(
-                app_dir, "data", "leagues", user_league_id, "match_history.json"
-            )
-        else:
-            matches_path = os.path.join(
-                app_dir, "data", "leagues", "all", "match_history.json"
-            )
-
-        with open(matches_path, "r") as f:
-            matches = json.load(f)
+        # FIXED: Get team matches from database instead of JSON
+        team_matches_query = """
+            SELECT 
+                TO_CHAR(match_date, 'DD-Mon-YY') as match_date_formatted,
+                match_date,
+                home_team,
+                away_team,
+                winner,
+                scores,
+                home_player_1_id,
+                home_player_2_id,
+                away_player_1_id,
+                away_player_2_id,
+                id
+            FROM match_scores
+            WHERE (home_team = %s OR away_team = %s)
+            AND league_id = %s
+            ORDER BY match_date, id
+        """
+        
+        matches = execute_query(team_matches_query, [team_id, team_id, league_id_int])
+        
+        if not matches:
+            return jsonify({"players": [], "teamId": team_id})
 
         # Track unique players and their stats
         players = {}
 
-        # Group matches by date to determine court numbers
-        date_matches = {}
+        # Group matches by date to determine court numbers (same logic as before)
+        date_matches = defaultdict(list)
         for match in matches:
-            # Add league filtering for matches
-            match_league_id = match.get("league_id")
-            if user_league_id.startswith("APTA"):
-                # For APTA users, match exact APTA league ID
-                if match_league_id != user_league_id:
-                    continue
-            else:
-                # For other leagues, match the league_id
-                if match_league_id != user_league_id:
-                    continue
-
-            if match["Home Team"] == team_id or match["Away Team"] == team_id:
-                date = match["Date"]
-                if date not in date_matches:
-                    date_matches[date] = []
-                date_matches[date].append(match)
+            date = match["match_date_formatted"]
+            date_matches[date].append(match)
 
         # Sort dates and assign court numbers
         sorted_dates = sorted(date_matches.keys())
 
         for date in sorted_dates:
             day_matches = date_matches[date]
-            # Sort by time if available, otherwise use original order
-            day_matches.sort(key=lambda m: m.get("Time", ""))
+            # Sort by match ID as proxy for time
+            day_matches.sort(key=lambda m: m.get("id", 0))
 
             for court_idx, match in enumerate(day_matches):
                 court_num = (court_idx % 4) + 1  # Courts 1-4
 
                 # Determine if team was home or away
-                is_home = match["Home Team"] == team_id
-                player1 = match["Home Player 1"] if is_home else match["Away Player 1"]
-                player2 = match["Home Player 2"] if is_home else match["Away Player 2"]
+                is_home = match["home_team"] == team_id
+                player1_id = match["home_player_1_id"] if is_home else match["away_player_1_id"]
+                player2_id = match["home_player_2_id"] if is_home else match["away_player_2_id"]
 
                 # Skip if players are missing
-                if not player1 or not player2:
+                if not player1_id or not player2_id:
+                    continue
+
+                # Get player names from database
+                player1_name = None
+                player2_name = None
+                
+                for player_id in [player1_id, player2_id]:
+                    try:
+                        player_query = """
+                            SELECT first_name, last_name, pti FROM players 
+                            WHERE tenniscores_player_id = %s AND league_id = %s
+                        """
+                        player_data = execute_query_one(player_query, [player_id, league_id_int])
+                        if player_data:
+                            player_name = f"{player_data['first_name']} {player_data['last_name']}"
+                            if player_id == player1_id:
+                                player1_name = player_name
+                            else:
+                                player2_name = player_name
+                                
+                            # Initialize player if not seen before
+                            if player_name not in players:
+                                players[player_name] = {
+                                    "name": player_name,
+                                    "matches": 0,
+                                    "wins": 0,
+                                    "courts": {
+                                        "Court 1": {"matches": 0, "wins": 0},
+                                        "Court 2": {"matches": 0, "wins": 0},
+                                        "Court 3": {"matches": 0, "wins": 0},
+                                        "Court 4": {"matches": 0, "wins": 0},
+                                    },
+                                    "partners": {},
+                                    "pti": float(player_data.get("pti", 0.0)),
+                                }
+                    except Exception as e:
+                        print(f"Error getting player data for {player_id}: {e}")
+                        continue
+
+                # Skip if we couldn't get player names
+                if not player1_name or not player2_name:
                     continue
 
                 # Determine if team won
-                winner_is_home = match.get("Winner") == "home"
-                team_won = (is_home and winner_is_home) or (
-                    not is_home and not winner_is_home
-                )
+                winner_is_home = match.get("winner") == "home"
+                team_won = (is_home and winner_is_home) or (not is_home and not winner_is_home)
 
                 # Track stats for each player
-                for player_name in [player1, player2]:
-                    if player_name not in players:
-                        players[player_name] = {
-                            "name": player_name,
-                            "matches": 0,
-                            "wins": 0,
-                            "courts": {
-                                "Court 1": {"matches": 0, "wins": 0},
-                                "Court 2": {"matches": 0, "wins": 0},
-                                "Court 3": {"matches": 0, "wins": 0},
-                                "Court 4": {"matches": 0, "wins": 0},
-                            },
-                            "partners": {},
-                            "pti": pti_dict.get(player_name, 0.0),
-                        }
-
+                for player_name in [player1_name, player2_name]:
                     player_stats = players[player_name]
                     player_stats["matches"] += 1
 
@@ -255,14 +293,14 @@ def get_team_players(team_id):
                         player_stats["courts"][court_name]["wins"] += 1
 
                     # Partner stats
-                    partner = player2 if player_name == player1 else player1
+                    partner = player2_name if player_name == player1_name else player1_name
                     if partner not in player_stats["partners"]:
                         player_stats["partners"][partner] = {"matches": 0, "wins": 0}
                     player_stats["partners"][partner]["matches"] += 1
                     if team_won:
                         player_stats["partners"][partner]["wins"] += 1
 
-        # Convert to list and add calculated fields
+        # Convert to list and add calculated fields (same logic as before)
         result_players = []
         for player_name, stats in players.items():
             win_rate = (
@@ -346,61 +384,92 @@ def serve_player_detail(player_name):
 @player_bp.route("/api/player-history")
 @login_required
 def get_player_history():
-    """Get player history from match data"""
+    """Get player history from database - FIXED: Uses database instead of JSON"""
     try:
+        from database_utils import execute_query, execute_query_one
+        
         user = session.get("user")
         if not user:
             return jsonify({"error": "Not authenticated"}), 401
 
-        app_dir = os.path.dirname(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        )
+        player_id = user.get("tenniscores_player_id")
         user_league_id = user.get("league_id", "")
 
-        # Use dynamic path based on league
-        if user_league_id and not user_league_id.startswith("APTA"):
-            player_history_path = os.path.join(
-                app_dir, "data", "leagues", user_league_id, "player_history.json"
-            )
+        if not player_id:
+            return jsonify({"error": "Player ID not found in session"}), 400
+
+        # Convert string league_id to integer foreign key if needed
+        league_id_int = None
+        if user_league_id:
+            if isinstance(user_league_id, str) and user_league_id != "":
+                try:
+                    league_record = execute_query_one(
+                        "SELECT id FROM leagues WHERE league_id = %s", [user_league_id]
+                    )
+                    if league_record:
+                        league_id_int = league_record["id"]
+                except Exception as e:
+                    pass
+            elif isinstance(user_league_id, int):
+                league_id_int = user_league_id
+
+        # FIXED: Get player history from database instead of JSON
+        if league_id_int:
+            # Get player's database ID first
+            player_db_query = """
+                SELECT id, first_name, last_name, pti 
+                FROM players 
+                WHERE tenniscores_player_id = %s AND league_id = %s
+            """
+            player_db_data = execute_query_one(player_db_query, [player_id, league_id_int])
         else:
-            player_history_path = os.path.join(
-                app_dir, "data", "leagues", "all", "player_history.json"
-            )
+            # Fallback without league filter
+            player_db_query = """
+                SELECT id, first_name, last_name, pti 
+                FROM players 
+                WHERE tenniscores_player_id = %s
+                ORDER BY id DESC
+                LIMIT 1
+            """
+            player_db_data = execute_query_one(player_db_query, [player_id])
 
-        # Check if file exists before trying to open it
-        if not os.path.exists(player_history_path):
-            return jsonify({"error": "Player history data not available"}), 404
-
-        with open(player_history_path, "r") as f:
-            all_player_history = json.load(f)
-
-        # Filter player history by league
-        player_history = []
-        for player in all_player_history:
-            player_league = player.get("League", player.get("league_id"))
-            if user_league_id.startswith("APTA"):
-                # For APTA users, only include players from the same APTA league
-                if player_league == user_league_id:
-                    player_history.append(player)
-            else:
-                # For other leagues, match the league_id
-                if player_league == user_league_id:
-                    player_history.append(player)
-
-        # Find the current user's player record
-        user_name = f"{user['first_name']} {user['last_name']}"
-
-        from app.services.player_service import find_player_in_history
-
-        player_record = find_player_in_history(user, player_history)
-
-        if not player_record:
+        if not player_db_data:
+            user_name = f"{user.get('first_name', '')} {user.get('last_name', '')}"
             return jsonify({"error": f"No history found for player: {user_name}"}), 404
+
+        player_db_id = player_db_data["id"]
+
+        # Get PTI history from player_history table
+        pti_history_query = """
+            SELECT 
+                date,
+                end_pti,
+                series,
+                TO_CHAR(date, 'MM/DD/YYYY') as formatted_date
+            FROM player_history
+            WHERE player_id = %s
+            ORDER BY date ASC
+        """
+
+        pti_records = execute_query(pti_history_query, [player_db_id])
+
+        # Format response to match expected structure
+        player_record = {
+            "name": f"{player_db_data['first_name']} {player_db_data['last_name']}",
+            "current_pti": float(player_db_data.get("pti", 0.0)),
+            "matches": []
+        }
+
+        # Convert PTI history to matches format
+        for record in pti_records:
+            player_record["matches"].append({
+                "date": record["formatted_date"],
+                "end_pti": float(record["end_pti"]),
+                "series": record["series"]
+            })
 
         return jsonify(player_record)
 
-    except FileNotFoundError:
-        return jsonify({"error": "Player history data not available"}), 404
     except Exception as e:
         print(f"Error getting player history: {str(e)}")
         print(traceback.format_exc())
@@ -410,57 +479,95 @@ def get_player_history():
 @player_bp.route("/api/player-history/<player_name>")
 @login_required
 def get_specific_player_history(player_name):
-    """Get history for a specific player"""
+    """Get history for a specific player - FIXED: Uses database instead of JSON"""
     try:
-        app_dir = os.path.dirname(
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        )
+        from database_utils import execute_query, execute_query_one
+        
         user_league_id = session["user"].get("league_id", "")
 
-        # Use dynamic path based on league
-        if user_league_id and not user_league_id.startswith("APTA"):
-            player_history_path = os.path.join(
-                app_dir, "data", "leagues", user_league_id, "player_history.json"
-            )
+        # Convert string league_id to integer foreign key if needed
+        league_id_int = None
+        if user_league_id:
+            if isinstance(user_league_id, str) and user_league_id != "":
+                try:
+                    league_record = execute_query_one(
+                        "SELECT id FROM leagues WHERE league_id = %s", [user_league_id]
+                    )
+                    if league_record:
+                        league_id_int = league_record["id"]
+                except Exception as e:
+                    pass
+            elif isinstance(user_league_id, int):
+                league_id_int = user_league_id
+
+        # FIXED: Find player by name in database instead of JSON
+        # Parse the player name to first and last name
+        name_parts = player_name.strip().split()
+        if len(name_parts) < 2:
+            return jsonify({"error": f"Invalid player name format: {player_name}"}), 400
+        
+        first_name = name_parts[0]
+        last_name = " ".join(name_parts[1:])  # Handle names with multiple last name parts
+
+        # Search for player in database
+        if league_id_int:
+            player_search_query = """
+                SELECT id, first_name, last_name, pti, tenniscores_player_id
+                FROM players 
+                WHERE LOWER(first_name) = LOWER(%s) AND LOWER(last_name) = LOWER(%s)
+                AND league_id = %s
+                ORDER BY id DESC
+                LIMIT 1
+            """
+            player_data = execute_query_one(player_search_query, [first_name, last_name, league_id_int])
         else:
-            player_history_path = os.path.join(
-                app_dir, "data", "leagues", "all", "player_history.json"
-            )
+            # Fallback without league filter
+            player_search_query = """
+                SELECT id, first_name, last_name, pti, tenniscores_player_id
+                FROM players 
+                WHERE LOWER(first_name) = LOWER(%s) AND LOWER(last_name) = LOWER(%s)
+                ORDER BY id DESC
+                LIMIT 1
+            """
+            player_data = execute_query_one(player_search_query, [first_name, last_name])
 
-        with open(player_history_path, "r") as f:
-            all_player_history = json.load(f)
-
-        # Filter player history by league
-        player_history = []
-        for player in all_player_history:
-            player_league = player.get("League", player.get("league_id"))
-            if user_league_id.startswith("APTA"):
-                # For APTA users, only include players from the same APTA league
-                if player_league == user_league_id:
-                    player_history.append(player)
-            else:
-                # For other leagues, match the league_id
-                if player_league == user_league_id:
-                    player_history.append(player)
-
-        # Helper function to normalize names for comparison
-        def normalize(name):
-            return name.lower().strip().replace(",", "").replace(".", "")
-
-        # Find the player's record by matching name (case-insensitive)
-        target_normalized = normalize(player_name)
-        player_record = None
-
-        for player in player_history:
-            if normalize(player.get("name", "")) == target_normalized:
-                player_record = player
-                break
-
-        if not player_record:
+        if not player_data:
             return (
                 jsonify({"error": f"No history found for player: {player_name}"}),
                 404,
             )
+
+        player_db_id = player_data["id"]
+
+        # Get PTI history from player_history table
+        pti_history_query = """
+            SELECT 
+                date,
+                end_pti,
+                series,
+                TO_CHAR(date, 'MM/DD/YYYY') as formatted_date
+            FROM player_history
+            WHERE player_id = %s
+            ORDER BY date ASC
+        """
+
+        pti_records = execute_query(pti_history_query, [player_db_id])
+
+        # Format response to match expected structure
+        player_record = {
+            "name": f"{player_data['first_name']} {player_data['last_name']}",
+            "current_pti": float(player_data.get("pti", 0.0)),
+            "player_id": player_data["tenniscores_player_id"],
+            "matches": []
+        }
+
+        # Convert PTI history to matches format
+        for record in pti_records:
+            player_record["matches"].append({
+                "date": record["formatted_date"],
+                "end_pti": float(record["end_pti"]),
+                "series": record["series"]
+            })
 
         return jsonify(player_record)
 

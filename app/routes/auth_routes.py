@@ -34,42 +34,54 @@ def login():
 def handle_register():
     """Handle user registration"""
     try:
-        data = request.get_json()
-        email = data.get("email", "").lower()
-        password = data.get("password", "")
-        first_name = data.get("firstName", "")
-        last_name = data.get("lastName", "")
-        league_id = data.get("league", "")
-        club_name = data.get("club", "")
-        series_name = data.get("series", "")
+        # ✅ FIX: Better error handling for malformed JSON
+        try:
+            data = request.get_json()
+        except Exception as json_error:
+            logger.warning(f"Invalid JSON in registration request: {json_error}")
+            return jsonify({"error": "Invalid JSON format"}), 400
+            
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+        
+        # ✅ FIX: Better field extraction with validation
+        email = (data.get("email", "") if data else "").strip().lower()
+        password = (data.get("password", "") if data else "").strip()
+        first_name = (data.get("firstName", "") if data else "").strip()
+        last_name = (data.get("lastName", "") if data else "").strip()
+        league_id = (data.get("league", "") if data else "").strip()
+        club_name = (data.get("club", "") if data else "").strip()
+        series_name = (data.get("series", "") if data else "").strip()
+        ad_deuce_preference = (data.get("adDeuce", "") if data else "").strip()
+        dominant_hand = (data.get("dominantHand", "") if data else "").strip()
 
-        # Validate required fields
-        if not all(
-            [email, password, first_name, last_name, league_id, club_name, series_name]
-        ):
-            missing = []
-            if not email:
-                missing.append("email")
-            if not password:
-                missing.append("password")
-            if not first_name:
-                missing.append("firstName")
-            if not last_name:
-                missing.append("lastName")
-            if not league_id:
-                missing.append("league")
-            if not club_name:
-                missing.append("club")
-            if not series_name:
-                missing.append("series")
+        # ✅ FIX: Improved validation with specific error messages
+        missing_fields = []
+        if not email:
+            missing_fields.append("email")
+        if not password:
+            missing_fields.append("password")
+        if not first_name:
+            missing_fields.append("firstName")
+        if not last_name:
+            missing_fields.append("lastName")
+        if not league_id:
+            missing_fields.append("league")
+        if not club_name:
+            missing_fields.append("club")
+        if not series_name:
+            missing_fields.append("series")
+
+        if missing_fields:
             return (
-                jsonify({"error": f'Missing required fields: {", ".join(missing)}'}),
+                jsonify({"error": f'Missing required fields: {", ".join(missing_fields)}'}),
                 400,
             )
 
         # Use service to register user with league
         result = register_user(
-            email, password, first_name, last_name, league_id, club_name, series_name
+            email, password, first_name, last_name, league_id, club_name, series_name, 
+            ad_deuce_preference=ad_deuce_preference, dominant_hand=dominant_hand
         )
 
         if not result["success"]:
@@ -88,7 +100,7 @@ def handle_register():
             jsonify(
                 {
                     "status": "success",
-                    "message": result["message"],
+                    "message": "Registration successful",
                     "redirect": "/mobile",
                 }
             ),
@@ -96,7 +108,9 @@ def handle_register():
         )
 
     except Exception as e:
-        logger.error(f"Registration endpoint error: {str(e)}")
+        logger.error(f"Registration API error: {str(e)}")
+        import traceback
+        logger.error(f"Registration API traceback: {traceback.format_exc()}")
         return jsonify({"error": "Registration failed - server error"}), 500
 
 
