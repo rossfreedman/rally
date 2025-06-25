@@ -404,6 +404,12 @@ async function loadTeamLast3Matches() {
     const empty = document.getElementById('teamLast3MatchesEmpty');
     const list = document.getElementById('teamLast3MatchesList');
     
+    // Check if elements exist (they might not if there's no team data)
+    if (!loading || !error || !empty || !list) {
+        console.log('Team last 3 matches elements not found - likely no team data available');
+        return;
+    }
+    
     try {
         console.log('Loading team last 3 matches...');
         
@@ -496,8 +502,10 @@ async function loadTeamLast3Matches() {
         
     } catch (err) {
         console.error('Error loading team last 3 matches:', err);
-        loading.classList.add('hidden');
-        error.classList.remove('hidden');
+        if (loading && error) {
+            loading.classList.add('hidden');
+            error.classList.remove('hidden');
+        }
     }
 }
 </script>

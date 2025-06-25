@@ -234,11 +234,28 @@ class StealthBrowserManager:
                 "XDG_CONFIG_HOME", os.path.join(tempfile.gettempdir(), ".config")
             )
 
-            # Create the undetected Chrome driver
+            # Create the undetected Chrome driver with explicit Chrome version
+            # Force download of matching ChromeDriver version
+            import subprocess
+            import re
+            
+            try:
+                # Get Chrome version more reliably
+                chrome_version_output = subprocess.check_output([
+                    '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', '--version'
+                ], universal_newlines=True)
+                chrome_version_match = re.search(r'(\d+)\.', chrome_version_output)
+                chrome_major_version = int(chrome_version_match.group(1)) if chrome_version_match else None
+                self.logger.info(f"🔍 Detected Chrome version: {chrome_major_version}")
+            except:
+                chrome_major_version = None
+                self.logger.warning("⚠️ Could not detect Chrome version, using auto-detection")
+            
             driver = uc.Chrome(
                 options=options,
-                version_main=None,  # Auto-detect Chrome version
+                version_main=chrome_major_version,  # Use detected Chrome version
                 driver_executable_path=None,  # Auto-download if needed
+                use_subprocess=True,  # Force fresh driver download
             )
 
             # Inject stealth scripts after driver creation

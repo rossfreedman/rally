@@ -14,6 +14,9 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
 # Import stealth browser manager for fingerprint evasion
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from stealth_browser import StealthBrowserManager
 
 print("🎾 TennisScores Match Scraper - Dynamic Discovery Mode")
@@ -654,26 +657,65 @@ def parse_cnswpl_match_table(table_element, match_date, series_name, league_id):
                 team2 = re.sub(r"\s*&nbsp;\s*$", "", team2).strip()
                 match_rest = match_rest.strip()
 
+                # ENHANCED LOGGING: Show exactly what we extracted for debugging
+                print(f"  🔍 Row {i} raw data: team1='{team1}', team2='{team2}', match_rest='{match_rest}'")
+
                 # Skip empty rows or rows that don't look like matches
                 if not team1 or not team2 or not match_rest:
+                    print(f"  ⏭️ Row {i} skipped: Empty data")
                     continue
 
-                # Check if this looks like a match row (should have "/" in player names)
-                if "/" not in team1 or "/" not in team2:
-                    print(
-                        f"  ⏭️ Row {i} doesn't look like a match (no '/' in names): '{team1}' vs '{team2}'"
-                    )
+                # RELAXED FILTERING: Check for player separators more flexibly
+                # Look for common separators: "/", " / ", "and", "&", ","
+                separators = ["/", " / ", " and ", " & ", ","]
+                has_separator_team1 = any(sep in team1 for sep in separators)
+                has_separator_team2 = any(sep in team2 for sep in separators)
+                
+                if not has_separator_team1 or not has_separator_team2:
+                    print(f"  ⚠️ Row {i} has unusual format - no common separators found:")
+                    print(f"    team1='{team1}' (separators: {[sep for sep in separators if sep in team1]})")
+                    print(f"    team2='{team2}' (separators: {[sep for sep in separators if sep in team2]})")
+                    print(f"  🔄 Attempting to parse anyway...")
+
+                # ENHANCED PARSING: Try multiple separator patterns
+                home_players = []
+                away_players = []
+                
+                # Try to split team1 (home players)
+                for sep in separators:
+                    if sep in team1:
+                        home_players = [p.strip() for p in team1.split(sep)]
+                        break
+                
+                # If no separator found, treat as single name (unusual but handle gracefully)
+                if not home_players:
+                    home_players = [team1.strip()]
+                    print(f"  ⚠️ Row {i}: No separator in team1, treating as single player: '{team1}'")
+
+                # Try to split team2 (away players)  
+                for sep in separators:
+                    if sep in team2:
+                        away_players = [p.strip() for p in team2.split(sep)]
+                        break
+                        
+                # If no separator found, treat as single name (unusual but handle gracefully)
+                if not away_players:
+                    away_players = [team2.strip()]
+                    print(f"  ⚠️ Row {i}: No separator in team2, treating as single player: '{team2}'")
+
+                # Check if we have enough players (require at least 1 per team, prefer 2)
+                if len(home_players) < 1 or len(away_players) < 1:
+                    print(f"  ⏭️ Row {i} skipped: Not enough players after parsing: home={home_players}, away={away_players}")
                     continue
 
-                # Parse player names
-                home_players = [p.strip() for p in team1.split("/")]
-                away_players = [p.strip() for p in team2.split("/")]
-
-                if len(home_players) < 2 or len(away_players) < 2:
-                    print(
-                        f"  ⏭️ Row {i} doesn't have enough players: home={home_players}, away={away_players}"
-                    )
-                    continue
+                # Handle cases where we don't have exactly 2 players per team
+                if len(home_players) < 2:
+                    print(f"  ⚠️ Row {i}: Only {len(home_players)} home player(s), padding with empty")
+                    home_players.extend([""] * (2 - len(home_players)))
+                    
+                if len(away_players) < 2:
+                    print(f"  ⚠️ Row {i}: Only {len(away_players)} away player(s), padding with empty")
+                    away_players.extend([""] * (2 - len(away_players)))
 
                 # Determine winner from check marks or score
                 winner = "unknown"
@@ -1256,6 +1298,9 @@ def scrape_matches(driver, url, series_name, league_id, max_retries=3, retry_del
                     print(
                         f"\nProcessing match table {table_index} of {len(match_tables)}"
                     )
+                    
+                    # Initialize individual_match_data for this table
+                    individual_match_data = []
 
                     # CNSWPL-specific div parsing
                     if league_id == "CNSWPL":
@@ -1331,9 +1376,11 @@ def scrape_matches(driver, url, series_name, league_id, max_retries=3, retry_del
                             ):
 
                                 # Extract data
+                                points1 = player_divs[i].text.strip() if i < len(player_divs) else ""
                                 home_text = player_divs[i + 1].text.strip()
                                 score = player_divs[i + 2].text.strip()
                                 away_text = player_divs[i + 3].text.strip()
+                                points2 = player_divs[i + 4].text.strip() if i + 4 < len(player_divs) else ""
 
                                 # Skip if this is not a match
                                 if (
@@ -1344,141 +1391,130 @@ def scrape_matches(driver, url, series_name, league_id, max_retries=3, retry_del
                                     i += 5
                                     continue
 
-                                # Determine winner
-                                winner_img_home = player_divs[i].find_elements(
-                                    By.TAG_NAME, "img"
-                                )
-                                winner_img_away = (
-                                    player_divs[i + 4].find_elements(By.TAG_NAME, "img")
-                                    if i + 4 < len(player_divs)
-                                    else []
-                                )
+                                # Define variables for compatibility
+                                match_rest = score
+                                home_team = home_club_full
+                                away_team = away_club_full
+                                
+                                # Parse player names from the text
+                                home_players = [name.strip() for name in home_text.split("/") if name.strip()]
+                                away_players = [name.strip() for name in away_text.split("/") if name.strip()]
+                                
+                                # Ensure we have at least 2 players per team (pad with empty strings if needed)
+                                while len(home_players) < 2:
+                                    home_players.append("")
+                                while len(away_players) < 2:
+                                    away_players.append("")
 
-                                if winner_img_home:
+                                # Determine winner
+                                winner = "unknown"
+                                if "check_mark" in points1 or "✓" in points1:
                                     winner = "home"
-                                elif winner_img_away:
+                                elif "check_mark" in points2 or "✓" in points2:
                                     winner = "away"
                                 else:
-                                    winner = "unknown"
+                                    # Try to determine from score - simplified version
+                                    try:
+                                        # Basic score parsing - look for patterns like "6-4, 6-2"
+                                        if "-" in score:
+                                            sets = score.split(",")
+                                            home_sets_won = 0
+                                            away_sets_won = 0
+                                            
+                                            for set_score in sets:
+                                                set_score = set_score.strip()
+                                                if "-" in set_score:
+                                                    # Extract numbers before any brackets (tiebreaks)
+                                                    clean_score = set_score.split("[")[0].strip()
+                                                    try:
+                                                        home_score, away_score = map(int, clean_score.split("-"))
+                                                        if home_score > away_score:
+                                                            home_sets_won += 1
+                                                        else:
+                                                            away_sets_won += 1
+                                                    except (ValueError, IndexError):
+                                                        continue
+                                            
+                                            if home_sets_won > away_sets_won:
+                                                winner = "home"
+                                            elif away_sets_won > home_sets_won:
+                                                winner = "away"
+                                    except Exception:
+                                        pass
 
-                                # Split player names
-                                home_players = home_text.split("/")
-                                away_players = away_text.split("/")
+                                # Clean player names
+                                home_p1 = clean_player_name(home_players[0])
+                                home_p2 = clean_player_name(home_players[1])
+                                away_p1 = clean_player_name(away_players[0])
+                                away_p2 = clean_player_name(away_players[1])
 
-                                home_player1 = (
-                                    home_players[0].strip()
-                                    if len(home_players) > 0
-                                    else ""
-                                )
-                                home_player2 = (
-                                    home_players[1].strip()
-                                    if len(home_players) > 1
-                                    else ""
-                                )
-                                away_player1 = (
-                                    away_players[0].strip()
-                                    if len(away_players) > 0
-                                    else ""
-                                )
-                                away_player2 = (
-                                    away_players[1].strip()
-                                    if len(away_players) > 1
-                                    else ""
-                                )
+                                # Split names for ID lookup
+                                home_p1_first, home_p1_last = split_player_name_for_lookup(home_p1)
+                                home_p2_first, home_p2_last = split_player_name_for_lookup(home_p2)
+                                away_p1_first, away_p1_last = split_player_name_for_lookup(away_p1)
+                                away_p2_first, away_p2_last = split_player_name_for_lookup(away_p2)
 
-                                # Split player names into first and last names for lookup
-                                def split_player_name(full_name):
-                                    if not full_name:
-                                        return "", ""
+                                # Get series names for player lookup
+                                home_series = extract_series_name_from_team(home_team)
+                                away_series = extract_series_name_from_team(away_team)
 
-                                    # Handle "By Forfeit" cases
-                                    clean_name = full_name.strip()
-                                    if "by forfeit" in clean_name.lower():
-                                        # Extract the name before "By Forfeit"
-                                        clean_name = (
-                                            clean_name.lower()
-                                            .split("by forfeit")[0]
-                                            .strip()
-                                        )
-                                    elif "forfeit" in clean_name.lower():
-                                        # Handle just "Forfeit" cases
-                                        clean_name = (
-                                            clean_name.lower()
-                                            .split("forfeit")[0]
-                                            .strip()
-                                        )
-
-                                    parts = clean_name.strip().split()
-                                    if len(parts) >= 2:
-                                        return parts[0], " ".join(parts[1:])
-                                    elif len(parts) == 1:
-                                        return parts[0], ""
-                                    return "", ""
-
-                                # Split names and lookup Player IDs
-                                home_p1_first, home_p1_last = split_player_name(
-                                    home_player1
-                                )
-                                home_p2_first, home_p2_last = split_player_name(
-                                    home_player2
-                                )
-                                away_p1_first, away_p1_last = split_player_name(
-                                    away_player1
-                                )
-                                away_p2_first, away_p2_last = split_player_name(
-                                    away_player2
-                                )
-
-                                # Lookup Player IDs using the enhanced lookup function
+                                # Lookup Player IDs
                                 home_p1_id = lookup_player_id_enhanced(
-                                    series_name,
-                                    home_club_full,
+                                    home_series or series_name,
+                                    home_team,
                                     home_p1_first,
                                     home_p1_last,
                                     league_id,
                                 )
                                 home_p2_id = lookup_player_id_enhanced(
-                                    series_name,
-                                    home_club_full,
+                                    home_series or series_name,
+                                    home_team,
                                     home_p2_first,
                                     home_p2_last,
                                     league_id,
                                 )
                                 away_p1_id = lookup_player_id_enhanced(
-                                    series_name,
-                                    away_club_full,
+                                    away_series or series_name,
+                                    away_team,
                                     away_p1_first,
                                     away_p1_last,
                                     league_id,
                                 )
                                 away_p2_id = lookup_player_id_enhanced(
-                                    series_name,
-                                    away_club_full,
+                                    away_series or series_name,
+                                    away_team,
                                     away_p2_first,
                                     away_p2_last,
                                     league_id,
                                 )
 
-                                # Store match data with Player IDs included
+                                # Parse and format date
+                                try:
+                                    formatted_date = date
+                                except:
+                                    formatted_date = date
+
+                                # Create match data
                                 match_data = {
                                     "league_id": league_id,
-                                    "Date": date,
-                                    "Home Team": home_club_full,
-                                    "Away Team": away_club_full,
-                                    "Home Player 1": home_player1,
+                                    "Date": formatted_date,
+                                    "Home Team": home_team,
+                                    "Away Team": away_team,
+                                    "Home Player 1": home_p1,
                                     "Home Player 1 ID": home_p1_id,
-                                    "Home Player 2": home_player2,
+                                    "Home Player 2": home_p2,
                                     "Home Player 2 ID": home_p2_id,
-                                    "Away Player 1": away_player1,
+                                    "Away Player 1": away_p1,
                                     "Away Player 1 ID": away_p1_id,
-                                    "Away Player 2": away_player2,
+                                    "Away Player 2": away_p2,
                                     "Away Player 2 ID": away_p2_id,
                                     "Scores": score,
                                     "Winner": winner,
                                 }
-                                matches_data.append(match_data)
 
-                                # Log the match with ID lookup results
+                                individual_match_data.append(match_data)
+
+                                # Log the match
                                 id_status = []
                                 if home_p1_id:
                                     id_status.append(f"H1✓")
@@ -1498,7 +1534,7 @@ def scrape_matches(driver, url, series_name, league_id, max_retries=3, retry_del
                                     id_status.append(f"A2✗")
 
                                 print(
-                                    f"  Processed match: {home_player1}/{home_player2} vs {away_player1}/{away_player2} - Score: {score} [IDs: {' '.join(id_status)}]"
+                                    f"    ✅ Row {i}: {home_p1}/{home_p2} vs {away_p1}/{away_p2} - {score} (Winner: {winner}) [IDs: {' '.join(id_status)}]"
                                 )
 
                                 i += 5  # Move to the next potential match row
@@ -1508,7 +1544,9 @@ def scrape_matches(driver, url, series_name, league_id, max_retries=3, retry_del
                             print(f"  Error processing match row: {str(e)}")
                             i += 1  # Skip this div if there's an error
 
-                    print(f"Completed table {table_index}")
+                    # Add the individual matches from this table to the main collection
+                    matches_data.extend(individual_match_data)
+                    print(f"Completed table {table_index} - Added {len(individual_match_data)} matches")
 
                 except Exception as e:
                     print(f"Error processing match table {table_index}: {str(e)}")

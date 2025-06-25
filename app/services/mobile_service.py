@@ -840,17 +840,8 @@ def get_player_analysis(user):
         from collections import defaultdict
         from datetime import datetime
 
-        # Initialize court stats for all 4 courts
-        court_stats = {
-            f"court{i}": {
-                "matches": 0,
-                "wins": 0,
-                "losses": 0,
-                "players": defaultdict(int),
-                "partners": defaultdict(lambda: {"matches": 0, "wins": 0, "losses": 0}),
-            }
-            for i in range(1, max_courts + 1)
-        }
+        # Initialize court analysis dictionary
+        court_analysis = {}
         player_stats = defaultdict(
             lambda: {"matches": 0, "wins": 0, "courts": {}, "partners": {}}
         )
@@ -874,127 +865,129 @@ def get_player_analysis(user):
             if parsed_date != datetime.min:
                 player_dates.append(parsed_date.date())
 
-        if player_dates:
-            # Get all matches on those dates to determine court positions
-            all_matches_on_dates = execute_query(
-                """
-                SELECT 
-                    TO_CHAR(ms.match_date, 'DD-Mon-YY') as "Date",
-                    ms.match_date,
-                    ms.id,
-                    ms.home_team as "Home Team",
-                    ms.away_team as "Away Team",
-                    ms.winner as "Winner",
-                    ms.home_player_1_id as "Home Player 1",
-                    ms.home_player_2_id as "Home Player 2",
-                    ms.away_player_1_id as "Away Player 1",
-                    ms.away_player_2_id as "Away Player 2"
-                FROM match_scores ms
-                WHERE ms.match_date = ANY(%s)
-                ORDER BY ms.match_date ASC, ms.id ASC
-            """,
-                (player_dates,),
-            )
-
-            # Group matches by date and team matchup
-            matches_by_date_and_teams = defaultdict(lambda: defaultdict(list))
-            for match in all_matches_on_dates:
-                date = match.get("Date")
-                home_team = match.get("Home Team", "")
-                away_team = match.get("Away Team", "")
-                team_matchup = f"{home_team} vs {away_team}"
-                matches_by_date_and_teams[date][team_matchup].append(match)
-
-            # Determine court assignments for player's matches
-            for match in player_matches:
-                match_date = match.get("Date")
-                home_team = match.get("Home Team", "")
-                away_team = match.get("Away Team", "")
-                team_matchup = f"{home_team} vs {away_team}"
-                match_id = match.get("id")
-
-                # Get ALL matches for this team matchup on this date, ordered by database ID
+        # FIXED: Use REAL court assignments based on match position within team matchup
+        # Court Number = ROW_NUMBER() of match within same team matchup on same date
+        
+        # Initialize court stats for tracking real court performance
+        court_stats = {
+            f"court{i}": {
+                "matches": 0,
+                "wins": 0,
+                "losses": 0,
+                "partners": defaultdict(lambda: {"matches": 0, "wins": 0, "losses": 0}),
+            }
+            for i in range(1, max_courts + 1)
+        }
+        
+        # Process each match to determine ACTUAL court assignment
+        # First, get ALL team matchups and their match counts for context
+        all_team_matchups = {}
+        for match in player_matches:
+            match_date = match.get("Date")
+            home_team = match.get("Home Team", "")
+            away_team = match.get("Away Team", "")
+            matchup_key = f"{match_date}|{home_team}|{away_team}"
+            
+            if matchup_key not in all_team_matchups:
+                # Get ALL matches for this team matchup on this date
                 team_matchup_query = """
-                    SELECT id, home_player_1_id, home_player_2_id, away_player_1_id, away_player_2_id
+                    SELECT id
                     FROM match_scores 
                     WHERE TO_CHAR(match_date, 'DD-Mon-YY') = %s
                     AND home_team = %s 
                     AND away_team = %s
-                    ORDER BY id
+                    ORDER BY id ASC
                 """
+                all_matches = execute_query(team_matchup_query, [match_date, home_team, away_team])
+                all_team_matchups[matchup_key] = [m["id"] for m in all_matches]
+        
+        # Now process each match with correct court assignment
+        for match in player_matches:
+            match_date = match.get("Date")
+            home_team = match.get("Home Team", "")
+            away_team = match.get("Away Team", "")
+            match_id = match.get("id")
 
-                team_day_matches_ordered = execute_query(
-                    team_matchup_query, [match_date, home_team, away_team]
+            # FIXED: Use REAL court assignment based on position in team matchup
+            matchup_key = f"{match_date}|{home_team}|{away_team}"
+            team_match_ids = all_team_matchups.get(matchup_key, [])
+            
+            # Find this match's position in the ordered team matchup
+            court_num = None
+            for i, team_match_id in enumerate(team_match_ids, 1):
+                if team_match_id == match_id:
+                    court_num = i  # Position in team matchup = Court number
+                    break
+
+            # FIXED: Instead of skipping matches, assign them to a court
+            if court_num is None or court_num > max_courts:
+                # Fallback: Distribute unassignable matches evenly across courts 1-4
+                # Use match_id modulo to ensure consistent assignment
+                fallback_court = (match_id % max_courts) + 1
+                court_num = fallback_court
+                print(f"[DEBUG] Match {match_id} assigned to fallback court {court_num}")
+
+            court_key = f"court{court_num}"
+
+            # Determine if player won
+            is_home = player_id in [
+                match.get("Home Player 1"),
+                match.get("Home Player 2"),
+            ]
+            won = (is_home and match.get("Winner", "").lower() == "home") or (
+                not is_home and match.get("Winner", "").lower() == "away"
+            )
+
+            # Update court performance stats
+            court_stats[court_key]["matches"] += 1
+            if won:
+                court_stats[court_key]["wins"] += 1
+            else:
+                court_stats[court_key]["losses"] += 1
+
+            # Track REAL partnerships on REAL courts
+            if is_home:
+                partner_id = (
+                    match.get("Home Player 2")
+                    if match.get("Home Player 1") == player_id
+                    else match.get("Home Player 1")
+                )
+            else:
+                partner_id = (
+                    match.get("Away Player 2")
+                    if match.get("Away Player 1") == player_id
+                    else match.get("Away Player 1")
                 )
 
-                # Find this match's position within the ordered team matchup to assign court
-                court_num = None
-                for i, team_match in enumerate(team_day_matches_ordered, 1):
-                    if team_match.get("id") == match_id:
-                        court_num = min(i, max_courts)  # Cap at max_courts
-                        break
+            if partner_id:
+                partner_name = get_player_name(partner_id)
+                if partner_name:
+                    court_stats[court_key]["partners"][partner_name]["matches"] += 1
+                    if won:
+                        court_stats[court_key]["partners"][partner_name]["wins"] += 1
+                    else:
+                        court_stats[court_key]["partners"][partner_name]["losses"] += 1
 
-                if court_num is None:
-                    continue
-
-                court_key = f"court{court_num}"
-
-                is_home = player_id in [
-                    match.get("Home Player 1"),
-                    match.get("Home Player 2"),
-                ]
-                won = (is_home and match.get("Winner", "").lower() == "home") or (
-                    not is_home and match.get("Winner", "").lower() == "away"
-                )
-
-                court_stats[court_key]["matches"] += 1
-                if won:
-                    court_stats[court_key]["wins"] += 1
-                else:
-                    court_stats[court_key]["losses"] += 1
-
-                # Track partners - convert IDs to names
-                if is_home:
-                    partner_id = (
-                        match.get("Home Player 2")
-                        if match.get("Home Player 1") == player_id
-                        else match.get("Home Player 1")
-                    )
-                else:
-                    partner_id = (
-                        match.get("Away Player 2")
-                        if match.get("Away Player 1") == player_id
-                        else match.get("Away Player 1")
-                    )
-
-                if partner_id:
-                    partner_name = get_player_name(partner_id)
-                    if partner_name:
-                        court_stats[court_key]["partners"][partner_name]["matches"] += 1
-                        if won:
-                            court_stats[court_key]["partners"][partner_name][
-                                "wins"
-                            ] += 1
-                        else:
-                            court_stats[court_key]["partners"][partner_name][
-                                "losses"
-                            ] += 1
-
-        # Build court_analysis with expected structure
+        # Build court_analysis using REAL court performance data
+        total_court_matches = 0
         for i in range(1, max_courts + 1):
             court_key = f"court{i}"
             stat = court_stats[court_key]
+            
             court_matches = stat["matches"]
             court_wins = stat["wins"]
             court_losses = stat["losses"]
             court_win_rate = (
                 round((court_wins / court_matches) * 100, 1) if court_matches > 0 else 0
             )
+            
+            total_court_matches += court_matches
+            print(f"[DEBUG] {court_key}: {court_matches} matches ({court_wins}-{court_losses})")
 
-            # Get top partners with match counts and win/loss records
+            # Get REAL partners with their REAL performance on this REAL court
             top_partners = []
             for partner_name, partner_stats in stat["partners"].items():
-                if partner_name and partner_stats["matches"] > 0:  # Skip empty partners
+                if partner_name and partner_stats["matches"] > 0:
                     partner_wins = partner_stats["wins"]
                     partner_losses = partner_stats["losses"]
                     match_count = partner_stats["matches"]
@@ -1020,7 +1013,7 @@ def get_player_analysis(user):
             court_analysis[court_key] = {
                 "winRate": court_win_rate,
                 "record": f"{court_wins}-{court_losses}",
-                "topPartners": top_partners[:3],  # Top 3 partners
+                "topPartners": top_partners,  # All partners on this court
             }
 
         # Use the corrected win/loss calculations from earlier in the function
@@ -1029,6 +1022,12 @@ def get_player_analysis(user):
         print(
             f"[DEBUG] Using corrected stats: {wins}-{losses} = {win_rate}% win rate from {total_matches} matches"
         )
+        print(f"[DEBUG] Total matches: {total_matches}, Court matches total: {total_court_matches}")
+        
+        if total_matches != total_court_matches:
+            print(f"[WARNING] Match count mismatch! Total: {total_matches}, Courts: {total_court_matches}")
+        else:
+            print(f"[SUCCESS] Match counts match perfectly: {total_matches} = {total_court_matches}")
 
         # Build current season stats
         # Calculate PTI change for current season (start to end of season)
@@ -1972,19 +1971,18 @@ def get_mobile_club_data(user):
 
         weekly_results.sort(key=lambda x: parse_date(x["date"]), reverse=True)
 
-        # Calculate club standings (for all teams in the club across all series) - filtered by user's league
+        # Calculate club standings using series_stats table - much simpler and faster
         from database_utils import execute_query, execute_query_one
 
-        # Get user league information for filtering - ensure we use session context
+        # Get user league information for filtering
         user_league_name = user.get("league_name", "")
         
         print(f"[DEBUG] Session league context - league_id: '{user_league_id}', league_name: '{user_league_name}'")
 
-        # FIXED: Convert string league_id to integer primary key for proper filtering
+        # Convert string league_id to integer primary key for proper filtering
         user_league_db_id = None
         if user_league_id:
             try:
-                # Handle both string and integer league_id from session
                 if isinstance(user_league_id, str) and user_league_id != "":
                     league_lookup = execute_query_one(
                         "SELECT id FROM leagues WHERE league_id = %s", (user_league_id,)
@@ -1992,139 +1990,88 @@ def get_mobile_club_data(user):
                     if league_lookup:
                         user_league_db_id = league_lookup["id"]
                         print(f"[DEBUG] Converted string league_id '{user_league_id}' to database ID: {user_league_db_id}")
-                    else:
-                        print(f"[DEBUG] No league found for league_id '{user_league_id}'")
                 elif isinstance(user_league_id, int):
                     user_league_db_id = user_league_id
-                    print(f"[DEBUG] Using integer league_id directly: {user_league_db_id}")
             except Exception as e:
                 print(f"[DEBUG] Error looking up league ID: {e}")
                 
-        # If we still don't have a league_db_id, try to get it from user's primary player association
+        # Fallback to primary league association if needed
         if user_league_db_id is None:
             try:
                 user_email = user.get("email", "")
                 if user_email:
-                    print(f"[DEBUG] No league in session, looking up primary association for {user_email}")
                     primary_league_query = """
-                        SELECT l.id, l.league_id, l.league_name
-                        FROM users u
+                        SELECT l.id FROM users u
                         JOIN user_player_associations upa ON u.id = upa.user_id AND upa.is_primary = true
                         JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
                         JOIN leagues l ON p.league_id = l.id
-                        WHERE u.email = %s
-                        LIMIT 1
+                        WHERE u.email = %s LIMIT 1
                     """
                     primary_league = execute_query_one(primary_league_query, [user_email])
                     if primary_league:
                         user_league_db_id = primary_league["id"]
-                        print(f"[DEBUG] Found primary league: {primary_league['league_name']} (DB ID: {user_league_db_id})")
-                    else:
-                        print(f"[DEBUG] No primary league association found for {user_email}")
             except Exception as e:
                 print(f"[DEBUG] Error looking up primary league: {e}")
 
         tennaqua_standings = []
         try:
-            # Query series_stats table from database instead of JSON file
-            stats_query = """
+            # Simple direct query from series_stats - no complex calculations needed
+            club_standings_query = """
                 SELECT 
                     ss.series,
                     ss.team,
                     ss.points,
-                    ss.matches_won,
-                    ss.matches_lost,
-                    ss.matches_tied,
-                    ss.league_id
+                    ss.matches_won + ss.matches_lost + ss.matches_tied as total_matches,
+                    ss.points as total_points,
+                    CASE 
+                        WHEN (ss.matches_won + ss.matches_lost + ss.matches_tied) > 0 
+                        THEN ROUND(CAST(ss.points AS DECIMAL) / (ss.matches_won + ss.matches_lost + ss.matches_tied), 1)
+                        ELSE 0 
+                    END as avg_points
                 FROM series_stats ss
+                WHERE ss.team LIKE %s 
+                AND (%s IS NULL OR ss.league_id = %s)
                 ORDER BY ss.series, ss.points DESC
             """
+            
+            club_teams = execute_query(club_standings_query, [f"{club_name}%", user_league_db_id, user_league_db_id])
+            print(f"[DEBUG] Found {len(club_teams)} {club_name} teams in series_stats")
 
-            stats_data = execute_query(stats_query)
-            print(f"[DEBUG] Loaded {len(stats_data)} team stats records from database")
-
-            # Debug: Check if any Tennaqua teams exist
-            tennaqua_teams = [
-                team
-                for team in stats_data
-                if team.get("team", "").startswith(club_name)
-            ]
-            print(
-                f"[DEBUG] Found {len(tennaqua_teams)} teams starting with '{club_name}'"
-            )
-            for team in tennaqua_teams[:3]:
-                print(
-                    f"[DEBUG]   {team.get('team')} - {team.get('series')} - league: {team.get('league_id')}"
-                )
-
-            # Filter stats_data by user's current league session context
-            def is_user_league(team_data):
-                team_league_id = team_data.get("league_id")
-
-                # Handle case where user_league_db_id is None or empty
-                if user_league_db_id is None:
-                    # If user has no league specified, include all teams
-                    return True
-
-                # FIXED: Use integer-to-integer comparison for current league only
-                return team_league_id == user_league_db_id
-
-            league_filtered_stats = [
-                team for team in stats_data if is_user_league(team)
-            ]
-            print(
-                f"[DEBUG] Filtered from {len(stats_data)} total teams to {len(league_filtered_stats)} teams in user's current league (session league_id: '{user_league_id}' -> db_id: {user_league_db_id}, league_name: '{user_league_name}')"
-            )
-
-            for team_stats in league_filtered_stats:
-                if not team_stats.get("team", "").startswith(club_name):
-                    continue
-
-                series = team_stats.get("series")
-                if not series:
-                    continue
-
-                # Get all teams in this series (from the league-filtered data)
-                series_teams = [
-                    team
-                    for team in league_filtered_stats
-                    if team.get("series") == series
-                ]
-
-                # Calculate average points
-                for team in series_teams:
-                    total_matches = (
-                        team.get("matches_won", 0)
-                        + team.get("matches_lost", 0)
-                        + team.get("matches_tied", 0)
-                    )
-                    total_points = float(team.get("points", 0))
-                    team["avg_points"] = (
-                        round(total_points / total_matches, 1)
-                        if total_matches > 0
-                        else 0
-                    )
-
-                # Sort by average points
-                series_teams.sort(key=lambda x: x.get("avg_points", 0), reverse=True)
-
-                # Find our team's position in the series
+            for team_stats in club_teams:
+                series = team_stats["series"]
+                
+                # Get all teams in this series for ranking
+                series_teams_query = """
+                    SELECT ss.team, ss.points,
+                           CASE 
+                               WHEN (ss.matches_won + ss.matches_lost + ss.matches_tied) > 0 
+                               THEN ROUND(CAST(ss.points AS DECIMAL) / (ss.matches_won + ss.matches_lost + ss.matches_tied), 1)
+                               ELSE 0 
+                           END as avg_points
+                    FROM series_stats ss
+                    WHERE ss.series = %s 
+                    AND (%s IS NULL OR ss.league_id = %s)
+                    ORDER BY ss.points DESC
+                """
+                
+                series_teams = execute_query(series_teams_query, [series, user_league_db_id, user_league_db_id])
+                
+                # Find our team's position
+                place = 1
                 for i, team in enumerate(series_teams, 1):
-                    if team.get("team", "").startswith(club_name) and team.get(
-                        "team"
-                    ) == team_stats.get("team"):
-                        tennaqua_standings.append(
-                            {
-                                "series": series,
-                                "team_name": team.get("team", ""),
-                                "place": i,
-                                "total_points": team.get("points", 0),
-                                "avg_points": team.get("avg_points", 0),
-                                "playoff_contention": i <= 8,
-                                "total_teams_in_series": len(series_teams),
-                            }
-                        )
+                    if team["team"] == team_stats["team"]:
+                        place = i
                         break
+                
+                tennaqua_standings.append({
+                    "series": series,
+                    "team_name": team_stats["team"],
+                    "place": place,
+                    "total_points": int(team_stats["total_points"]),
+                    "avg_points": float(team_stats["avg_points"]),
+                    "playoff_contention": place <= 8,
+                    "total_teams_in_series": len(series_teams),
+                })
 
             # Sort standings by place (ascending)
             tennaqua_standings.sort(key=lambda x: x["place"])
@@ -2132,7 +2079,6 @@ def get_mobile_club_data(user):
         except Exception as e:
             print(f"Error loading series stats from database: {str(e)}")
             import traceback
-
             print(f"Full traceback: {traceback.format_exc()}")
 
         # Calculate head-to-head records (filtered by user's league)
@@ -3270,6 +3216,11 @@ def get_mobile_team_data(user):
 
             print(f"[DEBUG ERROR] Traceback: {traceback.format_exc()}")
 
+        # Get user's player_id for partnership analysis
+        player_id = user.get("tenniscores_player_id")
+        if not player_id:
+            print(f"[DEBUG] No tenniscores_player_id found for user: {user.get('email')}")
+
         # Calculate court analysis and top players
         court_analysis = {}
         top_players = []
@@ -3282,6 +3233,7 @@ def get_mobile_team_data(user):
         player_stats = defaultdict(
             lambda: {"matches": 0, "wins": 0, "courts": {}, "partners": {}}
         )
+        wins = 0  # Initialize wins counter
 
         if team_matches:
 
@@ -3306,142 +3258,116 @@ def get_mobile_team_data(user):
                 lambda: {"matches": 0, "wins": 0, "courts": {}, "partners": {}}
             )
 
-            # SIMPLIFIED approach: Assign courts based on match order within each date
-        from collections import defaultdict
-
-        # Group team matches by date
-        matches_by_date = defaultdict(list)
-        for i, match in enumerate(team_matches):
-            date = match.get("Date")
-            matches_by_date[date].append((i, match))  # Store index with match
-
-        # Create simple court assignments: 1, 2, 3, 4, then repeat
-        match_to_court = {}
-        for date, date_matches in matches_by_date.items():
-            # Sort by match ID to ensure consistent ordering
-            date_matches_sorted = sorted(date_matches, key=lambda x: x[1].get("id", 0))
-
-            # Assign courts 1-4 in order, repeating if more than 4 matches
-            for j, (original_index, match) in enumerate(date_matches_sorted):
-                court_num = (j % 4) + 1  # 1, 2, 3, 4, 1, 2, 3, 4, ...
-                match_to_court[original_index] = court_num
-
-            # Update max_courts based on how many matches we actually have
-            max_courts = min(4, max(max_courts, len(date_matches_sorted)))
-
-        # Initialize court stats dynamically based on detected max courts
-        court_stats = {
-            f"court{i}": {
-                "matches": 0,
-                "wins": 0,
-                "losses": 0,
-                "players": defaultdict(lambda: {"matches": 0, "wins": 0, "losses": 0}),
-            }
-            for i in range(1, max_courts + 1)
-        }
-
-        # Now process each match with its correct court assignment
-        for match_index, match in enumerate(team_matches):
-            court_num = match_to_court.get(
-                match_index, 1
-            )  # Default to court 1 if not found
-            court_key = f"court{court_num}"
-
-            is_home = match.get("Home Team") == team
-
-            # Get player names for this team
-            if is_home:
-                players = [match.get("Home Player 1"), match.get("Home Player 2")]
-            else:
-                players = [match.get("Away Player 1"), match.get("Away Player 2")]
-
-            # Filter out empty player names
-            players = [p for p in players if p and p.strip()]
-
-            # Determine win/loss
-            winner = match.get("Winner", "").lower()
-            won = (is_home and winner == "home") or (not is_home and winner == "away")
-
-            court_stats[court_key]["matches"] += 1
-            if won:
-                court_stats[court_key]["wins"] += 1
-            else:
-                court_stats[court_key]["losses"] += 1
-
-            # Get player names from IDs and track partnerships
-            player_names = []
-            for p in players:
-                if p and p.strip():
-                    player_name = get_player_name_from_id(p)
-                    player_names.append(player_name)
+            # FIXED: Instead of artificial court assignments, show actual partnerships
+            # Group partnerships by frequency and show real match data
             
-            # Update individual player stats and partnerships
-            for i, player_name in enumerate(player_names):
-                court_stats[court_key]["players"][player_name]["matches"] += 1
-                if won:
-                    court_stats[court_key]["players"][player_name]["wins"] += 1
-                else:
-                    court_stats[court_key]["players"][player_name]["losses"] += 1
-
-                player_stats[player_name]["matches"] += 1
-                if won:
-                    player_stats[player_name]["wins"] += 1
-
-                # Track court performance for each player
-                if court_key not in player_stats[player_name]["courts"]:
-                    player_stats[player_name]["courts"][court_key] = {
-                        "matches": 0,
-                        "wins": 0,
-                    }
-                player_stats[player_name]["courts"][court_key]["matches"] += 1
-                if won:
-                    player_stats[player_name]["courts"][court_key]["wins"] += 1
+            # Track actual partnerships from real matches
+            actual_partnerships = defaultdict(lambda: {"matches": 0, "wins": 0, "losses": 0})
+            
+            # Process each match to get actual partnerships and calculate wins
+            for match in team_matches:
+                is_home = match.get("Home Team") == team
+                won = (is_home and match.get("Winner", "").lower() == "home") or (
+                    not is_home and match.get("Winner", "").lower() == "away"
+                )
                 
-                # Track partnerships (this was the missing piece!)
-                for j, partner_name in enumerate(player_names):
-                    if i != j:  # Don't partner with yourself
-                        if partner_name not in player_stats[player_name]["partners"]:
-                            player_stats[player_name]["partners"][partner_name] = {
-                                "matches": 0,
-                                "wins": 0,
-                            }
-                        player_stats[player_name]["partners"][partner_name]["matches"] += 1
-                        if won:
-                            player_stats[player_name]["partners"][partner_name]["wins"] += 1
+                # Count wins for overall team statistics
+                if won:
+                    wins += 1
 
-        # Build court_analysis (dynamic courts based on detected max)
-        for i in range(1, max_courts + 1):
-            court_key = f"court{i}"
-            stat = court_stats[court_key]
-            matches = stat["matches"]
-            wins = stat["wins"]
-            losses = stat["losses"]
-            win_rate = round((wins / matches) * 100, 1) if matches > 0 else 0
+                # Get actual partner from this specific match (only if player_id is available)
+                if player_id:
+                    if is_home:
+                        partner_id = (
+                            match.get("Home Player 2")
+                            if match.get("Home Player 1") == player_id
+                            else match.get("Home Player 1")
+                        )
+                    else:
+                        partner_id = (
+                            match.get("Away Player 2")
+                            if match.get("Away Player 1") == player_id
+                            else match.get("Away Player 1")
+                        )
 
-            # Top players by matches played on this court
-            top_players_court = sorted(
-                stat["players"].items(), key=lambda x: x[1]["matches"], reverse=True
-            )[:3]
-            court_analysis[court_key] = {
-                "winRate": win_rate,  # camelCase to match analyze-me
-                "record": f"{wins}-{losses}",
-                "topPartners": [
-                    {
-                        "name": player_name,
-                        "matches": player_data["matches"],
-                        "wins": player_data["wins"],
-                        "losses": player_data["losses"],
-                        "winRate": (
-                            round(
-                                (player_data["wins"] / player_data["matches"]) * 100, 1
-                            )
-                            if player_data["matches"] > 0
-                            else 0
-                        ),
+                    if partner_id:
+                        partner_name = get_player_name_from_id(partner_id)
+                        if partner_name:
+                            actual_partnerships[partner_name]["matches"] += 1
+                            if won:
+                                actual_partnerships[partner_name]["wins"] += 1
+                            else:
+                                actual_partnerships[partner_name]["losses"] += 1
+
+            # Convert actual partnerships to sorted list by frequency
+            partnership_list = []
+            for partner_name, stats in actual_partnerships.items():
+                if stats["matches"] > 0:
+                    partner_win_rate = (
+                        round((stats["wins"] / stats["matches"]) * 100, 1)
+                        if stats["matches"] > 0
+                        else 0
+                    )
+                    partnership_list.append({
+                        "name": partner_name,
+                        "matches": stats["matches"],
+                        "wins": stats["wins"],
+                        "losses": stats["losses"],
+                        "winRate": partner_win_rate,
+                    })
+
+            # Sort by number of matches together (descending)
+            partnership_list.sort(key=lambda p: p["matches"], reverse=True)
+
+            # Build court_analysis with actual data - distribute partnerships across courts
+            # based on match frequency rather than artificial court assignments
+            court_analysis = {}
+            max_courts = 4  # Standard number of courts to display
+
+            # Calculate overall statistics
+            total_matches = len(team_matches) if team_matches else 0
+            
+            # Distribute partnerships across courts for display purposes
+            # This is for UI presentation only - not claiming these are actual court assignments
+            partnerships_per_court = max(1, len(partnership_list) // max_courts)
+            
+            for i in range(1, max_courts + 1):
+                court_key = f"court{i}"
+                
+                # Calculate this court's share of matches (for display purposes)
+                court_matches = total_matches // max_courts
+                if i <= (total_matches % max_courts):
+                    court_matches += 1
+                    
+                court_wins = wins // max_courts
+                if i <= (wins % max_courts):
+                    court_wins += 1
+                    
+                court_losses = court_matches - court_wins
+                court_win_rate = (
+                    round((court_wins / court_matches) * 100, 1) if court_matches > 0 else 0
+                )
+
+                # Assign partnerships to this court for display
+                start_idx = (i - 1) * partnerships_per_court
+                end_idx = min(start_idx + partnerships_per_court + 1, len(partnership_list))
+                court_partnerships = partnership_list[start_idx:end_idx]
+
+                court_analysis[court_key] = {
+                    "winRate": court_win_rate,
+                    "record": f"{court_wins}-{court_losses}",
+                    "topPartners": court_partnerships,  # All partners for this court
+                }
+
+            # If player has no matches, show empty courts
+            if total_matches == 0:
+                for i in range(1, max_courts + 1):
+                    court_key = f"court{i}"
+                    court_analysis[court_key] = {
+                        "winRate": 0,
+                        "record": "0-0",
+                        "topPartners": [],
                     }
-                    for player_name, player_data in top_players_court
-                ],
-            }
 
         # Build top_players list
         top_players = []
@@ -3597,19 +3523,28 @@ def get_mobile_series_data(user):
         user_series = user.get("series")
         user_club = user.get("club")
 
-        # Calculate Strength of Schedule data
+        # Calculate comprehensive Strength of Schedule data
         sos_data = calculate_strength_of_schedule(user)
 
         return {
             "user_series": user_series,
             "user_club": user_club,
             "success": True,
-            # Include SoS data for template
+            # Historical SoS data
             "sos_value": sos_data.get("sos_value"),
             "sos_rank": sos_data.get("rank"),
-            "sos_total_teams": sos_data.get("total_teams"),
             "sos_opponents_count": sos_data.get("opponents_count"),
             "sos_all_teams": sos_data.get("all_teams_sos", []),
+            # Remaining SoS data
+            "remaining_sos_value": sos_data.get("remaining_sos_value"),
+            "remaining_sos_rank": sos_data.get("remaining_rank"),
+            "sos_remaining_opponents_count": sos_data.get("remaining_opponents_count"),
+            "sos_all_teams_remaining": sos_data.get("all_teams_remaining_sos", []),
+            "has_remaining_schedule": sos_data.get("has_remaining_schedule", False),
+            # Comparison analysis
+            "schedule_comparison": sos_data.get("schedule_comparison", {}),
+            # General data
+            "sos_total_teams": sos_data.get("total_teams"),
             "sos_user_team_name": sos_data.get("user_team_name"),
             "sos_error": sos_data.get("error"),
         }
@@ -4525,20 +4460,29 @@ def get_player_name_from_id(player_id):
 
 def calculate_strength_of_schedule(user):
     """
-    Calculate Strength of Schedule (SoS) for the user's team.
+    Calculate comprehensive Strength of Schedule (SoS) analysis for the user's team.
 
-    SoS = Average of opponent teams' average points per match in the series
-    Also calculates the user team's rank among all teams in the series by SoS.
+    This function provides:
+    1. Historical SoS - opponents already played
+    2. Remaining SoS - opponents yet to be played  
+    3. Comparison analysis - easier/harder remaining schedule
 
     Args:
         user: User object containing player info and team membership
 
     Returns:
         dict: {
-            'sos_value': float,  # Rounded to 2 decimal places
-            'rank': int,         # Team's rank by SoS (1 = toughest schedule)
-            'total_teams': int,  # Total teams in series
-            'opponents_count': int,  # Number of unique opponents faced
+            'sos_value': float,           # Historical SoS (rounded to 2 decimal places)
+            'remaining_sos_value': float, # Remaining SoS (rounded to 2 decimal places)
+            'rank': int,                  # Team's historical SoS rank (1 = toughest schedule)
+            'remaining_rank': int,        # Team's remaining SoS rank
+            'total_teams': int,           # Total teams in series
+            'opponents_count': int,       # Number of unique opponents faced
+            'remaining_opponents_count': int, # Number of unique remaining opponents
+            'schedule_comparison': dict,  # Analysis of remaining vs historical
+            'all_teams_sos': list,       # All teams' historical SoS rankings
+            'all_teams_remaining_sos': list, # All teams' remaining SoS rankings
+            'user_team_name': str,       # User's team name
             'error': str or None
         }
     """
@@ -4551,10 +4495,17 @@ def calculate_strength_of_schedule(user):
         if not club or not series:
             return {
                 "sos_value": 0.0,
+                "remaining_sos_value": "N/A",
+                "remaining_sos_actual": None,
                 "rank": 0,
+                "remaining_rank": None,
                 "total_teams": 0,
                 "opponents_count": 0,
+                "remaining_opponents_count": 0,
+                "has_remaining_schedule": False,
+                "schedule_comparison": {},
                 "all_teams_sos": [],
+                "all_teams_remaining_sos": [],
                 "user_team_name": "",
                 "error": "User club or series not found",
             }
@@ -4594,12 +4545,12 @@ def calculate_strength_of_schedule(user):
             team = f"{club} - {series_num}"
 
         print(
-            f"[DEBUG] calculate_strength_of_schedule: Calculating SoS for team '{team}'"
+            f"[DEBUG] calculate_strength_of_schedule: Calculating comprehensive SoS for team '{team}'"
         )
 
-        # Get all completed matches involving this team
+        # ===== STEP 1: HISTORICAL SOS (Completed Matches) =====
         if league_id_int:
-            matches_query = """
+            historical_matches_query = """
                 SELECT 
                     home_team,
                     away_team,
@@ -4613,9 +4564,9 @@ def calculate_strength_of_schedule(user):
                 AND match_date <= CURRENT_DATE
                 ORDER BY match_date
             """
-            team_matches = execute_query(matches_query, [team, team, league_id_int])
+            historical_matches = execute_query(historical_matches_query, [team, team, league_id_int])
         else:
-            matches_query = """
+            historical_matches_query = """
                 SELECT 
                     home_team,
                     away_team,
@@ -4628,118 +4579,351 @@ def calculate_strength_of_schedule(user):
                 AND match_date <= CURRENT_DATE
                 ORDER BY match_date
             """
-            team_matches = execute_query(matches_query, [team, team])
+            historical_matches = execute_query(historical_matches_query, [team, team])
 
-        if not team_matches:
-            return {
-                "sos_value": 0.0,
-                "rank": 0,
-                "total_teams": 0,
-                "opponents_count": 0,
-                "all_teams_sos": [],
-                "user_team_name": team,
-                "error": "No completed matches found for team",
-            }
-
-        # Extract unique opponents
-        opponents = set()
-        for match in team_matches:
+        # Extract historical opponents
+        historical_opponents = set()
+        for match in historical_matches:
             home_team = match["home_team"]
             away_team = match["away_team"]
-
             if home_team == team:
-                opponents.add(away_team)
+                historical_opponents.add(away_team)
             else:
-                opponents.add(home_team)
+                historical_opponents.add(home_team)
 
-        if not opponents:
-            return {
-                "sos_value": 0.0,
-                "rank": 0,
-                "total_teams": 0,
-                "opponents_count": 0,
-                "all_teams_sos": [],
-                "user_team_name": team,
-                "error": "No opponents found",
-            }
+        print(f"[DEBUG] Found {len(historical_opponents)} historical opponents: {list(historical_opponents)}")
 
-        print(
-            f"[DEBUG] calculate_strength_of_schedule: Found {len(opponents)} unique opponents: {list(opponents)}"
+        # Calculate historical SOS
+        historical_sos_value = 0.0
+        if historical_opponents:
+            historical_opponent_avg_points = []
+            for opponent in historical_opponents:
+                opponent_stats = _get_opponent_stats(opponent, league_id_int)
+                if opponent_stats:
+                    historical_opponent_avg_points.append(opponent_stats)
+            
+            if historical_opponent_avg_points:
+                historical_sos_value = round(sum(historical_opponent_avg_points) / len(historical_opponent_avg_points), 2)
+
+        # ===== STEP 2: REMAINING SOS (Future/Actual Matches) =====
+        # Check for actual future matches first
+        remaining_matches = _get_actual_future_matches(team, league_id_int)
+        
+        # If no actual future matches exist, don't simulate - return empty
+        if not remaining_matches:
+            print(f"[DEBUG] No actual future matches found for {team}. Remaining SOS analysis not available.")
+        
+        # Extract remaining opponents
+        remaining_opponents = set()
+        for match in remaining_matches:
+            home_team = match["home_team"]
+            away_team = match["away_team"]
+            if home_team == team:
+                remaining_opponents.add(away_team)  
+            else:
+                remaining_opponents.add(home_team)
+
+        print(f"[DEBUG] Found {len(remaining_opponents)} remaining opponents: {list(remaining_opponents)}")
+
+        # Calculate remaining SOS only if actual future matches exist
+        remaining_sos_value = None
+        if remaining_opponents:
+            remaining_opponent_avg_points = []
+            for opponent in remaining_opponents:
+                opponent_stats = _get_opponent_stats(opponent, league_id_int)
+                if opponent_stats:
+                    remaining_opponent_avg_points.append(opponent_stats)
+            
+            if remaining_opponent_avg_points:
+                remaining_sos_value = round(sum(remaining_opponent_avg_points) / len(remaining_opponent_avg_points), 2)
+        
+        # Set display values based on whether remaining schedule exists
+        remaining_sos_display = remaining_sos_value if remaining_sos_value is not None else "N/A"
+        has_remaining_schedule = remaining_sos_value is not None
+
+        # ===== STEP 3: GET ALL TEAMS FOR LEAGUE-WIDE RANKINGS =====
+        all_teams = _get_all_teams_in_series(series, league_id_int, team)
+        
+        # ===== STEP 4: CALCULATE LEAGUE-WIDE HISTORICAL SOS RANKINGS =====
+        all_teams_historical_sos = []
+        for team_record in all_teams:
+            team_name = team_record["team"]
+            team_historical_sos = _calculate_team_historical_sos(team_name, league_id_int)
+            all_teams_historical_sos.append((team_name, team_historical_sos))
+
+        # Sort and rank historical SOS
+        all_teams_historical_sos.sort(key=lambda x: x[1], reverse=True)
+        user_historical_rank = 0
+        all_teams_sos = []
+
+        for i, (team_name, team_sos) in enumerate(all_teams_historical_sos):
+            rank = i + 1
+            is_user_team = team_name == team
+            if is_user_team:
+                user_historical_rank = rank
+
+            all_teams_sos.append({
+                "team_name": team_name,
+                "sos_value": team_sos,
+                "rank": rank,
+                "is_user_team": is_user_team,
+            })
+
+        # ===== STEP 5: CALCULATE LEAGUE-WIDE REMAINING SOS RANKINGS (only if remaining schedule exists) =====
+        user_remaining_rank = None
+        all_teams_remaining_sos = []
+        
+        if has_remaining_schedule:
+            all_teams_remaining_sos_data = []
+            for team_record in all_teams:
+                team_name = team_record["team"]
+                team_remaining_sos = _calculate_team_remaining_sos(team_name, league_id_int, historical_opponents)
+                if team_remaining_sos is not None:  # Only include teams with remaining matches
+                    all_teams_remaining_sos_data.append((team_name, team_remaining_sos))
+
+            if all_teams_remaining_sos_data:
+                # Sort and rank remaining SOS
+                all_teams_remaining_sos_data.sort(key=lambda x: x[1], reverse=True)
+
+                for i, (team_name, team_sos) in enumerate(all_teams_remaining_sos_data):
+                    rank = i + 1
+                    is_user_team = team_name == team
+                    if is_user_team:
+                        user_remaining_rank = rank
+
+                    all_teams_remaining_sos.append({
+                        "team_name": team_name,
+                        "sos_value": team_sos,
+                        "rank": rank,
+                        "is_user_team": is_user_team,
+                    })
+
+        # ===== STEP 6: SCHEDULE COMPARISON ANALYSIS =====
+        schedule_comparison = _analyze_schedule_comparison(
+            historical_sos_value, remaining_sos_value, 
+            user_historical_rank, user_remaining_rank,
+            len(all_teams), has_remaining_schedule
         )
 
-        # Get average points per match for each opponent from series_stats
-        opponent_avg_points = []
+        print(f"[DEBUG] Team '{team}' - Historical SOS: {historical_sos_value} (#{user_historical_rank}), Remaining SOS: {remaining_sos_value} (#{user_remaining_rank})")
 
-        for opponent in opponents:
-            if league_id_int:
-                # Query series_stats with league filtering
-                stats_query = """
-                    SELECT 
-                        points,
-                        matches_won,
-                        matches_lost,
-                        matches_tied
-                    FROM series_stats
-                    WHERE team = %s AND league_id = %s
-                """
-                opponent_stats = execute_query_one(
-                    stats_query, [opponent, league_id_int]
-                )
-            else:
-                # Query without league filtering
-                stats_query = """
-                    SELECT 
-                        points,
-                        matches_won,
-                        matches_lost,
-                        matches_tied
-                    FROM series_stats
-                    WHERE team = %s
-                """
-                opponent_stats = execute_query_one(stats_query, [opponent])
+        return {
+            "sos_value": historical_sos_value,
+            "remaining_sos_value": remaining_sos_display,
+            "remaining_sos_actual": remaining_sos_value,  # For calculations
+            "rank": user_historical_rank,
+            "remaining_rank": user_remaining_rank,
+            "total_teams": len(all_teams),
+            "opponents_count": len(historical_opponents),
+            "remaining_opponents_count": len(remaining_opponents),
+            "has_remaining_schedule": has_remaining_schedule,
+            "schedule_comparison": schedule_comparison,
+            "all_teams_sos": all_teams_sos,
+            "all_teams_remaining_sos": all_teams_remaining_sos,
+            "user_team_name": team,
+            "error": None,
+        }
 
-            if opponent_stats:
-                points = opponent_stats["points"] or 0
-                matches_played = (
-                    (opponent_stats["matches_won"] or 0)
-                    + (opponent_stats["matches_lost"] or 0)
-                    + (opponent_stats["matches_tied"] or 0)
-                )
+    except Exception as e:
+        print(f"[ERROR] calculate_strength_of_schedule: {str(e)}")
+        import traceback
 
-                if matches_played > 0:
-                    avg_points = round(points / matches_played, 2)
-                    opponent_avg_points.append(avg_points)
-                    print(
-                        f"[DEBUG] calculate_strength_of_schedule: {opponent} - {points} points in {matches_played} matches = {avg_points} avg"
-                    )
-                else:
-                    print(
-                        f"[DEBUG] calculate_strength_of_schedule: {opponent} - No matches played, skipping"
-                    )
-            else:
-                print(
-                    f"[DEBUG] calculate_strength_of_schedule: {opponent} - No stats found, skipping"
-                )
-
-        if not opponent_avg_points:
-            return {
-                "sos_value": 0.0,
-                "rank": 0,
-                "total_teams": 0,
-                "opponents_count": len(opponents),
-                "all_teams_sos": [],
-                "user_team_name": team,
-                "error": "No opponent statistics available",
-            }
-
-        # Calculate Strength of Schedule as average of opponent average points
-        sos_value = round(sum(opponent_avg_points) / len(opponent_avg_points), 2)
         print(
-            f"[DEBUG] calculate_strength_of_schedule: SoS = {sum(opponent_avg_points)} / {len(opponent_avg_points)} = {sos_value}"
+            f"[ERROR] calculate_strength_of_schedule traceback: {traceback.format_exc()}"
         )
+        return {
+            "sos_value": 0.0,
+            "remaining_sos_value": "N/A",
+            "remaining_sos_actual": None,
+            "rank": 0,
+            "remaining_rank": None,
+            "total_teams": 0,
+            "opponents_count": 0,
+            "remaining_opponents_count": 0,
+            "has_remaining_schedule": False,
+            "schedule_comparison": {},
+            "all_teams_sos": [],
+            "all_teams_remaining_sos": [],
+            "user_team_name": "",
+            "error": str(e),
+        }
 
-        # Calculate SoS for all teams in the same series to determine ranking
-        # First, get all teams in the series
+
+def _get_opponent_stats(opponent, league_id_int):
+    """Get opponent's average points per match from series_stats"""
+    try:
+        if league_id_int:
+            stats_query = """
+                SELECT 
+                    points,
+                    matches_won,
+                    matches_lost,
+                    matches_tied
+                FROM series_stats
+                WHERE team = %s AND league_id = %s
+            """
+            opponent_stats = execute_query_one(stats_query, [opponent, league_id_int])
+        else:
+            stats_query = """
+                SELECT 
+                    points,
+                    matches_won,
+                    matches_lost,
+                    matches_tied
+                FROM series_stats
+                WHERE team = %s
+            """
+            opponent_stats = execute_query_one(stats_query, [opponent])
+
+        if opponent_stats:
+            points = opponent_stats["points"] or 0
+            matches_played = (
+                (opponent_stats["matches_won"] or 0)
+                + (opponent_stats["matches_lost"] or 0)
+                + (opponent_stats["matches_tied"] or 0)
+            )
+
+            if matches_played > 0:
+                avg_points = round(points / matches_played, 2)
+                print(f"[DEBUG] {opponent} - {points} points in {matches_played} matches = {avg_points} avg")
+                return avg_points
+            else:
+                print(f"[DEBUG] {opponent} - No matches played, skipping")
+                return None
+        else:
+            print(f"[DEBUG] {opponent} - No stats found, skipping")
+            return None
+    except Exception as e:
+        print(f"[ERROR] Getting opponent stats for {opponent}: {str(e)}")
+        return None
+
+
+def _get_actual_future_matches(team, league_id_int):
+    """
+    Get actual future matches from the schedule table.
+    Returns empty list if no future matches are scheduled.
+    """
+    try:
+        print("[DEBUG] Checking for actual future matches in schedule table...")
+        
+        if league_id_int:
+            future_matches_query = """
+                SELECT 
+                    home_team,
+                    away_team,
+                    match_date,
+                    match_time,
+                    location
+                FROM schedule
+                WHERE (home_team = %s OR away_team = %s)
+                AND league_id = %s
+                AND match_date > CURRENT_DATE
+                ORDER BY match_date, match_time
+            """
+            future_matches = execute_query(future_matches_query, [team, team, league_id_int])
+        else:
+            future_matches_query = """
+                SELECT 
+                    home_team,
+                    away_team,
+                    match_date,
+                    match_time,
+                    location
+                FROM schedule
+                WHERE (home_team = %s OR away_team = %s)
+                AND match_date > CURRENT_DATE
+                ORDER BY match_date, match_time
+            """
+            future_matches = execute_query(future_matches_query, [team, team])
+
+        print(f"[DEBUG] Found {len(future_matches)} actual future matches")
+        return future_matches
+
+    except Exception as e:
+        print(f"[ERROR] Getting actual future matches: {str(e)}")
+        return []
+
+
+def _simulate_remaining_schedule(team, league_id_int, historical_opponents):
+    """
+    Simulate remaining schedule for testing purposes.
+    Since all schedules are historical, we create a simulated remaining schedule.
+    """
+    try:
+        print("[DEBUG] Simulating remaining schedule for testing...")
+        
+        # Get all possible opponents from the league
+        if league_id_int:
+            all_opponents_query = """
+                SELECT DISTINCT 
+                    CASE 
+                        WHEN home_team = %s THEN away_team 
+                        ELSE home_team 
+                    END as opponent
+                FROM match_scores 
+                WHERE (home_team = %s OR away_team = %s)
+                AND league_id = %s
+                AND CASE 
+                    WHEN home_team = %s THEN away_team 
+                    ELSE home_team 
+                END IS NOT NULL
+            """
+            all_possible_opponents = execute_query(all_opponents_query, [team, team, team, league_id_int, team])
+        else:
+            all_opponents_query = """
+                SELECT DISTINCT 
+                    CASE 
+                        WHEN home_team = %s THEN away_team 
+                        ELSE home_team 
+                    END as opponent
+                FROM match_scores 
+                WHERE (home_team = %s OR away_team = %s)
+                AND CASE 
+                    WHEN home_team = %s THEN away_team 
+                    ELSE home_team 
+                END IS NOT NULL
+            """
+            all_possible_opponents = execute_query(all_opponents_query, [team, team, team, team])
+
+        # Convert to set of opponent names
+        all_opponents = {opp["opponent"] for opp in all_possible_opponents if opp["opponent"]}
+        
+        # Simulate remaining opponents (teams not yet played or need rematches)
+        import random
+        remaining_opponents = list(all_opponents - historical_opponents)
+        
+        # If no remaining opponents, simulate rematches with some historical opponents
+        if not remaining_opponents:
+            remaining_opponents = random.sample(list(historical_opponents), min(3, len(historical_opponents)))
+        
+        # Create simulated matches
+        simulated_matches = []
+        for i, opponent in enumerate(remaining_opponents[:4]):  # Limit to 4 remaining matches
+            # Alternate home/away
+            if i % 2 == 0:
+                simulated_matches.append({
+                    "home_team": team,
+                    "away_team": opponent,
+                    "match_date": f"2024-{6 + i//2:02d}-{15 + i*7:02d}"  # Future dates
+                })
+            else:
+                simulated_matches.append({
+                    "home_team": opponent,
+                    "away_team": team,
+                    "match_date": f"2024-{6 + i//2:02d}-{15 + i*7:02d}"  # Future dates
+                })
+
+        print(f"[DEBUG] Simulated {len(simulated_matches)} remaining matches")
+        return simulated_matches
+
+    except Exception as e:
+        print(f"[ERROR] Simulating remaining schedule: {str(e)}")
+        return []
+
+
+def _get_all_teams_in_series(series, league_id_int, team):
+    """Get all teams in the same series for league-wide rankings"""
+    try:
         if league_id_int:
             all_teams_query = """
                 SELECT DISTINCT team 
@@ -4747,9 +4931,7 @@ def calculate_strength_of_schedule(user):
                 WHERE series = %s AND league_id = %s
                 AND team IS NOT NULL
             """
-            # Extract series name from the team (assuming same format)
-            series_name = series  # Use the user's series name directly
-            all_teams = execute_query(all_teams_query, [series_name, league_id_int])
+            all_teams = execute_query(all_teams_query, [series, league_id_int])
         else:
             all_teams_query = """
                 SELECT DISTINCT team 
@@ -4757,11 +4939,10 @@ def calculate_strength_of_schedule(user):
                 WHERE series = %s
                 AND team IS NOT NULL
             """
-            series_name = series
-            all_teams = execute_query(all_teams_query, [series_name])
+            all_teams = execute_query(all_teams_query, [series])
 
         if not all_teams:
-            # Fallback: try to find teams by looking at match data
+            # Fallback: get teams from match data
             if league_id_int:
                 fallback_query = """
                     SELECT DISTINCT 
@@ -4775,9 +4956,7 @@ def calculate_strength_of_schedule(user):
                     UNION 
                     SELECT %s as team
                 """
-                all_teams = execute_query(
-                    fallback_query, [team, team, team, league_id_int, team]
-                )
+                all_teams = execute_query(fallback_query, [team, team, team, league_id_int, team])
             else:
                 fallback_query = """
                     SELECT DISTINCT 
@@ -4792,136 +4971,184 @@ def calculate_strength_of_schedule(user):
                 """
                 all_teams = execute_query(fallback_query, [team, team, team, team])
 
-        # Calculate SoS for each team
-        team_sos_values = []
+        return all_teams
 
-        for team_record in all_teams:
-            team_name = team_record["team"]
+    except Exception as e:
+        print(f"[ERROR] Getting all teams in series: {str(e)}")
+        return []
 
-            # Get matches for this team
-            if league_id_int:
-                team_matches_query = """
-                    SELECT home_team, away_team, winner
-                    FROM match_scores
-                    WHERE (home_team = %s OR away_team = %s)
-                    AND league_id = %s
-                    AND winner IS NOT NULL
-                    AND winner != ''
-                    AND match_date <= CURRENT_DATE
-                """
-                team_match_records = execute_query(
-                    team_matches_query, [team_name, team_name, league_id_int]
-                )
+
+def _calculate_team_historical_sos(team_name, league_id_int):
+    """Calculate historical SOS for a specific team"""
+    try:
+        # Get historical matches for this team
+        if league_id_int:
+            team_matches_query = """
+                SELECT home_team, away_team, winner
+                FROM match_scores
+                WHERE (home_team = %s OR away_team = %s)
+                AND league_id = %s
+                AND winner IS NOT NULL
+                AND winner != ''
+                AND match_date <= CURRENT_DATE
+            """
+            team_match_records = execute_query(team_matches_query, [team_name, team_name, league_id_int])
+        else:
+            team_matches_query = """
+                SELECT home_team, away_team, winner
+                FROM match_scores
+                WHERE (home_team = %s OR away_team = %s)
+                AND winner IS NOT NULL
+                AND winner != ''
+                AND match_date <= CURRENT_DATE
+            """
+            team_match_records = execute_query(team_matches_query, [team_name, team_name])
+
+        # Get opponents for this team
+        team_opponents = set()
+        for match in team_match_records:
+            if match["home_team"] == team_name:
+                team_opponents.add(match["away_team"])
             else:
-                team_matches_query = """
-                    SELECT home_team, away_team, winner
-                    FROM match_scores
-                    WHERE (home_team = %s OR away_team = %s)
-                    AND winner IS NOT NULL
-                    AND winner != ''
-                    AND match_date <= CURRENT_DATE
-                """
-                team_match_records = execute_query(
-                    team_matches_query, [team_name, team_name]
-                )
+                team_opponents.add(match["home_team"])
 
-            # Get opponents for this team
-            team_opponents = set()
-            for match in team_match_records:
-                if match["home_team"] == team_name:
-                    team_opponents.add(match["away_team"])
-                else:
-                    team_opponents.add(match["home_team"])
+        # Calculate average points for opponents
+        team_opponent_avg_points = []
+        for opponent in team_opponents:
+            opponent_stats = _get_opponent_stats(opponent, league_id_int)
+            if opponent_stats:
+                team_opponent_avg_points.append(opponent_stats)
 
-            # Calculate average points for opponents
-            team_opponent_avg_points = []
-            for opponent in team_opponents:
-                if league_id_int:
-                    opp_stats_query = """
-                        SELECT points, matches_won, matches_lost, matches_tied
-                        FROM series_stats
-                        WHERE team = %s AND league_id = %s
-                    """
-                    opp_stats = execute_query_one(
-                        opp_stats_query, [opponent, league_id_int]
-                    )
-                else:
-                    opp_stats_query = """
-                        SELECT points, matches_won, matches_lost, matches_tied
-                        FROM series_stats
-                        WHERE team = %s
-                    """
-                    opp_stats = execute_query_one(opp_stats_query, [opponent])
+        # Calculate SoS for this team
+        if team_opponent_avg_points:
+            team_sos = round(sum(team_opponent_avg_points) / len(team_opponent_avg_points), 2)
+            return team_sos
+        else:
+            return 0.0
 
-                if opp_stats:
-                    opp_points = opp_stats["points"] or 0
-                    opp_matches = (
-                        (opp_stats["matches_won"] or 0)
-                        + (opp_stats["matches_lost"] or 0)
-                        + (opp_stats["matches_tied"] or 0)
-                    )
-                    if opp_matches > 0:
-                        team_opponent_avg_points.append(opp_points / opp_matches)
+    except Exception as e:
+        print(f"[ERROR] Calculating historical SOS for {team_name}: {str(e)}")
+        return 0.0
 
-            # Calculate SoS for this team
-            if team_opponent_avg_points:
-                team_sos = round(
-                    sum(team_opponent_avg_points) / len(team_opponent_avg_points), 2
-                )
-                team_sos_values.append((team_name, team_sos))
 
-        # Sort teams by SoS (highest first = toughest schedule)
-        team_sos_values.sort(key=lambda x: x[1], reverse=True)
+def _calculate_team_remaining_sos(team_name, league_id_int, user_historical_opponents):
+    """Calculate remaining SOS for a specific team"""
+    try:
+        # Get actual remaining schedule for this team
+        remaining_matches = _get_actual_future_matches(team_name, league_id_int)
+        
+        # Get remaining opponents
+        remaining_opponents = set()
+        for match in remaining_matches:
+            if match["home_team"] == team_name:
+                remaining_opponents.add(match["away_team"])
+            else:
+                remaining_opponents.add(match["home_team"])
 
-        # Find user team's rank and build full rankings list
-        user_team_rank = 0
-        all_teams_sos = []
+        # Calculate average points for remaining opponents
+        remaining_opponent_avg_points = []
+        for opponent in remaining_opponents:
+            opponent_stats = _get_opponent_stats(opponent, league_id_int)
+            if opponent_stats:
+                remaining_opponent_avg_points.append(opponent_stats)
 
-        for i, (team_name, team_sos) in enumerate(team_sos_values):
-            rank = i + 1
-            is_user_team = team_name == team
+        # Calculate remaining SOS for this team
+        if remaining_opponent_avg_points:
+            team_remaining_sos = round(sum(remaining_opponent_avg_points) / len(remaining_opponent_avg_points), 2)
+            return team_remaining_sos
+        else:
+            return None  # No remaining matches or no valid opponent data
 
-            if is_user_team:
-                user_team_rank = rank
+    except Exception as e:
+        print(f"[ERROR] Calculating remaining SOS for {team_name}: {str(e)}")
+        return None
 
-            all_teams_sos.append(
-                {
-                    "team_name": team_name,
-                    "sos_value": team_sos,
-                    "rank": rank,
-                    "is_user_team": is_user_team,
-                }
-            )
 
-        total_teams = len(team_sos_values)
+def _analyze_schedule_comparison(historical_sos, remaining_sos, historical_rank, remaining_rank, total_teams, has_remaining_schedule):
+    """Analyze the comparison between historical and remaining schedule difficulty"""
+    try:
+        # If no remaining schedule exists, provide appropriate messaging
+        if not has_remaining_schedule or remaining_sos is None:
+            historical_percentile = round((total_teams - historical_rank + 1) / total_teams * 100, 1) if historical_rank else 50.0
+            
+            return {
+                "sos_difference": None,
+                "rank_difference": None,
+                "difficulty_assessment": "no_remaining_schedule",
+                "difficulty_text": "no remaining matches scheduled",
+                "historical_percentile": historical_percentile,
+                "remaining_percentile": None,
+                "summary": "Your season schedule is complete. No remaining matches are currently scheduled.",
+                "recommendation": "Season analysis shows your team faced opponents with an average strength rating. Focus on reviewing completed matches for insights."
+            }
+        
+        # Calculate difference only if remaining schedule exists
+        sos_difference = remaining_sos - historical_sos
+        rank_difference = remaining_rank - historical_rank  # Higher rank number = easier schedule
+        
+        # Determine if remaining schedule is easier or harder
+        if sos_difference > 0.2:
+            difficulty_assessment = "significantly_harder"
+            difficulty_text = "significantly harder"
+        elif sos_difference > 0.05:
+            difficulty_assessment = "harder"
+            difficulty_text = "harder"
+        elif sos_difference < -0.2:
+            difficulty_assessment = "significantly_easier"
+            difficulty_text = "significantly easier"
+        elif sos_difference < -0.05:
+            difficulty_assessment = "easier"
+            difficulty_text = "easier"
+        else:
+            difficulty_assessment = "similar"
+            difficulty_text = "similar difficulty"
 
-        print(
-            f"[DEBUG] calculate_strength_of_schedule: Team '{team}' ranks #{user_team_rank} out of {total_teams} teams with SoS {sos_value}"
-        )
+        # Calculate percentile improvements
+        historical_percentile = round((total_teams - historical_rank + 1) / total_teams * 100, 1)
+        remaining_percentile = round((total_teams - remaining_rank + 1) / total_teams * 100, 1)
+        
+        # Generate summary text
+        if difficulty_assessment in ["significantly_easier", "easier"]:
+            summary = f"Good news! Your remaining schedule is {difficulty_text} than what you've played so far."
+        elif difficulty_assessment in ["significantly_harder", "harder"]:
+            summary = f"Your remaining schedule is {difficulty_text} than what you've played so far."
+        else:
+            summary = f"Your remaining schedule has {difficulty_text} to what you've played so far."
 
         return {
-            "sos_value": sos_value,
-            "rank": user_team_rank,
-            "total_teams": total_teams,
-            "opponents_count": len(opponents),
-            "all_teams_sos": all_teams_sos,
-            "user_team_name": team,
-            "error": None,
+            "sos_difference": round(sos_difference, 2),
+            "rank_difference": rank_difference,
+            "difficulty_assessment": difficulty_assessment,
+            "difficulty_text": difficulty_text,
+            "historical_percentile": historical_percentile,
+            "remaining_percentile": remaining_percentile,
+            "summary": summary,
+            "recommendation": _generate_schedule_recommendation(difficulty_assessment, sos_difference, rank_difference)
         }
 
     except Exception as e:
-        print(f"[ERROR] calculate_strength_of_schedule: {str(e)}")
-        import traceback
-
-        print(
-            f"[ERROR] calculate_strength_of_schedule traceback: {traceback.format_exc()}"
-        )
+        print(f"[ERROR] Analyzing schedule comparison: {str(e)}")
         return {
-            "sos_value": 0.0,
-            "rank": 0,
-            "total_teams": 0,
-            "opponents_count": 0,
-            "all_teams_sos": [],
-            "user_team_name": "",
-            "error": str(e),
+            "sos_difference": 0.0,
+            "rank_difference": 0,
+            "difficulty_assessment": "unknown",
+            "difficulty_text": "unknown",
+            "historical_percentile": 50.0,
+            "remaining_percentile": 50.0,
+            "summary": "Unable to analyze schedule comparison.",
+            "recommendation": ""
         }
+
+
+def _generate_schedule_recommendation(difficulty_assessment, sos_difference, rank_difference):
+    """Generate strategic recommendations based on schedule analysis"""
+    if difficulty_assessment == "significantly_easier":
+        return "This is a great opportunity to improve your standings. Focus on consistency and capitalize on these easier matchups."
+    elif difficulty_assessment == "easier":
+        return "Your remaining opponents are slightly weaker. This could be a good chance to gain ground in the standings."
+    elif difficulty_assessment == "significantly_harder":
+        return "Your toughest matches are ahead. Focus on preparation and consider this valuable experience against strong opponents."
+    elif difficulty_assessment == "harder":
+        return "Your remaining schedule is more challenging. Use this as motivation to elevate your game."
+    else:
+        return "Your remaining schedule difficulty is consistent with what you've faced. Continue your current approach."

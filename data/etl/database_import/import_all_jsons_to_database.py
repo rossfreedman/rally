@@ -43,6 +43,114 @@ from utils.league_utils import (
     get_league_url,
     normalize_league_id,
 )
+# CRITICAL FIX: Import player lookup utilities for fallback matching
+from utils.database_player_lookup import find_player_by_database_lookup
+
+
+class PlayerMatchingValidator:
+    """Handles player ID validation and fallback matching during JSON imports"""
+    
+    def __init__(self):
+        self.validation_stats = {
+            'total_lookups': 0,
+            'exact_matches': 0,
+            'fallback_matches': 0,
+            'failed_matches': 0,
+            'missing_player_ids': []
+        }
+    
+    def validate_and_resolve_player_id(self, conn, tenniscores_player_id: str, 
+                                     first_name: str = None, last_name: str = None,
+                                     club_name: str = None, series_name: str = None, 
+                                     league_id: str = None) -> Optional[str]:
+        """
+        Validate player ID exists in database, with fallback matching if needed.
+        
+        Returns:
+            str: Valid tenniscores_player_id if found/resolved
+            None: If no match can be established
+        """
+        if not tenniscores_player_id:
+            return None
+            
+        self.validation_stats['total_lookups'] += 1
+        
+        # First, check if the tenniscores_player_id exists directly
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT tenniscores_player_id FROM players WHERE tenniscores_player_id = %s AND is_active = true",
+            (tenniscores_player_id,)
+        )
+        
+        if cursor.fetchone():
+            self.validation_stats['exact_matches'] += 1
+            return tenniscores_player_id
+        
+        # Player ID not found - attempt fallback matching if we have enough info
+        if not all([first_name, last_name, league_id]):
+            self.validation_stats['failed_matches'] += 1
+            self.validation_stats['missing_player_ids'].append({
+                'tenniscores_id': tenniscores_player_id,
+                'reason': 'Player ID not found in database, insufficient info for fallback',
+                'available_info': f"{first_name or 'N/A'} {last_name or 'N/A'} ({club_name or 'N/A'}, {series_name or 'N/A'}, {league_id or 'N/A'})"
+            })
+            return None
+        
+        # Attempt fallback matching using database lookup
+        try:
+            result = find_player_by_database_lookup(
+                first_name=first_name,
+                last_name=last_name, 
+                club_name=club_name or "",
+                series_name=series_name or "",
+                league_id=league_id
+            )
+            
+            if result and isinstance(result, dict):
+                if result.get('match_type') in ['exact', 'probable', 'high_confidence']:
+                    resolved_id = result['player']['tenniscores_player_id']
+                    self.validation_stats['fallback_matches'] += 1
+                    print(f"   🔧 FALLBACK MATCH: {tenniscores_player_id} → {resolved_id} for {first_name} {last_name}")
+                    return resolved_id
+                elif result.get('match_type') == 'multiple_high_confidence':
+                    # For imports, take the first high-confidence match 
+                    resolved_id = result['matches'][0]['tenniscores_player_id']
+                    self.validation_stats['fallback_matches'] += 1
+                    print(f"   🔧 MULTIPLE FALLBACK: {tenniscores_player_id} → {resolved_id} for {first_name} {last_name} (first of {len(result['matches'])} matches)")
+                    return resolved_id
+        except Exception as e:
+            print(f"   ❌ Fallback matching error for {tenniscores_player_id}: {e}")
+        
+        # No fallback match found
+        self.validation_stats['failed_matches'] += 1
+        self.validation_stats['missing_player_ids'].append({
+            'tenniscores_id': tenniscores_player_id,
+            'reason': 'Player ID not found, fallback matching failed',
+            'available_info': f"{first_name} {last_name} ({club_name or 'N/A'}, {series_name or 'N/A'}, {league_id})"
+        })
+        return None
+    
+    def print_validation_summary(self):
+        """Print summary of player ID validation results"""
+        stats = self.validation_stats
+        print(f"\n📊 PLAYER ID VALIDATION SUMMARY")
+        print(f"=" * 50)
+        print(f"Total lookups: {stats['total_lookups']:,}")
+        print(f"Exact matches: {stats['exact_matches']:,}")
+        print(f"Fallback matches: {stats['fallback_matches']:,}")
+        print(f"Failed matches: {stats['failed_matches']:,}")
+        
+        if stats['missing_player_ids']:
+            print(f"\n⚠️  MISSING PLAYER IDs ({len(stats['missing_player_ids'])} total):")
+            for i, missing in enumerate(stats['missing_player_ids'][:10]):  # Show first 10
+                print(f"   {i+1}. {missing['tenniscores_id']}: {missing['reason']}")
+                print(f"      Info: {missing['available_info']}")
+            
+            if len(stats['missing_player_ids']) > 10:
+                print(f"   ... and {len(stats['missing_player_ids']) - 10} more")
+        
+        success_rate = ((stats['exact_matches'] + stats['fallback_matches']) / stats['total_lookups'] * 100) if stats['total_lookups'] > 0 else 0
+        print(f"\n✅ SUCCESS RATE: {success_rate:.1f}% ({stats['exact_matches'] + stats['fallback_matches']:,}/{stats['total_lookups']:,})")
 
 
 class ComprehensiveETL:
@@ -53,11 +161,56 @@ class ComprehensiveETL:
         self.data_dir = os.path.join(project_root, "data", "leagues", "all")
         self.imported_counts = {}
         self.errors = []
+        self.series_mappings = {}  # Cache for series mappings
+        # CRITICAL FIX: Add player matching validator
+        self.player_validator = PlayerMatchingValidator()
 
     def log(self, message: str, level: str = "INFO"):
         """Enhanced logging with timestamps"""
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         print(f"[{timestamp}] [{level}] {message}")
+    
+    def load_series_mappings(self, conn):
+        """Load series mappings from the team_format_mappings table"""
+        self.log("📋 Loading series mappings from database...")
+        
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT league_id, user_input_format, database_series_format 
+            FROM team_format_mappings 
+            WHERE is_active = true AND mapping_type = 'series_mapping'
+        """)
+        
+        mappings = cursor.fetchall()
+        
+        for league_id, user_format, db_format in mappings:
+            if league_id not in self.series_mappings:
+                self.series_mappings[league_id] = {}
+            self.series_mappings[league_id][user_format] = db_format
+        
+        total_mappings = sum(len(league_mappings) for league_mappings in self.series_mappings.values())
+        self.log(f"✅ Loaded {total_mappings} series mappings for {len(self.series_mappings)} leagues")
+    
+    def map_series_name(self, series_name: str, league_id: str) -> str:
+        """Convert user-facing series name to database series name using mappings"""
+        if not series_name or not league_id:
+            return series_name
+            
+        # Check if we have mappings for this league
+        if league_id not in self.series_mappings:
+            return series_name
+            
+        # Check for exact match first
+        if series_name in self.series_mappings[league_id]:
+            return self.series_mappings[league_id][series_name]
+            
+        # Check for case-insensitive match
+        for user_format, db_format in self.series_mappings[league_id].items():
+            if user_format.lower() == series_name.lower():
+                return db_format
+                
+        # No mapping found, return original
+        return series_name
 
     def load_json_file(self, filename: str) -> List[Dict]:
         """Load and parse JSON file with error handling"""
@@ -296,46 +449,60 @@ class ComprehensiveETL:
         players_data: List[Dict],
         series_stats_data: List[Dict] = None,
         schedules_data: List[Dict] = None,
+        conn=None,
     ) -> List[Dict]:
-        """Extract unique series from players data and team data"""
+        """Extract unique series from players data and team data, applying mappings"""
         self.log("🔍 Extracting series from players data and team data...")
+
+        # Load series mappings if we have a connection
+        if conn:
+            self.load_series_mappings(conn)
 
         series = set()
 
-        # Extract from players data (original logic)
+        # Extract from players data with mapping conversion
         for player in players_data:
             series_name = player.get("Series", "").strip()
-            if series_name:
-                series.add(series_name)
+            league_id = normalize_league_id(player.get("League", "").strip())
+            if series_name and league_id:
+                # Convert using mapping
+                db_series_name = self.map_series_name(series_name, league_id)
+                series.add(db_series_name)
 
-        # Extract from series_stats data (new logic to fix missing series)
+        # Extract from series_stats data with mapping conversion
         if series_stats_data:
             for record in series_stats_data:
                 series_name = record.get("series", "").strip()
-                if series_name:
+                league_id = normalize_league_id(record.get("league_id", "").strip())
+                if series_name and league_id:
                     # Clean any malformed series names like "Series eries 16"
                     if "eries " in series_name:
                         series_name = series_name.replace("eries ", "")
-                    series.add(series_name)
+                    # Convert using mapping
+                    db_series_name = self.map_series_name(series_name, league_id)
+                    series.add(db_series_name)
 
-        # Extract from schedules data by parsing team names (new logic to fix missing series)
+        # Extract from schedules data by parsing team names with mapping conversion
         if schedules_data:
             for record in schedules_data:
+                league_id = normalize_league_id(record.get("League", "").strip())
                 home_team = record.get("home_team", "").strip()
                 away_team = record.get("away_team", "").strip()
 
                 for team_name in [home_team, away_team]:
-                    if team_name and team_name != "BYE":
+                    if team_name and team_name != "BYE" and league_id:
                         # Parse team name to extract series
                         club_name, series_name = self.parse_schedule_team_name(
                             team_name
                         )
                         if series_name:
-                            series.add(series_name)
+                            # Convert using mapping
+                            db_series_name = self.map_series_name(series_name, league_id)
+                            series.add(db_series_name)
 
         series_records = [{"name": series_name} for series_name in sorted(series)]
 
-        self.log(f"✅ Found {len(series_records)} unique series")
+        self.log(f"✅ Found {len(series_records)} unique series (after mapping conversion)")
         return series_records
 
     def analyze_club_league_relationships(self, players_data: List[Dict]) -> List[Dict]:
@@ -371,21 +538,24 @@ class ComprehensiveETL:
     def analyze_series_league_relationships(
         self, players_data: List[Dict]
     ) -> List[Dict]:
-        """Analyze which series belong to which leagues"""
+        """Analyze which series belong to which leagues, using mapped series names"""
         self.log("🔍 Analyzing series-league relationships...")
 
         series_league_map = {}
         for player in players_data:
-            series_name = player.get("Series", "").strip()
+            raw_series_name = player.get("Series", "").strip()
             league = player.get("League", "").strip()
 
-            if series_name and league:
+            if raw_series_name and league:
                 # Normalize the league ID
                 normalized_league = normalize_league_id(league)
                 if normalized_league:
-                    if series_name not in series_league_map:
-                        series_league_map[series_name] = set()
-                    series_league_map[series_name].add(normalized_league)
+                    # Convert series name using mapping
+                    mapped_series_name = self.map_series_name(raw_series_name, normalized_league)
+                    
+                    if mapped_series_name not in series_league_map:
+                        series_league_map[mapped_series_name] = set()
+                    series_league_map[mapped_series_name].add(normalized_league)
 
         relationships = []
         for series_name, leagues in series_league_map.items():
@@ -394,14 +564,18 @@ class ComprehensiveETL:
                     {"series_name": series_name, "league_id": league_id}
                 )
 
-        self.log(f"✅ Found {len(relationships)} series-league relationships")
+        self.log(f"✅ Found {len(relationships)} series-league relationships (after mapping)")
         return relationships
 
     def extract_teams(
-        self, series_stats_data: List[Dict], schedules_data: List[Dict]
+        self, series_stats_data: List[Dict], schedules_data: List[Dict], conn=None
     ) -> List[Dict]:
-        """Extract unique teams from series stats and schedules data"""
+        """Extract unique teams from series stats and schedules data, applying mappings"""
         self.log("🔍 Extracting teams from JSON data...")
+
+        # Load series mappings if we have a connection
+        if conn:
+            self.load_series_mappings(conn)
 
         teams = set()
 
@@ -412,19 +586,17 @@ class ComprehensiveETL:
             league_id = normalize_league_id(record.get("league_id", "").strip())
 
             if team_name and series_name and league_id:
-                # FIXED: Clean any malformed series names like "Series eries 16"
+                # Clean any malformed series names like "Series eries 16"
                 if "eries " in series_name:
                     series_name = series_name.replace("eries ", "")
 
-                # FIXED: Apply same series name conversion as in import_series_stats
-                # Convert "Series X" to "Division X" for CNSWPL compatibility
-                if series_name.startswith("Series ") and league_id == "CNSWPL":
-                    series_name = series_name.replace("Series ", "Division ")
+                # Apply mapping to convert to database format
+                db_series_name = self.map_series_name(series_name, league_id)
 
                 # Parse team name to extract club
-                club_name = self.parse_team_name_to_club(team_name, series_name)
+                club_name = self.parse_team_name_to_club(team_name, db_series_name)
                 if club_name:
-                    teams.add((club_name, series_name, league_id, team_name))
+                    teams.add((club_name, db_series_name, league_id, team_name))
 
         # Extract from schedules.json (both home and away teams)
         for record in schedules_data:
@@ -437,11 +609,13 @@ class ComprehensiveETL:
                     # Parse team name to extract club and series
                     club_name, series_name = self.parse_schedule_team_name(team_name)
                     if club_name and series_name:
-                        # FIXED: Ensure consistent series name format for all sources
                         # Clean any malformed series names like "Series eries 16"
                         if "eries " in series_name:
                             series_name = series_name.replace("eries ", "")
-                        teams.add((club_name, series_name, league_id, team_name))
+                        
+                        # Apply mapping to convert to database format
+                        db_series_name = self.map_series_name(series_name, league_id)
+                        teams.add((club_name, db_series_name, league_id, team_name))
 
         # Convert to list of dictionaries
         team_records = []
@@ -455,40 +629,13 @@ class ComprehensiveETL:
                 }
             )
 
-        self.log(f"✅ Found {len(team_records)} unique teams")
+        self.log(f"✅ Found {len(team_records)} unique teams (after mapping conversion)")
         return team_records
 
     def parse_team_name_to_club(self, team_name: str, series_name: str) -> str:
         """Parse team name from series_stats to extract club name"""
-        # Examples:
-        # APTA_CHICAGO: "Tennaqua - 22" with series "Chicago 22" -> "Tennaqua"
-        # NSTF: "Tennaqua S2B" with series "Series 2B" -> "Tennaqua"
-        # CNSWPL: "Tennaqua 1" with series "Division 16" -> "Tennaqua"
-
-        # Handle APTA_CHICAGO format: "Club - Suffix"
-        if " - " in team_name:
-            club_part = team_name.split(" - ")[0].strip()
-            return club_part
-
-        # Handle NSTF format: "Club SSuffix" (like "Tennaqua S2B")
-        # Must be " S" followed by number or number+letter (not words like "Shore")
-        import re
-
-        if re.search(r" S\d", team_name):  # " S" followed by a digit
-            parts = team_name.split(" S")
-            if len(parts) >= 2:
-                club_part = parts[0].strip()
-                return club_part
-
-        # Handle CNSWPL format: "Club Number" or "Club NumberLetter" (like "Tennaqua 1", "Hinsdale PC 1a")
-        # Must end with space + digit + optional letter(s)
-        if re.search(r"\s+\d+[a-zA-Z]*$", team_name):
-            club_part = re.sub(r"\s+\d+[a-zA-Z]*$", "", team_name).strip()
-            if club_part:  # Make sure we didn't remove everything
-                return club_part
-
-        # Fallback: return the whole team name as club
-        return team_name
+        # Use the same logic as extract_club_name_from_team for consistency
+        return self.extract_club_name_from_team(team_name)
 
     def parse_schedule_team_name(self, team_name: str) -> tuple:
         """Parse team name from schedules to extract club and series"""
@@ -1066,13 +1213,12 @@ class ComprehensiveETL:
                 last_name = player.get("Last Name", "").strip()
                 raw_league_id = player.get("League", "").strip()
                 league_id = normalize_league_id(raw_league_id) if raw_league_id else ""
-                team_name = player.get(
-                    "Club", ""
-                ).strip()  # This is actually the full team name
-                club_name = self.extract_club_name_from_team(
-                    team_name
-                )  # Parse the actual club name
-                series_name = player.get("Series", "").strip()
+                # The "Club" field needs parsing to remove team numbers (e.g., "Birchwood 1" -> "Birchwood")
+                team_name = player.get("Club", "").strip()
+                club_name = self.extract_club_name_from_team(team_name)
+                raw_series_name = player.get("Series", "").strip()
+                # Convert series name using mapping
+                series_name = self.map_series_name(raw_series_name, league_id)
 
                 # Parse PTI - handle both string and numeric types
                 pti_value = player.get("PTI", "")
@@ -1126,8 +1272,8 @@ class ComprehensiveETL:
                     LEFT JOIN series s ON p.series_id = s.id
                     WHERE p.tenniscores_player_id = %s 
                     AND l.league_id = %s
-                    AND COALESCE(c.name, '') = %s
-                    AND COALESCE(s.name, '') = %s
+                    AND LOWER(COALESCE(c.name, '')) = LOWER(%s)
+                    AND LOWER(COALESCE(s.name, '')) = LOWER(%s)
                 """,
                     (
                         tenniscores_player_id,
@@ -1152,8 +1298,8 @@ class ComprehensiveETL:
                         l.id, c.id, s.id, t.id, %s, %s, %s,
                         %s, %s, true, CURRENT_TIMESTAMP
                     FROM leagues l
-                    LEFT JOIN clubs c ON c.name = %s
-                    LEFT JOIN series s ON s.name = %s
+                    LEFT JOIN clubs c ON LOWER(c.name) = LOWER(%s)
+                    LEFT JOIN series s ON LOWER(s.name) = LOWER(%s)
                     LEFT JOIN teams t ON t.club_id = c.id AND t.series_id = s.id AND t.league_id = l.id
                     WHERE l.league_id = %s
                     ON CONFLICT ON CONSTRAINT unique_player_in_league_club_series DO UPDATE SET
@@ -1297,25 +1443,47 @@ class ComprehensiveETL:
         )
 
     def import_player_history(self, conn, player_history_data: List[Dict]):
-        """Import player history data"""
-        self.log("📥 Importing player history...")
+        """Import player history data with enhanced player ID validation"""
+        self.log("📥 Importing player history with enhanced player ID validation...")
 
         cursor = conn.cursor()
         imported = 0
         errors = 0
+        player_id_fixes = 0
+        skipped_players = 0
 
         for player_record in player_history_data:
             try:
-                tenniscores_player_id = player_record.get("player_id", "").strip()
+                original_player_id = player_record.get("player_id", "").strip()
                 raw_league_id = player_record.get("league_id", "").strip()
                 league_id = normalize_league_id(raw_league_id) if raw_league_id else ""
                 series = player_record.get("series", "").strip()
                 matches = player_record.get("matches", [])
+                player_name = player_record.get("name", "").strip()
 
-                if not all([tenniscores_player_id, league_id]) or not matches:
+                if not all([original_player_id, league_id]) or not matches:
                     continue
 
-                # Get the database player ID
+                # CRITICAL FIX: Validate and resolve player ID using fallback matching
+                first_name, last_name = self._parse_player_name(player_name)
+                validated_player_id = self.player_validator.validate_and_resolve_player_id(
+                    conn=conn,
+                    tenniscores_player_id=original_player_id,
+                    first_name=first_name,
+                    last_name=last_name,
+                    club_name="",  # Not available in player history data
+                    series_name=series,
+                    league_id=league_id
+                )
+                
+                if not validated_player_id:
+                    skipped_players += 1
+                    continue
+                    
+                if validated_player_id != original_player_id:
+                    player_id_fixes += 1
+
+                # Get the database player ID using validated player ID
                 cursor.execute(
                     """
                     SELECT p.id, l.id 
@@ -1323,11 +1491,12 @@ class ComprehensiveETL:
                     JOIN leagues l ON l.league_id = %s
                     WHERE p.tenniscores_player_id = %s AND p.league_id = l.id
                 """,
-                    (league_id, tenniscores_player_id),
+                    (league_id, validated_player_id),
                 )
 
                 result = cursor.fetchone()
                 if not result:
+                    skipped_players += 1
                     continue
 
                 db_player_id, db_league_id = result
@@ -1404,7 +1573,16 @@ class ComprehensiveETL:
 
         conn.commit()
         self.imported_counts["player_history"] = imported
-        self.log(f"✅ Imported {imported:,} player history records ({errors} errors)")
+        
+        # Enhanced completion message with validation stats
+        message_parts = [f"✅ Imported {imported:,} player history records ({errors} errors"]
+        if player_id_fixes > 0:
+            message_parts.append(f"{player_id_fixes} player ID fixes")
+        if skipped_players > 0:
+            message_parts.append(f"{skipped_players} skipped players")
+        message_parts[-1] += ")"
+        
+        self.log(", ".join(message_parts))
 
     def validate_and_correct_winner(
         self,
@@ -1513,14 +1691,86 @@ class ComprehensiveETL:
         else:
             return winner
 
+    def _validate_match_player_id(self, conn, player_id: str, player_name: str, 
+                                team_name: str, league_id: str) -> Optional[str]:
+        """
+        Validate and resolve a player ID from match history data.
+        
+        Args:
+            conn: Database connection
+            player_id: Original player ID from JSON
+            player_name: Player name from JSON  
+            team_name: Team name to extract club/series info
+            league_id: League identifier
+            
+        Returns:
+            str: Valid player ID if found/resolved, None if no match
+        """
+        if not player_id:
+            return None
+            
+        # Extract club and series from team name
+        club_name = self.extract_club_name_from_team(team_name)
+        series_name = self._extract_series_from_team_name(team_name, league_id)
+        
+        # Parse player name
+        first_name, last_name = self._parse_player_name(player_name)
+        
+        # Use the validator to resolve the player ID
+        return self.player_validator.validate_and_resolve_player_id(
+            conn=conn,
+            tenniscores_player_id=player_id,
+            first_name=first_name,
+            last_name=last_name,
+            club_name=club_name,
+            series_name=series_name,
+            league_id=league_id
+        )
+    
+    def _parse_player_name(self, full_name: str) -> tuple:
+        """Parse full name into first and last name components"""
+        if not full_name:
+            return None, None
+            
+        # Handle "Last, First" format
+        if ", " in full_name:
+            parts = full_name.split(", ", 1)
+            return parts[1].strip(), parts[0].strip()
+        
+        # Handle "First Last" format
+        name_parts = full_name.strip().split()
+        if len(name_parts) >= 2:
+            return name_parts[0], " ".join(name_parts[1:])
+        elif len(name_parts) == 1:
+            return name_parts[0], ""
+        
+        return None, None
+    
+    def _extract_series_from_team_name(self, team_name: str, league_id: str) -> str:
+        """Extract series name from team name using existing logic"""
+        if not team_name:
+            return ""
+            
+        # Use existing parse_schedule_team_name logic
+        try:
+            club_name, series_name = self.parse_schedule_team_name(team_name)
+            if series_name:
+                # Apply series mapping
+                return self.map_series_name(series_name, league_id)
+        except:
+            pass
+            
+        return ""
+
     def import_match_history(self, conn, match_history_data: List[Dict]):
-        """Import match history data into match_scores table with winner validation"""
-        self.log("📥 Importing match history...")
+        """Import match history data into match_scores table with winner validation and player ID validation"""
+        self.log("📥 Importing match history with enhanced player ID validation...")
 
         cursor = conn.cursor()
         imported = 0
         errors = 0
         winner_corrections = 0
+        player_id_fixes = 0
 
         for record in match_history_data:
             try:
@@ -1533,11 +1783,39 @@ class ComprehensiveETL:
                 raw_league_id = (record.get("league_id") or "").strip()
                 league_id = normalize_league_id(raw_league_id) if raw_league_id else ""
 
-                # Extract player IDs
+                # Extract player IDs with names for validation
                 home_player_1_id = (record.get("Home Player 1 ID") or "").strip()
                 home_player_2_id = (record.get("Home Player 2 ID") or "").strip()
                 away_player_1_id = (record.get("Away Player 1 ID") or "").strip()
                 away_player_2_id = (record.get("Away Player 2 ID") or "").strip()
+                
+                # Extract player names for fallback matching
+                home_player_1_name = (record.get("Home Player 1") or "").strip()
+                home_player_2_name = (record.get("Home Player 2") or "").strip()
+                away_player_1_name = (record.get("Away Player 1") or "").strip()
+                away_player_2_name = (record.get("Away Player 2") or "").strip()
+
+                # CRITICAL FIX: Validate and resolve player IDs
+                validated_home_1 = self._validate_match_player_id(
+                    conn, home_player_1_id, home_player_1_name, home_team, league_id)
+                validated_home_2 = self._validate_match_player_id(
+                    conn, home_player_2_id, home_player_2_name, home_team, league_id)
+                validated_away_1 = self._validate_match_player_id(
+                    conn, away_player_1_id, away_player_1_name, away_team, league_id)
+                validated_away_2 = self._validate_match_player_id(
+                    conn, away_player_2_id, away_player_2_name, away_team, league_id)
+                
+                # Count fixes
+                if validated_home_1 != home_player_1_id: player_id_fixes += 1
+                if validated_home_2 != home_player_2_id: player_id_fixes += 1
+                if validated_away_1 != away_player_1_id: player_id_fixes += 1
+                if validated_away_2 != away_player_2_id: player_id_fixes += 1
+                
+                # Use validated player IDs
+                home_player_1_id = validated_home_1
+                home_player_2_id = validated_home_2
+                away_player_1_id = validated_away_1
+                away_player_2_id = validated_away_2
 
                 # Parse date (format appears to be DD-Mon-YY)
                 match_date = None
@@ -1659,14 +1937,16 @@ class ComprehensiveETL:
 
         conn.commit()
         self.imported_counts["match_scores"] = imported
+        
+        # Enhanced completion message with player ID validation stats
+        message_parts = [f"✅ Imported {imported:,} match history records ({errors} errors"]
         if winner_corrections > 0:
-            self.log(
-                f"✅ Imported {imported:,} match history records ({errors} errors, {winner_corrections} winner corrections)"
-            )
-        else:
-            self.log(
-                f"✅ Imported {imported:,} match history records ({errors} errors)"
-            )
+            message_parts.append(f"{winner_corrections} winner corrections")
+        if player_id_fixes > 0:
+            message_parts.append(f"{player_id_fixes} player ID fixes")
+        message_parts[-1] += ")"
+        
+        self.log(", ".join(message_parts))
 
     def import_series_stats(self, conn, series_stats_data: List[Dict]):
         """Import series stats data with validation and calculation fallback"""
@@ -1691,9 +1971,8 @@ class ComprehensiveETL:
                 team = record.get("team", "").strip()
                 raw_league_id = record.get("league_id", "").strip()
                 league_id = normalize_league_id(raw_league_id) if raw_league_id else ""
-                # FIXED: Don't trust imported points - calculate from match performance
-                # points = record.get('points', 0)  # This data is often incorrect
-                points = 0  # We'll calculate proper points from match data later
+                # Use the authoritative points from JSON source data
+                points = record.get('points', 0)  # JSON contains correct point totals
 
                 # Extract match stats
                 matches = record.get("matches", {})
@@ -1831,8 +2110,15 @@ class ComprehensiveETL:
             f"✅ Imported {imported:,} series stats records ({errors} errors, {league_not_found_count} missing leagues, {skipped_count} skipped)"
         )
 
-        # CRITICAL: Always recalculate points after import to ensure accuracy
-        self.recalculate_all_team_points(conn)
+        # Only recalculate points if there are teams with zero points (indicating missing/incomplete data)
+        cursor.execute("SELECT COUNT(*) FROM series_stats WHERE points = 0")
+        teams_with_zero_points = cursor.fetchone()[0]
+        
+        if teams_with_zero_points > 0:
+            self.log(f"🔧 Found {teams_with_zero_points} teams with zero points, recalculating only those...")
+            self.recalculate_missing_team_points(conn)
+        else:
+            self.log(f"✅ All teams have point data from JSON, skipping recalculation")
 
         # Validate the import results
         self.validate_series_stats_import(conn)
@@ -1871,22 +2157,104 @@ class ComprehensiveETL:
         self.log(f"   Expected teams: {expected_teams:,}")
         self.log(f"   Coverage: {coverage_percentage:.1f}%")
 
-        # CRITICAL: If coverage is too low, trigger calculation fallback
-        if coverage_percentage < 90:
+        # Only trigger fallback calculation if coverage is extremely low (< 50%)
+        # This preserves the correct JSON data for normal operations
+        if coverage_percentage < 50:
             self.log(
-                f"⚠️  WARNING: Series stats coverage ({coverage_percentage:.1f}%) is below 90% threshold",
+                f"⚠️  CRITICAL: Series stats coverage ({coverage_percentage:.1f}%) is below 50% threshold",
                 "WARNING",
             )
             self.log(
-                f"🔧 Triggering calculation fallback to ensure data completeness..."
+                f"🔧 Triggering calculation fallback due to severely incomplete data..."
             )
 
             # Clear existing data and recalculate from match results
             self.calculate_series_stats_from_matches(conn)
+        elif coverage_percentage < 90:
+            self.log(
+                f"⚠️  WARNING: Series stats coverage ({coverage_percentage:.1f}%) is below 90%, but preserving JSON data",
+                "WARNING",
+            )
         else:
             self.log(
                 f"✅ Series stats validation passed ({coverage_percentage:.1f}% coverage)"
             )
+
+    def recalculate_missing_team_points(self, conn):
+        """Recalculate points only for teams that have zero points (missing data)"""
+        self.log("🔧 Recalculating points for teams with missing point data...")
+
+        cursor = conn.cursor()
+
+        # Get only teams with zero points
+        cursor.execute("SELECT id, team, league_id FROM series_stats WHERE points = 0")
+        teams = cursor.fetchall()
+
+        updated_count = 0
+
+        for team_row in teams:
+            team_id = team_row[0]  # id is first column
+            team_name = team_row[1]  # team is second column
+            league_id = team_row[2]  # league_id is third column
+
+            # Calculate points from match history for missing data only
+            cursor.execute(
+                """
+                SELECT home_team, away_team, winner, scores
+                FROM match_scores
+                WHERE (home_team = %s OR away_team = %s)
+                AND league_id = %s
+            """,
+                [team_name, team_name, league_id],
+            )
+
+            matches = cursor.fetchall()
+            total_points = 0
+
+            for match in matches:
+                home_team = match[0]  # home_team is first column
+                away_team = match[1]  # away_team is second column
+                winner = match[2]  # winner is third column
+                scores_str = match[3]  # scores is fourth column
+
+                is_home = home_team == team_name
+                won_match = (is_home and winner == "home") or (
+                    not is_home and winner == "away"
+                )
+
+                # 1 point for winning the match
+                if won_match:
+                    total_points += 1
+
+                # Additional points for sets won (even in losing matches)
+                scores = scores_str.split(", ") if scores_str else []
+                for score_str in scores:
+                    if "-" in score_str:
+                        try:
+                            # Extract just the numbers before any tiebreak info
+                            clean_score = score_str.split("[")[0].strip()
+                            our_score, their_score = map(int, clean_score.split("-"))
+                            if not is_home:  # Flip scores if we're away team
+                                our_score, their_score = their_score, our_score
+                            if our_score > their_score:
+                                total_points += 1
+                        except (ValueError, IndexError):
+                            continue
+
+            # Update the points in series_stats
+            cursor.execute(
+                """
+                UPDATE series_stats 
+                SET points = %s
+                WHERE id = %s
+            """,
+                [total_points, team_id],
+            )
+
+            updated_count += 1
+
+        conn.commit()
+        self.log(f"✅ Recalculated points for {updated_count:,} teams with missing data")
 
     def recalculate_all_team_points(self, conn):
         """Recalculate points for all teams based on actual match performance"""
@@ -1965,7 +2333,12 @@ class ComprehensiveETL:
         self.log(f"✅ Recalculated points for {updated_count:,} teams")
 
     def calculate_series_stats_from_matches(self, conn):
-        """Calculate series stats from match_scores data as fallback"""
+        """Calculate series stats from match_scores data as fallback
+        
+        WARNING: This function still uses the flawed point calculation logic
+        that gives points for sets won even in losing matches. It should only
+        be used when there's severely incomplete data (< 50% coverage).
+        """
         self.log("🧮 Calculating series stats from match results...")
 
         cursor = conn.cursor()
@@ -2300,46 +2673,53 @@ class ComprehensiveETL:
             series_stats_data = self.load_json_file("series_stats.json")
             schedules_data = self.load_json_file("schedules.json")
 
-            # Step 2: Extract reference data from players.json
+            # Step 2: Extract reference data from players.json (without mappings first)
             self.log("\n📋 Step 2: Extracting reference data...")
             leagues_data = self.extract_leagues(
                 players_data, series_stats_data, schedules_data
             )
             clubs_data = self.extract_clubs(players_data)
-            series_data = self.extract_series(
-                players_data, series_stats_data, schedules_data
-            )
-            club_league_rels = self.analyze_club_league_relationships(players_data)
-            series_league_rels = self.analyze_series_league_relationships(players_data)
 
-            # Step 2b: Extract teams from series stats and schedules
-            self.log("\n🏗️  Step 2b: Extracting teams...")
-            teams_data = self.extract_teams(series_stats_data, schedules_data)
-
-            # Step 3: Connect to database and import
+            # Step 3: Connect to database for mapping-aware extraction
             self.log("\n🗄️  Step 3: Connecting to database...")
             with get_db() as conn:
                 try:
                     # Clear existing data
                     self.clear_target_tables(conn)
 
-                    # Import in correct order
-                    self.log("\n📥 Step 4: Importing data in dependency order...")
-
+                    # Import basic reference data first
+                    self.log("\n📥 Step 4: Importing basic reference data...")
                     self.import_leagues(conn, leagues_data)
                     self.import_clubs(conn, clubs_data)
+
+                    # Now extract series and teams with mapping support
+                    self.log("\n📋 Step 5: Extracting mapped data...")
+                    series_data = self.extract_series(
+                        players_data, series_stats_data, schedules_data, conn
+                    )
+                    teams_data = self.extract_teams(series_stats_data, schedules_data, conn)
+                    
+                    club_league_rels = self.analyze_club_league_relationships(players_data)
+                    series_league_rels = self.analyze_series_league_relationships(players_data)
+
+                    # Import remaining data in dependency order
+                    self.log("\n📥 Step 6: Importing remaining data...")
                     self.import_series(conn, series_data)
                     self.import_club_leagues(conn, club_league_rels)
                     self.import_series_leagues(conn, series_league_rels)
-                    self.import_teams(
-                        conn, teams_data
-                    )  # NEW: Import teams before players
+                    self.import_teams(conn, teams_data)
+                    
+                    # Load mappings for player import
+                    self.load_series_mappings(conn)
                     self.import_players(conn, players_data)
                     self.import_career_stats(conn, player_history_data)
                     self.import_player_history(conn, player_history_data)
                     self.import_match_history(conn, match_history_data)
                     self.import_series_stats(conn, series_stats_data)
                     self.import_schedules(conn, schedules_data)
+
+                    # CRITICAL FIX: Print player validation summary
+                    self.player_validator.print_validation_summary()
 
                     # Success!
                     self.log("\n✅ ETL process completed successfully!")

@@ -244,8 +244,31 @@ function calculatePlayerStats(matches, teamId) {
         // Determine if team won
         const winnerIsHome = match["Winner"] === "home";
         const teamWon = (isHome && winnerIsHome) || (!isHome && !winnerIsHome);
-        // Figure out which court based on position in the match list
-        const courtIndex = matches.indexOf(match) % 4;
+        // FIXED: Court assignment based on database ID order within team matchup
+        // First, group matches by team matchup to get correct court order
+        const matchDate = match["Date"];
+        const homeTeam = match["Home Team"];
+        const awayTeam = match["Away Team"];
+        
+        // Get all matches for this same team matchup on this date
+        const teamMatchupMatches = matches.filter(m => 
+            m["Date"] === matchDate && 
+            m["Home Team"] === homeTeam && 
+            m["Away Team"] === awayTeam
+        );
+        
+        // Sort by ID to ensure correct database order (court assignment is based on ID order)
+        teamMatchupMatches.sort((a, b) => (a.id || 0) - (b.id || 0));
+        
+        // Find this match's position in the correctly ordered team matchup
+        const courtIndex = teamMatchupMatches.findIndex(m => 
+            (m.id && match.id && m.id === match.id) ||
+            (m["Home Player 1"] === match["Home Player 1"] && 
+             m["Home Player 2"] === match["Home Player 2"] &&
+             m["Away Player 1"] === match["Away Player 1"] && 
+             m["Away Player 2"] === match["Away Player 2"])
+        );
+        
         const courtName = `Court ${courtIndex + 1}`;
         // Update player stats
         [player1, player2].forEach(player => {
