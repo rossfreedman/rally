@@ -2711,8 +2711,70 @@ def serve_track_byes_courts():
     try:
         user = session["user"]
 
-        # Get user's team ID
-        team_id = get_user_team_id(user)
+        # Check for team switching via URL parameter
+        requested_team_id = request.args.get('team_id')
+        if requested_team_id:
+            try:
+                requested_team_id = int(requested_team_id)
+                # Verify user has access to this team
+                verify_query = """
+                    SELECT t.id, t.team_name 
+                    FROM teams t
+                    JOIN players p ON t.id = p.team_id
+                    JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
+                    WHERE upa.user_id = %s AND t.id = %s AND p.is_active = TRUE
+                """
+                team_access = execute_query_one(verify_query, [user.get('id'), requested_team_id])
+                if team_access:
+                    # Store the selected team in session for future requests
+                    session['selected_team_id'] = requested_team_id
+                    print(f"[DEBUG] Team switched to: {team_access['team_name']} (ID: {requested_team_id})")
+                else:
+                    print(f"[WARNING] User {user.get('email')} does not have access to team ID {requested_team_id}")
+                    requested_team_id = None
+            except (ValueError, TypeError):
+                print(f"[WARNING] Invalid team_id parameter: {request.args.get('team_id')}")
+                requested_team_id = None
+
+        # Get team ID from session, URL parameter, or fallback to automatic selection
+        team_id = session.get('selected_team_id') or requested_team_id or get_user_team_id(user)
+        
+        print(f"[DEBUG] Using team_id: {team_id} for user: {user.get('email')}")
+
+        # Get all teams this user has access to for team switching
+        user_teams = []
+        if user.get('id'):
+            teams_query = """
+                SELECT DISTINCT t.id, t.team_name, c.name as club_name, s.name as series_name,
+                       (SELECT COUNT(*) 
+                        FROM match_scores ms 
+                        WHERE (ms.home_player_1_id = p.tenniscores_player_id 
+                               OR ms.home_player_2_id = p.tenniscores_player_id
+                               OR ms.away_player_1_id = p.tenniscores_player_id 
+                               OR ms.away_player_2_id = p.tenniscores_player_id)
+                        AND (ms.home_team_id = t.id OR ms.away_team_id = t.id)
+                       ) as match_count
+                FROM teams t
+                JOIN players p ON t.id = p.team_id
+                JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
+                JOIN clubs c ON p.club_id = c.id
+                JOIN series s ON p.series_id = s.id
+                WHERE upa.user_id = %s AND p.is_active = TRUE
+                ORDER BY match_count DESC, t.team_name
+            """
+            user_teams = execute_query(teams_query, [user.get('id')])
+
+        # Get current team info
+        current_team_info = None
+        if team_id:
+            current_team_query = """
+                SELECT t.id, t.team_name, c.name as club_name, s.name as series_name
+                FROM teams t
+                JOIN clubs c ON t.club_id = c.id
+                JOIN series s ON t.series_id = s.id
+                WHERE t.id = %s
+            """
+            current_team_info = execute_query_one(current_team_query, [team_id])
 
         # Get actual team members with their court assignment statistics
         team_members = []
@@ -2823,6 +2885,8 @@ def serve_track_byes_courts():
             court_analysis=court_analysis,
             team_members=team_members,
             team_id=team_id,
+            user_teams=user_teams,
+            current_team_info=current_team_info,
         )
 
     except Exception as e:
@@ -2869,6 +2933,8 @@ def serve_track_byes_courts():
             court_analysis={},
             team_members=fallback_members,
             team_id=None,
+            user_teams=[],
+            current_team_info=None,
             error="Could not load dynamic data",
         )
 
