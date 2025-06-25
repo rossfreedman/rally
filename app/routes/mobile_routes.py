@@ -246,6 +246,8 @@ def serve_mobile_analyze_me():
                     league_id
                 FROM players 
                 WHERE first_name = %s AND last_name = %s
+                ORDER BY id DESC
+                LIMIT 1
             """
 
             player_data = execute_query_one(
@@ -2407,7 +2409,7 @@ def get_team_members_with_court_stats(team_id, user):
 
         # Use the same court assignment logic as my-team page with league filtering
         court_assignments = calculate_player_court_stats(
-            team_matches, team_name, members, user_league_id
+            team_matches, team_name, members, user_league_id, team_id
         )
 
         # If no court assignments found, create sample data for testing court display
@@ -2474,8 +2476,8 @@ def create_sample_court_data(members):
     return court_assignments
 
 
-def calculate_player_court_stats(team_matches, team_name, members, user_league_id=None):
-    """Calculate how many times each player played on each court, filtered by league context"""
+def calculate_player_court_stats(team_matches, team_name, members, user_league_id=None, team_id=None):
+    """Calculate how many times each player played on each court, filtered by league and team context"""
     try:
         from collections import defaultdict
         from datetime import datetime
@@ -2520,8 +2522,35 @@ def calculate_player_court_stats(team_matches, team_name, members, user_league_i
 
             player_name = f"{member['first_name']} {member['last_name']}"
 
-            # Get player matches filtered by league if available
-            if league_id_int:
+            # Get player matches filtered by league and team if available
+            if league_id_int and team_id:
+                # Filter by both league and team for multi-team players
+                all_player_matches_query = """
+                    SELECT 
+                        TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
+                        match_date,
+                        home_team as "Home Team",
+                        away_team as "Away Team",
+                        home_player_1_id as "Home Player 1",
+                        home_player_2_id as "Home Player 2",
+                        away_player_1_id as "Away Player 1",
+                        away_player_2_id as "Away Player 2",
+                        id
+                    FROM match_scores
+                    WHERE (home_player_1_id = %s 
+                       OR home_player_2_id = %s 
+                       OR away_player_1_id = %s 
+                       OR away_player_2_id = %s)
+                    AND league_id = %s
+                    AND (home_team_id = %s OR away_team_id = %s)
+                    ORDER BY match_date, id
+                """
+                player_matches = execute_query(
+                    all_player_matches_query,
+                    [player_id, player_id, player_id, player_id, league_id_int, team_id, team_id],
+                )
+            elif league_id_int:
+                # Filter by league only if no team_id available
                 all_player_matches_query = """
                     SELECT 
                         TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
@@ -2545,8 +2574,33 @@ def calculate_player_court_stats(team_matches, team_name, members, user_league_i
                     all_player_matches_query,
                     [player_id, player_id, player_id, player_id, league_id_int],
                 )
+            elif team_id:
+                # Filter by team only if no league filter available
+                all_player_matches_query = """
+                    SELECT 
+                        TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
+                        match_date,
+                        home_team as "Home Team",
+                        away_team as "Away Team",
+                        home_player_1_id as "Home Player 1",
+                        home_player_2_id as "Home Player 2",
+                        away_player_1_id as "Away Player 1",
+                        away_player_2_id as "Away Player 2",
+                        id
+                    FROM match_scores
+                    WHERE (home_player_1_id = %s 
+                       OR home_player_2_id = %s 
+                       OR away_player_1_id = %s 
+                       OR away_player_2_id = %s)
+                    AND (home_team_id = %s OR away_team_id = %s)
+                    ORDER BY match_date, id
+                """
+                player_matches = execute_query(
+                    all_player_matches_query,
+                    [player_id, player_id, player_id, player_id, team_id, team_id],
+                )
             else:
-                # Fallback to all matches if no league filter available
+                # Fallback to all matches if no filters available
                 all_player_matches_query = """
                     SELECT 
                         TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
@@ -2598,18 +2652,32 @@ def calculate_player_court_stats(team_matches, team_name, members, user_league_i
                 match_id = match.get("id")
 
                 # Get ALL matches for this team matchup on this date, ordered by database ID
-                team_matchup_query = """
-                    SELECT id, home_player_1_id, home_player_2_id, away_player_1_id, away_player_2_id
-                    FROM match_scores 
-                    WHERE TO_CHAR(match_date, 'DD-Mon-YY') = %s
-                    AND home_team = %s 
-                    AND away_team = %s
-                    ORDER BY id
-                """
-
-                team_day_matches_ordered = execute_query(
-                    team_matchup_query, [match_date, home_team, away_team]
-                )
+                # Include league filter if available to ensure we're looking at the right context
+                if league_id_int:
+                    team_matchup_query = """
+                        SELECT id, home_player_1_id, home_player_2_id, away_player_1_id, away_player_2_id
+                        FROM match_scores 
+                        WHERE TO_CHAR(match_date, 'DD-Mon-YY') = %s
+                        AND home_team = %s 
+                        AND away_team = %s
+                        AND league_id = %s
+                        ORDER BY id
+                    """
+                    team_day_matches_ordered = execute_query(
+                        team_matchup_query, [match_date, home_team, away_team, league_id_int]
+                    )
+                else:
+                    team_matchup_query = """
+                        SELECT id, home_player_1_id, home_player_2_id, away_player_1_id, away_player_2_id
+                        FROM match_scores 
+                        WHERE TO_CHAR(match_date, 'DD-Mon-YY') = %s
+                        AND home_team = %s 
+                        AND away_team = %s
+                        ORDER BY id
+                    """
+                    team_day_matches_ordered = execute_query(
+                        team_matchup_query, [match_date, home_team, away_team]
+                    )
 
                 # Find this match's position within the ordered team matchup to assign court
                 court_num = None
