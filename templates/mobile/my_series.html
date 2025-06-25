@@ -65,78 +65,240 @@
         </div>
 
         {% if sos_value and not sos_error %}
-        <!-- Strength of Schedule Card -->
+        <!-- Enhanced Strength of Schedule Card -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             <div class="px-6 py-4 border-b border-gray-50">
                 <h2 class="text-lg font-semibold text-gray-900 flex items-center">
                     <i class="fas fa-chart-line text-purple-500 mr-2"></i>
-                    Strength of Schedule Rankings
+                    Strength of Schedule Analysis
                 </h2>
             </div>
             
             <div class="p-6">
-                <!-- Your Team's SoS Summary -->
-                <div class="text-center mb-6 bg-purple-50 rounded-lg p-4 border border-purple-100">
-                    <div class="text-sm text-purple-600 font-medium mb-1">Your Team's SoS</div>
-                    <div class="text-3xl font-bold text-purple-700 mb-1">{{ sos_value }}</div>
-                    {% if sos_rank > 0 and sos_total_teams > 0 %}
-                    <div class="text-sm font-semibold text-purple-800">
-                        #{{ sos_rank }} toughest schedule out of {{ sos_total_teams }} teams
+                <!-- Historical vs Remaining SoS Comparison -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <!-- Historical SoS -->
+                    <div class="text-center bg-blue-50 rounded-lg p-4 border border-blue-100">
+                        <div class="text-sm text-blue-600 font-medium mb-1">Historical SoS</div>
+                        <div class="text-2xl font-bold text-blue-700 mb-1">{{ sos_value }}</div>
+                        {% if sos_rank > 0 and sos_total_teams > 0 %}
+                        <div class="text-xs font-semibold text-blue-800">
+                            #{{ sos_rank }} out of {{ sos_total_teams }} teams
+                        </div>
+                        {% endif %}
+                        <div class="text-xs text-blue-600 mt-1">Schedule played so far</div>
+                    </div>
+                    
+                    <!-- Remaining SoS -->
+                    <div class="text-center bg-green-50 rounded-lg p-4 border border-green-100">
+                        <div class="text-sm text-green-600 font-medium mb-1">Remaining SoS</div>
+                        <div class="text-2xl font-bold text-green-700 mb-1">{{ remaining_sos_value }}</div>
+                        {% if has_remaining_schedule and remaining_sos_rank and sos_total_teams > 0 %}
+                        <div class="text-xs font-semibold text-green-800">
+                            #{{ remaining_sos_rank }} out of {{ sos_total_teams }} teams
+                        </div>
+                        {% elif not has_remaining_schedule %}
+                        <div class="text-xs font-semibold text-green-800">
+                            No future matches scheduled
+                        </div>
+                        {% endif %}
+                        <div class="text-xs text-green-600 mt-1">
+                            {% if has_remaining_schedule %}Schedule left to play{% else %}Season complete{% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Schedule Comparison Analysis -->
+                {% if schedule_comparison %}
+                <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                    <h3 class="text-sm font-semibold text-gray-700 mb-2 flex items-center">
+                        <i class="fas fa-balance-scale text-gray-500 mr-2"></i>
+                        Schedule Outlook
+                    </h3>
+                    <div class="text-sm text-gray-800 mb-2">{{ schedule_comparison.summary }}</div>
+                    {% if schedule_comparison.recommendation %}
+                    <div class="text-xs text-gray-600 italic">{{ schedule_comparison.recommendation }}</div>
+                    {% endif %}
+                    
+                    <!-- Detailed comparison metrics (only show if remaining schedule exists) -->
+                    {% if has_remaining_schedule and schedule_comparison.sos_difference is not none %}
+                    <div class="grid grid-cols-3 gap-4 mt-4 text-center">
+                        <div>
+                            <div class="text-xs text-gray-500">SoS Difference</div>
+                            <div class="text-sm font-semibold {% if schedule_comparison.sos_difference > 0 %}text-red-600{% elif schedule_comparison.sos_difference < 0 %}text-green-600{% else %}text-gray-600{% endif %}">
+                                {% if schedule_comparison.sos_difference > 0 %}+{% endif %}{{ schedule_comparison.sos_difference }}
+                            </div>
+                        </div>
+                        <div>
+                            <div class="text-xs text-gray-500">Rank Change</div>
+                            <div class="text-sm font-semibold {% if schedule_comparison.rank_difference > 0 %}text-green-600{% elif schedule_comparison.rank_difference < 0 %}text-red-600{% else %}text-gray-600{% endif %}">
+                                {% if schedule_comparison.rank_difference > 0 %}+{% elif schedule_comparison.rank_difference == 0 %}{% else %}{% endif %}{{ schedule_comparison.rank_difference }}
+                            </div>
+                        </div>
+                        <div>
+                            <div class="text-xs text-gray-500">Difficulty</div>
+                            <div class="text-sm font-semibold">{{ schedule_comparison.difficulty_text|title }}</div>
+                        </div>
                     </div>
                     {% endif %}
                 </div>
-                
-                <!-- League-Wide Rankings Table -->
-                {% if sos_all_teams %}
+                {% endif %}
+
+                <!-- Tabbed Rankings -->
                 <div class="mb-4">
-                    <h3 class="text-sm font-semibold text-gray-700 mb-3">Complete League Rankings</h3>
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full text-xs">
-                            <thead>
-                                <tr class="border-b border-gray-100">
-                                    <th class="text-left py-2 px-2 font-semibold text-gray-700">Rank</th>
-                                    <th class="text-left py-2 px-2 font-semibold text-gray-700">Team</th>
-                                    <th class="text-center py-2 px-2 font-semibold text-gray-700">SoS</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for team_sos in sos_all_teams %}
-                                <tr class="border-b border-gray-50 {% if team_sos.is_user_team %}bg-purple-50 border-purple-200{% else %}{% if loop.index0 % 2 == 0 %}bg-white{% else %}bg-gray-50{% endif %}{% endif %}">
-                                    <td class="py-3 px-2 font-semibold {% if team_sos.is_user_team %}text-purple-700{% else %}text-gray-900{% endif %}">
-                                        #{{ team_sos.rank }}
-                                        {% if team_sos.is_user_team %}
-                                        <i class="fas fa-star text-purple-500 ml-1" title="Your Team"></i>
-                                        {% endif %}
-                                    </td>
-                                    <td class="py-3 px-2 {% if team_sos.is_user_team %}font-semibold text-purple-700{% else %}text-gray-700{% endif %}">
-                                        {{ team_sos.team_name }}
-                                        {% if team_sos.is_user_team %}
-                                        <span class="text-xs text-purple-600 ml-1">(Your Team)</span>
-                                        {% endif %}
-                                    </td>
-                                    <td class="py-3 px-2 text-center {% if team_sos.is_user_team %}font-bold text-purple-700{% else %}text-gray-700{% endif %}">
-                                        {{ team_sos.sos_value }}
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+                    <div class="flex border-b-2 border-gray-300 mb-4 bg-gray-50 rounded-t-lg overflow-hidden">
+                        {% if has_remaining_schedule %}
+                        <button class="tab-button flex-1 px-4 py-3 text-sm font-semibold text-gray-600 hover:text-gray-800 bg-white border-r border-gray-200 transition-all duration-200" onclick="showTab('historical')">
+                            <i class="fas fa-history mr-2"></i>Historical Rankings
+                        </button>
+                        <button class="tab-button flex-1 px-4 py-3 text-sm font-semibold text-blue-600 bg-blue-50 border-b-2 border-blue-600 transition-all duration-200" onclick="showTab('remaining')">
+                            <i class="fas fa-calendar-alt mr-2"></i>Remaining Rankings
+                        </button>
+                        {% else %}
+                        <button class="tab-button flex-1 px-4 py-3 text-sm font-semibold text-blue-600 bg-blue-50 border-b-2 border-blue-600" onclick="showTab('historical')">
+                            <i class="fas fa-history mr-2"></i>Historical Rankings
+                        </button>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Historical Rankings Table -->
+                    <div id="historical-tab" class="tab-content {% if has_remaining_schedule %}hidden{% endif %}">
+                        {% if sos_all_teams %}
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full text-xs">
+                                <thead>
+                                    <tr class="border-b border-gray-100">
+                                        <th class="text-left py-2 px-2 font-semibold text-gray-700">Rank</th>
+                                        <th class="text-left py-2 px-2 font-semibold text-gray-700">Team</th>
+                                        <th class="text-center py-2 px-2 font-semibold text-gray-700">Historical SoS</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for team_sos in sos_all_teams %}
+                                    <tr class="border-b border-gray-50 {% if team_sos.is_user_team %}bg-blue-50 border-blue-200{% else %}{% if loop.index0 % 2 == 0 %}bg-white{% else %}bg-gray-50{% endif %}{% endif %}">
+                                        <td class="py-3 px-2 font-semibold {% if team_sos.is_user_team %}text-blue-700{% else %}text-gray-900{% endif %}">
+                                            #{{ team_sos.rank }}
+                                            {% if team_sos.is_user_team %}
+                                            <i class="fas fa-star text-blue-500 ml-1" title="Your Team"></i>
+                                            {% endif %}
+                                        </td>
+                                        <td class="py-3 px-2 {% if team_sos.is_user_team %}font-semibold text-blue-700{% else %}text-gray-700{% endif %}">
+                                            {{ team_sos.team_name }}
+                                            {% if team_sos.is_user_team %}
+                                            <span class="text-xs text-blue-600 ml-1">(Your Team)</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="py-3 px-2 text-center {% if team_sos.is_user_team %}font-bold text-blue-700{% else %}text-gray-700{% endif %}">
+                                            {{ team_sos.sos_value }}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Remaining Rankings Table -->
+                    <div id="remaining-tab" class="tab-content {% if not has_remaining_schedule %}hidden{% endif %}">
+                        {% if has_remaining_schedule and sos_all_teams_remaining %}
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full text-xs">
+                                <thead>
+                                    <tr class="border-b border-gray-100">
+                                        <th class="text-left py-2 px-2 font-semibold text-gray-700">Rank</th>
+                                        <th class="text-left py-2 px-2 font-semibold text-gray-700">Team</th>
+                                        <th class="text-center py-2 px-2 font-semibold text-gray-700">Remaining SoS</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for team_sos in sos_all_teams_remaining %}
+                                    <tr class="border-b border-gray-50 {% if team_sos.is_user_team %}bg-green-50 border-green-200{% else %}{% if loop.index0 % 2 == 0 %}bg-white{% else %}bg-gray-50{% endif %}{% endif %}">
+                                        <td class="py-3 px-2 font-semibold {% if team_sos.is_user_team %}text-green-700{% else %}text-gray-900{% endif %}">
+                                            #{{ team_sos.rank }}
+                                            {% if team_sos.is_user_team %}
+                                            <i class="fas fa-star text-green-500 ml-1" title="Your Team"></i>
+                                            {% endif %}
+                                        </td>
+                                        <td class="py-3 px-2 {% if team_sos.is_user_team %}font-semibold text-green-700{% else %}text-gray-700{% endif %}">
+                                            {{ team_sos.team_name }}
+                                            {% if team_sos.is_user_team %}
+                                            <span class="text-xs text-green-600 ml-1">(Your Team)</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="py-3 px-2 text-center {% if team_sos.is_user_team %}font-bold text-green-700{% else %}text-gray-700{% endif %}">
+                                            {{ team_sos.sos_value }}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <div class="text-center py-8">
+                            <div class="text-gray-500 mb-2">
+                                <i class="fas fa-calendar-times text-4xl"></i>
+                            </div>
+                            <div class="text-gray-700 font-medium">No Remaining Matches</div>
+                            <div class="text-gray-500 text-sm mt-1">
+                                {% if not has_remaining_schedule %}
+                                Your season schedule is complete. No future matches are currently scheduled.
+                                {% else %}
+                                No teams have remaining matches to analyze.
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
-                {% endif %}
                 
                 <!-- Explanation -->
                 <div class="bg-gray-50 rounded-lg p-4">
-                    <div class="text-xs text-gray-600 text-center">
-                        {% if sos_opponents_count > 0 %}
-                        Your team's SoS calculated from {{ sos_opponents_count }} opponent{{ 's' if sos_opponents_count != 1 else '' }} played this season. Higher values indicate tougher schedules.
+                    <div class="text-xs text-gray-600">
+                        <div class="mb-1">
+                            <strong>Historical SoS:</strong> Based on {{ sos_opponents_count }} opponent{{ 's' if sos_opponents_count != 1 else '' }} already played this season.
+                        </div>
+                        {% if has_remaining_schedule %}
+                        <div class="mb-1">
+                            <strong>Remaining SoS:</strong> Based on {{ sos_remaining_opponents_count }} opponent{{ 's' if sos_remaining_opponents_count != 1 else '' }} yet to be played.
+                        </div>
+                        <div>
+                            Higher SoS values indicate tougher opponents. This analysis helps you understand whether your toughest matches are behind or ahead of you.
+                        </div>
                         {% else %}
-                        Strength of Schedule calculated from average performance of all opponents played this season. Higher values indicate tougher schedules.
+                        <div class="mb-1">
+                            <strong>Remaining SoS:</strong> No future matches are currently scheduled in the system.
+                        </div>
+                        <div>
+                            Higher SoS values indicate tougher opponents. The historical analysis shows the difficulty of opponents you faced this season.
+                        </div>
                         {% endif %}
                     </div>
                 </div>
             </div>
         </div>
+
+        <script>
+        function showTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.add('hidden');
+            });
+            
+            // Remove active styling from all tab buttons
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('text-blue-600', 'bg-blue-50', 'border-b-2', 'border-blue-600');
+                button.classList.add('text-gray-600', 'bg-white');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabName + '-tab').classList.remove('hidden');
+            
+            // Add active styling to clicked button
+            event.target.classList.remove('text-gray-600', 'bg-white');
+            event.target.classList.add('text-blue-600', 'bg-blue-50', 'border-b-2', 'border-blue-600');
+        }
+        </script>
         {% endif %}
 
     </div>

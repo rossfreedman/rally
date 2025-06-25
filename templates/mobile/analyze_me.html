@@ -214,9 +214,9 @@
                         <!-- Partners Section -->
                         {% if court_stats.topPartners %}
                         <div>
-                            <p class="text-sm font-medium text-gray-700 mb-3">Top Partners</p>
+                            <p class="text-sm font-medium text-gray-700 mb-3">Partners</p>
                             <div class="space-y-2">
-                                {% for partner in court_stats.topPartners[:3] %}
+                                {% for partner in court_stats.topPartners %}
                                 <div class="flex items-center justify-between py-2 px-3 bg-white rounded-lg">
                                     <div class="flex-1">
                                         <div class="font-medium text-gray-900">{{ partner.name }}</div>
