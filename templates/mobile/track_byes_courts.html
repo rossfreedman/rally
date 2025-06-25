@@ -12,13 +12,64 @@
             </div>
             <div class="ml-4">
                 <h1 class="text-xl font-bold text-gray-900">Track Byes & Court Assignments</h1>
+                {% if current_team_info %}
+                <p class="text-sm text-gray-500">{{ current_team_info.team_name }} - {{ current_team_info.club_name }}</p>
+                {% else %}
                 <p class="text-sm text-gray-500">Review previous player assignments</p>
+                {% endif %}
             </div>
         </div>
     </div>
 
     <!-- Content -->
     <div class="px-4 py-6 space-y-6">
+
+        <!-- Team Selector -->
+        {% if user_teams and user_teams|length > 1 %}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-exchange-alt text-blue-500 mr-2"></i>
+                    Team Selection
+                </h3>
+            </div>
+            
+            <div class="p-6">
+                {% if current_team_info %}
+                <div class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <div class="font-semibold text-blue-900">Currently Viewing:</div>
+                            <div class="text-blue-700">{{ current_team_info.team_name }}</div>
+                            <div class="text-sm text-blue-600">{{ current_team_info.club_name }} - {{ current_team_info.series_name }}</div>
+                        </div>
+                        <i class="fas fa-check-circle text-blue-500 text-xl"></i>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <div class="text-sm text-gray-600 mb-3">You belong to multiple teams. Select a team to view its court assignments:</div>
+                
+                <div class="grid gap-2">
+                    {% for team in user_teams %}
+                    <a href="{{ url_for('mobile.serve_track_byes_courts', team_id=team.id) }}" 
+                       class="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors {% if team.id == team_id %}bg-blue-50 border-blue-200{% else %}border-gray-200{% endif %}">
+                        <div class="flex-1">
+                            <div class="font-medium text-gray-900">{{ team.team_name }}</div>
+                            <div class="text-sm text-gray-600">{{ team.club_name }} - {{ team.series_name }}</div>
+                            <div class="text-xs text-gray-500">{{ team.match_count }} matches</div>
+                        </div>
+                        {% if team.id == team_id %}
+                        <i class="fas fa-check-circle text-blue-500"></i>
+                        {% else %}
+                        <i class="fas fa-arrow-right text-gray-400"></i>
+                        {% endif %}
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
 
         <!-- Legend -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
