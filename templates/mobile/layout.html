@@ -311,7 +311,11 @@
                     const mainContent = document.getElementById('main-content');
                     
                     if (banner && userName && mainContent) {
-                        userName.textContent = `${status.impersonated_user.first_name} ${status.impersonated_user.last_name} (${status.impersonated_user.email})`;
+                        const playerContext = status.impersonated_user.player_context;
+                        const displayText = playerContext && playerContext.club && playerContext.series 
+                            ? `${status.impersonated_user.first_name} ${status.impersonated_user.last_name} (${status.impersonated_user.email}) as ${playerContext.club.name}, ${playerContext.series.name}`
+                            : `${status.impersonated_user.first_name} ${status.impersonated_user.last_name} (${status.impersonated_user.email})`;
+                        userName.textContent = displayText;
                         banner.classList.remove('hidden');
                         // Adjust main content padding to account for banner
                         mainContent.style.paddingTop = '104px'; // 72px (nav) + 32px (banner)

@@ -49,7 +49,7 @@
         <h3 class="text-lg font-semibold text-gray-800">User Impersonation</h3>
       </div>
       <p class="text-sm text-gray-600 mb-4">
-        Simulate being logged in as another user for testing purposes. This will temporarily replace your session with the selected user's data.
+        Simulate being logged in as another user in a specific team/league context for testing purposes. Select both the user and their specific player ID to see exactly what they see in that context.
       </p>
       
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -72,10 +72,11 @@
           <div class="text-xs text-amber-700">
             <p class="font-medium mb-1">Important Notes:</p>
             <ul class="list-disc list-inside space-y-1">
+              <li>Select a specific user + player context combination</li>
+              <li>You'll see exactly what they see in that team/league</li>
               <li>Your original admin session will be safely backed up</li>
-              <li>All actions taken will be logged as impersonation</li>
+              <li>All actions taken will be logged with player context</li>
               <li>Use "Stop Impersonation" to return to your admin session</li>
-              <li>Session will auto-restore if you log out</li>
             </ul>
           </div>
         </div>
@@ -283,8 +284,11 @@ async function checkImpersonationStatus() {
         
         if (status.is_impersonating) {
             document.getElementById('impersonation-banner').classList.remove('hidden');
-            document.getElementById('impersonated-user-name').textContent = 
-                `${status.impersonated_user.first_name} ${status.impersonated_user.last_name} (${status.impersonated_user.email})`;
+            const playerContext = status.impersonated_user.player_context;
+            const displayText = playerContext && playerContext.club && playerContext.series 
+                ? `${status.impersonated_user.first_name} ${status.impersonated_user.last_name} (${status.impersonated_user.email}) as ${playerContext.club.name}, ${playerContext.series.name}`
+                : `${status.impersonated_user.first_name} ${status.impersonated_user.last_name} (${status.impersonated_user.email})`;
+            document.getElementById('impersonated-user-name').textContent = displayText;
         }
     } catch (error) {
         console.error('Error checking impersonation status:', error);
