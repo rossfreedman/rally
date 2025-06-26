@@ -56,30 +56,81 @@
             transform: translateX(2px);
         }
         
+        /* Candy Box Item Styles */
+        .candy-box-item {
+            min-height: 70px;
+            width: 100%;
+            max-width: none;
+            flex-shrink: 0;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: center !important;
+            text-align: center !important;
+            padding: 12px 8px !important;
+            border-radius: 12px !important;
+            transition: all 0.2s ease !important;
+            text-decoration: none !important;
+            position: relative;
+        }
+        
+        .candy-box-item:hover {
+            transform: scale(1.05) !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+            text-decoration: none !important;
+        }
+        
+        .candy-box-item i {
+            font-size: 18px !important;
+            margin-bottom: 6px !important;
+            display: block !important;
+        }
+        
+        .candy-box-item span {
+            font-size: 10px !important;
+            font-weight: 500 !important;
+            line-height: 1.2 !important;
+            display: block !important;
+            color: #374151 !important;
+        }
+        
+        /* Grid container styling */
+        .candy-grid {
+            display: grid !important;
+            grid-template-columns: repeat(3, 1fr) !important;
+            gap: 8px !important;
+            width: 100% !important;
+        }
+        
         /* Section headers with subtle styling */
         h2 {
             letter-spacing: -0.02em;
         }
         
-        /* Responsive adjustments - Keep 2 columns but optimize spacing */
+        /* Responsive adjustments - Keep 3 columns but optimize spacing */
         @media (max-width: 768px) {
-            #navDrawer .grid-cols-2 {
-                grid-template-columns: 1fr 1fr;
-                gap: 1rem;
+            .candy-grid {
+                grid-template-columns: repeat(3, 1fr) !important;
+                gap: 6px !important;
             }
             
-            #navDrawer .max-w-5xl {
+            .candy-box-item {
+                min-height: 65px !important;
+                padding: 10px 6px !important;
+            }
+            
+            .candy-box-item i {
+                font-size: 16px !important;
+                margin-bottom: 4px !important;
+            }
+            
+            .candy-box-item span {
+                font-size: 9px !important;
+            }
+            
+            #navDrawer .max-w-lg {
                 max-width: none;
-            }
-            
-            #navDrawer .px-6 {
-                padding-left: 1rem;
-                padding-right: 1rem;
-            }
-            
-            #navDrawer .py-8 {
-                padding-top: 1rem;
-                padding-bottom: 1rem;
+                padding: 0 8px;
             }
         }
     </style>
@@ -139,66 +190,137 @@
             
             <!-- Navigation Content -->
             <div class="flex-1 overflow-y-auto">
-                <div class="px-6 py-8">
-                    <div class="grid grid-cols-2 gap-4 max-w-5xl mx-auto">
-                        <!-- Left Column -->
-                        <div class="space-y-4">
-                            <!-- Act Section -->
-                            <div>
-                                <h2 class="text-lg font-semibold mb-2 text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">Act</h2>
-                                <ul class="space-y-1">
-                                    <li><a href="/mobile/availability" class="nav-link block text-sm text-gray-600 hover:text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-weight: 500;">View Schedule</a></li>
-                                    <li><a href="/mobile/availability-calendar" class="nav-link block text-sm text-gray-600 hover:text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-weight: 500;">Update Availability</a></li>
-                                    <li><a href="/mobile/track-byes-courts" class="nav-link block text-sm text-gray-600 hover:text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-weight: 500;">Track Assignments</a></li>
-                                    <li><a href="/mobile/polls" class="nav-link block text-sm text-gray-600 hover:text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-weight: 500;">Respond to Polls</a></li>
-                                    <li><a href="/mobile/reserve-court" class="nav-link block text-sm text-gray-600 hover:text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-weight: 500;">Reserve a Court</a></li>
-                                </ul>
-                            </div>
-                            
-                            <!-- Connect Section -->
-                            <div>
-                                <h2 class="text-lg font-semibold mb-2 text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">Connect</h2>
-                                <ul class="space-y-1">
-                                    <li><a href="/mobile/find-people-to-play" class="nav-link block text-sm text-gray-600 hover:text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-weight: 500;">Search Players</a></li>
-                                    <li><a href="/mobile/pickup-games" class="nav-link block text-sm text-gray-600 hover:text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-weight: 500;">View Pickup Games</a></li>
-                                </ul>
-                            </div>
-                            
-                            <!-- Analyze Section -->
-                            <div>
-                                <h2 class="text-lg font-semibold mb-2 text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">Analyze</h2>
-                                <ul class="space-y-1">
-                                    <li><a href="/mobile/analyze-me" class="nav-link block text-sm text-gray-600 hover:text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-weight: 500;">Me</a></li>
-                                    <li><a href="/mobile/myteam" class="nav-link block text-sm text-gray-600 hover:text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-weight: 500;">My Team</a></li>
-                                    <li><a href="/mobile/myseries" class="nav-link block text-sm text-gray-600 hover:text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-weight: 500;">My Series</a></li>
-                                    <li><a href="/mobile/my-club" class="nav-link block text-sm text-gray-600 hover:text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-weight: 500;">My Club</a></li>
-                                </ul>
+                <div class="px-4 py-6">
+                    <!-- Candy Box Grid Layout -->
+                    <div class="max-w-lg mx-auto">
+                        
+                        <!-- Act Section -->
+                        <div class="mb-6">
+                            <h2 class="text-lg font-bold mb-3 text-gray-800 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">Act</h2>
+                            <div class="candy-grid">
+                                <!-- Row 1 -->
+                                <a href="/mobile/availability" class="candy-box-item bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-3 flex flex-col items-center text-center hover:shadow-md transition-all duration-200 hover:scale-105">
+                                    <i class="fas fa-calendar text-blue-600 text-xl mb-2"></i>
+                                    <span class="text-xs font-medium text-gray-700">View Schedule</span>
+                                </a>
+                                <a href="/mobile/availability-calendar" class="candy-box-item bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-3 flex flex-col items-center text-center hover:shadow-md transition-all duration-200 hover:scale-105">
+                                    <i class="fas fa-calendar-check text-blue-600 text-xl mb-2"></i>
+                                    <span class="text-xs font-medium text-gray-700">Update Availability</span>
+                                </a>
+                                <a href="/mobile/track-byes-courts" class="candy-box-item bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-3 flex flex-col items-center text-center hover:shadow-md transition-all duration-200 hover:scale-105">
+                                    <i class="fas fa-clipboard-check text-blue-600 text-xl mb-2"></i>
+                                    <span class="text-xs font-medium text-gray-700">Track Assignments</span>
+                                </a>
+                                <!-- Row 2 -->
+                                <a href="/mobile/polls" class="candy-box-item bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-3 flex flex-col items-center text-center hover:shadow-md transition-all duration-200 hover:scale-105">
+                                    <i class="fas fa-poll text-blue-600 text-xl mb-2"></i>
+                                    <span class="text-xs font-medium text-gray-700">Respond to Polls</span>
+                                </a>
+                                <a href="/mobile/reserve-court" class="candy-box-item bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-xl p-3 flex flex-col items-center text-center hover:shadow-md transition-all duration-200 hover:scale-105">
+                                    <i class="fas fa-table-tennis text-blue-600 text-xl mb-2"></i>
+                                    <span class="text-xs font-medium text-gray-700">Reserve Court</span>
+                                </a>
+                                <!-- Empty space to maintain 3-column grid -->
+                                <div class="candy-box-item opacity-0"></div>
                             </div>
                         </div>
                         
-                        <!-- Right Column -->
-                        <div class="space-y-4">
-                            <!-- Prepare Section -->
-                            <div>
-                                <h2 class="text-lg font-semibold mb-2 text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">Prepare</h2>
-                                <ul class="space-y-1">
-                                    <li><a href="/mobile/player-search" class="nav-link block text-sm text-gray-600 hover:text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-weight: 500;">Scout Competition</a></li>
-                                    <li><a href="/mobile/teams-players" class="nav-link block text-sm text-gray-600 hover:text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-weight: 500;">Research Opponent Teams</a></li>
-                                    <li><a href="/mobile/matchup-simulator" class="nav-link block text-sm text-gray-600 hover:text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-weight: 500;">Matchup Simulator</a></li>
-                                </ul>
-                            </div>
-                            
-                            <!-- Improve Section -->
-                            <div>
-                                <h2 class="text-lg font-semibold mb-2 text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">Improve</h2>
-                                <ul class="space-y-1">
-                                    <li><a href="/mobile/improve" class="nav-link block text-sm text-gray-600 hover:text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-weight: 500;">Improve My Game</a></li>
-                                    <li><a href="/mobile/schedule-lesson" class="nav-link block text-sm text-gray-600 hover:text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-weight: 500;">Schedule Lesson with Pro</a></li>
-                                </ul>
+                        <!-- Connect & Prepare Section (Combined for better layout) -->
+                        <div class="mb-6">
+                            <h2 class="text-lg font-bold mb-3 text-gray-800 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">Connect & Prepare</h2>
+                            <div class="candy-grid">
+                                <!-- Row 1 -->
+                                <a href="/mobile/find-people-to-play" class="candy-box-item bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 rounded-xl p-3 flex flex-col items-center text-center hover:shadow-md transition-all duration-200 hover:scale-105">
+                                    <i class="fas fa-user-friends text-purple-600 text-xl mb-2"></i>
+                                    <span class="text-xs font-medium text-gray-700">Search Players</span>
+                                </a>
+                                <a href="/mobile/pickup-games" class="candy-box-item bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 rounded-xl p-3 flex flex-col items-center text-center hover:shadow-md transition-all duration-200 hover:scale-105">
+                                    <i class="fas fa-calendar-plus text-purple-600 text-xl mb-2"></i>
+                                    <span class="text-xs font-medium text-gray-700">Pickup Games</span>
+                                </a>
+                                <a href="/mobile/player-search" class="candy-box-item bg-gradient-to-br from-pink-50 to-pink-100 border border-pink-200 rounded-xl p-3 flex flex-col items-center text-center hover:shadow-md transition-all duration-200 hover:scale-105">
+                                    <i class="fas fa-search text-pink-600 text-xl mb-2"></i>
+                                    <span class="text-xs font-medium text-gray-700">Scout Players</span>
+                                </a>
+                                <!-- Row 2 -->
+                                <a href="/mobile/teams-players" class="candy-box-item bg-gradient-to-br from-pink-50 to-pink-100 border border-pink-200 rounded-xl p-3 flex flex-col items-center text-center hover:shadow-md transition-all duration-200 hover:scale-105">
+                                    <i class="fas fa-users text-pink-600 text-xl mb-2"></i>
+                                    <span class="text-xs font-medium text-gray-700">Research Teams</span>
+                                </a>
+                                <a href="/mobile/matchup-simulator" class="candy-box-item bg-gradient-to-br from-pink-50 to-pink-100 border border-pink-200 rounded-xl p-3 flex flex-col items-center text-center hover:shadow-md transition-all duration-200 hover:scale-105">
+                                    <i class="fas fa-chart-line text-pink-600 text-xl mb-2"></i>
+                                    <span class="text-xs font-medium text-gray-700">Simulator</span>
+                                </a>
+                                <!-- Empty space to maintain 3-column grid -->
+                                <div class="candy-box-item opacity-0"></div>
                             </div>
                         </div>
+                        
+                        <!-- Analyze Section -->
+                        <div class="mb-6">
+                            <h2 class="text-lg font-bold mb-3 text-gray-800 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">Analyze</h2>
+                            <div class="candy-grid">
+                                <!-- Row 1 -->
+                                <a href="/mobile/analyze-me" class="candy-box-item bg-gradient-to-br from-indigo-50 to-indigo-100 border border-indigo-200 rounded-xl p-3 flex flex-col items-center text-center hover:shadow-md transition-all duration-200 hover:scale-105">
+                                    <i class="fas fa-user text-indigo-600 text-xl mb-2"></i>
+                                    <span class="text-xs font-medium text-gray-700">Me</span>
+                                </a>
+                                <a href="/mobile/myteam" class="candy-box-item bg-gradient-to-br from-indigo-50 to-indigo-100 border border-indigo-200 rounded-xl p-3 flex flex-col items-center text-center hover:shadow-md transition-all duration-200 hover:scale-105">
+                                    <i class="fas fa-users text-indigo-600 text-xl mb-2"></i>
+                                    <span class="text-xs font-medium text-gray-700">My Team</span>
+                                </a>
+                                <a href="/mobile/myseries" class="candy-box-item bg-gradient-to-br from-indigo-50 to-indigo-100 border border-indigo-200 rounded-xl p-3 flex flex-col items-center text-center hover:shadow-md transition-all duration-200 hover:scale-105">
+                                    <i class="fas fa-trophy text-indigo-600 text-xl mb-2"></i>
+                                    <span class="text-xs font-medium text-gray-700">My Series</span>
+                                </a>
+                                <!-- Row 2 -->
+                                <a href="/mobile/my-club" class="candy-box-item bg-gradient-to-br from-indigo-50 to-indigo-100 border border-indigo-200 rounded-xl p-3 flex flex-col items-center text-center hover:shadow-md transition-all duration-200 hover:scale-105">
+                                    <i class="fas fa-building text-indigo-600 text-xl mb-2"></i>
+                                    <span class="text-xs font-medium text-gray-700">My Club</span>
+                                </a>
+                                <!-- Empty spaces to maintain 3-column grid -->
+                                <div class="candy-box-item opacity-0"></div>
+                                <div class="candy-box-item opacity-0"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Improve Section -->
+                        <div class="mb-6">
+                            <h2 class="text-lg font-bold mb-3 text-gray-800 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">Improve</h2>
+                            <div class="candy-grid">
+                                <a href="/mobile/improve" class="candy-box-item bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-xl p-3 flex flex-col items-center text-center hover:shadow-md transition-all duration-200 hover:scale-105">
+                                    <i class="fas fa-chart-bar text-green-600 text-xl mb-2"></i>
+                                    <span class="text-xs font-medium text-gray-700">My Game</span>
+                                </a>
+                                <a href="/mobile/schedule-lesson" class="candy-box-item bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-xl p-3 flex flex-col items-center text-center hover:shadow-md transition-all duration-200 hover:scale-105">
+                                    <i class="fas fa-graduation-cap text-green-600 text-xl mb-2"></i>
+                                    <span class="text-xs font-medium text-gray-700">Schedule Lesson</span>
+                                </a>
+                                <!-- Empty space to maintain 3-column grid -->
+                                <div class="candy-box-item opacity-0"></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Settings Section -->
+                        <div class="mb-6">
+                            <h2 class="text-lg font-bold mb-3 text-gray-800 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">Settings</h2>
+                            <div class="candy-grid">
+                                <a href="/mobile/settings" class="candy-box-item bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 rounded-xl p-3 flex flex-col items-center text-center hover:shadow-md transition-all duration-200 hover:scale-105">
+                                    <i class="fas fa-cog text-gray-600 text-xl mb-2"></i>
+                                    <span class="text-xs font-medium text-gray-700">Profile</span>
+                                </a>
+                                <a href="/admin" class="candy-box-item bg-gradient-to-br from-gray-50 to-gray-100 border border-gray-200 rounded-xl p-3 flex flex-col items-center text-center hover:shadow-md transition-all duration-200 hover:scale-105">
+                                    <i class="fas fa-shield-alt text-gray-600 text-xl mb-2"></i>
+                                    <span class="text-xs font-medium text-gray-700">Admin</span>
+                                </a>
+                                <button onclick="logout()" class="candy-box-item bg-gradient-to-br from-red-50 to-red-100 border border-red-200 rounded-xl p-3 flex flex-col items-center text-center hover:shadow-md transition-all duration-200 hover:scale-105 w-full border-0">
+                                    <i class="fas fa-sign-out-alt text-red-600 text-xl mb-2"></i>
+                                    <span class="text-xs font-medium text-gray-700">Logout</span>
+                                </button>
+                            </div>
+                        </div>
+                        
                     </div>
-
                 </div>
             </div>
         </div>
@@ -589,7 +711,7 @@
                 }
 
                 // Handle navigation links ONLY inside the drawer
-                const navLink = target.closest('.nav-link');
+                const navLink = target.closest('.nav-link, .candy-box-item');
                 if (navLink && navLink.closest('#navDrawer')) {
                     // Let activity-tracker.js handle the click tracking
                     // Just close the drawer and let the navigation happen naturally
