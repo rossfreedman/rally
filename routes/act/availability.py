@@ -84,12 +84,12 @@ def get_user_player_records(user_id):
         player_records = execute_query(
             """
             SELECT p.id, p.tenniscores_player_id, p.first_name, p.last_name, 
-                   p.series_id, s.name as series_name, upa.is_primary
+                   p.series_id, s.name as series_name
             FROM user_player_associations upa
             JOIN players p ON p.tenniscores_player_id = upa.tenniscores_player_id
             JOIN series s ON s.id = p.series_id
             WHERE upa.user_id = %(user_id)s
-            ORDER BY upa.is_primary DESC, p.first_name, p.last_name
+            ORDER BY p.first_name, p.last_name
             """,
             {"user_id": user_id},
         )

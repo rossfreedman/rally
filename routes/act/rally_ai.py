@@ -1096,13 +1096,13 @@ def get_user_playing_context(user):
                            p.pti, p.wins, p.losses, p.win_percentage,
                            s.name as series_name, c.name as club_name, l.league_name
                     FROM players p
-                    JOIN user_player_associations upa ON p.id = upa.player_id
+                    JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
                     JOIN users u ON upa.user_id = u.id
                     LEFT JOIN series s ON p.series_id = s.id
                     LEFT JOIN clubs c ON p.club_id = c.id
                     LEFT JOIN leagues l ON p.league_id = l.id
                     WHERE u.email = %s
-                    ORDER BY upa.is_primary DESC, p.updated_at DESC
+                    ORDER BY p.updated_at DESC
                     LIMIT 1
                 """,
                     (user_email,),
