@@ -40,6 +40,7 @@ class MilestoneDeployment:
         # Results tracking
         self.results = {
             "deployment_status": None,
+            "git_changes": None,  # New: track what changes are being deployed
             "git_deployment": None,
             "database_sync": None,
             "backup": None,
@@ -74,28 +75,191 @@ class MilestoneDeployment:
             logger.error(f"Error running command {command}: {e}")
             return None
 
+    def analyze_git_changes(self):
+        """Analyze current git changes and return detailed information"""
+        changes_info = {
+            "has_changes": False,
+            "uncommitted_files": [],
+            "unpushed_commits": [],
+            "current_branch": "",
+            "summary": ""
+        }
+        
+        try:
+            # Get current branch
+            branch_result = self.run_subprocess(["git", "branch", "--show-current"])
+            if branch_result and branch_result.returncode == 0:
+                changes_info["current_branch"] = branch_result.stdout.strip()
+            
+            # Check uncommitted changes
+            status_result = self.run_subprocess(["git", "status", "--porcelain"])
+            if status_result and status_result.returncode == 0:
+                status_lines = status_result.stdout.strip().split('\n') if status_result.stdout.strip() else []
+                
+                for line in status_lines:
+                    if line.strip():
+                        status_code = line[:2]
+                        filename = line[3:]
+                        file_info = {
+                            "file": filename,
+                            "status": status_code,
+                            "description": self._get_status_description(status_code)
+                        }
+                        changes_info["uncommitted_files"].append(file_info)
+                
+                if status_lines and any(line.strip() for line in status_lines):
+                    changes_info["has_changes"] = True
+            
+            # Check unpushed commits
+            commits_result = self.run_subprocess(["git", "log", "origin/main..HEAD", "--oneline"])
+            if commits_result and commits_result.returncode == 0 and commits_result.stdout.strip():
+                commit_lines = commits_result.stdout.strip().split('\n')
+                for line in commit_lines:
+                    if line.strip():
+                        changes_info["unpushed_commits"].append(line.strip())
+                if commit_lines:
+                    changes_info["has_changes"] = True
+            
+            # Create summary
+            total_files = len(changes_info["uncommitted_files"])
+            total_commits = len(changes_info["unpushed_commits"])
+            
+            if total_files > 0 and total_commits > 0:
+                changes_info["summary"] = f"{total_files} uncommitted files, {total_commits} unpushed commits"
+            elif total_files > 0:
+                changes_info["summary"] = f"{total_files} uncommitted files"
+            elif total_commits > 0:
+                changes_info["summary"] = f"{total_commits} unpushed commits"
+            else:
+                changes_info["summary"] = "No changes detected"
+                
+        except Exception as e:
+            changes_info["summary"] = f"Error analyzing changes: {str(e)}"
+        
+        return changes_info
+
+    def _get_status_description(self, status_code):
+        """Convert git status code to human readable description"""
+        status_map = {
+            "M ": "Modified (staged)",
+            " M": "Modified (unstaged)",
+            "A ": "Added (staged)", 
+            " A": "Added (unstaged)",
+            "D ": "Deleted (staged)",
+            " D": "Deleted (unstaged)",
+            "R ": "Renamed (staged)",
+            " R": "Renamed (unstaged)",
+            "C ": "Copied (staged)",
+            " C": "Copied (unstaged)",
+            "??": "Untracked",
+            "!!": "Ignored"
+        }
+        return status_map.get(status_code, f"Unknown ({status_code})")
+
+    def print_git_changes(self, changes_info):
+        """Print detailed git changes to terminal"""
+        if not changes_info["has_changes"]:
+            print("✅ No changes to deploy - everything is in sync")
+            return
+        
+        print("📋 CHANGES TO BE DEPLOYED:")
+        print("-" * 50)
+        
+        # Show uncommitted files
+        if changes_info["uncommitted_files"]:
+            print(f"📝 Uncommitted Files ({len(changes_info['uncommitted_files'])}):")
+            
+            # Group by type for better organization
+            categories = {
+                "Templates": [],
+                "Python": [],
+                "Static Files": [],
+                "Documentation": [],
+                "Configuration": [],
+                "Other": []
+            }
+            
+            for file_info in changes_info["uncommitted_files"]:
+                filename = file_info["file"]
+                category = "Other"  # default
+                
+                if filename.startswith("templates/"):
+                    category = "Templates"
+                elif filename.endswith(".py"):
+                    category = "Python"
+                elif filename.startswith("static/"):
+                    category = "Static Files"
+                elif filename.startswith("docs/") or filename.endswith(".md"):
+                    category = "Documentation"
+                elif filename in [".cursorrules", "requirements.txt", "config.py", "railway.toml"]:
+                    category = "Configuration"
+                
+                categories[category].append(file_info)
+            
+            # Print categorized files
+            for category, files in categories.items():
+                if files:
+                    print(f"\n   📁 {category}:")
+                    for file_info in files:
+                        status_icon = self._get_status_icon(file_info["status"])
+                        print(f"      {status_icon} {file_info['file']} ({file_info['description']})")
+        
+        # Show unpushed commits
+        if changes_info["unpushed_commits"]:
+            print(f"\n📤 Unpushed Commits ({len(changes_info['unpushed_commits'])}):")
+            for commit in changes_info["unpushed_commits"]:
+                print(f"   📌 {commit}")
+        
+        print(f"\n📊 Summary: {changes_info['summary']}")
+        print("-" * 50)
+
+    def _get_status_icon(self, status_code):
+        """Get emoji icon for git status"""
+        icon_map = {
+            "M ": "📝",  # Modified staged
+            " M": "📝",  # Modified unstaged
+            "A ": "✨",  # Added staged
+            " A": "✨",  # Added unstaged
+            "D ": "🗑️",  # Deleted staged
+            " D": "🗑️",  # Deleted unstaged
+            "R ": "🔄",  # Renamed staged
+            " R": "🔄",  # Renamed unstaged
+            "??": "❓",  # Untracked
+        }
+        return icon_map.get(status_code, "📄")
+
     def step_1_check_deployment_status(self):
-        """Step 1: Check deployment status using existing script"""
+        """Step 1: Check deployment status and analyze changes"""
         print("🔍 STEP 1: Checking Deployment Status")
         print("-" * 50)
         
         try:
-            # Run the deployment status checker
-            result = self.run_subprocess([
-                sys.executable, 
-                str(self.script_dir / "check_deployment_status.py")
-            ])
+            # Analyze git changes
+            changes_info = self.analyze_git_changes()
+            self.results["git_changes"] = changes_info
             
-            if result and result.returncode == 0:
+            if not changes_info["has_changes"]:
                 print("✅ Deployment status: IN SYNC")
-                self.results["deployment_status"] = {"status": "in_sync", "message": "Local and remote are synchronized"}
+                self.results["deployment_status"] = {
+                    "status": "in_sync", 
+                    "message": "Local and remote are synchronized"
+                }
                 return True
             else:
                 print("⚠️  Deployment status: OUT OF SYNC")
-                self.results["deployment_status"] = {"status": "out_of_sync", "message": "Changes need to be committed/pushed"}
+                print()
+                
+                # Show detailed changes
+                self.print_git_changes(changes_info)
+                
+                self.results["deployment_status"] = {
+                    "status": "out_of_sync", 
+                    "message": f"Changes detected: {changes_info['summary']}"
+                }
                 
                 if not self.args.quick:
-                    proceed = input("\n🤔 Continue with deployment of uncommitted changes? [y/N]: ")
+                    print(f"\n🤔 Deploy these changes to {self.args.branch}?")
+                    proceed = input("Continue with deployment? [y/N]: ")
                     if proceed.lower() != 'y':
                         print("❌ Deployment cancelled by user")
                         return False
@@ -113,16 +277,14 @@ class MilestoneDeployment:
         print("-" * 50)
         
         try:
-            # Check current branch
-            current_branch = self.run_subprocess(["git", "branch", "--show-current"])
-            if current_branch:
-                current_branch = current_branch.stdout.strip()
-                print(f"📍 Current branch: {current_branch}")
+            # Get current branch and changes info
+            changes_info = self.results.get("git_changes", {})
+            current_branch = changes_info.get("current_branch", "unknown")
+            print(f"📍 Current branch: {current_branch}")
             
             # Check for uncommitted changes
-            status_result = self.run_subprocess(["git", "status", "--porcelain"])
-            if status_result and status_result.stdout.strip():
-                print("📝 Found uncommitted changes")
+            if changes_info.get("uncommitted_files"):
+                print(f"📝 Committing {len(changes_info['uncommitted_files'])} files...")
                 
                 if not self.args.quick:
                     commit_msg = input("📝 Enter commit message (or press Enter for auto): ").strip()
@@ -173,7 +335,9 @@ class MilestoneDeployment:
             self.results["git_deployment"] = {
                 "status": "success", 
                 "branch": target_branch,
-                "message": f"Deployed to {target_branch}"
+                "message": f"Deployed to {target_branch}",
+                "files_deployed": len(changes_info.get("uncommitted_files", [])),
+                "commits_pushed": len(changes_info.get("unpushed_commits", [])) + (1 if changes_info.get("uncommitted_files") else 0)
             }
             return True
             
@@ -312,6 +476,12 @@ class MilestoneDeployment:
         print(f"⏱️  Duration: {duration:.2f} seconds")
         print(f"📅 Completed: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
         print(f"🎯 Target: {self.args.branch}")
+        
+        # Show deployed changes summary
+        changes_info = self.results.get("git_changes", {})
+        if changes_info and changes_info.get("has_changes"):
+            print(f"📝 Changes deployed: {changes_info.get('summary', 'N/A')}")
+        
         print()
         
         # Check overall success
