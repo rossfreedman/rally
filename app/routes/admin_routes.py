@@ -1646,10 +1646,11 @@ def start_impersonation():
                     }
                     players_data.append(player_data)
                     
-                    if assoc.is_primary:
+                    # Since is_primary field was removed, just use first valid player as primary
+                    if not primary_player:
                         primary_player = player_data
             
-            # If no primary player, use first available
+            # If no primary player was set, use first available
             if not primary_player and players_data:
                 primary_player = players_data[0]
             
