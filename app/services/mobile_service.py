@@ -1534,6 +1534,51 @@ def get_mobile_availability_data(user):
         print(f"[DEBUG] Executing simple query with params: {(team_id, team_id)}")
         user_matches = execute_query(simple_query, (team_id, team_id))
         
+        # FALLBACK: If no matches found by team_id, try team name matching
+        if not user_matches and session_data.get("club") and session_data.get("series"):
+            print(f"[DEBUG] No matches found by team_id, trying team name fallback...")
+            
+            # Get the team name from teams table
+            team_name_query = """
+                SELECT team_name FROM teams WHERE id = %s
+            """
+            team_result = execute_query_one(team_name_query, [team_id])
+            
+            if team_result:
+                base_team_name = team_result["team_name"]
+                print(f"[DEBUG] Base team name from teams table: {base_team_name}")
+                
+                # Try different team name formats that might exist in schedule table
+                team_name_patterns = [
+                    base_team_name,  # Exact match
+                    f"{base_team_name} - Series {session_data.get('series', '').replace('S', '')}",  # NSTF format: "Tennaqua S2B" -> "Tennaqua S2B - Series 2B"
+                ]
+                
+                for pattern in team_name_patterns:
+                    print(f"[DEBUG] Trying team name pattern: '{pattern}'")
+                    
+                    fallback_query = """
+                    SELECT 
+                        match_date as date, 
+                        match_time as time, 
+                        home_team, 
+                        away_team, 
+                        location
+                    FROM schedule 
+                    WHERE (home_team = %s OR away_team = %s)
+                    AND league_id = %s
+                    """
+                    
+                    user_matches = execute_query(fallback_query, (pattern, pattern, league_id))
+                    
+                    if user_matches:
+                        print(f"[DEBUG] Found {len(user_matches)} matches using pattern: '{pattern}'")
+                        break
+                else:
+                    print(f"[DEBUG] No matches found with any team name pattern")
+            else:
+                print(f"[DEBUG] Could not find team name for team_id {team_id}")
+        
         # Filter manually for league (removed future date filter)
         filtered_matches = []
         
