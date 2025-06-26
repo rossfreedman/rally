@@ -15,14 +15,14 @@ def get_all_users():
     try:
         users = execute_query(
             """
-            SELECT u.id, u.first_name, u.last_name, u.email, u.last_login,
+            SELECT DISTINCT ON (u.id) u.id, u.first_name, u.last_name, u.email, u.last_login,
                    c.name as club_name, s.name as series_name
             FROM users u
             LEFT JOIN user_player_associations upa ON u.id = upa.user_id
             LEFT JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
             LEFT JOIN clubs c ON p.club_id = c.id
             LEFT JOIN series s ON p.series_id = s.id
-            ORDER BY u.last_name, u.first_name
+            ORDER BY u.id, upa.created_at DESC NULLS LAST
         """
         )
         return users

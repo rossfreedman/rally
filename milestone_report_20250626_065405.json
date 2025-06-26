@@ -1,0 +1,51 @@
+{
+  "timestamp": "2025-06-26T06:54:05.689830",
+  "duration_seconds": 7.258103132247925,
+  "target_branch": "staging",
+  "results": {
+    "deployment_status": {
+      "status": "out_of_sync",
+      "message": "Changes detected: 3 uncommitted files"
+    },
+    "git_changes": {
+      "has_changes": true,
+      "uncommitted_files": [
+        {
+          "file": "cripts/milestone.py",
+          "status": "M ",
+          "description": "Modified (staged)"
+        },
+        {
+          "file": "milestone_report_20250626_064910.json",
+          "status": "??",
+          "description": "Untracked"
+        },
+        {
+          "file": "scripts/fix_railway_league_context.sql",
+          "status": "??",
+          "description": "Untracked"
+        }
+      ],
+      "unpushed_commits": [],
+      "current_branch": "main",
+      "summary": "3 uncommitted files"
+    },
+    "git_deployment": {
+      "status": "success",
+      "branch": "staging",
+      "message": "Deployed to staging",
+      "files_deployed": 3,
+      "commits_pushed": 1
+    },
+    "database_sync": {
+      "status": "differences",
+      "message": "Databases have schema or data differences"
+    },
+    "backup": {
+      "status": "success",
+      "message": "Code and database backup created"
+    },
+    "overall_success": true
+  },
+  "success": true
+}
