@@ -311,27 +311,30 @@ class MilestoneDeployment:
             else:
                 target_branch = "main"  # Production goes to main
             
-            # Switch to target branch if needed
-            if current_branch != target_branch:
-                print(f"🔄 Switching to {target_branch} branch...")
-                checkout_result = self.run_subprocess(["git", "checkout", target_branch])
-                if not checkout_result or checkout_result.returncode != 0:
-                    # Try to create the branch if it doesn't exist
-                    print(f"📦 Creating {target_branch} branch...")
-                    create_result = self.run_subprocess(["git", "checkout", "-b", target_branch])
-                    if not create_result or create_result.returncode != 0:
-                        raise Exception(f"Failed to create/switch to {target_branch}")
+            # Stay on current branch and push directly to remote target branch
+            print(f"📍 Staying on {current_branch} branch (no branch switching)")
             
-            # Push to remote
-            print(f"🚀 Pushing to origin/{target_branch}...")
-            push_result = self.run_subprocess(["git", "push", "origin", target_branch])
-            if not push_result or push_result.returncode != 0:
-                # Try with upstream if it's a new branch
-                push_result = self.run_subprocess(["git", "push", "--set-upstream", "origin", target_branch])
+            if current_branch == target_branch:
+                # Same branch - simple push
+                print(f"🚀 Pushing to origin/{target_branch}...")
+                push_result = self.run_subprocess(["git", "push", "origin", target_branch])
                 if not push_result or push_result.returncode != 0:
-                    raise Exception("Failed to push to remote")
+                    raise Exception(f"Failed to push to origin/{target_branch}")
+            else:
+                # Different branch - push current branch to remote target branch
+                print(f"🚀 Pushing {current_branch} to origin/{target_branch}...")
+                
+                # First, try to push current branch to target branch on remote
+                push_result = self.run_subprocess(["git", "push", "origin", f"{current_branch}:{target_branch}"])
+                
+                if not push_result or push_result.returncode != 0:
+                    # If target branch doesn't exist, create it
+                    print(f"📦 Creating new remote branch origin/{target_branch}...")
+                    push_result = self.run_subprocess(["git", "push", "origin", f"{current_branch}:{target_branch}"])
+                    if not push_result or push_result.returncode != 0:
+                        raise Exception(f"Failed to push {current_branch} to origin/{target_branch}")
             
-            print(f"✅ Successfully deployed to {target_branch}")
+            print(f"✅ Successfully deployed to origin/{target_branch} (stayed on {current_branch})")
             self.results["git_deployment"] = {
                 "status": "success", 
                 "branch": target_branch,

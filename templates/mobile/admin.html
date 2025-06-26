@@ -157,20 +157,43 @@ document.addEventListener('DOMContentLoaded', function() {
 
 async function loadUsersForImpersonation() {
     try {
-        const response = await fetch('/api/admin/users');
+        const response = await fetch('/api/admin/users-for-impersonation');
         const users = await response.json();
         
         const select = document.getElementById('impersonation-user-select');
-        select.innerHTML = '<option value="">Select a user...</option>';
+        select.innerHTML = '<option value="">Select a user and context...</option>';
         
         users.forEach(user => {
-            const option = document.createElement('option');
-            option.value = user.email;
-            option.textContent = `${user.first_name} ${user.last_name} (${user.email})`;
-            if (user.tenniscores_player_id) {
-                option.textContent += ` - Player ID: ${user.tenniscores_player_id}`;
+            // Add user header (disabled option)
+            const userHeader = document.createElement('option');
+            userHeader.value = '';
+            userHeader.textContent = `${user.first_name} ${user.last_name} (${user.email})`;
+            userHeader.disabled = true;
+            userHeader.style.fontWeight = 'bold';
+            userHeader.style.backgroundColor = '#f3f4f6';
+            select.appendChild(userHeader);
+            
+            // Add player contexts for this user
+            user.player_contexts.forEach(context => {
+                const option = document.createElement('option');
+                option.value = JSON.stringify({
+                    user_email: user.email,
+                    tenniscores_player_id: context.tenniscores_player_id
+                });
+                option.textContent = `  └── ${context.display_name}`;
+                option.style.paddingLeft = '20px';
+                select.appendChild(option);
+            });
+            
+            // Add separator
+            if (users.indexOf(user) < users.length - 1) {
+                const separator = document.createElement('option');
+                separator.value = '';
+                separator.textContent = '────────────────────────';
+                separator.disabled = true;
+                separator.style.color = '#9ca3af';
+                select.appendChild(separator);
             }
-            select.appendChild(option);
         });
     } catch (error) {
         console.error('Error loading users:', error);
@@ -179,13 +202,27 @@ async function loadUsersForImpersonation() {
 }
 
 async function startImpersonation() {
-    const userEmail = document.getElementById('impersonation-user-select').value;
-    if (!userEmail) {
-        alert('Please select a user to impersonate');
+    const selectedValue = document.getElementById('impersonation-user-select').value;
+    if (!selectedValue) {
+        alert('Please select a user and player context to impersonate');
         return;
     }
     
-    if (!confirm(`Are you sure you want to impersonate ${userEmail}?\n\nThis will temporarily replace your session with theirs.`)) {
+    let userEmail, playerId, displayText;
+    try {
+        const selection = JSON.parse(selectedValue);
+        userEmail = selection.user_email;
+        playerId = selection.tenniscores_player_id;
+        
+        // Get display text from the selected option
+        const select = document.getElementById('impersonation-user-select');
+        displayText = select.options[select.selectedIndex].textContent.trim();
+    } catch (error) {
+        alert('Invalid selection. Please choose a player context.');
+        return;
+    }
+    
+    if (!confirm(`Are you sure you want to impersonate:\n${userEmail}\nAs player: ${displayText}\n\nThis will temporarily replace your session with theirs.`)) {
         return;
     }
     
@@ -193,14 +230,17 @@ async function startImpersonation() {
         const response = await fetch('/api/admin/start-impersonation', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_email: userEmail })
+            body: JSON.stringify({ 
+                user_email: userEmail,
+                tenniscores_player_id: playerId
+            })
         });
         
         const result = await response.json();
         
         if (result.success) {
             // Show success message and refresh page to update session
-            alert(`Successfully started impersonating ${userEmail}.\n\nPage will refresh to show their view.`);
+            alert(`Successfully started impersonating ${userEmail} in context: ${displayText}\n\nPage will refresh to show their view.`);
             window.location.reload();
         } else {
             alert(`Failed to start impersonation: ${result.error}`);
