@@ -919,7 +919,6 @@ def fix_team_assignments_for_existing_users() -> Dict[str, Any]:
             .filter(
                 Player.team_id.is_(None),
                 Player.is_active == True,
-                UserPlayerAssociation.is_primary == True,
             )
             .all()
         )

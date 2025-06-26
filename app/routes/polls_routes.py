@@ -30,7 +30,7 @@ def get_user_team_id(user):
             SELECT p.team_id
             FROM players p
             JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
-            WHERE upa.user_id = %s AND upa.is_primary = TRUE AND p.is_active = TRUE AND p.team_id IS NOT NULL
+            WHERE upa.user_id = %s AND p.is_active = TRUE AND p.team_id IS NOT NULL
             LIMIT 1
         """
         result = execute_query_one(primary_team_query, [user_id])
