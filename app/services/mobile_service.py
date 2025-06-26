@@ -1005,7 +1005,21 @@ def get_player_analysis(user):
                 if player_record:
                     return f"{player_record['first_name']} {player_record['last_name']}"
                 else:
-                    # Fallback: return truncated player ID if no name found
+                    # FIXED: For substitute players from other leagues/teams
+                    # Try to find the player across ALL leagues if not found in current league
+                    if league_id_int:  # Only do cross-league search if we were filtering by league initially
+                        cross_league_query = """
+                            SELECT first_name, last_name FROM players 
+                            WHERE tenniscores_player_id = %s
+                            ORDER BY league_id LIMIT 1
+                        """
+                        cross_league_record = execute_query_one(cross_league_query, [player_id])
+                        if cross_league_record:
+                            partner_name = f"{cross_league_record['first_name']} {cross_league_record['last_name']}"
+                            print(f"[DEBUG] Found substitute player from different league: {partner_name} (ID: {player_id})")
+                            return partner_name
+                    
+                    # Fallback: return truncated player ID if no name found anywhere
                     return f"Player {player_id[:8]}..."
             except Exception as e:
                 print(f"[DEBUG] Error getting player name for {player_id}: {e}")

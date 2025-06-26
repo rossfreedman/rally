@@ -16,6 +16,7 @@ from app.services.auth_service_refactored import (
     get_clubs_list,
     register_user,
 )
+from app.services.association_discovery_service import AssociationDiscoveryService
 
 # Create Blueprint
 auth_bp = Blueprint("auth", __name__)
@@ -96,6 +97,28 @@ def handle_register():
 
         logger.info(f"Registration: Session created for user {email}")
 
+        # 🔍 ENHANCEMENT: Run association discovery after registration to find additional league connections
+        try:
+            user_id = result["user"]["id"]
+            discovery_result = AssociationDiscoveryService.discover_missing_associations(user_id, email)
+            
+            if discovery_result.get("success") and discovery_result.get("associations_created", 0) > 0:
+                logger.info(f"🎯 Registration discovery: Found {discovery_result['associations_created']} additional associations for {email}")
+                
+                # Update session with any new associations found
+                try:
+                    # Rebuild session data to include new associations
+                    updated_session_data = create_session_data(result["user"])
+                    session["user"] = updated_session_data
+                    logger.info(f"Registration: Updated session with new associations")
+                except Exception as session_update_error:
+                    logger.warning(f"Failed to update session with new associations: {session_update_error}")
+                    # Continue anyway - user will see new associations on next login
+            
+        except Exception as discovery_error:
+            logger.warning(f"Association discovery failed during registration for {email}: {discovery_error}")
+            # Don't fail registration if discovery fails - it's an enhancement, not critical
+
         return (
             jsonify(
                 {
@@ -174,6 +197,20 @@ def handle_login():
         except Exception as session_error:
             logger.error(f"Session creation error: {session_error}")
             return jsonify({"error": "Session creation failed"}), 500
+
+        # 🔍 ENHANCEMENT: Run association discovery on login to find missing league connections
+        try:
+            user_id = result["user"]["id"]
+            discovery_result = AssociationDiscoveryService.discover_missing_associations(user_id, email)
+            
+            if discovery_result.get("success") and discovery_result.get("associations_created", 0) > 0:
+                logger.info(f"🎯 Login discovery: Created {discovery_result['associations_created']} new associations for {email}")
+                # Note: We don't update the session here as it would require rebuilding session data
+                # The user will see the new associations on their next login or page refresh
+            
+        except Exception as discovery_error:
+            logger.warning(f"Association discovery failed during login for {email}: {discovery_error}")
+            # Don't fail login if discovery fails - it's an enhancement, not critical
 
         # Get user data for response
         user_data = result["user"]
