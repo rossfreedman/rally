@@ -41,14 +41,19 @@
         /* Smooth hover effects for navigation links */
         .nav-link {
             transition: all 0.2s ease;
-            border-radius: 8px;
-            padding: 8px 12px;
-            margin: -8px -12px;
+            border-radius: 6px;
+            padding: 6px 8px;
+            margin: -6px -8px;
+            display: block;
+            min-height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         
         .nav-link:hover {
             background-color: rgba(0, 0, 0, 0.04);
-            transform: translateX(4px);
+            transform: translateX(2px);
         }
         
         /* Section headers with subtle styling */
@@ -56,11 +61,11 @@
             letter-spacing: -0.02em;
         }
         
-        /* Responsive adjustments */
+        /* Responsive adjustments - Keep 2 columns but optimize spacing */
         @media (max-width: 768px) {
             #navDrawer .grid-cols-2 {
-                grid-template-columns: 1fr;
-                gap: 2rem;
+                grid-template-columns: 1fr 1fr;
+                gap: 1rem;
             }
             
             #navDrawer .max-w-5xl {
@@ -68,8 +73,13 @@
             }
             
             #navDrawer .px-6 {
-                padding-left: 1.5rem;
-                padding-right: 1.5rem;
+                padding-left: 1rem;
+                padding-right: 1rem;
+            }
+            
+            #navDrawer .py-8 {
+                padding-top: 1rem;
+                padding-bottom: 1rem;
             }
         }
     </style>
@@ -130,60 +140,60 @@
             <!-- Navigation Content -->
             <div class="flex-1 overflow-y-auto">
                 <div class="px-6 py-8">
-                    <div class="grid grid-cols-2 gap-8 max-w-5xl mx-auto">
+                    <div class="grid grid-cols-2 gap-4 max-w-5xl mx-auto">
                         <!-- Left Column -->
-                        <div class="space-y-8">
+                        <div class="space-y-4">
                             <!-- Act Section -->
                             <div>
-                                <h2 class="text-2xl font-semibold mb-4 text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">Act</h2>
-                                <ul class="space-y-3">
-                                    <li><a href="/mobile/availability" class="nav-link block text-lg text-gray-600 hover:text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-weight: 600;">View Schedule</a></li>
-                                    <li><a href="/mobile/availability-calendar" class="nav-link block text-lg text-gray-600 hover:text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-weight: 600;">Update Availability</a></li>
-                                    <li><a href="/mobile/track-byes-courts" class="nav-link block text-lg text-gray-600 hover:text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-weight: 600;">Track Assignments</a></li>
-                                    <li><a href="/mobile/polls" class="nav-link block text-lg text-gray-600 hover:text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-weight: 600;">Respond to Polls</a></li>
-                                    <li><a href="/mobile/reserve-court" class="nav-link block text-lg text-gray-600 hover:text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-weight: 600;">Reserve a Court</a></li>
+                                <h2 class="text-lg font-semibold mb-2 text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">Act</h2>
+                                <ul class="space-y-1">
+                                    <li><a href="/mobile/availability" class="nav-link block text-sm text-gray-600 hover:text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-weight: 500;">View Schedule</a></li>
+                                    <li><a href="/mobile/availability-calendar" class="nav-link block text-sm text-gray-600 hover:text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-weight: 500;">Update Availability</a></li>
+                                    <li><a href="/mobile/track-byes-courts" class="nav-link block text-sm text-gray-600 hover:text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-weight: 500;">Track Assignments</a></li>
+                                    <li><a href="/mobile/polls" class="nav-link block text-sm text-gray-600 hover:text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-weight: 500;">Respond to Polls</a></li>
+                                    <li><a href="/mobile/reserve-court" class="nav-link block text-sm text-gray-600 hover:text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-weight: 500;">Reserve a Court</a></li>
                                 </ul>
                             </div>
                             
                             <!-- Connect Section -->
                             <div>
-                                <h2 class="text-2xl font-semibold mb-4 text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">Connect</h2>
-                                <ul class="space-y-3">
-                                    <li><a href="/mobile/find-people-to-play" class="nav-link block text-lg text-gray-600 hover:text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-weight: 600;">Search Players</a></li>
-                                    <li><a href="/mobile/pickup-games" class="nav-link block text-lg text-gray-600 hover:text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-weight: 600;">View Pickup Games</a></li>
+                                <h2 class="text-lg font-semibold mb-2 text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">Connect</h2>
+                                <ul class="space-y-1">
+                                    <li><a href="/mobile/find-people-to-play" class="nav-link block text-sm text-gray-600 hover:text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-weight: 500;">Search Players</a></li>
+                                    <li><a href="/mobile/pickup-games" class="nav-link block text-sm text-gray-600 hover:text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-weight: 500;">View Pickup Games</a></li>
                                 </ul>
                             </div>
                             
                             <!-- Analyze Section -->
                             <div>
-                                <h2 class="text-2xl font-semibold mb-4 text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">Analyze</h2>
-                                <ul class="space-y-3">
-                                    <li><a href="/mobile/analyze-me" class="nav-link block text-lg text-gray-600 hover:text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-weight: 600;">Me</a></li>
-                                    <li><a href="/mobile/myteam" class="nav-link block text-lg text-gray-600 hover:text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-weight: 600;">My Team</a></li>
-                                    <li><a href="/mobile/myseries" class="nav-link block text-lg text-gray-600 hover:text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-weight: 600;">My Series</a></li>
-                                    <li><a href="/mobile/my-club" class="nav-link block text-lg text-gray-600 hover:text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-weight: 600;">My Club</a></li>
+                                <h2 class="text-lg font-semibold mb-2 text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">Analyze</h2>
+                                <ul class="space-y-1">
+                                    <li><a href="/mobile/analyze-me" class="nav-link block text-sm text-gray-600 hover:text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-weight: 500;">Me</a></li>
+                                    <li><a href="/mobile/myteam" class="nav-link block text-sm text-gray-600 hover:text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-weight: 500;">My Team</a></li>
+                                    <li><a href="/mobile/myseries" class="nav-link block text-sm text-gray-600 hover:text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-weight: 500;">My Series</a></li>
+                                    <li><a href="/mobile/my-club" class="nav-link block text-sm text-gray-600 hover:text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-weight: 500;">My Club</a></li>
                                 </ul>
                             </div>
                         </div>
                         
                         <!-- Right Column -->
-                        <div class="space-y-8">
+                        <div class="space-y-4">
                             <!-- Prepare Section -->
                             <div>
-                                <h2 class="text-2xl font-semibold mb-4 text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">Prepare</h2>
-                                <ul class="space-y-3">
-                                    <li><a href="/mobile/player-search" class="nav-link block text-lg text-gray-600 hover:text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-weight: 600;">Scout Competition</a></li>
-                                    <li><a href="/mobile/teams-players" class="nav-link block text-lg text-gray-600 hover:text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-weight: 600;">Research Opponent Teams</a></li>
-                                    <li><a href="/mobile/matchup-simulator" class="nav-link block text-lg text-gray-600 hover:text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-weight: 600;">Matchup Simulator</a></li>
+                                <h2 class="text-lg font-semibold mb-2 text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">Prepare</h2>
+                                <ul class="space-y-1">
+                                    <li><a href="/mobile/player-search" class="nav-link block text-sm text-gray-600 hover:text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-weight: 500;">Scout Competition</a></li>
+                                    <li><a href="/mobile/teams-players" class="nav-link block text-sm text-gray-600 hover:text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-weight: 500;">Research Opponent Teams</a></li>
+                                    <li><a href="/mobile/matchup-simulator" class="nav-link block text-sm text-gray-600 hover:text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-weight: 500;">Matchup Simulator</a></li>
                                 </ul>
                             </div>
                             
                             <!-- Improve Section -->
                             <div>
-                                <h2 class="text-2xl font-semibold mb-4 text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">Improve</h2>
-                                <ul class="space-y-3">
-                                    <li><a href="/mobile/improve" class="nav-link block text-lg text-gray-600 hover:text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-weight: 600;">Improve My Game</a></li>
-                                    <li><a href="/mobile/schedule-lesson" class="nav-link block text-lg text-gray-600 hover:text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-weight: 600;">Schedule Lesson with Pro</a></li>
+                                <h2 class="text-lg font-semibold mb-2 text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">Improve</h2>
+                                <ul class="space-y-1">
+                                    <li><a href="/mobile/improve" class="nav-link block text-sm text-gray-600 hover:text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-weight: 500;">Improve My Game</a></li>
+                                    <li><a href="/mobile/schedule-lesson" class="nav-link block text-sm text-gray-600 hover:text-gray-900 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; font-weight: 500;">Schedule Lesson with Pro</a></li>
                                 </ul>
                             </div>
                         </div>
