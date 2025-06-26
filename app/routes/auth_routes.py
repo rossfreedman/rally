@@ -166,35 +166,21 @@ def handle_login():
             logger.warning(f"Authentication failed: {result['error']}")
             return jsonify({"error": result["error"]}), 401
 
-        # Set session data
+        # Set session data directly from authenticate_user result (don't call create_session_data again)
         try:
-            session["user"] = create_session_data(result["user"])
+            session["user"] = result["user"]  # Use the session data directly from authenticate_user
             session.permanent = True
-            logger.info(f"Session created for user: {email}")
+            logger.info(f"Session created for user: {email} with player_id: {result['user'].get('tenniscores_player_id', 'None')}")
         except Exception as session_error:
             logger.error(f"Session creation error: {session_error}")
             return jsonify({"error": "Session creation failed"}), 500
 
-        # Extract club and series from primary player or session data
+        # Get user data for response
         user_data = result["user"]
-        primary_player = user_data.get("primary_player")
-        session_user = session.get("user", {})
-
-        # Get club and series from primary player if available, otherwise from session
-        if primary_player:
-            club = (
-                primary_player.get("club", {}).get("name")
-                if isinstance(primary_player.get("club"), dict)
-                else primary_player.get("club", "")
-            )
-            series = (
-                primary_player.get("series", {}).get("name")
-                if isinstance(primary_player.get("series"), dict)
-                else primary_player.get("series", "")
-            )
-        else:
-            club = session_user.get("club", "")
-            series = session_user.get("series", "")
+        
+        # Extract club and series for response
+        club = user_data.get("club", "")
+        series = user_data.get("series", "")
 
         # Check for redirect_after_login in session
         redirect_url = session.pop("redirect_after_login", "/mobile")
@@ -210,6 +196,7 @@ def handle_login():
                     "last_name": user_data["last_name"],
                     "club": club,
                     "series": series,
+                    "tenniscores_player_id": user_data.get("tenniscores_player_id", ""),
                 },
             }
         )
@@ -296,3 +283,15 @@ def get_clubs():
     except Exception as e:
         logger.error(f"Error getting clubs: {str(e)}")
         return jsonify({"error": str(e)}), 500
+
+
+@auth_bp.route("/terms")
+def terms_of_use():
+    """Serve the Terms of Use page"""
+    return render_template("legal/terms_of_use.html")
+
+
+@auth_bp.route("/privacy")
+def privacy_policy():
+    """Serve the Privacy Policy page"""
+    return render_template("legal/privacy_policy.html")
