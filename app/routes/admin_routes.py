@@ -73,38 +73,13 @@ active_processes = {"scraping": None, "importing": None}
 
 
 def admin_required(f):
-    """Decorator to check if user is an admin"""
+    """Decorator to require admin privileges"""
 
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        print(f"=== ADMIN_REQUIRED CHECK ===")
-        print(f"User in session: {'user' in session}")
-        if "user" in session:
-            print(f"User email: {session['user']['email']}")
-
-        if "user" not in session:
-            print("No user in session, redirecting to login")
-            flash("Please log in first.", "error")
-            return redirect(url_for("auth.login"))
-
-        try:
-            print(f"Checking admin status for: {session['user']['email']}")
-            if not is_user_admin(session["user"]["email"]):
-                print(
-                    f"User {session['user']['email']} is not admin, redirecting to index"
-                )
-                flash("You do not have permission to access this page.", "error")
-                return redirect(url_for("serve_index"))
-
-            print("Admin check passed, proceeding to admin function")
-            return f(*args, **kwargs)
-        except Exception as e:
-            print(f"Error checking admin status: {str(e)}")
-            import traceback
-
-            print(f"Full traceback: {traceback.format_exc()}")
-            flash("An error occurred while checking permissions.", "error")
-            return redirect(url_for("serve_index"))
+        if not session.get("user") or not session["user"].get("is_admin"):
+            return jsonify({"error": "Admin access required"}), 403
+        return f(*args, **kwargs)
 
     return decorated_function
 
@@ -1578,21 +1553,37 @@ def fix_team_assignments():
 
 
 # ==========================================
-# USER IMPERSONATION ENDPOINTS
+# ENHANCED USER IMPERSONATION ENDPOINTS
 # ==========================================
+
+@admin_bp.route("/api/admin/users-for-impersonation")
+@login_required
+@admin_required
+def get_users_for_impersonation():
+    """Get all users with their player contexts for impersonation dropdown"""
+    try:
+        from app.services.admin_service import get_all_users_with_player_contexts
+        users = get_all_users_with_player_contexts()
+        return jsonify(users)
+    except Exception as e:
+        print(f"Error getting users for impersonation: {str(e)}")
+        return jsonify({"error": str(e)}), 500
 
 
 @admin_bp.route("/api/admin/start-impersonation", methods=["POST"])
 @login_required
 @admin_required
 def start_impersonation():
-    """Start impersonating another user (admin only)"""
+    """Start impersonating another user in a specific player context (admin only)"""
     try:
         data = request.get_json()
         target_email = data.get("user_email")
+        target_player_id = data.get("tenniscores_player_id")
         
         if not target_email:
             return jsonify({"error": "User email is required"}), 400
+        if not target_player_id:
+            return jsonify({"error": "Player ID is required"}), 400
         
         # Verify the target user exists
         target_user = execute_query_one(
@@ -1605,6 +1596,25 @@ def start_impersonation():
         # Prevent admins from impersonating other admins
         if target_user.get("is_admin"):
             return jsonify({"error": "Cannot impersonate other admin users"}), 403
+        
+        # Verify the user has access to this player ID
+        player_association = execute_query_one(
+            """
+            SELECT upa.*, p.first_name as player_first_name, p.last_name as player_last_name,
+                   c.name as club_name, s.name as series_name, l.league_name, l.league_id
+            FROM user_player_associations upa
+            JOIN users u ON upa.user_id = u.id
+            JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+            JOIN clubs c ON p.club_id = c.id
+            JOIN series s ON p.series_id = s.id
+            JOIN leagues l ON p.league_id = l.id
+            WHERE u.email = %s AND upa.tenniscores_player_id = %s
+            """, 
+            [target_email, target_player_id]
+        )
+        
+        if not player_association:
+            return jsonify({"error": "User does not have access to this player ID"}), 403
         
         # Backup current admin session before impersonation
         admin_session_backup = dict(session["user"])
@@ -1621,14 +1631,14 @@ def start_impersonation():
             if not user_record:
                 return jsonify({"error": "Target user not found in database"}), 404
             
-            # Get player associations
+            # Get all player associations for the user
             associations = (
                 db_session.query(UserPlayerAssociation)
                 .filter(UserPlayerAssociation.user_id == user_record.id)
                 .all()
             )
             
-            # Build user data for session creation
+            # Build user data for session creation, with specific player as primary
             players_data = []
             primary_player = None
             
@@ -1646,11 +1656,11 @@ def start_impersonation():
                     }
                     players_data.append(player_data)
                     
-                    # Since is_primary field was removed, just use first valid player as primary
-                    if not primary_player:
+                    # Set the target player as primary
+                    if player.tenniscores_player_id == target_player_id:
                         primary_player = player_data
             
-            # If no primary player was set, use first available
+            # If no primary player was set, use first available (fallback)
             if not primary_player and players_data:
                 primary_player = players_data[0]
             
@@ -1677,32 +1687,40 @@ def start_impersonation():
         session["impersonation_active"] = True
         session["original_admin_session"] = admin_session_backup
         session["impersonated_user_email"] = target_email
+        session["impersonated_player_id"] = target_player_id
         
         # Replace current session with target user's session
         session["user"] = target_session_data
         session.modified = True
         
-        # Log the impersonation start
+        # Log the impersonation start with player context
         log_admin_action(
             admin_session_backup["email"],
             "start_impersonation",
-            f"Started impersonating user: {target_email}"
+            f"Started impersonating user: {target_email} as player: {target_player_id} ({player_association['club_name']}, {player_association['series_name']})"
         )
         
         log_user_activity(
             admin_session_backup["email"],
             "admin_action",
             action="start_impersonation",
-            details=f"Started impersonating {target_email}",
+            details=f"Started impersonating {target_email} as {target_player_id}",
         )
         
         return jsonify({
             "success": True,
-            "message": f"Successfully started impersonating {target_email}",
+            "message": f"Successfully started impersonating {target_email} as {player_association['player_first_name']} {player_association['player_last_name']}",
             "impersonated_user": {
                 "email": target_email,
                 "first_name": target_user_data["first_name"],
-                "last_name": target_user_data["last_name"]
+                "last_name": target_user_data["last_name"],
+                "player_context": {
+                    "tenniscores_player_id": target_player_id,
+                    "player_name": f"{player_association['player_first_name']} {player_association['player_last_name']}",
+                    "club_name": player_association['club_name'],
+                    "series_name": player_association['series_name'],
+                    "league_name": player_association['league_name']
+                }
             }
         })
         
@@ -1724,6 +1742,7 @@ def stop_impersonation():
         # Get original admin session
         original_admin_session = session.get("original_admin_session")
         impersonated_email = session.get("impersonated_user_email")
+        impersonated_player_id = session.get("impersonated_player_id")
         
         if not original_admin_session:
             return jsonify({"error": "Original admin session not found"}), 500
@@ -1739,20 +1758,21 @@ def stop_impersonation():
         session.pop("impersonation_active", None)
         session.pop("original_admin_session", None)
         session.pop("impersonated_user_email", None)
+        session.pop("impersonated_player_id", None)
         session.modified = True
         
         # Log the impersonation stop
         log_admin_action(
             original_admin_session["email"],
             "stop_impersonation",
-            f"Stopped impersonating user: {impersonated_email}"
+            f"Stopped impersonating user: {impersonated_email} (player: {impersonated_player_id})"
         )
         
         log_user_activity(
             original_admin_session["email"],
             "admin_action",
             action="stop_impersonation",
-            details=f"Stopped impersonating {impersonated_email}",
+            details=f"Stopped impersonating {impersonated_email} ({impersonated_player_id})",
         )
         
         return jsonify({
@@ -1777,6 +1797,7 @@ def get_impersonation_status():
             # Get impersonated user info
             current_user = session.get("user", {})
             original_admin = session.get("original_admin_session", {})
+            impersonated_player_id = session.get("impersonated_player_id")
             
             return jsonify({
                 "is_impersonating": True,
@@ -1784,7 +1805,8 @@ def get_impersonation_status():
                     "email": current_user.get("email"),
                     "first_name": current_user.get("first_name"),
                     "last_name": current_user.get("last_name"),
-                    "tenniscores_player_id": current_user.get("tenniscores_player_id")
+                    "tenniscores_player_id": impersonated_player_id,
+                    "player_context": current_user.get("primary_player", {})
                 },
                 "original_admin": {
                     "email": original_admin.get("email"),
