@@ -328,7 +328,7 @@ def register_user(email: str, password: str, first_name: str, last_name: str,
             return {"success": False, "error": "User with this email already exists"}
         
         # Create new user
-        password_hash = generate_password_hash(password)
+        password_hash = hash_password(password)
         new_user = User(
             email=email,
             password_hash=password_hash,

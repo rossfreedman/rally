@@ -470,76 +470,38 @@
 
         // Load series filtered by league
         function loadSeriesByLeague(leagueId = null) {
-            const url = leagueId ? `/api/get-series-by-league?league_id=${leagueId}` : '/api/get-series-by-league';
-            
-            console.log('Loading series from:', url);
+            // Use the new API endpoint that returns user-facing series names from database mappings
+            const url = leagueId ? `/api/get-user-facing-series-by-league?league_id=${leagueId}` : '/api/get-user-facing-series-by-league';
             
             fetch(url).then(r => r.json()).then(data => {
-                console.log('Series data received:', data);
                 const seriesSelect = document.getElementById('series');
-                
-                if (!seriesSelect) {
-                    console.error('Series select element not found');
-                    return;
-                }
-                
                 seriesSelect.innerHTML = '<option value="">Select your series</option>';
                 
                 if (data.series && Array.isArray(data.series)) {
-                    console.log(`Adding ${data.series.length} series options`);
-                    
-                    // Remove the arbitrary transformation and just use the actual series names
-                    // Create a Set to track unique series names and prevent duplicates
-                    const uniqueSeries = new Set();
-                    
+                    // Series names are already properly formatted by the database mapping system
+                    // No need for client-side transformations - just use them directly
                     data.series.forEach(series => {
-                        // Use the series name exactly as it comes from the database
-                        if (!uniqueSeries.has(series)) {
-                            uniqueSeries.add(series);
-                            
+                        const option = document.createElement('option');
+                        option.value = series;  // Use the user-facing name as the value
+                        option.textContent = series;  // Display the user-facing name
+                        seriesSelect.appendChild(option);
+                    });
+                }
+            }).catch(error => {
+                console.error('Error loading series:', error);
+                // Fallback to original API if new one fails
+                const fallbackUrl = leagueId ? `/api/get-series-by-league?league_id=${leagueId}` : '/api/get-series-by-league';
+                fetch(fallbackUrl).then(r => r.json()).then(data => {
+                    const seriesSelect = document.getElementById('series');
+                    seriesSelect.innerHTML = '<option value="">Select your series</option>';
+                    if (data.series && Array.isArray(data.series)) {
+                        data.series.forEach(series => {
                             const option = document.createElement('option');
                             option.value = series;
                             option.textContent = series;
                             seriesSelect.appendChild(option);
-                        }
-                    });
-                } else {
-                    console.warn('No series data found or invalid format');
-                }
-            }).catch(error => {
-                console.error('Error loading series:', error);
-                // Fallback to all series
-                fetch('/api/get-series').then(r => r.json()).then(data => {
-                    console.log('Fallback series data received:', data);
-                    const seriesSelect = document.getElementById('series');
-                    if (!seriesSelect) {
-                        console.error('Series select element not found in fallback');
-                        return;
-                    }
-                    seriesSelect.innerHTML = '<option value="">Select your series</option>';
-                    if (data.all_series && Array.isArray(data.all_series)) {
-                        console.log(`Adding ${data.all_series.length} fallback series options`);
-                        
-                        // Remove the arbitrary transformation and just use the actual series names
-                        // Create a Set to track unique series names and prevent duplicates
-                        const uniqueSeries = new Set();
-                        
-                        data.all_series.forEach(series => {
-                            // Use the series name exactly as it comes from the database
-                            if (!uniqueSeries.has(series)) {
-                                uniqueSeries.add(series);
-                                
-                                const option = document.createElement('option');
-                                option.value = series;
-                                option.textContent = series;
-                                seriesSelect.appendChild(option);
-                            }
                         });
-                    } else {
-                        console.warn('No fallback series data found or invalid format');
                     }
-                }).catch(fallbackError => {
-                    console.error('Fallback series loading failed:', fallbackError);
                 });
             });
         }

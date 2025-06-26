@@ -1853,6 +1853,94 @@ def get_series_by_league():
         return jsonify({"error": str(e)}), 500
 
 
+@api_bp.route("/api/get-user-facing-series-by-league")
+def get_user_facing_series_by_league():
+    """Get user-facing series names using database mappings instead of hard-coded transformations"""
+    try:
+        league_id = request.args.get("league_id")
+
+        if not league_id:
+            # Return all series if no league specified
+            query = """
+                SELECT DISTINCT s.name as series_name
+                FROM series s
+                ORDER BY s.name
+            """
+            series_data = execute_query(query)
+            
+            # For leagues without mappings, return database names as-is
+            series_names = [item["series_name"] for item in series_data]
+            
+        else:
+            # First, get all actual series in this league from the database
+            series_query = """
+                SELECT DISTINCT s.name as database_series_name
+                FROM series s
+                JOIN series_leagues sl ON s.id = sl.series_id
+                JOIN leagues l ON sl.league_id = l.id
+                WHERE l.league_id = %s
+                ORDER BY s.name
+            """
+            series_data = execute_query(series_query, (league_id,))
+            
+            # Get user-facing names from series_name_mappings table
+            # This maps database names back to user-facing names
+            user_facing_names = []
+            
+            for series_item in series_data:
+                database_name = series_item["database_series_name"]
+                
+                # Check if there's a reverse mapping (database_series_name -> user_series_name)
+                reverse_mapping_query = """
+                    SELECT user_series_name
+                    FROM series_name_mappings
+                    WHERE league_id = %s AND database_series_name = %s
+                    ORDER BY user_series_name
+                    LIMIT 1
+                """
+                
+                mapping_result = execute_query_one(reverse_mapping_query, (league_id, database_name))
+                
+                if mapping_result:
+                    # Use the user-facing name from the mapping
+                    user_facing_name = mapping_result["user_series_name"]
+                    user_facing_names.append(user_facing_name)
+                else:
+                    # No mapping found, use database name as-is
+                    user_facing_names.append(database_name)
+            
+            series_names = user_facing_names
+
+        # Sort series properly (numbers before letters)
+        def get_sort_key(series_name):
+            import re
+            
+            # Extract number and suffix for proper sorting
+            match = re.match(r'^(?:Series\s+)?(\d+)([a-zA-Z]*)$', series_name)
+            if match:
+                number = int(match.group(1))
+                suffix = match.group(2) or ''
+                return (0, number, suffix)  # Numbers first
+            
+            # Handle letter-only series (Series A, Series B, etc.)
+            match = re.match(r'^(?:Series\s+)?([A-Z]+)$', series_name)
+            if match:
+                letter = match.group(1)
+                return (1, 0, letter)  # Letters after numbers
+            
+            # Everything else goes last
+            return (2, 0, series_name)
+
+        series_names.sort(key=get_sort_key)
+        
+        print(f"[API] Returning user-facing series for {league_id}: {series_names}")
+        return jsonify({"series": series_names})
+
+    except Exception as e:
+        print(f"Error getting user-facing series by league: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
 @api_bp.route("/api/teams")
 @login_required
 def get_teams():
