@@ -195,6 +195,9 @@ def serve_admin_user_activity():
 @admin_required
 def serve_admin_dashboard():
     """Serve the admin activity monitoring dashboard"""
+    # Check if currently impersonating
+    is_impersonating = session.get("impersonation_active", False)
+    
     # Log dashboard access using comprehensive logging
     log_page_visit(
         user_email=session["user"]["email"],
@@ -204,6 +207,7 @@ def serve_admin_dashboard():
         details=f"Admin accessed activity monitoring dashboard",
         ip_address=request.remote_addr,
         user_agent=request.headers.get("User-Agent"),
+        is_impersonating=is_impersonating,
     )
 
     return render_template(
@@ -1406,6 +1410,8 @@ def get_dashboard_activities():
         action_type = request.args.get("action_type")
         team_id = request.args.get("team_id")
         player_id = request.args.get("player_id")
+        exclude_impersonated = request.args.get("exclude_impersonated", "false").lower() == "true"
+        exclude_admin = request.args.get("exclude_admin", "true").lower() == "true"
 
         # Build filters
         filters = {}
@@ -1419,6 +1425,9 @@ def get_dashboard_activities():
             filters["team_id"] = int(team_id)
         if player_id:
             filters["player_id"] = int(player_id)
+        
+        filters["exclude_impersonated"] = exclude_impersonated
+        filters["exclude_admin"] = exclude_admin
 
         activities = get_recent_activities(limit=limit, filters=filters)
 
@@ -1473,7 +1482,8 @@ def get_dashboard_top_players():
 def get_dashboard_stats():
     """Get overall activity statistics for dashboard"""
     try:
-        stats = get_activity_stats()
+        exclude_impersonated = request.args.get("exclude_impersonated", "false").lower() == "true"
+        stats = get_activity_stats(exclude_impersonated=exclude_impersonated)
 
         return jsonify({"status": "success", "stats": stats})
 
