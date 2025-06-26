@@ -1,0 +1,48 @@
+{
+  "timestamp": "2025-06-26T09:48:00.412379",
+  "duration_seconds": 64.84620594978333,
+  "target_branch": "production",
+  "results": {
+    "deployment_status": {
+      "status": "out_of_sync",
+      "message": "Changes detected: 2 uncommitted files, 1 unpushed commits"
+    },
+    "git_changes": {
+      "has_changes": true,
+      "uncommitted_files": [
+        {
+          "file": "pp/services/api_service.py",
+          "status": "M ",
+          "description": "Modified (staged)"
+        },
+        {
+          "file": "app/services/mobile_service.py",
+          "status": " M",
+          "description": "Modified (unstaged)"
+        }
+      ],
+      "unpushed_commits": [
+        "bd9b0b9 Fix substitute player partner display with comprehensive 3-layer defense system"
+      ],
+      "current_branch": "main",
+      "summary": "2 uncommitted files, 1 unpushed commits"
+    },
+    "git_deployment": {
+      "status": "success",
+      "branch": "main",
+      "message": "Deployed to main",
+      "files_deployed": 2,
+      "commits_pushed": 2
+    },
+    "database_sync": {
+      "status": "differences",
+      "message": "Databases have schema or data differences"
+    },
+    "backup": {
+      "status": "success",
+      "message": "Code and database backup created"
+    },
+    "overall_success": true
+  },
+  "success": true
+}
