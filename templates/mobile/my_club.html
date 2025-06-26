@@ -516,5 +516,41 @@
       firstIcon.classList.add('rotate-180');
     }
   });
+
+  document.addEventListener('DOMContentLoaded', function() {
+    // Load club data
+    loadClubData();
+    
+    // 🔄 NEW: Auto-refresh when page becomes visible (handles back navigation after league switching)
+    document.addEventListener('visibilitychange', function() {
+        if (!document.hidden) {
+            console.log('🔄 My Club page became visible - refreshing for current league context');
+            setTimeout(() => {
+                loadClubData();
+            }, 500); // Small delay to ensure any session updates are complete
+        }
+    });
+    
+    // 🔄 NEW: Also refresh when page gets focus (additional safety net)
+    window.addEventListener('focus', function() {
+        console.log('🔄 My Club page got focus - refreshing club data');
+        setTimeout(() => {
+            loadClubData();
+        }, 500);
+    });
+  });
+
+  async function loadClubData() {
+    try {
+        const response = await fetch('/api/club-data');
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+    } catch (error) {
+        console.error('Error loading club data:', error);
+    }
+  }
 </script>
 {% endblock %} 

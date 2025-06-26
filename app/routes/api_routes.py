@@ -2047,30 +2047,73 @@ def debug_club_data():
 @api_bp.route("/api/pti-analysis/players")
 @login_required
 def get_pti_analysis_players():
-    """Get all players with PTI data for analysis"""
+    """Get all players with PTI data for analysis - FIXED: Now league context aware"""
     try:
-        query = """
-            SELECT 
-                CONCAT(p.first_name, ' ', p.last_name) as name,
-                p.first_name as "First Name",
-                p.last_name as "Last Name", 
-                p.pti as "PTI",
-                p.wins,
-                p.losses,
-                p.win_percentage,
-                l.league_name as league,
-                c.name as club,
-                s.name as series
-            FROM players p
-            LEFT JOIN leagues l ON p.league_id = l.id
-            LEFT JOIN clubs c ON p.club_id = c.id  
-            LEFT JOIN series s ON p.series_id = s.id
-            WHERE p.is_active = true
-            AND p.pti IS NOT NULL
-            ORDER BY p.first_name, p.last_name
-        """
-
-        players_data = execute_query(query)
+        # Get user's current league context
+        user = session["user"]
+        user_league_id = user.get("league_id", "")
+        
+        # Convert string league_id to integer foreign key if needed
+        league_id_int = None
+        if isinstance(user_league_id, str) and user_league_id != "":
+            try:
+                league_record = execute_query_one(
+                    "SELECT id FROM leagues WHERE league_id = %s", [user_league_id]
+                )
+                if league_record:
+                    league_id_int = league_record["id"]
+            except Exception as e:
+                pass
+        elif isinstance(user_league_id, int):
+            league_id_int = user_league_id
+        
+        # Build query with league filtering
+        if league_id_int:
+            query = """
+                SELECT 
+                    CONCAT(p.first_name, ' ', p.last_name) as name,
+                    p.first_name as "First Name",
+                    p.last_name as "Last Name", 
+                    p.pti as "PTI",
+                    p.wins,
+                    p.losses,
+                    p.win_percentage,
+                    l.league_name as league,
+                    c.name as club,
+                    s.name as series
+                FROM players p
+                LEFT JOIN leagues l ON p.league_id = l.id
+                LEFT JOIN clubs c ON p.club_id = c.id  
+                LEFT JOIN series s ON p.series_id = s.id
+                WHERE p.is_active = true
+                AND p.pti IS NOT NULL
+                AND p.league_id = %s
+                ORDER BY p.first_name, p.last_name
+            """
+            players_data = execute_query(query, [league_id_int])
+        else:
+            # Fallback: return all players if no league context
+            query = """
+                SELECT 
+                    CONCAT(p.first_name, ' ', p.last_name) as name,
+                    p.first_name as "First Name",
+                    p.last_name as "Last Name", 
+                    p.pti as "PTI",
+                    p.wins,
+                    p.losses,
+                    p.win_percentage,
+                    l.league_name as league,
+                    c.name as club,
+                    s.name as series
+                FROM players p
+                LEFT JOIN leagues l ON p.league_id = l.id
+                LEFT JOIN clubs c ON p.club_id = c.id  
+                LEFT JOIN series s ON p.series_id = s.id
+                WHERE p.is_active = true
+                AND p.pti IS NOT NULL
+                ORDER BY p.first_name, p.last_name
+            """
+            players_data = execute_query(query)
 
         return jsonify(players_data)
 
@@ -2141,9 +2184,28 @@ def get_pti_analysis_player_history():
 @api_bp.route("/api/pti-analysis/match-history")
 @login_required
 def get_pti_analysis_match_history():
-    """Get match history data for PTI analysis"""
+    """Get match history data for PTI analysis - FIXED: Now league context aware"""
     try:
-        query = """
+        # Get user's current league context
+        user = session["user"]
+        user_league_id = user.get("league_id", "")
+        
+        # Convert string league_id to integer foreign key if needed
+        league_id_int = None
+        if isinstance(user_league_id, str) and user_league_id != "":
+            try:
+                league_record = execute_query_one(
+                    "SELECT id FROM leagues WHERE league_id = %s", [user_league_id]
+                )
+                if league_record:
+                    league_id_int = league_record["id"]
+            except Exception as e:
+                pass
+        elif isinstance(user_league_id, int):
+            league_id_int = user_league_id
+        
+        # Build query with league filtering
+        base_query = """
             SELECT 
                 TO_CHAR(ms.match_date, 'DD-Mon-YY') as "Date",
                 ms.home_team as "Home Team",
@@ -2186,10 +2248,14 @@ def get_pti_analysis_match_history():
             )
             LEFT JOIN leagues l ON ms.league_id = l.id
             WHERE ms.match_date IS NOT NULL
-            ORDER BY ms.match_date DESC
         """
-
-        match_data = execute_query(query)
+        
+        if league_id_int:
+            query = base_query + " AND ms.league_id = %s ORDER BY ms.match_date DESC"
+            match_data = execute_query(query, [league_id_int])
+        else:
+            query = base_query + " ORDER BY ms.match_date DESC"
+            match_data = execute_query(query)
 
         return jsonify(match_data)
 

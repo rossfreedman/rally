@@ -17,32 +17,72 @@ polls_bp = Blueprint("polls", __name__)
 
 
 def get_user_team_id(user):
-    """Get user's team ID from their player association (integer foreign key)"""
+    """Get user's team ID from their player association for the CURRENT league context"""
     try:
         user_id = user.get("id")
         if not user_id:
             print(f"❌ No user_id provided to get_user_team_id")
             return None
 
-        # ✅ FIX: More robust team ID lookup with fallbacks
-        # Try primary association first
-        primary_team_query = """
-            SELECT p.team_id
-            FROM players p
-            JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
-            WHERE upa.user_id = %s AND p.is_active = TRUE AND p.team_id IS NOT NULL
-            LIMIT 1
-        """
-        result = execute_query_one(primary_team_query, [user_id])
-        if result and result["team_id"]:
-            print(f"✅ Found team_id via primary association: {result['team_id']}")
-            return result["team_id"]
+        # 🎯 NEW: Get current league context from session
+        current_league_context = user.get("league_context")  # This should be the integer DB ID
+        current_league_id = user.get("league_id")  # String league identifier
+        
+        print(f"[DEBUG] get_user_team_id for user {user_id}")
+        print(f"[DEBUG] Current league_context: {current_league_context}")
+        print(f"[DEBUG] Current league_id: {current_league_id}")
 
-        # ✅ FIX: Fallback to any association if no primary
-        any_team_query = """
-            SELECT p.team_id
+        # 🎯 NEW: Convert league context to proper integer if needed
+        league_db_id = None
+        if current_league_context:
+            try:
+                league_db_id = int(current_league_context)
+                print(f"[DEBUG] Using league_context as DB ID: {league_db_id}")
+            except (ValueError, TypeError):
+                print(f"[DEBUG] league_context is not a valid integer: {current_league_context}")
+        
+        # Fallback: Try to convert string league_id to integer DB ID
+        if not league_db_id and current_league_id:
+            try:
+                league_record = execute_query_one(
+                    "SELECT id FROM leagues WHERE league_id = %s", [current_league_id]
+                )
+                if league_record:
+                    league_db_id = league_record["id"]
+                    print(f"[DEBUG] Converted league_id '{current_league_id}' to DB ID: {league_db_id}")
+            except Exception as e:
+                print(f"[DEBUG] Failed to convert league_id to DB ID: {e}")
+
+        # 🎯 NEW: Query team ID filtered by current league context
+        if league_db_id:
+            # Use league-aware team lookup
+            league_aware_team_query = """
+                SELECT p.team_id, t.team_name, t.team_alias, l.league_name
+                FROM players p
+                JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
+                JOIN teams t ON p.team_id = t.id
+                JOIN leagues l ON p.league_id = l.id
+                WHERE upa.user_id = %s 
+                AND p.is_active = TRUE 
+                AND p.team_id IS NOT NULL
+                AND p.league_id = %s
+                LIMIT 1
+            """
+            result = execute_query_one(league_aware_team_query, [user_id, league_db_id])
+            if result and result["team_id"]:
+                team_display = result.get("team_alias") or result.get("team_name")
+                print(f"✅ Found team_id {result['team_id']} for current league context: {team_display}")
+                return result["team_id"]
+            else:
+                print(f"⚠️ No team found for user {user_id} in league {league_db_id}")
+
+        # 🎯 FALLBACK: If no league context or no team found, try any active team
+        print(f"[DEBUG] Using fallback - any active team for user {user_id}")
+        fallback_team_query = """
+            SELECT p.team_id, t.team_name, t.team_alias
             FROM players p
             JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
+            JOIN teams t ON p.team_id = t.id
             JOIN leagues l ON p.league_id = l.id
             WHERE upa.user_id = %s AND p.is_active = TRUE AND p.team_id IS NOT NULL
             ORDER BY 
@@ -50,49 +90,13 @@ def get_user_team_id(user):
                 p.id
             LIMIT 1
         """
-        result = execute_query_one(any_team_query, [user_id])
+        result = execute_query_one(fallback_team_query, [user_id])
         if result and result["team_id"]:
-            print(f"✅ Found team_id via any association: {result['team_id']}")
+            team_display = result.get("team_alias") or result.get("team_name")
+            print(f"✅ Found fallback team_id {result['team_id']}: {team_display}")
             return result["team_id"]
 
-        # ✅ FIX: Last resort - try to create team assignment if player exists but no team
-        try:
-            from app.services.auth_service_refactored import assign_player_to_team
-            from app.models.database_models import Player
-            from database_config import get_db_session
-            
-            db_session = get_db_session()
-            try:
-                # Find user's player without team
-                unassigned_player_query = """
-                    SELECT p.id
-                    FROM players p
-                    JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
-                    WHERE upa.user_id = %s AND p.is_active = TRUE AND p.team_id IS NULL
-                    LIMIT 1
-                """
-                unassigned = execute_query_one(unassigned_player_query, [user_id])
-                
-                if unassigned:
-                    player = db_session.query(Player).filter(Player.id == unassigned["id"]).first()
-                    if player:
-                        print(f"🔧 Attempting to assign team to unassigned player {player.id}")
-                        team_assigned = assign_player_to_team(player, db_session)
-                        if team_assigned:
-                            db_session.commit()
-                            print(f"✅ Successfully assigned team to player {player.id}")
-                            # Try the query again
-                            result = execute_query_one(any_team_query, [user_id])
-                            if result and result["team_id"]:
-                                return result["team_id"]
-                        else:
-                            db_session.rollback()
-            finally:
-                db_session.close()
-        except Exception as team_assignment_error:
-            print(f"⚠️ Team assignment attempt failed: {team_assignment_error}")
-
-        print(f"❌ Could not find team_id for user {user_id}")
+        print(f"❌ Could not find any team_id for user {user_id}")
         return None
         
     except Exception as e:
