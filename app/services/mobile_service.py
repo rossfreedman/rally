@@ -1405,12 +1405,43 @@ def get_mobile_availability_data(user):
         league_id = session_data.get("league_id")  # integer DB ID
         player_name = f"{session_data.get('first_name', '')} {session_data.get('last_name', '')}".strip()
         
+        # FALLBACK: If no team_id in session, try to get it directly from database
         if not team_id:
-            return {
-                "match_avail_pairs": [],
-                "players": [{"name": player_name}],
-                "error": "No team ID found in session"
-            }
+            print(f"[DEBUG] No team_id in session for {user_email}, attempting database fallback...")
+            
+            # Get user's player associations directly from database
+            fallback_query = """
+                SELECT p.team_id, p.tenniscores_player_id, t.team_name, 
+                       c.name as club_name, s.name as series_name, l.league_name,
+                       p.league_id, l.id as league_db_id
+                FROM user_player_associations upa
+                JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+                JOIN teams t ON p.team_id = t.id
+                JOIN clubs c ON p.club_id = c.id
+                JOIN series s ON p.series_id = s.id
+                JOIN leagues l ON p.league_id = l.id
+                JOIN users u ON upa.user_id = u.id
+                WHERE u.email = %s 
+                AND p.is_active = TRUE 
+                AND p.team_id IS NOT NULL
+                ORDER BY 
+                    CASE WHEN p.league_id = u.league_context THEN 1 ELSE 2 END,
+                    p.team_id DESC
+                LIMIT 1
+            """
+            fallback_result = execute_query_one(fallback_query, [user_email])
+            
+            if fallback_result:
+                team_id = fallback_result["team_id"]
+                league_id = fallback_result["league_db_id"]
+                print(f"[DEBUG] Fallback found team_id={team_id} for player in {fallback_result['club_name']} {fallback_result['series_name']}")
+            else:
+                # Still no team found - return empty result with helpful error
+                return {
+                    "match_avail_pairs": [],
+                    "players": [{"name": player_name}],
+                    "error": f"No active team found for {player_name}. Please check your profile settings."
+                }
         
         print(f"Getting availability data for user: {user_email}, team_id: {team_id}, league_id: {league_id}")
 

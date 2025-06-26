@@ -1686,8 +1686,7 @@ def start_impersonation():
         log_admin_action(
             admin_session_backup["email"],
             "start_impersonation",
-            f"Started impersonating user: {target_email}",
-            target_email
+            f"Started impersonating user: {target_email}"
         )
         
         log_user_activity(
@@ -1746,8 +1745,7 @@ def stop_impersonation():
         log_admin_action(
             original_admin_session["email"],
             "stop_impersonation",
-            f"Stopped impersonating user: {impersonated_email}",
-            impersonated_email
+            f"Stopped impersonating user: {impersonated_email}"
         )
         
         log_user_activity(
