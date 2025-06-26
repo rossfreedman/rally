@@ -134,11 +134,14 @@
             <div id="playersList" class="space-y-4 p-4">
                 <!-- Initial placeholder -->
                 <div class="flex flex-col items-center justify-center py-12 px-6">
-                    <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <i class="fas fa-search text-gray-400 text-2xl"></i>
+                    <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-search text-blue-500 text-2xl"></i>
                     </div>
-                    <p class="text-gray-500 text-center text-sm">
-                        Use the filters above to search for players at your club
+                    <p class="text-gray-700 text-center text-sm font-medium mb-2">
+                        Ready to find players in your league!
+                    </p>
+                    <p class="text-gray-500 text-center text-xs">
+                        Enter a name, select a series, or adjust PTI range, then click "Apply Filters"
                     </p>
                 </div>
             </div>
@@ -449,9 +452,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Load initial data (available series and PTI range)
+    // Load initial data (available series and PTI range) - no filter criteria required
     async function loadInitialData() {
-        const response = await fetch('/api/club-players');
+        const response = await fetch('/api/club-players-metadata');
         if (!response.ok) throw new Error('Failed to fetch initial data');
         
         const data = await response.json();
@@ -558,6 +561,18 @@ document.addEventListener('DOMContentLoaded', function() {
         try {
             showLoading(true);
             
+            // Validate that at least one filter criteria is provided
+            const hasNameFilter = firstNameFilter.value.trim() || lastNameFilter.value.trim();
+            const hasSeriesFilter = seriesFilter.value;
+            const ptiFiltersSection = document.getElementById('ptiFiltersSection');
+            const hasPtiFilter = ptiFiltersSection.style.display !== 'none' && 
+                                (parseFloat(ptiMinSlider.value) > ptiRange.min || parseFloat(ptiMaxSlider.value) < ptiRange.max);
+            
+            if (!hasNameFilter && !hasSeriesFilter && !hasPtiFilter) {
+                showError('Please enter at least one search criteria (name, series, or PTI range)');
+                return;
+            }
+            
             // Build query parameters
             const params = new URLSearchParams();
             
@@ -568,19 +583,25 @@ document.addEventListener('DOMContentLoaded', function() {
             // Add club filter parameter
             params.append('club_only', clubOnlyFilter.checked);
             
-            // Only add PTI filters if PTI filters section is visible
-            const ptiFiltersSection = document.getElementById('ptiFiltersSection');
+            // Only add PTI filters if PTI filters section is visible and values are changed from defaults
             if (ptiFiltersSection.style.display !== 'none') {
                 const ptiMin = parseFloat(ptiMinSlider.value);
                 const ptiMax = parseFloat(ptiMaxSlider.value);
-                if (!isNaN(ptiMin) && ptiMin >= ptiRange.min) params.append('pti_min', ptiMin);
-                if (!isNaN(ptiMax) && ptiMax <= ptiRange.max) params.append('pti_max', ptiMax);
+                if (!isNaN(ptiMin) && ptiMin > ptiRange.min) params.append('pti_min', ptiMin);
+                if (!isNaN(ptiMax) && ptiMax < ptiRange.max) params.append('pti_max', ptiMax);
             }
             
             const response = await fetch('/api/club-players?' + params.toString());
             if (!response.ok) throw new Error('Failed to fetch players');
             
             const data = await response.json();
+            
+            // Handle the case where backend requires filter criteria
+            if (data.message) {
+                showError(data.message);
+                return;
+            }
+            
             allPlayers = data.players || [];
             
             displayPlayers(allPlayers, true); // Scroll when user searches
@@ -683,29 +704,49 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 <!-- Player Info -->
                 <div class="flex-1 min-w-0">
-                    <!-- Header Row: Name and Contact Button -->
-                    <div class="flex items-center justify-between mb-3">
+                    <!-- Header Row: Name and Action Buttons -->
+                    <div class="flex items-start justify-between mb-3">
                         <div class="min-w-0 flex-1">
                             <h3 class="font-bold text-lg text-gray-900 truncate">${player.name}</h3>
+                            <p class="text-sm text-gray-600 font-medium">${player.club || 'Unknown Club'}</p>
                             <p class="text-sm text-gray-500">${player.series ? player.series.replace(/^Chicago\s+(\d+.*)$/i, 'Series $1') : player.series}</p>
                         </div>
-                        <button class="ml-3 contact-btn" 
-                                onclick="handleContactClick('${player.name}')"
-                                style="
-                                    background-color: #16a34a !important; 
-                                    color: white !important; 
-                                    padding: 8px 16px !important; 
-                                    border-radius: 8px !important; 
-                                    font-size: 14px !important; 
-                                    font-weight: 500 !important; 
-                                    border: none !important; 
-                                    min-width: 70px !important;
-                                    cursor: pointer !important;
-                                    display: inline-block !important;
-                                    visibility: visible !important;
-                                ">
-                            Contact
-                        </button>
+                        <div class="ml-3 flex flex-col gap-2">
+                            <button class="contact-btn" 
+                                    onclick="handleContactClick('${player.name}')"
+                                    style="
+                                        background-color: #16a34a !important; 
+                                        color: white !important; 
+                                        padding: 8px 16px !important; 
+                                        border-radius: 8px !important; 
+                                        font-size: 14px !important; 
+                                        font-weight: 500 !important; 
+                                        border: none !important; 
+                                        min-width: 70px !important;
+                                        cursor: pointer !important;
+                                        display: inline-block !important;
+                                        visibility: visible !important;
+                                    ">
+                                Contact
+                            </button>
+                            <button class="details-btn" 
+                                    onclick="window.location.href='/mobile/player-detail/${encodeURIComponent(player.name)}'"
+                                    style="
+                                        background-color: #3b82f6 !important; 
+                                        color: white !important; 
+                                        padding: 8px 16px !important; 
+                                        border-radius: 8px !important; 
+                                        font-size: 14px !important; 
+                                        font-weight: 500 !important; 
+                                        border: none !important; 
+                                        min-width: 70px !important;
+                                        cursor: pointer !important;
+                                        display: inline-block !important;
+                                        visibility: visible !important;
+                                    ">
+                                Details
+                            </button>
+                        </div>
                     </div>
                     
                     <!-- Stats Grid -->
@@ -781,7 +822,8 @@ document.addEventListener('DOMContentLoaded', function() {
             playerElement.innerHTML = `
                 <div>
                     <div class="font-semibold text-gray-800">${player.name}</div>
-                    <div class="text-sm text-gray-600">${player.series ? player.series.replace(/^Chicago\s+(\d+.*)$/i, 'Series $1') : player.series}</div>
+                    <div class="text-sm text-gray-600 font-medium">${player.club || 'Unknown Club'}</div>
+                    <div class="text-sm text-gray-500">${player.series ? player.series.replace(/^Chicago\s+(\d+.*)$/i, 'Series $1') : player.series}</div>
                 </div>
                 <div class="text-sm text-blue-600 font-mono">${player.phone || 'No phone available'}</div>
             `;

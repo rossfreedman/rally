@@ -298,6 +298,53 @@
 .heatmap-day.level-3 { background-color: #239a3b; }
 .heatmap-day.level-4 { background-color: #196127; }
 
+/* Modern calendar-style heatmap */
+.heatmap-day-modern {
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  background-color: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  font-size: 10px;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.heatmap-day-modern:hover {
+  transform: scale(1.05);
+  border-color: #9ca3af;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.heatmap-day-modern.today {
+  border-color: #3b82f6;
+  border-width: 2px;
+  font-weight: 700;
+  color: #1e40af;
+}
+
+.heatmap-day-modern.level-0 { background-color: #f9fafb; }
+.heatmap-day-modern.level-1 { background-color: #dcfce7; color: #16a34a; }
+.heatmap-day-modern.level-2 { background-color: #bbf7d0; color: #15803d; }
+.heatmap-day-modern.level-3 { background-color: #86efac; color: #166534; }
+.heatmap-day-modern.level-4 { background-color: #4ade80; color: #14532d; }
+
+.heatmap-day-placeholder {
+  width: 28px;
+  height: 28px;
+}
+
+.day-number {
+  font-size: 10px;
+  line-height: 1;
+}
+
 .player-rank {
   display: flex;
   align-items: center;
@@ -670,43 +717,116 @@ function renderHeatmap() {
     dateMap[item.date] = item.count;
   });
   
-  // Generate last 30 days
-  const days = [];
+  // Generate last 30 days in calendar format
   const today = new Date();
-  for (let i = 29; i >= 0; i--) {
-    const date = new Date(today.getTime() - i * 24 * 60 * 60 * 1000);
-    const dateStr = date.toISOString().split('T')[0];
-    const count = dateMap[dateStr] || 0;
-    days.push({ date: dateStr, count });
-  }
+  const thirtyDaysAgo = new Date(today.getTime() - 29 * 24 * 60 * 60 * 1000);
   
   // Determine max count for scaling
-  const maxCount = Math.max(...days.map(day => day.count));
+  const maxCount = Math.max(...data.map(item => item.count));
+  
+  // Generate calendar weeks
+  const weeks = [];
+  let currentDate = new Date(thirtyDaysAgo);
+  
+  // Start from the beginning of the week
+  currentDate.setDate(currentDate.getDate() - currentDate.getDay());
+  
+  while (currentDate <= today) {
+    const week = [];
+    for (let i = 0; i < 7; i++) {
+      const dateStr = currentDate.toISOString().split('T')[0];
+      const count = dateMap[dateStr] || 0;
+      const isInRange = currentDate >= thirtyDaysAgo && currentDate <= today;
+      
+      week.push({
+        date: dateStr,
+        count,
+        isInRange,
+        dayOfWeek: currentDate.getDay(),
+        day: currentDate.getDate()
+      });
+      
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+    weeks.push(week);
+  }
   
   const html = `
-    <div class="heatmap-grid" style="display: flex; flex-wrap: wrap; gap: 2px;">
-      ${days.map(day => {
-        const level = getHeatmapLevel(day.count, maxCount);
-        const date = new Date(day.date);
-        const title = `${date.toLocaleDateString()}: ${day.count} activities`;
-        
-        return `<div class="heatmap-day level-${level}" title="${title}"></div>`;
-      }).join('')}
-    </div>
-    <div class="heatmap-legend flex items-center justify-between mt-3 text-xs text-gray-600">
-      <span>Less</span>
-      <div class="flex space-x-1">
-        <div class="heatmap-day"></div>
-        <div class="heatmap-day level-1"></div>
-        <div class="heatmap-day level-2"></div>
-        <div class="heatmap-day level-3"></div>
-        <div class="heatmap-day level-4"></div>
+    <div class="heatmap-calendar">
+      <!-- Day labels -->
+      <div class="heatmap-header mb-2">
+        <div class="grid grid-cols-7 gap-1 text-xs text-gray-500 text-center">
+          <div>S</div>
+          <div>M</div>
+          <div>T</div>
+          <div>W</div>
+          <div>T</div>
+          <div>F</div>
+          <div>S</div>
+        </div>
       </div>
-      <span>More</span>
+      
+      <!-- Calendar grid -->
+      <div class="heatmap-weeks space-y-1">
+        ${weeks.map(week => `
+          <div class="grid grid-cols-7 gap-1">
+            ${week.map(day => {
+              if (!day.isInRange) {
+                return `<div class="heatmap-day-placeholder w-4 h-4"></div>`;
+              }
+              
+              const level = getHeatmapLevel(day.count, maxCount);
+              const date = new Date(day.date);
+              const title = `${date.toLocaleDateString()}: ${day.count} activities`;
+              const isToday = day.date === today.toISOString().split('T')[0];
+              
+              return `
+                <div class="heatmap-day-modern ${isToday ? 'today' : ''} level-${level}" 
+                     title="${title}"
+                     data-count="${day.count}"
+                     data-date="${day.date}">
+                  <span class="day-number">${day.day}</span>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `).join('')}
+      </div>
+      
+      <!-- Legend and summary -->
+      <div class="heatmap-footer mt-4">
+        <div class="flex items-center justify-between text-xs text-gray-600 mb-2">
+          <span>Activity Levels</span>
+          <span class="text-gray-500">Last 30 days</span>
+        </div>
+        <div class="flex items-center justify-between">
+          <div class="flex items-center space-x-1">
+            <span class="text-xs text-gray-500">Less</span>
+            <div class="heatmap-day-modern level-0"></div>
+            <div class="heatmap-day-modern level-1"></div>
+            <div class="heatmap-day-modern level-2"></div>
+            <div class="heatmap-day-modern level-3"></div>
+            <div class="heatmap-day-modern level-4"></div>
+            <span class="text-xs text-gray-500">More</span>
+          </div>
+          <div class="text-xs text-gray-500">
+            Total: ${data.reduce((sum, item) => sum + item.count, 0)} activities
+          </div>
+        </div>
+      </div>
     </div>
   `;
   
   container.innerHTML = html;
+  
+  // Add click handlers for day details
+  container.querySelectorAll('.heatmap-day-modern[data-count]').forEach(day => {
+    day.addEventListener('click', (e) => {
+      const date = e.target.closest('.heatmap-day-modern').dataset.date;
+      const count = e.target.closest('.heatmap-day-modern').dataset.count;
+      showDayActivityDetail(date, count);
+    });
+  });
 }
 
 function renderTopPlayers() {
@@ -954,13 +1074,27 @@ function getActionTypeIcon(actionType) {
   const icons = {
     'login': 'fas fa-sign-in-alt',
     'logout': 'fas fa-sign-out-alt',
+    'auth': 'fas fa-key',
     'match_created': 'fas fa-trophy',
+    'score_submitted': 'fas fa-tennis-ball',
     'poll_response': 'fas fa-vote-yea',
+    'poll_voted': 'fas fa-check-circle',
+    'poll_created': 'fas fa-poll',
     'availability_update': 'fas fa-calendar-check',
     'dashboard_access': 'fas fa-chart-line',
     'page_visit': 'fas fa-eye',
     'admin_action': 'fas fa-user-cog',
     'data_update': 'fas fa-database',
+    'data_sync': 'fas fa-sync',
+    'player_search': 'fas fa-search',
+    'simulation_run': 'fas fa-calculator',
+    'ai_chat': 'fas fa-robot',
+    'user_registration': 'fas fa-user-plus',
+    'lineup_update': 'fas fa-users',
+    'lineup_escrow': 'fas fa-lock',
+    'court_reservation': 'fas fa-map-marker-alt',
+    'team_email': 'fas fa-envelope',
+    'system_maintenance': 'fas fa-tools',
     'default': 'fas fa-circle'
   };
   return icons[actionType] || icons.default;
@@ -970,13 +1104,27 @@ function getActionTypeColor(actionType) {
   const colors = {
     'login': 'green',
     'logout': 'red',
+    'auth': 'blue',
     'match_created': 'yellow',
+    'score_submitted': 'amber',
     'poll_response': 'purple',
+    'poll_voted': 'purple',
+    'poll_created': 'violet',
     'availability_update': 'blue',
     'dashboard_access': 'indigo',
     'page_visit': 'gray',
     'admin_action': 'orange',
     'data_update': 'teal',
+    'data_sync': 'cyan',
+    'player_search': 'slate',
+    'simulation_run': 'pink',
+    'ai_chat': 'emerald',
+    'user_registration': 'lime',
+    'lineup_update': 'sky',
+    'lineup_escrow': 'red',
+    'court_reservation': 'green',
+    'team_email': 'blue',
+    'system_maintenance': 'gray',
     'default': 'gray'
   };
   return colors[actionType] || colors.default;
@@ -999,6 +1147,22 @@ function getHeatmapLevel(count, maxCount) {
 
 function updateTimestamp() {
   document.getElementById('timeline-status').textContent = 'Updated just now';
+}
+
+function showDayActivityDetail(date, count) {
+  // Create a simple alert for now - could be enhanced with a modal
+  const formattedDate = new Date(date).toLocaleDateString('en-US', { 
+    weekday: 'long', 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  });
+  
+  if (count == 0) {
+    alert(`${formattedDate}\n\nNo activities recorded on this day.`);
+  } else {
+    alert(`${formattedDate}\n\n${count} activities recorded on this day.\n\nTip: Use the date filters above to see activities from this specific day.`);
+  }
 }
 </script>
 {% endblock %} 

@@ -7,7 +7,8 @@
 - Proactively suggest improvements to performance, readability, or structure if they are high-impact.
 
 # Code Style
-- Write modular, reusable code with a component-based mindset.
+- Write modular, reusable code with a component-based mindset. 
+- Don't let any one code file get too large.  Always look to modularize code in an elegant and efficient way to ensure code sustainability
 - Follow PEP8 for Python, and Airbnb/Prettier style guides for JavaScript and React.
 - Use modern ES6+ syntax in JavaScript unless otherwise specified.
 - Prefer functional React components with hooks over class-based components.

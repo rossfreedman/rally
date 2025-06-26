@@ -200,7 +200,8 @@ window.sessionData = {{ session_data | tojson | safe }};
 const user = window.sessionData?.user || {};
 const series = user.series;
 const club = user.club;
-const teamId = club && series ? `${club} - ${series.split(' ').pop()}` : '';
+// FIXED: Use actual team_id from session instead of constructing team name
+const teamId = user.team_id || '';
 
 // Wizard state - Initialize all variables
 let currentPage = 0; // Start at choice page

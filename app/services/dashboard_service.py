@@ -161,6 +161,7 @@ def get_recent_activities(
             LEFT JOIN series s ON p.series_id = s.id
             WHERE ual.timestamp IS NOT NULL
             AND NOT (ual.page = 'admin_dashboard' AND ual.details = 'Admin accessed activity monitoring dashboard')
+            AND NOT (u.is_admin = true AND ual.user_email = 'rossfreedman@gmail.com')
             {' AND ' + ' AND '.join(where_clauses) if where_clauses else ''}
             ORDER BY ual.timestamp DESC
             LIMIT %(limit)s
@@ -249,10 +250,12 @@ def get_activity_heatmap_data(days: int = 30) -> List[Dict]:
                 DATE(ual.timestamp) as activity_date,
                 COUNT(*) as activity_count
             FROM user_activity_logs ual
+            LEFT JOIN users u ON ual.user_email = u.email
             WHERE DATE(ual.timestamp) >= %(start_date)s
             AND DATE(ual.timestamp) <= %(end_date)s
             AND ual.timestamp IS NOT NULL
             AND NOT (ual.page = 'admin_dashboard' AND ual.details = 'Admin accessed activity monitoring dashboard')
+            AND NOT (u.is_admin = true AND ual.user_email = 'rossfreedman@gmail.com')
             GROUP BY DATE(ual.timestamp)
             ORDER BY activity_date DESC
         """,
@@ -309,6 +312,7 @@ def get_top_active_players(limit: int = 10) -> List[Dict]:
             LEFT JOIN series s ON p.series_id = s.id
             WHERE ual.id IS NOT NULL AND ual.timestamp IS NOT NULL
             AND NOT (ual.page = 'admin_dashboard' AND ual.details = 'Admin accessed activity monitoring dashboard')
+            AND NOT (ual.user_email = 'rossfreedman@gmail.com')
             GROUP BY p.id, p.first_name, p.last_name, c.name, s.name
             ORDER BY activity_count DESC
             LIMIT %(limit)s
@@ -357,19 +361,23 @@ def get_activity_stats() -> Dict[str, Any]:
         # Get basic counts
         total_activities = execute_query_one(
             """
-            SELECT COUNT(*) as count FROM user_activity_logs
-            WHERE timestamp IS NOT NULL
-            AND NOT (page = 'admin_dashboard' AND details = 'Admin accessed activity monitoring dashboard')
+            SELECT COUNT(*) as count FROM user_activity_logs ual
+            LEFT JOIN users u ON ual.user_email = u.email
+            WHERE ual.timestamp IS NOT NULL
+            AND NOT (ual.page = 'admin_dashboard' AND ual.details = 'Admin accessed activity monitoring dashboard')
+            AND NOT (u.is_admin = true AND ual.user_email = 'rossfreedman@gmail.com')
         """
         )["count"]
 
         # Get today's activities
         today_activities = execute_query_one(
             """
-            SELECT COUNT(*) as count FROM user_activity_logs
-            WHERE DATE(timestamp) = CURRENT_DATE
-            AND timestamp IS NOT NULL
-            AND NOT (page = 'admin_dashboard' AND details = 'Admin accessed activity monitoring dashboard')
+            SELECT COUNT(*) as count FROM user_activity_logs ual
+            LEFT JOIN users u ON ual.user_email = u.email
+            WHERE DATE(ual.timestamp) = CURRENT_DATE
+            AND ual.timestamp IS NOT NULL
+            AND NOT (ual.page = 'admin_dashboard' AND ual.details = 'Admin accessed activity monitoring dashboard')
+            AND NOT (u.is_admin = true AND ual.user_email = 'rossfreedman@gmail.com')
         """
         )["count"]
 
@@ -377,12 +385,14 @@ def get_activity_stats() -> Dict[str, Any]:
         activity_types = execute_query(
             """
             SELECT 
-                activity_type as action_type,
+                ual.activity_type as action_type,
                 COUNT(*) as count
-            FROM user_activity_logs
-            WHERE timestamp IS NOT NULL
-            AND NOT (page = 'admin_dashboard' AND details = 'Admin accessed activity monitoring dashboard')
-            GROUP BY activity_type
+            FROM user_activity_logs ual
+            LEFT JOIN users u ON ual.user_email = u.email
+            WHERE ual.timestamp IS NOT NULL
+            AND NOT (ual.page = 'admin_dashboard' AND ual.details = 'Admin accessed activity monitoring dashboard')
+            AND NOT (u.is_admin = true AND ual.user_email = 'rossfreedman@gmail.com')
+            GROUP BY ual.activity_type
             ORDER BY count DESC
             LIMIT 10
         """
@@ -391,11 +401,13 @@ def get_activity_stats() -> Dict[str, Any]:
         # Get unique users active today
         active_users_today = execute_query_one(
             """
-            SELECT COUNT(DISTINCT user_email) as count FROM user_activity_logs
-            WHERE DATE(timestamp) = CURRENT_DATE
-            AND timestamp IS NOT NULL
-            AND user_email IS NOT NULL
-            AND NOT (page = 'admin_dashboard' AND details = 'Admin accessed activity monitoring dashboard')
+            SELECT COUNT(DISTINCT ual.user_email) as count FROM user_activity_logs ual
+            LEFT JOIN users u ON ual.user_email = u.email
+            WHERE DATE(ual.timestamp) = CURRENT_DATE
+            AND ual.timestamp IS NOT NULL
+            AND ual.user_email IS NOT NULL
+            AND NOT (ual.page = 'admin_dashboard' AND ual.details = 'Admin accessed activity monitoring dashboard')
+            AND NOT (u.is_admin = true AND ual.user_email = 'rossfreedman@gmail.com')
         """
         )["count"]
 
@@ -456,6 +468,7 @@ def get_player_activity_history(player_id: int, limit: int = 100) -> List[Dict]:
             LEFT JOIN series s ON p.series_id = s.id
             WHERE p.id = %(player_id)s AND ual.timestamp IS NOT NULL
             AND NOT (ual.page = 'admin_dashboard' AND ual.details = 'Admin accessed activity monitoring dashboard')
+            AND NOT (ual.user_email = 'rossfreedman@gmail.com')
             ORDER BY ual.timestamp DESC
             LIMIT %(limit)s
         """,
@@ -540,6 +553,7 @@ def get_team_activity_history(team_id: int, limit: int = 100) -> List[Dict]:
             LEFT JOIN teams t ON p.team_id = t.id
             WHERE t.id = %(team_id)s AND ual.timestamp IS NOT NULL
             AND NOT (ual.page = 'admin_dashboard' AND ual.details = 'Admin accessed activity monitoring dashboard')
+            AND NOT (ual.user_email = 'rossfreedman@gmail.com')
             ORDER BY ual.timestamp DESC
             LIMIT %(limit)s
         """,
@@ -608,11 +622,13 @@ def get_filter_options() -> Dict[str, List]:
         # Get unique action types
         action_types = execute_query(
             """
-            SELECT DISTINCT activity_type as action_type
-            FROM user_activity_logs
-            WHERE timestamp IS NOT NULL
-            AND NOT (page = 'admin_dashboard' AND details = 'Admin accessed activity monitoring dashboard')
-            ORDER BY activity_type
+            SELECT DISTINCT ual.activity_type as action_type
+            FROM user_activity_logs ual
+            LEFT JOIN users u ON ual.user_email = u.email
+            WHERE ual.timestamp IS NOT NULL
+            AND NOT (ual.page = 'admin_dashboard' AND ual.details = 'Admin accessed activity monitoring dashboard')
+            AND NOT (u.is_admin = true AND ual.user_email = 'rossfreedman@gmail.com')
+            ORDER BY ual.activity_type
         """
         )
 
@@ -629,6 +645,7 @@ def get_filter_options() -> Dict[str, List]:
             JOIN series s ON t.series_id = s.id
             WHERE ual.timestamp IS NOT NULL
             AND NOT (ual.page = 'admin_dashboard' AND ual.details = 'Admin accessed activity monitoring dashboard')
+            AND NOT (ual.user_email = 'rossfreedman@gmail.com')
             ORDER BY t.team_name
         """
         )
@@ -782,6 +799,16 @@ def create_activity_description(
             return "Logged out"
         return "Authentication activity"
 
+    # Handle login specifically
+    elif activity_type == "login":
+        if details and "Login successful" in details:
+            # Extract user name if available
+            import re
+            user_match = re.search(r"User (\w+ \w+) logged in", details)
+            if user_match:
+                return f"{user_match.group(1)} logged in"
+        return "User logged in"
+
     # Handle availability updates
     elif activity_type == "availability_update":
         if details and "Set availability for" in details:
@@ -825,6 +852,8 @@ def create_activity_description(
 
     # Handle player search
     elif activity_type == "player_search":
+        if details and "searched for" in details:
+            return details
         return "Searched for players"
 
     # Handle season tracking
@@ -838,6 +867,41 @@ def create_activity_description(
     # Handle debug activities
     elif activity_type == "debug_partnership":
         return "Debugged partnership data"
+
+    # Handle match submissions
+    elif activity_type == "score_submitted":
+        return "Submitted match score"
+    
+    # Handle user registration
+    elif activity_type == "user_registration":
+        if details and "registered successfully" in details:
+            import re
+            user_match = re.search(r"New user (\w+ \w+) registered", details)
+            if user_match:
+                return f"{user_match.group(1)} registered"
+        return "New user registered"
+    
+    # Handle lineup activities
+    elif activity_type == "lineup_update":
+        return "Updated team lineup"
+    elif activity_type == "lineup_escrow":
+        return "Accessed lineup escrow"
+    
+    # Handle reservation activities
+    elif activity_type == "court_reservation":
+        return "Reserved a court"
+    
+    # Handle team communication
+    elif activity_type == "team_email":
+        return "Sent team email"
+    
+    # Handle data synchronization
+    elif activity_type == "data_sync":
+        return "Synchronized data"
+    
+    # Handle system maintenance
+    elif activity_type == "system_maintenance":
+        return "System maintenance activity"
 
     # Fallback for unknown activity types
     else:

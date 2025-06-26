@@ -302,7 +302,8 @@ function showIndividualRecipients() {
     const user = window.sessionData?.user || {};
     const series = user.series;
     const club = user.club;
-    const teamId = club && series ? `${club} - ${series.split(' ').pop()}` : '';
+    // FIXED: Use actual team_id from session instead of constructing team name
+    const teamId = user.team_id || '';
     
     if (!teamId) {
         console.error('No team ID found in session data');
@@ -453,7 +454,8 @@ function loadTeamMemberCount() {
     const user = window.sessionData?.user || {};
     const series = user.series;
     const club = user.club;
-    const teamId = club && series ? `${club} - ${series.split(' ').pop()}` : '';
+    // FIXED: Use actual team_id from session instead of constructing team name
+    const teamId = user.team_id || '';
     
     if (!teamId) {
         console.error('No team ID found in session data');
