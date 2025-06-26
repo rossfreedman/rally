@@ -154,7 +154,7 @@ def get_recent_activities(
                 s.name as series_name
             FROM user_activity_logs ual
             LEFT JOIN users u ON ual.user_email = u.email
-            LEFT JOIN user_player_associations upa ON u.id = upa.user_id AND upa.is_primary = true
+            LEFT JOIN user_player_associations upa ON u.id = upa.user_id
             LEFT JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
             LEFT JOIN teams t ON p.team_id = t.id
             LEFT JOIN clubs c ON p.club_id = c.id
@@ -306,7 +306,7 @@ def get_top_active_players(limit: int = 10) -> List[Dict]:
                 MAX(ual.timestamp) as last_activity
             FROM players p
             LEFT JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
-            LEFT JOIN users u ON upa.user_id = u.id AND upa.is_primary = true
+            LEFT JOIN users u ON upa.user_id = u.id
             LEFT JOIN user_activity_logs ual ON u.email = ual.user_email
             LEFT JOIN clubs c ON p.club_id = c.id
             LEFT JOIN series s ON p.series_id = s.id
@@ -461,7 +461,7 @@ def get_player_activity_history(player_id: int, limit: int = 100) -> List[Dict]:
                 s.name as series_name
             FROM user_activity_logs ual
             LEFT JOIN users u ON ual.user_email = u.email
-            LEFT JOIN user_player_associations upa ON u.id = upa.user_id AND upa.is_primary = true
+            LEFT JOIN user_player_associations upa ON u.id = upa.user_id
             LEFT JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
             LEFT JOIN teams t ON p.team_id = t.id
             LEFT JOIN clubs c ON p.club_id = c.id
@@ -548,7 +548,7 @@ def get_team_activity_history(team_id: int, limit: int = 100) -> List[Dict]:
                 p.last_name as player_last_name
             FROM user_activity_logs ual
             LEFT JOIN users u ON ual.user_email = u.email
-            LEFT JOIN user_player_associations upa ON u.id = upa.user_id AND upa.is_primary = true
+            LEFT JOIN user_player_associations upa ON u.id = upa.user_id
             LEFT JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
             LEFT JOIN teams t ON p.team_id = t.id
             WHERE t.id = %(team_id)s AND ual.timestamp IS NOT NULL
@@ -639,7 +639,7 @@ def get_filter_options() -> Dict[str, List]:
             FROM teams t
             JOIN players p ON t.id = p.team_id
             JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
-            JOIN users u ON upa.user_id = u.id AND upa.is_primary = true
+            JOIN users u ON upa.user_id = u.id
             JOIN user_activity_logs ual ON u.email = ual.user_email
             JOIN clubs c ON t.club_id = c.id
             JOIN series s ON t.series_id = s.id

@@ -1,0 +1,26 @@
+{
+  "timestamp": "2025-06-26T06:43:47.116335",
+  "duration_seconds": 113.48393297195435,
+  "target_branch": "production",
+  "results": {
+    "deployment_status": {
+      "status": "out_of_sync",
+      "message": "Changes need to be committed/pushed"
+    },
+    "git_deployment": {
+      "status": "success",
+      "branch": "main",
+      "message": "Deployed to main"
+    },
+    "database_sync": {
+      "status": "differences",
+      "message": "Databases have schema or data differences"
+    },
+    "backup": {
+      "status": "success",
+      "message": "Code and database backup created"
+    },
+    "overall_success": true
+  },
+  "success": true
+}
