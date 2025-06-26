@@ -204,64 +204,44 @@ function loadClubsByLeague(leagueId, selectedClub = null) {
 
 // Load series filtered by league
 function loadSeriesByLeague(leagueId, selectedSeries = null) {
-  const url = leagueId ? `/api/get-series-by-league?league_id=${leagueId}` : '/api/get-series-by-league';
+  // Use the new API endpoint that returns user-facing series names from database mappings
+  const url = leagueId ? `/api/get-user-facing-series-by-league?league_id=${leagueId}` : '/api/get-user-facing-series-by-league';
   
   fetch(url).then(r=>r.json()).then(data => {
     const seriesSel = document.getElementById('series');
     seriesSel.innerHTML = '<option value="">Select a series...</option>';
     
     if (data.series && Array.isArray(data.series)) {
-                          // Create a map to track unique series names and prevent duplicates
-                    const uniqueSeries = new Map();
-                    
-                    data.series.forEach(series => {
-                        // Use the series name exactly as it comes from the database
-                        if (!uniqueSeries.has(series)) {
-                            uniqueSeries.set(series, series);
-                        }
-                    });
-                    
-                    // Add the unique options to the select
-      uniqueSeries.forEach((originalValue, displayText) => {
-        const option = document.createElement('option');
-        option.value = originalValue;
-        option.textContent = displayText;
-        seriesSel.appendChild(option);
-      });
-    }
-    
-    // Set selected series if provided
-    if (selectedSeries) {
-      seriesSel.value = selectedSeries;
+        // Series names are already properly formatted by the database mapping system
+        // No need for client-side transformations - just use them directly
+        data.series.forEach(series => {
+            const option = document.createElement('option');
+            option.value = series;  // Use the user-facing name as the value
+            option.textContent = series;  // Display the user-facing name
+            seriesSel.appendChild(option);
+        });
+        
+        // Set selected series if provided
+        if (selectedSeries) {
+            seriesSel.value = selectedSeries;
+        }
     }
   }).catch(error => {
     console.error('Error loading series:', error);
-    // Fallback to all series
-    fetch('/api/get-series').then(r=>r.json()).then(data => {
+    // Fallback to original API if new one fails
+    const fallbackUrl = leagueId ? `/api/get-series-by-league?league_id=${leagueId}` : '/api/get-series-by-league';
+    fetch(fallbackUrl).then(r=>r.json()).then(data => {
       const seriesSel = document.getElementById('series');
       seriesSel.innerHTML = '<option value="">Select a series...</option>';
-      
-      if (data.all_series && Array.isArray(data.all_series)) {
-        // Create a map to track unique series names and prevent duplicates
-        const uniqueSeries = new Map();
-        
-        data.all_series.forEach(series => {
-          // Use the series name exactly as it comes from the database
-          if (!uniqueSeries.has(series)) {
-            uniqueSeries.set(series, series);
-          }
-        });
-        
-        // Add the unique options to the select
-        uniqueSeries.forEach((originalValue, displayText) => {
+      if (data.series && Array.isArray(data.series)) {
+        data.series.forEach(series => {
           const option = document.createElement('option');
-          option.value = originalValue;
-          option.textContent = displayText;
+          option.value = series;
+          option.textContent = series;
           seriesSel.appendChild(option);
         });
+        if (selectedSeries) seriesSel.value = selectedSeries;
       }
-      
-      if (selectedSeries) seriesSel.value = selectedSeries;
     });
   });
 }
