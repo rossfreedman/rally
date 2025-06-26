@@ -4684,7 +4684,8 @@ def get_player_search_data(user):
                 search_conditions.append("LOWER(p.last_name) LIKE LOWER(%s)")
                 search_params.append(f"%{last_name}%")
 
-            # Base query to find matching players
+            # Base query to find matching players with team information
+            # This creates separate entries for players on multiple teams
             base_query = """
                 SELECT 
                     p.first_name,
@@ -4694,12 +4695,16 @@ def get_player_search_data(user):
                     p.league_id,
                     c.name as club_name,
                     s.name as series_name,
-                    l.league_id as league_code
+                    l.league_id as league_code,
+                    t.id as team_id,
+                    t.team_name
                 FROM players p
                 LEFT JOIN clubs c ON p.club_id = c.id
                 LEFT JOIN series s ON p.series_id = s.id
                 LEFT JOIN leagues l ON p.league_id = l.id
+                LEFT JOIN teams t ON p.team_id = t.id
                 WHERE p.tenniscores_player_id IS NOT NULL
+                AND p.is_active = true
             """
 
             if search_conditions:
@@ -4710,7 +4715,7 @@ def get_player_search_data(user):
                 base_query += " AND p.league_id = %s"
                 search_params.append(league_id_int)
 
-            base_query += " ORDER BY p.first_name, p.last_name"
+            base_query += " ORDER BY p.first_name, p.last_name, t.team_name"
 
             candidate_players = execute_query(base_query, search_params)
             print(
@@ -4733,91 +4738,87 @@ def get_player_search_data(user):
             season_start_date = date(season_start_year, 8, 1)
             season_end_date = date(season_start_year + 1, 7, 31)
 
-            # For each candidate player, calculate their current season stats dynamically
+            # Load all matches for this league in one query for efficient team-specific calculation
+            print("Loading match data for team-specific record calculation...")
+            if league_id_int:
+                matches_query = """
+                    SELECT 
+                        ms.home_player_1_id, ms.home_player_2_id, 
+                        ms.away_player_1_id, ms.away_player_2_id,
+                        ms.home_team_id, ms.away_team_id, ms.winner,
+                        ms.match_date
+                    FROM match_scores ms 
+                    WHERE ms.league_id = %s 
+                    AND ms.winner IS NOT NULL
+                    AND ms.match_date >= %s
+                    AND ms.match_date <= %s
+                """
+                all_matches = execute_query(matches_query, [league_id_int, season_start_date, season_end_date])
+            else:
+                matches_query = """
+                    SELECT 
+                        ms.home_player_1_id, ms.home_player_2_id, 
+                        ms.away_player_1_id, ms.away_player_2_id,
+                        ms.home_team_id, ms.away_team_id, ms.winner,
+                        ms.match_date
+                    FROM match_scores ms 
+                    WHERE ms.winner IS NOT NULL
+                    AND ms.match_date >= %s
+                    AND ms.match_date <= %s
+                """
+                all_matches = execute_query(matches_query, [season_start_date, season_end_date])
+            
+            print(f"Loaded {len(all_matches)} matches for team-specific record calculation")
+            
+            # Build player-team records
+            player_team_records = {}  # Key: (player_id, team_id), Value: {wins: X, losses: Y}
+            
+            for match in all_matches:
+                home_players = [match["home_player_1_id"], match["home_player_2_id"]]
+                away_players = [match["away_player_1_id"], match["away_player_2_id"]]
+                home_team_id = match["home_team_id"]
+                away_team_id = match["away_team_id"]
+                winner = match["winner"]
+                
+                # Process home team players
+                for player_id in home_players:
+                    if player_id:
+                        key = (player_id, home_team_id)
+                        if key not in player_team_records:
+                            player_team_records[key] = {"wins": 0, "losses": 0}
+                        
+                        if winner == "home":
+                            player_team_records[key]["wins"] += 1
+                        elif winner == "away":
+                            player_team_records[key]["losses"] += 1
+                
+                # Process away team players
+                for player_id in away_players:
+                    if player_id:
+                        key = (player_id, away_team_id)
+                        if key not in player_team_records:
+                            player_team_records[key] = {"wins": 0, "losses": 0}
+                        
+                        if winner == "away":
+                            player_team_records[key]["wins"] += 1
+                        elif winner == "home":
+                            player_team_records[key]["losses"] += 1
+
+            # For each candidate player-team combination, get their team-specific stats
             for player in candidate_players:
                 player_id = player["tenniscores_player_id"]
+                team_id = player["team_id"]
                 player_name = f"{player['first_name']} {player['last_name']}"
 
-                # Get current season matches for this player from match_scores table
-                if league_id_int:
-                    matches_query = """
-                        SELECT 
-                            home_player_1_id,
-                            home_player_2_id,
-                            away_player_1_id,
-                            away_player_2_id,
-                            winner,
-                            match_date
-                        FROM match_scores
-                        WHERE (home_player_1_id = %s OR home_player_2_id = %s 
-                               OR away_player_1_id = %s OR away_player_2_id = %s)
-                        AND league_id = %s
-                        AND match_date >= %s
-                        AND match_date <= %s
-                        AND winner IS NOT NULL
-                        AND winner != ''
-                        ORDER BY match_date DESC
-                    """
-                    player_matches = execute_query(
-                        matches_query,
-                        [
-                            player_id,
-                            player_id,
-                            player_id,
-                            player_id,
-                            league_id_int,
-                            season_start_date,
-                            season_end_date,
-                        ],
-                    )
+                # Get team-specific wins and losses
+                if player_id and team_id:
+                    key = (player_id, team_id)
+                    record = player_team_records.get(key, {"wins": 0, "losses": 0})
+                    wins = record["wins"]
+                    losses = record["losses"]
                 else:
-                    matches_query = """
-                        SELECT 
-                            home_player_1_id,
-                            home_player_2_id,
-                            away_player_1_id,
-                            away_player_2_id,
-                            winner,
-                            match_date
-                        FROM match_scores
-                        WHERE (home_player_1_id = %s OR home_player_2_id = %s 
-                               OR away_player_1_id = %s OR away_player_2_id = %s)
-                        AND match_date >= %s
-                        AND match_date <= %s
-                        AND winner IS NOT NULL
-                        AND winner != ''
-                        ORDER BY match_date DESC
-                    """
-                    player_matches = execute_query(
-                        matches_query,
-                        [
-                            player_id,
-                            player_id,
-                            player_id,
-                            player_id,
-                            season_start_date,
-                            season_end_date,
-                        ],
-                    )
-
-                # Calculate wins and losses from match results
-                wins = 0
-                losses = 0
-
-                for match in player_matches:
-                    # Determine if player is on home or away team
-                    is_home = (
-                        match["home_player_1_id"] == player_id
-                        or match["home_player_2_id"] == player_id
-                    )
-
-                    # Determine if player's team won
-                    if is_home and match["winner"] == "home":
-                        wins += 1
-                    elif not is_home and match["winner"] == "away":
-                        wins += 1
-                    else:
-                        losses += 1
+                    wins = 0
+                    losses = 0
 
                 total_matches = wins + losses
 
@@ -4848,11 +4849,12 @@ def get_player_search_data(user):
                         "losses": losses,
                         "club": club,
                         "series": series,
+                        "team_name": player.get("team_name", ""),
                     }
                 )
 
                 print(
-                    f"[DEBUG] {player_name}: {total_matches} matches ({wins}-{losses}) in current season"
+                    f"[DEBUG] {player_name} ({player.get('team_name', 'No team')}): {total_matches} matches ({wins}-{losses}) in current season"
                 )
 
             # Sort by name for consistent results
