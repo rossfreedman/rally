@@ -338,9 +338,32 @@
 </style>
 
 <script>
-
-
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('🎯 Track Byes & Courts page loaded');
+    loadInitialData();
+    
+    // 🔄 NEW: Auto-refresh when page becomes visible (handles back navigation after league/team switching)
+    document.addEventListener('visibilitychange', function() {
+        if (!document.hidden) {
+            console.log('🔄 Track Byes & Courts page became visible - refreshing for current team context');
+            setTimeout(() => {
+                // Reload the page to ensure we have the correct team context data
+                window.location.reload();
+            }, 500); // Small delay to ensure any session updates are complete
+        }
+    });
+    
+    // 🔄 NEW: Also refresh when page gets focus (additional safety net)
+    window.addEventListener('focus', function() {
+        console.log('🔄 Track Byes & Courts page got focus - refreshing data');
+        setTimeout(() => {
+            // Reload the page to ensure we have the correct team context data
+            window.location.reload();
+        }, 500);
+    });
+    
+    loadInitialData();
+
     // Team selector modal functionality
     const teamSelectorLink = document.getElementById('teamSelectorLink');
     const teamSelectorModal = document.getElementById('teamSelectorModal');
@@ -747,7 +770,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 300);
         }, 3000);
     }
-
 
 });
 </script>

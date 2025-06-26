@@ -59,6 +59,31 @@
       </div>
     </div>
     {% endif %}
+
+    <!-- Stop Impersonation Section (Only visible when impersonating) -->
+    <div id="home-impersonation-section" class="hidden mb-8">
+      <div class="text-white rounded-2xl p-6 shadow-lg" style="background: linear-gradient(to right, #f97316, #ef4444);">
+        <div class="flex items-center gap-4">
+          <div class="rounded-full p-3" style="background-color: rgba(255, 255, 255, 0.2);">
+            <i class="fas fa-user-secret text-2xl"></i>
+          </div>
+          <div class="flex-1">
+            <h3 class="text-lg font-bold mb-1">Admin Impersonation Active</h3>
+            <p class="text-sm" style="opacity: 0.9;" id="home-impersonated-info">
+              You are viewing as: <span id="home-impersonated-user-name" class="font-semibold"></span>
+            </p>
+          </div>
+        </div>
+        <div class="mt-4 flex gap-3">
+          <button onclick="stopHomeImpersonation()" class="flex-1 bg-white font-bold py-3 px-4 rounded-lg hover:bg-gray-100 transition-colors" style="color: #f97316;">
+            <i class="fas fa-stop mr-2"></i>Stop Impersonation
+          </button>
+          <a href="/admin" class="flex items-center justify-center text-white font-bold py-3 px-4 rounded-lg transition-colors" style="background-color: rgba(249, 115, 22, 0.3);" onmouseover="this.style.backgroundColor='rgba(249, 115, 22, 0.4)'" onmouseout="this.style.backgroundColor='rgba(249, 115, 22, 0.3)'">
+            <i class="fas fa-cog mr-2"></i>Admin Panel
+          </a>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Act Section -->
@@ -433,5 +458,68 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 {% endif %}
+
+<script>
+// Home page impersonation status checker
+document.addEventListener('DOMContentLoaded', function() {
+    checkHomeImpersonationStatus();
+});
+
+async function checkHomeImpersonationStatus() {
+    try {
+        const response = await fetch('/api/admin/impersonation-status');
+        const status = await response.json();
+        
+        const impersonationSection = document.getElementById('home-impersonation-section');
+        const userNameElement = document.getElementById('home-impersonated-user-name');
+        
+        if (status.is_impersonating && impersonationSection && userNameElement) {
+            const playerContext = status.impersonated_user.player_context;
+            const displayText = playerContext && playerContext.club && playerContext.series 
+                ? `${status.impersonated_user.first_name} ${status.impersonated_user.last_name} as ${playerContext.club.name}, ${playerContext.series.name}`
+                : `${status.impersonated_user.first_name} ${status.impersonated_user.last_name}`;
+            
+            userNameElement.textContent = displayText;
+            impersonationSection.classList.remove('hidden');
+        } else if (impersonationSection) {
+            impersonationSection.classList.add('hidden');
+        }
+    } catch (error) {
+        console.error('Error checking home impersonation status:', error);
+    }
+}
+
+async function stopHomeImpersonation() {
+    if (!confirm('Stop impersonation and return to your admin session?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('/api/admin/stop-impersonation', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // Hide the impersonation section immediately
+            const impersonationSection = document.getElementById('home-impersonation-section');
+            if (impersonationSection) {
+                impersonationSection.classList.add('hidden');
+            }
+            
+            // Show success message and refresh page
+            alert('Impersonation stopped. Returning to admin session.');
+            window.location.reload();
+        } else {
+            alert(`Failed to stop impersonation: ${result.error}`);
+        }
+    } catch (error) {
+        console.error('Error stopping impersonation:', error);
+        alert('Error stopping impersonation');
+    }
+}
+</script>
 
 {% endblock %} 

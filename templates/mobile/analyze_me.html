@@ -848,6 +848,31 @@ async function loadLast3Matches() {
     error.classList.remove('hidden');
   }
 }
+
+// Initialize analyze-me page with auto-refresh capabilities
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🎯 Analyze Me page loaded');
+    
+    // 🔄 NEW: Auto-refresh when page becomes visible (handles back navigation after league switching)
+    document.addEventListener('visibilitychange', function() {
+        if (!document.hidden) {
+            console.log('🔄 Analyze Me page became visible - checking if refresh needed for current league context');
+            setTimeout(() => {
+                // Reload the page to ensure we have the correct league context data
+                window.location.reload();
+            }, 500); // Small delay to ensure any session updates are complete
+        }
+    });
+    
+    // 🔄 NEW: Also refresh when page gets focus (additional safety net)
+    window.addEventListener('focus', function() {
+        console.log('🔄 Analyze Me page got focus - checking if refresh needed');
+        setTimeout(() => {
+            // Reload the page to ensure we have the correct league context data
+            window.location.reload();
+        }, 500);
+    });
+});
 </script>
 
 {% endblock %} 
