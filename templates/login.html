@@ -368,6 +368,9 @@
                 </form>
             </div>
         </div>
+        
+        <!-- Extra spacing for auto-scroll functionality -->
+        <div style="height: 200px;"></div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -573,6 +576,22 @@
                 // Also validate on blur events
                 registerPassword.addEventListener('blur', validatePasswordMatch);
                 confirmPassword.addEventListener('blur', validatePasswordMatch);
+            }
+            
+            // Auto-scroll to bottom when text notifications checkbox is clicked
+            const textNotificationsCheckbox = document.getElementById('textNotifications');
+            if (textNotificationsCheckbox) {
+                textNotificationsCheckbox.addEventListener('change', function() {
+                    if (this.checked) {
+                        // Smooth scroll to the very bottom of the page
+                        setTimeout(() => {
+                            window.scrollTo({
+                                top: document.body.scrollHeight,
+                                behavior: 'smooth'
+                            });
+                        }, 100); // Small delay to ensure checkbox state is updated
+                    }
+                });
             }
         });
 
