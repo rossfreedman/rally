@@ -58,6 +58,9 @@ class User(Base):
     ad_deuce_preference = Column(String(50))  # 'Ad', 'Deuce', 'Either'
     dominant_hand = Column(String(20))  # 'Righty', 'Lefty'
 
+    # Context persistence - remembers which league user was last active in
+    league_context = Column(Integer, ForeignKey('leagues.id'))  # Last active league
+
     created_at = Column(DateTime(timezone=True), default=func.now())
     last_login = Column(DateTime(timezone=True))
 
@@ -84,18 +87,94 @@ class User(Base):
                 players.append(player)
         return players
 
-    def get_primary_player(self, session):
-        """Get the primary player for this user"""
+    def get_active_player(self, session):
+        """Get the currently active player based on user context"""
+        # Check if user has an active context
+        if hasattr(self, 'context') and self.context:
+            if self.context.active_team_id:
+                # Find player in the active team
+                return (
+                    session.query(Player)
+                    .join(UserPlayerAssociation, Player.tenniscores_player_id == UserPlayerAssociation.tenniscores_player_id)
+                    .filter(
+                        UserPlayerAssociation.user_id == self.id,
+                        Player.team_id == self.context.active_team_id,
+                        Player.is_active == True
+                    )
+                    .first()
+                )
+            elif self.context.active_league_id:
+                # Find any player in the active league
+                return (
+                    session.query(Player)
+                    .join(UserPlayerAssociation, Player.tenniscores_player_id == UserPlayerAssociation.tenniscores_player_id)
+                    .filter(
+                        UserPlayerAssociation.user_id == self.id,
+                        Player.league_id == self.context.active_league_id,
+                        Player.is_active == True
+                    )
+                    .first()
+                )
+        
+        # Fallback: return any player (for backwards compatibility)
         assoc = (
             session.query(UserPlayerAssociation)
-            .filter(
-                UserPlayerAssociation.user_id == self.id,
-                UserPlayerAssociation.is_primary == True,
-            )
+            .filter(UserPlayerAssociation.user_id == self.id)
             .first()
         )
-
         return assoc.get_player(session) if assoc else None
+
+    def get_user_leagues(self, session):
+        """Get all leagues this user is associated with"""
+        return (
+            session.query(League)
+            .join(Player, League.id == Player.league_id)
+            .join(UserPlayerAssociation, Player.tenniscores_player_id == UserPlayerAssociation.tenniscores_player_id)
+            .filter(UserPlayerAssociation.user_id == self.id, Player.is_active == True)
+            .distinct()
+            .all()
+        )
+
+    def get_user_teams(self, session, league_id=None):
+        """Get all teams this user is associated with, optionally filtered by league"""
+        query = (
+            session.query(Team)
+            .join(Player, Team.id == Player.team_id)
+            .join(UserPlayerAssociation, Player.tenniscores_player_id == UserPlayerAssociation.tenniscores_player_id)
+            .filter(
+                UserPlayerAssociation.user_id == self.id,
+                Player.is_active == True,
+                Team.is_active == True
+            )
+        )
+        
+        if league_id:
+            query = query.filter(Team.league_id == league_id)
+            
+        return query.distinct().all()
+
+    def switch_context(self, session, league_id=None, team_id=None):
+        """Switch user's active context"""
+        # Get or create user context
+        context = session.query(UserContext).filter(UserContext.user_id == self.id).first()
+        if not context:
+            context = UserContext(user_id=self.id)
+            session.add(context)
+        
+        # Update context
+        if league_id:
+            context.active_league_id = league_id
+        if team_id:
+            context.active_team_id = team_id
+            # If team is specified, also set the league
+            team = session.query(Team).filter(Team.id == team_id).first()
+            if team:
+                context.active_league_id = team.league_id
+        
+        context.last_updated = func.now()
+        session.commit()
+        
+        return context
 
     def get_player(self, session, league_id):
         """Get the player for this user in a specific league"""
@@ -329,18 +408,42 @@ class Player(Base):
         return f"<Player(id={self.id}, name='{self.full_name}', league='{self.league.league_id if self.league else None}')>"
 
 
+class UserContext(Base):
+    """
+    Dynamic user context for multi-league/multi-team users
+    Tracks the current active league/team context for session
+    Replaces the problematic 'is_primary' concept with dynamic context switching
+    """
+    
+    __tablename__ = "user_contexts"
+    
+    user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
+    active_league_id = Column(Integer, ForeignKey("leagues.id"))
+    active_team_id = Column(Integer, ForeignKey("teams.id"))
+    last_updated = Column(DateTime(timezone=True), default=func.now(), onupdate=func.now())
+    
+    # Relationships
+    user = relationship("User", backref="context")
+    active_league = relationship("League")
+    active_team = relationship("Team")
+    
+    def __repr__(self):
+        return f"<UserContext(user_id={self.user_id}, league_id={self.active_league_id}, team_id={self.active_team_id})>"
+
+
 class UserPlayerAssociation(Base):
     """
     Junction table linking users to their player records using stable identifiers
     Uses tenniscores_player_id only - league is derived from player data
     This makes associations ETL-resilient and fully normalized
+    
+    ENHANCED: Removed is_primary field - context is now handled by UserContext table
     """
 
     __tablename__ = "user_player_associations"
 
     user_id = Column(Integer, ForeignKey("users.id"), primary_key=True)
     tenniscores_player_id = Column(String(255), nullable=False, primary_key=True)
-    is_primary = Column(Boolean, default=False)  # Mark primary player association
     created_at = Column(DateTime(timezone=True), default=func.now())
 
     # Relationships
@@ -379,7 +482,7 @@ class UserPlayerAssociation(Base):
         return player.league if player else None
 
     def __repr__(self):
-        return f"<UserPlayerAssociation(user_id={self.user_id}, tenniscores_player_id='{self.tenniscores_player_id}', primary={self.is_primary})>"
+        return f"<UserPlayerAssociation(user_id={self.user_id}, tenniscores_player_id='{self.tenniscores_player_id}')>"
 
 
 # Junction tables for many-to-many relationships

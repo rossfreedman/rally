@@ -197,8 +197,21 @@
     <!-- Overlay for nav drawer -->
     <div id="drawerOverlay" class="fixed inset-0 bg-black bg-opacity-40 z-40 hidden"></div>
 
+
+
+    <!-- Global Impersonation Banner (shown on all pages when impersonating) -->
+    <div id="global-impersonation-banner" class="hidden fixed top-14 left-0 right-0 bg-orange-500 text-white p-2 z-50 shadow-lg">
+        <div class="flex items-center justify-center text-sm">
+            <i class="fas fa-user-secret mr-2"></i>
+            <span>Admin Mode: Impersonating <span id="global-impersonated-user-name" class="font-semibold"></span></span>
+            <button onclick="stopGlobalImpersonation()" class="ml-4 bg-orange-600 hover:bg-orange-700 text-white px-2 py-1 text-xs rounded transition-colors">
+                Stop
+            </button>
+        </div>
+    </div>
+
     <!-- Main Content Area -->
-    <main class="container mx-auto px-2 py-6" style="padding-top: 72px; padding-bottom: 84px;">
+    <main class="container mx-auto px-2 py-6" id="main-content" style="padding-top: 72px; padding-bottom: 84px;">
         <!-- Player ID Missing Alert -->
         {% if session_data and session_data.user and session_data.authenticated and not session_data.user.tenniscores_player_id %}
         <div class="mb-4 p-3 rounded-lg shadow-sm" style="background-color: #F5C842; border: 1px solid #E5B332;">
@@ -286,10 +299,156 @@
             });
         }
 
+        // Global impersonation status checking
+        async function checkGlobalImpersonationStatus() {
+            try {
+                const response = await fetch('/api/admin/impersonation-status');
+                const status = await response.json();
+                
+                if (status.is_impersonating) {
+                    const banner = document.getElementById('global-impersonation-banner');
+                    const userName = document.getElementById('global-impersonated-user-name');
+                    const mainContent = document.getElementById('main-content');
+                    
+                    if (banner && userName && mainContent) {
+                        userName.textContent = `${status.impersonated_user.first_name} ${status.impersonated_user.last_name} (${status.impersonated_user.email})`;
+                        banner.classList.remove('hidden');
+                        // Adjust main content padding to account for banner
+                        mainContent.style.paddingTop = '104px'; // 72px (nav) + 32px (banner)
+                    }
+                } else {
+                    const banner = document.getElementById('global-impersonation-banner');
+                    const mainContent = document.getElementById('main-content');
+                    
+                    if (banner && mainContent) {
+                        banner.classList.add('hidden');
+                        mainContent.style.paddingTop = '72px'; // Just nav padding
+                    }
+                }
+            } catch (error) {
+                console.error('Error checking global impersonation status:', error);
+            }
+        }
+
+        // Stop impersonation from global banner
+        async function stopGlobalImpersonation() {
+            if (!confirm('Stop impersonation and return to your admin session?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/admin/stop-impersonation', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    alert('Impersonation stopped. Returning to admin session.');
+                    window.location.reload();
+                } else {
+                    alert(`Failed to stop impersonation: ${result.error}`);
+                }
+            } catch (error) {
+                console.error('Error stopping impersonation:', error);
+                alert('Error stopping impersonation');
+            }
+        }
+
+        // Global league switching function (available on all pages)
+        function switchLeague(leagueId) {
+            console.log(`🔄 Switching to league: ${leagueId}`);
+            
+            // Close the modal first (if it exists)
+            const modal = document.getElementById('leagueSwitcherModal');
+            if (modal) {
+                modal.classList.add('hidden');
+                document.body.style.overflow = '';
+            }
+            
+            // Disable all league buttons during switch
+            const leagueButtons = document.querySelectorAll('.league-switch-btn');
+            leagueButtons.forEach(btn => {
+                btn.disabled = true;
+                btn.style.opacity = '0.5';
+            });
+            
+            // Update trigger button to show loading (if it exists on this page)
+            const trigger = document.getElementById('leagueSwitcherTrigger');
+            if (trigger) {
+                trigger.innerHTML = '<i class="fas fa-spinner fa-spin text-xs"></i>';
+                trigger.disabled = true;
+            }
+            
+            fetch('/api/switch-league', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    league_id: leagueId
+                })
+            })
+            .then(response => {
+                console.log(`📡 API Response status: ${response.status}`);
+                return response.json();
+            })
+            .then(data => {
+                console.log(`📊 API Response data:`, data);
+                
+                if (data.success) {
+                    console.log(`✅ Successfully switched to ${data.user.league_name}`);
+                    
+                    // Show success message on trigger (if it exists)
+                    if (trigger) {
+                        trigger.innerHTML = '<i class="fas fa-check text-xs text-green-400"></i>';
+                    }
+                    
+                    // Reload the page after brief delay to show success
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 500);
+                } else {
+                    console.error('❌ League switch failed:', data.error);
+                    alert(`Failed to switch leagues: ${data.error || 'Unknown error'}`);
+                    
+                    // Reset buttons and trigger
+                    leagueButtons.forEach(btn => {
+                        btn.disabled = false;
+                        btn.style.opacity = '1';
+                    });
+                    if (trigger) {
+                        trigger.disabled = false;
+                        trigger.innerHTML = '<i class="fas fa-edit text-sm"></i>';
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('❌ League switch network error:', error);
+                alert('Failed to switch leagues. Please check your connection and try again.');
+                
+                // Reset buttons and trigger
+                leagueButtons.forEach(btn => {
+                    btn.disabled = false;
+                    btn.style.opacity = '1';
+                });
+                if (trigger) {
+                    trigger.disabled = false;
+                    trigger.innerHTML = '<i class="fas fa-edit text-sm"></i>';
+                }
+            });
+        }
+
         // Initialize drawer functionality
         document.addEventListener('DOMContentLoaded', function() {
             // Set up dock active state
             updateDockActiveState();
+            
+            // Check impersonation status on page load
+            checkGlobalImpersonationStatus();
+            
+
             
             // Update dock state on navigation (for SPA-like behavior)
             window.addEventListener('popstate', updateDockActiveState);

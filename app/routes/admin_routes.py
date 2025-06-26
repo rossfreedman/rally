@@ -1575,3 +1575,229 @@ def fix_team_assignments():
     except Exception as e:
         print(f"Error in admin team assignment fix: {str(e)}")
         return jsonify({"error": "Failed to fix team assignments"}), 500
+
+
+# ==========================================
+# USER IMPERSONATION ENDPOINTS
+# ==========================================
+
+
+@admin_bp.route("/api/admin/start-impersonation", methods=["POST"])
+@login_required
+@admin_required
+def start_impersonation():
+    """Start impersonating another user (admin only)"""
+    try:
+        data = request.get_json()
+        target_email = data.get("user_email")
+        
+        if not target_email:
+            return jsonify({"error": "User email is required"}), 400
+        
+        # Verify the target user exists
+        target_user = execute_query_one(
+            "SELECT * FROM users WHERE email = %s", [target_email]
+        )
+        
+        if not target_user:
+            return jsonify({"error": "Target user not found"}), 404
+        
+        # Prevent admins from impersonating other admins
+        if target_user.get("is_admin"):
+            return jsonify({"error": "Cannot impersonate other admin users"}), 403
+        
+        # Backup current admin session before impersonation
+        admin_session_backup = dict(session["user"])
+        
+        # Get target user's full session data using the auth service
+        from app.services.auth_service_refactored import create_session_data
+        from app.models.database_models import SessionLocal, User, UserPlayerAssociation
+        
+        db_session = SessionLocal()
+        try:
+            # Get target user with player associations
+            user_record = db_session.query(User).filter(User.email == target_email).first()
+            
+            if not user_record:
+                return jsonify({"error": "Target user not found in database"}), 404
+            
+            # Get player associations
+            associations = (
+                db_session.query(UserPlayerAssociation)
+                .filter(UserPlayerAssociation.user_id == user_record.id)
+                .all()
+            )
+            
+            # Build user data for session creation
+            players_data = []
+            primary_player = None
+            
+            for assoc in associations:
+                player = assoc.get_player(db_session)
+                if player and player.club and player.series and player.league:
+                    player_data = {
+                        "tenniscores_player_id": player.tenniscores_player_id,
+                        "club": {"name": player.club.name} if player.club else None,
+                        "series": {"name": player.series.name} if player.series else None,
+                        "league": {
+                            "league_id": player.league.league_id,
+                            "name": player.league.league_name
+                        } if player.league else None,
+                    }
+                    players_data.append(player_data)
+                    
+                    if assoc.is_primary:
+                        primary_player = player_data
+            
+            # If no primary player, use first available
+            if not primary_player and players_data:
+                primary_player = players_data[0]
+            
+            # Create target user's session data
+            target_user_data = {
+                "id": user_record.id,
+                "email": user_record.email,
+                "first_name": user_record.first_name,
+                "last_name": user_record.last_name,
+                "is_admin": user_record.is_admin,
+                "ad_deuce_preference": user_record.ad_deuce_preference,
+                "dominant_hand": user_record.dominant_hand,
+                "players": players_data,
+                "primary_player": primary_player,
+            }
+            
+            # Use auth service to create proper session data
+            target_session_data = create_session_data(target_user_data)
+            
+        finally:
+            db_session.close()
+        
+        # Store impersonation state in session
+        session["impersonation_active"] = True
+        session["original_admin_session"] = admin_session_backup
+        session["impersonated_user_email"] = target_email
+        
+        # Replace current session with target user's session
+        session["user"] = target_session_data
+        session.modified = True
+        
+        # Log the impersonation start
+        log_admin_action(
+            admin_session_backup["email"],
+            "start_impersonation",
+            f"Started impersonating user: {target_email}",
+            target_email
+        )
+        
+        log_user_activity(
+            admin_session_backup["email"],
+            "admin_action",
+            action="start_impersonation",
+            details=f"Started impersonating {target_email}",
+        )
+        
+        return jsonify({
+            "success": True,
+            "message": f"Successfully started impersonating {target_email}",
+            "impersonated_user": {
+                "email": target_email,
+                "first_name": target_user_data["first_name"],
+                "last_name": target_user_data["last_name"]
+            }
+        })
+        
+    except Exception as e:
+        print(f"Error starting impersonation: {str(e)}")
+        print(traceback.format_exc())
+        return jsonify({"error": f"Failed to start impersonation: {str(e)}"}), 500
+
+
+@admin_bp.route("/api/admin/stop-impersonation", methods=["POST"])
+@login_required
+def stop_impersonation():
+    """Stop impersonating and restore original admin session"""
+    try:
+        # Check if currently impersonating
+        if not session.get("impersonation_active"):
+            return jsonify({"error": "Not currently impersonating"}), 400
+        
+        # Get original admin session
+        original_admin_session = session.get("original_admin_session")
+        impersonated_email = session.get("impersonated_user_email")
+        
+        if not original_admin_session:
+            return jsonify({"error": "Original admin session not found"}), 500
+        
+        # Verify the original session belongs to an admin
+        if not original_admin_session.get("is_admin"):
+            return jsonify({"error": "Original session is not an admin"}), 403
+        
+        # Restore original admin session
+        session["user"] = original_admin_session
+        
+        # Clear impersonation state
+        session.pop("impersonation_active", None)
+        session.pop("original_admin_session", None)
+        session.pop("impersonated_user_email", None)
+        session.modified = True
+        
+        # Log the impersonation stop
+        log_admin_action(
+            original_admin_session["email"],
+            "stop_impersonation",
+            f"Stopped impersonating user: {impersonated_email}",
+            impersonated_email
+        )
+        
+        log_user_activity(
+            original_admin_session["email"],
+            "admin_action",
+            action="stop_impersonation",
+            details=f"Stopped impersonating {impersonated_email}",
+        )
+        
+        return jsonify({
+            "success": True,
+            "message": "Successfully stopped impersonation and restored admin session"
+        })
+        
+    except Exception as e:
+        print(f"Error stopping impersonation: {str(e)}")
+        print(traceback.format_exc())
+        return jsonify({"error": f"Failed to stop impersonation: {str(e)}"}), 500
+
+
+@admin_bp.route("/api/admin/impersonation-status")
+@login_required  
+def get_impersonation_status():
+    """Check current impersonation status"""
+    try:
+        is_impersonating = session.get("impersonation_active", False)
+        
+        if is_impersonating:
+            # Get impersonated user info
+            current_user = session.get("user", {})
+            original_admin = session.get("original_admin_session", {})
+            
+            return jsonify({
+                "is_impersonating": True,
+                "impersonated_user": {
+                    "email": current_user.get("email"),
+                    "first_name": current_user.get("first_name"),
+                    "last_name": current_user.get("last_name"),
+                    "tenniscores_player_id": current_user.get("tenniscores_player_id")
+                },
+                "original_admin": {
+                    "email": original_admin.get("email"),
+                    "first_name": original_admin.get("first_name"),
+                    "last_name": original_admin.get("last_name")
+                }
+            })
+        else:
+            return jsonify({
+                "is_impersonating": False
+            })
+            
+    except Exception as e:
+        print(f"Error checking impersonation status: {str(e)}")
+        return jsonify({"error": f"Failed to check impersonation status: {str(e)}"}), 500

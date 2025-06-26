@@ -4,6 +4,7 @@ This module contains routes for mobile-specific pages and user interactions.
 """
 
 import json
+import logging
 import os
 from datetime import datetime
 from urllib.parse import unquote
@@ -51,6 +52,9 @@ from routes.act.schedule import get_matches_for_user_club
 from utils.auth import login_required
 from utils.logging import log_user_activity
 
+# Create logger
+logger = logging.getLogger(__name__)
+
 # Create mobile blueprint
 mobile_bp = Blueprint("mobile", __name__)
 
@@ -68,14 +72,35 @@ def serve_mobile():
         print("Admin route detected in mobile, redirecting to serve_admin")
         return redirect(url_for("admin.serve_admin"))
 
-    # Create session data script
-    session_data = {"user": session["user"], "authenticated": True}
-
-    # Log mobile access
+    # Use new session service to get fresh session data
+    from app.services.session_service import get_session_data_for_user
+    
     try:
-        log_user_activity(session["user"]["email"], "page_visit", page="mobile_home")
+        user_email = session["user"]["email"]
+        print(f"[DEBUG] Getting fresh session data for: {user_email}")
+        
+        fresh_session_data = get_session_data_for_user(user_email)
+        print(f"[DEBUG] Fresh session data result: {fresh_session_data}")
+        
+        if fresh_session_data:
+            session_data = {"user": fresh_session_data, "authenticated": True}
+            print(f"[DEBUG] Using fresh session data")
+        else:
+            # Fallback to old session if session service fails
+            session_data = {"user": session["user"], "authenticated": True}
+            print(f"[DEBUG] Using fallback session data: {session['user']}")
+        
+        # Log mobile access
+        log_user_activity(user_email, "page_visit", page="mobile_home")
+        
     except Exception as e:
-        print(f"Error logging mobile access: {str(e)}")
+        print(f"Error with new session service: {str(e)}")
+        # Fallback to old session
+        session_data = {"user": session["user"], "authenticated": True}
+        try:
+            log_user_activity(session["user"]["email"], "page_visit", page="mobile_home")
+        except Exception as e2:
+            print(f"Error logging mobile access: {str(e2)}")
 
     return render_template("mobile/index.html", session_data=session_data)
 
@@ -770,7 +795,7 @@ def get_player_season_history(player_name):
 
         player_name = unquote(player_name)
 
-        # Find the player in the database by name
+        # Find the player in the database by name, prioritizing the one with PTI history
         player_query = """
             SELECT 
                 p.id,
@@ -779,10 +804,13 @@ def get_player_season_history(player_name):
                 p.series_id,
                 s.name as series_name,
                 p.first_name,
-                p.last_name
+                p.last_name,
+                (SELECT COUNT(*) FROM player_history ph WHERE ph.player_id = p.id) as history_count
             FROM players p
             LEFT JOIN series s ON p.series_id = s.id
             WHERE CONCAT(p.first_name, ' ', p.last_name) = %s
+            ORDER BY history_count DESC, p.id DESC
+            LIMIT 1
         """
         player_data = execute_query_one(player_query, [player_name])
 
@@ -1555,19 +1583,8 @@ def serve_mobile_availability():
         if not user:
             return jsonify({"error": "No user in session"}), 400
 
-        user_id = user.get("id")  # Add user_id extraction
-        player_name = f"{user['first_name']} {user['last_name']}"
-        series = user["series"]
-
-        # Get matches for the user's club/series using existing function (same as availability-calendar)
-        matches = get_matches_for_user_club(user)
-
-        # Get this user's availability for each match using existing function (same as availability-calendar)
-        # FIXED: Pass user_id parameter for proper user-player associations
-        availability = get_user_availability(player_name, matches, series, user_id)
-
-        # Create match-availability pairs for the template
-        match_avail_pairs = list(zip(matches, availability))
+        # Get availability data using session service for accurate team_id filtering
+        availability_data = get_mobile_availability_data(user)
 
         session_data = {"user": user, "authenticated": True}
 
@@ -1578,8 +1595,7 @@ def serve_mobile_availability():
         return render_template(
             "mobile/availability.html",
             session_data=session_data,
-            match_avail_pairs=match_avail_pairs,
-            players=[{"name": player_name}],
+            **availability_data
         )
     except Exception as e:
         print(f"Error serving mobile availability: {str(e)}")
@@ -1714,12 +1730,20 @@ def serve_mobile_availability_calendar():
         if not user:
             return jsonify({"error": "No user in session"}), 400
 
-        user_id = user.get("id")  # Add user_id extraction
+        user_id = user.get("id")
         player_name = f"{user['first_name']} {user['last_name']}"
         series = user["series"]
 
-        # Get matches for the user's club/series using existing function
-        matches = get_matches_for_user_club(user)
+        # FIXED: Use the optimized team_id-based availability data (same as /mobile/availability)
+        availability_data = get_mobile_availability_data(user)
+        
+        # Extract matches from the availability data
+        matches = []
+        for match_avail_pair in availability_data.get("match_avail_pairs", []):
+            match_data = match_avail_pair[0]  # First element is the match
+            matches.append(match_data)
+        
+        print(f"[CALENDAR] Found {len(matches)} matches for calendar using team_id approach")
 
         # Get this user's availability for each match using existing function
         # FIXED: Pass user_id parameter for proper user-player associations
@@ -1743,6 +1767,8 @@ def serve_mobile_availability_calendar():
 
     except Exception as e:
         print(f"ERROR in mobile_availability_calendar: {str(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
         return f"Error: {str(e)}", 500
 
 
@@ -2704,243 +2730,164 @@ def calculate_player_court_stats(team_matches, team_name, members, user_league_i
         return {}
 
 
+def get_mobile_track_byes_data(user):
+    """Get track byes and court assignment data for mobile interface"""
+    try:
+        # Get user's team information using session service
+        from app.services.session_service import get_session_data_for_user
+        
+        user_email = user.get("email")
+        session_data = get_session_data_for_user(user_email)
+        
+        if not session_data:
+            return {
+                "team_members": [],
+                "current_team_info": None,
+                "user_teams": [],
+                "available_courts": [
+                    {"key": "court1", "name": "Court 1"},
+                    {"key": "court2", "name": "Court 2"},
+                    {"key": "court3", "name": "Court 3"},
+                    {"key": "court4", "name": "Court 4"},
+                ],
+                "error": "Could not load session data"
+            }
+        
+        team_id = session_data.get("team_id")
+        if not team_id:
+            return {
+                "team_members": [],
+                "current_team_info": None,
+                "user_teams": [],
+                "available_courts": [
+                    {"key": "court1", "name": "Court 1"},
+                    {"key": "court2", "name": "Court 2"},
+                    {"key": "court3", "name": "Court 3"},
+                    {"key": "court4", "name": "Court 4"},
+                ],
+                "error": "No team ID found in session"
+            }
+        
+        # Get team members with court stats using existing function
+        team_members = get_team_members_with_court_stats(team_id, user)
+        
+        # Get current team info
+        current_team_info = {
+            "team_id": team_id,
+            "team_name": session_data.get("series", "Unknown Team"),
+            "club_name": session_data.get("club", "Unknown Club"),
+            "series_name": session_data.get("series", "Unknown Series")
+        }
+        
+        # For now, just return single team - multi-team support can be added later
+        user_teams = [current_team_info]
+        
+        # Standard courts available
+        available_courts = [
+            {"key": "court1", "name": "Court 1"},
+            {"key": "court2", "name": "Court 2"},
+            {"key": "court3", "name": "Court 3"},
+            {"key": "court4", "name": "Court 4"},
+        ]
+        
+        return {
+            "team_members": team_members,
+            "current_team_info": current_team_info,
+            "user_teams": user_teams,
+            "available_courts": available_courts,
+            "team_id": team_id
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting mobile track byes data: {str(e)}")
+        return {
+            "team_members": [],
+            "current_team_info": None,
+            "user_teams": [],
+            "available_courts": [
+                {"key": "court1", "name": "Court 1"},
+                {"key": "court2", "name": "Court 2"},
+                {"key": "court3", "name": "Court 3"},
+                {"key": "court4", "name": "Court 4"},
+            ],
+            "error": str(e)
+        }
+
+
+def get_court_assignments_data(user):
+    """Get court assignments data for mobile interface"""
+    try:
+        # This is a simplified version - could be expanded for more complex court assignment tracking
+        return {
+            "assignments_summary": "Court assignments based on historical match data",
+            "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M"),
+            "data_source": "Database match records"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting court assignments data: {str(e)}")
+        return {
+            "assignments_summary": "Error loading court assignments",
+            "last_updated": None,
+            "data_source": "Error",
+            "error": str(e)
+        }
+
+
 @mobile_bp.route("/mobile/track-byes-courts")
 @login_required
 def serve_track_byes_courts():
-    """Serve the Track Byes & Court Assignments page with dynamic court data and real team members"""
+    """Serve the Track Byes & Court Assignments page with simple league switching"""
     try:
-        user = session["user"]
-
-        # Check for team switching via URL parameter
-        requested_team_id = request.args.get('team_id')
-        if requested_team_id:
-            try:
-                requested_team_id = int(requested_team_id)
-                # Verify user has access to this team
-                verify_query = """
-                    SELECT t.id, t.team_name 
-                    FROM teams t
-                    JOIN players p ON t.id = p.team_id
-                    JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
-                    WHERE upa.user_id = %s AND t.id = %s AND p.is_active = TRUE
-                """
-                team_access = execute_query_one(verify_query, [user.get('id'), requested_team_id])
-                if team_access:
-                    # Store the selected team in session for future requests
-                    session['selected_team_id'] = requested_team_id
-                    print(f"[DEBUG] Team switched to: {team_access['team_name']} (ID: {requested_team_id})")
-                else:
-                    print(f"[WARNING] User {user.get('email')} does not have access to team ID {requested_team_id}")
-                    requested_team_id = None
-            except (ValueError, TypeError):
-                print(f"[WARNING] Invalid team_id parameter: {request.args.get('team_id')}")
-                requested_team_id = None
-
-        # Get team ID from session, URL parameter, or fallback to automatic selection
-        team_id = session.get('selected_team_id') or requested_team_id or get_user_team_id(user)
+        from app.services.session_service import switch_user_league, get_session_data_for_user
         
-        print(f"[DEBUG] Using team_id: {team_id} for user: {user.get('email')}")
+        user = session["user"]
+        user_email = user.get("email")
 
-        # Get all teams this user has access to for team switching
-        user_teams = []
-        if user.get('id'):
-            teams_query = """
-                SELECT DISTINCT t.id, t.team_name, c.name as club_name, s.name as series_name,
-                       (SELECT COUNT(*) 
-                        FROM match_scores ms 
-                        WHERE (ms.home_player_1_id = p.tenniscores_player_id 
-                               OR ms.home_player_2_id = p.tenniscores_player_id
-                               OR ms.away_player_1_id = p.tenniscores_player_id 
-                               OR ms.away_player_2_id = p.tenniscores_player_id)
-                        AND (ms.home_team_id = t.id OR ms.away_team_id = t.id)
-                       ) as match_count
-                FROM teams t
-                JOIN players p ON t.id = p.team_id
-                JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
-                JOIN clubs c ON p.club_id = c.id
-                JOIN series s ON p.series_id = s.id
-                WHERE upa.user_id = %s AND p.is_active = TRUE
-                ORDER BY match_count DESC, t.team_name
-            """
-            user_teams = execute_query(teams_query, [user.get('id')])
+        # Handle league switching via URL parameter (?league_id=APTA_CHICAGO or ?league_id=NSTF)
+        requested_league_id = request.args.get('league_id')
+        if requested_league_id:
+            logger.info(f"League switch requested via URL: {user_email} -> {requested_league_id}")
+            
+            # Switch to new league
+            if switch_user_league(user_email, requested_league_id):
+                # Update session with fresh data
+                fresh_session_data = get_session_data_for_user(user_email)
+                if fresh_session_data:
+                    session["user"] = fresh_session_data
+                    session.modified = True
+                    user = session["user"]  # Use updated user data
+                    logger.info(f"Successfully switched to {fresh_session_data['league_name']}")
+                else:
+                    logger.warning(f"Failed to refresh session after league switch")
+            else:
+                logger.warning(f"Failed to switch to league: {requested_league_id}")
 
-        # Get current team info
-        current_team_info = None
-        if team_id:
-            current_team_query = """
-                SELECT t.id, t.team_name, c.name as club_name, s.name as series_name
-                FROM teams t
-                JOIN clubs c ON t.club_id = c.id
-                JOIN series s ON t.series_id = s.id
-                WHERE t.id = %s
-            """
-            current_team_info = execute_query_one(current_team_query, [team_id])
-
-        # Get actual team members with their court assignment statistics
-        team_members = []
-        if team_id:
-            team_members = get_team_members_with_court_stats(team_id, user)
-
-        # If no team members found, provide sample data as fallback
-        if not team_members:
-            team_members = [
-                {
-                    "id": 1,
-                    "name": "John Smith",
-                    "first_name": "John",
-                    "last_name": "Smith",
-                    "pti": 25.0,
-                    "match_count": 8,
-                    "court_stats": {"court1": 0, "court2": 0, "court3": 0, "court4": 0},
-                },
-                {
-                    "id": 2,
-                    "name": "Sarah Johnson",
-                    "first_name": "Sarah",
-                    "last_name": "Johnson",
-                    "pti": 30.0,
-                    "match_count": 6,
-                    "court_stats": {"court1": 0, "court2": 0, "court3": 0, "court4": 0},
-                },
-                {
-                    "id": 3,
-                    "name": "Mike Davis",
-                    "first_name": "Mike",
-                    "last_name": "Davis",
-                    "pti": 28.0,
-                    "match_count": 5,
-                    "court_stats": {"court1": 0, "court2": 0, "court3": 0, "court4": 0},
-                },
-                {
-                    "id": 4,
-                    "name": "Lisa Wilson",
-                    "first_name": "Lisa",
-                    "last_name": "Wilson",
-                    "pti": 32.0,
-                    "match_count": 7,
-                    "court_stats": {"court1": 0, "court2": 0, "court3": 0, "court4": 0},
-                },
-                {
-                    "id": 5,
-                    "name": "David Brown",
-                    "first_name": "David",
-                    "last_name": "Brown",
-                    "pti": 26.0,
-                    "match_count": 4,
-                    "court_stats": {"court1": 0, "court2": 0, "court3": 0, "court4": 0},
-                },
-                {
-                    "id": 6,
-                    "name": "Emily Chen",
-                    "first_name": "Emily",
-                    "last_name": "Chen",
-                    "pti": 29.0,
-                    "match_count": 9,
-                    "court_stats": {"court1": 0, "court2": 0, "court3": 0, "court4": 0},
-                },
-            ]
-
-        # Get dynamic court data using the same logic as my-team page
-        team_data = get_mobile_team_data(user)
-        court_analysis = team_data.get("court_analysis", {})
-
-        # Extract court information dynamically
-        available_courts = []
-        for court_key in sorted(court_analysis.keys()):
-            court_number = court_key.replace("court", "")
-            available_courts.append(
-                {
-                    "number": court_number,
-                    "key": court_key,
-                    "name": f"Court {court_number}",
-                }
-            )
-
-        # If no courts found, default to 4 courts
-        if not available_courts:
-            available_courts = [
-                {"number": "1", "key": "court1", "name": "Court 1"},
-                {"number": "2", "key": "court2", "name": "Court 2"},
-                {"number": "3", "key": "court3", "name": "Court 3"},
-                {"number": "4", "key": "court4", "name": "Court 4"},
-            ]
-            # Ensure team members have empty court stats for template rendering
-            for member in team_members:
-                if "court_stats" not in member or not member["court_stats"]:
-                    member["court_stats"] = {
-                        "court1": 0,
-                        "court2": 0,
-                        "court3": 0,
-                        "court4": 0,
-                    }
-
+        # Get updated track byes and courts data
+        track_byes_data = get_mobile_track_byes_data(user)
+        court_assignments_data = get_court_assignments_data(user)
+        
         session_data = {"user": user, "authenticated": True}
-
         log_user_activity(user["email"], "page_visit", page="track_byes_courts")
-
+        
+        # Extract data for template - the template expects individual variables, not nested data
         return render_template(
             "mobile/track_byes_courts.html",
             session_data=session_data,
-            available_courts=available_courts,
-            court_analysis=court_analysis,
-            team_members=team_members,
-            team_id=team_id,
-            user_teams=user_teams,
-            current_team_info=current_team_info,
+            team_members=track_byes_data.get("team_members", []),
+            current_team_info=track_byes_data.get("current_team_info"),
+            user_teams=track_byes_data.get("user_teams", []),
+            available_courts=track_byes_data.get("available_courts", []),
+            team_id=track_byes_data.get("team_id"),
+            court_assignments_data=court_assignments_data,
         )
-
+        
     except Exception as e:
-        print(f"Error serving track byes courts page: {str(e)}")
-        import traceback
-
-        print(f"Full traceback: {traceback.format_exc()}")
-
-        # Fallback with default courts and sample team members
-        session_data = {"user": session.get("user"), "authenticated": True}
-
-        default_courts = [
-            {"number": "1", "key": "court1", "name": "Court 1"},
-            {"number": "2", "key": "court2", "name": "Court 2"},
-            {"number": "3", "key": "court3", "name": "Court 3"},
-            {"number": "4", "key": "court4", "name": "Court 4"},
-        ]
-
-        fallback_members = [
-            {
-                "id": 1,
-                "name": "John Smith",
-                "first_name": "John",
-                "last_name": "Smith",
-                "pti": 25.0,
-                "match_count": 0,
-                "court_stats": {"court1": 0, "court2": 0, "court3": 0, "court4": 0},
-            },
-            {
-                "id": 2,
-                "name": "Sarah Johnson",
-                "first_name": "Sarah",
-                "last_name": "Johnson",
-                "pti": 30.0,
-                "match_count": 0,
-                "court_stats": {"court1": 0, "court2": 0, "court3": 0, "court4": 0},
-            },
-        ]
-
+        logger.error(f"Error serving track-byes-courts: {str(e)}")
         return render_template(
-            "mobile/track_byes_courts.html",
-            session_data=session_data,
-            available_courts=default_courts,
-            court_analysis={},
-            team_members=fallback_members,
-            team_id=None,
-            user_teams=[],
-            current_team_info=None,
-            error="Could not load dynamic data",
-        )
-
-    except Exception as e:
-        print(f"Critical error serving track byes courts page: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+            "mobile/error.html",
+            error_message="Failed to load track byes and courts data"
+        ), 500
 
 
 # Upload endpoint removed - professional photos now in place
