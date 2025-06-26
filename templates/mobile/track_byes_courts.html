@@ -4,6 +4,63 @@
 {% block content %}
 <div class="min-h-screen bg-gray-50">
     
+    <!-- Team Selector (Very Discreet) -->
+    {% if user_teams and user_teams|length > 1 %}
+    <div class="bg-white border-b border-gray-50 px-4 py-1">
+        <div class="text-center">
+            <button id="teamSelectorLink" class="inline-flex items-center text-xs text-gray-400 hover:text-blue-500 transition-colors">
+                {% if current_team_info %}
+                <i class="fas fa-users text-xs mr-1 opacity-60"></i>
+                <span class="opacity-75">{{ current_team_info.team_name }}</span>
+                <i class="fas fa-chevron-down text-xs ml-1 opacity-60"></i>
+                {% else %}
+                <i class="fas fa-users text-xs mr-1 opacity-60"></i>
+                <span class="opacity-75">Select Team</span>
+                <i class="fas fa-chevron-down text-xs ml-1 opacity-60"></i>
+                {% endif %}
+            </button>
+        </div>
+    </div>
+
+    <!-- Team Selection Modal -->
+    <div id="teamSelectorModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-xl max-w-sm w-full max-h-96 overflow-hidden">
+            <!-- Modal Header -->
+            <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                <h3 class="text-lg font-semibold text-gray-900">Switch Team</h3>
+                <button id="closeTeamModal" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <!-- Team Options -->
+            <div class="p-4 space-y-2 max-h-80 overflow-y-auto">
+                {% for team in user_teams %}
+                <a href="{{ url_for('mobile.serve_track_byes_courts', team_id=team.id) }}" 
+                   class="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors group {% if team.id == team_id %}bg-blue-50 border border-blue-200{% else %}border border-transparent{% endif %}">
+                    <div class="flex-1">
+                        <div class="font-medium {% if team.id == team_id %}text-blue-700{% else %}text-gray-900{% endif %}">
+                            {{ team.team_name }}
+                        </div>
+                        <div class="text-sm text-gray-500">{{ team.club_name }} - {{ team.series_name }}</div>
+                        <div class="text-xs text-gray-400">{{ team.match_count }} matches</div>
+                    </div>
+                    <div class="ml-3">
+                        {% if team.id == team_id %}
+                        <div class="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                            <i class="fas fa-check text-white text-xs"></i>
+                        </div>
+                        {% else %}
+                        <i class="fas fa-arrow-right text-gray-300 group-hover:text-gray-500 text-sm"></i>
+                        {% endif %}
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
     <!-- Header -->
     <div class="bg-white border-b border-gray-100">
         <div class="flex items-center px-4 py-6">
@@ -23,53 +80,6 @@
 
     <!-- Content -->
     <div class="px-4 py-6 space-y-6">
-
-        <!-- Team Selector -->
-        {% if user_teams and user_teams|length > 1 %}
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="px-6 py-4 border-b border-gray-50">
-                <h3 class="text-lg font-semibold text-gray-900 flex items-center">
-                    <i class="fas fa-exchange-alt text-blue-500 mr-2"></i>
-                    Team Selection
-                </h3>
-            </div>
-            
-            <div class="p-6">
-                {% if current_team_info %}
-                <div class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <div class="font-semibold text-blue-900">Currently Viewing:</div>
-                            <div class="text-blue-700">{{ current_team_info.team_name }}</div>
-                            <div class="text-sm text-blue-600">{{ current_team_info.club_name }} - {{ current_team_info.series_name }}</div>
-                        </div>
-                        <i class="fas fa-check-circle text-blue-500 text-xl"></i>
-                    </div>
-                </div>
-                {% endif %}
-                
-                <div class="text-sm text-gray-600 mb-3">You belong to multiple teams. Select a team to view its court assignments:</div>
-                
-                <div class="grid gap-2">
-                    {% for team in user_teams %}
-                    <a href="{{ url_for('mobile.serve_track_byes_courts', team_id=team.id) }}" 
-                       class="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors {% if team.id == team_id %}bg-blue-50 border-blue-200{% else %}border-gray-200{% endif %}">
-                        <div class="flex-1">
-                            <div class="font-medium text-gray-900">{{ team.team_name }}</div>
-                            <div class="text-sm text-gray-600">{{ team.club_name }} - {{ team.series_name }}</div>
-                            <div class="text-xs text-gray-500">{{ team.match_count }} matches</div>
-                        </div>
-                        {% if team.id == team_id %}
-                        <i class="fas fa-check-circle text-blue-500"></i>
-                        {% else %}
-                        <i class="fas fa-arrow-right text-gray-400"></i>
-                        {% endif %}
-                    </a>
-                    {% endfor %}
-                </div>
-            </div>
-        </div>
-        {% endif %}
 
         <!-- Legend -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -327,6 +337,45 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Team selector modal functionality
+    const teamSelectorLink = document.getElementById('teamSelectorLink');
+    const teamSelectorModal = document.getElementById('teamSelectorModal');
+    const closeTeamModal = document.getElementById('closeTeamModal');
+    
+    if (teamSelectorLink && teamSelectorModal) {
+        // Open modal
+        teamSelectorLink.addEventListener('click', function(e) {
+            e.preventDefault();
+            teamSelectorModal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden'; // Prevent background scrolling
+        });
+        
+        // Close modal with X button
+        if (closeTeamModal) {
+            closeTeamModal.addEventListener('click', function(e) {
+                e.preventDefault();
+                teamSelectorModal.classList.add('hidden');
+                document.body.style.overflow = ''; // Restore scrolling
+            });
+        }
+        
+        // Close modal when clicking outside
+        teamSelectorModal.addEventListener('click', function(e) {
+            if (e.target === teamSelectorModal) {
+                teamSelectorModal.classList.add('hidden');
+                document.body.style.overflow = ''; // Restore scrolling
+            }
+        });
+        
+        // Close on escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && !teamSelectorModal.classList.contains('hidden')) {
+                teamSelectorModal.classList.add('hidden');
+                document.body.style.overflow = ''; // Restore scrolling
+            }
+        });
+    }
+    
     // Global variable to store season tracking data
     let seasonTrackingData = {};
 

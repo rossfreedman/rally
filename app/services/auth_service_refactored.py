@@ -28,6 +28,7 @@ from app.services.dashboard_service import log_activity
 from database_config import get_db_engine
 from utils.database_player_lookup import find_player_by_database_lookup
 from utils.logging import log_user_activity
+from database_utils import execute_query_one
 
 logger = logging.getLogger(__name__)
 
@@ -296,477 +297,139 @@ def get_or_create_series(series_name: str, db_session=None) -> Series:
             db_session.close()
 
 
-def register_user(
-    email: str,
-    password: str,
-    first_name: str,
-    last_name: str,
-    league_name: str = None,
-    club_name: str = None,
-    series_name: str = None,
-    selected_player_id: int = None,
-    ad_deuce_preference: str = None,
-    dominant_hand: str = None,
-) -> Dict[str, Any]:
+def register_user(email: str, password: str, first_name: str, last_name: str, 
+                  league_id: str = None, club_name: str = None, series_name: str = None,
+                  ad_deuce_preference: str = None, dominant_hand: str = None) -> Dict[str, Any]:
     """
-    Register a new user with optional player association and automatic team assignment
-
-    Flow:
-    1. Create user account
-    2. If player details provided, search for matching players
-    3. If single match or player_id provided, create association
-    4. If player found, ensure they have a team assignment
-    5. If multiple matches, return them for user selection
-    6. If no matches, user can register without player association
+    Register a new user with simplified session management
+    
+    Args:
+        email: User's email address
+        password: User's password  
+        first_name: User's first name
+        last_name: User's last name
+        league_id: League identifier (e.g., 'APTA_CHICAGO', 'NSTF')
+        club_name: Club name for player lookup
+        series_name: Series name for player lookup
+        ad_deuce_preference: User's ad/deuce preference
+        dominant_hand: User's dominant hand
+        
+    Returns:
+        Dict with success status and session data
     """
+    from app.services.session_service import switch_user_league, get_session_data_for_user
+    
     db_session = SessionLocal()
-
+    
     try:
-        # ✅ FIX: Validate required fields FIRST
-        if not email or not email.strip():
-            return {"success": False, "error": "Email is required"}
-        if not password or not password.strip():
-            return {"success": False, "error": "Password is required"}
-        if not first_name or not first_name.strip():
-            return {"success": False, "error": "First name is required"}
-        if not last_name or not last_name.strip():
-            return {"success": False, "error": "Last name is required"}
-
-        # Clean input data
-        email = email.strip().lower()
-        first_name = first_name.strip()
-        last_name = last_name.strip()
-
-        # Hash the password
-        hashed_password = hash_password(password)
-
         # Check if user already exists
-        existing_user = db_session.query(User).filter(User.email.ilike(email)).first()
-
+        existing_user = db_session.query(User).filter(User.email == email).first()
         if existing_user:
             return {"success": False, "error": "User with this email already exists"}
-
-        # Get or create league, club, and series records for player lookup
-        league_record = None
-        club_record = None
-        series_record = None
-
-        if league_name:
-            league_record = get_or_create_league(league_name, db_session)
-
-        if club_name:
-            club_record = get_or_create_club(club_name, db_session)
-
-        if series_name:
-            series_record = get_or_create_series(series_name, db_session)
-
-        # ✅ FIX: Create new user with explicit non-null values
+        
+        # Create new user
+        password_hash = generate_password_hash(password)
         new_user = User(
             email=email,
-            password_hash=hashed_password,
+            password_hash=password_hash,
             first_name=first_name,
             last_name=last_name,
-            is_admin=False,  # ✅ FIX: Explicit default value
-            ad_deuce_preference=ad_deuce_preference if ad_deuce_preference else None,
-            dominant_hand=dominant_hand if dominant_hand else None,
+            ad_deuce_preference=ad_deuce_preference,
+            dominant_hand=dominant_hand
         )
-
+        
         db_session.add(new_user)
-        db_session.flush()  # Get the user ID
-
-        # ✅ FIX: Ensure user was created with valid ID
-        if not new_user.id:
-            db_session.rollback()
-            return {"success": False, "error": "Failed to create user account"}
-
-        user_data = {
-            "id": new_user.id,
-            "email": new_user.email,
-            "first_name": new_user.first_name,
-            "last_name": new_user.last_name,
-            "is_admin": new_user.is_admin,
-            "ad_deuce_preference": new_user.ad_deuce_preference,
-            "dominant_hand": new_user.dominant_hand,
-            "players": [],
-        }
-
-        # Handle player association
-        player_association_result = None
-
-        if selected_player_id:
-            # User selected a specific player from previous search
-            player = (
-                db_session.query(Player)
-                .filter(Player.id == selected_player_id, Player.is_active == True)
-                .first()
-            )
-
-            if player:
-                # Check if association already exists
-                existing = (
-                    db_session.query(UserPlayerAssociation)
-                    .filter(
-                        UserPlayerAssociation.user_id == new_user.id,
-                        UserPlayerAssociation.tenniscores_player_id
-                        == player.tenniscores_player_id,
-                    )
-                    .first()
-                )
-
-                if not existing:
-                    association = UserPlayerAssociation(
-                        user_id=new_user.id,
-                        tenniscores_player_id=player.tenniscores_player_id,
-                        is_primary=True,
-                    )
-                    db_session.add(association)
-                    player_association_result = "associated"
-
-                    # ✅ NEW: Ensure player has team assignment
-                    team_assigned = assign_player_to_team(player, db_session)
-                    if team_assigned:
-                        logger.info(
-                            f"Registration: Team assignment successful for {player.full_name}"
-                        )
-                    else:
-                        logger.warning(
-                            f"Registration: Could not assign team to {player.full_name}"
-                        )
-
-                    if player.league and player.club and player.series:
-                        user_data["players"] = [
-                            {
-                                "id": player.id,
-                                "name": player.full_name,
-                                "league": player.league.league_name,
-                                "club": player.club.name,
-                                "series": player.series.name,
-                                "tenniscores_player_id": player.tenniscores_player_id,
-                                "is_primary": True,
-                            }
-                        ]
-
-                    logger.info(
-                        f"Registration: Created association between user {email} and player {player.full_name} (ID: {player.id})"
-                    )
-                else:
-                    player_association_result = "already_associated"
-                    logger.info(
-                        f"Registration: User {email} already associated with player {player.full_name}"
-                    )
-            else:
-                logger.warning(
-                    f"Registration: Selected player ID {selected_player_id} not found"
-                )
-                player_association_result = "no_matches"
-
-        elif all([first_name, last_name, league_name]):
-            # Use enhanced database lookup with confidence-based matching
+        db_session.commit()
+        
+        logger.info(f"Created new user: {email}")
+        
+        # If league/club/series provided, try to find player and create association
+        if league_id and club_name and series_name:
             try:
-                logger.info(
-                    f"Registration: Looking up player via enhanced database matching for {first_name} {last_name}"
-                )
-
-                # Use enhanced lookup function that returns structured results with confidence levels
+                # Use existing player lookup logic
                 lookup_result = find_player_by_database_lookup(
                     first_name=first_name,
                     last_name=last_name,
                     club_name=club_name,
                     series_name=series_name,
-                    league_id=league_name,
+                    league_id=league_id
                 )
-
-                # Handle results based on confidence level from enhanced lookup
-                match_type = lookup_result.get("match_type", "no_match")
-                player_data = lookup_result.get("player")
-                message = lookup_result.get("message", "")
-
-                logger.info(f"Registration: Lookup result - {match_type}: {message}")
-
-                if match_type in ["exact", "high_confidence"] and player_data:
-                    # High confidence matches - auto-associate
-                    tenniscores_player_id = player_data["tenniscores_player_id"]
-
-                    logger.info(
-                        f"Registration: Found {match_type} match - {player_data['first_name']} {player_data['last_name']} ({player_data['club_name']}, {player_data['series_name']})"
-                    )
-
-                    # Find the actual Player record in the database
-                    # CRITICAL FIX: When multiple players exist for same tenniscores_player_id,
-                    # prioritize the one that matches the registration data
-                    all_players = (
-                        db_session.query(Player)
-                        .filter(
-                            Player.tenniscores_player_id == tenniscores_player_id,
-                            Player.is_active == True,
-                        )
-                        .all()
-                    )
-
-                    player = None
-                    if len(all_players) == 1:
-                        # Single player - use it
-                        player = all_players[0]
-                        logger.info(
-                            f"Registration: Single player found for {tenniscores_player_id}"
-                        )
-                    elif len(all_players) > 1:
-                        # Multiple players - prioritize the one that matches registration data
-                        logger.info(
-                            f"Registration: Found {len(all_players)} players for {tenniscores_player_id}, selecting best match"
-                        )
-
-                        # First try: exact club and series match
-                        for p in all_players:
-                            if (
-                                p.club
-                                and p.series
-                                and p.club.name == player_data["club_name"]
-                                and p.series.name == player_data["series_name"]
-                            ):
-                                player = p
-                                logger.info(
-                                    f"Registration: Selected player {p.id} - exact club+series match"
-                                )
-                                break
-
-                        # Second try: club match only
-                        if not player:
-                            for p in all_players:
-                                if p.club and p.club.name == player_data["club_name"]:
-                                    player = p
-                                    logger.info(
-                                        f"Registration: Selected player {p.id} - club match ({p.club.name})"
-                                    )
-                                    break
-
-                        # Third try: series match only
-                        if not player:
-                            for p in all_players:
-                                if (
-                                    p.series
-                                    and p.series.name == player_data["series_name"]
-                                ):
-                                    player = p
-                                    logger.info(
-                                        f"Registration: Selected player {p.id} - series match ({p.series.name})"
-                                    )
-                                    break
-
-                        # Fallback: use first player but log warning
-                        if not player:
-                            player = all_players[0]
-                            logger.warning(
-                                f"Registration: No club/series match found, using first player {player.id}"
-                            )
-                            logger.warning(
-                                f"Registration: Selected {player.first_name} {player.last_name} at {player.club.name if player.club else 'No club'} in {player.series.name if player.series else 'No series'}"
-                            )
-                            for i, p in enumerate(all_players):
-                                logger.warning(
-                                    f"Registration: Option {i+1}: {p.first_name} {p.last_name} at {p.club.name if p.club else 'No club'} in {p.series.name if p.series else 'No series'}"
-                                )
-
-                    if player:
-                        # Create proper user-player association for high confidence matches
-                        existing = (
-                            db_session.query(UserPlayerAssociation)
-                            .filter(
-                                UserPlayerAssociation.user_id == new_user.id,
-                                UserPlayerAssociation.tenniscores_player_id
-                                == player.tenniscores_player_id,
-                            )
-                            .first()
-                        )
-
-                        if not existing:
-                            association = UserPlayerAssociation(
-                                user_id=new_user.id,
-                                tenniscores_player_id=player.tenniscores_player_id,
-                                is_primary=True,
-                            )
-                            db_session.add(association)
-                            player_association_result = "associated"
-
-                            # ✅ NEW: Ensure player has team assignment
-                            team_assigned = assign_player_to_team(player, db_session)
-                            if team_assigned:
-                                logger.info(
-                                    f"Registration: Team assignment successful for {player.full_name}"
-                                )
-                            else:
-                                logger.warning(
-                                    f"Registration: Could not assign team to {player.full_name}"
-                                )
-
-                            if player.league and player.club and player.series:
-                                user_data["players"] = [
-                                    {
-                                        "id": player.id,
-                                        "name": player.full_name,
-                                        "league": player.league.league_name,
-                                        "club": player.club.name,
-                                        "series": player.series.name,
-                                        "tenniscores_player_id": player.tenniscores_player_id,
-                                        "is_primary": True,
-                                    }
-                                ]
-
-                            logger.info(
-                                f"Registration: Created association between user {email} and {match_type} match {player.full_name} (ID: {player.id})"
-                            )
-                        else:
-                            player_association_result = "already_associated"
-                    else:
-                        player_association_result = "no_active_player"
-                        logger.warning(
-                            f"Registration: Found {match_type} match but no active Player record for {tenniscores_player_id}"
-                        )
-
-                elif match_type == "multiple_high_confidence" and lookup_result.get("matches"):
-                    # Multiple high-confidence matches found - return them for user selection
-                    matches = lookup_result.get("matches", [])
-                    match_options = []
+                
+                if lookup_result and lookup_result.get("player"):
+                    player_id = lookup_result["player"]["tenniscores_player_id"]
+                    logger.info(f"Registration: Found player {player_id} for {email}")
                     
-                    for match in matches:
-                        match_options.append({
-                            "tenniscores_player_id": match["tenniscores_player_id"],
-                            "first_name": match["first_name"],
-                            "last_name": match["last_name"],
-                            "club_name": match["club_name"],
-                            "series_name": match["series_name"],
-                            "display_text": f"{match['first_name']} {match['last_name']} ({match['club_name']}, {match['series_name']})"
-                        })
+                    # Get the player record to find the league
+                    player_record = db_session.query(Player).filter(
+                        Player.tenniscores_player_id == player_id,
+                        Player.is_active == True
+                    ).first()
                     
-                    logger.info(
-                        f"Registration: Found {len(matches)} high-confidence matches for {first_name} {last_name}"
-                    )
-                    logger.info(
-                        f"Registration: Returning matches for user selection: {[m['display_text'] for m in match_options]}"
-                    )
-                    
-                    # User creation successful, but need player selection
-                    return {
-                        "success": True,
-                        "user": user_data,
-                        "player_association": "multiple_matches_found",
-                        "message": "Registration successful - please select your player profile",
-                        "player_matches": match_options,
-                    }
-
-                elif match_type in ["probable", "possible"] and player_data:
-                    # Good matches but not high confidence - avoid auto-association
-                    logger.info(
-                        f"Registration: Found {match_type} match but skipping auto-association to preserve user registration intent"
-                    )
-                    logger.info(
-                        f"Registration: User registered: {first_name} {last_name} at {club_name} in {series_name}"
-                    )
-                    logger.info(
-                        f"Registration: Match found: {player_data['first_name']} {player_data['last_name']} at {player_data['club_name']} in {player_data['series_name']}"
-                    )
-                    logger.info(
-                        f"Registration: User can manually link to player later in settings"
-                    )
-
-                    player_association_result = "probable_matches_available"
-
-                elif match_type == "risky" and player_data:
-                    # Risky matches - definitely skip auto-association
-                    logger.warning(
-                        f"Registration: Found risky match (last name only) - SKIPPING auto-association"
-                    )
-                    logger.warning(
-                        f"Registration: User registered: {first_name} {last_name} at {club_name} in {series_name}"
-                    )
-                    logger.warning(
-                        f"Registration: Risky match: {player_data['first_name']} {player_data['last_name']} at {player_data['club_name']} in {player_data['series_name']}"
-                    )
-                    logger.info(
-                        f"Registration: User can manually review and link to correct player in settings"
-                    )
-
-                    player_association_result = "risky_matches_skipped"
-
+                    if player_record:
+                        # Create user-player association
+                        association = UserPlayerAssociation(
+                            user_id=new_user.id,
+                            tenniscores_player_id=player_id
+                        )
+                        db_session.add(association)
+                        
+                        # Set user's league_context to this player's league
+                        new_user.league_context = player_record.league_id
+                        
+                        # Assign player to team for polls functionality
+                        team_assigned = assign_player_to_team(player_record, db_session)
+                        if team_assigned:
+                            logger.info(f"Registration: Team assignment successful for {player_record.full_name}")
+                        
+                        db_session.commit()
+                        logger.info(f"Registration: Created association between {email} and player {player_id}")
                 else:
-                    # No matches found or error
-                    logger.info(
-                        f"Registration: No player matches found for {first_name} {last_name} (result: {match_type})"
-                    )
-                    player_association_result = "no_matches"
-
-            except Exception as match_error:
-                logger.warning(
-                    f"Registration: Error in enhanced player lookup for {first_name} {last_name}: {str(match_error)}"
-                )
-                player_association_result = "no_matches"
-
-        # Commit the transaction
-        db_session.commit()
-
-        # Log successful registration
-        association_detail = {
-            "associated": "Player association created with exact match and team assignment verified",
-            "associated_legacy": "Player ID found but stored in legacy format - no association record created",
-            "no_matches": "No player matches found - registered without association",
-            "multiple_matches_found": "Multiple high-confidence player matches found - user needs to select correct player",
-            "probable_matches_available": "Probable player matches found but skipped auto-association - user can link manually",
-            "risky_matches_skipped": "Risky player matches found but skipped to avoid incorrect association",
-            None: "Registered without player search",
-        }.get(player_association_result, "Unknown association result")
-
-        # Log legacy activity
-        log_user_activity(
-            email,
-            "auth",
-            action="register",
-            details=f"Registration successful. {association_detail}",
-        )
-
-        # Log comprehensive activity (new system)
-        try:
-            primary_player = user_data["players"][0] if user_data["players"] else None
-            log_activity(
-                action_type="user_registration",
-                action_description=f"New user {first_name} {last_name} registered successfully",
-                user_id=new_user.id,
-                player_id=primary_player["id"] if primary_player else None,
-                team_id=None,
-                related_id=None,
-                related_type=None,
-                extra_data={
-                    "association_result": player_association_result,
-                    "association_detail": association_detail,
-                    "provided_league": league_name,
-                    "provided_club": club_name,
-                    "provided_series": series_name,
-                    "player_auto_linked": player_association_result == "associated",
-                    "team_auto_assigned": player_association_result == "associated",
-                },
-            )
-        except Exception as e:
-            # Don't fail registration if activity logging fails
-            logger.warning(
-                f"Failed to log comprehensive activity for registration: {str(e)}"
-            )
-
+                    logger.info(f"Registration: No player found for {email} with provided details")
+                    
+            except Exception as e:
+                logger.warning(f"Registration: Player lookup error for {email}: {e}")
+                # Continue with registration even if player lookup fails
+        
+        # Build session data using our simple service
+        session_data = get_session_data_for_user(email)
+        if not session_data:
+            # Fallback session if no player found
+            session_data = {
+                "id": new_user.id,
+                "email": new_user.email,
+                "first_name": new_user.first_name,
+                "last_name": new_user.last_name,
+                "is_admin": new_user.is_admin,
+                "ad_deuce_preference": new_user.ad_deuce_preference or "",
+                "dominant_hand": new_user.dominant_hand or "",
+                "league_context": new_user.league_context,
+                "club": "",
+                "series": "",
+                "league_id": "",
+                "league_name": "",
+                "tenniscores_player_id": "",
+                "settings": "{}",
+            }
+        
+        # Log user activity
+        log_user_activity(email, "registration", details={
+            "registration_success": True,
+            "league_provided": league_id,
+            "club_provided": club_name,
+            "series_provided": series_name,
+            "player_found": bool(session_data.get("tenniscores_player_id"))
+        })
+        
         return {
             "success": True,
-            "user": user_data,
-            "player_association": player_association_result,
             "message": "Registration successful",
+            "user": session_data
         }
-
-    except IntegrityError as e:
-        db_session.rollback()
-        logger.error(f"Database integrity error during registration: {str(e)}")
-        return {"success": False, "error": "Registration failed due to data conflict"}
-
+        
     except Exception as e:
         db_session.rollback()
-        logger.error(f"Registration error: {str(e)}")
-        return {"success": False, "error": "Registration failed - server error"}
-
+        logger.error(f"Registration error for {email}: {str(e)}")
+        return {"success": False, "error": f"Registration failed: {str(e)}"}
     finally:
         db_session.close()
 
@@ -808,19 +471,31 @@ def associate_user_with_player(
         if existing:
             return {"success": False, "error": "Association already exists"}
 
-        # If this should be primary, unset other primary associations
+        # If this should be primary, unset other primary associations (if column exists)
         if is_primary:
-            db_session.query(UserPlayerAssociation).filter(
-                UserPlayerAssociation.user_id == user_id,
-                UserPlayerAssociation.is_primary == True,
-            ).update({"is_primary": False})
+            try:
+                db_session.query(UserPlayerAssociation).filter(
+                    UserPlayerAssociation.user_id == user_id,
+                    UserPlayerAssociation.is_primary == True,
+                ).update({"is_primary": False})
+            except Exception:
+                # is_primary column may not exist anymore, skip this step
+                logger.info("is_primary column not found, skipping primary association update")
 
         # Create new association
-        association = UserPlayerAssociation(
-            user_id=user_id,
-            tenniscores_player_id=player.tenniscores_player_id,
-            is_primary=is_primary,
-        )
+        association_data = {
+            "user_id": user_id,
+            "tenniscores_player_id": player.tenniscores_player_id,
+        }
+        
+        # Only add is_primary if the column exists
+        try:
+            # Test if the is_primary column exists by creating a test object
+            test_obj = UserPlayerAssociation(**association_data, is_primary=is_primary)
+            association = test_obj
+        except TypeError:
+            # is_primary column doesn't exist, create without it
+            association = UserPlayerAssociation(**association_data)
 
         db_session.add(association)
         db_session.commit()
@@ -843,121 +518,124 @@ def associate_user_with_player(
 
 def authenticate_user(email: str, password: str) -> Dict[str, Any]:
     """
-    Authenticate user and load associated player data
+    Authenticate user with simplified session management
+    
+    Args:
+        email: User's email address
+        password: User's password
+        
+    Returns:
+        Dict with success status and session data
     """
+    from app.services.session_service import get_session_data_for_user
+    from database_utils import execute_query_one
+    
     db_session = SessionLocal()
-
+    
     try:
-        # Get user with all associated player data
-        user = db_session.query(User).filter(User.email.ilike(email)).first()
-
+        # Find user by email
+        user = db_session.query(User).filter(User.email == email).first()
+        
         if not user:
-            logger.warning(f"Login attempt failed - user not found: {email}")
             return {"success": False, "error": "Invalid email or password"}
-
-        if not verify_password(user.password_hash, password):
-            logger.warning(f"Login attempt failed - invalid password: {email}")
+        
+        # Verify password
+        if not check_password_hash(user.password_hash, password):
             return {"success": False, "error": "Invalid email or password"}
-
+        
         # Update last login
         user.last_login = func.now()
         db_session.commit()
-
-        # Load associated players
-        associations = (
-            db_session.query(UserPlayerAssociation)
-            .filter(UserPlayerAssociation.user_id == user.id)
-            .all()
-        )
-
-        players_data = []
-        primary_player = None
-
-        for assoc in associations:
-            player = assoc.get_player(db_session)
-            if player and player.league and player.club and player.series:
-                player_data = {
-                    "id": player.id,
-                    "name": player.full_name,
-                    "first_name": player.first_name,
-                    "last_name": player.last_name,
-                    "league": {
-                        "id": player.league.id,
-                        "league_id": player.league.league_id,
-                        "name": player.league.league_name,
-                    },
-                    "club": {"id": player.club.id, "name": player.club.name},
-                    "series": {"id": player.series.id, "name": player.series.name},
-                    "tenniscores_player_id": player.tenniscores_player_id,
-                    "pti": float(player.pti) if player.pti else None,
-                    "wins": player.wins,
-                    "losses": player.losses,
-                    "win_percentage": (
-                        float(player.win_percentage) if player.win_percentage else None
-                    ),
-                    "captain_status": player.captain_status,
-                    "is_primary": assoc.is_primary,
-                    "is_active": player.is_active,
-                }
-
-                players_data.append(player_data)
-
-                if assoc.is_primary:
-                    primary_player = player_data
-
-        user_data = {
-            "id": user.id,
-            "email": user.email,
-            "first_name": user.first_name,
-            "last_name": user.last_name,
-            "is_admin": user.is_admin,
-            "ad_deuce_preference": user.ad_deuce_preference,
-            "dominant_hand": user.dominant_hand,
-            "created_at": user.created_at.isoformat() if user.created_at else None,
-            "last_login": user.last_login.isoformat() if user.last_login else None,
-            "players": players_data,
-            "primary_player": primary_player,
+        
+        # Try to build session data using our session service
+        session_data = get_session_data_for_user(email)
+        
+        if not session_data:
+            logger.warning(f"get_session_data_for_user failed for {email}, building fallback session")
+            
+            # Try a simpler query to get basic player info if the complex one failed
+            basic_player_query = """
+                SELECT 
+                    upa.tenniscores_player_id,
+                    p.club_id,
+                    p.series_id,
+                    p.league_id,
+                    c.name as club,
+                    s.name as series,
+                    l.league_name,
+                    l.league_id as league_string_id
+                FROM users u
+                JOIN user_player_associations upa ON u.id = upa.user_id
+                LEFT JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id AND p.is_active = TRUE
+                LEFT JOIN clubs c ON p.club_id = c.id
+                LEFT JOIN series s ON p.series_id = s.id
+                LEFT JOIN leagues l ON p.league_id = l.id
+                WHERE u.email = %s
+                LIMIT 1
+            """
+            
+            player_info = execute_query_one(basic_player_query, [email])
+            
+            # Build fallback session with player data if found
+            session_data = {
+                "id": user.id,
+                "email": user.email,
+                "first_name": user.first_name,
+                "last_name": user.last_name,
+                "is_admin": user.is_admin,
+                "ad_deuce_preference": user.ad_deuce_preference or "",
+                "dominant_hand": user.dominant_hand or "",
+                "league_context": user.league_context,
+                "settings": "{}",
+            }
+            
+            # Add player info if found
+            if player_info:
+                session_data.update({
+                    "club": player_info.get("club") or "",
+                    "series": player_info.get("series") or "",
+                    "league_id": player_info.get("league_id"),
+                    "league_string_id": player_info.get("league_string_id") or "",
+                    "league_name": player_info.get("league_name") or "",
+                    "tenniscores_player_id": player_info.get("tenniscores_player_id") or "",
+                    "club_id": player_info.get("club_id"),
+                    "series_id": player_info.get("series_id"),
+                    "team_id": None,  # We'll skip team_id for simplicity in fallback
+                })
+                logger.info(f"Built fallback session with player data for {email}: {player_info.get('tenniscores_player_id')}")
+            else:
+                # No player associations found
+                session_data.update({
+                    "club": "",
+                    "series": "",
+                    "league_id": "",
+                    "league_string_id": "",
+                    "league_name": "",
+                    "tenniscores_player_id": "",
+                    "club_id": None,
+                    "series_id": None,
+                    "team_id": None,
+                })
+                logger.warning(f"No player associations found for {email}")
+        
+        # Log user activity
+        log_user_activity(email, "login", details={
+            "login_success": True,
+            "league_context": session_data.get("league_name"),
+            "player_id": session_data.get("tenniscores_player_id")
+        })
+        
+        logger.info(f"Login successful: {email} -> {session_data.get('league_name', 'No League')} (Player: {session_data.get('tenniscores_player_id', 'None')})")
+        
+        return {
+            "success": True,
+            "message": "Login successful",
+            "user": session_data
         }
-
-        # Log successful login (legacy system)
-        log_user_activity(
-            email,
-            "auth",
-            action="login",
-            details=f"Login successful. {len(players_data)} associated players",
-        )
-
-        # Log comprehensive activity (new system)
-        try:
-            log_activity(
-                action_type="login",
-                action_description=f"User {user.first_name} {user.last_name} logged in successfully",
-                user_id=user.id,
-                player_id=primary_player["id"] if primary_player else None,
-                team_id=None,  # We don't have team context during login
-                related_id=None,
-                related_type=None,
-                extra_data={
-                    "associated_players_count": len(players_data),
-                    "has_primary_player": primary_player is not None,
-                    "primary_player_club": (
-                        primary_player["club"]["name"] if primary_player else None
-                    ),
-                    "primary_player_series": (
-                        primary_player["series"]["name"] if primary_player else None
-                    ),
-                },
-            )
-        except Exception as e:
-            # Don't fail login if activity logging fails
-            logger.warning(f"Failed to log comprehensive activity for login: {str(e)}")
-
-        return {"success": True, "user": user_data, "message": "Login successful"}
-
+        
     except Exception as e:
-        logger.error(f"Login error: {str(e)}")
-        return {"success": False, "error": "Login failed - server error"}
-
+        logger.error(f"Authentication error for {email}: {str(e)}")
+        return {"success": False, "error": "Authentication failed"}
     finally:
         db_session.close()
 
@@ -985,6 +663,9 @@ def get_user_with_players(user_id: int) -> Optional[Dict[str, Any]]:
         for assoc in associations:
             player = assoc.get_player(db_session)
             if player and player.league and player.club and player.series:
+                # Handle is_primary gracefully for transition period
+                is_primary = getattr(assoc, 'is_primary', False)
+                
                 players_data.append(
                     {
                         "id": player.id,
@@ -993,7 +674,7 @@ def get_user_with_players(user_id: int) -> Optional[Dict[str, Any]]:
                         "club": player.club.name,
                         "series": player.series.name,
                         "tenniscores_player_id": player.tenniscores_player_id,
-                        "is_primary": assoc.is_primary,
+                        "is_primary": is_primary,
                     }
                 )
 
@@ -1071,8 +752,51 @@ def get_series_list(league_id: str = None) -> List[str]:
 
 def create_session_data(user_data: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Create session data from user record for compatibility with legacy session format
-    Converts new schema user data to legacy session format
+    Create enhanced session data with context support
+    Uses the new ContextService for multi-league/multi-team support
+    """
+    from app.services.context_service import ContextService
+    
+    # Handle both direct user dict and the response format
+    if "user" in user_data:
+        user = user_data["user"]
+    else:
+        user = user_data
+
+    # Get user ID
+    user_id = user.get("id")
+    
+    if not user_id:
+        # Fallback to legacy format if no user ID
+        logger.warning("No user ID provided, falling back to legacy session format")
+        return _create_legacy_session_data(user_data)
+    
+    try:
+        # Create enhanced session data with context information
+        enhanced_session = ContextService.create_enhanced_session_data(user, user_id)
+        
+        # Add legacy fields for backwards compatibility
+        enhanced_session.update({
+            "settings": "{}",  # Default empty settings
+            "club_automation_password": "",  # Legacy field, empty for security
+        })
+        
+        logger.info(f"Enhanced session created for user {user_id}: "
+                   f"League: {enhanced_session.get('league_name', 'None')}, "
+                   f"Team: {enhanced_session.get('context', {}).get('team_name', 'None')}")
+        
+        return enhanced_session
+        
+    except Exception as e:
+        logger.error(f"Error creating enhanced session data for user {user_id}: {e}")
+        # Fallback to legacy format
+        return _create_legacy_session_data(user_data)
+
+
+def _create_legacy_session_data(user_data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Fallback legacy session data creation
+    Used when enhanced context system fails
     """
     # Handle both direct user dict and the response format
     if "user" in user_data:
@@ -1128,28 +852,47 @@ def create_session_data(user_data: Dict[str, Any]) -> Dict[str, Any]:
                 "club_automation_password": "",  # Legacy field, empty for security
             }
         )
-
-        # Debug logging to verify tenniscores_player_id is properly set
-        logger.info(
-            f"Session data: tenniscores_player_id = {primary_player.get('tenniscores_player_id')}"
-        )
     else:
         # No player association - user has no league/club/series data
-        # With normalized schema, all player data comes from associations
-        league_name = league_id = club_name = series_name = tenniscores_player_id = ""
-
         session_data.update(
             {
-                "club": club_name,
-                "series": series_name,
-                "league_id": league_id,  # This will now be 'APTA_CHICAGO' instead of None
-                "league_name": league_name,
-                "tenniscores_player_id": tenniscores_player_id,  # Use loaded player ID instead of None
+                "club": "",
+                "series": "",
+                "league_id": "",
+                "league_name": "",
+                "tenniscores_player_id": "",
                 "club_automation_password": "",
             }
         )
 
     return session_data
+
+
+def update_user_league_context(user_id: int, league_id: int) -> bool:
+    """
+    Update user's league context for session persistence
+    Called when user switches leagues to remember their choice for next login
+    """
+    db_session = SessionLocal()
+    
+    try:
+        user = db_session.query(User).filter(User.id == user_id).first()
+        if not user:
+            logger.warning(f"User not found for ID: {user_id}")
+            return False
+        
+        user.league_context = league_id
+        db_session.commit()
+        
+        logger.info(f"Updated league context for user {user.email}: League ID {league_id}")
+        return True
+        
+    except Exception as e:
+        db_session.rollback()
+        logger.error(f"Error updating league context for user {user_id}: {str(e)}")
+        return False
+    finally:
+        db_session.close()
 
 
 def fix_team_assignments_for_existing_users() -> Dict[str, Any]:
