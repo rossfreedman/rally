@@ -32,7 +32,55 @@ def get_session_data_for_user(user_email: str) -> Optional[Dict[str, Any]]:
     """
     print(f"[SESSION_SERVICE] Getting session data for: {user_email}")
     try:
-        # Get user and their active player based on league_context
+        # FIRST: Check user's league_context and auto-fix if NULL
+        user_check_query = """
+            SELECT u.id, u.email, u.league_context
+            FROM users u
+            WHERE u.email = %s
+        """
+        user_info = execute_query_one(user_check_query, [user_email])
+        
+        if not user_info:
+            logger.warning(f"No user found for email: {user_email}")
+            print(f"[SESSION_SERVICE] No user found for: {user_email}")
+            return None
+        
+        # ROOT CAUSE FIX: If league_context is NULL, set it to user's primary league
+        if user_info["league_context"] is None:
+            print(f"[SESSION_SERVICE] User {user_email} has NULL league_context, finding primary league...")
+            
+            # Find user's primary league (most recent or first active association)
+            primary_league_query = """
+                SELECT l.id as league_db_id, l.league_name,
+                       COUNT(*) as player_count,
+                       MAX(p.created_at) as most_recent
+                FROM users u
+                JOIN user_player_associations upa ON u.id = upa.user_id
+                JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+                JOIN leagues l ON p.league_id = l.id
+                WHERE u.email = %s AND p.is_active = TRUE
+                GROUP BY l.id, l.league_name
+                ORDER BY most_recent DESC, player_count DESC
+                LIMIT 1
+            """
+            primary_league = execute_query_one(primary_league_query, [user_email])
+            
+            if primary_league:
+                primary_league_id = primary_league["league_db_id"]
+                print(f"[SESSION_SERVICE] Setting league_context to {primary_league['league_name']} (ID: {primary_league_id})")
+                
+                # Update user's league_context
+                from database_utils import execute_update
+                execute_update(
+                    "UPDATE users SET league_context = %s WHERE email = %s",
+                    [primary_league_id, user_email]
+                )
+                print(f"[SESSION_SERVICE] Updated league_context for {user_email}")
+            else:
+                print(f"[SESSION_SERVICE] No active player associations found for {user_email}")
+                return None
+        
+        # NOW: Get user and their active player based on league_context (which is now guaranteed to be set)
         session_query = """
             SELECT 
                 u.id,
