@@ -230,22 +230,87 @@ def get_series_stats_data():
             f"[DEBUG] Getting series stats for user series: {user_series}, league: {user_league_id}"
         )
 
+        # CRITICAL FIX: Apply reverse series mapping
+        # The user session contains database format (e.g., "S2B") but series_stats table 
+        # uses user-facing format (e.g., "Series 2B"). Need to convert database format to user format.
+        mapped_series = user_series  # Default to original
+        
+        if user_league_id:
+            # Convert league_id to string format needed by team_format_mappings table
+            league_id_str = None
+            if isinstance(user_league_id, int):
+                # Convert integer league_id to string league_id (e.g., 4554 -> "NSTF")
+                try:
+                    league_lookup = execute_query_one(
+                        "SELECT league_id FROM leagues WHERE id = %s", [user_league_id]
+                    )
+                    if league_lookup:
+                        league_id_str = league_lookup["league_id"]
+                    else:
+                        print(f"[DEBUG] Could not find string league_id for integer {user_league_id}")
+                except Exception as e:
+                    print(f"[DEBUG] Error looking up league_id: {e}")
+            else:
+                league_id_str = str(user_league_id)
+            
+            if league_id_str:
+                print(f"[DEBUG] Using league_id_str: {league_id_str} for mapping lookup")
+                
+                # Simplified fallback for NSTF series mapping (known working patterns)
+                if league_id_str == "NSTF" and user_series.startswith("S"):
+                    # NSTF database format: S2B -> Series 2B
+                    series_suffix = user_series[1:]  # Remove "S" prefix
+                    mapped_series = f"Series {series_suffix}"
+                    print(f"[DEBUG] Applied NSTF fallback mapping: '{user_series}' -> '{mapped_series}'")
+                else:
+                    # Try database query for other leagues
+                    try:
+                        reverse_mapping_query = """
+                            SELECT user_input_format
+                            FROM team_format_mappings
+                            WHERE league_id = %s 
+                            AND database_series_format = %s 
+                            AND is_active = true
+                            ORDER BY 
+                                CASE WHEN user_input_format LIKE 'Series%' THEN 1 
+                                     WHEN user_input_format LIKE 'Division%' THEN 2 
+                                     ELSE 3 END,
+                                LENGTH(user_input_format) DESC
+                            LIMIT 1
+                        """
+                        
+                        reverse_mapping = execute_query_one(reverse_mapping_query, [league_id_str, user_series])
+                        
+                        if reverse_mapping:
+                            mapped_series = reverse_mapping["user_input_format"]
+                            print(f"[DEBUG] Applied database reverse mapping: '{user_series}' -> '{mapped_series}' for league {league_id_str}")
+                        else:
+                            print(f"[DEBUG] No reverse mapping found for '{user_series}' in league {league_id_str}")
+                            
+                    except Exception as e:
+                        print(f"[DEBUG] Reverse mapping query failed: {e}")
+            else:
+                print(f"[DEBUG] Could not determine string league_id from {user_league_id}")
+
         # Convert league_id string to integer foreign key if needed
         league_id_int = None
         if user_league_id:
             try:
-                league_record = execute_query_one(
-                    "SELECT id FROM leagues WHERE league_id = %s", [user_league_id]
-                )
-                if league_record:
-                    league_id_int = league_record["id"]
-                    print(
-                        f"[DEBUG] Converted league_id '{user_league_id}' to integer: {league_id_int}"
+                if isinstance(user_league_id, int):
+                    league_id_int = user_league_id
+                else:
+                    league_record = execute_query_one(
+                        "SELECT id FROM leagues WHERE league_id = %s", [user_league_id]
                     )
+                    if league_record:
+                        league_id_int = league_record["id"]
+                        print(
+                            f"[DEBUG] Converted league_id '{user_league_id}' to integer: {league_id_int}"
+                        )
             except Exception as e:
                 print(f"[DEBUG] Could not convert league ID: {e}")
 
-        # Query series stats from database, filtering by user's series and league
+        # Query series stats from database, filtering by user's mapped series and league
         if league_id_int:
             series_stats_query = """
                 SELECT 
@@ -269,7 +334,7 @@ def get_series_stats_data():
                 WHERE s.series = %s AND s.league_id = %s
                 ORDER BY s.points DESC, s.team ASC
             """
-            db_results = execute_query(series_stats_query, [user_series, league_id_int])
+            db_results = execute_query(series_stats_query, [mapped_series, league_id_int])
         else:
             # Fallback without league filtering
             series_stats_query = """
@@ -292,9 +357,9 @@ def get_series_stats_data():
                 WHERE s.series = %s
                 ORDER BY s.points DESC, s.team ASC
             """
-            db_results = execute_query(series_stats_query, [user_series])
+            db_results = execute_query(series_stats_query, [mapped_series])
 
-        print(f"[DEBUG] Found {len(db_results)} teams in series '{user_series}'")
+        print(f"[DEBUG] Found {len(db_results)} teams in mapped series '{mapped_series}' (original: '{user_series}')")
 
         # Transform database results to match the expected frontend format
         teams = []
