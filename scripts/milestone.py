@@ -328,11 +328,12 @@ class MilestoneDeployment:
                 push_result = self.run_subprocess(["git", "push", "origin", f"{current_branch}:{target_branch}"])
                 
                 if not push_result or push_result.returncode != 0:
-                    # If target branch doesn't exist, create it
-                    print(f"📦 Creating new remote branch origin/{target_branch}...")
-                    push_result = self.run_subprocess(["git", "push", "origin", f"{current_branch}:{target_branch}"])
+                    # If push failed, try force push (for diverged branches)
+                    print(f"⚠️  Normal push failed, trying force push to origin/{target_branch}...")
+                    push_result = self.run_subprocess(["git", "push", "--force", "origin", f"{current_branch}:{target_branch}"])
                     if not push_result or push_result.returncode != 0:
-                        raise Exception(f"Failed to push {current_branch} to origin/{target_branch}")
+                        raise Exception(f"Failed to force push {current_branch} to origin/{target_branch}")
+                    print(f"✅ Force pushed {current_branch} to origin/{target_branch}")
             
             print(f"✅ Successfully deployed to origin/{target_branch} (stayed on {current_branch})")
             self.results["git_deployment"] = {
@@ -507,7 +508,7 @@ class MilestoneDeployment:
         ]
         
         for step_key, step_name in steps:
-            result = self.results.get(step_key, {})
+            result = self.results.get(step_key) or {}
             status = result.get("status", "not_run")
             message = result.get("message", "No details")
             
