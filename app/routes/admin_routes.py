@@ -78,8 +78,20 @@ def admin_required(f):
 
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if not session.get("user") or not session["user"].get("is_admin"):
-            return jsonify({"error": "Admin access required"}), 403
+        # Check if user is logged in
+        if not session.get("user"):
+            return jsonify({"error": "Authentication required"}), 401
+        
+        # Check if currently impersonating - if so, check original admin session
+        if session.get("impersonation_active"):
+            original_admin = session.get("original_admin_session", {})
+            if not original_admin.get("is_admin"):
+                return jsonify({"error": "Admin access required"}), 403
+        else:
+            # Normal check - current user must be admin
+            if not session["user"].get("is_admin"):
+                return jsonify({"error": "Admin access required"}), 403
+        
         return f(*args, **kwargs)
 
     return decorated_function
@@ -1666,12 +1678,13 @@ def start_impersonation():
                 primary_player = players_data[0]
             
             # Create target user's session data
+            # Note: We preserve admin status to avoid losing admin privileges during impersonation
             target_user_data = {
                 "id": user_record.id,
                 "email": user_record.email,
                 "first_name": user_record.first_name,
                 "last_name": user_record.last_name,
-                "is_admin": user_record.is_admin,
+                "is_admin": admin_session_backup.get("is_admin", False),  # Preserve original admin status
                 "ad_deuce_preference": user_record.ad_deuce_preference,
                 "dominant_hand": user_record.dominant_hand,
                 "players": players_data,
@@ -1823,3 +1836,5 @@ def get_impersonation_status():
     except Exception as e:
         print(f"Error checking impersonation status: {str(e)}")
         return jsonify({"error": f"Failed to check impersonation status: {str(e)}"}), 500
+
+
