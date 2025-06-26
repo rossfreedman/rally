@@ -840,56 +840,84 @@ def remove_practice_times_data():
         except Exception as e:
             print(f"Could not get league ID for user: {e}")
 
-        # Count practice entries before removal from database
+        # FIXED: Get user's team_id for precise practice time removal
+        user_team_id = None
+        try:
+            # Get user's team information using session service
+            from app.services.session_service import get_session_data_for_user
+            
+            session_data = get_session_data_for_user(user["email"])
+            if session_data:
+                user_team_id = session_data.get("team_id")
+                print(f"Found user team_id: {user_team_id} for practice time removal")
+        except Exception as e:
+            print(f"Could not get team ID for user: {e}")
+
+        if not user_team_id:
+            return jsonify({"success": False, "message": "Could not determine your team. Please check your profile settings."}), 400
+
+        # Count practice entries before removal using team_id for precision
         practice_description = f"{user_club} Practice - {user_series}"
 
+        # FIXED: Use team_id-based counting for accuracy
         practice_count_query = """
             SELECT COUNT(*) as count
             FROM schedule 
-            WHERE home_team = %(practice_desc)s
-            AND location = %(club)s
-            AND (league_id = %(league_id)s OR %(league_id)s IS NULL)
+            WHERE home_team_id = %(team_id)s
+            AND league_id = %(league_id)s
+            AND home_team = %(practice_desc)s
         """
 
         try:
             practice_count_result = execute_query_one(
                 practice_count_query,
                 {
-                    "practice_desc": practice_description,
-                    "club": user_club,
+                    "team_id": user_team_id,
                     "league_id": league_id,
+                    "practice_desc": practice_description,
                 },
             )
             practice_count = (
                 practice_count_result["count"] if practice_count_result else 0
             )
             print(
-                f"Found {practice_count} practice entries for {user_club} - {user_series} to remove"
+                f"Found {practice_count} practice entries for team_id {user_team_id} ({user_club} - {user_series}) to remove"
             )
         except Exception as e:
             print(f"Error counting practice entries: {e}")
             practice_count = 0
 
-        # Remove practice entries from database
+        if practice_count == 0:
+            return jsonify(
+                {
+                    "success": True,
+                    "message": "No practice times found to remove.",
+                    "count": 0,
+                    "series": user_series,
+                    "club": user_club,
+                }
+            )
+
+        # FIXED: Remove practice entries using team_id for precision and security
         try:
             delete_query = """
                 DELETE FROM schedule 
-                WHERE home_team = %(practice_desc)s
-                AND location = %(club)s
-                AND (league_id = %(league_id)s OR %(league_id)s IS NULL)
+                WHERE home_team_id = %(team_id)s
+                AND league_id = %(league_id)s
+                AND home_team = %(practice_desc)s
             """
 
             execute_query(
                 delete_query,
                 {
-                    "practice_desc": practice_description,
-                    "club": user_club,
+                    "team_id": user_team_id,
                     "league_id": league_id,
+                    "practice_desc": practice_description,
                 },
             )
 
             print(
-                f"Successfully removed {practice_count} practice entries from database"
+                f"Successfully removed {practice_count} practice entries for team_id {user_team_id}"
             )
 
         except Exception as e:
@@ -907,7 +935,7 @@ def remove_practice_times_data():
         log_user_activity(
             user["email"],
             "practice_times_removed",
-            details=f"Removed {practice_count} practice times for {user_series} at {user_club}",
+            details=f"Removed {practice_count} practice times for {user_series} at {user_club} (team_id: {user_team_id})",
         )
 
         return jsonify(
