@@ -2,7 +2,7 @@
 
 {% block content %}
 <div class="container mx-auto px-4 py-6">
-  <!-- Welcome Message -->
+  <!-- Welcome Message with League Switcher -->
   <div class="welcome-section text-center mb-8">
     <h1 class="text-2xl font-bold text-gray-800">
       {% if session_data and session_data.user and session_data.user.first_name %}
@@ -11,24 +11,33 @@
         Welcome back!
       {% endif %}
     </h1>
-    {% if session_data and session_data.user and session_data.user.series and session_data.user.club %}
-    <p class="text-sm text-gray-500 mt-2" id="userSeriesDisplay">
-      <span id="seriesNameDisplay">{{ session_data.user.series }}</span> @ {{ session_data.user.club }}
-    </p>
+    
+    {% if session_data and session_data.user and session_data.user.league_name %}
+    <div class="mt-3 flex items-center justify-center gap-2">
+      <div class="text-center">
+        <p class="text-sm text-gray-600" id="userLeagueDisplay">
+          <span class="font-medium">{{ session_data.user.league_name }}</span>
+          <span id="seriesNameDisplay">{{ session_data.user.series }}</span> @ {{ session_data.user.club }}
+        </p>
+      </div>
+      <button id="leagueSwitcherTrigger" class="text-gray-400 hover:text-blue-600 transition-colors p-1 rounded-full hover:bg-gray-100" aria-label="Switch League" title="Switch League">
+        <i class="fas fa-edit text-sm"></i>
+      </button>
+    </div>
     <script>
-             // Apply series alias transformation to the display
-       document.addEventListener('DOMContentLoaded', function() {
-         const seriesElement = document.getElementById('seriesNameDisplay');
-         if (seriesElement) {
-           const seriesName = seriesElement.textContent;
-           const numberMatch = seriesName.match(/(\d+)(\s+\w+)*$/);
-           if (numberMatch) {
-             const seriesNumber = numberMatch[1];
-             const suffix = numberMatch[2] || '';
-             seriesElement.textContent = `Series ${seriesNumber}${suffix}`;
-           }
-         }
-       });
+      // Apply series alias transformation to the display
+      document.addEventListener('DOMContentLoaded', function() {
+        const seriesElement = document.getElementById('seriesNameDisplay');
+        if (seriesElement) {
+          const seriesName = seriesElement.textContent;
+          const numberMatch = seriesName.match(/(\d+)(\s+\w+)*$/);
+          if (numberMatch) {
+            const seriesNumber = numberMatch[1];
+            const suffix = numberMatch[2] || '';
+            seriesElement.textContent = ` Series ${seriesNumber}${suffix}`;
+          }
+        }
+      });
     </script>
     {% endif %}
     
@@ -69,28 +78,28 @@
         </div>
       </a>
       
-      <a href="/mobile/availability-calendar" class="ios-card bg-green-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+      <a href="/mobile/availability-calendar" class="ios-card bg-blue-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
         <i class="fas fa-calendar-check text-white text-3xl mb-4 opacity-90"></i>
         <div class="text-left">
           <span class="block text-lg font-semibold">Update Availability</span>
         </div>
       </a>
       
-      <a href="/mobile/track-byes-courts" class="ios-card bg-orange-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+      <a href="/mobile/track-byes-courts" class="ios-card bg-blue-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
         <i class="fas fa-clipboard-check text-white text-3xl mb-4 opacity-90"></i>
         <div class="text-left">
           <span class="block text-lg font-semibold">Track Assignments</span>
         </div>
       </a>
       
-      <a href="/mobile/polls" class="ios-card bg-teal-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+      <a href="/mobile/polls" class="ios-card bg-blue-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
         <i class="fas fa-poll text-white text-3xl mb-4 opacity-90"></i>
         <div class="text-left">
           <span class="block text-lg font-semibold">Respond to Polls</span>
         </div>
       </a>
       
-      <a href="/mobile/reserve-court" class="ios-card bg-red-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+      <a href="/mobile/reserve-court" class="ios-card bg-blue-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
         <i class="fas fa-table-tennis text-white text-3xl mb-4 opacity-90"></i>
         <div class="text-left">
           <span class="block text-lg font-semibold">Reserve a Court</span>
@@ -116,7 +125,7 @@
         </div>
       </a>
       
-      <a href="/mobile/pickup-games" class="ios-card bg-indigo-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+      <a href="/mobile/pickup-games" class="ios-card bg-purple-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
         <i class="fas fa-calendar-plus text-white text-3xl mb-4 opacity-90"></i>
         <div class="text-left">
           <span class="block text-lg font-semibold">View Pickup Games</span>
@@ -142,21 +151,21 @@
         </div>
       </a>
       
-      <a href="/mobile/myteam" class="ios-card bg-rose-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+      <a href="/mobile/myteam" class="ios-card bg-indigo-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
         <i class="fas fa-users text-white text-3xl mb-4 opacity-90"></i>
         <div class="text-left">
           <span class="block text-lg font-semibold">My Team</span>
         </div>
       </a>
       
-      <a href="/mobile/myseries" class="ios-card bg-orange-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+      <a href="/mobile/myseries" class="ios-card bg-indigo-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
         <i class="fas fa-trophy text-white text-3xl mb-4 opacity-90"></i>
         <div class="text-left">
           <span class="block text-lg font-semibold">My Series</span>
         </div>
       </a>
       
-      <a href="/mobile/my-club" class="ios-card bg-cyan-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+      <a href="/mobile/my-club" class="ios-card bg-indigo-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
         <i class="fas fa-building text-white text-3xl mb-4 opacity-90"></i>
         <div class="text-left">
           <span class="block text-lg font-semibold">My Club</span>
@@ -182,7 +191,7 @@
         </div>
       </a>
       
-      <a href="/mobile/teams-players" class="ios-card bg-violet-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+      <a href="/mobile/teams-players" class="ios-card bg-pink-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
         <i class="fas fa-users text-white text-3xl mb-4 opacity-90"></i>
         <div class="text-left">
           <span class="block text-lg font-semibold">Research Opponent Teams</span>
@@ -192,7 +201,7 @@
     
     <!-- Matchup Simulator - Full Width -->
     <div class="grid grid-cols-1">
-      <a href="/mobile/matchup-simulator" class="ios-card bg-slate-700 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+      <a href="/mobile/matchup-simulator" class="ios-card bg-pink-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
         <i class="fas fa-chart-line text-white text-3xl mb-4 opacity-90"></i>
         <div class="text-left">
           <span class="block text-lg font-semibold mb-1">Matchup Simulator</span>
@@ -219,7 +228,7 @@
         </div>
       </a>
       
-      <a href="/mobile/schedule-lesson" class="ios-card bg-cyan-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+      <a href="/mobile/schedule-lesson" class="ios-card bg-emerald-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
         <i class="fas fa-user-graduate text-white text-3xl mb-4 opacity-90"></i>
         <div class="text-left">
           <span class="block text-lg font-semibold">Schedule Lesson with Pro</span>
@@ -245,42 +254,42 @@
         </div>
       </a>
       
-      <a href="/mobile/find-subs" class="ios-card bg-lime-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+      <a href="/mobile/find-subs" class="ios-card bg-sky-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
         <i class="fas fa-user-plus text-white text-3xl mb-4 opacity-90"></i>
         <div class="text-left">
           <span class="block text-lg font-semibold">Find Subs</span>
         </div>
       </a>
       
-      <a href="/mobile/lineup-selection" class="ios-card bg-amber-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+      <a href="/mobile/lineup-selection" class="ios-card bg-sky-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
         <i class="fas fa-clipboard-list text-white text-3xl mb-4 opacity-90"></i>
         <div class="text-left">
           <span class="block text-lg font-semibold">Create Lineup</span>
         </div>
       </a>
       
-      <a href="/mobile/lineup-escrow" class="ios-card bg-purple-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+      <a href="/mobile/lineup-escrow" class="ios-card bg-sky-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
         <i class="fas fa-lock text-white text-3xl mb-4 opacity-90"></i>
         <div class="text-left">
           <span class="block text-lg font-semibold">Lineup Escrow</span>
         </div>
       </a>
       
-      <a href="/mobile/polls" class="ios-card bg-teal-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+      <a href="/mobile/polls" class="ios-card bg-sky-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
         <i class="fas fa-poll text-white text-3xl mb-4 opacity-90"></i>
         <div class="text-left">
           <span class="block text-lg font-semibold">Team Polls</span>
         </div>
       </a>
       
-      <a href="/mobile/track-byes-courts" class="ios-card bg-orange-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+      <a href="/mobile/track-byes-courts" class="ios-card bg-sky-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
         <i class="fas fa-edit text-white text-3xl mb-4 opacity-90"></i>
         <div class="text-left">
           <span class="block text-lg font-semibold">Update Byes & Assignments</span>
         </div>
       </a>
       
-      <a href="/mobile/practice-times" class="ios-card bg-yellow-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+      <a href="/mobile/practice-times" class="ios-card bg-sky-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
         <i class="fas fa-clock text-white text-3xl mb-4 opacity-90"></i>
         <div class="text-left">
           <span class="block text-lg font-semibold">Practice Times</span>
@@ -310,4 +319,111 @@
   </div>
   {% endif %}
 </div>
+
+<!-- League Switching Modal (Only on home page) -->
+{% if session_data and session_data.user and session_data.user.league_name %}
+<div id="leagueSwitcherModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-xl max-w-sm w-full max-h-96 overflow-hidden">
+        <!-- Modal Header -->
+        <div class="px-6 py-4 bg-black border-b border-gray-700 flex items-center justify-between">
+            <h3 class="text-lg font-semibold text-white">
+                Switch League
+            </h3>
+            <button id="closeLeagueModal" class="text-gray-300 hover:text-white transition-colors text-xl font-bold">
+                ×
+            </button>
+        </div>
+        
+        <!-- Current League Display -->
+        <div class="px-6 py-4" style="background: linear-gradient(135deg, #16a34a, #15803d); border-bottom: 2px solid #166534;">
+            <div class="flex items-center gap-3 mb-3">
+                <span class="bg-white text-green-700 px-3 py-1 rounded-full text-xs font-bold shadow-sm">
+                    CURRENT
+                </span>
+                <span class="text-white font-bold text-sm uppercase tracking-wide">ACTIVE LEAGUE</span>
+            </div>
+            <div class="font-bold text-white text-lg mb-1">{{ session_data.user.league_name }}</div>
+            <div class="text-white text-sm">{{ session_data.user.club }} - {{ session_data.user.series }}</div>
+        </div>
+        
+        <!-- Available League Options -->
+        <div class="p-4 bg-gray-50">
+            <div class="text-sm font-bold text-gray-800 mb-3 uppercase tracking-wide">
+                Switch to Different League
+            </div>
+            <div class="space-y-2">
+                {% if session_data.user.league_string_id != 'APTA_CHICAGO' %}
+                <button onclick="switchLeague('APTA_CHICAGO')" 
+                        class="league-switch-btn w-full flex items-center justify-between p-4 rounded-lg bg-white hover:bg-blue-50 transition-all duration-200 border-2 border-gray-300 hover:border-blue-400 hover:shadow-md group">
+                    <div class="text-left">
+                        <div class="font-bold text-gray-900 group-hover:text-blue-900">APTA Chicago</div>
+                        <div class="text-sm text-gray-600 group-hover:text-blue-700">Paddle tennis league</div>
+                    </div>
+                    <div class="bg-blue-500 group-hover:bg-blue-600 text-white px-3 py-1 rounded-md text-sm font-medium">
+                        Switch
+                    </div>
+                </button>
+                {% endif %}
+                
+                {% if session_data.user.league_string_id != 'NSTF' %}
+                <button onclick="switchLeague('NSTF')" 
+                        class="league-switch-btn w-full flex items-center justify-between p-4 rounded-lg bg-white hover:bg-blue-50 transition-all duration-200 border-2 border-gray-300 hover:border-blue-400 hover:shadow-md group">
+                    <div class="text-left">
+                        <div class="font-bold text-gray-900 group-hover:text-blue-900">North Shore Tennis Foundation</div>
+                        <div class="text-sm text-gray-600 group-hover:text-blue-700">Tennis league</div>
+                    </div>
+                    <div class="bg-blue-500 group-hover:bg-blue-600 text-white px-3 py-1 rounded-md text-sm font-medium">
+                        Switch
+                    </div>
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Initialize league switcher modal functionality (only on home page)
+document.addEventListener('DOMContentLoaded', function() {
+    const leagueSwitcherTrigger = document.getElementById('leagueSwitcherTrigger');
+    const leagueSwitcherModal = document.getElementById('leagueSwitcherModal');
+    const closeLeagueModal = document.getElementById('closeLeagueModal');
+    
+    if (leagueSwitcherTrigger && leagueSwitcherModal) {
+        // Open modal
+        leagueSwitcherTrigger.addEventListener('click', function(e) {
+            e.preventDefault();
+            leagueSwitcherModal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden'; // Prevent background scrolling
+        });
+        
+        // Close modal with X button
+        if (closeLeagueModal) {
+            closeLeagueModal.addEventListener('click', function(e) {
+                e.preventDefault();
+                leagueSwitcherModal.classList.add('hidden');
+                document.body.style.overflow = ''; // Restore scrolling
+            });
+        }
+        
+        // Close modal when clicking outside
+        leagueSwitcherModal.addEventListener('click', function(e) {
+            if (e.target === leagueSwitcherModal) {
+                leagueSwitcherModal.classList.add('hidden');
+                document.body.style.overflow = ''; // Restore scrolling
+            }
+        });
+        
+        // Close on escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && !leagueSwitcherModal.classList.contains('hidden')) {
+                leagueSwitcherModal.classList.add('hidden');
+                document.body.style.overflow = ''; // Restore scrolling
+            }
+        });
+    }
+});
+</script>
+{% endif %}
+
 {% endblock %} 

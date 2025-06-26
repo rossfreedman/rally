@@ -305,17 +305,195 @@ def get_player_analysis_by_name(player_name, viewing_user=None):
 
 
 def get_mobile_schedule_data(user):
-    """Get schedule data for mobile view schedule page"""
+    """Get schedule data for mobile view schedule page using team_id for accurate filtering"""
     try:
-        # TODO: Extract schedule logic from server.py mobile route
+        # Get user's current session data 
+        user_email = user.get("email")
+        if not user_email:
+            return {"matches": [], "user_name": "", "error": "User email not found"}
+        
+        # Use session service to get current league context
+        from app.services.session_service import get_session_data_for_user
+        session_data = get_session_data_for_user(user_email)
+        
+        if not session_data:
+            return {"matches": [], "user_name": user_email, "error": "Session data not found"}
+            
+        player_id = session_data.get("tenniscores_player_id")
+        league_id = session_data.get("league_id") 
+        
+        if not player_id:
+            return {"matches": [], "user_name": user_email, "error": "Player ID not found in session"}
+        
+        # Get user's team ID for accurate filtering
+        team_query = """
+            SELECT DISTINCT
+                t.id as team_id,
+                t.team_name,
+                c.name as club_name,
+                s.name as series_name,
+                l.league_name,
+                l.id as league_db_id
+            FROM players p
+            JOIN teams t ON (
+                p.club_id = t.club_id AND 
+                p.series_id = t.series_id AND
+                p.league_id = t.league_id
+            )
+            JOIN clubs c ON t.club_id = c.id
+            JOIN series s ON t.series_id = s.id
+            JOIN leagues l ON t.league_id = l.id
+            WHERE p.tenniscores_player_id = %s
+            AND p.is_active = TRUE
+            ORDER BY l.league_name
+        """
+        
+        team_info = execute_query_one(team_query, [player_id])
+        
+        if not team_info:
+            return {
+                "matches": [], 
+                "user_name": user_email, 
+                "error": f"No active team found for player {player_id}"
+            }
+        
+        # Use team_id from session if available, otherwise use team lookup
+        user_team_id = session_data.get("team_id")
+        if not user_team_id:
+            # Fallback: get team_id from team lookup
+            user_team_id = team_info["team_id"]
+            
+        team_name = team_info["team_name"]
+        league_db_id = team_info["league_db_id"]
+        
+        print(f"[DEBUG] Schedule lookup: team_id={user_team_id}, team_name='{team_name}', league_db_id={league_db_id}")
+        
+        # Get schedule data from database using TEAM_ID filtering for accuracy
+        # First try to get upcoming matches (future + recent past)
+        schedule_query = """
+            SELECT 
+                TO_CHAR(match_date, 'YYYY-MM-DD') as match_date,
+                TO_CHAR(match_date, 'Day, Mon DD') as formatted_date,
+                TO_CHAR(match_time, 'HH12:MI AM') as match_time,
+                home_team,
+                away_team,
+                location,
+                'match' as event_type,
+                CASE 
+                    WHEN home_team_id = %s THEN 'home'
+                    WHEN away_team_id = %s THEN 'away'
+                    ELSE 'neutral'
+                END as home_away,
+                CASE 
+                    WHEN home_team_id = %s THEN away_team
+                    WHEN away_team_id = %s THEN home_team
+                    ELSE 'Unknown'
+                END as opponent,
+                CASE 
+                    WHEN match_date >= CURRENT_DATE THEN 'upcoming'
+                    ELSE 'past'
+                END as status
+            FROM schedule
+            WHERE (home_team_id = %s OR away_team_id = %s)
+            AND league_id = %s
+            AND match_date >= CURRENT_DATE - INTERVAL '30 days'
+            ORDER BY match_date ASC, match_time ASC
+            LIMIT 20
+        """
+        
+        schedule_matches = execute_query(schedule_query, [
+            user_team_id, user_team_id, user_team_id, user_team_id, user_team_id, user_team_id, league_db_id
+        ])
+        
+        # If no recent/upcoming matches, get the most recent completed matches
+        if not schedule_matches:
+            recent_matches_query = """
+                SELECT 
+                    TO_CHAR(match_date, 'YYYY-MM-DD') as match_date,
+                    TO_CHAR(match_date, 'Day, Mon DD') as formatted_date,
+                    TO_CHAR(match_time, 'HH12:MI AM') as match_time,
+                    home_team,
+                    away_team,
+                    location,
+                    'match' as event_type,
+                    CASE 
+                        WHEN home_team_id = %s THEN 'home'
+                        WHEN away_team_id = %s THEN 'away'
+                        ELSE 'neutral'
+                    END as home_away,
+                    CASE 
+                        WHEN home_team_id = %s THEN away_team
+                        WHEN away_team_id = %s THEN home_team
+                        ELSE 'Unknown'
+                    END as opponent,
+                    'past' as status
+                FROM schedule
+                WHERE (home_team_id = %s OR away_team_id = %s)
+                AND league_id = %s
+                ORDER BY match_date DESC, match_time DESC
+                LIMIT 10
+            """
+            
+            schedule_matches = execute_query(recent_matches_query, [
+                user_team_id, user_team_id, user_team_id, user_team_id, user_team_id, user_team_id, league_db_id
+            ])
+        
+        # Practice times would go here when practice_times table exists
+        practice_times = []
+        
+        # Format matches for mobile display
+        formatted_matches = []
+        for match in (schedule_matches or []):
+            # Add status indicator to formatted date
+            status_indicator = "🕐" if match.get("status") == "upcoming" else "✅"
+            formatted_date_with_status = f"{status_indicator} {match['formatted_date']}"
+            
+            formatted_matches.append({
+                "date": match["match_date"],
+                "formatted_date": formatted_date_with_status, 
+                "time": match["match_time"],
+                "home_team": match["home_team"],
+                "away_team": match["away_team"],
+                "location": match["location"],
+                "event_type": match["event_type"],
+                "home_away": match["home_away"],
+                "opponent": match["opponent"],
+                "status": match.get("status", "past")
+            })
+        
+        # Format practice times
+        formatted_practices = []
+        for practice in (practice_times or []):
+            formatted_practices.append({
+                "day": practice["practice_day"],
+                "time": practice["practice_time"], 
+                "location": practice["practice_location"],
+                "event_type": "practice"
+            })
+        
+        print(f"[DEBUG] Found {len(formatted_matches)} matches and {len(formatted_practices)} practices")
+        
         return {
-            "matches": [],
-            "user_name": user.get("email", ""),
-            "error": "Function not yet extracted from server.py",
+            "matches": formatted_matches,
+            "practices": formatted_practices,
+            "user_name": f"{session_data.get('first_name', '')} {session_data.get('last_name', '')}".strip(),
+            "team_name": team_name,
+            "club_name": team_info["club_name"],
+            "series_name": team_info["series_name"],
+            "league_name": team_info["league_name"],
+            "total_events": len(formatted_matches) + len(formatted_practices)
         }
+        
     except Exception as e:
         print(f"Error getting mobile schedule data: {str(e)}")
-        return {"error": str(e)}
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
+        return {
+            "matches": [],
+            "practices": [],
+            "user_name": user.get("email", ""),
+            "error": str(e)
+        }
 
 
 def get_player_analysis(user):
@@ -395,18 +573,21 @@ def get_player_analysis(user):
         print(f"  league_name: {user.get('league_name')}")
         print(f"  tenniscores_player_id: {user.get('tenniscores_player_id')}")
 
-        # Force refresh league data from database to avoid stale session data
+        # Force refresh league data from database respecting user's league_context
         if hasattr(user, "get") and user.get("email"):
             try:
                 fresh_user_data = execute_query_one(
                     """
-                    SELECT u.id, u.email, u.first_name, u.last_name,
+                    SELECT u.id, u.email, u.first_name, u.last_name, u.league_context,
                            p.tenniscores_player_id, l.id as league_db_id, l.league_id, l.league_name
                     FROM users u
                     JOIN user_player_associations upa ON u.id = upa.user_id
                     JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
                     JOIN leagues l ON p.league_id = l.id
-                    WHERE u.email = %s AND upa.is_primary = true
+                    WHERE u.email = %s 
+                    AND (u.league_context IS NULL OR p.league_id = u.league_context)
+                    ORDER BY (CASE WHEN p.league_id = u.league_context THEN 1 ELSE 2 END)
+                    LIMIT 1
                 """,
                     [user["email"]],
                 )
@@ -1202,150 +1383,196 @@ def get_player_analysis(user):
 
 
 def get_mobile_availability_data(user):
-    """Get availability data for mobile availability page"""
+    """Get availability data for mobile availability page using team_id for accurate filtering"""
     try:
-        # Get matches and practices for the user's series
+        # Import database utilities at the top
+        from database_utils import execute_query, execute_query_one
+        
+        # Get user's team information using session service
+        from app.services.session_service import get_session_data_for_user
+        
         user_email = user.get("email", "")
+        session_data = get_session_data_for_user(user_email)
+        
+        if not session_data:
+            return {
+                "match_avail_pairs": [],
+                "players": [{"name": user_email}],
+                "error": "Could not load session data"
+            }
+        
+        team_id = session_data.get("team_id")
+        league_id = session_data.get("league_id")  # integer DB ID
+        player_name = f"{session_data.get('first_name', '')} {session_data.get('last_name', '')}".strip()
+        
+        if not team_id:
+            return {
+                "match_avail_pairs": [],
+                "players": [{"name": player_name}],
+                "error": "No team ID found in session"
+            }
+        
+        print(f"Getting availability data for user: {user_email}, team_id: {team_id}, league_id: {league_id}")
 
-        print(f"Getting availability data for user: {user_email}")
-
-        # Get user's club and series from database
-        user_query = """
-            SELECT u.email, c.name as club_name, s.name as series_name
-            FROM users u 
-            LEFT JOIN clubs c ON u.club_id = c.id 
-            LEFT JOIN series s ON u.series_id = s.id 
-            WHERE u.email = %s
+        # Get upcoming matches/practices using team_id only (clean approach)
+        # Use a very simple query to avoid any SQL parsing issues
+        print(f"[DEBUG] Getting matches for team_id={team_id}, league_id={league_id}")
+        
+        simple_query = """
+        SELECT 
+            match_date as date, 
+            match_time as time, 
+            home_team, 
+            away_team, 
+            location
+        FROM schedule 
+        WHERE home_team_id = %s OR away_team_id = %s
         """
-
-        user_result = execute_query_one(user_query, (user_email,))
-
-        if not user_result:
-            print(f"No user found for email: {user_email}")
-            return {
-                "match_avail_pairs": [],
-                "players": [{"name": user_email}],
-                "error": "User not found in database",
+        
+        print(f"[DEBUG] Executing simple query with params: {(team_id, team_id)}")
+        user_matches = execute_query(simple_query, (team_id, team_id))
+        
+        # Filter manually for league (removed future date filter)
+        filtered_matches = []
+        
+        for match in user_matches:
+            match_date = match.get('date')
+            if match_date:
+                # Add type field manually
+                home_team = match.get('home_team', '')
+                match['type'] = 'practice' if 'Practice' in home_team else 'match'
+                filtered_matches.append(match)
+        
+        user_matches = filtered_matches
+        
+        print(f"Found {len(user_matches)} upcoming matches/practices for team_id {team_id}")
+        
+        # Format matches for the template
+        formatted_matches = []
+        for match in user_matches:
+            # Format raw date and time values from database
+            raw_date = match.get("date")
+            raw_time = match.get("time")
+            
+            # Format date as MM/DD/YYYY
+            formatted_date = ""
+            if raw_date:
+                formatted_date = raw_date.strftime("%m/%d/%Y")
+            
+            # Format time as HH:MM AM/PM
+            formatted_time = ""
+            if raw_time:
+                # raw_time is a time object, format it
+                formatted_time = raw_time.strftime("%I:%M %p").lstrip('0')
+            
+            match_data = {
+                "date": formatted_date,
+                "time": formatted_time,
+                "location": match.get("location", ""),
+                "home_team": match.get("home_team", ""),
+                "away_team": match.get("away_team", ""),
+                "type": match.get("type", "match")
             }
-
-        club_name = user_result.get("club_name", "")
-        series_name = user_result.get("series_name", "")
-
-        print(f"User club: {club_name}, series: {series_name}")
-
-        # Get matches from database for this club/series
-        try:
-            from database_utils import execute_query
-
-            # Query the database for upcoming matches for this user's club and series
-            all_matches = execute_query(
-                """
-                SELECT 
-                    TO_CHAR(s.match_date, 'MM/DD/YYYY') as date,
-                    TO_CHAR(s.match_time, 'HH12:MI AM') as time,
-                    s.home_team,
-                    s.away_team,
-                    s.location,
-                    l.league_id
-                FROM schedule s
-                LEFT JOIN leagues l ON s.league_id = l.id
-                WHERE s.match_date >= CURRENT_DATE
-                ORDER BY s.match_date, s.match_time
+            formatted_matches.append(match_data)
+            
+            if match.get("type") == "practice":
+                print(f"  ✓ Practice found: {match.get('home_team')} on {match.get('date')}")
+            else:
+                print(f"  ✓ Match found: {match.get('home_team')} vs {match.get('away_team')} on {match.get('date')}")
+        
+        # Get the user's player ID for availability lookup
+        player_record = None
+        if session_data.get("tenniscores_player_id"):
+            # Try by tenniscores_player_id first (preferred)
+            player_query = """
+                SELECT id, tenniscores_player_id, series_id 
+                FROM players 
+                WHERE tenniscores_player_id = %s AND league_id = %s
             """
-            )
-
-            print(f"[DEBUG] Loaded {len(all_matches)} total matches from database")
-
-            # Filter matches for this user's club
-            user_matches = []
-            for match in all_matches:
-                home_team = match.get("home_team", "")
-                away_team = match.get("away_team", "")
-                practice_field = match.get("Practice", "")
-
-                # Extract series number from series name (e.g., "Chicago 22" -> "22")
-                series_number = None
-                if series_name:
-                    # Handle different series name formats
-                    if "Chicago" in series_name:
-                        # Extract number from "Chicago 22" format
-                        parts = series_name.split()
-                        if len(parts) >= 2 and parts[-1].isdigit():
-                            series_number = parts[-1]
+            player_record = execute_query_one(player_query, (session_data["tenniscores_player_id"], league_id))
+        
+        if not player_record:
+            # Fallback: try by player name and series
+            series_id = session_data.get("series_id")
+            if series_id:
+                player_query = """
+                    SELECT id, tenniscores_player_id, series_id 
+                    FROM players 
+                    WHERE player_name = %s AND series_id = %s AND league_id = %s
+                """
+                player_record = execute_query_one(player_query, (player_name, series_id, league_id))
+        
+        # Get availability data for this player
+        availability_data = {}
+        if player_record:
+            player_id = player_record["id"]
+            series_id = player_record["series_id"]
+            
+            print(f"Getting availability for player_id={player_id}, series_id={series_id}")
+            
+            availability_query = """
+                SELECT 
+                    DATE(match_date AT TIME ZONE 'UTC') as match_date,
+                    availability_status, 
+                    notes 
+                FROM player_availability 
+                WHERE player_id = %s AND series_id = %s
+            """
+            availability_records = execute_query(availability_query, (player_id, series_id))
+            
+            # Map numeric status to string status for template
+            status_map = {
+                1: "available",
+                2: "unavailable", 
+                3: "not_sure",
+                None: None  # No selection made
+            }
+            
+            # Build availability lookup by date
+            for avail in availability_records:
+                match_date = avail["match_date"]
+                if match_date:
+                    # Convert date object to MM/DD/YYYY format
+                    if hasattr(match_date, 'strftime'):
+                        date_key = match_date.strftime("%m/%d/%Y")
                     else:
-                        # If series name is just a number or different format
-                        import re
+                        # Handle case where it's a string
+                        date_key = str(match_date)
+                        
+                    numeric_status = avail["availability_status"]
+                    string_status = status_map.get(numeric_status)
+                    availability_data[date_key] = {
+                        "status": string_status,
+                        "notes": avail.get("notes", "")
+                    }
+            
+            print(f"Found availability data for {len(availability_data)} dates")
+        else:
+            print(f"No player record found for {player_name} in league {league_id}")
 
-                        number_match = re.search(r"\d+", series_name)
-                        if number_match:
-                            series_number = number_match.group()
+        # Create match-availability pairs with actual availability data
+        match_avail_pairs = []
+        for match in formatted_matches:
+            match_date = match["date"]  # Already in MM/DD/YYYY format
+            
+            # Get availability for this date
+            availability = availability_data.get(match_date, {"status": None, "notes": ""})
+            match_avail_pairs.append((match, availability))
 
-                print(
-                    f"Looking for club '{club_name}' with series number '{series_number}'"
-                )
-
-                # Check if this match involves the user's club AND series
-                def team_matches_user(team_name):
-                    if not team_name or not club_name:
-                        return False
-
-                    # Check if club name is in team name
-                    if club_name not in team_name:
-                        return False
-
-                    # If we have a series number, check that it matches
-                    if series_number:
-                        # Team format is like "Tennaqua - 22" (updated format)
-                        # Look for the series number in the team name
-                        team_parts = team_name.split(" - ")
-                        if len(team_parts) >= 2:
-                            # Check if the last part matches our series number
-                            team_series = team_parts[-1].strip()
-                            if team_series != series_number:
-                                return False
-                        else:
-                            # If team name doesn't have the expected format, be more flexible
-                            # but still try to match series number
-                            import re
-
-                            team_numbers = re.findall(r"\b\d+\b", team_name)
-                            if team_numbers and series_number not in team_numbers:
-                                return False
-
-                    return True
-
-                # Check home team, away team, and practice field
-                if (
-                    team_matches_user(home_team)
-                    or team_matches_user(away_team)
-                    or (practice_field and team_matches_user(practice_field))
-                ):
-                    user_matches.append(match)
-                    print(f"  ✓ Match found: {home_team} vs {away_team}")
-
-            print(
-                f"Found {len(user_matches)} matches for user's club '{club_name}' in series '{series_name}'"
-            )
-
-            # For now, return basic structure
-            return {
-                "match_avail_pairs": [
-                    (match, {"status": None}) for match in user_matches
-                ],
-                "players": [{"name": user_email}],
-            }
-
-        except Exception as e:
-            print(f"Error loading schedules: {str(e)}")
-            return {
-                "match_avail_pairs": [],
-                "players": [{"name": user_email}],
-                "error": f"Error loading schedules: {str(e)}",
-            }
+        return {
+            "match_avail_pairs": match_avail_pairs,
+            "players": [{"name": player_name}],
+        }
 
     except Exception as e:
         print(f"Error getting mobile availability data: {str(e)}")
-        return {"error": str(e)}
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
+        return {
+            "match_avail_pairs": [],
+            "players": [{"name": user.get("email", "Unknown")}],
+            "error": str(e)
+        }
 
 
 def get_recent_matches_for_user_club(user):
@@ -1398,12 +1625,14 @@ def get_recent_matches_for_user_club(user):
                 if user_email:
                     print(f"[DEBUG] get_recent_matches: No league in session, looking up primary association for {user_email}")
                     primary_league_query = """
-                        SELECT l.id, l.league_id, l.league_name
+                        SELECT l.id, l.league_id, l.league_name, u.league_context
                         FROM users u
-                        JOIN user_player_associations upa ON u.id = upa.user_id AND upa.is_primary = true
+                        JOIN user_player_associations upa ON u.id = upa.user_id
                         JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
                         JOIN leagues l ON p.league_id = l.id
-                        WHERE u.email = %s
+                        WHERE u.email = %s 
+                        AND (u.league_context IS NULL OR p.league_id = u.league_context)
+                        ORDER BY (CASE WHEN p.league_id = u.league_context THEN 1 ELSE 2 END)
                         LIMIT 1
                     """
                     primary_league = execute_query_one(primary_league_query, [user_email])
@@ -2001,11 +2230,14 @@ def get_mobile_club_data(user):
                 user_email = user.get("email", "")
                 if user_email:
                     primary_league_query = """
-                        SELECT l.id FROM users u
-                        JOIN user_player_associations upa ON u.id = upa.user_id AND upa.is_primary = true
+                        SELECT l.id, u.league_context FROM users u
+                        JOIN user_player_associations upa ON u.id = upa.user_id
                         JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
                         JOIN leagues l ON p.league_id = l.id
-                        WHERE u.email = %s LIMIT 1
+                        WHERE u.email = %s 
+                        AND (u.league_context IS NULL OR p.league_id = u.league_context)
+                        ORDER BY (CASE WHEN p.league_id = u.league_context THEN 1 ELSE 2 END)
+                        LIMIT 1
                     """
                     primary_league = execute_query_one(primary_league_query, [user_email])
                     if primary_league:
@@ -2511,6 +2743,7 @@ def get_club_players_data(
         # Get user's club and league from user data
         user_club = user.get("club")
         user_league_id = user.get("league_id", "")
+        user_league_context = user.get("league_context")  # This should be the integer DB ID
 
         if club_only and not user_club:
             return {
@@ -2522,50 +2755,171 @@ def get_club_players_data(
             }
 
         print(f"\n=== DEBUG: get_club_players_data ===")
-        print(f"User club: '{user_club}', league_id: '{user_league_id}'")
+        print(f"User club: '{user_club}', league_id: '{user_league_id}', league_context: '{user_league_context}'")
         print(f"Club only: {club_only}")
         print(
             f"Filters - Series: {series_filter}, First: {first_name_filter}, Last: {last_name_filter}, PTI: {pti_min}-{pti_max}"
         )
 
-        # Load fresh player data - revert to original working approach for now
-        all_players = _load_players_data()
+        # Get the correct league database ID
+        user_league_db_id = None
+        
+        # First try league_context (should be integer DB ID)
+        if user_league_context:
+            try:
+                user_league_db_id = int(user_league_context)
+                print(f"Using league_context as DB ID: {user_league_db_id}")
+            except (ValueError, TypeError):
+                print(f"league_context is not a valid integer: {user_league_context}")
 
-        if not all_players:
+        # Fallback: convert string league_id to DB ID
+        if not user_league_db_id and user_league_id:
+            try:
+                if isinstance(user_league_id, int):
+                    user_league_db_id = user_league_id
+                    print(f"league_id is already integer: {user_league_db_id}")
+                else:
+                    # Convert string league_id to integer DB ID
+                    from database_utils import execute_query_one
+                    league_record = execute_query_one(
+                        "SELECT id FROM leagues WHERE league_id = %s", [user_league_id]
+                    )
+                    if league_record:
+                        user_league_db_id = league_record["id"]
+                        print(f"Converted league_id '{user_league_id}' to DB ID: {user_league_db_id}")
+                    else:
+                        print(f"League '{user_league_id}' not found in database")
+            except Exception as e:
+                print(f"Error converting league_id: {e}")
+
+        if not user_league_db_id:
             return {
                 "players": [],
                 "available_series": [],
                 "pti_range": {"min": 0, "max": 100},
                 "user_club": user_club or "Unknown Club",
-                "error": "Error loading player data",
+                "error": f"Could not determine user's league context",
             }
 
-        # Filter players by user's league (using database ID comparison)
-        if user_league_id:
-            try:
-                user_league_db_id = int(user_league_id)  # Convert to int for comparison
-                print(f"Filtering by user league database ID: {user_league_db_id}")
+        # MAJOR CHANGE: Load players directly from database with team information
+        # This creates separate entries for players on multiple teams
+        from database_utils import execute_query, execute_query_one
+        
+        print(f"Loading players for league database ID: {user_league_db_id}")
+        
+        try:
+            # Load players with their team associations - simplified query for performance
+            # We'll calculate team-specific records in Python to avoid slow subqueries
+            players_with_teams_query = """
+                SELECT 
+                    p.first_name as "First Name",
+                    p.last_name as "Last Name", 
+                    p.tenniscores_player_id as "Player ID",
+                    CASE WHEN p.pti IS NULL THEN 'N/A' ELSE p.pti::TEXT END as "PTI",
+                    c.name as "Club",
+                    s.name as "Series",
+                    l.league_id as "League",
+                    t.id as "Team ID",
+                    t.team_name as "Team Name"
+                FROM players p
+                LEFT JOIN clubs c ON p.club_id = c.id
+                LEFT JOIN series s ON p.series_id = s.id  
+                LEFT JOIN leagues l ON p.league_id = l.id
+                LEFT JOIN teams t ON p.team_id = t.id
+                WHERE p.tenniscores_player_id IS NOT NULL
+                AND p.league_id = %s
+                AND p.is_active = true
+                ORDER BY p.first_name, p.last_name, t.team_name
+            """
+            
+            all_players = execute_query(players_with_teams_query, (user_league_db_id,))
+            print(f"Loaded {len(all_players)} player-team entries from database")
+            
+            # Calculate team-specific wins/losses for each player-team combination
+            print("Loading match data for record calculation...")
+            
+            # Get all matches for this league in one query
+            matches_query = """
+                SELECT 
+                    ms.home_player_1_id, ms.home_player_2_id, 
+                    ms.away_player_1_id, ms.away_player_2_id,
+                    ms.home_team_id, ms.away_team_id, ms.winner
+                FROM match_scores ms 
+                WHERE ms.league_id = %s AND ms.winner IS NOT NULL
+            """
+            all_matches = execute_query(matches_query, [user_league_db_id])
+            print(f"Loaded {len(all_matches)} matches for record calculation")
+            
+            # Build player-team records
+            player_team_records = {}  # Key: (player_id, team_id), Value: {wins: X, losses: Y}
+            
+            for match in all_matches:
+                home_players = [match["home_player_1_id"], match["home_player_2_id"]]
+                away_players = [match["away_player_1_id"], match["away_player_2_id"]]
+                home_team_id = match["home_team_id"]
+                away_team_id = match["away_team_id"]
+                winner = match["winner"]
                 
-                # Filter using database approach - check which players have matching league
-                from database_utils import execute_query
-                league_players = execute_query(
-                    "SELECT tenniscores_player_id FROM players WHERE league_id = %s", 
-                    (user_league_db_id,)
-                )
-                league_player_ids = {player["tenniscores_player_id"] for player in league_players}
+                # Process home team players
+                for player_id in home_players:
+                    if player_id:
+                        key = (player_id, home_team_id)
+                        if key not in player_team_records:
+                            player_team_records[key] = {"wins": 0, "losses": 0}
+                        
+                        if winner == "home":
+                            player_team_records[key]["wins"] += 1
+                        elif winner == "away":
+                            player_team_records[key]["losses"] += 1
                 
-                # Filter all_players to only include those in the user's league
-                league_filtered_players = [
-                    player for player in all_players 
-                    if player.get("Player ID") in league_player_ids
-                ]
+                # Process away team players
+                for player_id in away_players:
+                    if player_id:
+                        key = (player_id, away_team_id)
+                        if key not in player_team_records:
+                            player_team_records[key] = {"wins": 0, "losses": 0}
+                        
+                        if winner == "away":
+                            player_team_records[key]["wins"] += 1
+                        elif winner == "home":
+                            player_team_records[key]["losses"] += 1
+            
+            # Apply calculated records to players
+            for player in all_players:
+                player_id = player.get("Player ID")
+                team_id = player.get("Team ID")
                 
-                print(f"Filtered from {len(all_players)} total players to {len(league_filtered_players)} players in user's league")
-                all_players = league_filtered_players
+                if player_id and team_id:
+                    key = (player_id, team_id)
+                    record = player_team_records.get(key, {"wins": 0, "losses": 0})
+                    player["Wins"] = record["wins"]
+                    player["Losses"] = record["losses"]
+                else:
+                    player["Wins"] = 0
+                    player["Losses"] = 0
+            
+            print("Team-specific records calculated!")
+            
+            # Debug: Check for Werman specifically to diagnose the multi-team issue
+            werman_entries = [p for p in all_players if "werman" in p.get("Last Name", "").lower()]
+            if werman_entries:
+                print(f"[DEBUG] Found {len(werman_entries)} Werman entries in database:")
+                for entry in werman_entries:
+                    print(f"  - {entry.get('First Name')} {entry.get('Last Name')} in {entry.get('Series')} at {entry.get('Club')} (Team: {entry.get('Team Name')}, Team ID: {entry.get('Team ID')}) - Record: {entry.get('Wins')}W-{entry.get('Losses')}L")
+            else:
+                print(f"[DEBUG] No Werman entries found in database")
                 
-            except (ValueError, TypeError) as e:
-                print(f"Invalid league_id '{user_league_id}', showing all players: {e}")
-                # Keep all players if league filtering fails
+        except Exception as e:
+            print(f"Error loading players from database: {str(e)}")
+            return {
+                "players": [],
+                "available_series": [],
+                "pti_range": {"min": 0, "max": 100},
+                "user_club": user_club or "Unknown Club",
+                "error": f"Failed to load player data: {str(e)}",
+            }
+
+        # League filtering is now handled by the database query above
 
         if not all_players:
             return {
@@ -2691,8 +3045,18 @@ def get_club_players_data(
         club_series = (
             set()
         )  # Track all series (at user's club if club_only, otherwise all clubs)
+        
+        # Debug: Track Werman entries through filtering
+        werman_entries_processed = 0
+        werman_entries_filtered = []
 
         for player in all_players:
+            # Debug: Track Werman entries specifically
+            is_werman = "werman" in player.get("Last Name", "").lower()
+            if is_werman:
+                werman_entries_processed += 1
+                print(f"[DEBUG] Processing Werman entry #{werman_entries_processed}: {player.get('First Name')} {player.get('Last Name')} in {player.get('Series')}")
+            
             # Debug: Log first few club comparisons
             if len(filtered_players) < 3:
                 if club_only:
@@ -2710,6 +3074,10 @@ def get_club_players_data(
                 club_match = (
                     player["Club"] == user_club
                 )  # Only include players from user's club
+                
+                # Debug: Track Werman club filtering
+                if is_werman and not club_match:
+                    print(f"[DEBUG] Werman filtered out by club: '{player['Club']}' != '{user_club}'")
 
             if club_match:
                 club_series.add(player["Series"])
@@ -2724,43 +3092,76 @@ def get_club_players_data(
                         f"Player {player['First Name']} {player['Last Name']} has non-numeric PTI '{player['PTI']}', using default value 50.0"
                     )
 
-                # Apply filters
+                # Apply filters with Werman-specific debugging
                 if series_filter and player["Series"] != series_filter:
+                    if is_werman:
+                        print(f"[DEBUG] Werman filtered out by series: {player['Series']} != {series_filter}")
                     continue
 
                 if (
                     first_name_filter
                     and first_name_filter.lower() not in player["First Name"].lower()
                 ):
+                    if is_werman:
+                        print(f"[DEBUG] Werman filtered out by first name: '{first_name_filter}' not in '{player['First Name']}'")
                     continue
 
                 if (
                     last_name_filter
                     and last_name_filter.lower() not in player["Last Name"].lower()
                 ):
+                    if is_werman:
+                        print(f"[DEBUG] Werman filtered out by last name: '{last_name_filter}' not in '{player['Last Name']}'")
                     continue
 
                 if pti_min is not None and pti_value < pti_min:
+                    if is_werman:
+                        print(f"[DEBUG] Werman filtered out by PTI min: {pti_value} < {pti_min}")
                     continue
 
                 if pti_max is not None and pti_value > pti_max:
+                    if is_werman:
+                        print(f"[DEBUG] Werman filtered out by PTI max: {pti_value} > {pti_max}")
                     continue
 
                 # Get real contact info from CSV
                 player_name = f"{player['First Name']} {player['Last Name']}"
                 player_contact = contact_info.get(player_name.lower(), {})
 
-                # Add player to results
+                # Use clean player name - club and series will be shown separately
+                display_name = player_name
+
+                # Calculate win percentage in Python (since we removed it from SQL)
+                wins = player["Wins"]
+                losses = player["Losses"]
+                total_matches = wins + losses
+                if total_matches > 0:
+                    win_percentage = (wins / total_matches) * 100
+                    win_rate = f"{win_percentage:.1f}%"
+                else:
+                    win_rate = "0%"
+
+                # Debug: Track if this is a Werman entry being added
+                if is_werman:
+                    print(f"[DEBUG] Adding Werman to filtered results: {display_name} in {player['Series']} (PTI: {player['PTI']}, Record: {wins}W-{losses}L)")
+                    werman_entries_filtered.append({
+                        "name": display_name,
+                        "series": player["Series"],
+                        "team_name": player.get("Team Name", "")
+                    })
+
+                # Add player to results with clean player name
                 filtered_players.append(
                     {
-                        "name": player_name,
+                        "name": display_name,  # Clean player name without team info
                         "firstName": player["First Name"],
                         "lastName": player["Last Name"],
+                        "club": player["Club"],  # Add club name for display
                         "series": player["Series"],
                         "pti": player["PTI"],  # Keep original PTI value for display
-                        "wins": player["Wins"],
-                        "losses": player["Losses"],
-                        "winRate": player["Win %"],
+                        "wins": wins,
+                        "losses": losses,
+                        "winRate": win_rate,  # Calculate win rate in Python
                         "phone": player_contact.get("phone", ""),
                         "email": player_contact.get("email", ""),
                     }
@@ -2782,6 +3183,15 @@ def get_club_players_data(
             print(f"Found {len(filtered_players)} players from all clubs")
         print(f"Available series: {sorted(club_series)}")
         print(f"PTI range (from all players): {pti_range}")
+        
+        # Debug: Final Werman summary
+        print(f"[DEBUG] WERMAN SUMMARY:")
+        print(f"  - Database entries processed: {werman_entries_processed}")
+        print(f"  - Entries that passed filtering: {len(werman_entries_filtered)}")
+        if werman_entries_filtered:
+            for entry in werman_entries_filtered:
+                print(f"    * {entry['name']} in {entry['series']} (Team: {entry['team_name']})")
+        
         print("=== END DEBUG ===\n")
 
         return {
@@ -2877,7 +3287,7 @@ def get_mobile_team_data(user):
             user_email = user.get("email")
             if user_email:
                 user_lookup_query = """
-                    SELECT u.email, u.first_name, u.last_name, 
+                    SELECT u.email, u.first_name, u.last_name, u.league_context,
                            c.name as club_name, s.name as series_name, l.league_name, l.id as league_db_id
                     FROM users u 
                     JOIN user_player_associations upa ON u.id = upa.user_id
@@ -2885,7 +3295,10 @@ def get_mobile_team_data(user):
                     LEFT JOIN clubs c ON p.club_id = c.id
                     LEFT JOIN series s ON p.series_id = s.id  
                     LEFT JOIN leagues l ON p.league_id = l.id
-                    WHERE u.email = %s AND upa.is_primary = true
+                    WHERE u.email = %s 
+                    AND (u.league_context IS NULL OR p.league_id = u.league_context)
+                    ORDER BY (CASE WHEN p.league_id = u.league_context THEN 1 ELSE 2 END)
+                    LIMIT 1
                 """
                 user_data = execute_query_one(user_lookup_query, [user_email])
                 if user_data:
@@ -2918,12 +3331,15 @@ def get_mobile_team_data(user):
             user_email = user.get("email")
             if user_email:
                 league_lookup_query = """
-                    SELECT l.league_id, l.id as league_db_id
+                    SELECT l.league_id, l.id as league_db_id, u.league_context
                     FROM users u 
                     JOIN user_player_associations upa ON u.id = upa.user_id
                     JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
                     JOIN leagues l ON p.league_id = l.id
-                    WHERE u.email = %s AND upa.is_primary = true
+                    WHERE u.email = %s 
+                    AND (u.league_context IS NULL OR p.league_id = u.league_context)
+                    ORDER BY (CASE WHEN p.league_id = u.league_context THEN 1 ELSE 2 END)
+                    LIMIT 1
                 """
                 league_data = execute_query_one(league_lookup_query, [user_email])
                 if league_data:
@@ -3086,7 +3502,7 @@ def get_mobile_team_data(user):
         """
         team_stats = execute_query_one(team_stats_query, [team])
 
-        # Get team matches using team name (simple and reliable!)
+        # Get team matches using team_id (faster and more accurate!)
         matches_query = """
             SELECT 
                 TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
@@ -3100,29 +3516,29 @@ def get_mobile_team_data(user):
                 away_player_2_id as "Away Player 2",
                 id
             FROM match_scores
-            WHERE (home_team = %s OR away_team = %s)
+            WHERE (home_team_id = %s OR away_team_id = %s)
             ORDER BY match_date DESC
         """
-        team_matches = execute_query(matches_query, [team, team])
+        team_matches = execute_query(matches_query, [team_id, team_id])
 
         # DEBUG: Raw database query to understand the data structure
         print(f"[DEBUG DATABASE QUERY] Starting database debug...")
         try:
             print(f"[DEBUG] Team: {team}, League ID Int: {league_id_int}")
 
-            # Simple debug query first
-            simple_query = "SELECT COUNT(*) as total FROM match_scores WHERE (home_team = %s OR away_team = %s)"
+            # Simple debug query first using team_id
+            simple_query = "SELECT COUNT(*) as total FROM match_scores WHERE (home_team_id = %s OR away_team_id = %s)"
             if league_id_int:
                 simple_query += " AND league_id = %s"
                 total_count = execute_query_one(
-                    simple_query, [team, team, league_id_int]
+                    simple_query, [team_id, team_id, league_id_int]
                 )
             else:
-                total_count = execute_query_one(simple_query, [team, team])
+                total_count = execute_query_one(simple_query, [team_id, team_id])
 
             print(f"[DEBUG] Total matches for {team}: {total_count['total']}")
 
-            # Now try the detailed query
+            # Now try the detailed query using team_id
             if league_id_int:
                 debug_query = """
                     SELECT 
@@ -3133,12 +3549,12 @@ def get_mobile_team_data(user):
                         winner,
                         scores
                     FROM match_scores
-                    WHERE (home_team = %s OR away_team = %s)
+                    WHERE (home_team_id = %s OR away_team_id = %s)
                     AND league_id = %s
                     ORDER BY match_date DESC, id ASC
                     LIMIT 20
                 """
-                debug_matches = execute_query(debug_query, [team, team, league_id_int])
+                debug_matches = execute_query(debug_query, [team_id, team_id, league_id_int])
             else:
                 debug_query = """
                     SELECT 
@@ -3149,11 +3565,11 @@ def get_mobile_team_data(user):
                         winner,
                         scores
                     FROM match_scores
-                    WHERE (home_team = %s OR away_team = %s)
+                    WHERE (home_team_id = %s OR away_team_id = %s)
                     ORDER BY match_date DESC, id ASC
                     LIMIT 20
                 """
-                debug_matches = execute_query(debug_query, [team, team])
+                debug_matches = execute_query(debug_query, [team_id, team_id])
 
             print(f"[DEBUG] Raw matches from database (first 20):")
             for i, match in enumerate(debug_matches):
@@ -3183,7 +3599,7 @@ def get_mobile_team_data(user):
                 sample_query = f"""
                     SELECT id, TO_CHAR(match_date, 'DD-Mon-YY') as date, {', '.join(court_cols)}
                     FROM match_scores
-                    WHERE (home_team = %s OR away_team = %s)
+                    WHERE (home_team_id = %s OR away_team_id = %s)
                     ORDER BY match_date DESC
                     LIMIT 5
                 """
@@ -3191,15 +3607,15 @@ def get_mobile_team_data(user):
                     sample_query = f"""
                         SELECT id, TO_CHAR(match_date, 'DD-Mon-YY') as date, {', '.join(court_cols)}
                         FROM match_scores
-                        WHERE (home_team = %s OR away_team = %s) AND league_id = %s
+                        WHERE (home_team_id = %s OR away_team_id = %s) AND league_id = %s
                         ORDER BY match_date DESC
                         LIMIT 5
                     """
                     sample_data = execute_query(
-                        sample_query, [team, team, league_id_int]
+                        sample_query, [team_id, team_id, league_id_int]
                     )
                 else:
-                    sample_data = execute_query(sample_query, [team, team])
+                    sample_data = execute_query(sample_query, [team_id, team_id])
 
                 print(f"[DEBUG] Sample court data:")
                 for row in sample_data:
