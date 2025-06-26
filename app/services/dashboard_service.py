@@ -87,51 +87,71 @@ def get_recent_activities(
     limit: int = 50, filters: Optional[Dict] = None
 ) -> List[Dict]:
     """
-    Get recent activity timeline with optional filters
+    Get recent activities with comprehensive filtering options
 
     Args:
         limit: Maximum number of activities to return
-        filters: Dictionary with optional filters:
-            - date_from: Start date filter
-            - date_to: End date filter
-            - action_type: Action type filter
-            - team_id: Team filter
-            - player_id: Player filter
+        filters: Dictionary of filter criteria
+            - date_from: Start date (YYYY-MM-DD format)
+            - date_to: End date (YYYY-MM-DD format)  
+            - action_type: Activity type to filter by
+            - team_id: Team ID to filter by
+            - player_id: Player ID to filter by
+            - exclude_impersonated: Boolean to exclude impersonated activities
+            - exclude_admin: Boolean to exclude admin activities
 
     Returns:
-        List of activity dictionaries
+        List of activity dictionaries with formatted data
     """
     try:
-        # Build WHERE clause based on filters
+        if filters is None:
+            filters = {}
+
+        # Build WHERE clauses based on filters
         where_clauses = []
         params = {"limit": limit}
 
-        if filters:
-            if filters.get("date_from"):
-                where_clauses.append("ual.timestamp >= %(date_from)s")
-                params["date_from"] = filters["date_from"]
+        # Base exclusions
+        where_clauses.append("ual.timestamp IS NOT NULL")
+        where_clauses.append("NOT (ual.page = 'admin_dashboard' AND ual.details = 'Admin accessed activity monitoring dashboard')")
+        
+        # Admin exclusion (default: True)
+        if filters.get('exclude_admin', True):
+            where_clauses.append("NOT (u.is_admin = true AND ual.user_email = %(admin_email)s)")
+            params["admin_email"] = 'rossfreedman@gmail.com'
+        
+        # Impersonation exclusion (default: False, so users can choose)
+        if filters.get('exclude_impersonated', False):
+            where_clauses.append("NOT (ual.details LIKE %(impersonation_pattern)s OR ual.action LIKE %(impersonation_pattern)s)")
+            params["impersonation_pattern"] = '%impersonation%'
 
-            if filters.get("date_to"):
-                where_clauses.append("ual.timestamp <= %(date_to)s")
-                params["date_to"] = filters["date_to"]
+        # Date range filters
+        if filters.get("date_from"):
+            where_clauses.append("DATE(ual.timestamp) >= %(date_from)s")
+            params["date_from"] = filters["date_from"]
 
-            if filters.get("action_type"):
-                where_clauses.append("ual.activity_type = %(action_type)s")
-                params["action_type"] = filters["action_type"]
+        if filters.get("date_to"):
+            where_clauses.append("DATE(ual.timestamp) <= %(date_to)s")
+            params["date_to"] = filters["date_to"]
 
-            if filters.get("team_id"):
-                where_clauses.append("t.id = %(team_id)s")
-                params["team_id"] = filters["team_id"]
+        # Action type filter
+        if filters.get("action_type"):
+            where_clauses.append("ual.activity_type = %(action_type)s")
+            params["action_type"] = filters["action_type"]
 
-            if filters.get("player_id"):
-                where_clauses.append("p.id = %(player_id)s")
-                params["player_id"] = filters["player_id"]
+        # Team filter
+        if filters.get("team_id"):
+            where_clauses.append("t.id = %(team_id)s")
+            params["team_id"] = filters["team_id"]
 
+        # Player filter
+        if filters.get("player_id"):
+            where_clauses.append("p.id = %(player_id)s")
+            params["player_id"] = filters["player_id"]
+
+        # Build the complete query
         where_sql = " AND ".join(where_clauses)
-        if where_sql:
-            where_sql = "WHERE " + where_sql
 
-        # Query the real user activity logs table
         activities = execute_query(
             f"""
             SELECT 
@@ -159,10 +179,7 @@ def get_recent_activities(
             LEFT JOIN teams t ON p.team_id = t.id
             LEFT JOIN clubs c ON p.club_id = c.id
             LEFT JOIN series s ON p.series_id = s.id
-            WHERE ual.timestamp IS NOT NULL
-            AND NOT (ual.page = 'admin_dashboard' AND ual.details = 'Admin accessed activity monitoring dashboard')
-            AND NOT (u.is_admin = true AND ual.user_email = 'rossfreedman@gmail.com')
-            {' AND ' + ' AND '.join(where_clauses) if where_clauses else ''}
+            WHERE {where_sql}
             ORDER BY ual.timestamp DESC
             LIMIT %(limit)s
         """,
@@ -350,48 +367,59 @@ def get_top_active_players(limit: int = 10) -> List[Dict]:
         return []
 
 
-def get_activity_stats() -> Dict[str, Any]:
+def get_activity_stats(exclude_impersonated: bool = False) -> Dict[str, Any]:
     """
     Get overall activity statistics
+
+    Args:
+        exclude_impersonated: Whether to exclude impersonated activities from stats
 
     Returns:
         Dictionary with various activity statistics
     """
     try:
-        # Get basic counts
-        total_activities = execute_query_one(
-            """
-            SELECT COUNT(*) as count FROM user_activity_logs ual
-            LEFT JOIN users u ON ual.user_email = u.email
+        # Build base exclusion clauses
+        base_exclusions = """
             WHERE ual.timestamp IS NOT NULL
             AND NOT (ual.page = 'admin_dashboard' AND ual.details = 'Admin accessed activity monitoring dashboard')
             AND NOT (u.is_admin = true AND ual.user_email = 'rossfreedman@gmail.com')
+        """
+        
+        impersonation_exclusion = ""
+        if exclude_impersonated:
+            impersonation_exclusion = "AND NOT (ual.details LIKE '%impersonation%' OR ual.action LIKE '%impersonation%')"
+
+        # Get basic counts
+        total_activities = execute_query_one(
+            f"""
+            SELECT COUNT(*) as count FROM user_activity_logs ual
+            LEFT JOIN users u ON ual.user_email = u.email
+            {base_exclusions}
+            {impersonation_exclusion}
         """
         )["count"]
 
         # Get today's activities
         today_activities = execute_query_one(
-            """
+            f"""
             SELECT COUNT(*) as count FROM user_activity_logs ual
             LEFT JOIN users u ON ual.user_email = u.email
-            WHERE DATE(ual.timestamp) = CURRENT_DATE
-            AND ual.timestamp IS NOT NULL
-            AND NOT (ual.page = 'admin_dashboard' AND ual.details = 'Admin accessed activity monitoring dashboard')
-            AND NOT (u.is_admin = true AND ual.user_email = 'rossfreedman@gmail.com')
+            {base_exclusions}
+            AND DATE(ual.timestamp) = CURRENT_DATE
+            {impersonation_exclusion}
         """
         )["count"]
 
         # Get activities by type
         activity_types = execute_query(
-            """
+            f"""
             SELECT 
                 ual.activity_type as action_type,
                 COUNT(*) as count
             FROM user_activity_logs ual
             LEFT JOIN users u ON ual.user_email = u.email
-            WHERE ual.timestamp IS NOT NULL
-            AND NOT (ual.page = 'admin_dashboard' AND ual.details = 'Admin accessed activity monitoring dashboard')
-            AND NOT (u.is_admin = true AND ual.user_email = 'rossfreedman@gmail.com')
+            {base_exclusions}
+            {impersonation_exclusion}
             GROUP BY ual.activity_type
             ORDER BY count DESC
             LIMIT 10
@@ -678,6 +706,7 @@ def log_page_visit(
     details: Optional[str] = None,
     ip_address: Optional[str] = None,
     user_agent: Optional[str] = None,
+    is_impersonating: Optional[bool] = None,
 ):
     """
     Helper function to log page visits with both legacy and comprehensive activity logging
@@ -691,10 +720,16 @@ def log_page_visit(
         details: Additional details for legacy logging
         ip_address: User's IP address
         user_agent: User's browser/device info
+        is_impersonating: Whether this activity is from an impersonating admin
     """
     try:
+        # Add impersonation info to details if applicable
+        enhanced_details = details
+        if is_impersonating:
+            enhanced_details = f"[IMPERSONATION] {details}" if details else "[IMPERSONATION] Page visit"
+
         # Legacy logging (existing system)
-        legacy_log_user_activity(user_email, "page_visit", page=page, details=details)
+        legacy_log_user_activity(user_email, "page_visit", page=page, details=enhanced_details)
 
         # Comprehensive logging (new system)
         if user_id:  # Only log comprehensive if we have user_id
@@ -712,7 +747,8 @@ def log_page_visit(
                 extra_data={
                     "page": page,
                     "page_category": get_page_category(page),
-                    "details": details,
+                    "details": enhanced_details,
+                    "is_impersonating": is_impersonating,
                 },
             )
     except Exception as e:
