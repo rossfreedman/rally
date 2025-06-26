@@ -1147,21 +1147,78 @@ def get_player_analysis(user):
                     if match.get("Home Player 1") == player_id
                     else match.get("Home Player 1")
                 )
+                partner_name_from_json = (
+                    match.get("Home Player 2")
+                    if match.get("Home Player 1") == player_id
+                    else match.get("Home Player 1")
+                )
             else:
                 partner_id = (
                     match.get("Away Player 2")
                     if match.get("Away Player 1") == player_id
                     else match.get("Away Player 1")
                 )
+                partner_name_from_json = (
+                    match.get("Away Player 2")
+                    if match.get("Away Player 1") == player_id
+                    else match.get("Away Player 1")
+                )
 
+            print(f"[DEBUG PARTNER] Match {match_id} on {court_key}: player_id={player_id}, partner_id={partner_id}, partner_name_from_json={partner_name_from_json}")
+
+            partner_name = None
             if partner_id:
+                # Standard case: we have a partner ID, look up the name
                 partner_name = get_player_name(partner_id)
-                if partner_name:
-                    court_stats[court_key]["partners"][partner_name]["matches"] += 1
-                    if won:
-                        court_stats[court_key]["partners"][partner_name]["wins"] += 1
+                print(f"[DEBUG PARTNER]   Partner name resolved via ID: {partner_name}")
+                if partner_name and partner_name.startswith("Player "):
+                    print(f"[DEBUG PARTNER]   Fallback logic triggered for partner_id={partner_id}")
+            elif partner_name_from_json and isinstance(partner_name_from_json, str) and not partner_name_from_json.startswith("nndz-"):
+                # FIXED: Handle substitute players where we have name but no ID
+                print(f"[DEBUG PARTNER]   No partner_id but found partner name in JSON: '{partner_name_from_json}'")
+                
+                # Try to look up the player ID by name across all leagues
+                try:
+                    name_parts = partner_name_from_json.strip().split()
+                    if len(name_parts) >= 2:
+                        first_name = name_parts[0]
+                        last_name = " ".join(name_parts[1:])
+                        
+                        # Search across all leagues for this player name
+                        name_lookup_query = """
+                            SELECT tenniscores_player_id, first_name, last_name, league_id
+                            FROM players 
+                            WHERE LOWER(first_name) = LOWER(%s) AND LOWER(last_name) = LOWER(%s)
+                            ORDER BY league_id
+                            LIMIT 1
+                        """
+                        name_lookup_result = execute_query_one(name_lookup_query, [first_name, last_name])
+                        
+                        if name_lookup_result:
+                            partner_id = name_lookup_result['tenniscores_player_id']
+                            partner_name = f"{name_lookup_result['first_name']} {name_lookup_result['last_name']}"
+                            print(f"[DEBUG PARTNER]   Found partner by name lookup: {partner_name} (ID: {partner_id}, League: {name_lookup_result['league_id']})")
+                        else:
+                            # Fallback: use the name directly from JSON if no ID found
+                            partner_name = partner_name_from_json
+                            print(f"[DEBUG PARTNER]   Using partner name directly from JSON: {partner_name}")
                     else:
-                        court_stats[court_key]["partners"][partner_name]["losses"] += 1
+                        partner_name = partner_name_from_json
+                        print(f"[DEBUG PARTNER]   Using partner name directly (insufficient name parts): {partner_name}")
+                        
+                except Exception as e:
+                    print(f"[DEBUG PARTNER]   Error looking up partner by name: {e}")
+                    partner_name = partner_name_from_json
+                    print(f"[DEBUG PARTNER]   Using partner name directly from JSON after error: {partner_name}")
+            else:
+                print(f"[DEBUG PARTNER]   No partner_id or valid partner name found for this match.")
+
+            if partner_name:
+                court_stats[court_key]["partners"][partner_name]["matches"] += 1
+                if won:
+                    court_stats[court_key]["partners"][partner_name]["wins"] += 1
+                else:
+                    court_stats[court_key]["partners"][partner_name]["losses"] += 1
 
         # Build court_analysis using REAL court performance data
         total_court_matches = 0

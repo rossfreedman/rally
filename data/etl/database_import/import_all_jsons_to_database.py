@@ -231,15 +231,270 @@ class ComprehensiveETL:
             self.log(f"❌ Error loading {filename}: {str(e)}", "ERROR")
             raise
 
+    def backup_user_associations(self, conn):
+        """Backup user-player associations and league contexts before clearing tables"""
+        self.log("💾 Backing up user-player associations and league contexts...")
+        
+        cursor = conn.cursor()
+        
+        # Create temporary backup table for associations
+        cursor.execute("""
+            DROP TABLE IF EXISTS user_player_associations_backup;
+            CREATE TABLE user_player_associations_backup AS 
+            SELECT * FROM user_player_associations;
+        """)
+        
+        # Create temporary backup table for user league contexts
+        cursor.execute("""
+            DROP TABLE IF EXISTS user_league_contexts_backup;
+            CREATE TABLE user_league_contexts_backup AS 
+            SELECT u.id as user_id, u.email, u.first_name, u.last_name, 
+                   u.league_context, l.league_id as league_string_id, l.league_name
+            FROM users u
+            LEFT JOIN leagues l ON u.league_context = l.id
+            WHERE u.league_context IS NOT NULL;
+        """)
+        
+        # Count backed up data
+        cursor.execute("SELECT COUNT(*) FROM user_player_associations_backup")
+        associations_backup_count = cursor.fetchone()[0]
+        
+        cursor.execute("SELECT COUNT(*) FROM user_league_contexts_backup")
+        contexts_backup_count = cursor.fetchone()[0]
+        
+        self.log(f"✅ Backed up {associations_backup_count:,} user-player associations")
+        self.log(f"✅ Backed up {contexts_backup_count:,} user league contexts")
+        conn.commit()
+        return associations_backup_count, contexts_backup_count
+
+    def restore_user_associations(self, conn):
+        """Restore user-player associations and league contexts after import, with validation"""
+        self.log("🔄 Restoring user-player associations and league contexts...")
+        
+        cursor = conn.cursor()
+        
+        # Check if backup tables exist
+        cursor.execute("""
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_name = 'user_player_associations_backup'
+            )
+        """)
+        
+        associations_backup_exists = cursor.fetchone()[0]
+        
+        cursor.execute("""
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_name = 'user_league_contexts_backup'
+            )
+        """)
+        
+        contexts_backup_exists = cursor.fetchone()[0]
+        
+        restored_associations = 0
+        restored_contexts = 0
+        
+        # Restore associations
+        if associations_backup_exists:
+            # Get counts
+            cursor.execute("SELECT COUNT(*) FROM user_player_associations_backup")
+            backup_count = cursor.fetchone()[0]
+            
+            cursor.execute("SELECT COUNT(*) FROM user_player_associations")
+            current_count = cursor.fetchone()[0]
+            
+            self.log(f"📊 Associations - Backup: {backup_count:,}, Current: {current_count:,}")
+            
+            # Restore valid associations (only those where player still exists)
+            cursor.execute("""
+                INSERT INTO user_player_associations (user_id, tenniscores_player_id, is_primary, created_at)
+                SELECT DISTINCT upa_backup.user_id, upa_backup.tenniscores_player_id, 
+                       upa_backup.is_primary, upa_backup.created_at
+                FROM user_player_associations_backup upa_backup
+                JOIN users u ON upa_backup.user_id = u.id
+                JOIN players p ON upa_backup.tenniscores_player_id = p.tenniscores_player_id
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM user_player_associations upa_current
+                    WHERE upa_current.user_id = upa_backup.user_id 
+                    AND upa_current.tenniscores_player_id = upa_backup.tenniscores_player_id
+                )
+                AND p.is_active = true
+                ON CONFLICT (user_id, tenniscores_player_id) DO NOTHING
+            """)
+            
+            restored_associations = cursor.rowcount
+            
+            # Log broken associations (players that no longer exist)
+            cursor.execute("""
+                SELECT COUNT(*) 
+                FROM user_player_associations_backup upa_backup
+                LEFT JOIN players p ON upa_backup.tenniscores_player_id = p.tenniscores_player_id
+                WHERE p.tenniscores_player_id IS NULL
+            """)
+            broken_count = cursor.fetchone()[0]
+            
+            self.log(f"✅ Restored {restored_associations:,} valid associations")
+            if broken_count > 0:
+                self.log(f"⚠️  Skipped {broken_count:,} associations with missing players", "WARNING")
+        else:
+            self.log("⚠️  No associations backup table found", "WARNING")
+        
+        # Restore league contexts
+        if contexts_backup_exists:
+            self.log("🔄 Restoring league contexts...")
+            
+            # Restore league contexts where the league still exists
+            cursor.execute("""
+                UPDATE users 
+                SET league_context = (
+                    SELECT l.id 
+                    FROM user_league_contexts_backup backup
+                    JOIN leagues l ON l.league_id = backup.league_string_id
+                    WHERE backup.user_id = users.id
+                    LIMIT 1
+                )
+                WHERE id IN (
+                    SELECT backup.user_id
+                    FROM user_league_contexts_backup backup
+                    JOIN leagues l ON l.league_id = backup.league_string_id
+                    WHERE backup.user_id = users.id
+                )
+            """)
+            
+            restored_contexts = cursor.rowcount
+            self.log(f"✅ Restored {restored_contexts:,} league contexts")
+            
+            # Check for contexts that couldn't be restored (league no longer exists)
+            cursor.execute("""
+                SELECT COUNT(*) 
+                FROM user_league_contexts_backup backup
+                LEFT JOIN leagues l ON l.league_id = backup.league_string_id
+                WHERE l.id IS NULL
+            """)
+            broken_contexts = cursor.fetchone()[0]
+            
+            if broken_contexts > 0:
+                self.log(f"⚠️  {broken_contexts:,} league contexts couldn't be restored (leagues no longer exist)", "WARNING")
+        else:
+            self.log("⚠️  No league contexts backup table found", "WARNING")
+        
+        # Clean up backup tables
+        cursor.execute("DROP TABLE IF EXISTS user_player_associations_backup")
+        cursor.execute("DROP TABLE IF EXISTS user_league_contexts_backup")
+        
+        # Auto-fix any remaining NULL league contexts
+        self.log("🔧 Auto-fixing any remaining NULL league contexts...")
+        null_contexts_fixed = self._auto_fix_null_league_contexts(conn)
+        
+        conn.commit()
+        
+        return {
+            "associations_restored": restored_associations,
+            "contexts_restored": restored_contexts,
+            "null_contexts_fixed": null_contexts_fixed
+        }
+
+    def _auto_fix_null_league_contexts(self, conn):
+        """Auto-fix users with NULL league_context by setting to their most active league"""
+        cursor = conn.cursor()
+        
+        # Find users with NULL league_context who have associations
+        cursor.execute("""
+            SELECT DISTINCT u.id, u.email, u.first_name, u.last_name
+            FROM users u
+            JOIN user_player_associations upa ON u.id = upa.user_id
+            WHERE u.league_context IS NULL
+        """)
+        
+        users_to_fix = cursor.fetchall()
+        fixed_count = 0
+        
+        for user in users_to_fix:
+            # Get their most active league with team assignment preference
+            cursor.execute("""
+                SELECT 
+                    p.league_id,
+                    l.league_name,
+                    COUNT(ms.id) as match_count,
+                    MAX(ms.match_date) as last_match_date,
+                    (CASE WHEN p.team_id IS NOT NULL THEN 1 ELSE 0 END) as has_team
+                FROM user_player_associations upa
+                JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+                JOIN leagues l ON p.league_id = l.id
+                LEFT JOIN match_scores ms ON (
+                    (ms.home_player_1_id = p.tenniscores_player_id OR 
+                     ms.home_player_2_id = p.tenniscores_player_id OR
+                     ms.away_player_1_id = p.tenniscores_player_id OR 
+                     ms.away_player_2_id = p.tenniscores_player_id)
+                    AND ms.league_id = p.league_id
+                )
+                WHERE upa.user_id = %s
+                AND p.is_active = true
+                GROUP BY p.league_id, l.league_name, p.team_id
+                ORDER BY 
+                    (CASE WHEN p.team_id IS NOT NULL THEN 1 ELSE 2 END),
+                    COUNT(ms.id) DESC,
+                    MAX(ms.match_date) DESC NULLS LAST
+                LIMIT 1
+            """, [user[0]])
+            
+            best_league = cursor.fetchone()
+            
+            if best_league:
+                cursor.execute("""
+                    UPDATE users 
+                    SET league_context = %s
+                    WHERE id = %s
+                """, [best_league[0], user[0]])
+                
+                fixed_count += 1
+                self.log(f"   🔧 {user[2]} {user[3]}: → {best_league[1]} ({best_league[2]} matches)")
+        
+        return fixed_count
+
+    def _check_final_league_context_health(self, conn):
+        """Check the final health of league contexts after ETL"""
+        cursor = conn.cursor()
+        
+        # Total users with associations
+        cursor.execute("""
+            SELECT COUNT(DISTINCT u.id) as count
+            FROM users u
+            JOIN user_player_associations upa ON u.id = upa.user_id
+        """)
+        total_users_with_assoc = cursor.fetchone()[0]
+        
+        # Users with valid league_context (context points to a league they're actually in)
+        cursor.execute("""
+            SELECT COUNT(DISTINCT u.id) as count
+            FROM users u
+            JOIN user_player_associations upa ON u.id = upa.user_id
+            JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+            WHERE u.league_context = p.league_id AND p.is_active = true
+        """)
+        valid_context_count = cursor.fetchone()[0]
+        
+        if total_users_with_assoc > 0:
+            health_score = (valid_context_count / total_users_with_assoc) * 100
+            self.log(f"   📊 League context health: {valid_context_count}/{total_users_with_assoc} users have valid contexts")
+            return health_score
+        else:
+            return 100.0
+
     def clear_target_tables(self, conn):
         """Clear existing data from target tables in reverse dependency order"""
         self.log("🗑️  Clearing existing data from target tables...")
+
+        # ENHANCEMENT: Backup user associations and league contexts before clearing
+        associations_backup_count, contexts_backup_count = self.backup_user_associations(conn)
 
         tables_to_clear = [
             "schedule",  # No dependencies
             "series_stats",  # References leagues, teams
             "match_scores",  # References players, leagues, teams
             "player_history",  # References players, leagues
+            "user_player_associations",  # ADDED: Clear associations (we have backup)
             "players",  # References leagues, clubs, series, teams
             "teams",  # References leagues, clubs, series
             "series_leagues",  # References series, leagues
@@ -267,6 +522,8 @@ class ComprehensiveETL:
             cursor.execute("SET session_replication_role = DEFAULT;")
             conn.commit()
             self.log("✅ All target tables cleared successfully")
+            self.log(f"💾 User associations backed up: {associations_backup_count:,} records")
+            self.log(f"💾 League contexts backed up: {contexts_backup_count:,} records")
 
         except Exception as e:
             self.log(f"❌ Error clearing tables: {str(e)}", "ERROR")
@@ -1695,10 +1952,11 @@ class ComprehensiveETL:
                                 team_name: str, league_id: str) -> Optional[str]:
         """
         Validate and resolve a player ID from match history data.
+        Enhanced to handle null IDs with valid names (substitute players).
         
         Args:
             conn: Database connection
-            player_id: Original player ID from JSON
+            player_id: Original player ID from JSON (may be null)
             player_name: Player name from JSON  
             team_name: Team name to extract club/series info
             league_id: League identifier
@@ -1706,6 +1964,44 @@ class ComprehensiveETL:
         Returns:
             str: Valid player ID if found/resolved, None if no match
         """
+        # ENHANCED: Handle null player IDs with valid names (substitute players)
+        if not player_id and player_name:
+            self.log(f"    [IMPORT] Null player ID with name '{player_name}' - attempting cross-league lookup")
+            
+            # Parse player name
+            first_name, last_name = self._parse_player_name(player_name)
+            
+            if first_name and last_name:
+                # Search across ALL leagues for this player name
+                cursor = conn.cursor()
+                cross_league_query = """
+                    SELECT tenniscores_player_id, first_name, last_name, 
+                           l.league_id, c.name as club_name, s.name as series_name
+                    FROM players p
+                    JOIN leagues l ON p.league_id = l.id
+                    JOIN clubs c ON p.club_id = c.id
+                    JOIN series s ON p.series_id = s.id
+                    WHERE LOWER(p.first_name) = LOWER(%s) 
+                    AND LOWER(p.last_name) = LOWER(%s)
+                    AND p.is_active = TRUE
+                    ORDER BY l.league_id
+                    LIMIT 1
+                """
+                cursor.execute(cross_league_query, (first_name, last_name))
+                result = cursor.fetchone()
+                
+                if result:
+                    found_id = result[0]
+                    found_league = result[3]
+                    found_club = result[4]
+                    found_series = result[5]
+                    self.log(f"    [IMPORT] ✅ Found substitute player: {first_name} {last_name} → {found_id} (League: {found_league}, Club: {found_club})")
+                    return found_id
+                else:
+                    self.log(f"    [IMPORT] ❌ No cross-league match found for: {first_name} {last_name}")
+                    return None
+        
+        # Original logic for non-null player IDs
         if not player_id:
             return None
             
@@ -2718,11 +3014,38 @@ class ComprehensiveETL:
                     self.import_series_stats(conn, series_stats_data)
                     self.import_schedules(conn, schedules_data)
 
+                    # ENHANCEMENT: Restore user associations and league contexts after import
+                    self.log("\n🔄 Step 7: Restoring user data...")
+                    restore_results = self.restore_user_associations(conn)
+                    
+                    # Run association discovery to find any new associations
+                    if restore_results["associations_restored"] > 0:
+                        self.log("🔍 Running association discovery for additional connections...")
+                        try:
+                            from app.services.association_discovery_service import AssociationDiscoveryService
+                            discovery_result = AssociationDiscoveryService.discover_for_all_users(limit=50)
+                            if discovery_result.get("total_associations_created", 0) > 0:
+                                self.log(f"   ✅ Discovery found {discovery_result['total_associations_created']} additional associations")
+                            else:
+                                self.log("   ℹ️  No additional associations needed")
+                        except Exception as discovery_error:
+                            self.log(f"   ⚠️  Association discovery failed: {discovery_error}", "WARNING")
+
+                    # Auto-run final league context health check
+                    self.log("🔧 Running final league context health check...")
+                    final_health_score = self._check_final_league_context_health(conn)
+                    if final_health_score < 95:
+                        self.log(f"⚠️  League context health score: {final_health_score:.1f}% - may need manual repair", "WARNING")
+                    else:
+                        self.log(f"✅ League context health score: {final_health_score:.1f}%")
+
                     # CRITICAL FIX: Print player validation summary
                     self.player_validator.print_validation_summary()
 
                     # Success!
                     self.log("\n✅ ETL process completed successfully!")
+                    self.log(f"🔗 User associations: {restore_results['associations_restored']:,} restored")
+                    self.log(f"🎯 League contexts: {restore_results['contexts_restored']:,} restored, {restore_results['null_contexts_fixed']:,} auto-fixed")
 
                 except Exception as e:
                     self.log(f"\n❌ ETL process failed: {str(e)}", "ERROR")

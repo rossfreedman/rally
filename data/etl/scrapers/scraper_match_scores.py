@@ -473,9 +473,37 @@ def lookup_player_id_enhanced(series, team_name, first_name, last_name, league_i
                 )
                 return player.get("Player ID")
 
-    # No match found
+    # Strategy 5: Cross-league database search (for substitute players)
+    print(f"    [LOOKUP] Strategy 5: Cross-league database search for substitute player...")
+    try:
+        # Import database utilities (need to add this to the scraper)
+        sys.path.append(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
+        from database_utils import execute_query_one
+        
+        # Search across ALL leagues for this player name
+        cross_league_query = """
+            SELECT tenniscores_player_id, first_name, last_name, league_id
+            FROM players 
+            WHERE LOWER(first_name) = LOWER(%s) AND LOWER(last_name) = LOWER(%s)
+            AND is_active = TRUE
+            ORDER BY league_id
+            LIMIT 1
+        """
+        cross_league_result = execute_query_one(cross_league_query, [first_name, last_name])
+        
+        if cross_league_result:
+            player_id = cross_league_result['tenniscores_player_id']
+            found_league = cross_league_result['league_id']
+            print(f"    [LOOKUP] Strategy 5 (Cross-league): Found {first_name} {last_name} → {player_id} (League: {found_league})")
+            return player_id
+        else:
+            print(f"    [LOOKUP] Strategy 5: No cross-league match found in database")
+    except Exception as e:
+        print(f"    [LOOKUP] Strategy 5: Database search failed: {e}")
+
+    # No match found anywhere
     print(
-        f"    [LOOKUP] No match found for {first_name} {last_name} in {club_name} ({series})"
+        f"    [LOOKUP] No match found for {first_name} {last_name} in {club_name} ({series}) - tried all strategies"
     )
     return None
 
