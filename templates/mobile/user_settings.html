@@ -211,26 +211,17 @@ function loadSeriesByLeague(leagueId, selectedSeries = null) {
     seriesSel.innerHTML = '<option value="">Select a series...</option>';
     
     if (data.series && Array.isArray(data.series)) {
-      // Create a map to track unique display names and prevent duplicates
-      const uniqueSeries = new Map();
-      
-      data.series.forEach(series => {
-        // Create alias from series name (extract number and format as "Series X [suffix]")
-        let seriesDisplay = series;
-        const numberMatch = series.match(/(\d+)(\s+\w+)*$/);
-        if (numberMatch) {
-          const seriesNumber = numberMatch[1];
-          const suffix = numberMatch[2] || '';
-          seriesDisplay = `Series ${seriesNumber}${suffix}`;
-        }
-        
-        // Only add if we haven't seen this display name before
-        if (!uniqueSeries.has(seriesDisplay)) {
-          uniqueSeries.set(seriesDisplay, series);
-        }
-      });
-      
-      // Add the unique options to the select
+                          // Create a map to track unique series names and prevent duplicates
+                    const uniqueSeries = new Map();
+                    
+                    data.series.forEach(series => {
+                        // Use the series name exactly as it comes from the database
+                        if (!uniqueSeries.has(series)) {
+                            uniqueSeries.set(series, series);
+                        }
+                    });
+                    
+                    // Add the unique options to the select
       uniqueSeries.forEach((originalValue, displayText) => {
         const option = document.createElement('option');
         option.value = originalValue;
@@ -251,22 +242,13 @@ function loadSeriesByLeague(leagueId, selectedSeries = null) {
       seriesSel.innerHTML = '<option value="">Select a series...</option>';
       
       if (data.all_series && Array.isArray(data.all_series)) {
-        // Create a map to track unique display names and prevent duplicates
+        // Create a map to track unique series names and prevent duplicates
         const uniqueSeries = new Map();
         
         data.all_series.forEach(series => {
-          // Create alias from series name (extract number and format as "Series X [suffix]")
-          let seriesDisplay = series;
-          const numberMatch = series.match(/(\d+)(\s+\w+)*$/);
-          if (numberMatch) {
-            const seriesNumber = numberMatch[1];
-            const suffix = numberMatch[2] || '';
-            seriesDisplay = `Series ${seriesNumber}${suffix}`;
-          }
-          
-          // Only add if we haven't seen this display name before
-          if (!uniqueSeries.has(seriesDisplay)) {
-            uniqueSeries.set(seriesDisplay, series);
+          // Use the series name exactly as it comes from the database
+          if (!uniqueSeries.has(series)) {
+            uniqueSeries.set(series, series);
           }
         });
         

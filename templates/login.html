@@ -488,31 +488,20 @@
                 if (data.series && Array.isArray(data.series)) {
                     console.log(`Adding ${data.series.length} series options`);
                     
-                    // Create a map to track unique display names and prevent duplicates
-                    const uniqueSeries = new Map();
+                    // Remove the arbitrary transformation and just use the actual series names
+                    // Create a Set to track unique series names and prevent duplicates
+                    const uniqueSeries = new Set();
                     
                     data.series.forEach(series => {
-                        // Create alias from series name (extract number and format as "Series X [suffix]")
-                        let seriesDisplay = series;
-                        const numberMatch = series.match(/(\d+)(\s+\w+)*$/);
-                        if (numberMatch) {
-                            const seriesNumber = numberMatch[1];
-                            const suffix = numberMatch[2] || '';
-                            seriesDisplay = `Series ${seriesNumber}${suffix}`;
+                        // Use the series name exactly as it comes from the database
+                        if (!uniqueSeries.has(series)) {
+                            uniqueSeries.add(series);
+                            
+                            const option = document.createElement('option');
+                            option.value = series;
+                            option.textContent = series;
+                            seriesSelect.appendChild(option);
                         }
-                        
-                        // Only add if we haven't seen this display name before
-                        if (!uniqueSeries.has(seriesDisplay)) {
-                            uniqueSeries.set(seriesDisplay, series);
-                        }
-                    });
-                    
-                    // Add the unique options to the select
-                    uniqueSeries.forEach((originalValue, displayText) => {
-                        const option = document.createElement('option');
-                        option.value = originalValue;
-                        option.textContent = displayText;
-                        seriesSelect.appendChild(option);
                     });
                 } else {
                     console.warn('No series data found or invalid format');
@@ -531,31 +520,20 @@
                     if (data.all_series && Array.isArray(data.all_series)) {
                         console.log(`Adding ${data.all_series.length} fallback series options`);
                         
-                        // Create a map to track unique display names and prevent duplicates
-                        const uniqueSeries = new Map();
+                        // Remove the arbitrary transformation and just use the actual series names
+                        // Create a Set to track unique series names and prevent duplicates
+                        const uniqueSeries = new Set();
                         
                         data.all_series.forEach(series => {
-                            // Create alias from series name (extract number and format as "Series X [suffix]")
-                            let seriesDisplay = series;
-                            const numberMatch = series.match(/(\d+)(\s+\w+)*$/);
-                            if (numberMatch) {
-                                const seriesNumber = numberMatch[1];
-                                const suffix = numberMatch[2] || '';
-                                seriesDisplay = `Series ${seriesNumber}${suffix}`;
+                            // Use the series name exactly as it comes from the database
+                            if (!uniqueSeries.has(series)) {
+                                uniqueSeries.add(series);
+                                
+                                const option = document.createElement('option');
+                                option.value = series;
+                                option.textContent = series;
+                                seriesSelect.appendChild(option);
                             }
-                            
-                            // Only add if we haven't seen this display name before
-                            if (!uniqueSeries.has(seriesDisplay)) {
-                                uniqueSeries.set(seriesDisplay, series);
-                            }
-                        });
-                        
-                        // Add the unique options to the select
-                        uniqueSeries.forEach((originalValue, displayText) => {
-                            const option = document.createElement('option');
-                            option.value = originalValue;
-                            option.textContent = displayText;
-                            seriesSelect.appendChild(option);
                         });
                     } else {
                         console.warn('No fallback series data found or invalid format');
