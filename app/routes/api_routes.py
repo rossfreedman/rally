@@ -1140,11 +1140,10 @@ def update_availability():
                 400,
             )
 
-        # Convert date to proper UTC midnight format
-        # Parse the date string (format: YYYY-MM-DD)
+        # Parse date and store as UTC midnight (required by database constraint)
         try:
             date_obj = datetime.strptime(match_date, "%Y-%m-%d")
-            # Create UTC midnight timestamp
+            # Create UTC midnight timestamp to satisfy database constraint
             utc_midnight = date_obj.replace(hour=0, minute=0, second=0, microsecond=0)
             utc_timezone = pytz.UTC
             utc_date = utc_timezone.localize(utc_midnight)
@@ -1193,17 +1192,32 @@ def update_availability():
                 if not user_record:
                     return jsonify({"error": "User not found"}), 404
 
-                # Get primary player association
-                primary_association = (
-                    db_session.query(UserPlayerAssociation)
-                    .filter(
-                        UserPlayerAssociation.user_id == user_record.id,
-                        UserPlayerAssociation.is_primary == True,
+                # Get player association based on current league context
+                player_association = None
+                
+                # First try: get association for current league context
+                if user_record.league_context:
+                    associations = (
+                        db_session.query(UserPlayerAssociation)
+                        .filter(UserPlayerAssociation.user_id == user_record.id)
+                        .all()
                     )
-                    .first()
-                )
+                    
+                    for assoc in associations:
+                        player = assoc.get_player(db_session)
+                        if player and player.league_id == user_record.league_context:
+                            player_association = assoc
+                            break
+                
+                # Fallback: get any association
+                if not player_association:
+                    player_association = (
+                        db_session.query(UserPlayerAssociation)
+                        .filter(UserPlayerAssociation.user_id == user_record.id)
+                        .first()
+                    )
 
-                if not primary_association:
+                if not player_association:
                     return (
                         jsonify(
                             {
@@ -1214,7 +1228,7 @@ def update_availability():
                     )
 
                 # Check if the player association has a valid player record
-                player = primary_association.get_player(db_session)
+                player = player_association.get_player(db_session)
                 if not player:
                     return (
                         jsonify(
@@ -1340,11 +1354,11 @@ def get_user_settings():
     try:
         user_email = session["user"]["email"]
 
-        # Get basic user data (no more foreign keys)
+        # Get basic user data including league_context
         user_data = execute_query_one(
             """
             SELECT u.first_name, u.last_name, u.email, u.is_admin, 
-                   u.ad_deuce_preference, u.dominant_hand
+                   u.ad_deuce_preference, u.dominant_hand, u.league_context
             FROM users u
             WHERE u.email = %s
         """,
@@ -1362,33 +1376,41 @@ def get_user_settings():
             )
 
             if user_record:
-                # Get primary player association
-                primary_association = (
+                # Get player based on league context
+                club_name = series_name = league_id = league_name = tenniscores_player_id = ""
+                
+                # Get all associations for this user
+                associations = (
                     db_session.query(UserPlayerAssociation)
-                    .filter(
-                        UserPlayerAssociation.user_id == user_record.id,
-                        UserPlayerAssociation.is_primary == True,
-                    )
-                    .first()
+                    .filter(UserPlayerAssociation.user_id == user_record.id)
+                    .all()
                 )
-
-                if primary_association:
-                    player = primary_association.get_player(db_session)
-                    if player:
-                        club_name = player.club.name
-                        series_name = player.series.name
-                        league_id = player.league.league_id
-                        league_name = player.league.league_name
-                        tenniscores_player_id = player.tenniscores_player_id
-                    else:
-                        club_name = series_name = league_id = league_name = (
-                            tenniscores_player_id
-                        ) = ""
-                else:
-                    # No player association found
-                    club_name = series_name = league_id = league_name = (
-                        tenniscores_player_id
-                    ) = ""
+                
+                selected_player = None
+                
+                # First priority: find player matching league_context
+                if user_record.league_context and associations:
+                    for assoc in associations:
+                        player = assoc.get_player(db_session)
+                        if player and player.league and player.league.id == user_record.league_context:
+                            selected_player = player
+                            break
+                
+                # Second priority: use first available player
+                if not selected_player and associations:
+                    for assoc in associations:
+                        player = assoc.get_player(db_session)
+                        if player and player.club and player.series and player.league:
+                            selected_player = player
+                            break
+                
+                # Extract player data if found
+                if selected_player:
+                    club_name = selected_player.club.name if selected_player.club else ""
+                    series_name = selected_player.series.name if selected_player.series else ""
+                    league_id = selected_player.league.league_id if selected_player.league else ""
+                    league_name = selected_player.league.league_name if selected_player.league else ""
+                    tenniscores_player_id = selected_player.tenniscores_player_id
             else:
                 club_name = series_name = league_id = league_name = (
                     tenniscores_player_id
@@ -1405,6 +1427,7 @@ def get_user_settings():
             "series": series_name,
             "league_id": league_id,
             "league_name": league_name,
+            "league_context": user_data["league_context"],  # Add league context to response
             "tenniscores_player_id": tenniscores_player_id,
             "ad_deuce_preference": user_data["ad_deuce_preference"] or "",
             "dominant_hand": user_data["dominant_hand"] or "",
@@ -1434,8 +1457,9 @@ def convert_series_to_mapping_id(series_name, club_name, league_id=None):
 @api_bp.route("/api/update-settings", methods=["POST"])
 @login_required
 def update_settings():
-    """Update user settings"""
+    """Update user settings using simplified session management"""
     try:
+        from app.services.session_service import switch_user_league, get_session_data_for_user
         import logging
 
         logger = logging.getLogger(__name__)
@@ -1443,310 +1467,60 @@ def update_settings():
         user_email = session["user"]["email"]
 
         # Validate required fields
-        if (
-            not data.get("firstName")
-            or not data.get("lastName")
-            or not data.get("email")
-        ):
-            return (
-                jsonify({"error": "First name, last name, and email are required"}),
-                400,
-            )
+        if not data.get("firstName") or not data.get("lastName") or not data.get("email"):
+            return jsonify({"error": "First name, last name, and email are required"}), 400
 
-        # Enhanced player ID lookup logic:
-        # 1. Always retry if user requests it OR they don't have a player ID
-        # 2. Always retry if league/club/series has changed from current session
-        # 3. Use database-only lookup strategy
-        force_player_id_retry = data.get("forcePlayerIdRetry", False)
-        current_player_id = session["user"].get("tenniscores_player_id")
+        logger.info(f"Settings update for {user_email}: {data}")
 
-        # Check if league/club/series has changed from current session
-        current_league_id = session["user"].get("league_id")
-        current_club = session["user"].get("club")
-        current_series = session["user"].get("series")
-
-        new_league_id = data.get("league_id")
-        new_club = data.get("club")
-        new_series = data.get("series")
-
-        settings_changed = (
-            new_league_id != current_league_id
-            or new_club != current_club
-            or new_series != current_series
-        )
-
-        should_retry_player_id = (
-            force_player_id_retry or not current_player_id or settings_changed
-        )
-
-        found_player_id = None
-        player_association_created = False
-
-        if (
-            should_retry_player_id
-            and data.get("firstName")
-            and data.get("lastName")
-            and data.get("club")
-            and data.get("series")
-        ):
-            try:
-                reason = []
-                if force_player_id_retry:
-                    reason.append("user requested retry")
-                if not current_player_id:
-                    reason.append("no existing player ID")
-                if settings_changed:
-                    reason.append(
-                        f"settings changed (league: {current_league_id} -> {new_league_id}, club: {current_club} -> {new_club}, series: {current_series} -> {new_series})"
-                    )
-
-                logger.info(
-                    f"Settings update: Retrying player ID lookup because: {', '.join(reason)}"
-                )
-
-                # Use database-only lookup - NO MORE JSON FILES
-                lookup_result = find_player_by_database_lookup(
-                    first_name=data["firstName"],
-                    last_name=data["lastName"],
-                    club_name=data["club"],
-                    series_name=data["series"],
-                    league_id=data.get("league_id"),
-                )
-
-                # Extract player ID from the enhanced result
-                found_player_id = None
-                if lookup_result and lookup_result.get("player"):
-                    found_player_id = lookup_result["player"]["tenniscores_player_id"]
-                    logger.info(
-                        f"Settings update: Match type: {lookup_result['match_type']} - {lookup_result['message']}"
-                    )
-
-                if found_player_id:
-                    logger.info(
-                        f"Settings update: Found player ID via database lookup: {found_player_id}"
-                    )
-
-                    # Create user-player association if player found
-                    db_session = SessionLocal()
-                    try:
-                        # Get user and player records
-                        user_record = (
-                            db_session.query(User)
-                            .filter(User.email == user_email)
-                            .first()
-                        )
-                        player_record = (
-                            db_session.query(Player)
-                            .filter(
-                                Player.tenniscores_player_id == found_player_id,
-                                Player.is_active == True,
-                            )
-                            .first()
-                        )
-
-                        if user_record and player_record:
-                            # Check if association already exists
-                            existing = (
-                                db_session.query(UserPlayerAssociation)
-                                .filter(
-                                    UserPlayerAssociation.user_id == user_record.id,
-                                    UserPlayerAssociation.tenniscores_player_id
-                                    == player_record.tenniscores_player_id,
-                                )
-                                .first()
-                            )
-
-                            if not existing:
-                                # Unset any existing primary associations for this user
-                                db_session.query(UserPlayerAssociation).filter(
-                                    UserPlayerAssociation.user_id == user_record.id,
-                                    UserPlayerAssociation.is_primary == True,
-                                ).update({"is_primary": False})
-
-                                # Create new association as primary
-                                association = UserPlayerAssociation(
-                                    user_id=user_record.id,
-                                    tenniscores_player_id=player_record.tenniscores_player_id,
-                                    is_primary=True,
-                                )
-                                db_session.add(association)
-
-                                # ✅ CRITICAL: Ensure player has team assignment for polls functionality
-                                from app.services.auth_service_refactored import (
-                                    assign_player_to_team,
-                                )
-
-                                team_assigned = assign_player_to_team(
-                                    player_record, db_session
-                                )
-                                if team_assigned:
-                                    logger.info(
-                                        f"Settings update: Team assignment successful for {player_record.full_name}"
-                                    )
-                                else:
-                                    logger.warning(
-                                        f"Settings update: Could not assign team to {player_record.full_name}"
-                                    )
-
-                                db_session.commit()
-                                player_association_created = True
-                                logger.info(
-                                    f"Settings update: Created new primary association between user {user_email} and player {player_record.full_name}"
-                                )
-                            else:
-                                # Association exists - make sure it's primary if settings changed
-                                if settings_changed and not existing.is_primary:
-                                    # Unset other primary associations
-                                    db_session.query(UserPlayerAssociation).filter(
-                                        UserPlayerAssociation.user_id == user_record.id,
-                                        UserPlayerAssociation.is_primary == True,
-                                    ).update({"is_primary": False})
-
-                                    # Set this association as primary
-                                    existing.is_primary = True
-                                    db_session.commit()
-                                    logger.info(
-                                        f"Settings update: Updated existing association to primary for user {user_email} and player {player_record.full_name}"
-                                    )
-                                else:
-                                    logger.info(
-                                        f"Settings update: Association already exists between user {user_email} and player {player_record.full_name}"
-                                    )
-                        else:
-                            logger.warning(
-                                f"Settings update: Could not find user or player record for association"
-                            )
-
-                    except Exception as assoc_error:
-                        db_session.rollback()
-                        logger.error(
-                            f"Settings update: Error creating user-player association: {str(assoc_error)}"
-                        )
-                    finally:
-                        db_session.close()
-                else:
-                    logger.info(
-                        f"Settings update: No player ID found via database lookup"
-                    )
-
-            except Exception as lookup_error:
-                logger.warning(
-                    f"Settings update: Player ID lookup error: {str(lookup_error)}"
-                )
-                found_player_id = None
-
-        # Update user data (only basic user fields - no foreign keys)
-        success = execute_update(
-            """
+        # Update basic user data
+        execute_query("""
             UPDATE users 
             SET first_name = %s, last_name = %s, email = %s,
                 ad_deuce_preference = %s, dominant_hand = %s
             WHERE email = %s
-        """,
-            (
-                data["firstName"],
-                data["lastName"],
-                data["email"],
-                data.get("adDeuce", ""),
-                data.get("dominantHand", ""),
-                user_email,
-            ),
-        )
+        """, [
+            data.get("firstName"),
+            data.get("lastName"), 
+            data.get("email"),
+            data.get("adDeuce", ""),
+            data.get("dominantHand", ""),
+            user_email
+        ])
 
-        if not success:
-            return jsonify({"error": "Failed to update user data"}), 500
+        # Handle league switching if league changed
+        new_league_id = data.get("league_id")
+        current_league_id = session["user"].get("league_id")
+        
+        if new_league_id and new_league_id != current_league_id:
+            logger.info(f"League change requested: {current_league_id} -> {new_league_id}")
+            
+            # Switch to new league
+            if switch_user_league(user_email, new_league_id):
+                logger.info(f"Successfully switched to {new_league_id}")
+            else:
+                return jsonify({
+                    "success": False, 
+                    "message": f"Could not switch to {new_league_id}. You may not have a player record in that league."
+                }), 400
 
-        logger.info(f"Settings update: Updated user basic data")
-
-        # Get updated user data with player associations for session
-        db_session = SessionLocal()
-        try:
-            user_record = (
-                db_session.query(User).filter(User.email == data["email"]).first()
-            )
-
-            if not user_record:
-                return jsonify({"error": "Failed to retrieve updated user data"}), 500
-
-            # Get associated players
-            associations = (
-                db_session.query(UserPlayerAssociation)
-                .filter(UserPlayerAssociation.user_id == user_record.id)
-                .all()
-            )
-
-            # Find primary player for session data
-            primary_player = None
-            current_player_id = None
-
-            for assoc in associations:
-                if assoc.is_primary:
-                    player = assoc.get_player(db_session)
-                    if player and player.club and player.series and player.league:
-                        primary_player = {
-                            "club": player.club.name,
-                            "series": player.series.name,
-                            "league_id": player.league.league_id,
-                            "league_name": player.league.league_name,
-                            "tenniscores_player_id": player.tenniscores_player_id,
-                        }
-                        current_player_id = player.tenniscores_player_id
-                        break
-
-            # Update session with new user data
-            session["user"] = {
-                "id": user_record.id,
-                "email": user_record.email,
-                "first_name": user_record.first_name,
-                "last_name": user_record.last_name,
-                "ad_deuce_preference": user_record.ad_deuce_preference,
-                "dominant_hand": user_record.dominant_hand,
-                "club": (
-                    primary_player["club"] if primary_player else data.get("club", "")
-                ),
-                "series": (
-                    primary_player["series"]
-                    if primary_player
-                    else data.get("series", "")
-                ),
-                "league_id": (
-                    primary_player["league_id"]
-                    if primary_player
-                    else data.get("league_id")
-                ),
-                "league_name": primary_player["league_name"] if primary_player else "",
-                "is_admin": user_record.is_admin,
-                "tenniscores_player_id": current_player_id,
-                "settings": "{}",  # Default empty settings for consistency with auth
-            }
-
-            # Explicitly mark session as modified to ensure persistence
+        # Rebuild session from database (this gets the updated league_context)
+        fresh_session_data = get_session_data_for_user(user_email)
+        if fresh_session_data:
+            session["user"] = fresh_session_data
             session.modified = True
+            logger.info(f"Session updated: {fresh_session_data['league_name']} - {fresh_session_data['club']}")
+        else:
+            return jsonify({"success": False, "message": "Failed to update session"}), 500
 
-            logger.info(
-                f"Settings update: Session updated with player ID: {current_player_id}"
-            )
-
-            return jsonify(
-                {
-                    "success": True,
-                    "message": "Settings updated successfully",
-                    "user": session["user"],
-                    "player_id_updated": found_player_id is not None,
-                    "player_id": current_player_id,
-                    "player_association_created": player_association_created,
-                    "player_id_retry_attempted": should_retry_player_id,
-                    "player_id_retry_successful": found_player_id is not None,
-                    "force_retry_requested": force_player_id_retry,
-                }
-            )
-
-        finally:
-            db_session.close()
+        return jsonify({
+            "success": True, 
+            "message": "Settings updated successfully",
+            "user": fresh_session_data
+        })
 
     except Exception as e:
-        print(f"Error updating settings: {str(e)}")
-        return jsonify({"error": "Failed to update settings"}), 500
+        logger.error(f"Error updating settings: {str(e)}")
+        return jsonify({"success": False, "message": f"Update failed: {str(e)}"}), 500
 
 
 @api_bp.route("/api/retry-player-id", methods=["POST"])
@@ -1853,9 +1627,11 @@ def retry_player_id_lookup():
                             association = UserPlayerAssociation(
                                 user_id=user_record.id,
                                 tenniscores_player_id=player_record.tenniscores_player_id,
-                                is_primary=True,  # First association becomes primary
                             )
                             db_session.add(association)
+                            
+                            # Update user's league context
+                            user_record.league_context = player_record.league_id
 
                             # ✅ CRITICAL: Ensure player has team assignment for polls functionality
                             from app.services.auth_service_refactored import (
@@ -1878,6 +1654,7 @@ def retry_player_id_lookup():
 
                             # Update session with player data
                             session["user"]["tenniscores_player_id"] = found_player_id
+                            session["user"]["league_context"] = player_record.league_id
                             if (
                                 player_record.club
                                 and player_record.series
@@ -1911,6 +1688,7 @@ def retry_player_id_lookup():
 
                             # Update session anyway in case it was missing
                             session["user"]["tenniscores_player_id"] = found_player_id
+                            session["user"]["league_context"] = player_record.league_id
                             session.modified = True
 
                             return jsonify(
@@ -2127,6 +1905,75 @@ def get_teams():
 
     except Exception as e:
         print(f"Error getting teams: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+@api_bp.route("/api/club-players-metadata")
+@login_required
+def get_club_players_metadata():
+    """Get metadata for club players page (series list, PTI range, etc.) without requiring filter criteria"""
+    try:
+        from database_utils import execute_query
+        
+        user_club = session["user"].get("club")
+        user_league_id = session["user"].get("league_id", "")
+        
+        # Convert league_id to integer foreign key
+        user_league_db_id = None
+        if user_league_id:
+            try:
+                user_league_db_id = int(user_league_id)
+            except (ValueError, TypeError):
+                try:
+                    league_record = execute_query_one(
+                        "SELECT id FROM leagues WHERE league_id = %s", [user_league_id]
+                    )
+                    if league_record:
+                        user_league_db_id = league_record["id"]
+                except Exception:
+                    pass
+        
+        # Get available series for the user's league
+        available_series = []
+        if user_league_db_id:
+            series_query = """
+                SELECT DISTINCT s.name as series_name
+                FROM players p
+                JOIN series s ON p.series_id = s.id
+                WHERE p.league_id = %s AND p.is_active = true
+                ORDER BY s.name
+            """
+            series_results = execute_query(series_query, (user_league_db_id,))
+            available_series = [row["series_name"] for row in series_results]
+        
+        # Get PTI range for the user's league
+        pti_range = {"min": 0, "max": 100}
+        pti_filters_available = False
+        if user_league_db_id:
+            pti_query = """
+                SELECT MIN(p.pti) as min_pti, MAX(p.pti) as max_pti, COUNT(*) as total_players,
+                       COUNT(CASE WHEN p.pti IS NOT NULL THEN 1 END) as players_with_pti
+                FROM players p
+                WHERE p.league_id = %s AND p.is_active = true
+            """
+            pti_result = execute_query_one(pti_query, (user_league_db_id,))
+            if pti_result and pti_result["min_pti"] is not None:
+                pti_range = {"min": float(pti_result["min_pti"]), "max": float(pti_result["max_pti"])}
+                # Show PTI filters if at least 10% of players have PTI values
+                pti_percentage = (pti_result["players_with_pti"] / pti_result["total_players"] * 100) if pti_result["total_players"] > 0 else 0
+                pti_filters_available = pti_percentage >= 10.0
+        
+        return jsonify({
+            "available_series": available_series,
+            "pti_range": pti_range,
+            "pti_filters_available": pti_filters_available,
+            "user_club": user_club or "Unknown Club",
+        })
+
+    except Exception as e:
+        print(f"Error in club-players-metadata API: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
         return jsonify({"error": str(e)}), 500
 
 
@@ -2513,3 +2360,136 @@ def handle_player_season_tracking():
 
         print(f"Full traceback: {traceback.format_exc()}")
         return jsonify({"error": "Internal server error"}), 500
+
+
+@api_bp.route("/api/switch-team-context", methods=["POST"])
+@login_required
+def switch_team_context():
+    """API endpoint for switching user's team/league context using existing league_context field"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"success": False, "error": "No data provided"}), 400
+        
+        team_id = data.get("team_id")
+        
+        if not team_id:
+            return jsonify({"success": False, "error": "team_id required"}), 400
+        
+        user_id = session["user"]["id"]
+        
+        # Get the league for this team and verify user access
+        team_league_query = """
+            SELECT t.league_id, l.league_name, t.team_name
+            FROM teams t
+            JOIN leagues l ON t.league_id = l.id
+            JOIN players p ON t.id = p.team_id
+            JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
+            WHERE upa.user_id = %s AND t.id = %s AND p.is_active = TRUE
+        """
+        team_info = execute_query_one(team_league_query, [user_id, team_id])
+        
+        if not team_info:
+            return jsonify({"success": False, "error": "User does not have access to this team"}), 403
+        
+        league_id = team_info["league_id"]
+        league_name = team_info["league_name"]
+        team_name = team_info["team_name"]
+        
+        # Update user's league_context field
+        update_query = "UPDATE users SET league_context = %s WHERE id = %s"
+        execute_query(update_query, [league_id, user_id])
+        
+        # Update current session
+        session["user"]["league_context"] = league_id
+        session.modified = True
+        
+        return jsonify({
+            "success": True,
+            "league_id": league_id,
+            "team_id": team_id,
+            "message": f"Switched to {team_name} ({league_name})"
+        })
+            
+    except Exception as e:
+        logger.error(f"Error switching team context: {e}")
+        return jsonify({
+            "success": False,
+            "error": "Failed to switch team context"
+        }), 500
+
+
+@api_bp.route("/api/user-context-info", methods=["GET"])
+@login_required
+def get_user_context_info():
+    """Get current user context information"""
+    try:
+        from app.services.context_service import ContextService
+        
+        user_id = session["user"]["id"]
+        
+        # Get context info
+        context_info = ContextService.get_context_info(user_id)
+        user_leagues = ContextService.get_user_leagues(user_id)
+        user_teams = ContextService.get_user_teams(user_id)
+        
+        return jsonify({
+            "success": True,
+            "context": context_info,
+            "leagues": user_leagues,
+            "teams": user_teams,
+            "is_multi_league": len(user_leagues) > 1,
+            "is_multi_team": len(user_teams) > 1
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting user context info: {e}")
+        return jsonify({
+            "success": False,
+            "error": "Failed to get context info"
+        }), 500
+
+
+@api_bp.route("/api/switch-league", methods=["POST"])
+@login_required
+def switch_league():
+    """Simple league switching API using new session service"""
+    try:
+        from app.services.session_service import switch_user_league, get_session_data_for_user
+        import logging
+
+        logger = logging.getLogger(__name__)
+        data = request.get_json()
+        
+        if not data or not data.get("league_id"):
+            return jsonify({"success": False, "error": "league_id required"}), 400
+        
+        user_email = session["user"]["email"]
+        new_league_id = data.get("league_id")
+        
+        logger.info(f"League switch requested: {user_email} -> {new_league_id}")
+        
+        # Switch to new league
+        if switch_user_league(user_email, new_league_id):
+            # Rebuild session from database
+            fresh_session_data = get_session_data_for_user(user_email)
+            if fresh_session_data:
+                session["user"] = fresh_session_data
+                session.modified = True
+                
+                return jsonify({
+                    "success": True,
+                    "message": f"Switched to {fresh_session_data['league_name']}",
+                    "user": fresh_session_data
+                })
+            else:
+                return jsonify({"success": False, "error": "Failed to update session"}), 500
+        else:
+            return jsonify({
+                "success": False, 
+                "error": f"Could not switch to {new_league_id}. You may not have a player record in that league."
+            }), 400
+            
+    except Exception as e:
+        logger.error(f"Error switching league: {str(e)}")
+        return jsonify({"success": False, "error": f"League switch failed: {str(e)}"}), 500
