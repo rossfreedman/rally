@@ -1,0 +1,138 @@
+{
+  "timestamp": "2025-06-26T09:52:49.046026",
+  "schema_comparison": {
+    "tables_only_in_local": [],
+    "tables_only_in_railway": [
+      "series_stats_backup_before_league_fix"
+    ],
+    "column_differences": {
+      "users": {
+        "only_in_local": [
+          "tenniscores_player_id",
+          "league_id"
+        ],
+        "only_in_railway": [],
+        "type_differences": []
+      }
+    },
+    "constraint_differences": {},
+    "summary": {
+      "total_tables_local": 26,
+      "total_tables_railway": 27,
+      "common_tables": 26,
+      "tables_with_differences": 1,
+      "schema_identical": false
+    }
+  },
+  "data_comparison": {
+    "row_count_differences": {
+      "leagues": {
+        "local_count": 4,
+        "railway_count": 5,
+        "difference": -1
+      },
+      "clubs": {
+        "local_count": 83,
+        "railway_count": 86,
+        "difference": -3
+      },
+      "poll_responses": {
+        "local_count": 11,
+        "railway_count": 8,
+        "difference": 3
+      },
+      "polls": {
+        "local_count": 10,
+        "railway_count": 8,
+        "difference": 2
+      },
+      "players": {
+        "local_count": 10298,
+        "railway_count": 10295,
+        "difference": 3
+      },
+      "users": {
+        "local_count": 23,
+        "railway_count": 12,
+        "difference": 11
+      },
+      "user_activity_logs": {
+        "local_count": 1492,
+        "railway_count": 762,
+        "difference": 730
+      },
+      "user_instructions": {
+        "local_count": 1,
+        "railway_count": 0,
+        "difference": 1
+      },
+      "player_availability": {
+        "local_count": 43,
+        "railway_count": 36,
+        "difference": 7
+      },
+      "match_scores": {
+        "local_count": 26786,
+        "railway_count": 26765,
+        "difference": 21
+      },
+      "poll_choices": {
+        "local_count": 20,
+        "railway_count": 16,
+        "difference": 4
+      },
+      "activity_log": {
+        "local_count": 377,
+        "railway_count": 287,
+        "difference": 90
+      },
+      "club_leagues": {
+        "local_count": 120,
+        "railway_count": 121,
+        "difference": -1
+      },
+      "user_player_associations": {
+        "local_count": 28,
+        "railway_count": 13,
+        "difference": 15
+      },
+      "player_history": {
+        "local_count": 395793,
+        "railway_count": 392958,
+        "difference": 2835
+      },
+      "teams": {
+        "local_count": 803,
+        "railway_count": 811,
+        "difference": -8
+      },
+      "player_season_tracking": {
+        "local_count": 20,
+        "railway_count": 19,
+        "difference": 1
+      },
+      "series": {
+        "local_count": 195,
+        "railway_count": 212,
+        "difference": -17
+      }
+    },
+    "tables_only_in_local": [],
+    "tables_only_in_railway": [
+      "series_stats_backup_before_league_fix"
+    ],
+    "summary": {
+      "total_tables_local": 26,
+      "total_tables_railway": 27,
+      "common_tables": 26,
+      "total_rows_local": 441344,
+      "total_rows_railway": 438637,
+      "tables_with_count_differences": 18,
+      "data_identical": false
+    }
+  },
+  "databases": {
+    "local": "localhost:5432/rally",
+    "railway": "ballast.proxy.rlwy.net:40911/railway"
+  }
+}
