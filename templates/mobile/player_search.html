@@ -115,6 +115,12 @@
                                                 <i class="fas fa-trophy text-yellow-500 w-4"></i>
                                                 <span class="player-series">{{ player.series }}</span>
                                             </div>
+                                            {% if player.team_name %}
+                                            <div class="flex items-center gap-2">
+                                                <i class="fas fa-users text-indigo-500 w-4"></i>
+                                                <span>{{ player.team_name }}</span>
+                                            </div>
+                                            {% endif %}
                                         </div>
                                     </div>
                                     <div class="ml-4">
@@ -194,15 +200,15 @@
                         </div>
                     </div>
                     
-                    <div class="flex items-start gap-3">
-                        <div class="w-6 h-6 bg-yellow-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                            <i class="fas fa-check text-yellow-600 text-xs"></i>
+                                            <div class="flex items-start gap-3">
+                            <div class="w-6 h-6 bg-yellow-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <i class="fas fa-check text-yellow-600 text-xs"></i>
+                            </div>
+                            <div>
+                                <div class="font-medium text-gray-900">Multi-Team Players</div>
+                                <div class="text-sm text-gray-600">Players on multiple teams show separate entries with team-specific stats</div>
+                            </div>
                         </div>
-                        <div>
-                            <div class="font-medium text-gray-900">Multiple Results</div>
-                            <div class="text-sm text-gray-600">Shows all matching players to choose from</div>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -267,6 +273,7 @@
 .text-orange-500 { color: #f97316; }
 .text-purple-500 { color: #8b5cf6; }
 .text-purple-600 { color: #7c3aed; }
+.text-indigo-500 { color: #6366f1; }
 .text-white { color: #ffffff; }
 
 /* Gradient backgrounds */
