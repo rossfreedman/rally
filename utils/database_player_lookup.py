@@ -72,14 +72,34 @@ NAME_VARIATIONS = {
     "theodore": ["ted"],
     "ken": ["kenneth"],
     "kenneth": ["ken"],
+    "olg": ["olga"],  # Fix for Olg Martinsone case
+    "olga": ["olg"],  # Bidirectional mapping
 }
 
 
 def normalize_name(name: str) -> str:
-    """Normalize name for comparison (lowercase, stripped)"""
+    """Normalize player name for consistent matching"""
     if not name:
         return ""
-    return name.strip().lower()
+    return name.replace(",", "").replace("  ", " ").strip().lower()
+
+
+def normalize_series_name(series_name: str) -> str:
+    """
+    Normalize series names to handle common variations
+    Examples: "Series 1" -> "S1", "Series 10" -> "S10"
+    """
+    if not series_name:
+        return ""
+    
+    # Convert "Series X" to "SX" format for CNSWPL compatibility
+    import re
+    series_pattern = re.compile(r'^series\s+(\d+)$', re.IGNORECASE)
+    match = series_pattern.match(series_name.strip())
+    if match:
+        return f"S{match.group(1)}"
+    
+    return series_name.strip()
 
 
 def get_name_variations(first_name: str) -> List[str]:
@@ -133,7 +153,7 @@ def find_player_by_database_lookup(
         # Normalize inputs
         norm_last = normalize_name(last_name)
         norm_club = normalize_name(club_name)
-        norm_series = normalize_name(series_name)
+        norm_series = normalize_series_name(series_name)
 
         # Get name variations for first name
         first_name_variations = get_name_variations(first_name)
@@ -568,7 +588,7 @@ def search_players_by_name(
 
         if series_name:
             conditions.append("LOWER(TRIM(s.name)) LIKE %s")
-            params.append(f"%{normalize_name(series_name)}%")
+            params.append(f"%{normalize_series_name(series_name)}%")
 
         query = f"""
             SELECT p.tenniscores_player_id, p.first_name, p.last_name, 
@@ -632,7 +652,7 @@ def find_potential_player_matches(
         # Normalize inputs
         norm_last = normalize_name(last_name)
         norm_club = normalize_name(club_name)
-        norm_series = normalize_name(series_name)
+        norm_series = normalize_series_name(series_name)
 
         # Get name variations for first name
         first_name_variations = get_name_variations(first_name)
