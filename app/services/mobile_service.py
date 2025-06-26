@@ -1529,6 +1529,7 @@ def get_mobile_availability_data(user):
             location
         FROM schedule 
         WHERE home_team_id = %s OR away_team_id = %s
+        ORDER BY match_date ASC, match_time ASC
         """
         
         print(f"[DEBUG] Executing simple query with params: {(team_id, team_id)}")
@@ -1567,6 +1568,7 @@ def get_mobile_availability_data(user):
                     FROM schedule 
                     WHERE (home_team = %s OR away_team = %s)
                     AND league_id = %s
+                    ORDER BY match_date ASC, match_time ASC
                     """
                     
                     user_matches = execute_query(fallback_query, (pattern, pattern, league_id))

@@ -920,6 +920,19 @@ def add_practice_times():
         except Exception as e:
             print(f"Could not get league ID for user: {e}")
 
+        # FIXED: Get user's team_id to properly link practice times
+        user_team_id = None
+        try:
+            # Get user's team information using session service
+            from app.services.session_service import get_session_data_for_user
+            
+            session_data = get_session_data_for_user(user["email"])
+            if session_data:
+                user_team_id = session_data.get("team_id")
+                print(f"Found user team_id: {user_team_id} for practice times")
+        except Exception as e:
+            print(f"Could not get team ID for user: {e}")
+
         # Convert day name to number (0=Monday, 6=Sunday)
         day_map = {
             "Monday": 0,
@@ -939,13 +952,16 @@ def add_practice_times():
         current_date = first_date_obj
         practices_added = 0
         added_practices = []  # Track the specific practices added
-        failed_practices = []  # Track any failures
+        failed_practices = []
 
         # Check for existing practices to avoid duplicates
         practice_description = f"{user_club} Practice - {user_series}"
+        
+        # FIXED: Use team_id-based duplicate checking for precision
         existing_query = """
             SELECT match_date FROM schedule 
-            WHERE league_id = %(league_id)s 
+            WHERE home_team_id = %(team_id)s
+            AND league_id = %(league_id)s 
             AND home_team = %(practice_desc)s
             AND match_date BETWEEN %(start_date)s AND %(end_date)s
         """
@@ -954,6 +970,7 @@ def add_practice_times():
             existing_practices = execute_query(
                 existing_query,
                 {
+                    "team_id": user_team_id,
                     "league_id": league_id,
                     "practice_desc": practice_description,
                     "start_date": first_date_obj.date(),
@@ -985,17 +1002,18 @@ def add_practice_times():
                     # Parse formatted time back to time object for database storage
                     time_obj = datetime.strptime(formatted_time, "%I:%M %p").time()
 
-                    # Insert practice into schedule table
+                    # FIXED: Insert practice into schedule table with proper team_id
                     execute_query(
                         """
-                        INSERT INTO schedule (league_id, match_date, match_time, home_team, away_team, location)
-                        VALUES (%(league_id)s, %(match_date)s, %(match_time)s, %(practice_desc)s, '', %(location)s)
+                        INSERT INTO schedule (league_id, match_date, match_time, home_team, away_team, home_team_id, location)
+                        VALUES (%(league_id)s, %(match_date)s, %(match_time)s, %(practice_desc)s, '', %(team_id)s, %(location)s)
                     """,
                         {
                             "league_id": league_id,
                             "match_date": current_date.date(),
                             "match_time": time_obj,
                             "practice_desc": practice_description,
+                            "team_id": user_team_id,  # This is the key fix
                             "location": user_club,
                         },
                     )
