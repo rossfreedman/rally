@@ -440,6 +440,12 @@
         </div>
     </nav>
 
+    <!-- League Context Manager -->
+    <script src="{{ url_for('static', filename='js/league-context-manager.js') }}"></script>
+    
+    <!-- Enhanced League/Team Context Manager -->
+    <script src="{{ url_for('static', filename='js/enhanced-league-team-context-manager.js') }}"></script>
+
     <script>
         // Logout function
         function logoutUser() {
@@ -577,6 +583,12 @@
                 document.body.style.overflow = '';
             }
             
+            // Use enhanced context manager if available, otherwise use simple switching
+            if (window.enhancedContextManager) {
+                return window.enhancedContextManager.switchLeague(leagueId);
+            }
+            
+            // Fallback to original implementation
             // Disable all league buttons during switch
             const leagueButtons = document.querySelectorAll('.league-switch-btn');
             leagueButtons.forEach(btn => {
@@ -610,42 +622,43 @@
                 if (data.success) {
                     console.log(`✅ Successfully switched to ${data.user.league_name}`);
                     
-                    // Show success message on trigger (if it exists)
+                    // Show success briefly then reload
                     if (trigger) {
                         trigger.innerHTML = '<i class="fas fa-check text-xs text-green-400"></i>';
                     }
                     
-                    // Reload the page after brief delay to show success
                     setTimeout(() => {
                         window.location.reload();
-                    }, 500);
+                    }, 1000);
                 } else {
                     console.error('❌ League switch failed:', data.error);
-                    alert(`Failed to switch leagues: ${data.error || 'Unknown error'}`);
+                    alert(`Failed to switch leagues: ${data.error}`);
                     
-                    // Reset buttons and trigger
+                    // Re-enable buttons
                     leagueButtons.forEach(btn => {
                         btn.disabled = false;
                         btn.style.opacity = '1';
                     });
+                    
                     if (trigger) {
-                        trigger.disabled = false;
                         trigger.innerHTML = '<i class="fas fa-edit text-sm"></i>';
+                        trigger.disabled = false;
                     }
                 }
             })
             .catch(error => {
-                console.error('❌ League switch network error:', error);
-                alert('Failed to switch leagues. Please check your connection and try again.');
+                console.error('❌ Network error:', error);
+                alert(`Network error: ${error.message}`);
                 
-                // Reset buttons and trigger
+                // Re-enable buttons
                 leagueButtons.forEach(btn => {
                     btn.disabled = false;
                     btn.style.opacity = '1';
                 });
+                
                 if (trigger) {
-                    trigger.disabled = false;
                     trigger.innerHTML = '<i class="fas fa-edit text-sm"></i>';
+                    trigger.disabled = false;
                 }
             });
         }

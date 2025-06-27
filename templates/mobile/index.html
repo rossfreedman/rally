@@ -428,6 +428,13 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             leagueSwitcherModal.classList.remove('hidden');
             document.body.style.overflow = 'hidden'; // Prevent background scrolling
+            
+            // Trigger enhanced context manager to add team options if needed
+            if (window.enhancedContextManager) {
+                setTimeout(() => {
+                    window.enhancedContextManager.updateContextSelectorUI();
+                }, 100); // Small delay to ensure modal is visible
+            }
         });
         
         // Close modal with X button
