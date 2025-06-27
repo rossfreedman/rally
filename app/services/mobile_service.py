@@ -254,6 +254,10 @@ def get_player_analysis_by_name(player_name, viewing_user=None):
     player_name_normalized = normalize(player_name)
     found_player = None
 
+    # If we have a league context, prioritize players from that league
+    # If multiple players with same name exist, prefer the one from viewing user's league
+    matching_players = []
+    
     for p in all_players_data:
         # Construct full name from First Name and Last Name fields
         first_name = p.get("First Name", "")
@@ -262,8 +266,50 @@ def get_player_analysis_by_name(player_name, viewing_user=None):
         player_record_name = normalize(full_name)
 
         if player_record_name == player_name_normalized:
-            found_player = p
-            break
+            matching_players.append(p)
+    
+    if matching_players:
+        if league_id_int and len(matching_players) > 1:
+            # Multiple players found - prefer the one from viewing user's league
+            for p in matching_players:
+                if p.get("League") == league_id_int:
+                    found_player = p
+                    print(f"[DEBUG] Found player '{player_name}' from viewing user's league {league_id_int}")
+                    break
+            
+            # If no player found in user's league, fall back to player with most data
+            if not found_player:
+                # Check which players have PTI data by looking for history records
+                players_with_data = []
+                for p in matching_players:
+                    player_id = p.get("Player ID")
+                    if player_id:
+                        # Check if this player has PTI history
+                        history_count_query = """
+                            SELECT COUNT(*) as count 
+                            FROM player_history ph 
+                            JOIN players pl ON ph.player_id = pl.id 
+                            WHERE pl.tenniscores_player_id = %s
+                        """
+                        history_result = execute_query_one(history_count_query, [player_id])
+                        history_count = history_result["count"] if history_result else 0
+                        players_with_data.append((p, history_count))
+                
+                # Sort by history count (descending) and pick the one with most data
+                players_with_data.sort(key=lambda x: x[1], reverse=True)
+                if players_with_data:
+                    found_player = players_with_data[0][0]
+                    data_count = players_with_data[0][1]
+                    print(f"[DEBUG] Player '{player_name}' not found in user's league {league_id_int}, using player with most data: {data_count} history records from league {found_player.get('League')}")
+                else:
+                    found_player = matching_players[0]
+                    print(f"[DEBUG] Player '{player_name}' not found in user's league {league_id_int}, using first match from league {found_player.get('League')}")
+        else:
+            # Single player found or no league context
+            found_player = matching_players[0]
+            print(f"[DEBUG] Found single player '{player_name}' from league {found_player.get('League')}")
+    
+    print(f"[DEBUG] Final selected player: {found_player.get('Player ID') if found_player else 'None'} from league {found_player.get('League') if found_player else 'None'}")
 
     if found_player:
         # If we found the player, create a better user dict with their player_id if available
@@ -882,15 +928,33 @@ def get_player_analysis(user):
             """
             player_pti_data = execute_query_one(player_pti_query, [player_id])
 
-            if player_pti_data and player_pti_data["current_pti"] is not None:
+            if player_pti_data and (player_pti_data["current_pti"] is not None or player_pti_data["history_count"] > 0):
                 current_pti = player_pti_data["current_pti"]
                 series_name = player_pti_data["series_name"]
+                history_count = player_pti_data["history_count"]
 
                 print(
-                    f"[DEBUG] Mobile Service - Using player_id {player_pti_data['id']} with {player_pti_data['history_count']} history records"
+                    f"[DEBUG] Mobile Service - Using player_id {player_pti_data['id']} with {history_count} history records"
                 )
+                
+                # If current_pti is NULL but we have history, get the most recent PTI from history
+                if current_pti is None and history_count > 0:
+                    print(f"[DEBUG] Current PTI is NULL, getting most recent from {history_count} history records")
+                    player_db_id = player_pti_data["id"]
+                    recent_pti_query = """
+                        SELECT end_pti
+                        FROM player_history
+                        WHERE player_id = %s
+                        ORDER BY date DESC
+                        LIMIT 1
+                    """
+                    recent_pti_result = execute_query_one(recent_pti_query, [player_db_id])
+                    if recent_pti_result:
+                        current_pti = recent_pti_result["end_pti"]
+                        print(f"[DEBUG] Using most recent PTI from history: {current_pti}")
+                
                 print(
-                    f"[DEBUG] Current PTI found: {current_pti} for series: {series_name}"
+                    f"[DEBUG] Final PTI value: {current_pti} for series: {series_name}"
                 )
 
                 # Get PTI history for this specific player using proper foreign key relationship
@@ -2898,7 +2962,7 @@ def get_club_players_data(
             return {
                 "players": [],
                 "available_series": [],
-                "pti_range": {"min": 0, "max": 100},
+                "pti_range": {"min": -30, "max": 100},
                 "user_club": user_club or "Unknown Club",
                 "error": "User club not found",
             }
@@ -2945,7 +3009,7 @@ def get_club_players_data(
             return {
                 "players": [],
                 "available_series": [],
-                "pti_range": {"min": 0, "max": 100},
+                "pti_range": {"min": -30, "max": 100},
                 "user_club": user_club or "Unknown Club",
                 "error": f"Could not determine user's league context",
             }
@@ -3063,7 +3127,7 @@ def get_club_players_data(
             return {
                 "players": [],
                 "available_series": [],
-                "pti_range": {"min": 0, "max": 100},
+                "pti_range": {"min": -30, "max": 100},
                 "user_club": user_club or "Unknown Club",
                 "error": f"Failed to load player data: {str(e)}",
             }
@@ -3074,7 +3138,7 @@ def get_club_players_data(
             return {
                 "players": [],
                 "available_series": [],
-                "pti_range": {"min": 0, "max": 100},
+                "pti_range": {"min": -30, "max": 100},
                 "pti_filters_available": False,
                 "user_club": user_club or "Unknown Club",
                 "error": "Error loading player data",
@@ -3185,7 +3249,7 @@ def get_club_players_data(
                 continue
 
         # Set PTI range based on all players in the system
-        pti_range = {"min": 0, "max": 100}
+        pti_range = {"min": -30, "max": 100}
         if all_pti_values:
             pti_range = {"min": min(all_pti_values), "max": max(all_pti_values)}
 
@@ -3299,6 +3363,10 @@ def get_club_players_data(
                         "team_name": player.get("Team Name", "")
                     })
 
+                # Debug PTI values for troubleshooting
+                if "morgan" in display_name.lower():
+                    print(f"[DEBUG] PTI for {display_name}: '{player['PTI']}' (type: {type(player['PTI'])})")
+
                 # Add player to results with clean player name
                 filtered_players.append(
                     {
@@ -3369,7 +3437,7 @@ def get_club_players_data(
         return {
             "players": [],
             "available_series": [],
-            "pti_range": {"min": 0, "max": 100},
+            "pti_range": {"min": -30, "max": 100},
             "pti_filters_available": False,
             "user_club": user.get("club") or "Unknown Club",
             "error": str(e),

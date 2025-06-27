@@ -2053,7 +2053,7 @@ def get_club_players_metadata():
             available_series = [row["series_name"] for row in series_results]
         
         # Get PTI range for the user's league
-        pti_range = {"min": 0, "max": 100}
+        pti_range = {"min": -30, "max": 100}
         pti_filters_available = False
         if user_league_db_id:
             pti_query = """
