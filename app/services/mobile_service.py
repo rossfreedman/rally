@@ -3021,14 +3021,14 @@ def get_club_players_data(
         print(f"Loading players for league database ID: {user_league_db_id}")
         
         try:
-            # Load players with their team associations - simplified query for performance
-            # We'll calculate team-specific records in Python to avoid slow subqueries
+            # Load players with their team associations and PTI data (including fallback from player_history)
             players_with_teams_query = """
                 SELECT 
                     p.first_name as "First Name",
                     p.last_name as "Last Name", 
                     p.tenniscores_player_id as "Player ID",
-                    CASE WHEN p.pti IS NULL THEN 'N/A' ELSE p.pti::TEXT END as "PTI",
+                    p.id as "Database ID",
+                    p.pti as "Current PTI",
                     c.name as "Club",
                     s.name as "Series",
                     l.league_id as "League",
@@ -3047,6 +3047,32 @@ def get_club_players_data(
             
             all_players = execute_query(players_with_teams_query, (user_league_db_id,))
             print(f"Loaded {len(all_players)} player-team entries from database")
+            
+            # Add PTI fallback logic (same as player detail page)
+            # For players with NULL PTI, try to get the most recent PTI from player_history
+            for player in all_players:
+                current_pti = player.get("Current PTI")
+                player_db_id = player.get("Database ID")
+                
+                if current_pti is None and player_db_id:
+                    # Try to get most recent PTI from player_history
+                    recent_pti_query = """
+                        SELECT end_pti
+                        FROM player_history
+                        WHERE player_id = %s
+                        ORDER BY date DESC
+                        LIMIT 1
+                    """
+                    recent_pti_result = execute_query_one(recent_pti_query, [player_db_id])
+                    if recent_pti_result and recent_pti_result["end_pti"] is not None:
+                        current_pti = recent_pti_result["end_pti"]
+                        print(f"[DEBUG] Using PTI from history for {player['First Name']} {player['Last Name']}: {current_pti}")
+                
+                # Set the final PTI value (or "N/A" if still None)
+                if current_pti is not None:
+                    player["PTI"] = str(current_pti)
+                else:
+                    player["PTI"] = "N/A"
             
             # Calculate team-specific wins/losses for each player-team combination
             print("Loading match data for record calculation...")
