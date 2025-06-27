@@ -619,6 +619,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Load and display players
     async function loadPlayers() {
         try {
+            // Scroll immediately when button is clicked
+            scrollToResults();
+            
             showLoading(true);
             
             // Validate that at least one filter criteria is provided
@@ -664,7 +667,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             allPlayers = data.players || [];
             
-            displayPlayers(allPlayers, true); // Scroll when user searches
+            displayPlayers(allPlayers, false); // No need to scroll since we already scrolled
             showLoading(false);
             
         } catch (error) {
@@ -689,7 +692,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             `;
             updateSelectionUI();
-            if (shouldScroll) scrollToResults();
             return;
         }
         
@@ -699,11 +701,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         updateSelectionUI();
-        
-        // Only auto-scroll when user performs a search/filter action
-        if (shouldScroll) {
-            scrollToResults();
-        }
     }
 
     // Scroll to position instructions at top of viewport
