@@ -2665,3 +2665,101 @@ def switch_league():
     except Exception as e:
         logger.error(f"Error switching league: {str(e)}")
         return jsonify({"success": False, "error": f"League switch failed: {str(e)}"}), 500
+
+
+@api_bp.route("/api/get-user-teams", methods=["GET"])
+@login_required
+def get_user_teams():
+    """
+    API endpoint to get user's teams for enhanced league/team context switching.
+    Returns teams user belongs to and current team context.
+    """
+    try:
+        user_id = session["user"]["id"]
+        user_email = session["user"]["email"]
+        
+        # Get user's teams across all leagues
+        teams_query = """
+            SELECT DISTINCT 
+                t.id,
+                t.team_name,
+                c.name as club_name,
+                s.name as series_name,
+                l.id as league_db_id,
+                l.league_id as league_string_id,
+                l.league_name,
+                COUNT(ms.id) as match_count
+            FROM teams t
+            JOIN players p ON t.id = p.team_id
+            JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
+            JOIN clubs c ON t.club_id = c.id
+            JOIN series s ON t.series_id = s.id
+            JOIN leagues l ON t.league_id = l.id
+            LEFT JOIN match_scores ms ON (t.id = ms.home_team_id OR t.id = ms.away_team_id)
+            WHERE upa.user_id = %s 
+                AND p.is_active = TRUE 
+                AND t.is_active = TRUE
+            GROUP BY t.id, t.team_name, c.name, s.name, l.id, l.league_id, l.league_name
+            ORDER BY l.league_name, c.name, s.name
+        """
+        
+        teams_result = execute_query(teams_query, [user_id])
+        teams = [dict(team) for team in teams_result] if teams_result else []
+        
+        # Get current team context based on user's league_context
+        current_team = None
+        if session["user"].get("league_context"):
+            league_context = session["user"]["league_context"]
+            
+            # Find user's active team in current league context
+            current_team_query = """
+                SELECT DISTINCT
+                    t.id,
+                    t.team_name,
+                    c.name as club_name,
+                    s.name as series_name,
+                    l.id as league_db_id,
+                    l.league_id as league_string_id,
+                    l.league_name
+                FROM teams t
+                JOIN players p ON t.id = p.team_id
+                JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
+                JOIN clubs c ON t.club_id = c.id
+                JOIN series s ON t.series_id = s.id
+                JOIN leagues l ON t.league_id = l.id
+                WHERE upa.user_id = %s 
+                    AND l.id = %s
+                    AND p.is_active = TRUE 
+                    AND t.is_active = TRUE
+                ORDER BY t.team_name
+                LIMIT 1
+            """
+            
+            current_team_result = execute_query_one(current_team_query, [user_id, league_context])
+            if current_team_result:
+                current_team = dict(current_team_result)
+        
+        # Filter teams for current league if we have league context
+        current_league_teams = []
+        if session["user"].get("league_context"):
+            league_context = session["user"]["league_context"]
+            current_league_teams = [team for team in teams if team["league_db_id"] == league_context]
+        
+        return jsonify({
+            "success": True,
+            "teams": teams,
+            "current_team": current_team,
+            "current_league_teams": current_league_teams,
+            "has_multiple_teams": len(teams) > 1,
+            "has_multiple_teams_in_current_league": len(current_league_teams) > 1,
+            "user_id": user_id
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting user teams for user {session.get('user', {}).get('id', 'unknown')}: {e}")
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "teams": [],
+            "current_team": None
+        }), 500
