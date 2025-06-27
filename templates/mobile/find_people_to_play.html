@@ -60,8 +60,8 @@
                         <div>
                             <label for="ptiMinSlider" class="block text-xs font-medium text-gray-600 mb-2">Minimum PTI</label>
                             <input type="range" id="ptiMinSlider" class="slider w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" 
-                                   min="0" max="100" value="0" step="0.1">
-                            <div class="text-xs text-gray-500 mt-1">Min: <span id="ptiMinValue">0</span></div>
+                                   min="-30" max="100" value="-30" step="0.1">
+                            <div class="text-xs text-gray-500 mt-1">Min: <span id="ptiMinValue">-30</span></div>
                         </div>
                         <div>
                             <label for="ptiMaxSlider" class="block text-xs font-medium text-gray-600 mb-2">Maximum PTI</label>
@@ -70,7 +70,7 @@
                             <div class="text-xs text-gray-500 mt-1">Max: <span id="ptiMaxValue">100</span></div>
                         </div>
                         <div class="text-xs text-gray-500 text-center">
-                            Available Range: <span id="ptiRangeDisplay">0 - 100</span>
+                            Available Range: <span id="ptiRangeDisplay">-30 - 100</span>
                         </div>
                     </div>
                 </div>
@@ -411,7 +411,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Global variables
     let allPlayers = [];
     let availableSeries = [];
-    let ptiRange = { min: 0, max: 100 };
+    let ptiRange = { min: -30, max: 100 };  // Default minimum PTI set to -30
     let selectedPlayers = new Set(); // Track selected player names
     
     // UI Elements
@@ -459,7 +459,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const data = await response.json();
         availableSeries = data.available_series || [];
-        ptiRange = data.pti_range || { min: 0, max: 100 };
+        ptiRange = data.pti_range || { min: -30, max: 100 };
         const ptiFiltersAvailable = data.pti_filters_available || false;
         const userClub = data.user_club || 'My Club';
         
@@ -489,15 +489,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Setup PTI slider fields
     function setupPTISliders() {
-        ptiMinSlider.value = ptiRange.min;
-        ptiMaxSlider.value = ptiRange.max;
-        ptiMinSlider.min = ptiRange.min;
-        ptiMinSlider.max = ptiRange.max;
-        ptiMaxSlider.min = ptiRange.min;
-        ptiMaxSlider.max = ptiRange.max;
-        ptiMinValue.textContent = ptiRange.min;
-        ptiMaxValue.textContent = ptiRange.max;
-        ptiRangeDisplay.textContent = `${ptiRange.min} - ${ptiRange.max}`;
+        // Always use -30 as minimum PTI regardless of database values
+        const minPTI = -30;
+        const maxPTI = ptiRange.max;
+        
+        ptiMinSlider.value = minPTI;
+        ptiMaxSlider.value = maxPTI;
+        ptiMinSlider.min = minPTI;
+        ptiMinSlider.max = maxPTI;
+        ptiMaxSlider.min = minPTI;
+        ptiMaxSlider.max = maxPTI;
+        ptiMinValue.textContent = minPTI;
+        ptiMaxValue.textContent = maxPTI;
+        ptiRangeDisplay.textContent = `${minPTI} - ${maxPTI}`;
+        
+        // Update ptiRange to reflect the override
+        ptiRange.min = minPTI;
     }
 
     // Setup event listeners
@@ -676,6 +683,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Create player card with checkbox
     function createPlayerCard(player) {
         console.log('Creating player card for:', player); // Debug log
+        console.log(`PTI value for ${player.name}: "${player.pti}" (type: ${typeof player.pti})`);
         
         const card = document.createElement('div');
         card.className = 'bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow duration-200';
@@ -752,7 +760,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <!-- Stats Grid -->
                     <div class="grid grid-cols-2 gap-4 text-sm">
                         <div class="space-y-1">
-                            ${player.pti !== 'N/A' ? `
+                            ${(player.pti !== null && player.pti !== undefined && player.pti !== 'N/A' && player.pti !== '' && !isNaN(parseFloat(player.pti))) ? `
                                 <div>
                                     <span class="font-medium text-gray-600">PTI:</span> 
                                     <span class="text-blue-600 font-bold">${player.pti}</span>
@@ -995,9 +1003,10 @@ document.addEventListener('DOMContentLoaded', function() {
         // Only reset PTI filters if they are visible
         const ptiFiltersSection = document.getElementById('ptiFiltersSection');
         if (ptiFiltersSection.style.display !== 'none') {
-            ptiMinSlider.value = ptiRange.min;
+            const minPTI = -30;  // Always reset to -30 minimum
+            ptiMinSlider.value = minPTI;
             ptiMaxSlider.value = ptiRange.max;
-            ptiMinValue.textContent = ptiRange.min;
+            ptiMinValue.textContent = minPTI;
             ptiMaxValue.textContent = ptiRange.max;
         }
         

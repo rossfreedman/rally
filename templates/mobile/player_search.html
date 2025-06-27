@@ -321,6 +321,17 @@ document.addEventListener('DOMContentLoaded', function() {
             element.textContent = seriesText.replace(/^Chicago\s+(\d+.*)$/i, 'Series $1');
         }
     });
+    
+    // Auto-scroll 450px after search results are displayed
+    {% if search_attempted %}
+    // Wait a brief moment for the page to fully render, then scroll
+    setTimeout(function() {
+        window.scrollTo({
+            top: 450,
+            behavior: 'smooth'
+        });
+    }, 100);
+    {% endif %}
 });
 </script>
 {% endblock %} 

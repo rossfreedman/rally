@@ -61,8 +61,8 @@
                         <div>
                             <label for="ptiMinSlider" class="block text-xs font-medium text-gray-600 mb-2">Minimum PTI</label>
                             <input type="range" id="ptiMinSlider" class="slider w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" 
-                                   min="0" max="100" value="0" step="0.1">
-                            <div class="text-xs text-gray-500 mt-1">Min: <span id="ptiMinValue">0</span></div>
+                                   min="-30" max="100" value="-30" step="0.1">
+                            <div class="text-xs text-gray-500 mt-1">Min: <span id="ptiMinValue">-30</span></div>
                         </div>
                         <div>
                             <label for="ptiMaxSlider" class="block text-xs font-medium text-gray-600 mb-2">Maximum PTI</label>
@@ -71,7 +71,7 @@
                             <div class="text-xs text-gray-500 mt-1">Max: <span id="ptiMaxValue">100</span></div>
                         </div>
                         <div class="text-xs text-gray-500 text-center">
-                            Available Range: <span id="ptiRangeDisplay">0 - 100</span>
+                            Available Range: <span id="ptiRangeDisplay">-30 - 100</span>
                         </div>
                     </div>
                 </div>
@@ -230,7 +230,7 @@ input[type="time"]::-webkit-calendar-picker-indicator {
 document.addEventListener('DOMContentLoaded', function() {
     // Global variables
     let availableSeries = [];
-    let ptiRange = { min: 0, max: 100 };
+    let ptiRange = { min: -30, max: 100 };  // Default minimum PTI set to -30
     
     // UI Elements
     const seriesFilter = document.getElementById('seriesFilter');
@@ -292,8 +292,8 @@ document.addEventListener('DOMContentLoaded', function() {
             if (clubOnlyFilter) clubOnlyFilter.checked = true;
             
             if (ptiMinSlider) {
-                ptiMinSlider.value = 0;
-                ptiMinValue.textContent = '0';
+                ptiMinSlider.value = -30;
+                ptiMinValue.textContent = '-30';
             }
             if (ptiMaxSlider) {
                 ptiMaxSlider.value = 100;

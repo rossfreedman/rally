@@ -58,7 +58,7 @@
         
         /* Candy Box Item Styles */
         .candy-box-item {
-            min-height: 85px;
+            min-height: 95px;
             width: 100%;
             max-width: none;
             flex-shrink: 0;
@@ -67,7 +67,7 @@
             align-items: center !important;
             justify-content: center !important;
             text-align: center !important;
-            padding: 16px 12px !important;
+            padding: 18px 12px !important;
             border-radius: 14px !important;
             transition: all 0.2s ease !important;
             text-decoration: none !important;
@@ -81,13 +81,13 @@
         }
         
         .candy-box-item i {
-            font-size: 24px !important;
+            font-size: 31px !important;
             margin-bottom: 8px !important;
             display: block !important;
         }
         
         .candy-box-item span {
-            font-size: 12px !important;
+            font-size: 16px !important;
             font-weight: 600 !important;
             line-height: 1.3 !important;
             display: block !important;
@@ -100,6 +100,61 @@
             grid-template-columns: repeat(2, 1fr) !important;
             gap: 12px !important;
             width: 100% !important;
+        }
+        
+        /* Scroll Indicator Styles */
+        .scroll-indicator {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            z-index: 60;
+            opacity: 0;
+            visibility: hidden;
+        }
+        
+        .scroll-indicator.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .scroll-indicator:hover {
+            background: rgba(0, 0, 0, 0.9);
+            transform: translateX(-50%) scale(1.05);
+        }
+        
+        .scroll-indicator-content {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .scroll-indicator i {
+            font-size: 10px;
+            animation: bounce 2s infinite;
+        }
+        
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% {
+                transform: translateY(0);
+            }
+            40% {
+                transform: translateY(-3px);
+            }
+            60% {
+                transform: translateY(-2px);
+            }
         }
         
         /* Section headers with subtle styling */
@@ -115,17 +170,17 @@
             }
             
             .candy-box-item {
-                min-height: 80px !important;
-                padding: 14px 10px !important;
+                min-height: 90px !important;
+                padding: 16px 10px !important;
             }
             
             .candy-box-item i {
-                font-size: 22px !important;
+                font-size: 29px !important;
                 margin-bottom: 6px !important;
             }
             
             .candy-box-item span {
-                font-size: 11px !important;
+                font-size: 14px !important;
             }
             
             #navDrawer .max-w-lg {
@@ -178,18 +233,15 @@
     <div id="navDrawer" class="fixed top-0 right-0 h-full w-full bg-white z-50 transform translate-x-full transition-transform duration-300 drawer-right" style="transform: translateX(100%) !important; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);">
         <div class="flex flex-col h-full">
             <!-- Nav Drawer Top Bar -->
-            <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100" style="background: rgba(255, 255, 255, 0.9);">
-                <img src="/static/images/rallylogo.png" alt="Rally Logo" class="h-8">
-                <button class="drawer-close w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors flex items-center justify-center" aria-label="Close menu">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                    </svg>
+            <div class="flex items-center justify-end px-6 py-4 border-b border-gray-100" style="background: rgba(255, 255, 255, 0.9); margin-top: 60px;">
+                <button onclick="logoutUser()" style="background: #dc2626; border: 1px solid #991b1b; border-radius: 6px; color: white; font-weight: normal; font-size: 12px; padding: 6px 12px; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 4px;" title="Logout" onmouseover="this.style.background='#b91c1c'" onmouseout="this.style.background='#dc2626'">
+                    <i class="fas fa-sign-out-alt" style="font-size: 12px; color: white;"></i>
+                    <span style="color: white;">Logout</span>
                 </button>
             </div>
             
             <!-- Navigation Content -->
-            <div class="flex-1 overflow-y-auto">
+            <div class="flex-1 overflow-y-auto" id="navContent">
                 <div class="px-4 py-6">
                     <!-- Candy Box Grid Layout -->
                     <div class="max-w-lg mx-auto">
@@ -223,11 +275,10 @@
                             </div>
                         </div>
                         
-                        <!-- Connect & Prepare Section (Combined for better layout) -->
+                        <!-- Connect Section -->
                         <div class="mb-6">
-                            <h2 class="text-lg font-bold mb-3 text-gray-800 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">Connect & Prepare</h2>
+                            <h2 class="text-lg font-bold mb-3 text-gray-800 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">Connect</h2>
                             <div class="candy-grid">
-                                <!-- Row 1 -->
                                 <a href="/mobile/find-people-to-play" class="candy-box-item bg-gradient-to-br from-purple-50 to-purple-100 border border-purple-200 rounded-xl p-3 flex flex-col items-center text-center hover:shadow-md transition-all duration-200 hover:scale-105">
                                     <i class="fas fa-user-friends text-purple-600 text-xl mb-2"></i>
                                     <span class="text-xs font-medium text-gray-700">Search Players</span>
@@ -236,11 +287,17 @@
                                     <i class="fas fa-calendar-plus text-purple-600 text-xl mb-2"></i>
                                     <span class="text-xs font-medium text-gray-700">Pickup Games</span>
                                 </a>
+                            </div>
+                        </div>
+                        
+                        <!-- Prepare Section -->
+                        <div class="mb-6">
+                            <h2 class="text-lg font-bold mb-3 text-gray-800 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">Prepare</h2>
+                            <div class="candy-grid">
                                 <a href="/mobile/player-search" class="candy-box-item bg-gradient-to-br from-pink-50 to-pink-100 border border-pink-200 rounded-xl p-3 flex flex-col items-center text-center hover:shadow-md transition-all duration-200 hover:scale-105">
                                     <i class="fas fa-search text-pink-600 text-xl mb-2"></i>
                                     <span class="text-xs font-medium text-gray-700">Scout Players</span>
                                 </a>
-                                <!-- Row 2 -->
                                 <a href="/mobile/teams-players" class="candy-box-item bg-gradient-to-br from-pink-50 to-pink-100 border border-pink-200 rounded-xl p-3 flex flex-col items-center text-center hover:shadow-md transition-all duration-200 hover:scale-105">
                                     <i class="fas fa-users text-pink-600 text-xl mb-2"></i>
                                     <span class="text-xs font-medium text-gray-700">Research Teams</span>
@@ -304,14 +361,18 @@
                                     <i class="fas fa-shield-alt text-gray-600 text-xl mb-2"></i>
                                     <span class="text-xs font-medium text-gray-700">Admin</span>
                                 </a>
-                                <button onclick="logout()" class="candy-box-item bg-gradient-to-br from-red-50 to-red-100 border border-red-200 rounded-xl p-3 flex flex-col items-center text-center hover:shadow-md transition-all duration-200 hover:scale-105 w-full border-0">
-                                    <i class="fas fa-sign-out-alt text-red-600 text-xl mb-2"></i>
-                                    <span class="text-xs font-medium text-gray-700">Logout</span>
-                                </button>
                             </div>
                         </div>
                         
                     </div>
+                </div>
+            </div>
+            
+            <!-- Scroll Indicator -->
+            <div id="scrollIndicator" class="scroll-indicator">
+                <div class="scroll-indicator-content">
+                    <i class="fas fa-chevron-down"></i>
+                    <span>More options below</span>
                 </div>
             </div>
         </div>
@@ -380,6 +441,28 @@
     </nav>
 
     <script>
+        // Logout function
+        function logoutUser() {
+            if (confirm('Are you sure you want to logout?')) {
+                // Clear session data
+                fetch('/logout', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                })
+                .then(() => {
+                    // Redirect to login page
+                    window.location.href = '/login';
+                })
+                .catch(error => {
+                    console.error('Logout error:', error);
+                    // Still redirect even if there's an error
+                    window.location.href = '/login';
+                });
+            }
+        }
+
         // Initialize dock active state
         function updateDockActiveState() {
             const currentPath = window.location.pathname;
@@ -567,6 +650,65 @@
             });
         }
 
+                            // Initialize scroll indicator functionality
+        function initScrollIndicator() {
+            const navContent = document.getElementById('navContent');
+            const scrollIndicator = document.getElementById('scrollIndicator');
+            
+            if (!navContent || !scrollIndicator) return;
+            
+            // Function to check if there's more content below
+            function updateScrollIndicator() {
+                const scrollTop = navContent.scrollTop;
+                const scrollHeight = navContent.scrollHeight;
+                const clientHeight = navContent.clientHeight;
+                
+                // Show indicator if there's more content below (with 50px threshold)
+                const hasMoreContent = scrollTop + clientHeight < scrollHeight - 50;
+                
+                if (hasMoreContent) {
+                    scrollIndicator.classList.add('show');
+                } else {
+                    scrollIndicator.classList.remove('show');
+                }
+            }
+            
+            // Handle scroll indicator click
+            scrollIndicator.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                navContent.scrollTo({
+                    top: navContent.scrollTop + 400,
+                    behavior: 'smooth'
+                });
+            });
+            
+            // Listen for scroll events
+            navContent.addEventListener('scroll', updateScrollIndicator);
+            
+            // Initial check after content loads
+            setTimeout(updateScrollIndicator, 100);
+            
+            // Check again when drawer opens
+            const drawer = document.getElementById('navDrawer');
+            if (drawer) {
+                const observer = new MutationObserver(function(mutations) {
+                    mutations.forEach(function(mutation) {
+                        if (mutation.type === 'attributes' && 
+                            mutation.attributeName === 'style') {
+                            const isOpen = drawer.style.transform === 'translateX(0px)' || 
+                                         drawer.style.transform === 'translateX(0%)';
+                            if (isOpen) {
+                                setTimeout(updateScrollIndicator, 200);
+                            }
+                        }
+                    });
+                });
+                observer.observe(drawer, { attributes: true, attributeFilter: ['style'] });
+            }
+        }
+
         // Initialize drawer functionality
         document.addEventListener('DOMContentLoaded', function() {
             // Set up dock active state
@@ -590,6 +732,10 @@
                     });
                 }, 100);
             }
+            
+            // Initialize scroll indicator
+            initScrollIndicator();
+            
             const drawer = document.getElementById('navDrawer');
             const overlay = document.getElementById('drawerOverlay');
             const hamburger = document.getElementById('hamburgerToggle');
