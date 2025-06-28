@@ -705,8 +705,28 @@ def get_player_analysis(user):
         user_team_id = None
         user_team_name = None
         
-        # Get the player's team for the current league using their unique player_id
-        if player_id and league_id_int:
+        # PRIORITY 1: Use team_context from user if provided (from composite player URL)
+        team_context = user.get("team_context") if user else None
+        if team_context:
+            try:
+                # Get team name for the specific team_id from team context
+                team_context_query = """
+                    SELECT t.id, t.team_name
+                    FROM teams t
+                    WHERE t.id = %s
+                """
+                team_context_result = execute_query_one(team_context_query, [team_context])
+                if team_context_result:
+                    user_team_id = team_context_result['id'] 
+                    user_team_name = team_context_result['team_name']
+                    print(f"[DEBUG] Using team_context from URL: team_id={user_team_id}, team_name={user_team_name}")
+                else:
+                    print(f"[DEBUG] team_context {team_context} not found in teams table")
+            except Exception as e:
+                print(f"[DEBUG] Error getting team from team_context {team_context}: {e}")
+        
+        # PRIORITY 2: Fallback to database lookup if no team_context provided
+        if not user_team_id and player_id and league_id_int:
             try:
                 # For multi-team players, prefer team with most recent match activity in this league
                 team_selection_query = """
@@ -730,7 +750,7 @@ def get_player_analysis(user):
                 if team_result:
                     user_team_id = team_result['team_id']
                     user_team_name = team_result['team_name']
-                    print(f"[DEBUG] Selected team using player_id: team_id={user_team_id}, team_name={user_team_name}")
+                    print(f"[DEBUG] Selected team using player_id fallback: team_id={user_team_id}, team_name={user_team_name}")
             except Exception as e:
                 print(f"[DEBUG] Error getting team for player_id {player_id}: {e}")
 
@@ -1148,16 +1168,47 @@ def get_player_analysis(user):
             matchup_key = f"{match_date}|{home_team}|{away_team}"
             
             if matchup_key not in all_team_matchups:
-                # Get ALL matches for this team matchup on this date
-                team_matchup_query = """
-                    SELECT id
-                    FROM match_scores 
-                    WHERE TO_CHAR(match_date, 'DD-Mon-YY') = %s
-                    AND home_team = %s 
-                    AND away_team = %s
-                    ORDER BY id ASC
-                """
-                all_matches = execute_query(team_matchup_query, [match_date, home_team, away_team])
+                # Get ALL matches for this team matchup on this date, filtered by league and team context
+                if league_id_int and user_team_id:
+                    # Filter by league_id and team_id for accurate court assignment for this specific team
+                    team_matchup_query = """
+                        SELECT id
+                        FROM match_scores 
+                        WHERE TO_CHAR(match_date, 'DD-Mon-YY') = %s
+                        AND home_team = %s 
+                        AND away_team = %s
+                        AND league_id = %s
+                        AND (home_team_id = %s OR away_team_id = %s)
+                        ORDER BY id ASC
+                    """
+                    all_matches = execute_query(team_matchup_query, [match_date, home_team, away_team, league_id_int, user_team_id, user_team_id])
+                    print(f"[DEBUG] Found {len(all_matches)} matches for team matchup with team filtering")
+                elif league_id_int:
+                    # Fallback: filter by league only
+                    team_matchup_query = """
+                        SELECT id
+                        FROM match_scores 
+                        WHERE TO_CHAR(match_date, 'DD-Mon-YY') = %s
+                        AND home_team = %s 
+                        AND away_team = %s
+                        AND league_id = %s
+                        ORDER BY id ASC
+                    """
+                    all_matches = execute_query(team_matchup_query, [match_date, home_team, away_team, league_id_int])
+                    print(f"[DEBUG] Found {len(all_matches)} matches for team matchup with league filtering")
+                else:
+                    # No filtering (original behavior)
+                    team_matchup_query = """
+                        SELECT id
+                        FROM match_scores 
+                        WHERE TO_CHAR(match_date, 'DD-Mon-YY') = %s
+                        AND home_team = %s 
+                        AND away_team = %s
+                        ORDER BY id ASC
+                    """
+                    all_matches = execute_query(team_matchup_query, [match_date, home_team, away_team])
+                    print(f"[DEBUG] Found {len(all_matches)} matches for team matchup with no filtering")
+                
                 all_team_matchups[matchup_key] = [m["id"] for m in all_matches]
         
         # Now process each match with correct court assignment
@@ -3413,12 +3464,21 @@ def get_club_players_data(
                 if "morgan" in display_name.lower():
                     print(f"[DEBUG] PTI for {display_name}: '{player['PTI']}' (type: {type(player['PTI'])})")
 
+                # Create unique identifier that includes team context for players on multiple teams
+                # Use format: playerID_teamID to distinguish between same player on different teams
+                team_id = player.get("Team ID")
+                if team_id:
+                    unique_player_id = f"{player['Player ID']}_team_{team_id}"
+                else:
+                    unique_player_id = player["Player ID"]
+
                 # Add player to results with clean player name
                 filtered_players.append(
                     {
                         "name": display_name,  # Clean player name without team info
                         "firstName": player["First Name"],
                         "lastName": player["Last Name"],
+                        "playerId": unique_player_id,  # Unique ID that includes team context
                         "club": player["Club"],  # Add club name for display
                         "series": player["Series"],
                         "pti": player["PTI"],  # Keep original PTI value for display
