@@ -4014,6 +4014,62 @@ def get_mobile_team_data(user):
                 if won:
                     wins += 1
 
+                # Get all players from this match for roster stats
+                if is_home:
+                    team_player_1_id = match.get("Home Player 1")
+                    team_player_2_id = match.get("Home Player 2")
+                else:
+                    team_player_1_id = match.get("Away Player 1")
+                    team_player_2_id = match.get("Away Player 2")
+
+                # Process each player's individual stats for the roster
+                for player_id_current in [team_player_1_id, team_player_2_id]:
+                    if player_id_current:
+                        player_name = get_player_name_from_id(player_id_current)
+                        if player_name:
+                            # Initialize player stats if not exists
+                            if player_name not in player_stats:
+                                player_stats[player_name] = {
+                                    "matches": 0,
+                                    "wins": 0,
+                                    "courts": {},
+                                    "partners": {}
+                                }
+                            
+                            # Update match count and wins
+                            player_stats[player_name]["matches"] += 1
+                            if won:
+                                player_stats[player_name]["wins"] += 1
+                            
+                            # Assign court for this match (simplified court assignment)
+                            # In a real system, this would use proper court assignment logic
+                            # For now, we'll distribute players across courts based on match frequency
+                            court_num = ((player_stats[player_name]["matches"] - 1) % 4) + 1
+                            court_name = f"Court {court_num}"
+                            
+                            if court_name not in player_stats[player_name]["courts"]:
+                                player_stats[player_name]["courts"][court_name] = {
+                                    "matches": 0,
+                                    "wins": 0
+                                }
+                            player_stats[player_name]["courts"][court_name]["matches"] += 1
+                            if won:
+                                player_stats[player_name]["courts"][court_name]["wins"] += 1
+                            
+                            # Track partner for this player
+                            partner_id_current = team_player_2_id if player_id_current == team_player_1_id else team_player_1_id
+                            if partner_id_current:
+                                partner_name = get_player_name_from_id(partner_id_current)
+                                if partner_name:
+                                    if partner_name not in player_stats[player_name]["partners"]:
+                                        player_stats[player_name]["partners"][partner_name] = {
+                                            "matches": 0,
+                                            "wins": 0
+                                        }
+                                    player_stats[player_name]["partners"][partner_name]["matches"] += 1
+                                    if won:
+                                        player_stats[player_name]["partners"][partner_name]["wins"] += 1
+
                 # Get actual partner from this specific match (only if player_id is available)
                 if player_id:
                     if is_home:
@@ -4058,48 +4114,162 @@ def get_mobile_team_data(user):
             # Sort by number of matches together (descending)
             partnership_list.sort(key=lambda p: p["matches"], reverse=True)
 
-            # Build court_analysis with actual data - distribute partnerships across courts
-            # based on match frequency rather than artificial court assignments
+            # Build court_analysis using REAL court assignments (like analyze-me page)
             court_analysis = {}
             max_courts = 4  # Standard number of courts to display
 
-            # Calculate overall statistics
-            total_matches = len(team_matches) if team_matches else 0
-            
-            # Distribute partnerships across courts for display purposes
-            # This is for UI presentation only - not claiming these are actual court assignments
-            partnerships_per_court = max(1, len(partnership_list) // max_courts)
-            
-            for i in range(1, max_courts + 1):
-                court_key = f"court{i}"
+            if team_matches:
+                # FIXED: Use REAL court assignments based on match position within team matchup
+                # Court Number = ROW_NUMBER() of match within same team matchup on same date
                 
-                # Calculate this court's share of matches (for display purposes)
-                court_matches = total_matches // max_courts
-                if i <= (total_matches % max_courts):
-                    court_matches += 1
-                    
-                court_wins = wins // max_courts
-                if i <= (wins % max_courts):
-                    court_wins += 1
-                    
-                court_losses = court_matches - court_wins
-                court_win_rate = (
-                    round((court_wins / court_matches) * 100, 1) if court_matches > 0 else 0
-                )
-
-                # Assign partnerships to this court for display
-                start_idx = (i - 1) * partnerships_per_court
-                end_idx = min(start_idx + partnerships_per_court + 1, len(partnership_list))
-                court_partnerships = partnership_list[start_idx:end_idx]
-
-                court_analysis[court_key] = {
-                    "winRate": court_win_rate,
-                    "record": f"{court_wins}-{court_losses}",
-                    "topPartners": court_partnerships,  # All partners for this court
+                # Initialize court stats for tracking real court performance
+                court_stats = {
+                    f"court{i}": {
+                        "matches": 0,
+                        "wins": 0,
+                        "losses": 0,
+                        "partners": defaultdict(lambda: {"matches": 0, "wins": 0, "losses": 0}),
+                    }
+                    for i in range(1, max_courts + 1)
                 }
+                
+                # Process each match to determine ACTUAL court assignment
+                # First, get ALL team matchups and their match counts for context
+                all_team_matchups = {}
+                for match in team_matches:
+                    match_date = match.get("Date")
+                    home_team = match.get("Home Team", "")
+                    away_team = match.get("Away Team", "")
+                    matchup_key = f"{match_date}|{home_team}|{away_team}"
+                    
+                    if matchup_key not in all_team_matchups:
+                        # Get ALL matches for this team matchup on this date, filtered by team
+                        if team_id:
+                            # Filter by team_id for accurate court assignment
+                            team_matchup_query = """
+                                SELECT id
+                                FROM match_scores 
+                                WHERE TO_CHAR(match_date, 'DD-Mon-YY') = %s
+                                AND home_team = %s 
+                                AND away_team = %s
+                                AND (home_team_id = %s OR away_team_id = %s)
+                                ORDER BY id ASC
+                            """
+                            all_matches = execute_query(team_matchup_query, [match_date, home_team, away_team, team_id, team_id])
+                        else:
+                            # Fallback: no team filtering
+                            team_matchup_query = """
+                                SELECT id
+                                FROM match_scores 
+                                WHERE TO_CHAR(match_date, 'DD-Mon-YY') = %s
+                                AND home_team = %s 
+                                AND away_team = %s
+                                ORDER BY id ASC
+                            """
+                            all_matches = execute_query(team_matchup_query, [match_date, home_team, away_team])
+                        
+                        all_team_matchups[matchup_key] = [m["id"] for m in all_matches]
+                
+                # Process each match to assign to correct court using analyze-me logic
+                # First organize all matches by team matchup for proper court assignment
+                matches_by_matchup = defaultdict(list)
+                for match in team_matches:
+                    match_date = match.get("Date")
+                    home_team = match.get("Home Team", "")
+                    away_team = match.get("Away Team", "")
+                    matchup_key = f"{match_date}|{home_team}|{away_team}"
+                    matches_by_matchup[matchup_key].append(match)
 
-            # If player has no matches, show empty courts
-            if total_matches == 0:
+                # For each team matchup, sort matches and assign courts
+                for matchup_key, matchup_matches in matches_by_matchup.items():
+                    # Sort by match ID to ensure consistent court assignment
+                    matchup_matches.sort(key=lambda m: m.get("id", 0))
+                    
+                    # Assign each match in this matchup to a court
+                    for court_position, match in enumerate(matchup_matches, 1):
+                        if court_position > max_courts:
+                            court_position = ((court_position - 1) % max_courts) + 1
+                        
+                        court_key = f"court{court_position}"
+
+                        # Determine if team won this match
+                        is_home = match.get("Home Team") == team
+                        won = (is_home and match.get("Winner", "").lower() == "home") or (
+                            not is_home and match.get("Winner", "").lower() == "away"
+                        )
+
+                        # Update court performance stats
+                        court_stats[court_key]["matches"] += 1
+                        if won:
+                            court_stats[court_key]["wins"] += 1
+                        else:
+                            court_stats[court_key]["losses"] += 1
+
+                        # Track REAL partnerships on REAL courts
+                        if is_home:
+                            player1_id = match.get("Home Player 1")
+                            player2_id = match.get("Home Player 2")
+                        else:
+                            player1_id = match.get("Away Player 1")
+                            player2_id = match.get("Away Player 2")
+
+                        # Add both players to this specific court (not all courts)
+                        for current_player_id in [player1_id, player2_id]:
+                            if current_player_id:
+                                player_name = get_player_name_from_id(current_player_id)
+                                if player_name:
+                                    # Track this player's performance on this specific court only
+                                    court_stats[court_key]["partners"][player_name]["matches"] += 1
+                                    if won:
+                                        court_stats[court_key]["partners"][player_name]["wins"] += 1
+                                    else:
+                                        court_stats[court_key]["partners"][player_name]["losses"] += 1
+
+                # Build court_analysis using REAL court performance data
+                for i in range(1, max_courts + 1):
+                    court_key = f"court{i}"
+                    stat = court_stats[court_key]
+                    
+                    court_matches = stat["matches"]
+                    court_wins = stat["wins"]
+                    court_losses = stat["losses"]
+                    court_win_rate = (
+                        round((court_wins / court_matches) * 100, 1) if court_matches > 0 else 0
+                    )
+
+                    # Get ALL players with their REAL performance on this REAL court
+                    all_court_players = []
+                    for player_name, court_player_stats in stat["partners"].items():
+                        if player_name and court_player_stats["matches"] > 0:
+                            player_wins = court_player_stats["wins"]
+                            player_losses = court_player_stats["losses"]
+                            match_count = court_player_stats["matches"]
+                            player_win_rate = (
+                                round((player_wins / match_count) * 100, 1)
+                                if match_count > 0
+                                else 0
+                            )
+
+                            all_court_players.append(
+                                {
+                                    "name": player_name,
+                                    "matches": match_count,
+                                    "wins": player_wins,
+                                    "losses": player_losses,
+                                    "winRate": player_win_rate,
+                                }
+                            )
+
+                    # Sort by number of matches on this court (descending), then by win rate
+                    all_court_players.sort(key=lambda p: (p["matches"], p["winRate"]), reverse=True)
+
+                    court_analysis[court_key] = {
+                        "winRate": court_win_rate,
+                        "record": f"{court_wins}-{court_losses}",
+                        "topPartners": all_court_players,  # ALL players on this court
+                    }
+            else:
+                # If no matches, show empty courts
                 for i in range(1, max_courts + 1):
                     court_key = f"court{i}"
                     court_analysis[court_key] = {
