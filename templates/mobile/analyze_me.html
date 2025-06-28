@@ -498,7 +498,7 @@
     
     /* Stack some content vertically on very small screens */
     .series-name {
-        max-width: 60px;
+        max-width: 80px;
     }
 }
 </style>
@@ -712,9 +712,9 @@ async function loadSeasonHistory() {
         seriesDisplay = `Series ${seriesNumber}${suffix}`;
       }
       
-      // Truncate series name if longer than 15 characters
-      const truncatedSeries = seriesDisplay.length > 15 
-        ? seriesDisplay.substring(0, 15) + '...' 
+      // Truncate series name if longer than 22 characters
+      const truncatedSeries = seriesDisplay.length > 22 
+        ? seriesDisplay.substring(0, 22) + '...' 
         : seriesDisplay;
       
       tableHTML += `

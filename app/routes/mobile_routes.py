@@ -157,7 +157,7 @@ def serve_mobile_profile():
 @mobile_bp.route("/mobile/player-detail/<player_id>")
 @login_required
 def serve_mobile_player_detail(player_id):
-    """Serve the mobile player detail page (server-rendered, consistent with other mobile pages)"""
+    """Serve the mobile player detail page with proper team context filtering"""
     player_identifier = unquote(player_id)
     
     # Determine if this is a player_id (alphanumeric with dashes) or a player name
@@ -180,29 +180,74 @@ def serve_mobile_player_detail(player_id):
     
     is_player_id = bool(re.match(r'^[a-zA-Z0-9\-]+$', actual_player_id) and '-' in actual_player_id)
     
+    # Get viewing user's league context for filtering
+    viewing_user = session["user"].copy()
+    viewing_user_league = viewing_user.get("league_id", "")
+    league_id_int = None
+    
+    if isinstance(viewing_user_league, str) and viewing_user_league != "":
+        try:
+            league_record = execute_query_one(
+                "SELECT id FROM leagues WHERE league_id = %s", [viewing_user_league]
+            )
+            if league_record:
+                league_id_int = league_record["id"]
+        except Exception:
+            pass
+    elif isinstance(viewing_user_league, int):
+        league_id_int = viewing_user_league
+    
     if is_player_id:
-        # Look up player by tenniscores_player_id and optionally team_id
-        from database_utils import execute_query_one
+        # Look up player by tenniscores_player_id with proper team and league filtering
+        from database_utils import execute_query_one, execute_query
+        
         if team_id:
             # Use team-specific lookup for better context
             player_query = """
-                SELECT CONCAT(p.first_name, ' ', p.last_name) as full_name
+                SELECT CONCAT(p.first_name, ' ', p.last_name) as full_name,
+                       p.tenniscores_player_id, p.league_id, p.team_id
                 FROM players p
                 WHERE p.tenniscores_player_id = %s AND p.team_id = %s
                 LIMIT 1
             """
             player_record = execute_query_one(player_query, [actual_player_id, team_id])
         else:
-            player_query = """
-                SELECT CONCAT(first_name, ' ', last_name) as full_name
-                FROM players 
-                WHERE tenniscores_player_id = %s
-                LIMIT 1
-            """
-            player_record = execute_query_one(player_query, [actual_player_id])
+            # For multi-team players, prefer team with most recent activity in viewer's league
+            if league_id_int:
+                player_query = """
+                    SELECT CONCAT(p.first_name, ' ', p.last_name) as full_name,
+                           p.tenniscores_player_id, p.league_id, p.team_id,
+                           (SELECT MAX(match_date) 
+                            FROM match_scores ms 
+                            WHERE (ms.home_player_1_id = p.tenniscores_player_id 
+                                   OR ms.home_player_2_id = p.tenniscores_player_id
+                                   OR ms.away_player_1_id = p.tenniscores_player_id 
+                                   OR ms.away_player_2_id = p.tenniscores_player_id)
+                            AND (ms.home_team_id = p.team_id OR ms.away_team_id = p.team_id)
+                            AND ms.league_id = p.league_id
+                           ) as last_match_date
+                    FROM players p
+                    WHERE p.tenniscores_player_id = %s AND p.league_id = %s AND p.is_active = TRUE
+                    ORDER BY last_match_date DESC NULLS LAST, p.team_id DESC
+                    LIMIT 1
+                """
+                player_record = execute_query_one(player_query, [actual_player_id, league_id_int])
+            else:
+                player_query = """
+                    SELECT CONCAT(first_name, ' ', last_name) as full_name,
+                           tenniscores_player_id, league_id, team_id
+                    FROM players 
+                    WHERE tenniscores_player_id = %s
+                    ORDER BY id DESC
+                    LIMIT 1
+                """
+                player_record = execute_query_one(player_query, [actual_player_id])
         
         if player_record:
             player_name = player_record["full_name"]
+            # Use the team_id from the database record if not explicitly provided
+            if not team_id:
+                team_id = player_record.get("team_id")
         else:
             # Player ID not found, return error
             session_data = {"user": session["user"], "authenticated": True}
@@ -214,44 +259,81 @@ def serve_mobile_player_detail(player_id):
                 player_name=f"Player ID: {player_identifier}",
             )
     else:
-        # Treat as player name
+        # Treat as player name - find best matching player record in viewer's league
         player_name = player_identifier
-
-    # Use the mobile service function with user context for league filtering
-    if is_player_id:
-        # We have a specific player ID, so create a user object with the exact player context
-        # This ensures we get data for the correct player record, not just matching by name
-        viewing_user = session["user"].copy()
+        name_parts = player_name.strip().split()
         
-        # Create a user dict with the specific player ID to ensure exact match
+        if len(name_parts) >= 2:
+            first_name = name_parts[0]
+            last_name = " ".join(name_parts[1:])
+            
+            # For name-based lookups, prefer player in viewer's league with recent activity
+            if league_id_int:
+                name_lookup_query = """
+                    SELECT p.tenniscores_player_id, p.team_id, p.league_id,
+                           (SELECT MAX(match_date) 
+                            FROM match_scores ms 
+                            WHERE (ms.home_player_1_id = p.tenniscores_player_id 
+                                   OR ms.home_player_2_id = p.tenniscores_player_id
+                                   OR ms.away_player_1_id = p.tenniscores_player_id 
+                                   OR ms.away_player_2_id = p.tenniscores_player_id)
+                            AND ms.league_id = p.league_id
+                           ) as last_match_date
+                    FROM players p
+                    WHERE p.first_name = %s AND p.last_name = %s 
+                    AND p.league_id = %s AND p.is_active = TRUE
+                    ORDER BY last_match_date DESC NULLS LAST, p.id DESC
+                    LIMIT 1
+                """
+                name_record = execute_query_one(name_lookup_query, [first_name, last_name, league_id_int])
+            else:
+                name_lookup_query = """
+                    SELECT tenniscores_player_id, team_id, league_id
+                    FROM players 
+                    WHERE first_name = %s AND last_name = %s
+                    ORDER BY id DESC
+                    LIMIT 1
+                """
+                name_record = execute_query_one(name_lookup_query, [first_name, last_name])
+            
+            if name_record:
+                actual_player_id = name_record["tenniscores_player_id"]
+                team_id = name_record.get("team_id")
+                print(f"[DEBUG] Name lookup found player_id {actual_player_id} with team_id {team_id}")
+            else:
+                print(f"[DEBUG] No player record found for name: {player_name}")
+
+    # Create player user dict with team context for mobile service
+    if actual_player_id:
+        # Create a user dict with the specific player ID and team context
         player_user_dict = {
             "first_name": player_name.split()[0] if player_name else "",
             "last_name": " ".join(player_name.split()[1:]) if len(player_name.split()) > 1 else "",
-            "tenniscores_player_id": actual_player_id,  # Use the specific player ID
+            "tenniscores_player_id": actual_player_id,
             "league_id": viewing_user.get("league_id"),
             "email": viewing_user.get("email", "")
         }
         
+        # Add team context for filtering
         if team_id:
             player_user_dict["team_context"] = team_id
-            print(f"[DEBUG] Using specific player ID {actual_player_id} with team context {team_id}")
+            print(f"[DEBUG] Player detail - Using player ID {actual_player_id} with team context {team_id}")
         else:
-            print(f"[DEBUG] Using specific player ID {actual_player_id}")
+            print(f"[DEBUG] Player detail - Using player ID {actual_player_id} without specific team context")
         
         # Import the direct player analysis function
         from app.services.mobile_service import get_player_analysis
         analyze_data = get_player_analysis(player_user_dict)
     else:
-        # We have a player name, use the name-based lookup
-        viewing_user = session["user"].copy()
+        # Final fallback to name-based analysis
+        from app.services.mobile_service import get_player_analysis_by_name
         analyze_data = get_player_analysis_by_name(player_name, viewing_user)
 
-    # Get additional player info (team name and series) for the header
+    # Get additional player info (team name and series) for the header using team context
     player_info = {"club": None, "series": None, "team_name": None}
-    if is_player_id:
-        # We have a player ID, so we can get exact team/series info
+    if actual_player_id:
+        # Use team-specific lookup for accurate context when team_id is available
         if team_id:
-            # Use team-specific lookup for accurate context
             player_info_query = """
                 SELECT 
                     c.name as club_name,
@@ -266,48 +348,7 @@ def serve_mobile_player_detail(player_id):
             """
             player_record = execute_query_one(player_info_query, [actual_player_id, team_id])
         else:
-            player_info_query = """
-                SELECT 
-                    c.name as club_name,
-                    s.name as series_name,
-                    t.team_name
-                FROM players p
-                LEFT JOIN clubs c ON p.club_id = c.id
-                LEFT JOIN series s ON p.series_id = s.id
-                LEFT JOIN teams t ON p.team_id = t.id
-                WHERE p.tenniscores_player_id = %s
-                LIMIT 1
-            """
-            player_record = execute_query_one(player_info_query, [actual_player_id])
-        if player_record:
-            player_info = {
-                "club": player_record["club_name"],
-                "series": player_record["series_name"], 
-                "team_name": player_record["team_name"]
-            }
-    else:
-        # We have a player name, try to find their info
-        name_parts = player_name.strip().split()
-        if len(name_parts) >= 2:
-            first_name = name_parts[0]
-            last_name = " ".join(name_parts[1:])
-            
-            # Get user's league for filtering
-            viewing_user_league = session["user"].get("league_id", "")
-            league_id_int = None
-            if isinstance(viewing_user_league, str) and viewing_user_league != "":
-                try:
-                    league_record = execute_query_one(
-                        "SELECT id FROM leagues WHERE league_id = %s", [viewing_user_league]
-                    )
-                    if league_record:
-                        league_id_int = league_record["id"]
-                except Exception:
-                    pass
-            elif isinstance(viewing_user_league, int):
-                league_id_int = viewing_user_league
-            
-            # Query for player info with league filtering
+            # Fallback to any matching player record (multi-team scenario)
             if league_id_int:
                 player_info_query = """
                     SELECT 
@@ -318,11 +359,11 @@ def serve_mobile_player_detail(player_id):
                     LEFT JOIN clubs c ON p.club_id = c.id
                     LEFT JOIN series s ON p.series_id = s.id
                     LEFT JOIN teams t ON p.team_id = t.id
-                    WHERE p.first_name = %s AND p.last_name = %s AND p.league_id = %s
+                    WHERE p.tenniscores_player_id = %s AND p.league_id = %s
                     ORDER BY p.id DESC
                     LIMIT 1
                 """
-                player_record = execute_query_one(player_info_query, [first_name, last_name, league_id_int])
+                player_record = execute_query_one(player_info_query, [actual_player_id, league_id_int])
             else:
                 player_info_query = """
                     SELECT 
@@ -333,18 +374,18 @@ def serve_mobile_player_detail(player_id):
                     LEFT JOIN clubs c ON p.club_id = c.id
                     LEFT JOIN series s ON p.series_id = s.id
                     LEFT JOIN teams t ON p.team_id = t.id
-                    WHERE p.first_name = %s AND p.last_name = %s
+                    WHERE p.tenniscores_player_id = %s
                     ORDER BY p.id DESC
                     LIMIT 1
                 """
-                player_record = execute_query_one(player_info_query, [first_name, last_name])
-            
-            if player_record:
-                player_info = {
-                    "club": player_record["club_name"],
-                    "series": player_record["series_name"],
-                    "team_name": player_record["team_name"]
-                }
+                player_record = execute_query_one(player_info_query, [actual_player_id])
+        
+        if player_record:
+            player_info = {
+                "club": player_record["club_name"],
+                "series": player_record["series_name"], 
+                "team_name": player_record["team_name"]
+            }
 
     # PTI data is now handled within the service function with proper league filtering
 
