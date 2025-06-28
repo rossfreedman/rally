@@ -798,26 +798,65 @@ def get_season_history():
                 WHERE player_id = %s
                 ORDER BY date DESC
             ),
-            season_summary AS (
+            career_start AS (
+                SELECT end_pti as first_career_pti
+                FROM season_data 
+                ORDER BY date ASC 
+                LIMIT 1
+            ),
+            season_boundaries AS (
                 SELECT 
                     season_year,
-                    MIN(end_pti) as pti_start,  -- Earliest PTI in the season across all series
-                    MAX(end_pti) as pti_end,    -- Latest PTI in the season across all series
-                    COUNT(*) as matches_count,
-                    STRING_AGG(DISTINCT series, ', ' ORDER BY series) as series_list
+                    MIN(date) as season_start_date,
+                    MAX(date) as season_end_date,
+                    COUNT(*) as matches_count
                 FROM season_data
                 GROUP BY season_year
                 HAVING COUNT(*) >= 3  -- Only show seasons with at least 3 matches
+            ),
+            season_summary AS (
+                SELECT 
+                    sb.season_year,
+                    CASE 
+                        WHEN ROW_NUMBER() OVER (ORDER BY sb.season_year ASC) = 1 THEN 
+                            cs.first_career_pti  -- Use career start PTI for first season
+                        ELSE 
+                            (SELECT end_pti FROM season_data sd WHERE sd.season_year = sb.season_year AND sd.date = sb.season_start_date LIMIT 1)
+                    END as pti_start,
+                    (SELECT end_pti FROM season_data sd WHERE sd.season_year = sb.season_year AND sd.date = sb.season_end_date LIMIT 1) as pti_end,
+                    sb.matches_count,
+                    -- Get the series with the highest numeric value (excluding tournaments)
+                    (
+                        SELECT series 
+                        FROM season_data sd2
+                        WHERE sd2.season_year = sb.season_year
+                        AND POSITION('tournament' IN LOWER(series)) = 0
+                        AND POSITION('pti' IN LOWER(series)) = 0
+                        AND (
+                            series ~ '^Series\s+[0-9]+'
+                            OR series ~ '^Division\s+[0-9]+'
+                            OR series ~ '^Chicago[:\s]+[0-9]+'
+                        )
+                        ORDER BY 
+                            CASE 
+                                WHEN series ~ '\d+' THEN 
+                                    CAST(regexp_replace(series, '[^0-9]', '', 'g') AS INTEGER)
+                                ELSE 0 
+                            END DESC
+                        LIMIT 1
+                    ) as highest_series
+                FROM season_boundaries sb
+                CROSS JOIN career_start cs
             )
             SELECT 
-                series_list as series,
+                highest_series as series,
                 season_year,
                 pti_start,
                 pti_end,
                 (pti_end - pti_start) as trend,
                 matches_count
             FROM season_summary
-            ORDER BY season_year DESC  -- Most recent seasons first
+            ORDER BY season_year ASC  -- Earliest seasons first
             LIMIT 10
         """
 
@@ -999,26 +1038,65 @@ def get_player_season_history(player_name):
                 WHERE player_id = %s
                 ORDER BY date DESC
             ),
-            season_summary AS (
+            career_start AS (
+                SELECT end_pti as first_career_pti
+                FROM season_data 
+                ORDER BY date ASC 
+                LIMIT 1
+            ),
+            season_boundaries AS (
                 SELECT 
                     season_year,
-                    MIN(end_pti) as pti_start,  -- Earliest PTI in the season across all series
-                    MAX(end_pti) as pti_end,    -- Latest PTI in the season across all series
-                    COUNT(*) as matches_count,
-                    STRING_AGG(DISTINCT series, ', ' ORDER BY series) as series_list
+                    MIN(date) as season_start_date,
+                    MAX(date) as season_end_date,
+                    COUNT(*) as matches_count
                 FROM season_data
                 GROUP BY season_year
                 HAVING COUNT(*) >= 3  -- Only show seasons with at least 3 matches
+            ),
+            season_summary AS (
+                SELECT 
+                    sb.season_year,
+                    CASE 
+                        WHEN ROW_NUMBER() OVER (ORDER BY sb.season_year ASC) = 1 THEN 
+                            cs.first_career_pti  -- Use career start PTI for first season
+                        ELSE 
+                            (SELECT end_pti FROM season_data sd WHERE sd.season_year = sb.season_year AND sd.date = sb.season_start_date LIMIT 1)
+                    END as pti_start,
+                    (SELECT end_pti FROM season_data sd WHERE sd.season_year = sb.season_year AND sd.date = sb.season_end_date LIMIT 1) as pti_end,
+                    sb.matches_count,
+                    -- Get the series with the highest numeric value (excluding tournaments)
+                    (
+                        SELECT series 
+                        FROM season_data sd2
+                        WHERE sd2.season_year = sb.season_year
+                        AND POSITION('tournament' IN LOWER(series)) = 0
+                        AND POSITION('pti' IN LOWER(series)) = 0
+                        AND (
+                            series ~ '^Series\s+[0-9]+'
+                            OR series ~ '^Division\s+[0-9]+'
+                            OR series ~ '^Chicago[:\s]+[0-9]+'
+                        )
+                        ORDER BY 
+                            CASE 
+                                WHEN series ~ '\d+' THEN 
+                                    CAST(regexp_replace(series, '[^0-9]', '', 'g') AS INTEGER)
+                                ELSE 0 
+                            END DESC
+                        LIMIT 1
+                    ) as highest_series
+                FROM season_boundaries sb
+                CROSS JOIN career_start cs
             )
             SELECT 
-                series_list as series,
+                highest_series as series,
                 season_year,
                 pti_start,
                 pti_end,
                 (pti_end - pti_start) as trend,
                 matches_count
             FROM season_summary
-            ORDER BY season_year DESC  -- Most recent seasons first
+            ORDER BY season_year ASC  -- Earliest seasons first
             LIMIT 10
         """
 
@@ -1092,7 +1170,7 @@ def get_player_season_history(player_name):
                     (pti_end - pti_start) as trend,
                     matches_count
                 FROM season_summary
-                ORDER BY season_year DESC, series
+                ORDER BY season_year ASC, series
                 LIMIT 10
             """
 

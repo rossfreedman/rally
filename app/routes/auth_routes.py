@@ -12,7 +12,6 @@ from flask import (
 
 from app.services.auth_service_refactored import (
     authenticate_user,
-    create_session_data,
     get_clubs_list,
     register_user,
 )
@@ -91,11 +90,11 @@ def handle_register():
             else:
                 return jsonify({"error": result["error"]}), 500
 
-        # Set session data using the refactored service that handles user_player_associations
-        session["user"] = create_session_data(result["user"])
+        # Set session data directly from register_user result (don't call create_session_data again)
+        session["user"] = result["user"]  # Use the session data directly from register_user
         session.permanent = True
 
-        logger.info(f"Registration: Session created for user {email}")
+        logger.info(f"Registration: Session created for user {email} with player_id: {result['user'].get('tenniscores_player_id', 'None')}")
 
         # 🔍 ENHANCEMENT: Run association discovery after registration to find additional league connections
         try:
@@ -108,9 +107,13 @@ def handle_register():
                 # Update session with any new associations found
                 try:
                     # Rebuild session data to include new associations
-                    updated_session_data = create_session_data(result["user"])
-                    session["user"] = updated_session_data
-                    logger.info(f"Registration: Updated session with new associations")
+                    from app.services.session_service import get_session_data_for_user
+                    updated_session_data = get_session_data_for_user(email)
+                    if updated_session_data:
+                        session["user"] = updated_session_data
+                        logger.info(f"Registration: Updated session with new associations")
+                    else:
+                        logger.warning(f"Failed to rebuild session data after discovery")
                 except Exception as session_update_error:
                     logger.warning(f"Failed to update session with new associations: {session_update_error}")
                     # Continue anyway - user will see new associations on next login
