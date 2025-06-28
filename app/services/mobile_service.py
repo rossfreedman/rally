@@ -3006,6 +3006,29 @@ def get_club_players_data(
                 print(f"Error converting league_id: {e}")
 
         if not user_league_db_id:
+            # Final fallback: get user's league from their player record
+            try:
+                user_email = user.get("email")
+                if user_email:
+                    from database_utils import execute_query_one
+                    user_player_query = """
+                        SELECT DISTINCT p.league_id 
+                        FROM players p
+                        JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
+                        JOIN users u ON upa.user_id = u.id
+                        WHERE u.email = %s AND p.is_active = true
+                        LIMIT 1
+                    """
+                    user_player_result = execute_query_one(user_player_query, [user_email])
+                    if user_player_result:
+                        user_league_db_id = user_player_result["league_id"]
+                        print(f"[FALLBACK] Found user's league from player record: {user_league_db_id}")
+                    else:
+                        print(f"[FALLBACK] No player record found for email: {user_email}")
+            except Exception as e:
+                print(f"[FALLBACK] Error looking up user's league: {e}")
+        
+        if not user_league_db_id:
             return {
                 "players": [],
                 "available_series": [],
@@ -3043,59 +3066,43 @@ def get_club_players_data(
                     FROM (
                         -- Home team players
                         SELECT 
-                            CASE 
-                                WHEN NULLIF(TRIM(ms.home_player_1_id), '') ~ '^[0-9]+$' 
-                                THEN NULLIF(TRIM(ms.home_player_1_id), '')::TEXT
-                                ELSE NULL 
-                            END as player_id,
+                            NULLIF(TRIM(ms.home_player_1_id), '') as player_id,
                             ms.home_team_id as team_id,
                             ms.winner = 'home' as won
                         FROM match_scores ms 
                         WHERE ms.league_id = %s AND ms.winner IS NOT NULL
-                        AND NULLIF(TRIM(ms.home_player_1_id), '') ~ '^[0-9]+$'
+                        AND NULLIF(TRIM(ms.home_player_1_id), '') IS NOT NULL
                         
                         UNION ALL
                         
                         SELECT 
-                            CASE 
-                                WHEN NULLIF(TRIM(ms.home_player_2_id), '') ~ '^[0-9]+$' 
-                                THEN NULLIF(TRIM(ms.home_player_2_id), '')::TEXT
-                                ELSE NULL 
-                            END as player_id,
+                            NULLIF(TRIM(ms.home_player_2_id), '') as player_id,
                             ms.home_team_id as team_id,
                             ms.winner = 'home' as won
                         FROM match_scores ms 
                         WHERE ms.league_id = %s AND ms.winner IS NOT NULL
-                        AND NULLIF(TRIM(ms.home_player_2_id), '') ~ '^[0-9]+$'
+                        AND NULLIF(TRIM(ms.home_player_2_id), '') IS NOT NULL
                         
                         UNION ALL
                         
                         -- Away team players  
                         SELECT 
-                            CASE 
-                                WHEN NULLIF(TRIM(ms.away_player_1_id), '') ~ '^[0-9]+$' 
-                                THEN NULLIF(TRIM(ms.away_player_1_id), '')::TEXT
-                                ELSE NULL 
-                            END as player_id,
+                            NULLIF(TRIM(ms.away_player_1_id), '') as player_id,
                             ms.away_team_id as team_id,
                             ms.winner = 'away' as won
                         FROM match_scores ms 
                         WHERE ms.league_id = %s AND ms.winner IS NOT NULL
-                        AND NULLIF(TRIM(ms.away_player_1_id), '') ~ '^[0-9]+$'
+                        AND NULLIF(TRIM(ms.away_player_1_id), '') IS NOT NULL
                         
                         UNION ALL
                         
                         SELECT 
-                            CASE 
-                                WHEN NULLIF(TRIM(ms.away_player_2_id), '') ~ '^[0-9]+$' 
-                                THEN NULLIF(TRIM(ms.away_player_2_id), '')::TEXT
-                                ELSE NULL 
-                            END as player_id,
+                            NULLIF(TRIM(ms.away_player_2_id), '') as player_id,
                             ms.away_team_id as team_id,
                             ms.winner = 'away' as won
                         FROM match_scores ms 
                         WHERE ms.league_id = %s AND ms.winner IS NOT NULL
-                        AND NULLIF(TRIM(ms.away_player_2_id), '') ~ '^[0-9]+$'
+                        AND NULLIF(TRIM(ms.away_player_2_id), '') IS NOT NULL
                     ) all_player_matches
                     WHERE player_id IS NOT NULL
                     GROUP BY player_id, team_id
