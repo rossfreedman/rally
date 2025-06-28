@@ -723,16 +723,19 @@ def get_season_history():
             f"[DEBUG] Season History - Player Current PTI: {player_data.get('current_pti')}"
         )
 
-        # Debug: Check all player_history records for this player
+        # Debug: Check all player_history records for this specific team context
         debug_query = """
-            SELECT series, date, end_pti 
-            FROM player_history 
-            WHERE player_id = %s 
-            ORDER BY date DESC 
+            SELECT ph.series, ph.date, ph.end_pti 
+            FROM player_history ph
+            JOIN players p ON ph.player_id = p.id
+            WHERE p.tenniscores_player_id = %s 
+              AND p.team_id = %s
+              AND ph.series = %s
+            ORDER BY ph.date DESC 
         """
-        debug_records = execute_query(debug_query, [player_db_id])
+        debug_records = execute_query(debug_query, [player_id, player_team_id, current_series_name])
         print(
-            f"[DEBUG] Season History - ALL {len(debug_records)} player_history records for player_id {player_db_id}:"
+            f"[DEBUG] Season History - {len(debug_records)} player_history records for current team context ({current_series_name}):"
         )
 
         # Group by series to see what series this player actually has
@@ -754,9 +757,15 @@ def get_season_history():
                 f"  Date: {record['date']}, Series: {record['series']}, PTI: {record['end_pti']}"
             )
 
-        # Get season history data aggregated by series and tennis season (Aug-May)
-        # This query now uses the team-specific player record, so it only shows
-        # history for the current team context, avoiding intermixed data
+        # Get season history data for ONLY the current team/series context
+        # Filter by specific player_id AND series to avoid showing multiple series per season
+        current_series_name = player_data.get("series_name", "")
+        
+        # Safety check - if no team context, return empty results to avoid showing mixed data
+        if not player_team_id or not current_series_name:
+            print(f"[DEBUG] Season History - Missing team context (team_id: {player_team_id}, series: {current_series_name})")
+            return jsonify({"error": "No season history found - missing team context"}), 404
+        
         season_history_query = """
             WITH season_data AS (
                 SELECT 
@@ -786,8 +795,11 @@ def get_season_history():
                         END 
                         ORDER BY date DESC
                     ) as rn_end
-                FROM player_history
-                WHERE player_id = %s
+                FROM player_history ph
+                JOIN players p ON ph.player_id = p.id
+                WHERE p.tenniscores_player_id = %s 
+                  AND p.team_id = %s
+                  AND ph.series = %s
                 ORDER BY date DESC
             ),
             season_summary AS (
@@ -816,25 +828,28 @@ def get_season_history():
         # Debug: Let's also run the inner query to see what raw data the aggregation is working with
         debug_season_query = """
             SELECT 
-                series,
+                ph.series,
                 CASE 
-                    WHEN EXTRACT(MONTH FROM date) >= 8 THEN EXTRACT(YEAR FROM date)
-                    ELSE EXTRACT(YEAR FROM date) - 1
+                    WHEN EXTRACT(MONTH FROM ph.date) >= 8 THEN EXTRACT(YEAR FROM ph.date)
+                    ELSE EXTRACT(YEAR FROM ph.date) - 1
                 END as season_year,
-                date,
-                end_pti
-            FROM player_history
-            WHERE player_id = %s
-            ORDER BY season_year, series, date
+                ph.date,
+                ph.end_pti
+            FROM player_history ph
+            JOIN players p ON ph.player_id = p.id
+            WHERE p.tenniscores_player_id = %s 
+              AND p.team_id = %s
+              AND ph.series = %s
+            ORDER BY season_year, ph.series, ph.date
         """
-        debug_season_records = execute_query(debug_season_query, [player_db_id])
+        debug_season_records = execute_query(debug_season_query, [player_id, player_team_id, current_series_name])
         print(f"[DEBUG] Season History - Raw records going into season aggregation:")
         for record in debug_season_records:
             print(
                 f"  Season: {record['season_year']}, Series: {record['series']}, Date: {record['date']}, PTI: {record['end_pti']}"
             )
 
-        season_records = execute_query(season_history_query, [player_db_id])
+        season_records = execute_query(season_history_query, [player_id, player_team_id, current_series_name])
 
         print(
             f"[DEBUG] Season History - Team-filtered query returned {len(season_records) if season_records else 0} records"
