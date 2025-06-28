@@ -5135,6 +5135,7 @@ def get_player_search_data(user):
                         "first_name": player["first_name"],
                         "last_name": player["last_name"],
                         "player_id": player_id,
+                        "team_id": team_id,
                         "current_pti": current_pti_display,
                         "total_matches": total_matches,
                         "wins": wins,
