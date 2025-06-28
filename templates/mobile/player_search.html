@@ -124,11 +124,19 @@
                                         </div>
                                     </div>
                                     <div class="ml-4">
+                                        {% if player.player_id and player.team_id %}
+                                        <a href="/mobile/player-detail/{{ player.player_id }}_team_{{ player.team_id }}" 
+                                           class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium text-sm transition-colors flex items-center gap-2">
+                                            <i class="fas fa-chart-bar"></i>
+                                            View
+                                        </a>
+                                        {% else %}
                                         <a href="/mobile/player-detail/{{ player.name | urlencode }}" 
                                            class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium text-sm transition-colors flex items-center gap-2">
                                             <i class="fas fa-chart-bar"></i>
                                             View
                                         </a>
+                                        {% endif %}
                                     </div>
                                 </div>
                             </div>
