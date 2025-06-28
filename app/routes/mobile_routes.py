@@ -6,6 +6,7 @@ This module contains routes for mobile-specific pages and user interactions.
 import json
 import logging
 import os
+import re
 from datetime import datetime
 from urllib.parse import unquote
 
@@ -157,10 +158,193 @@ def serve_mobile_profile():
 @login_required
 def serve_mobile_player_detail(player_id):
     """Serve the mobile player detail page (server-rendered, consistent with other mobile pages)"""
-    player_name = unquote(player_id)
+    player_identifier = unquote(player_id)
+    
+    # Determine if this is a player_id (alphanumeric with dashes) or a player name
+    # Player IDs look like: nndz-WlNhd3hMYi9nQT09
+    # Composite IDs look like: nndz-WlNhd3hMYi9nQT09_team_123
+    # Player names look like: John Smith
+    
+    actual_player_id = player_identifier
+    team_id = None
+    
+    # Check if this is a composite ID (player_id_team_teamID)
+    if '_team_' in player_identifier:
+        parts = player_identifier.split('_team_')
+        if len(parts) == 2:
+            actual_player_id = parts[0]
+            try:
+                team_id = int(parts[1])
+            except ValueError:
+                team_id = None
+    
+    is_player_id = bool(re.match(r'^[a-zA-Z0-9\-]+$', actual_player_id) and '-' in actual_player_id)
+    
+    if is_player_id:
+        # Look up player by tenniscores_player_id and optionally team_id
+        from database_utils import execute_query_one
+        if team_id:
+            # Use team-specific lookup for better context
+            player_query = """
+                SELECT CONCAT(p.first_name, ' ', p.last_name) as full_name
+                FROM players p
+                WHERE p.tenniscores_player_id = %s AND p.team_id = %s
+                LIMIT 1
+            """
+            player_record = execute_query_one(player_query, [actual_player_id, team_id])
+        else:
+            player_query = """
+                SELECT CONCAT(first_name, ' ', last_name) as full_name
+                FROM players 
+                WHERE tenniscores_player_id = %s
+                LIMIT 1
+            """
+            player_record = execute_query_one(player_query, [actual_player_id])
+        
+        if player_record:
+            player_name = player_record["full_name"]
+        else:
+            # Player ID not found, return error
+            session_data = {"user": session["user"], "authenticated": True}
+            analyze_data = {"error": f"Player not found for ID: {player_identifier}"}
+            return render_template(
+                "mobile/player_detail.html",
+                session_data=session_data,
+                analyze_data=analyze_data,
+                player_name=f"Player ID: {player_identifier}",
+            )
+    else:
+        # Treat as player name
+        player_name = player_identifier
 
     # Use the mobile service function with user context for league filtering
-    analyze_data = get_player_analysis_by_name(player_name, session["user"])
+    if is_player_id:
+        # We have a specific player ID, so create a user object with the exact player context
+        # This ensures we get data for the correct player record, not just matching by name
+        viewing_user = session["user"].copy()
+        
+        # Create a user dict with the specific player ID to ensure exact match
+        player_user_dict = {
+            "first_name": player_name.split()[0] if player_name else "",
+            "last_name": " ".join(player_name.split()[1:]) if len(player_name.split()) > 1 else "",
+            "tenniscores_player_id": actual_player_id,  # Use the specific player ID
+            "league_id": viewing_user.get("league_id"),
+            "email": viewing_user.get("email", "")
+        }
+        
+        if team_id:
+            player_user_dict["team_context"] = team_id
+            print(f"[DEBUG] Using specific player ID {actual_player_id} with team context {team_id}")
+        else:
+            print(f"[DEBUG] Using specific player ID {actual_player_id}")
+        
+        # Import the direct player analysis function
+        from app.services.mobile_service import get_player_analysis
+        analyze_data = get_player_analysis(player_user_dict)
+    else:
+        # We have a player name, use the name-based lookup
+        viewing_user = session["user"].copy()
+        analyze_data = get_player_analysis_by_name(player_name, viewing_user)
+
+    # Get additional player info (team name and series) for the header
+    player_info = {"club": None, "series": None, "team_name": None}
+    if is_player_id:
+        # We have a player ID, so we can get exact team/series info
+        if team_id:
+            # Use team-specific lookup for accurate context
+            player_info_query = """
+                SELECT 
+                    c.name as club_name,
+                    s.name as series_name,
+                    t.team_name
+                FROM players p
+                LEFT JOIN clubs c ON p.club_id = c.id
+                LEFT JOIN series s ON p.series_id = s.id
+                LEFT JOIN teams t ON p.team_id = t.id
+                WHERE p.tenniscores_player_id = %s AND p.team_id = %s
+                LIMIT 1
+            """
+            player_record = execute_query_one(player_info_query, [actual_player_id, team_id])
+        else:
+            player_info_query = """
+                SELECT 
+                    c.name as club_name,
+                    s.name as series_name,
+                    t.team_name
+                FROM players p
+                LEFT JOIN clubs c ON p.club_id = c.id
+                LEFT JOIN series s ON p.series_id = s.id
+                LEFT JOIN teams t ON p.team_id = t.id
+                WHERE p.tenniscores_player_id = %s
+                LIMIT 1
+            """
+            player_record = execute_query_one(player_info_query, [actual_player_id])
+        if player_record:
+            player_info = {
+                "club": player_record["club_name"],
+                "series": player_record["series_name"], 
+                "team_name": player_record["team_name"]
+            }
+    else:
+        # We have a player name, try to find their info
+        name_parts = player_name.strip().split()
+        if len(name_parts) >= 2:
+            first_name = name_parts[0]
+            last_name = " ".join(name_parts[1:])
+            
+            # Get user's league for filtering
+            viewing_user_league = session["user"].get("league_id", "")
+            league_id_int = None
+            if isinstance(viewing_user_league, str) and viewing_user_league != "":
+                try:
+                    league_record = execute_query_one(
+                        "SELECT id FROM leagues WHERE league_id = %s", [viewing_user_league]
+                    )
+                    if league_record:
+                        league_id_int = league_record["id"]
+                except Exception:
+                    pass
+            elif isinstance(viewing_user_league, int):
+                league_id_int = viewing_user_league
+            
+            # Query for player info with league filtering
+            if league_id_int:
+                player_info_query = """
+                    SELECT 
+                        c.name as club_name,
+                        s.name as series_name,
+                        t.team_name
+                    FROM players p
+                    LEFT JOIN clubs c ON p.club_id = c.id
+                    LEFT JOIN series s ON p.series_id = s.id
+                    LEFT JOIN teams t ON p.team_id = t.id
+                    WHERE p.first_name = %s AND p.last_name = %s AND p.league_id = %s
+                    ORDER BY p.id DESC
+                    LIMIT 1
+                """
+                player_record = execute_query_one(player_info_query, [first_name, last_name, league_id_int])
+            else:
+                player_info_query = """
+                    SELECT 
+                        c.name as club_name,
+                        s.name as series_name,
+                        t.team_name
+                    FROM players p
+                    LEFT JOIN clubs c ON p.club_id = c.id
+                    LEFT JOIN series s ON p.series_id = s.id
+                    LEFT JOIN teams t ON p.team_id = t.id
+                    WHERE p.first_name = %s AND p.last_name = %s
+                    ORDER BY p.id DESC
+                    LIMIT 1
+                """
+                player_record = execute_query_one(player_info_query, [first_name, last_name])
+            
+            if player_record:
+                player_info = {
+                    "club": player_record["club_name"],
+                    "series": player_record["series_name"],
+                    "team_name": player_record["team_name"]
+                }
 
     # PTI data is now handled within the service function with proper league filtering
 
@@ -176,6 +360,7 @@ def serve_mobile_player_detail(player_id):
         session_data=session_data,
         analyze_data=analyze_data,
         player_name=player_name,
+        player_info=player_info,
     )
 
 
@@ -474,34 +659,66 @@ def get_season_history():
         if not player_id:
             return jsonify({"error": "Player ID not found"}), 400
 
-        # Get player's database ID - prioritize the player record that has actual PTI history
-        player_query = """
-            SELECT 
-                p.id,
-                p.pti as current_pti,
-                p.series_id,
-                s.name as series_name,
-                (SELECT COUNT(*) FROM player_history ph WHERE ph.player_id = p.id) as history_count
-            FROM players p
-            LEFT JOIN series s ON p.series_id = s.id
-            WHERE p.tenniscores_player_id = %s
-            ORDER BY history_count DESC, p.id DESC
-        """
-        player_data = execute_query_one(player_query, [player_id])
+        # Get current team context from session service
+        from app.services.session_service import get_session_data_for_user
+        session_data = get_session_data_for_user(user["email"])
+        current_team_id = session_data.get("team_id") if session_data else None
+
+        # Get player's database ID - prioritize the player record for current team context
+        if current_team_id:
+            # First try to get the player record that matches the current team context
+            player_query = """
+                SELECT 
+                    p.id,
+                    p.pti as current_pti,
+                    p.series_id,
+                    p.team_id,
+                    s.name as series_name,
+                    t.team_name,
+                    (SELECT COUNT(*) FROM player_history ph WHERE ph.player_id = p.id) as history_count
+                FROM players p
+                LEFT JOIN series s ON p.series_id = s.id
+                LEFT JOIN teams t ON p.team_id = t.id
+                WHERE p.tenniscores_player_id = %s AND p.team_id = %s
+                ORDER BY history_count DESC, p.id DESC
+            """
+            player_data = execute_query_one(player_query, [player_id, current_team_id])
+        else:
+            # Fallback to any player record if no team context
+            player_query = """
+                SELECT 
+                    p.id,
+                    p.pti as current_pti,
+                    p.series_id,
+                    p.team_id,
+                    s.name as series_name,
+                    t.team_name,
+                    (SELECT COUNT(*) FROM player_history ph WHERE ph.player_id = p.id) as history_count
+                FROM players p
+                LEFT JOIN series s ON p.series_id = s.id
+                LEFT JOIN teams t ON p.team_id = t.id
+                WHERE p.tenniscores_player_id = %s
+                ORDER BY history_count DESC, p.id DESC
+            """
+            player_data = execute_query_one(player_query, [player_id])
 
         if not player_data:
             return jsonify({"error": "Player not found"}), 404
 
         player_db_id = player_data["id"]
+        player_team_id = player_data["team_id"]
 
         # Debug logging
         print(f"[DEBUG] Season History - Player ID: {player_id}")
+        print(f"[DEBUG] Season History - Current Team Context: {current_team_id}")
         print(
             f"[DEBUG] Season History - Player DB ID: {player_db_id} (with {player_data['history_count']} history records)"
         )
+        print(f"[DEBUG] Season History - Player Team ID: {player_team_id}")
         print(
             f"[DEBUG] Season History - Player Series: {player_data.get('series_name')}"
         )
+        print(f"[DEBUG] Season History - Team Name: {player_data.get('team_name')}")
         print(
             f"[DEBUG] Season History - Player Current PTI: {player_data.get('current_pti')}"
         )
@@ -538,6 +755,8 @@ def get_season_history():
             )
 
         # Get season history data aggregated by series and tennis season (Aug-May)
+        # This query now uses the team-specific player record, so it only shows
+        # history for the current team context, avoiding intermixed data
         season_history_query = """
             WITH season_data AS (
                 SELECT 
@@ -590,7 +809,7 @@ def get_season_history():
                 (pti_end - pti_start) as trend,
                 matches_count
             FROM season_summary
-            ORDER BY season_year ASC, series
+            ORDER BY season_year DESC, series  -- Most recent seasons first
             LIMIT 10
         """
 
@@ -618,108 +837,16 @@ def get_season_history():
         season_records = execute_query(season_history_query, [player_db_id])
 
         print(
-            f"[DEBUG] Season History - Direct player_id query returned {len(season_records) if season_records else 0} records"
+            f"[DEBUG] Season History - Team-filtered query returned {len(season_records) if season_records else 0} records"
         )
         if season_records:
             print(
-                f"[DEBUG] Season History - Direct query results (showing ALL series this player has participated in):"
+                f"[DEBUG] Season History - Team-filtered results (showing only current team context):"
             )
             for record in season_records:
                 print(
                     f"  Series: {record['series']}, Season: {record['season_year']}, PTI: {record['pti_start']} -> {record['pti_end']}, Matches: {record['matches_count']}"
                 )
-
-        if not season_records:
-            # Try series matching as fallback
-            series_name = player_data.get("series_name", "")
-            print(
-                f"[DEBUG] Season History - No direct results, trying series fallback with: '{series_name}'"
-            )
-            if series_name:
-                # Create more precise series patterns to avoid false matches
-                series_patterns = [f"%{series_name}%"]  # Exact series name match only
-
-                # Only add first-word pattern if series name is very specific (has colon or numbers)
-                if ":" in series_name or any(char.isdigit() for char in series_name):
-                    first_part = (
-                        series_name.split()[0] if " " in series_name else series_name
-                    )
-                    # Add pattern with colon to match "Chicago:" vs "Chicago 34"
-                    if ":" not in first_part:
-                        series_patterns.append(f"%{first_part}:%")
-                    series_patterns.append(f"%{first_part}%")
-
-                print(
-                    f"[DEBUG] Season History - Trying series patterns: {series_patterns}"
-                )
-
-                for pattern in series_patterns:
-                    print(f"[DEBUG] Season History - Trying pattern: '{pattern}'")
-                    fallback_query = """
-                        WITH season_data AS (
-                            SELECT 
-                                series,
-                                -- Calculate tennis season year (Aug-May spans two calendar years)
-                                CASE 
-                                    WHEN EXTRACT(MONTH FROM date) >= 8 THEN EXTRACT(YEAR FROM date)
-                                    ELSE EXTRACT(YEAR FROM date) - 1
-                                END as season_year,
-                                date,
-                                end_pti,
-                                ROW_NUMBER() OVER (
-                                    PARTITION BY series, 
-                                    CASE 
-                                        WHEN EXTRACT(MONTH FROM date) >= 8 THEN EXTRACT(YEAR FROM date)
-                                        ELSE EXTRACT(YEAR FROM date) - 1
-                                    END 
-                                    ORDER BY date ASC
-                                ) as rn_start,
-                                ROW_NUMBER() OVER (
-                                    PARTITION BY series, 
-                                    CASE 
-                                        WHEN EXTRACT(MONTH FROM date) >= 8 THEN EXTRACT(YEAR FROM date)
-                                        ELSE EXTRACT(YEAR FROM date) - 1
-                                    END 
-                                    ORDER BY date DESC
-                                ) as rn_end
-                            FROM player_history
-                            WHERE series ILIKE %s
-                            ORDER BY date DESC
-                        ),
-                        season_summary AS (
-                            SELECT 
-                                series,
-                                season_year,
-                                MAX(CASE WHEN rn_start = 1 THEN end_pti END) as pti_start,
-                                MAX(CASE WHEN rn_end = 1 THEN end_pti END) as pti_end,
-                                COUNT(*) as matches_count
-                            FROM season_data
-                            GROUP BY series, season_year
-                            HAVING COUNT(*) >= 3  -- Only show seasons with at least 3 matches
-                        )
-                        SELECT 
-                            series,
-                            season_year,
-                            pti_start,
-                            pti_end,
-                            (pti_end - pti_start) as trend,
-                            matches_count
-                        FROM season_summary
-                        ORDER BY season_year ASC, series
-                        LIMIT 10
-                    """
-
-                    season_records = execute_query(fallback_query, [pattern])
-                    print(
-                        f"[DEBUG] Season History - Pattern '{pattern}' returned {len(season_records) if season_records else 0} records"
-                    )
-                    if season_records:
-                        print(f"[DEBUG] Season History - Fallback query results:")
-                        for record in season_records:
-                            print(
-                                f"  Series: {record['series']}, Season: {record['season_year']}, PTI: {record['pti_start']} -> {record['pti_end']}"
-                            )
-                        break
 
         if not season_records:
             print(
@@ -831,7 +958,8 @@ def get_player_season_history(player_name):
             f"[DEBUG] Player Season History - Player Series: {player_data.get('series_name')}"
         )
 
-        # FIRST: Try to get season history using the proper foreign key relationship (player_id)
+        # Get season history using the team-specific player record
+        # This ensures we only show history for the specific team context
         season_history_query = """
             WITH season_data AS (
                 SELECT 
