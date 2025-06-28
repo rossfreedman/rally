@@ -3021,123 +3021,134 @@ def get_club_players_data(
         print(f"Loading players for league database ID: {user_league_db_id}")
         
         try:
-            # Load players with their team associations and PTI data (including fallback from player_history)
-            players_with_teams_query = """
+            # OPTIMIZED: Single comprehensive query using CTEs to get all data at once
+            # This eliminates N+1 queries by calculating everything in one go
+            comprehensive_query = """
+                WITH player_latest_pti AS (
+                    -- Get the most recent PTI from player_history for players with NULL PTI
+                    SELECT DISTINCT ON (player_id) 
+                        player_id, 
+                        end_pti as latest_pti
+                    FROM player_history 
+                    WHERE end_pti IS NOT NULL
+                    ORDER BY player_id, date DESC
+                ),
+                player_match_records AS (
+                    -- Calculate win/loss records for each player-team combination in one query
+                    SELECT 
+                        player_id,
+                        team_id,
+                        SUM(CASE WHEN won THEN 1 ELSE 0 END) as wins,
+                        SUM(CASE WHEN NOT won THEN 1 ELSE 0 END) as losses
+                    FROM (
+                        -- Home team players
+                        SELECT 
+                            CASE 
+                                WHEN NULLIF(TRIM(ms.home_player_1_id), '') ~ '^[0-9]+$' 
+                                THEN NULLIF(TRIM(ms.home_player_1_id), '')::TEXT
+                                ELSE NULL 
+                            END as player_id,
+                            ms.home_team_id as team_id,
+                            ms.winner = 'home' as won
+                        FROM match_scores ms 
+                        WHERE ms.league_id = %s AND ms.winner IS NOT NULL
+                        AND NULLIF(TRIM(ms.home_player_1_id), '') ~ '^[0-9]+$'
+                        
+                        UNION ALL
+                        
+                        SELECT 
+                            CASE 
+                                WHEN NULLIF(TRIM(ms.home_player_2_id), '') ~ '^[0-9]+$' 
+                                THEN NULLIF(TRIM(ms.home_player_2_id), '')::TEXT
+                                ELSE NULL 
+                            END as player_id,
+                            ms.home_team_id as team_id,
+                            ms.winner = 'home' as won
+                        FROM match_scores ms 
+                        WHERE ms.league_id = %s AND ms.winner IS NOT NULL
+                        AND NULLIF(TRIM(ms.home_player_2_id), '') ~ '^[0-9]+$'
+                        
+                        UNION ALL
+                        
+                        -- Away team players  
+                        SELECT 
+                            CASE 
+                                WHEN NULLIF(TRIM(ms.away_player_1_id), '') ~ '^[0-9]+$' 
+                                THEN NULLIF(TRIM(ms.away_player_1_id), '')::TEXT
+                                ELSE NULL 
+                            END as player_id,
+                            ms.away_team_id as team_id,
+                            ms.winner = 'away' as won
+                        FROM match_scores ms 
+                        WHERE ms.league_id = %s AND ms.winner IS NOT NULL
+                        AND NULLIF(TRIM(ms.away_player_1_id), '') ~ '^[0-9]+$'
+                        
+                        UNION ALL
+                        
+                        SELECT 
+                            CASE 
+                                WHEN NULLIF(TRIM(ms.away_player_2_id), '') ~ '^[0-9]+$' 
+                                THEN NULLIF(TRIM(ms.away_player_2_id), '')::TEXT
+                                ELSE NULL 
+                            END as player_id,
+                            ms.away_team_id as team_id,
+                            ms.winner = 'away' as won
+                        FROM match_scores ms 
+                        WHERE ms.league_id = %s AND ms.winner IS NOT NULL
+                        AND NULLIF(TRIM(ms.away_player_2_id), '') ~ '^[0-9]+$'
+                    ) all_player_matches
+                    WHERE player_id IS NOT NULL
+                    GROUP BY player_id, team_id
+                )
                 SELECT 
                     p.first_name as "First Name",
                     p.last_name as "Last Name", 
                     p.tenniscores_player_id as "Player ID",
                     p.id as "Database ID",
-                    p.pti as "Current PTI",
+                    -- Use current PTI or fallback to latest from history
+                    COALESCE(p.pti, pti.latest_pti) as "Current PTI",
                     c.name as "Club",
                     s.name as "Series",
                     l.league_id as "League",
                     t.id as "Team ID",
-                    t.team_name as "Team Name"
+                    t.team_name as "Team Name",
+                    -- Use calculated records or default to 0
+                    COALESCE(pmr.wins, 0) as "Wins",
+                    COALESCE(pmr.losses, 0) as "Losses"
                 FROM players p
                 LEFT JOIN clubs c ON p.club_id = c.id
                 LEFT JOIN series s ON p.series_id = s.id  
                 LEFT JOIN leagues l ON p.league_id = l.id
                 LEFT JOIN teams t ON p.team_id = t.id
+                LEFT JOIN player_latest_pti pti ON p.id = pti.player_id
+                LEFT JOIN player_match_records pmr ON p.tenniscores_player_id = pmr.player_id 
+                    AND t.id = pmr.team_id
                 WHERE p.tenniscores_player_id IS NOT NULL
                 AND p.league_id = %s
                 AND p.is_active = true
                 ORDER BY p.first_name, p.last_name, t.team_name
             """
             
-            all_players = execute_query(players_with_teams_query, (user_league_db_id,))
-            print(f"Loaded {len(all_players)} player-team entries from database")
+            # Execute the comprehensive query with league_id repeated for each CTE
+            all_players = execute_query(comprehensive_query, (
+                user_league_db_id,  # For first player_match_records subquery
+                user_league_db_id,  # For second player_match_records subquery  
+                user_league_db_id,  # For third player_match_records subquery
+                user_league_db_id,  # For fourth player_match_records subquery
+                user_league_db_id   # For main query
+            ))
             
-            # Add PTI fallback logic (same as player detail page)
-            # For players with NULL PTI, try to get the most recent PTI from player_history
+            print(f"Loaded {len(all_players)} player-team entries with records from database (OPTIMIZED)")
+            
+            # Convert PTI values to strings and handle nulls
             for player in all_players:
                 current_pti = player.get("Current PTI")
-                player_db_id = player.get("Database ID")
-                
-                if current_pti is None and player_db_id:
-                    # Try to get most recent PTI from player_history
-                    recent_pti_query = """
-                        SELECT end_pti
-                        FROM player_history
-                        WHERE player_id = %s
-                        ORDER BY date DESC
-                        LIMIT 1
-                    """
-                    recent_pti_result = execute_query_one(recent_pti_query, [player_db_id])
-                    if recent_pti_result and recent_pti_result["end_pti"] is not None:
-                        current_pti = recent_pti_result["end_pti"]
-                        print(f"[DEBUG] Using PTI from history for {player['First Name']} {player['Last Name']}: {current_pti}")
-                
-                # Set the final PTI value (or "N/A" if still None)
                 if current_pti is not None:
                     player["PTI"] = str(current_pti)
                 else:
                     player["PTI"] = "N/A"
             
-            # Calculate team-specific wins/losses for each player-team combination
-            print("Loading match data for record calculation...")
-            
-            # Get all matches for this league in one query
-            matches_query = """
-                SELECT 
-                    ms.home_player_1_id, ms.home_player_2_id, 
-                    ms.away_player_1_id, ms.away_player_2_id,
-                    ms.home_team_id, ms.away_team_id, ms.winner
-                FROM match_scores ms 
-                WHERE ms.league_id = %s AND ms.winner IS NOT NULL
-            """
-            all_matches = execute_query(matches_query, [user_league_db_id])
-            print(f"Loaded {len(all_matches)} matches for record calculation")
-            
-            # Build player-team records
-            player_team_records = {}  # Key: (player_id, team_id), Value: {wins: X, losses: Y}
-            
-            for match in all_matches:
-                home_players = [match["home_player_1_id"], match["home_player_2_id"]]
-                away_players = [match["away_player_1_id"], match["away_player_2_id"]]
-                home_team_id = match["home_team_id"]
-                away_team_id = match["away_team_id"]
-                winner = match["winner"]
-                
-                # Process home team players
-                for player_id in home_players:
-                    if player_id:
-                        key = (player_id, home_team_id)
-                        if key not in player_team_records:
-                            player_team_records[key] = {"wins": 0, "losses": 0}
-                        
-                        if winner == "home":
-                            player_team_records[key]["wins"] += 1
-                        elif winner == "away":
-                            player_team_records[key]["losses"] += 1
-                
-                # Process away team players
-                for player_id in away_players:
-                    if player_id:
-                        key = (player_id, away_team_id)
-                        if key not in player_team_records:
-                            player_team_records[key] = {"wins": 0, "losses": 0}
-                        
-                        if winner == "away":
-                            player_team_records[key]["wins"] += 1
-                        elif winner == "home":
-                            player_team_records[key]["losses"] += 1
-            
-            # Apply calculated records to players
-            for player in all_players:
-                player_id = player.get("Player ID")
-                team_id = player.get("Team ID")
-                
-                if player_id and team_id:
-                    key = (player_id, team_id)
-                    record = player_team_records.get(key, {"wins": 0, "losses": 0})
-                    player["Wins"] = record["wins"]
-                    player["Losses"] = record["losses"]
-                else:
-                    player["Wins"] = 0
-                    player["Losses"] = 0
-            
-            print("Team-specific records calculated!")
+            print("Optimized query completed - no N+1 queries needed!")
             
             # Debug: Check for Werman specifically to diagnose the multi-team issue
             werman_entries = [p for p in all_players if "werman" in p.get("Last Name", "").lower()]
@@ -3150,6 +3161,8 @@ def get_club_players_data(
                 
         except Exception as e:
             print(f"Error loading players from database: {str(e)}")
+            import traceback
+            print(traceback.format_exc())
             return {
                 "players": [],
                 "available_series": [],
