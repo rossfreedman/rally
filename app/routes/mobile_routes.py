@@ -722,20 +722,28 @@ def get_season_history():
         print(
             f"[DEBUG] Season History - Player Current PTI: {player_data.get('current_pti')}"
         )
+        print(f"[DEBUG] Season History - APPROACH: Using specific player_db_id {player_db_id} to eliminate cross-team contamination")
 
-        # Debug: Check all player_history records for this specific team context
+        # Get season history data for ONLY the current team/series context
+        # Filter by specific player_id AND series to avoid showing multiple series per season
+        current_series_name = player_data.get("series_name", "")
+        
+        # Safety check - if no team context, return empty results to avoid showing mixed data
+        if not player_team_id or not current_series_name:
+            print(f"[DEBUG] Season History - Missing team context (team_id: {player_team_id}, series: {current_series_name})")
+            return jsonify({"error": "No season history found - missing team context"}), 404
+
+        # CORE FIX: Use ONLY the specific player record ID for current team context
+        # This eliminates all cross-team contamination
         debug_query = """
-            SELECT ph.series, ph.date, ph.end_pti 
-            FROM player_history ph
-            JOIN players p ON ph.player_id = p.id
-            WHERE p.tenniscores_player_id = %s 
-              AND p.team_id = %s
-              AND ph.series = %s
-            ORDER BY ph.date DESC 
+            SELECT series, date, end_pti 
+            FROM player_history 
+            WHERE player_id = %s
+            ORDER BY date DESC 
         """
-        debug_records = execute_query(debug_query, [player_id, player_team_id, current_series_name])
+        debug_records = execute_query(debug_query, [player_db_id])
         print(
-            f"[DEBUG] Season History - {len(debug_records)} player_history records for current team context ({current_series_name}):"
+            f"[DEBUG] Season History - {len(debug_records)} player_history records for player_id {player_db_id} (team: {player_data.get('team_name')}, series: {current_series_name}):"
         )
 
         # Group by series to see what series this player actually has
@@ -757,15 +765,6 @@ def get_season_history():
                 f"  Date: {record['date']}, Series: {record['series']}, PTI: {record['end_pti']}"
             )
 
-        # Get season history data for ONLY the current team/series context
-        # Filter by specific player_id AND series to avoid showing multiple series per season
-        current_series_name = player_data.get("series_name", "")
-        
-        # Safety check - if no team context, return empty results to avoid showing mixed data
-        if not player_team_id or not current_series_name:
-            print(f"[DEBUG] Season History - Missing team context (team_id: {player_team_id}, series: {current_series_name})")
-            return jsonify({"error": "No season history found - missing team context"}), 404
-        
         season_history_query = """
             WITH season_data AS (
                 SELECT 
@@ -795,68 +794,62 @@ def get_season_history():
                         END 
                         ORDER BY date DESC
                     ) as rn_end
-                FROM player_history ph
-                JOIN players p ON ph.player_id = p.id
-                WHERE p.tenniscores_player_id = %s 
-                  AND p.team_id = %s
-                  AND ph.series = %s
+                FROM player_history
+                WHERE player_id = %s
                 ORDER BY date DESC
             ),
             season_summary AS (
                 SELECT 
-                    series,
                     season_year,
-                    MAX(CASE WHEN rn_start = 1 THEN end_pti END) as pti_start,
-                    MAX(CASE WHEN rn_end = 1 THEN end_pti END) as pti_end,
-                    COUNT(*) as matches_count
+                    MIN(end_pti) as pti_start,  -- Earliest PTI in the season across all series
+                    MAX(end_pti) as pti_end,    -- Latest PTI in the season across all series
+                    COUNT(*) as matches_count,
+                    STRING_AGG(DISTINCT series, ', ' ORDER BY series) as series_list
                 FROM season_data
-                GROUP BY series, season_year
+                GROUP BY season_year
                 HAVING COUNT(*) >= 3  -- Only show seasons with at least 3 matches
             )
             SELECT 
-                series,
+                series_list as series,
                 season_year,
                 pti_start,
                 pti_end,
                 (pti_end - pti_start) as trend,
                 matches_count
             FROM season_summary
-            ORDER BY season_year DESC, series  -- Most recent seasons first
+            ORDER BY season_year DESC  -- Most recent seasons first
             LIMIT 10
         """
 
         # Debug: Let's also run the inner query to see what raw data the aggregation is working with
         debug_season_query = """
             SELECT 
-                ph.series,
+                series,
                 CASE 
-                    WHEN EXTRACT(MONTH FROM ph.date) >= 8 THEN EXTRACT(YEAR FROM ph.date)
-                    ELSE EXTRACT(YEAR FROM ph.date) - 1
+                    WHEN EXTRACT(MONTH FROM date) >= 8 THEN EXTRACT(YEAR FROM date)
+                    ELSE EXTRACT(YEAR FROM date) - 1
                 END as season_year,
-                ph.date,
-                ph.end_pti
-            FROM player_history ph
-            JOIN players p ON ph.player_id = p.id
-            WHERE p.tenniscores_player_id = %s 
-              AND p.team_id = %s
-              AND ph.series = %s
-            ORDER BY season_year, ph.series, ph.date
+                date,
+                end_pti
+            FROM player_history
+            WHERE player_id = %s 
+            ORDER BY season_year, series, date
         """
-        debug_season_records = execute_query(debug_season_query, [player_id, player_team_id, current_series_name])
+        debug_season_records = execute_query(debug_season_query, [player_db_id])
         print(f"[DEBUG] Season History - Raw records going into season aggregation:")
         for record in debug_season_records:
             print(
                 f"  Season: {record['season_year']}, Series: {record['series']}, Date: {record['date']}, PTI: {record['end_pti']}"
             )
 
-        season_records = execute_query(season_history_query, [player_id, player_team_id, current_series_name])
+        season_records = execute_query(season_history_query, [player_db_id])
 
         print(
-            f"[DEBUG] Season History - Team-filtered query returned {len(season_records) if season_records else 0} records"
+            f"[DEBUG] Season History - One-per-season query returned {len(season_records) if season_records else 0} records for player_id {player_db_id}"
         )
         if season_records:
             print(
-                f"[DEBUG] Season History - Team-filtered results (showing only current team context):"
+                f"[DEBUG] Season History - One row per season results (NO year repetition):"
             )
             for record in season_records:
                 print(
@@ -974,7 +967,7 @@ def get_player_season_history(player_name):
         )
 
         # Get season history using the team-specific player record
-        # This ensures we only show history for the specific team context
+        # Fixed to show ONE row per season instead of multiple rows per series
         season_history_query = """
             WITH season_data AS (
                 SELECT 
@@ -1008,24 +1001,24 @@ def get_player_season_history(player_name):
             ),
             season_summary AS (
                 SELECT 
-                    series,
                     season_year,
-                    MAX(CASE WHEN rn_start = 1 THEN end_pti END) as pti_start,
-                    MAX(CASE WHEN rn_end = 1 THEN end_pti END) as pti_end,
-                    COUNT(*) as matches_count
+                    MIN(end_pti) as pti_start,  -- Earliest PTI in the season across all series
+                    MAX(end_pti) as pti_end,    -- Latest PTI in the season across all series
+                    COUNT(*) as matches_count,
+                    STRING_AGG(DISTINCT series, ', ' ORDER BY series) as series_list
                 FROM season_data
-                GROUP BY series, season_year
+                GROUP BY season_year
                 HAVING COUNT(*) >= 3  -- Only show seasons with at least 3 matches
             )
             SELECT 
-                series,
+                series_list as series,
                 season_year,
                 pti_start,
                 pti_end,
                 (pti_end - pti_start) as trend,
                 matches_count
             FROM season_summary
-            ORDER BY season_year DESC, series  -- Most recent seasons first
+            ORDER BY season_year DESC  -- Most recent seasons first
             LIMIT 10
         """
 
