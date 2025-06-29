@@ -104,7 +104,7 @@
                 <h2 class="text-lg font-semibold text-gray-900 flex items-center">
                     <i class="fas fa-bolt text-yellow-500 mr-2"></i>
                     Notable Player Streaks
-                    <span class="text-xs text-gray-500 ml-2 font-normal">(+5 wins / -5 losses)</span>
+                    <span class="text-xs text-gray-500 ml-2 font-normal">(+5 wins)</span>
                 </h2>
             </div>
             
@@ -125,7 +125,7 @@
                             <tr class="{% if loop.index0 % 2 == 0 %}bg-white{% else %}bg-gray-50{% endif %} hover:bg-gray-100">
                                 <td class="py-1 px-1">
                                     <div class="font-medium text-xs text-gray-900">{{ streak.player_name }}</div>
-                                    <div class="text-xs text-gray-500">{{ streak.series }}</div>
+                                    <div class="text-xs text-gray-500">Series {{ streak.series }}</div>
                                 </td>
                                 <td class="py-1 px-1 text-center">
                                     <span class="px-1 py-1 text-xs font-bold rounded-full 
@@ -158,7 +158,7 @@
                             <tr class="bg-white">
                                 <td colspan="5" class="py-4 text-center text-gray-500">
                                     <div class="text-base">No significant streaks found</div>
-                                    <div class="text-xs mt-1">Looking for streaks of +5 wins or -5 losses</div>
+                                    <div class="text-xs mt-1">Looking for streaks of +5 wins</div>
                                 </td>
                             </tr>
                             {% endif %}
@@ -214,7 +214,7 @@
                                         <!-- Match Header -->
                                         <div class="flex items-center justify-between mb-3">
                                             <div class="flex items-center space-x-3">
-                                                <span class="text-sm font-medium text-blue-600 bg-blue-100 px-2 py-1 rounded">
+                                                <span class="text-sm font-medium text-gray-900">
                                                     {{ result.series }}
                                                 </span>
                                                 <span class="font-semibold text-gray-900">vs {{ result.opponent }}</span>
