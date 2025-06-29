@@ -1901,14 +1901,14 @@ def get_mobile_availability_data(user):
 
 def get_recent_matches_for_user_club(user):
     """
-    Get the last 10 weeks of matches for a user's club, grouped by date.
+    Get the last 6 weeks of matches for a user's club, grouped by date.
     FIXED: Only queries matches from user's specific league and club from session.
 
     Args:
         user: User object containing club and league information from session
 
     Returns:
-        Dict with matches grouped by date for the last 10 weeks
+        Dict with matches grouped by date for the last 6 weeks
     """
     try:
         from database_utils import execute_query, execute_query_one
@@ -2074,8 +2074,8 @@ def get_recent_matches_for_user_club(user):
         for date, date_matches in matches_by_date.items():
             print(f"  {date}: {len(date_matches)} matches")
 
-        # Get the 10 most recent dates
-        recent_dates = sorted(matches_by_date.keys(), key=parse_date, reverse=True)[:10]
+        # Get the 6 most recent dates
+        recent_dates = sorted(matches_by_date.keys(), key=parse_date, reverse=True)[:6]
         print(f"[DEBUG] Selected {len(recent_dates)} most recent dates: {recent_dates}")
 
         # Build the result with only the recent dates
@@ -4399,16 +4399,17 @@ def get_mobile_team_data(user):
             best_court = None
             best_court_rate = 0
             for court, cstats in stats["courts"].items():
-                rate = (
-                    round((cstats["wins"] / cstats["matches"]) * 100, 1)
-                    if cstats["matches"] > 0
-                    else 0
-                )
-                if rate > best_court_rate or (
-                    rate == best_court_rate and cstats["matches"] > 0
-                ):
-                    best_court_rate = rate
-                    best_court = f"{court} ({rate}%)"
+                if cstats["matches"] >= 3:  # Require at least 3 matches for meaningful court performance
+                    rate = (
+                        round((cstats["wins"] / cstats["matches"]) * 100, 1)
+                        if cstats["matches"] > 0
+                        else 0
+                    )
+                    if rate > best_court_rate or (
+                        rate == best_court_rate and cstats["matches"] > 0
+                    ):
+                        best_court_rate = rate
+                        best_court = court
 
             # Best partner
             best_partner = None
@@ -4435,11 +4436,7 @@ def get_mobile_team_data(user):
                     "matches": stats["matches"],
                     "win_rate": win_rate,
                     "best_court": best_court or "N/A",
-                    "best_partner": (
-                        f"{best_partner} ({best_partner_rate}%)"
-                        if best_partner
-                        else "N/A"
-                    ),
+                    "best_partner": best_partner if best_partner else "N/A",
                 }
             )
 
@@ -5108,16 +5105,17 @@ def calculate_team_analysis_mobile(team_stats, team_matches, team):
             best_court = None
             best_court_rate = 0
             for court, cstats in stats["courts"].items():
-                rate = (
-                    round((cstats["wins"] / cstats["matches"]) * 100, 1)
-                    if cstats["matches"] > 0
-                    else 0
-                )
-                if rate > best_court_rate or (
-                    rate == best_court_rate and cstats["matches"] > 0
-                ):
-                    best_court_rate = rate
-                    best_court = f"{court} ({rate}%)"
+                if cstats["matches"] >= 3:  # Require at least 3 matches for meaningful court performance
+                    rate = (
+                        round((cstats["wins"] / cstats["matches"]) * 100, 1)
+                        if cstats["matches"] > 0
+                        else 0
+                    )
+                    if rate > best_court_rate or (
+                        rate == best_court_rate and cstats["matches"] > 0
+                    ):
+                        best_court_rate = rate
+                        best_court = court
 
             # Best partner
             best_partner = None
@@ -5158,11 +5156,7 @@ def calculate_team_analysis_mobile(team_stats, team_matches, team):
                     "matches": stats["matches"],
                     "win_rate": win_rate,
                     "best_court": best_court or "N/A",
-                    "best_partner": (
-                        f"{best_partner} ({best_partner_rate}%)"
-                        if best_partner
-                        else "N/A"
-                    ),
+                    "best_partner": best_partner if best_partner else "N/A",
                 }
             )
 
