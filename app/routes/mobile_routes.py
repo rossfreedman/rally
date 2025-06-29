@@ -1293,11 +1293,8 @@ def get_player_season_history(player_name):
 @login_required
 def serve_mobile_my_team():
     """Serve the mobile My Team page"""
-    print(f"🔥 ROUTE CALLED: /mobile/my-team with user: {session['user']['email']}")
     try:
-        print(f"🔥 ABOUT TO CALL: get_mobile_team_data")
         result = get_mobile_team_data(session["user"])
-        print(f"🔥 RESULT FROM get_mobile_team_data: {type(result)}")
 
         session_data = {"user": session["user"], "authenticated": True}
 
@@ -1310,7 +1307,7 @@ def serve_mobile_my_team():
         strength_of_schedule = result.get("strength_of_schedule", {})
         error = result.get("error")
 
-        return render_template(
+        response = render_template(
             "mobile/my_team.html",
             session_data=session_data,
             team_data=team_data,
@@ -1319,6 +1316,16 @@ def serve_mobile_my_team():
             strength_of_schedule=strength_of_schedule,
             error=error,
         )
+        
+        # Add cache-busting headers to ensure fresh data
+        from flask import make_response
+        response = make_response(response)
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        response.headers['Last-Modified'] = 'Thu, 01 Jan 1970 00:00:00 GMT'
+        
+        return response
 
     except Exception as e:
         print(f"Error serving mobile my team: {str(e)}")

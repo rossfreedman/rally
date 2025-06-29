@@ -117,7 +117,13 @@
                 <div class="grid grid-cols-2 gap-4 mb-6">
                     <!-- Matches -->
                     <div class="text-center">
-                        <div class="text-3xl font-bold text-gray-900 mb-1">{{ analyze_data.current_season.matches or 'N/A' }}</div>
+                        <div class="text-3xl font-bold text-gray-900 mb-1">
+                            {% if analyze_data.current_season.matches %}
+                                {{ analyze_data.current_season.matches }}
+                            {% else %}
+                                <span class="text-xs text-gray-400 font-normal">Threshold not met</span>
+                            {% endif %}
+                        </div>
                         <div class="text-sm text-gray-500 uppercase tracking-wide">Matches</div>
                     </div>
                     
@@ -131,7 +137,7 @@
                             {% if analyze_data.current_season.winRate is defined %}
                             {{ analyze_data.current_season.winRate|round(0)|int }}%
                             {% else %}
-                            N/A
+                            <span class="text-xs text-gray-400 font-normal">Threshold not met</span>
                             {% endif %}
                         </div>
                         <div class="text-sm text-gray-500 uppercase tracking-wide">Win Rate</div>
@@ -211,7 +217,13 @@
                 <div class="grid grid-cols-2 gap-4 mb-6">
                     <!-- Career Matches -->
                     <div class="text-center">
-                        <div class="text-3xl font-bold text-gray-900 mb-1">{{ analyze_data.career_stats.matches or 'N/A' }}</div>
+                        <div class="text-3xl font-bold text-gray-900 mb-1">
+                            {% if analyze_data.career_stats.matches %}
+                                {{ analyze_data.career_stats.matches }}
+                            {% else %}
+                                <span class="text-xs text-gray-400 font-normal">Threshold not met</span>
+                            {% endif %}
+                        </div>
                         <div class="text-sm text-gray-500 uppercase tracking-wide">Career Matches</div>
                     </div>
                     
@@ -225,7 +237,7 @@
                             {% if analyze_data.career_stats.winRate is defined %}
                             {{ analyze_data.career_stats.winRate|round(0)|int }}%
                             {% else %}
-                            N/A
+                            <span class="text-xs text-gray-400 font-normal">Threshold not met</span>
                             {% endif %}
                         </div>
                         <div class="text-sm text-gray-500 uppercase tracking-wide">Career Win Rate</div>
@@ -283,7 +295,13 @@
                             <h3 class="text-lg font-semibold text-gray-900">{{ court|capitalize }}</h3>
                             <div class="flex items-center gap-3">
                                 <!-- Record -->
-                                <span class="text-sm font-medium text-gray-700">{{ stats.record if stats else 'N/A' }}</span>
+                                <span class="text-sm font-medium text-gray-700">
+                                    {% if stats and stats.record %}
+                                        {{ stats.record }}
+                                    {% else %}
+                                        <span class="text-xs text-gray-400">Threshold not met</span>
+                                    {% endif %}
+                                </span>
                                 <!-- Win Rate Badge -->
                                 {% if stats and stats.winRate is defined and stats.winRate is not none and stats.record != '0-0' %}
                                 <div class="px-3 py-1 rounded-full text-sm font-medium

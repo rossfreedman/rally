@@ -1,6 +1,15 @@
 {% extends "mobile/layout.html" %}
 
 {% block content %}
+<style>
+  /* Override background for mobile home page */
+  body {
+    background-color: white !important;
+  }
+  #main-content {
+    background-color: white !important;
+  }
+</style>
 <div class="container mx-auto px-4 py-6">
   <!-- Welcome Section with Club Logo and Info -->
   <div class="welcome-section text-center mb-8">
@@ -41,25 +50,25 @@
                  <div class="text-sm text-gray-600 space-y-1">
            <div class="flex items-center justify-center">
              <span class="font-medium">{{ session_data.user.league_name }}</span>
-             <button id="leagueSwitcherTrigger" class="ml-2 text-blue-600 text-xs underline" aria-label="Change League">
+             <button id="leagueSwitcherTrigger" class="ml-2 text-blue-600 text-xs underline hidden" aria-label="Change League" style="font-size: 10px;">
                (change league)
+             </button>
+           </div>
+           
+           <div class="flex items-center justify-center">
+             <span class="font-medium">{{ session_data.user.club }}</span>
+             <button id="clubSwitcherTrigger" class="ml-2 text-blue-600 text-xs underline hidden" onclick="showClubSwitcher()" style="font-size: 10px;">
+               (change club)
              </button>
            </div>
            
            <div id="seriesNameDisplay" class="font-medium text-gray-800">
              {{ session_data.user.series }}
            </div>
-           
-           <div class="flex items-center justify-center">
-             <span class="font-medium">{{ session_data.user.club }}</span>
-             <button class="ml-2 text-blue-600 text-xs underline" onclick="showClubSwitcher()">
-               (change club)
-             </button>
-           </div>
          </div>
          
          <script>
-           // Apply series alias transformation to the display
+           // Apply series alias transformation to the display and check for multiple leagues/clubs
            document.addEventListener('DOMContentLoaded', function() {
              const seriesElement = document.getElementById('seriesNameDisplay');
              if (seriesElement) {
@@ -71,7 +80,52 @@
                  seriesElement.textContent = `Series ${seriesNumber}${suffix}`;
                }
              }
+             
+             // Check if user has multiple leagues
+             checkMultipleLeagues();
+             
+             // Check if user has multiple clubs in current league
+             checkMultipleClubs();
            });
+           
+           async function checkMultipleLeagues() {
+             try {
+               // Check if this specific user has multiple leagues
+               const response = await fetch('/api/get-user-teams');
+               const data = await response.json();
+               
+               if (data.success && data.teams) {
+                 // Check if user has teams in multiple leagues
+                 const uniqueLeagues = new Set(data.teams.map(team => team.league_db_id));
+                 
+                 if (uniqueLeagues.size > 1) {
+                   const leagueButton = document.getElementById('leagueSwitcherTrigger');
+                   if (leagueButton) {
+                     leagueButton.classList.remove('hidden');
+                   }
+                 }
+               }
+             } catch (error) {
+               console.error('Error checking multiple leagues:', error);
+             }
+           }
+           
+           async function checkMultipleClubs() {
+             try {
+               // Check if this specific user has multiple teams in current league
+               const response = await fetch('/api/get-user-teams');
+               const data = await response.json();
+               
+               if (data.success && data.has_multiple_teams_in_current_league) {
+                 const clubButton = document.getElementById('clubSwitcherTrigger');
+                 if (clubButton) {
+                   clubButton.classList.remove('hidden');
+                 }
+               }
+             } catch (error) {
+               console.error('Error checking multiple clubs:', error);
+             }
+           }
            
            function showClubSwitcher() {
              alert('Club switching functionality coming soon!');

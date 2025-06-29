@@ -53,7 +53,11 @@
                             {% elif match_pct >= 45 %}text-yellow-500
                             {% else %}text-red-500
                             {% endif %}">
-                            {{ team_data.matches.percentage or 'N/A' }}
+                            {% if team_data.matches.percentage %}
+                                {{ team_data.matches.percentage }}
+                            {% else %}
+                                <span class="text-xs text-gray-400 font-normal">Threshold not met</span>
+                            {% endif %}
                         </div>
                         <div class="text-xs text-gray-500 uppercase tracking-wider">Match Win Rate</div>
                     </div>
@@ -65,7 +69,11 @@
                             {% elif line_pct >= 45 %}text-yellow-500
                             {% else %}text-red-500
                             {% endif %}">
-                            {{ team_data.lines.percentage or 'N/A' }}
+                            {% if team_data.lines.percentage %}
+                                {{ team_data.lines.percentage }}
+                            {% else %}
+                                <span class="text-xs text-gray-400 font-normal">Threshold not met</span>
+                            {% endif %}
                         </div>
                         <div class="text-xs text-gray-500 uppercase tracking-wider">Line Win Rate</div>
                     </div>
@@ -77,7 +85,11 @@
                             {% elif set_pct >= 45 %}text-yellow-500
                             {% else %}text-red-500
                             {% endif %}">
-                            {{ team_data.sets.percentage or 'N/A' }}
+                            {% if team_data.sets.percentage %}
+                                {{ team_data.sets.percentage }}
+                            {% else %}
+                                <span class="text-xs text-gray-400 font-normal">Threshold not met</span>
+                            {% endif %}
                         </div>
                         <div class="text-xs text-gray-500 uppercase tracking-wider">Set Win Rate</div>
                     </div>
@@ -89,7 +101,11 @@
                             {% elif game_pct >= 45 %}text-yellow-500
                             {% else %}text-red-500
                             {% endif %}">
-                            {{ team_data.games.percentage or 'N/A' }}
+                            {% if team_data.games.percentage %}
+                                {{ team_data.games.percentage }}
+                            {% else %}
+                                <span class="text-xs text-gray-400 font-normal">Threshold not met</span>
+                            {% endif %}
                         </div>
                         <div class="text-xs text-gray-500 uppercase tracking-wider">Game Win Rate</div>
                     </div>
@@ -133,8 +149,20 @@
                                         {{ player.win_rate }}%
                                     </span>
                                 </td>
-                                <td class="py-3 px-2 text-gray-700">{{ player.best_court|replace('court', 'Court ') }}</td>
-                                <td class="py-3 px-2 text-gray-700">{{ player.best_partner }}</td>
+                                <td class="py-3 px-2 text-gray-700">
+                                    {% if player.best_court == "N/A" %}
+                                        <span class="text-xs text-gray-400">Threshold not met</span>
+                                    {% else %}
+                                        {{ player.best_court|replace('court', 'Court ') }}
+                                    {% endif %}
+                                </td>
+                                <td class="py-3 px-2 text-gray-700">
+                                    {% if player.best_partner == "N/A" %}
+                                        <span class="text-xs text-gray-400">Threshold not met</span>
+                                    {% else %}
+                                        {{ player.best_partner }}
+                                    {% endif %}
+                                </td>
                             </tr>
                             {% endfor %}
                         </tbody>

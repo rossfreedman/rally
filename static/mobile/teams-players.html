@@ -254,11 +254,13 @@
             let bestCourtWinRate = 0;
             Object.keys(player.courts).forEach(courtName => {
                 const court = player.courts[courtName];
-                if (court.matches >= 3) {
+                if (court.matches > 3) {  // More than 3 matches (>=4)
                     const courtWinRate = Math.round((court.wins / court.matches) * 100);
-                    if (courtWinRate > bestCourtWinRate) {
-                        bestCourtWinRate = courtWinRate;
-                        bestCourt = { name: courtName, matches: court.matches, wins: court.wins, winRate: courtWinRate };
+                    if (courtWinRate >= 70) {  // Must have 70% or greater win rate
+                        if (courtWinRate > bestCourtWinRate) {
+                            bestCourtWinRate = courtWinRate;
+                            bestCourt = { name: courtName, matches: court.matches, wins: court.wins, winRate: courtWinRate };
+                        }
                     }
                 }
             });
@@ -390,7 +392,7 @@
                     <div class="section-label">Top Players</div>
                     <div class='table-responsive'><table class='table table-sm'><thead><tr><th>Name</th><th>Matches</th><th>Win Rate</th><th>Best Court</th><th>Best Partner</th></tr></thead><tbody>`;
                 Object.values(playerStats).filter(p => p.matches >= 3).sort((a, b) => b.winRate - a.winRate).forEach(player => {
-                    html += `<tr><td>${player.name}</td><td>${player.matches}</td><td>${player.winRate}%</td><td>${player.bestCourt ? `${player.bestCourt.name} (${player.bestCourt.winRate}%)` : 'N/A'}</td><td>${player.bestPartner ? `${player.bestPartner.name} (${player.bestPartner.winRate}%)` : 'N/A'}</td></tr>`;
+                    html += `<tr><td>${player.name}</td><td>${player.matches}</td><td>${player.winRate}%</td><td>${player.bestCourt ? player.bestCourt.name : '<span class="text-muted small">Threshold not met</span>'}</td><td>${player.bestPartner ? player.bestPartner.name : '<span class="text-muted small">Threshold not met</span>'}</td></tr>`;
                 });
                 html += `</tbody></table></div></div>`;
                 teamStatsDiv.innerHTML = html;
