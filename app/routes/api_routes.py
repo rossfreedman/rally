@@ -248,11 +248,67 @@ def get_last_3_matches():
                 get_player_name(opponent2_id) if opponent2_id else "Unknown"
             )
 
+            # Format scores so winner's score comes first
+            def format_scores_for_winner(raw_scores, player_won, player_was_home):
+                """Format scores so the winner's score appears first in each set"""
+                if not raw_scores:
+                    return raw_scores
+                
+                try:
+                    # Split by sets (comma-separated)
+                    sets = raw_scores.split(", ")
+                    formatted_sets = []
+                    
+                    for set_score in sets:
+                        if "-" not in set_score:
+                            formatted_sets.append(set_score)
+                            continue
+                            
+                        # Split individual set score
+                        scores = set_score.split("-")
+                        if len(scores) != 2:
+                            formatted_sets.append(set_score)
+                            continue
+                            
+                        try:
+                            home_score = int(scores[0])
+                            away_score = int(scores[1])
+                            
+                            # If player won, show their score first
+                            if player_won:
+                                if player_was_home:
+                                    # Player was home and won - show home score first (already correct)
+                                    formatted_sets.append(f"{home_score}-{away_score}")
+                                else:
+                                    # Player was away and won - show away score first
+                                    formatted_sets.append(f"{away_score}-{home_score}")
+                            else:
+                                # Player lost, show opponent's score first
+                                if player_was_home:
+                                    # Player was home and lost - show away score first
+                                    formatted_sets.append(f"{away_score}-{home_score}")
+                                else:
+                                    # Player was away and lost - show home score first (already correct)
+                                    formatted_sets.append(f"{home_score}-{away_score}")
+                        except (ValueError, IndexError):
+                            # If we can't parse scores, keep original
+                            formatted_sets.append(set_score)
+                    
+                    return ", ".join(formatted_sets)
+                    
+                except Exception:
+                    # If anything goes wrong, return original scores
+                    return raw_scores
+
+            formatted_scores = format_scores_for_winner(
+                match.get("Scores"), player_won, is_home
+            )
+
             processed_match = {
                 "date": match.get("Date"),
                 "home_team": match.get("Home Team"),
                 "away_team": match.get("Away Team"),
-                "scores": match.get("Scores"),
+                "scores": formatted_scores,
                 "player_was_home": is_home,
                 "player_won": player_won,
                 "partner_name": partner_name,
@@ -436,11 +492,67 @@ def get_team_last_3_matches():
                 else "Unknown"
             )
 
+            # Format scores so winner's score comes first (reuse the same function logic)
+            def format_scores_for_winner(raw_scores, team_won, team_was_home):
+                """Format scores so the winner's score appears first in each set"""
+                if not raw_scores:
+                    return raw_scores
+                
+                try:
+                    # Split by sets (comma-separated)
+                    sets = raw_scores.split(", ")
+                    formatted_sets = []
+                    
+                    for set_score in sets:
+                        if "-" not in set_score:
+                            formatted_sets.append(set_score)
+                            continue
+                            
+                        # Split individual set score
+                        scores = set_score.split("-")
+                        if len(scores) != 2:
+                            formatted_sets.append(set_score)
+                            continue
+                            
+                        try:
+                            home_score = int(scores[0])
+                            away_score = int(scores[1])
+                            
+                            # If team won, show their score first
+                            if team_won:
+                                if team_was_home:
+                                    # Team was home and won - show home score first (already correct)
+                                    formatted_sets.append(f"{home_score}-{away_score}")
+                                else:
+                                    # Team was away and won - show away score first
+                                    formatted_sets.append(f"{away_score}-{home_score}")
+                            else:
+                                # Team lost, show opponent's score first
+                                if team_was_home:
+                                    # Team was home and lost - show away score first
+                                    formatted_sets.append(f"{away_score}-{home_score}")
+                                else:
+                                    # Team was away and lost - show home score first (already correct)
+                                    formatted_sets.append(f"{home_score}-{away_score}")
+                        except (ValueError, IndexError):
+                            # If we can't parse scores, keep original
+                            formatted_sets.append(set_score)
+                    
+                    return ", ".join(formatted_sets)
+                    
+                except Exception:
+                    # If anything goes wrong, return original scores
+                    return raw_scores
+
+            formatted_scores = format_scores_for_winner(
+                match.get("Scores"), team_won, is_home
+            )
+
             processed_match = {
                 "date": match.get("Date"),
                 "home_team": match.get("Home Team"),
                 "away_team": match.get("Away Team"),
-                "scores": match.get("Scores"),
+                "scores": formatted_scores,
                 "team_was_home": is_home,
                 "team_won": team_won,
                 "our_player1_name": our_player1_name,
