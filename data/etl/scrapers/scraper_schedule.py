@@ -204,6 +204,9 @@ def scrape_tennis_schedule(league_subdomain):
                     elif series_number.startswith("Series "):
                         # Series name already has "Series" prefix, use as-is
                         formatted_series = series_number
+                    elif "SW" in series_number:
+                        # Handle SW series: "23 SW" -> "Chicago 23 SW"
+                        formatted_series = f"Chicago {series_number}"
                     else:
                         # Handle non-numeric series (like "2B", "3A", etc.)
                         formatted_series = f"Series {series_number}"

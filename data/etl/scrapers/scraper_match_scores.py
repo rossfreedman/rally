@@ -1941,6 +1941,9 @@ def scrape_all_matches(league_subdomain, max_retries=3, retry_delay=5):
                             elif series_number.isdigit():
                                 # APTA format: "1", "2", "25", etc. -> "Chicago X"
                                 formatted_series = f"Chicago {series_number}"
+                            elif "SW" in series_number:
+                                # Handle SW series: "23 SW" -> "Chicago 23 SW"
+                                formatted_series = f"Chicago {series_number}"
                             else:
                                 # Other formats - use as-is
                                 formatted_series = series_number

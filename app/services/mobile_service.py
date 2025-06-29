@@ -842,12 +842,15 @@ def get_player_analysis(user):
                     match.get("Home Player 1"),
                     match.get("Home Player 2"),
                 ]
-                match_winner = match.get("Winner", "").lower()
+                winner = match.get("Winner") or ""
+                won = (is_home and winner.lower() == "home") or (
+                    not is_home and winner.lower() == "away"
+                )
 
                 # Calculate win/loss based on team position and winner
-                if is_home and match_winner == "home":
+                if is_home and won:
                     wins += 1
-                elif not is_home and match_winner == "away":
+                elif not is_home and not won:
                     wins += 1
                 else:
                     losses += 1
@@ -1244,8 +1247,9 @@ def get_player_analysis(user):
                 match.get("Home Player 1"),
                 match.get("Home Player 2"),
             ]
-            won = (is_home and match.get("Winner", "").lower() == "home") or (
-                not is_home and match.get("Winner", "").lower() == "away"
+            winner = match.get("Winner") or ""
+            won = (is_home and winner.lower() == "home") or (
+                not is_home and winner.lower() == "away"
             )
 
             # Update court performance stats
@@ -2138,6 +2142,8 @@ def calculate_player_streaks(club_name, user_league_db_id=None):
             ]
 
             for player in players:
+                if not player:  # Handle None values
+                    continue
                 player = player.strip()
                 if not player or player.lower() == "bye":
                     continue
@@ -2217,11 +2223,11 @@ def calculate_player_streaks(club_name, user_league_db_id=None):
                         else:
                             best_loss_streak = max(best_loss_streak, 1)
 
-            # Only include players with significant streaks (current +5/-5 or best +5/-5)
-            has_significant_current = abs(current_streak) >= 5
-            has_significant_best = best_win_streak >= 5 or best_loss_streak >= 5
+            # Only include players with significant WINNING streaks (current +5 or best +5)
+            has_significant_current_win = current_streak >= 5
+            has_significant_best_win = best_win_streak >= 5
 
-            if has_significant_current or has_significant_best:
+            if has_significant_current_win or has_significant_best_win:
                 best_streak = max(best_win_streak, best_loss_streak)
                 # Convert player ID to readable name
                 player_display_name = get_player_name_from_id(player)
@@ -2258,11 +2264,47 @@ def calculate_player_streaks(club_name, user_league_db_id=None):
 def get_mobile_club_data(user):
     """Get comprehensive club data for mobile my club page - using match_history.json for completed matches"""
     try:
+        # FIXED: Get club information from user's player associations since users table doesn't have club field
         club_name = user.get("club", "")
         user_league_id = user.get("league_id", "")
+        user_email = user.get("email", "")
 
         print(f"[DEBUG] get_mobile_club_data called with user: {user}")
-        print(f"[DEBUG] club_name: '{club_name}', league_id: '{user_league_id}'")
+        print(f"[DEBUG] club_name: '{club_name}', league_id: '{user_league_id}', email: '{user_email}'")
+
+        # If club_name is missing from session, look it up from user's player associations
+        if not club_name and user_email:
+            print(f"[DEBUG] Club name missing from session, looking up from player associations...")
+            try:
+                from database_utils import execute_query_one
+                
+                # Get club information from user's primary player association
+                club_lookup_query = """
+                    SELECT c.name as club_name, p.league_id, l.league_id as league_code
+                    FROM users u
+                    JOIN user_player_associations upa ON u.id = upa.user_id
+                    JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+                    JOIN clubs c ON p.club_id = c.id
+                    JOIN leagues l ON p.league_id = l.id
+                    WHERE u.email = %s 
+                    AND (upa.is_primary = true OR upa.is_primary IS NULL)
+                    ORDER BY upa.is_primary DESC NULLS LAST
+                    LIMIT 1
+                """
+                
+                club_info = execute_query_one(club_lookup_query, [user_email])
+                if club_info:
+                    club_name = club_info["club_name"]
+                    # Also update league information if missing
+                    if not user_league_id:
+                        user_league_id = club_info["league_id"]
+                    
+                    print(f"[DEBUG] Found club from player associations: '{club_name}', league_id: {user_league_id}")
+                else:
+                    print(f"[DEBUG] No player association found for user {user_email}")
+                    
+            except Exception as e:
+                print(f"[DEBUG] Error looking up club from player associations: {e}")
 
         if not club_name:
             print(f"[DEBUG] No club name found, returning error")
@@ -2272,186 +2314,187 @@ def get_mobile_club_data(user):
                 "tennaqua_standings": [],
                 "head_to_head": [],
                 "player_streaks": [],
-                "error": "No club information found in user profile",
+                "error": "No club information found in user profile. Please ensure you are linked to a player record.",
             }
 
         print(f"[DEBUG] Looking for matches from club: '{club_name}'")
 
         # Get recent matches from match_history.json (completed matches with results) - now grouped by date
-        matches_by_date = get_recent_matches_for_user_club(user)
-
-        if not matches_by_date:
-            print(f"[DEBUG] No recent matches found")
-            return {
-                "team_name": club_name,
-                "weekly_results": [],
-                "tennaqua_standings": [],
-                "head_to_head": [],
-                "player_streaks": [],
-            }
+        # First, update the user object with the club information we found
+        user_with_club = user.copy()
+        user_with_club["club"] = club_name
+        if user_league_id:
+            user_with_club["league_id"] = user_league_id
+            
+        matches_by_date = get_recent_matches_for_user_club(user_with_club)
 
         print(f"[DEBUG] Found matches for {len(matches_by_date)} different dates")
 
-        # Process each date's matches into weekly results
+        # Initialize default values
         weekly_results = []
-        for date, matches_data in matches_by_date.items():
-            print(f"[DEBUG] Processing date {date} with {len(matches_data)} matches")
+        tennaqua_standings = []
+        head_to_head = []
 
-            # Group matches by team for this date
-            team_matches = {}
-            matches_processed = 0
-            matches_skipped = 0
+        # Process each date's matches into weekly results if we have any
+        if matches_by_date:
+            for date, matches_data in matches_by_date.items():
+                print(f"[DEBUG] Processing date {date} with {len(matches_data)} matches")
 
-            for match in matches_data:
-                home_team = match["home_team"]
-                away_team = match["away_team"]
+                # Group matches by team for this date
+                team_matches = {}
+                matches_processed = 0
+                matches_skipped = 0
 
-                if club_name in home_team:
-                    team = home_team
-                    opponent = (
-                        away_team.split(" - ")[0] if " - " in away_team else away_team
+                for match in matches_data:
+                    home_team = match["home_team"]
+                    away_team = match["away_team"]
+
+                    if club_name in home_team:
+                        team = home_team
+                        opponent = (
+                            away_team.split(" - ")[0] if " - " in away_team else away_team
+                        )
+                        is_home = True
+                        matches_processed += 1
+                    elif club_name in away_team:
+                        team = away_team
+                        opponent = (
+                            home_team.split(" - ")[0] if " - " in home_team else home_team
+                        )
+                        is_home = False
+                        matches_processed += 1
+                    else:
+                        matches_skipped += 1
+                        print(
+                            f"[DEBUG] Skipping match - home: '{home_team}', away: '{away_team}' (club '{club_name}' not found)"
+                        )
+                        continue
+
+                    if team not in team_matches:
+                        team_matches[team] = {
+                            "opponent": opponent,
+                            "matches": [],
+                            "team_points": 0,
+                            "opponent_points": 0,
+                            "series": team.split(" - ")[1] if " - " in team else team,
+                        }
+
+                    # Calculate points for this match based on set scores
+                    scores = match["scores"].split(", ") if match["scores"] else []
+                    match_team_points = 0
+                    match_opponent_points = 0
+
+                    # Points for each set
+                    for set_score in scores:
+                        if "-" in set_score:
+                            try:
+                                our_score, their_score = map(int, set_score.split("-"))
+                                if not is_home:
+                                    our_score, their_score = their_score, our_score
+
+                                if our_score > their_score:
+                                    match_team_points += 1
+                                else:
+                                    match_opponent_points += 1
+                            except (ValueError, IndexError):
+                                continue
+
+                    # Bonus point for match win
+                    if (is_home and match["winner"] == "home") or (
+                        not is_home and match["winner"] == "away"
+                    ):
+                        match_team_points += 1
+                    else:
+                        match_opponent_points += 1
+
+                    # Update total points
+                    team_matches[team]["team_points"] += match_team_points
+                    team_matches[team]["opponent_points"] += match_opponent_points
+
+                    # Add match details
+                    court = match.get("court", "")
+                    try:
+                        court_num = (
+                            int(court)
+                            if court and court.strip()
+                            else len(team_matches[team]["matches"]) + 1
+                        )
+                    except (ValueError, TypeError):
+                        court_num = len(team_matches[team]["matches"]) + 1
+
+                    # Resolve player IDs to readable names
+                    home_player_1_name = (
+                        get_player_name_from_id(match["home_player_1"])
+                        if match.get("home_player_1")
+                        else "Unknown"
                     )
-                    is_home = True
-                    matches_processed += 1
-                elif club_name in away_team:
-                    team = away_team
-                    opponent = (
-                        home_team.split(" - ")[0] if " - " in home_team else home_team
+                    home_player_2_name = (
+                        get_player_name_from_id(match["home_player_2"])
+                        if match.get("home_player_2")
+                        else "Unknown"
                     )
-                    is_home = False
-                    matches_processed += 1
-                else:
-                    matches_skipped += 1
-                    print(
-                        f"[DEBUG] Skipping match - home: '{home_team}', away: '{away_team}' (club '{club_name}' not found)"
+                    away_player_1_name = (
+                        get_player_name_from_id(match["away_player_1"])
+                        if match.get("away_player_1")
+                        else "Unknown"
                     )
-                    continue
-
-                if team not in team_matches:
-                    team_matches[team] = {
-                        "opponent": opponent,
-                        "matches": [],
-                        "team_points": 0,
-                        "opponent_points": 0,
-                        "series": team.split(" - ")[1] if " - " in team else team,
-                    }
-
-                # Calculate points for this match based on set scores
-                scores = match["scores"].split(", ") if match["scores"] else []
-                match_team_points = 0
-                match_opponent_points = 0
-
-                # Points for each set
-                for set_score in scores:
-                    if "-" in set_score:
-                        try:
-                            our_score, their_score = map(int, set_score.split("-"))
-                            if not is_home:
-                                our_score, their_score = their_score, our_score
-
-                            if our_score > their_score:
-                                match_team_points += 1
-                            else:
-                                match_opponent_points += 1
-                        except (ValueError, IndexError):
-                            continue
-
-                # Bonus point for match win
-                if (is_home and match["winner"] == "home") or (
-                    not is_home and match["winner"] == "away"
-                ):
-                    match_team_points += 1
-                else:
-                    match_opponent_points += 1
-
-                # Update total points
-                team_matches[team]["team_points"] += match_team_points
-                team_matches[team]["opponent_points"] += match_opponent_points
-
-                # Add match details
-                court = match.get("court", "")
-                try:
-                    court_num = (
-                        int(court)
-                        if court and court.strip()
-                        else len(team_matches[team]["matches"]) + 1
+                    away_player_2_name = (
+                        get_player_name_from_id(match["away_player_2"])
+                        if match.get("away_player_2")
+                        else "Unknown"
                     )
-                except (ValueError, TypeError):
-                    court_num = len(team_matches[team]["matches"]) + 1
 
-                # Resolve player IDs to readable names
-                home_player_1_name = (
-                    get_player_name_from_id(match["home_player_1"])
-                    if match.get("home_player_1")
-                    else "Unknown"
-                )
-                home_player_2_name = (
-                    get_player_name_from_id(match["home_player_2"])
-                    if match.get("home_player_2")
-                    else "Unknown"
-                )
-                away_player_1_name = (
-                    get_player_name_from_id(match["away_player_1"])
-                    if match.get("away_player_1")
-                    else "Unknown"
-                )
-                away_player_2_name = (
-                    get_player_name_from_id(match["away_player_2"])
-                    if match.get("away_player_2")
-                    else "Unknown"
-                )
+                    team_matches[team]["matches"].append(
+                        {
+                            "court": court_num,
+                            "home_players": (
+                                f"{home_player_1_name}/{home_player_2_name}"
+                                if is_home
+                                else f"{away_player_1_name}/{away_player_2_name}"
+                            ),
+                            "away_players": (
+                                f"{away_player_1_name}/{away_player_2_name}"
+                                if is_home
+                                else f"{home_player_1_name}/{home_player_2_name}"
+                            ),
+                            "scores": match["scores"],
+                            "won": (is_home and match["winner"] == "home")
+                            or (not is_home and match["winner"] == "away"),
+                        }
+                    )
 
-                team_matches[team]["matches"].append(
-                    {
-                        "court": court_num,
-                        "home_players": (
-                            f"{home_player_1_name}/{home_player_2_name}"
-                            if is_home
-                            else f"{away_player_1_name}/{away_player_2_name}"
-                        ),
-                        "away_players": (
-                            f"{away_player_1_name}/{away_player_2_name}"
-                            if is_home
-                            else f"{home_player_1_name}/{home_player_2_name}"
-                        ),
-                        "scores": match["scores"],
-                        "won": (is_home and match["winner"] == "home")
-                        or (not is_home and match["winner"] == "away"),
-                    }
-                )
-
-            print(
-                f"[DEBUG] Date {date}: Processed {matches_processed} matches, skipped {matches_skipped}, found {len(team_matches)} teams"
-            )
-            for team, data in team_matches.items():
                 print(
-                    f"  Team '{team}': {len(data['matches'])} matches vs {data['opponent']}"
+                    f"[DEBUG] Date {date}: Processed {matches_processed} matches, skipped {matches_skipped}, found {len(team_matches)} teams"
                 )
+                for team, data in team_matches.items():
+                    print(
+                        f"  Team '{team}': {len(data['matches'])} matches vs {data['opponent']}"
+                    )
 
-            # Convert this date's matches to results format
-            date_results = []
-            for team_data in team_matches.values():
-                date_results.append(
-                    {
-                        "series": (
-                            f"Series {team_data['series']}"
-                            if team_data["series"].isdigit()
-                            else team_data["series"]
-                        ),
-                        "opponent": team_data["opponent"],
-                        "score": f"{team_data['team_points']}-{team_data['opponent_points']}",
-                        "won": team_data["team_points"] > team_data["opponent_points"],
-                        "match_details": sorted(
-                            team_data["matches"], key=lambda x: x["court"]
-                        ),
-                    }
-                )
+                # Convert this date's matches to results format
+                date_results = []
+                for team_data in team_matches.values():
+                    date_results.append(
+                        {
+                            "series": (
+                                f"Series {team_data['series']}"
+                                if team_data["series"].isdigit()
+                                else team_data["series"]
+                            ),
+                            "opponent": team_data["opponent"],
+                            "score": f"{team_data['team_points']}-{team_data['opponent_points']}",
+                            "won": team_data["team_points"] > team_data["opponent_points"],
+                            "match_details": sorted(
+                                team_data["matches"], key=lambda x: x["court"]
+                            ),
+                        }
+                    )
 
-            # Sort results by opponent name
-            date_results.sort(key=lambda x: x["opponent"])
+                # Sort results by opponent name
+                date_results.sort(key=lambda x: x["opponent"])
 
-            # Add this week's results to the weekly results
-            weekly_results.append({"date": date, "results": date_results})
+                # Add this week's results to the weekly results
+                weekly_results.append({"date": date, "results": date_results})
 
         # Sort weekly results by date (most recent first)
         def parse_date(date_str):
@@ -2705,6 +2748,7 @@ def get_mobile_club_data(user):
         )
 
         # Calculate player streaks (filtered by user's current league)
+        print(f"[DEBUG] Calling calculate_player_streaks with club_name='{club_name}', user_league_db_id={user_league_db_id}")
         player_streaks = calculate_player_streaks(club_name, user_league_db_id)
 
         return {
@@ -4006,12 +4050,16 @@ def get_mobile_team_data(user):
             # Process each match to get actual partnerships and calculate wins
             for match in team_matches:
                 is_home = match.get("Home Team") == team
-                won = (is_home and match.get("Winner", "").lower() == "home") or (
-                    not is_home and match.get("Winner", "").lower() == "away"
+                winner = match.get("Winner") or ""
+                won = (is_home and winner.lower() == "home") or (
+                    not is_home and winner.lower() == "away"
+                )
+                team_won = (is_home and won) or (
+                    not is_home and not won
                 )
                 
                 # Count wins for overall team statistics
-                if won:
+                if team_won:
                     wins += 1
 
                 # Get all players from this match for roster stats
@@ -4038,7 +4086,7 @@ def get_mobile_team_data(user):
                             
                             # Update match count and wins
                             player_stats[player_name]["matches"] += 1
-                            if won:
+                            if team_won:
                                 player_stats[player_name]["wins"] += 1
                             
                             # Assign court for this match (simplified court assignment)
@@ -4053,7 +4101,7 @@ def get_mobile_team_data(user):
                                     "wins": 0
                                 }
                             player_stats[player_name]["courts"][court_name]["matches"] += 1
-                            if won:
+                            if team_won:
                                 player_stats[player_name]["courts"][court_name]["wins"] += 1
                             
                             # Track partner for this player
@@ -4194,13 +4242,15 @@ def get_mobile_team_data(user):
 
                         # Determine if team won this match
                         is_home = match.get("Home Team") == team
-                        won = (is_home and match.get("Winner", "").lower() == "home") or (
-                            not is_home and match.get("Winner", "").lower() == "away"
+                        winner = match.get("Winner") or ""
+                        winner_is_home = winner.lower() == "home"
+                        team_won = (is_home and winner_is_home) or (
+                            not is_home and not winner_is_home
                         )
 
                         # Update court performance stats
                         court_stats[court_key]["matches"] += 1
-                        if won:
+                        if team_won:
                             court_stats[court_key]["wins"] += 1
                         else:
                             court_stats[court_key]["losses"] += 1
@@ -4220,7 +4270,7 @@ def get_mobile_team_data(user):
                                 if player_name:
                                     # Track this player's performance on this specific court only
                                     court_stats[court_key]["partners"][player_name]["matches"] += 1
-                                    if won:
+                                    if team_won:
                                         court_stats[court_key]["partners"][player_name]["wins"] += 1
                                     else:
                                         court_stats[court_key]["partners"][player_name]["losses"] += 1
