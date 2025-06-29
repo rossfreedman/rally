@@ -331,7 +331,9 @@ async function fetchAndRenderSubsMobile() {
                             <i class="fas fa-chart-line text-blue-500 w-4"></i>
                             <div>
                                 <div class="text-gray-500">PTI</div>
-                                <div class="font-semibold text-gray-900">${player.pti || player.rating || 'N/A'}</div>
+                                <div class="font-semibold text-gray-900">
+                    ${player.pti || player.rating || '<span class="text-xs text-gray-400 font-normal">Threshold not met</span>'}
+                </div>
                             </div>
                         </div>
                     </div>

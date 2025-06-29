@@ -1399,45 +1399,7 @@ def get_player_analysis(user):
         if total_matches != total_court_matches:
             print(f"[WARNING] Match count mismatch! Total: {total_matches}, Courts: {total_court_matches}")
 
-        # Calculate best court and best partner with new thresholds
-        best_court = None
-        best_court_rate = 0
-        best_court_matches = 0
-        
-        best_partner = None
-        best_partner_rate = 0
-        best_partner_matches = 0
-        
-        # Find best court (court with highest win rate, minimum 3 matches with partners)
-        for court_key, court_stat in court_stats.items():
-            if court_stat["matches"] >= 3:  # Minimum threshold for best court
-                court_win_rate = round((court_stat["wins"] / court_stat["matches"]) * 100, 1)
-                if court_win_rate > best_court_rate or (court_win_rate == best_court_rate and court_stat["matches"] > best_court_matches):
-                    best_court_rate = court_win_rate
-                    best_court_matches = court_stat["matches"]
-                    best_court = f"Court {court_key.replace('court', '')}"
-                    
-        # Find best partner (partner with 70%+ win rate, minimum 3 matches together)
-        all_partners = {}
-        for court_key, court_stat in court_stats.items():
-            for partner_name, partner_stats in court_stat["partners"].items():
-                if partner_name not in all_partners:
-                    all_partners[partner_name] = {"matches": 0, "wins": 0, "losses": 0}
-                all_partners[partner_name]["matches"] += partner_stats["matches"]
-                all_partners[partner_name]["wins"] += partner_stats["wins"]
-                all_partners[partner_name]["losses"] += partner_stats["losses"]
-        
-        for partner_name, partner_stats in all_partners.items():
-            if partner_stats["matches"] >= 3:  # Minimum 3 matches together
-                partner_win_rate = round((partner_stats["wins"] / partner_stats["matches"]) * 100, 1)
-                if partner_win_rate >= 70.0:  # Must have 70% or greater win rate
-                    if partner_win_rate > best_partner_rate or (partner_win_rate == best_partner_rate and partner_stats["matches"] > best_partner_matches):
-                        best_partner_rate = partner_win_rate
-                        best_partner_matches = partner_stats["matches"]
-                        best_partner = partner_name
-        
-        print(f"[DEBUG] Best court: {best_court} ({best_court_rate}% in {best_court_matches} matches)")
-        print(f"[DEBUG] Best partner: {best_partner} ({best_partner_rate}% in {best_partner_matches} matches)")
+
         
         if total_matches == total_court_matches:
             print(f"[SUCCESS] Match counts match perfectly: {total_matches} = {total_court_matches}")
@@ -1574,12 +1536,6 @@ def get_player_analysis(user):
             "current_pti": pti_data.get("current_pti", 0.0),
             "weekly_pti_change": pti_data.get("pti_change", 0.0),
             "pti_data_available": pti_data.get("pti_data_available", False),
-            "best_court": best_court,
-            "best_court_rate": best_court_rate,
-            "best_court_matches": best_court_matches,
-            "best_partner": best_partner,
-            "best_partner_rate": best_partner_rate,
-            "best_partner_matches": best_partner_matches,
             "error": None,
         }
 
@@ -1618,12 +1574,6 @@ def get_player_analysis(user):
             "current_pti": None,
             "weekly_pti_change": None,
             "pti_data_available": False,
-            "best_court": None,
-            "best_court_rate": 0,
-            "best_court_matches": 0,
-            "best_partner": None,
-            "best_partner_rate": 0,
-            "best_partner_matches": 0,
             "error": str(e),
         }
 
@@ -4395,21 +4345,22 @@ def get_mobile_team_data(user):
                 else 0
             )
 
-            # Best court
+            # Best court - Fixed logic: >3 matches (>=4) AND >=70% win rate
             best_court = None
             best_court_rate = 0
             for court, cstats in stats["courts"].items():
-                if cstats["matches"] >= 3:  # Require at least 3 matches for meaningful court performance
+                if cstats["matches"] > 3:  # More than 3 matches (>=4)
                     rate = (
                         round((cstats["wins"] / cstats["matches"]) * 100, 1)
                         if cstats["matches"] > 0
                         else 0
                     )
-                    if rate > best_court_rate or (
-                        rate == best_court_rate and cstats["matches"] > 0
-                    ):
-                        best_court_rate = rate
-                        best_court = court
+                    if rate >= 70.0:  # Must have 70% or greater win rate
+                        if rate > best_court_rate or (
+                            rate == best_court_rate and cstats["matches"] > 0
+                        ):
+                            best_court_rate = rate
+                            best_court = court
 
             # Best partner
             best_partner = None
@@ -4430,6 +4381,8 @@ def get_mobile_team_data(user):
                             best_partner_rate = rate
                             best_partner = partner
 
+            # Removed temporary debug code for Andrew Franger
+            
             top_players.append(
                 {
                     "name": name,
@@ -5101,21 +5054,22 @@ def calculate_team_analysis_mobile(team_stats, team_matches, team):
                 else 0
             )
 
-            # Best court
+            # Best court - Fixed logic: >3 matches (>=4) AND >=70% win rate
             best_court = None
             best_court_rate = 0
             for court, cstats in stats["courts"].items():
-                if cstats["matches"] >= 3:  # Require at least 3 matches for meaningful court performance
+                if cstats["matches"] > 3:  # More than 3 matches (>=4)
                     rate = (
                         round((cstats["wins"] / cstats["matches"]) * 100, 1)
                         if cstats["matches"] > 0
                         else 0
                     )
-                    if rate > best_court_rate or (
-                        rate == best_court_rate and cstats["matches"] > 0
-                    ):
-                        best_court_rate = rate
-                        best_court = court
+                    if rate >= 70.0:  # Must have 70% or greater win rate
+                        if rate > best_court_rate or (
+                            rate == best_court_rate and cstats["matches"] > 0
+                        ):
+                            best_court_rate = rate
+                            best_court = court
 
             # Best partner
             best_partner = None

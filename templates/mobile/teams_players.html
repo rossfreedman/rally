@@ -177,7 +177,13 @@
                         <div class="space-y-2 mb-4">
                             <div class="flex justify-between text-sm">
                                 <span class="text-gray-600">Record:</span>
-                                <span class="font-medium text-gray-900">{{ stats.record if stats.record else 'N/A' }}</span>
+                                <span class="font-medium text-gray-900">
+                        {% if stats.record %}
+                            {{ stats.record }}
+                        {% else %}
+                            <span class="text-xs text-gray-400">Threshold not met</span>
+                        {% endif %}
+                    </span>
                             </div>
                         </div>
                         
@@ -192,7 +198,11 @@
                                         <a href="/mobile/player-detail/{{ player.name | urlencode }}" class="font-medium text-gray-900 hover:text-blue-600">{{ player.name }}</a>
                                         <div class="text-sm text-gray-600">{{ player.matches }} match{{ 'es' if player.matches != 1 else '' }}</div>
                                     </div>
-                                    <span class="text-sm font-medium text-gray-700">{{ player.win_rate|default(player.winRate)|round(1, 'common') if player.win_rate is defined or player.winRate is defined else 'N/A' }}%</span>
+                                    {% if player.win_rate is defined or player.winRate is defined %}
+                                        <span class="text-sm font-medium text-gray-700">{{ player.win_rate|default(player.winRate)|round(1, 'common') }}%</span>
+                                    {% else %}
+                                        <span class="text-xs text-gray-400">Threshold not met</span>
+                                    {% endif %}
                                 </div>
                                 {% endfor %}
                             </div>

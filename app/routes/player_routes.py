@@ -360,15 +360,16 @@ def get_team_players(team_id):
                 (stats["wins"] / stats["matches"] * 100) if stats["matches"] > 0 else 0
             )
 
-            # Find best court
+            # Find best court - Fixed logic: >3 matches (>=4) AND >=70% win rate
             best_court = None
             best_court_rate = 0
             for court, court_stats in stats["courts"].items():
-                if court_stats["matches"] >= 2:
+                if court_stats["matches"] > 3:  # More than 3 matches (>=4)
                     court_rate = court_stats["wins"] / court_stats["matches"] * 100
-                    if court_rate > best_court_rate:
-                        best_court_rate = court_rate
-                        best_court = f"{court} ({court_rate:.1f}%)"
+                    if court_rate >= 70.0:  # Must have 70% or greater win rate
+                        if court_rate > best_court_rate:
+                            best_court_rate = court_rate
+                            best_court = court
 
             # Find best partner
             best_partner = None
@@ -380,7 +381,7 @@ def get_team_players(team_id):
                     )
                     if partner_rate > best_partner_rate:
                         best_partner_rate = partner_rate
-                        best_partner = f"{partner} ({partner_rate:.1f}%)"
+                        best_partner = partner
 
             result_players.append(
                 {

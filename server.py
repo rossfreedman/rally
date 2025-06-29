@@ -311,14 +311,20 @@ def pretty_date_with_year(value):
 
 @app.before_request
 def log_request_info():
-    """Log information about each request"""
-    print(f"\n=== Request Info ===")
-    print(f"Path: {request.path}")
-    print(f"Method: {request.method}")
-    print(f"User in session: {'user' in session}")
-    if "user" in session:
-        print(f"User email: {session['user']['email']}")
-    print("===================\n")
+    """Log information about page requests (not static files)"""
+    # Only log meaningful page requests, not static files
+    if (not request.path.startswith('/static/') and 
+        not request.path.startswith('/images/') and
+        not request.path.endswith('.css') and
+        not request.path.endswith('.js') and
+        not request.path.endswith('.png') and
+        not request.path.endswith('.ico') and
+        request.path not in ['/health', '/api/admin/impersonation-status']):
+        
+        print(f"\n🔍 PAGE REQUEST: {request.method} {request.path}")
+        if "user" in session:
+            print(f"   User: {session['user']['email']}")
+        print("=" * 50)
 
 
 # ==========================================

@@ -1,0 +1,7319 @@
+{
+  "summary": {
+    "total_cases": 100,
+    "successful_cases": 100,
+    "failed_cases": 0,
+    "avg_pti_difference": 16.7378,
+    "avg_adjustment_difference": 16.73778435195206
+  },
+  "test_cases": [
+    {
+      "id": 1,
+      "player_pti": 53.9,
+      "partner_pti": 53.8,
+      "opp1_pti": 47.4,
+      "opp2_pti": 38.2,
+      "player_exp": "10-30",
+      "partner_exp": "1-10",
+      "opp1_exp": "30+",
+      "opp2_exp": "30+",
+      "score": "6-3,6-3",
+      "description": "Random Case 1"
+    },
+    {
+      "id": 2,
+      "player_pti": 53.7,
+      "partner_pti": 48.5,
+      "opp1_pti": 49.5,
+      "opp2_pti": 23.2,
+      "player_exp": "30+",
+      "partner_exp": "30+",
+      "opp1_exp": "30+",
+      "opp2_exp": "1-10",
+      "score": "6-4,7-6",
+      "description": "Random Case 2"
+    },
+    {
+      "id": 3,
+      "player_pti": 25.3,
+      "partner_pti": 17.1,
+      "opp1_pti": 27.8,
+      "opp2_pti": 39.9,
+      "player_exp": "30+",
+      "partner_exp": "30+",
+      "opp1_exp": "30+",
+      "opp2_exp": "30+",
+      "score": "6-3,6-3",
+      "description": "Random Case 3"
+    },
+    {
+      "id": 4,
+      "player_pti": 17.6,
+      "partner_pti": 33.3,
+      "opp1_pti": 22.8,
+      "opp2_pti": 51.8,
+      "player_exp": "30+",
+      "partner_exp": "New Player",
+      "opp1_exp": "1-10",
+      "opp2_exp": "30+",
+      "score": "7-5,5-7,6-4",
+      "description": "Random Case 4"
+    },
+    {
+      "id": 5,
+      "player_pti": 27.5,
+      "partner_pti": 38.9,
+      "opp1_pti": 41.3,
+      "opp2_pti": 25.3,
+      "player_exp": "30+",
+      "partner_exp": "1-10",
+      "opp1_exp": "30+",
+      "opp2_exp": "30+",
+      "score": "7-5,6-4",
+      "description": "Random Case 5"
+    },
+    {
+      "id": 6,
+      "player_pti": 47.8,
+      "partner_pti": 39.6,
+      "opp1_pti": 17.9,
+      "opp2_pti": 33.0,
+      "player_exp": "10-30",
+      "partner_exp": "30+",
+      "opp1_exp": "1-10",
+      "opp2_exp": "30+",
+      "score": "6-2,6-4",
+      "description": "Random Case 6"
+    },
+    {
+      "id": 7,
+      "player_pti": 19.9,
+      "partner_pti": 27.1,
+      "opp1_pti": 40.7,
+      "opp2_pti": 38.0,
+      "player_exp": "1-10",
+      "partner_exp": "30+",
+      "opp1_exp": "1-10",
+      "opp2_exp": "30+",
+      "score": "6-1,6-4",
+      "description": "Random Case 7"
+    },
+    {
+      "id": 8,
+      "player_pti": 46.7,
+      "partner_pti": 35.4,
+      "opp1_pti": 35.8,
+      "opp2_pti": 50.2,
+      "player_exp": "30+",
+      "partner_exp": "30+",
+      "opp1_exp": "10-30",
+      "opp2_exp": "New Player",
+      "score": "6-4,7-6",
+      "description": "Random Case 8"
+    },
+    {
+      "id": 9,
+      "player_pti": 40.7,
+      "partner_pti": 19.9,
+      "opp1_pti": 17.8,
+      "opp2_pti": 33.4,
+      "player_exp": "10-30",
+      "partner_exp": "30+",
+      "opp1_exp": "30+",
+      "opp2_exp": "30+",
+      "score": "6-2,2-6,6-3",
+      "description": "Random Case 9"
+    },
+    {
+      "id": 10,
+      "player_pti": 38.3,
+      "partner_pti": 36.2,
+      "opp1_pti": 44.1,
+      "opp2_pti": 22.0,
+      "player_exp": "30+",
+      "partner_exp": "30+",
+      "opp1_exp": "30+",
+      "opp2_exp": "10-30",
+      "score": "6-4,6-4",
+      "description": "Random Case 10"
+    },
+    {
+      "id": 11,
+      "player_pti": 49.2,
+      "partner_pti": 52.2,
+      "opp1_pti": 22.7,
+      "opp2_pti": 46.2,
+      "player_exp": "10-30",
+      "partner_exp": "10-30",
+      "opp1_exp": "30+",
+      "opp2_exp": "30+",
+      "score": "6-3,6-3",
+      "description": "Random Case 11"
+    },
+    {
+      "id": 12,
+      "player_pti": 22.8,
+      "partner_pti": 36.7,
+      "opp1_pti": 51.0,
+      "opp2_pti": 39.4,
+      "player_exp": "30+",
+      "partner_exp": "10-30",
+      "opp1_exp": "30+",
+      "opp2_exp": "1-10",
+      "score": "6-0,6-1",
+      "description": "Random Case 12"
+    },
+    {
+      "id": 13,
+      "player_pti": 37.5,
+      "partner_pti": 49.7,
+      "opp1_pti": 37.1,
+      "opp2_pti": 36.4,
+      "player_exp": "30+",
+      "partner_exp": "30+",
+      "opp1_exp": "10-30",
+      "opp2_exp": "30+",
+      "score": "6-3,6-3",
+      "description": "Random Case 13"
+    },
+    {
+      "id": 14,
+      "player_pti": 29.0,
+      "partner_pti": 16.7,
+      "opp1_pti": 43.9,
+      "opp2_pti": 41.9,
+      "player_exp": "30+",
+      "partner_exp": "30+",
+      "opp1_exp": "30+",
+      "opp2_exp": "30+",
+      "score": "6-1,6-2",
+      "description": "Random Case 14"
+    },
+    {
+      "id": 15,
+      "player_pti": 40.9,
+      "partner_pti": 44.7,
+      "opp1_pti": 54.8,
+      "opp2_pti": 25.1,
+      "player_exp": "30+",
+      "partner_exp": "1-10",
+      "opp1_exp": "New Player",
+      "opp2_exp": "30+",
+      "score": "6-4,7-5",
+      "description": "Random Case 15"
+    },
+    {
+      "id": 16,
+      "player_pti": 53.7,
+      "partner_pti": 42.1,
+      "opp1_pti": 22.9,
+      "opp2_pti": 47.5,
+      "player_exp": "10-30",
+      "partner_exp": "30+",
+      "opp1_exp": "New Player",
+      "opp2_exp": "10-30",
+      "score": "6-1,6-2",
+      "description": "Random Case 16"
+    },
+    {
+      "id": 17,
+      "player_pti": 30.1,
+      "partner_pti": 22.8,
+      "opp1_pti": 37.3,
+      "opp2_pti": 25.1,
+      "player_exp": "30+",
+      "partner_exp": "30+",
+      "opp1_exp": "30+",
+      "opp2_exp": "30+",
+      "score": "7-5,5-7,6-4",
+      "description": "Random Case 17"
+    },
+    {
+      "id": 18,
+      "player_pti": 49.0,
+      "partner_pti": 18.7,
+      "opp1_pti": 32.9,
+      "opp2_pti": 43.5,
+      "player_exp": "30+",
+      "partner_exp": "10-30",
+      "opp1_exp": "10-30",
+      "opp2_exp": "30+",
+      "score": "6-1,6-2",
+      "description": "Random Case 18"
+    },
+    {
+      "id": 19,
+      "player_pti": 20.5,
+      "partner_pti": 38.6,
+      "opp1_pti": 43.7,
+      "opp2_pti": 52.5,
+      "player_exp": "30+",
+      "partner_exp": "30+",
+      "opp1_exp": "30+",
+      "opp2_exp": "30+",
+      "score": "6-2,2-6,6-3",
+      "description": "Random Case 19"
+    },
+    {
+      "id": 20,
+      "player_pti": 44.4,
+      "partner_pti": 39.2,
+      "opp1_pti": 48.6,
+      "opp2_pti": 36.4,
+      "player_exp": "1-10",
+      "partner_exp": "New Player",
+      "opp1_exp": "30+",
+      "opp2_exp": "New Player",
+      "score": "6-0,6-1",
+      "description": "Random Case 20"
+    },
+    {
+      "id": 21,
+      "player_pti": 44.5,
+      "partner_pti": 25.1,
+      "opp1_pti": 32.3,
+      "opp2_pti": 45.1,
+      "player_exp": "30+",
+      "partner_exp": "30+",
+      "opp1_exp": "10-30",
+      "opp2_exp": "30+",
+      "score": "7-5,5-7,6-4",
+      "description": "Random Case 21"
+    },
+    {
+      "id": 22,
+      "player_pti": 51.4,
+      "partner_pti": 50.4,
+      "opp1_pti": 25.6,
+      "opp2_pti": 43.4,
+      "player_exp": "30+",
+      "partner_exp": "1-10",
+      "opp1_exp": "30+",
+      "opp2_exp": "30+",
+      "score": "7-5,5-7,6-4",
+      "description": "Random Case 22"
+    },
+    {
+      "id": 23,
+      "player_pti": 37.9,
+      "partner_pti": 43.4,
+      "opp1_pti": 30.6,
+      "opp2_pti": 49.8,
+      "player_exp": "10-30",
+      "partner_exp": "1-10",
+      "opp1_exp": "30+",
+      "opp2_exp": "1-10",
+      "score": "6-4,7-6",
+      "description": "Random Case 23"
+    },
+    {
+      "id": 24,
+      "player_pti": 26.2,
+      "partner_pti": 51.7,
+      "opp1_pti": 24.1,
+      "opp2_pti": 19.7,
+      "player_exp": "10-30",
+      "partner_exp": "10-30",
+      "opp1_exp": "1-10",
+      "opp2_exp": "30+",
+      "score": "6-3,6-3",
+      "description": "Random Case 24"
+    },
+    {
+      "id": 25,
+      "player_pti": 51.7,
+      "partner_pti": 30.0,
+      "opp1_pti": 41.8,
+      "opp2_pti": 36.4,
+      "player_exp": "30+",
+      "partner_exp": "1-10",
+      "opp1_exp": "30+",
+      "opp2_exp": "30+",
+      "score": "6-3,6-3",
+      "description": "Random Case 25"
+    },
+    {
+      "id": 26,
+      "player_pti": 35.7,
+      "partner_pti": 51.8,
+      "opp1_pti": 32.6,
+      "opp2_pti": 36.0,
+      "player_exp": "30+",
+      "partner_exp": "1-10",
+      "opp1_exp": "10-30",
+      "opp2_exp": "30+",
+      "score": "7-5,5-7,6-4",
+      "description": "Random Case 26"
+    },
+    {
+      "id": 27,
+      "player_pti": 42.4,
+      "partner_pti": 30.1,
+      "opp1_pti": 23.7,
+      "opp2_pti": 47.5,
+      "player_exp": "1-10",
+      "partner_exp": "30+",
+      "opp1_exp": "10-30",
+      "opp2_exp": "1-10",
+      "score": "7-5,6-4",
+      "description": "Random Case 27"
+    },
+    {
+      "id": 28,
+      "player_pti": 28.6,
+      "partner_pti": 45.9,
+      "opp1_pti": 52.4,
+      "opp2_pti": 50.4,
+      "player_exp": "30+",
+      "partner_exp": "30+",
+      "opp1_exp": "10-30",
+      "opp2_exp": "30+",
+      "score": "7-6,6-4",
+      "description": "Random Case 28"
+    },
+    {
+      "id": 29,
+      "player_pti": 21.2,
+      "partner_pti": 23.1,
+      "opp1_pti": 24.2,
+      "opp2_pti": 46.4,
+      "player_exp": "1-10",
+      "partner_exp": "30+",
+      "opp1_exp": "1-10",
+      "opp2_exp": "1-10",
+      "score": "6-4,7-6",
+      "description": "Random Case 29"
+    },
+    {
+      "id": 30,
+      "player_pti": 37.0,
+      "partner_pti": 53.1,
+      "opp1_pti": 54.0,
+      "opp2_pti": 38.7,
+      "player_exp": "30+",
+      "partner_exp": "1-10",
+      "opp1_exp": "30+",
+      "opp2_exp": "10-30",
+      "score": "7-5,5-7,6-4",
+      "description": "Random Case 30"
+    },
+    {
+      "id": 31,
+      "player_pti": 19.5,
+      "partner_pti": 17.1,
+      "opp1_pti": 31.4,
+      "opp2_pti": 31.9,
+      "player_exp": "10-30",
+      "partner_exp": "1-10",
+      "opp1_exp": "30+",
+      "opp2_exp": "30+",
+      "score": "6-4,4-6,6-4",
+      "description": "Random Case 31"
+    },
+    {
+      "id": 32,
+      "player_pti": 22.4,
+      "partner_pti": 16.3,
+      "opp1_pti": 38.4,
+      "opp2_pti": 16.5,
+      "player_exp": "30+",
+      "partner_exp": "30+",
+      "opp1_exp": "30+",
+      "opp2_exp": "1-10",
+      "score": "6-4,4-6,6-4",
+      "description": "Random Case 32"
+    },
+    {
+      "id": 33,
+      "player_pti": 32.6,
+      "partner_pti": 21.7,
+      "opp1_pti": 48.5,
+      "opp2_pti": 38.1,
+      "player_exp": "1-10",
+      "partner_exp": "1-10",
+      "opp1_exp": "10-30",
+      "opp2_exp": "30+",
+      "score": "6-3,6-4",
+      "description": "Random Case 33"
+    },
+    {
+      "id": 34,
+      "player_pti": 44.5,
+      "partner_pti": 24.4,
+      "opp1_pti": 26.8,
+      "opp2_pti": 41.8,
+      "player_exp": "New Player",
+      "partner_exp": "30+",
+      "opp1_exp": "30+",
+      "opp2_exp": "New Player",
+      "score": "6-3,6-3",
+      "description": "Random Case 34"
+    },
+    {
+      "id": 35,
+      "player_pti": 18.2,
+      "partner_pti": 42.1,
+      "opp1_pti": 35.4,
+      "opp2_pti": 18.1,
+      "player_exp": "10-30",
+      "partner_exp": "30+",
+      "opp1_exp": "30+",
+      "opp2_exp": "30+",
+      "score": "6-2,6-4",
+      "description": "Random Case 35"
+    },
+    {
+      "id": 36,
+      "player_pti": 20.5,
+      "partner_pti": 19.0,
+      "opp1_pti": 27.4,
+      "opp2_pti": 52.4,
+      "player_exp": "1-10",
+      "partner_exp": "10-30",
+      "opp1_exp": "10-30",
+      "opp2_exp": "1-10",
+      "score": "6-3,6-4",
+      "description": "Random Case 36"
+    },
+    {
+      "id": 37,
+      "player_pti": 46.5,
+      "partner_pti": 52.1,
+      "opp1_pti": 16.2,
+      "opp2_pti": 32.2,
+      "player_exp": "10-30",
+      "partner_exp": "30+",
+      "opp1_exp": "New Player",
+      "opp2_exp": "1-10",
+      "score": "6-4,4-6,6-4",
+      "description": "Random Case 37"
+    },
+    {
+      "id": 38,
+      "player_pti": 50.9,
+      "partner_pti": 35.0,
+      "opp1_pti": 49.0,
+      "opp2_pti": 29.6,
+      "player_exp": "10-30",
+      "partner_exp": "30+",
+      "opp1_exp": "30+",
+      "opp2_exp": "10-30",
+      "score": "6-2,6-4",
+      "description": "Random Case 38"
+    },
+    {
+      "id": 39,
+      "player_pti": 49.8,
+      "partner_pti": 27.1,
+      "opp1_pti": 44.7,
+      "opp2_pti": 27.7,
+      "player_exp": "1-10",
+      "partner_exp": "New Player",
+      "opp1_exp": "30+",
+      "opp2_exp": "30+",
+      "score": "7-5,5-7,6-4",
+      "description": "Random Case 39"
+    },
+    {
+      "id": 40,
+      "player_pti": 34.1,
+      "partner_pti": 16.8,
+      "opp1_pti": 49.8,
+      "opp2_pti": 38.5,
+      "player_exp": "30+",
+      "partner_exp": "30+",
+      "opp1_exp": "10-30",
+      "opp2_exp": "30+",
+      "score": "6-3,6-3",
+      "description": "Random Case 40"
+    },
+    {
+      "id": 41,
+      "player_pti": 32.5,
+      "partner_pti": 20.5,
+      "opp1_pti": 30.0,
+      "opp2_pti": 18.9,
+      "player_exp": "30+",
+      "partner_exp": "30+",
+      "opp1_exp": "10-30",
+      "opp2_exp": "30+",
+      "score": "7-5,5-7,6-4",
+      "description": "Random Case 41"
+    },
+    {
+      "id": 42,
+      "player_pti": 30.8,
+      "partner_pti": 51.5,
+      "opp1_pti": 45.7,
+      "opp2_pti": 34.6,
+      "player_exp": "30+",
+      "partner_exp": "30+",
+      "opp1_exp": "30+",
+      "opp2_exp": "10-30",
+      "score": "6-1,6-4",
+      "description": "Random Case 42"
+    },
+    {
+      "id": 43,
+      "player_pti": 46.0,
+      "partner_pti": 26.1,
+      "opp1_pti": 32.3,
+      "opp2_pti": 34.1,
+      "player_exp": "30+",
+      "partner_exp": "30+",
+      "opp1_exp": "10-30",
+      "opp2_exp": "30+",
+      "score": "7-5,6-4",
+      "description": "Random Case 43"
+    },
+    {
+      "id": 44,
+      "player_pti": 41.9,
+      "partner_pti": 43.4,
+      "opp1_pti": 42.7,
+      "opp2_pti": 29.3,
+      "player_exp": "New Player",
+      "partner_exp": "30+",
+      "opp1_exp": "30+",
+      "opp2_exp": "30+",
+      "score": "6-4,7-5",
+      "description": "Random Case 44"
+    },
+    {
+      "id": 45,
+      "player_pti": 38.3,
+      "partner_pti": 53.7,
+      "opp1_pti": 16.6,
+      "opp2_pti": 27.7,
+      "player_exp": "30+",
+      "partner_exp": "30+",
+      "opp1_exp": "30+",
+      "opp2_exp": "1-10",
+      "score": "7-5,6-4",
+      "description": "Random Case 45"
+    },
+    {
+      "id": 46,
+      "player_pti": 34.5,
+      "partner_pti": 20.3,
+      "opp1_pti": 52.6,
+      "opp2_pti": 54.6,
+      "player_exp": "1-10",
+      "partner_exp": "30+",
+      "opp1_exp": "30+",
+      "opp2_exp": "30+",
+      "score": "6-1,6-2",
+      "description": "Random Case 46"
+    },
+    {
+      "id": 47,
+      "player_pti": 27.1,
+      "partner_pti": 47.6,
+      "opp1_pti": 29.3,
+      "opp2_pti": 25.7,
+      "player_exp": "1-10",
+      "partner_exp": "30+",
+      "opp1_exp": "30+",
+      "opp2_exp": "30+",
+      "score": "7-5,6-4",
+      "description": "Random Case 47"
+    },
+    {
+      "id": 48,
+      "player_pti": 35.6,
+      "partner_pti": 27.2,
+      "opp1_pti": 53.5,
+      "opp2_pti": 24.9,
+      "player_exp": "New Player",
+      "partner_exp": "30+",
+      "opp1_exp": "1-10",
+      "opp2_exp": "30+",
+      "score": "6-1,6-4",
+      "description": "Random Case 48"
+    },
+    {
+      "id": 49,
+      "player_pti": 52.3,
+      "partner_pti": 45.6,
+      "opp1_pti": 49.3,
+      "opp2_pti": 46.9,
+      "player_exp": "New Player",
+      "partner_exp": "New Player",
+      "opp1_exp": "30+",
+      "opp2_exp": "1-10",
+      "score": "7-5,6-4",
+      "description": "Random Case 49"
+    },
+    {
+      "id": 50,
+      "player_pti": 15.2,
+      "partner_pti": 48.3,
+      "opp1_pti": 41.6,
+      "opp2_pti": 26.0,
+      "player_exp": "30+",
+      "partner_exp": "10-30",
+      "opp1_exp": "30+",
+      "opp2_exp": "30+",
+      "score": "6-4,4-6,6-4",
+      "description": "Random Case 50"
+    },
+    {
+      "id": 51,
+      "player_pti": 43.5,
+      "partner_pti": 23.4,
+      "opp1_pti": 19.7,
+      "opp2_pti": 27.3,
+      "player_exp": "10-30",
+      "partner_exp": "1-10",
+      "opp1_exp": "30+",
+      "opp2_exp": "10-30",
+      "score": "6-4,7-5",
+      "description": "Random Case 51"
+    },
+    {
+      "id": 52,
+      "player_pti": 49.7,
+      "partner_pti": 53.8,
+      "opp1_pti": 17.1,
+      "opp2_pti": 37.4,
+      "player_exp": "10-30",
+      "partner_exp": "30+",
+      "opp1_exp": "30+",
+      "opp2_exp": "New Player",
+      "score": "6-4,7-6",
+      "description": "Random Case 52"
+    },
+    {
+      "id": 53,
+      "player_pti": 40.0,
+      "partner_pti": 36.9,
+      "opp1_pti": 30.8,
+      "opp2_pti": 18.8,
+      "player_exp": "10-30",
+      "partner_exp": "1-10",
+      "opp1_exp": "New Player",
+      "opp2_exp": "1-10",
+      "score": "6-4,7-5",
+      "description": "Random Case 53"
+    },
+    {
+      "id": 54,
+      "player_pti": 15.3,
+      "partner_pti": 38.9,
+      "opp1_pti": 52.2,
+      "opp2_pti": 27.8,
+      "player_exp": "30+",
+      "partner_exp": "1-10",
+      "opp1_exp": "1-10",
+      "opp2_exp": "30+",
+      "score": "6-2,2-6,6-3",
+      "description": "Random Case 54"
+    },
+    {
+      "id": 55,
+      "player_pti": 52.4,
+      "partner_pti": 20.3,
+      "opp1_pti": 24.5,
+      "opp2_pti": 29.2,
+      "player_exp": "30+",
+      "partner_exp": "1-10",
+      "opp1_exp": "30+",
+      "opp2_exp": "1-10",
+      "score": "6-4,4-6,6-4",
+      "description": "Random Case 55"
+    },
+    {
+      "id": 56,
+      "player_pti": 37.3,
+      "partner_pti": 39.4,
+      "opp1_pti": 23.8,
+      "opp2_pti": 49.4,
+      "player_exp": "30+",
+      "partner_exp": "1-10",
+      "opp1_exp": "30+",
+      "opp2_exp": "30+",
+      "score": "6-2,2-6,6-3",
+      "description": "Random Case 56"
+    },
+    {
+      "id": 57,
+      "player_pti": 18.8,
+      "partner_pti": 47.3,
+      "opp1_pti": 31.1,
+      "opp2_pti": 31.4,
+      "player_exp": "30+",
+      "partner_exp": "10-30",
+      "opp1_exp": "1-10",
+      "opp2_exp": "30+",
+      "score": "7-6,6-4",
+      "description": "Random Case 57"
+    },
+    {
+      "id": 58,
+      "player_pti": 25.1,
+      "partner_pti": 24.6,
+      "opp1_pti": 48.8,
+      "opp2_pti": 38.2,
+      "player_exp": "30+",
+      "partner_exp": "1-10",
+      "opp1_exp": "30+",
+      "opp2_exp": "30+",
+      "score": "6-3,6-4",
+      "description": "Random Case 58"
+    },
+    {
+      "id": 59,
+      "player_pti": 24.8,
+      "partner_pti": 23.2,
+      "opp1_pti": 16.1,
+      "opp2_pti": 49.1,
+      "player_exp": "30+",
+      "partner_exp": "30+",
+      "opp1_exp": "30+",
+      "opp2_exp": "30+",
+      "score": "6-2,6-4",
+      "description": "Random Case 59"
+    },
+    {
+      "id": 60,
+      "player_pti": 54.1,
+      "partner_pti": 32.6,
+      "opp1_pti": 29.7,
+      "opp2_pti": 43.1,
+      "player_exp": "30+",
+      "partner_exp": "30+",
+      "opp1_exp": "30+",
+      "opp2_exp": "1-10",
+      "score": "6-2,2-6,6-3",
+      "description": "Random Case 60"
+    },
+    {
+      "id": 61,
+      "player_pti": 51.7,
+      "partner_pti": 52.8,
+      "opp1_pti": 46.5,
+      "opp2_pti": 52.1,
+      "player_exp": "New Player",
+      "partner_exp": "1-10",
+      "opp1_exp": "New Player",
+      "opp2_exp": "30+",
+      "score": "7-5,5-7,6-4",
+      "description": "Random Case 61"
+    },
+    {
+      "id": 62,
+      "player_pti": 23.5,
+      "partner_pti": 41.4,
+      "opp1_pti": 41.0,
+      "opp2_pti": 37.0,
+      "player_exp": "10-30",
+      "partner_exp": "10-30",
+      "opp1_exp": "1-10",
+      "opp2_exp": "10-30",
+      "score": "6-4,4-6,6-4",
+      "description": "Random Case 62"
+    },
+    {
+      "id": 63,
+      "player_pti": 47.1,
+      "partner_pti": 53.6,
+      "opp1_pti": 36.3,
+      "opp2_pti": 22.3,
+      "player_exp": "New Player",
+      "partner_exp": "30+",
+      "opp1_exp": "30+",
+      "opp2_exp": "30+",
+      "score": "6-3,6-3",
+      "description": "Random Case 63"
+    },
+    {
+      "id": 64,
+      "player_pti": 26.8,
+      "partner_pti": 43.7,
+      "opp1_pti": 54.6,
+      "opp2_pti": 28.7,
+      "player_exp": "30+",
+      "partner_exp": "10-30",
+      "opp1_exp": "30+",
+      "opp2_exp": "30+",
+      "score": "6-0,6-1",
+      "description": "Random Case 64"
+    },
+    {
+      "id": 65,
+      "player_pti": 37.5,
+      "partner_pti": 30.0,
+      "opp1_pti": 26.5,
+      "opp2_pti": 31.8,
+      "player_exp": "10-30",
+      "partner_exp": "30+",
+      "opp1_exp": "30+",
+      "opp2_exp": "New Player",
+      "score": "6-1,6-2",
+      "description": "Random Case 65"
+    },
+    {
+      "id": 66,
+      "player_pti": 35.8,
+      "partner_pti": 29.7,
+      "opp1_pti": 28.8,
+      "opp2_pti": 46.0,
+      "player_exp": "1-10",
+      "partner_exp": "10-30",
+      "opp1_exp": "New Player",
+      "opp2_exp": "New Player",
+      "score": "6-1,6-4",
+      "description": "Random Case 66"
+    },
+    {
+      "id": 67,
+      "player_pti": 49.8,
+      "partner_pti": 38.1,
+      "opp1_pti": 53.0,
+      "opp2_pti": 35.8,
+      "player_exp": "30+",
+      "partner_exp": "30+",
+      "opp1_exp": "30+",
+      "opp2_exp": "30+",
+      "score": "6-1,6-4",
+      "description": "Random Case 67"
+    },
+    {
+      "id": 68,
+      "player_pti": 18.4,
+      "partner_pti": 45.8,
+      "opp1_pti": 16.7,
+      "opp2_pti": 21.7,
+      "player_exp": "30+",
+      "partner_exp": "10-30",
+      "opp1_exp": "30+",
+      "opp2_exp": "10-30",
+      "score": "6-2,6-4",
+      "description": "Random Case 68"
+    },
+    {
+      "id": 69,
+      "player_pti": 36.3,
+      "partner_pti": 22.1,
+      "opp1_pti": 21.3,
+      "opp2_pti": 18.2,
+      "player_exp": "New Player",
+      "partner_exp": "30+",
+      "opp1_exp": "30+",
+      "opp2_exp": "30+",
+      "score": "6-3,6-3",
+      "description": "Random Case 69"
+    },
+    {
+      "id": 70,
+      "player_pti": 27.0,
+      "partner_pti": 16.4,
+      "opp1_pti": 25.0,
+      "opp2_pti": 41.1,
+      "player_exp": "30+",
+      "partner_exp": "10-30",
+      "opp1_exp": "30+",
+      "opp2_exp": "30+",
+      "score": "6-2,2-6,6-3",
+      "description": "Random Case 70"
+    },
+    {
+      "id": 71,
+      "player_pti": 40.7,
+      "partner_pti": 48.3,
+      "opp1_pti": 33.3,
+      "opp2_pti": 26.9,
+      "player_exp": "10-30",
+      "partner_exp": "1-10",
+      "opp1_exp": "30+",
+      "opp2_exp": "10-30",
+      "score": "6-2,2-6,6-3",
+      "description": "Random Case 71"
+    },
+    {
+      "id": 72,
+      "player_pti": 44.0,
+      "partner_pti": 37.7,
+      "opp1_pti": 21.8,
+      "opp2_pti": 26.0,
+      "player_exp": "1-10",
+      "partner_exp": "30+",
+      "opp1_exp": "1-10",
+      "opp2_exp": "30+",
+      "score": "6-3,6-3",
+      "description": "Random Case 72"
+    },
+    {
+      "id": 73,
+      "player_pti": 40.2,
+      "partner_pti": 50.0,
+      "opp1_pti": 43.3,
+      "opp2_pti": 25.0,
+      "player_exp": "New Player",
+      "partner_exp": "10-30",
+      "opp1_exp": "30+",
+      "opp2_exp": "30+",
+      "score": "6-3,6-3",
+      "description": "Random Case 73"
+    },
+    {
+      "id": 74,
+      "player_pti": 18.7,
+      "partner_pti": 39.6,
+      "opp1_pti": 31.6,
+      "opp2_pti": 23.1,
+      "player_exp": "1-10",
+      "partner_exp": "10-30",
+      "opp1_exp": "1-10",
+      "opp2_exp": "30+",
+      "score": "6-4,7-5",
+      "description": "Random Case 74"
+    },
+    {
+      "id": 75,
+      "player_pti": 47.1,
+      "partner_pti": 16.2,
+      "opp1_pti": 18.2,
+      "opp2_pti": 18.1,
+      "player_exp": "10-30",
+      "partner_exp": "30+",
+      "opp1_exp": "30+",
+      "opp2_exp": "30+",
+      "score": "6-0,6-1",
+      "description": "Random Case 75"
+    },
+    {
+      "id": 76,
+      "player_pti": 40.4,
+      "partner_pti": 33.9,
+      "opp1_pti": 39.8,
+      "opp2_pti": 33.8,
+      "player_exp": "30+",
+      "partner_exp": "30+",
+      "opp1_exp": "30+",
+      "opp2_exp": "1-10",
+      "score": "6-1,6-4",
+      "description": "Random Case 76"
+    },
+    {
+      "id": 77,
+      "player_pti": 49.2,
+      "partner_pti": 44.2,
+      "opp1_pti": 52.9,
+      "opp2_pti": 22.1,
+      "player_exp": "10-30",
+      "partner_exp": "30+",
+      "opp1_exp": "30+",
+      "opp2_exp": "1-10",
+      "score": "6-4,7-5",
+      "description": "Random Case 77"
+    },
+    {
+      "id": 78,
+      "player_pti": 45.8,
+      "partner_pti": 40.6,
+      "opp1_pti": 53.5,
+      "opp2_pti": 24.5,
+      "player_exp": "30+",
+      "partner_exp": "30+",
+      "opp1_exp": "30+",
+      "opp2_exp": "New Player",
+      "score": "6-2,6-4",
+      "description": "Random Case 78"
+    },
+    {
+      "id": 79,
+      "player_pti": 39.8,
+      "partner_pti": 15.6,
+      "opp1_pti": 42.6,
+      "opp2_pti": 29.3,
+      "player_exp": "30+",
+      "partner_exp": "30+",
+      "opp1_exp": "10-30",
+      "opp2_exp": "10-30",
+      "score": "6-4,4-6,6-4",
+      "description": "Random Case 79"
+    },
+    {
+      "id": 80,
+      "player_pti": 19.0,
+      "partner_pti": 25.9,
+      "opp1_pti": 51.8,
+      "opp2_pti": 50.0,
+      "player_exp": "1-10",
+      "partner_exp": "10-30",
+      "opp1_exp": "30+",
+      "opp2_exp": "30+",
+      "score": "6-2,2-6,6-3",
+      "description": "Random Case 80"
+    },
+    {
+      "id": 81,
+      "player_pti": 23.4,
+      "partner_pti": 21.6,
+      "opp1_pti": 35.7,
+      "opp2_pti": 19.9,
+      "player_exp": "30+",
+      "partner_exp": "30+",
+      "opp1_exp": "30+",
+      "opp2_exp": "10-30",
+      "score": "6-4,6-4",
+      "description": "Random Case 81"
+    },
+    {
+      "id": 82,
+      "player_pti": 48.2,
+      "partner_pti": 29.2,
+      "opp1_pti": 23.3,
+      "opp2_pti": 42.5,
+      "player_exp": "30+",
+      "partner_exp": "30+",
+      "opp1_exp": "30+",
+      "opp2_exp": "10-30",
+      "score": "6-2,6-4",
+      "description": "Random Case 82"
+    },
+    {
+      "id": 83,
+      "player_pti": 47.9,
+      "partner_pti": 25.6,
+      "opp1_pti": 36.0,
+      "opp2_pti": 16.2,
+      "player_exp": "30+",
+      "partner_exp": "30+",
+      "opp1_exp": "New Player",
+      "opp2_exp": "30+",
+      "score": "6-3,6-3",
+      "description": "Random Case 83"
+    },
+    {
+      "id": 84,
+      "player_pti": 54.3,
+      "partner_pti": 20.3,
+      "opp1_pti": 43.4,
+      "opp2_pti": 45.6,
+      "player_exp": "1-10",
+      "partner_exp": "1-10",
+      "opp1_exp": "30+",
+      "opp2_exp": "30+",
+      "score": "6-4,6-4",
+      "description": "Random Case 84"
+    },
+    {
+      "id": 85,
+      "player_pti": 53.9,
+      "partner_pti": 48.8,
+      "opp1_pti": 30.1,
+      "opp2_pti": 54.4,
+      "player_exp": "30+",
+      "partner_exp": "30+",
+      "opp1_exp": "30+",
+      "opp2_exp": "1-10",
+      "score": "6-4,6-4",
+      "description": "Random Case 85"
+    },
+    {
+      "id": 86,
+      "player_pti": 51.6,
+      "partner_pti": 36.6,
+      "opp1_pti": 46.9,
+      "opp2_pti": 24.2,
+      "player_exp": "30+",
+      "partner_exp": "New Player",
+      "opp1_exp": "1-10",
+      "opp2_exp": "30+",
+      "score": "7-6,6-4",
+      "description": "Random Case 86"
+    },
+    {
+      "id": 87,
+      "player_pti": 15.6,
+      "partner_pti": 49.1,
+      "opp1_pti": 49.2,
+      "opp2_pti": 45.3,
+      "player_exp": "30+",
+      "partner_exp": "30+",
+      "opp1_exp": "30+",
+      "opp2_exp": "30+",
+      "score": "7-5,6-4",
+      "description": "Random Case 87"
+    },
+    {
+      "id": 88,
+      "player_pti": 17.0,
+      "partner_pti": 46.5,
+      "opp1_pti": 45.4,
+      "opp2_pti": 35.4,
+      "player_exp": "New Player",
+      "partner_exp": "30+",
+      "opp1_exp": "10-30",
+      "opp2_exp": "30+",
+      "score": "6-1,6-2",
+      "description": "Random Case 88"
+    },
+    {
+      "id": 89,
+      "player_pti": 29.3,
+      "partner_pti": 30.7,
+      "opp1_pti": 27.1,
+      "opp2_pti": 28.9,
+      "player_exp": "10-30",
+      "partner_exp": "30+",
+      "opp1_exp": "10-30",
+      "opp2_exp": "1-10",
+      "score": "6-4,4-6,6-4",
+      "description": "Random Case 89"
+    },
+    {
+      "id": 90,
+      "player_pti": 40.4,
+      "partner_pti": 44.0,
+      "opp1_pti": 36.3,
+      "opp2_pti": 48.0,
+      "player_exp": "30+",
+      "partner_exp": "1-10",
+      "opp1_exp": "30+",
+      "opp2_exp": "1-10",
+      "score": "7-6,6-4",
+      "description": "Random Case 90"
+    },
+    {
+      "id": 91,
+      "player_pti": 40.9,
+      "partner_pti": 47.2,
+      "opp1_pti": 26.5,
+      "opp2_pti": 54.2,
+      "player_exp": "10-30",
+      "partner_exp": "1-10",
+      "opp1_exp": "30+",
+      "opp2_exp": "1-10",
+      "score": "6-3,6-3",
+      "description": "Random Case 91"
+    },
+    {
+      "id": 92,
+      "player_pti": 28.1,
+      "partner_pti": 18.9,
+      "opp1_pti": 49.6,
+      "opp2_pti": 15.9,
+      "player_exp": "30+",
+      "partner_exp": "30+",
+      "opp1_exp": "30+",
+      "opp2_exp": "30+",
+      "score": "6-4,7-6",
+      "description": "Random Case 92"
+    },
+    {
+      "id": 93,
+      "player_pti": 41.8,
+      "partner_pti": 29.8,
+      "opp1_pti": 21.7,
+      "opp2_pti": 17.3,
+      "player_exp": "1-10",
+      "partner_exp": "30+",
+      "opp1_exp": "1-10",
+      "opp2_exp": "30+",
+      "score": "6-4,6-4",
+      "description": "Random Case 93"
+    },
+    {
+      "id": 94,
+      "player_pti": 50.6,
+      "partner_pti": 19.7,
+      "opp1_pti": 23.7,
+      "opp2_pti": 47.0,
+      "player_exp": "30+",
+      "partner_exp": "30+",
+      "opp1_exp": "30+",
+      "opp2_exp": "New Player",
+      "score": "6-3,6-3",
+      "description": "Random Case 94"
+    },
+    {
+      "id": 95,
+      "player_pti": 25.2,
+      "partner_pti": 54.8,
+      "opp1_pti": 34.1,
+      "opp2_pti": 18.9,
+      "player_exp": "30+",
+      "partner_exp": "30+",
+      "opp1_exp": "10-30",
+      "opp2_exp": "30+",
+      "score": "7-5,5-7,6-4",
+      "description": "Random Case 95"
+    },
+    {
+      "id": 96,
+      "player_pti": 23.1,
+      "partner_pti": 34.9,
+      "opp1_pti": 25.0,
+      "opp2_pti": 16.7,
+      "player_exp": "30+",
+      "partner_exp": "10-30",
+      "opp1_exp": "30+",
+      "opp2_exp": "30+",
+      "score": "7-5,6-4",
+      "description": "Random Case 96"
+    },
+    {
+      "id": 97,
+      "player_pti": 18.5,
+      "partner_pti": 40.3,
+      "opp1_pti": 45.1,
+      "opp2_pti": 19.9,
+      "player_exp": "10-30",
+      "partner_exp": "30+",
+      "opp1_exp": "1-10",
+      "opp2_exp": "New Player",
+      "score": "6-1,6-4",
+      "description": "Random Case 97"
+    },
+    {
+      "id": 98,
+      "player_pti": 22.1,
+      "partner_pti": 20.5,
+      "opp1_pti": 32.8,
+      "opp2_pti": 27.2,
+      "player_exp": "30+",
+      "partner_exp": "30+",
+      "opp1_exp": "30+",
+      "opp2_exp": "30+",
+      "score": "7-6,6-4",
+      "description": "Random Case 98"
+    },
+    {
+      "id": 99,
+      "player_pti": 42.6,
+      "partner_pti": 17.2,
+      "opp1_pti": 17.0,
+      "opp2_pti": 52.6,
+      "player_exp": "10-30",
+      "partner_exp": "30+",
+      "opp1_exp": "30+",
+      "opp2_exp": "30+",
+      "score": "6-3,6-4",
+      "description": "Random Case 99"
+    },
+    {
+      "id": 100,
+      "player_pti": 28.8,
+      "partner_pti": 41.4,
+      "opp1_pti": 45.3,
+      "opp2_pti": 29.2,
+      "player_exp": "1-10",
+      "partner_exp": "30+",
+      "opp1_exp": "10-30",
+      "opp2_exp": "30+",
+      "score": "6-1,6-2",
+      "description": "Random Case 100"
+    }
+  ],
+  "expected_results": [
+    {
+      "id": 1,
+      "description": "Random Case 1",
+      "spread": 11.049999999999997,
+      "adjustment": 21.784640911137593,
+      "player_before": 53.9,
+      "player_after": 32.12,
+      "partner_before": 53.8,
+      "partner_after": 32.02,
+      "opp1_before": 47.4,
+      "opp1_after": 69.18,
+      "opp2_before": 38.2,
+      "opp2_after": 59.98,
+      "success": true,
+      "expected_prob": 0.5158968686413868,
+      "k_factor": 45,
+      "player_wins": true
+    },
+    {
+      "id": 2,
+      "description": "Random Case 2",
+      "spread": 14.75,
+      "adjustment": 15.32114518976421,
+      "player_before": 53.7,
+      "player_after": 38.38,
+      "partner_before": 48.5,
+      "partner_after": 33.18,
+      "opp1_before": 49.5,
+      "opp1_after": 64.82,
+      "opp2_before": 23.2,
+      "opp2_after": 38.52,
+      "success": true,
+      "expected_prob": 0.5212142128198685,
+      "k_factor": 32,
+      "player_wins": true
+    },
+    {
+      "id": 3,
+      "description": "Random Case 3",
+      "spread": 12.649999999999999,
+      "adjustment": 16.5822967419196,
+      "player_before": 25.3,
+      "player_after": 8.72,
+      "partner_before": 17.1,
+      "partner_after": 0.52,
+      "opp1_before": 27.8,
+      "opp1_after": 44.38,
+      "opp2_before": 39.9,
+      "opp2_after": 56.48,
+      "success": true,
+      "expected_prob": 0.4818032268150125,
+      "k_factor": 32,
+      "player_wins": true
+    },
+    {
+      "id": 4,
+      "description": "Random Case 4",
+      "spread": 11.849999999999998,
+      "adjustment": 26.36939247062865,
+      "player_before": 17.6,
+      "player_after": -8.77,
+      "partner_before": 33.3,
+      "partner_after": 6.93,
+      "opp1_before": 22.8,
+      "opp1_after": 49.17,
+      "opp2_before": 51.8,
+      "opp2_after": 78.17,
+      "success": true,
+      "expected_prob": 0.4829530888112029,
+      "k_factor": 51,
+      "player_wins": true
+    },
+    {
+      "id": 5,
+      "description": "Random Case 5",
+      "spread": 0.09999999999999432,
+      "adjustment": 20.50590037413786,
+      "player_before": 27.5,
+      "player_after": 6.99,
+      "partner_before": 38.9,
+      "partner_after": 18.39,
+      "opp1_before": 41.3,
+      "opp1_after": 61.81,
+      "opp2_before": 25.3,
+      "opp2_after": 45.81,
+      "success": true,
+      "expected_prob": 0.4998560884356619,
+      "k_factor": 41,
+      "player_wins": true
+    },
+    {
+      "id": 6,
+      "description": "Random Case 6",
+      "spread": 18.250000000000004,
+      "adjustment": 17.055369632374507,
+      "player_before": 47.8,
+      "player_after": 30.74,
+      "partner_before": 39.6,
+      "partner_after": 22.54,
+      "opp1_before": 17.9,
+      "opp1_after": 34.96,
+      "opp2_before": 33,
+      "opp2_after": 50.06,
+      "success": true,
+      "expected_prob": 0.5262397324340414,
+      "k_factor": 36,
+      "player_wins": true
+    },
+    {
+      "id": 7,
+      "description": "Random Case 7",
+      "spread": 15.850000000000001,
+      "adjustment": 21.434561086227138,
+      "player_before": 19.9,
+      "player_after": -1.53,
+      "partner_before": 27.1,
+      "partner_after": 5.67,
+      "opp1_before": 40.7,
+      "opp1_after": 62.13,
+      "opp2_before": 38,
+      "opp2_after": 59.43,
+      "success": true,
+      "expected_prob": 0.4772058271651918,
+      "k_factor": 41,
+      "player_wins": true
+    },
+    {
+      "id": 8,
+      "description": "Random Case 8",
+      "spread": 1.9500000000000028,
+      "adjustment": 16.08979987570818,
+      "player_before": 46.7,
+      "player_after": 30.61,
+      "partner_before": 35.4,
+      "partner_after": 19.31,
+      "opp1_before": 35.8,
+      "opp1_after": 51.89,
+      "opp2_before": 50.2,
+      "opp2_after": 66.29,
+      "success": true,
+      "expected_prob": 0.4971937538841193,
+      "k_factor": 32,
+      "player_wins": true
+    },
+    {
+      "id": 9,
+      "description": "Random Case 9",
+      "spread": 4.699999999999999,
+      "adjustment": 17.75651647859371,
+      "player_before": 40.7,
+      "player_after": 22.94,
+      "partner_before": 19.9,
+      "partner_after": 2.14,
+      "opp1_before": 17.8,
+      "opp1_after": 35.56,
+      "opp2_before": 33.4,
+      "opp2_after": 51.16,
+      "success": true,
+      "expected_prob": 0.5067634311501747,
+      "k_factor": 36,
+      "player_wins": true
+    },
+    {
+      "id": 10,
+      "description": "Random Case 10",
+      "spread": 4.200000000000003,
+      "adjustment": 15.806592273217031,
+      "player_before": 38.3,
+      "player_after": 22.49,
+      "partner_before": 36.2,
+      "partner_after": 20.39,
+      "opp1_before": 44.1,
+      "opp1_after": 59.91,
+      "opp2_before": 22,
+      "opp2_after": 37.81,
+      "success": true,
+      "expected_prob": 0.5060439914619678,
+      "k_factor": 32,
+      "player_wins": true
+    },
+    {
+      "id": 11,
+      "description": "Random Case 11",
+      "spread": 16.25,
+      "adjustment": 19.06525630634068,
+      "player_before": 49.2,
+      "player_after": 30.13,
+      "partner_before": 52.2,
+      "partner_after": 33.13,
+      "opp1_before": 22.7,
+      "opp1_after": 41.77,
+      "opp2_before": 46.2,
+      "opp2_after": 65.27,
+      "success": true,
+      "expected_prob": 0.523368592341483,
+      "k_factor": 40,
+      "player_wins": true
+    },
+    {
+      "id": 12,
+      "description": "Random Case 12",
+      "spread": 15.450000000000003,
+      "adjustment": 18.79990894899285,
+      "player_before": 22.8,
+      "player_after": 4,
+      "partner_before": 36.7,
+      "partner_after": 17.9,
+      "opp1_before": 51,
+      "opp1_after": 69.8,
+      "opp2_before": 39.4,
+      "opp2_after": 58.2,
+      "success": true,
+      "expected_prob": 0.4777803069724208,
+      "k_factor": 36,
+      "player_wins": true
+    },
+    {
+      "id": 13,
+      "description": "Random Case 13",
+      "spread": 6.850000000000001,
+      "adjustment": 15.684586709943755,
+      "player_before": 37.5,
+      "player_after": 21.82,
+      "partner_before": 49.7,
+      "partner_after": 34.02,
+      "opp1_before": 37.1,
+      "opp1_after": 52.78,
+      "opp2_before": 36.4,
+      "opp2_after": 52.08,
+      "success": true,
+      "expected_prob": 0.5098566653142577,
+      "k_factor": 32,
+      "player_wins": true
+    },
+    {
+      "id": 14,
+      "description": "Random Case 14",
+      "spread": 20.049999999999997,
+      "adjustment": 16.922312997418235,
+      "player_before": 29,
+      "player_after": 12.08,
+      "partner_before": 16.7,
+      "partner_after": -0.22,
+      "opp1_before": 43.9,
+      "opp1_after": 60.82,
+      "opp2_before": 41.9,
+      "opp2_after": 58.82,
+      "success": true,
+      "expected_prob": 0.47117771883068016,
+      "k_factor": 32,
+      "player_wins": true
+    },
+    {
+      "id": 15,
+      "description": "Random Case 15",
+      "spread": 2.8499999999999943,
+      "adjustment": 20.331843104087852,
+      "player_before": 40.9,
+      "player_after": 20.57,
+      "partner_before": 44.7,
+      "partner_after": 24.37,
+      "opp1_before": 54.8,
+      "opp1_after": 75.13,
+      "opp2_before": 25.1,
+      "opp2_after": 45.43,
+      "success": true,
+      "expected_prob": 0.5041013877051743,
+      "k_factor": 41,
+      "player_wins": true
+    },
+    {
+      "id": 16,
+      "description": "Random Case 16",
+      "spread": 12.700000000000003,
+      "adjustment": 17.342329201648145,
+      "player_before": 53.7,
+      "player_after": 36.36,
+      "partner_before": 42.1,
+      "partner_after": 24.76,
+      "opp1_before": 22.9,
+      "opp1_after": 40.24,
+      "opp2_before": 47.5,
+      "opp2_after": 64.84,
+      "success": true,
+      "expected_prob": 0.5182686332875516,
+      "k_factor": 36,
+      "player_wins": true
+    },
+    {
+      "id": 17,
+      "description": "Random Case 17",
+      "spread": 4.7499999999999964,
+      "adjustment": 16.218731956083325,
+      "player_before": 30.1,
+      "player_after": 13.88,
+      "partner_before": 22.8,
+      "partner_after": 6.58,
+      "opp1_before": 37.3,
+      "opp1_after": 53.52,
+      "opp2_before": 25.1,
+      "opp2_after": 41.32,
+      "success": true,
+      "expected_prob": 0.49316462637239605,
+      "k_factor": 32,
+      "player_wins": true
+    },
+    {
+      "id": 18,
+      "description": "Random Case 18",
+      "spread": 4.350000000000001,
+      "adjustment": 18.22535374076044,
+      "player_before": 49,
+      "player_after": 30.77,
+      "partner_before": 18.7,
+      "partner_after": 0.47,
+      "opp1_before": 32.9,
+      "opp1_after": 51.13,
+      "opp2_before": 43.5,
+      "opp2_after": 61.73,
+      "success": true,
+      "expected_prob": 0.49374017386776564,
+      "k_factor": 36,
+      "player_wins": true
+    },
+    {
+      "id": 19,
+      "description": "Random Case 19",
+      "spread": 18.55,
+      "adjustment": 16.853448271516307,
+      "player_before": 20.5,
+      "player_after": 3.65,
+      "partner_before": 38.6,
+      "partner_after": 21.75,
+      "opp1_before": 43.7,
+      "opp1_after": 60.55,
+      "opp2_before": 52.5,
+      "opp2_after": 69.35,
+      "success": true,
+      "expected_prob": 0.4733297415151154,
+      "k_factor": 32,
+      "player_wins": true
+    },
+    {
+      "id": 20,
+      "description": "Random Case 20",
+      "spread": 0.7000000000000028,
+      "adjustment": 30.06044277690668,
+      "player_before": 44.4,
+      "player_after": 14.34,
+      "partner_before": 39.2,
+      "partner_after": 9.14,
+      "opp1_before": 48.6,
+      "opp1_after": 78.66,
+      "opp2_before": 36.4,
+      "opp2_after": 66.46,
+      "success": true,
+      "expected_prob": 0.4989926203848886,
+      "k_factor": 60,
+      "player_wins": true
+    },
+    {
+      "id": 21,
+      "description": "Random Case 21",
+      "spread": 3.9000000000000057,
+      "adjustment": 16.17959409419,
+      "player_before": 44.5,
+      "player_after": 28.32,
+      "partner_before": 25.1,
+      "partner_after": 8.92,
+      "opp1_before": 32.3,
+      "opp1_after": 48.48,
+      "opp2_before": 45.1,
+      "opp2_after": 61.28,
+      "success": true,
+      "expected_prob": 0.4943876845565625,
+      "k_factor": 32,
+      "player_wins": true
+    },
+    {
+      "id": 22,
+      "description": "Random Case 22",
+      "spread": 16.4,
+      "adjustment": 19.53305666414182,
+      "player_before": 51.4,
+      "player_after": 31.87,
+      "partner_before": 50.4,
+      "partner_after": 30.87,
+      "opp1_before": 25.6,
+      "opp1_after": 45.13,
+      "opp2_before": 43.4,
+      "opp2_after": 62.93,
+      "success": true,
+      "expected_prob": 0.523583983801419,
+      "k_factor": 41,
+      "player_wins": true
+    },
+    {
+      "id": 23,
+      "description": "Random Case 23",
+      "spread": 0.44999999999999574,
+      "adjustment": 22.47085792371259,
+      "player_before": 37.9,
+      "player_after": 15.43,
+      "partner_before": 43.4,
+      "partner_after": 20.93,
+      "opp1_before": 30.6,
+      "opp1_after": 53.07,
+      "opp2_before": 49.8,
+      "opp2_after": 72.27,
+      "success": true,
+      "expected_prob": 0.5006476016952758,
+      "k_factor": 45,
+      "player_wins": true
+    },
+    {
+      "id": 24,
+      "description": "Random Case 24",
+      "spread": 17.050000000000004,
+      "adjustment": 19.019310223930276,
+      "player_before": 26.2,
+      "player_after": 7.18,
+      "partner_before": 51.7,
+      "partner_after": 32.68,
+      "opp1_before": 24.1,
+      "opp1_after": 43.12,
+      "opp2_before": 19.7,
+      "opp2_after": 38.72,
+      "success": true,
+      "expected_prob": 0.5245172444017431,
+      "k_factor": 40,
+      "player_wins": true
+    },
+    {
+      "id": 25,
+      "description": "Random Case 25",
+      "spread": 1.750000000000007,
+      "adjustment": 20.396744322947555,
+      "player_before": 51.7,
+      "player_after": 31.3,
+      "partner_before": 30,
+      "partner_after": 9.6,
+      "opp1_before": 41.8,
+      "opp1_after": 62.2,
+      "opp2_before": 36.4,
+      "opp2_after": 56.8,
+      "success": true,
+      "expected_prob": 0.5025184311476206,
+      "k_factor": 41,
+      "player_wins": true
+    },
+    {
+      "id": 26,
+      "description": "Random Case 26",
+      "spread": 9.450000000000003,
+      "adjustment": 19.942552088669693,
+      "player_before": 35.7,
+      "player_after": 15.76,
+      "partner_before": 51.8,
+      "partner_after": 31.86,
+      "opp1_before": 32.6,
+      "opp1_after": 52.54,
+      "opp2_before": 36,
+      "opp2_after": 55.94,
+      "success": true,
+      "expected_prob": 0.5135962905202514,
+      "k_factor": 41,
+      "player_wins": true
+    },
+    {
+      "id": 27,
+      "description": "Random Case 27",
+      "spread": 0.6499999999999986,
+      "adjustment": 20.461647611790298,
+      "player_before": 42.4,
+      "player_after": 21.94,
+      "partner_before": 30.1,
+      "partner_after": 9.64,
+      "opp1_before": 23.7,
+      "opp1_after": 44.16,
+      "opp2_before": 47.5,
+      "opp2_after": 67.96,
+      "success": true,
+      "expected_prob": 0.5009354241026757,
+      "k_factor": 41,
+      "player_wins": true
+    },
+    {
+      "id": 28,
+      "description": "Random Case 28",
+      "spread": 14.149999999999999,
+      "adjustment": 16.65127153604959,
+      "player_before": 28.6,
+      "player_after": 11.95,
+      "partner_before": 45.9,
+      "partner_after": 29.25,
+      "opp1_before": 52.4,
+      "opp1_after": 69.05,
+      "opp2_before": 50.4,
+      "opp2_after": 67.05,
+      "success": true,
+      "expected_prob": 0.47964776449845026,
+      "k_factor": 32,
+      "player_wins": true
+    },
+    {
+      "id": 29,
+      "description": "Random Case 29",
+      "spread": 13.149999999999999,
+      "adjustment": 21.275528933791634,
+      "player_before": 21.2,
+      "player_after": -0.08,
+      "partner_before": 23.1,
+      "partner_after": 1.82,
+      "opp1_before": 24.2,
+      "opp1_after": 45.48,
+      "opp2_before": 46.4,
+      "opp2_after": 67.68,
+      "success": true,
+      "expected_prob": 0.4810846601514236,
+      "k_factor": 41,
+      "player_wins": true
+    },
+    {
+      "id": 30,
+      "description": "Random Case 30",
+      "spread": 1.3000000000000043,
+      "adjustment": 20.576704507948026,
+      "player_before": 37,
+      "player_after": 16.42,
+      "partner_before": 53.1,
+      "partner_after": 32.52,
+      "opp1_before": 54,
+      "opp1_after": 74.58,
+      "opp2_before": 38.7,
+      "opp2_after": 59.28,
+      "success": true,
+      "expected_prob": 0.4981291583427311,
+      "k_factor": 41,
+      "player_wins": true
+    },
+    {
+      "id": 31,
+      "description": "Random Case 31",
+      "spread": 13.349999999999998,
+      "adjustment": 23.36412351481011,
+      "player_before": 19.5,
+      "player_after": -3.86,
+      "partner_before": 17.1,
+      "partner_after": -6.26,
+      "opp1_before": 31.4,
+      "opp1_after": 54.76,
+      "opp2_before": 31.9,
+      "opp2_after": 55.26,
+      "success": true,
+      "expected_prob": 0.480797255226442,
+      "k_factor": 45,
+      "player_wins": true
+    },
+    {
+      "id": 32,
+      "description": "Random Case 32",
+      "spread": 8.099999999999998,
+      "adjustment": 16.372951217778258,
+      "player_before": 22.4,
+      "player_after": 6.03,
+      "partner_before": 16.3,
+      "partner_after": -0.07,
+      "opp1_before": 38.4,
+      "opp1_after": 54.77,
+      "opp2_before": 16.5,
+      "opp2_after": 32.87,
+      "success": true,
+      "expected_prob": 0.4883452744444295,
+      "k_factor": 32,
+      "player_wins": true
+    },
+    {
+      "id": 33,
+      "description": "Random Case 33",
+      "spread": 16.15,
+      "adjustment": 26.161249660037278,
+      "player_before": 32.6,
+      "player_after": 6.44,
+      "partner_before": 21.7,
+      "partner_after": -4.46,
+      "opp1_before": 48.5,
+      "opp1_after": 74.66,
+      "opp2_before": 38.1,
+      "opp2_after": 64.26,
+      "success": true,
+      "expected_prob": 0.4767750067992544,
+      "k_factor": 50,
+      "player_wins": true
+    },
+    {
+      "id": 34,
+      "description": "Random Case 34",
+      "spread": 0.15000000000000568,
+      "adjustment": 25.488990765708145,
+      "player_before": 44.5,
+      "player_after": 19.01,
+      "partner_before": 24.4,
+      "partner_after": -1.09,
+      "opp1_before": 26.8,
+      "opp1_after": 52.29,
+      "opp2_before": 41.8,
+      "opp2_after": 67.29,
+      "success": true,
+      "expected_prob": 0.500215867339056,
+      "k_factor": 51,
+      "player_wins": true
+    },
+    {
+      "id": 35,
+      "description": "Random Case 35",
+      "spread": 3.3999999999999986,
+      "adjustment": 17.823857863132027,
+      "player_before": 18.2,
+      "player_after": 0.38,
+      "partner_before": 42.1,
+      "partner_after": 24.28,
+      "opp1_before": 35.4,
+      "opp1_after": 53.22,
+      "opp2_before": 18.1,
+      "opp2_after": 35.92,
+      "success": true,
+      "expected_prob": 0.5048928371352215,
+      "k_factor": 36,
+      "player_wins": true
+    },
+    {
+      "id": 36,
+      "description": "Random Case 36",
+      "spread": 20.15,
+      "adjustment": 23.80345704678746,
+      "player_before": 20.5,
+      "player_after": -3.3,
+      "partner_before": 19,
+      "partner_after": -4.8,
+      "opp1_before": 27.4,
+      "opp1_after": 51.2,
+      "opp2_before": 52.4,
+      "opp2_after": 76.2,
+      "success": true,
+      "expected_prob": 0.4710342878491675,
+      "k_factor": 45,
+      "player_wins": true
+    },
+    {
+      "id": 37,
+      "description": "Random Case 37",
+      "spread": 25.099999999999994,
+      "adjustment": 16.70187265227291,
+      "player_before": 46.5,
+      "player_after": 29.8,
+      "partner_before": 52.1,
+      "partner_after": 35.4,
+      "opp1_before": 16.2,
+      "opp1_after": 32.9,
+      "opp2_before": 32.2,
+      "opp2_after": 48.9,
+      "success": true,
+      "expected_prob": 0.5360590929924192,
+      "k_factor": 36,
+      "player_wins": true
+    },
+    {
+      "id": 38,
+      "description": "Random Case 38",
+      "spread": 3.6500000000000057,
+      "adjustment": 17.810907155689605,
+      "player_before": 50.9,
+      "player_after": 33.09,
+      "partner_before": 35,
+      "partner_after": 17.19,
+      "opp1_before": 49,
+      "opp1_after": 66.81,
+      "opp2_before": 29.6,
+      "opp2_after": 47.41,
+      "success": true,
+      "expected_prob": 0.5052525790086221,
+      "k_factor": 36,
+      "player_wins": true
+    },
+    {
+      "id": 39,
+      "description": "Random Case 39",
+      "spread": 2.25,
+      "adjustment": 29.805722098701136,
+      "player_before": 49.8,
+      "player_after": 19.99,
+      "partner_before": 27.1,
+      "partner_after": -2.71,
+      "opp1_before": 44.7,
+      "opp1_after": 74.51,
+      "opp2_before": 27.7,
+      "opp2_after": 57.51,
+      "success": true,
+      "expected_prob": 0.5032379650216477,
+      "k_factor": 60,
+      "player_wins": true
+    },
+    {
+      "id": 40,
+      "description": "Random Case 40",
+      "spread": 18.699999999999996,
+      "adjustment": 16.860336213725656,
+      "player_before": 34.1,
+      "player_after": 17.24,
+      "partner_before": 16.8,
+      "partner_after": -0.06,
+      "opp1_before": 49.8,
+      "opp1_after": 66.66,
+      "opp2_before": 38.5,
+      "opp2_after": 55.36,
+      "success": true,
+      "expected_prob": 0.47311449332107325,
+      "k_factor": 32,
+      "player_wins": true
+    },
+    {
+      "id": 41,
+      "description": "Random Case 41",
+      "spread": 2.0500000000000007,
+      "adjustment": 15.905595106735138,
+      "player_before": 32.5,
+      "player_after": 16.59,
+      "partner_before": 20.5,
+      "partner_after": 4.59,
+      "opp1_before": 30,
+      "opp1_after": 45.91,
+      "opp2_before": 18.9,
+      "opp2_after": 34.81,
+      "success": true,
+      "expected_prob": 0.5029501529145269,
+      "k_factor": 32,
+      "player_wins": true
+    },
+    {
+      "id": 42,
+      "description": "Random Case 42",
+      "spread": 0.9999999999999929,
+      "adjustment": 15.95394842530711,
+      "player_before": 30.8,
+      "player_after": 14.85,
+      "partner_before": 51.5,
+      "partner_after": 35.55,
+      "opp1_before": 45.7,
+      "opp1_after": 61.65,
+      "opp2_before": 34.6,
+      "opp2_after": 50.55,
+      "success": true,
+      "expected_prob": 0.5014391117091528,
+      "k_factor": 32,
+      "player_wins": true
+    },
+    {
+      "id": 43,
+      "description": "Random Case 43",
+      "spread": 2.8499999999999943,
+      "adjustment": 15.868755593434422,
+      "player_before": 46,
+      "player_after": 30.13,
+      "partner_before": 26.1,
+      "partner_after": 10.23,
+      "opp1_before": 32.3,
+      "opp1_after": 48.17,
+      "opp2_before": 34.1,
+      "opp2_after": 49.97,
+      "success": true,
+      "expected_prob": 0.5041013877051743,
+      "k_factor": 32,
+      "player_wins": true
+    },
+    {
+      "id": 44,
+      "description": "Random Case 44",
+      "spread": 6.649999999999999,
+      "adjustment": 25.011983509354998,
+      "player_before": 41.9,
+      "player_after": 16.89,
+      "partner_before": 43.4,
+      "partner_after": 18.39,
+      "opp1_before": 42.7,
+      "opp1_after": 67.71,
+      "opp2_before": 29.3,
+      "opp2_after": 54.31,
+      "success": true,
+      "expected_prob": 0.5095689507969609,
+      "k_factor": 51,
+      "player_wins": true
+    },
+    {
+      "id": 45,
+      "description": "Random Case 45",
+      "spread": 23.85,
+      "adjustment": 14.903388871085124,
+      "player_before": 38.3,
+      "player_after": 23.4,
+      "partner_before": 53.7,
+      "partner_after": 38.8,
+      "opp1_before": 16.6,
+      "opp1_after": 31.5,
+      "opp2_before": 27.7,
+      "opp2_after": 42.6,
+      "success": true,
+      "expected_prob": 0.5342690977785899,
+      "k_factor": 32,
+      "player_wins": true
+    },
+    {
+      "id": 46,
+      "description": "Random Case 46",
+      "spread": 26.200000000000003,
+      "adjustment": 22.0429744067997,
+      "player_before": 34.5,
+      "player_after": 12.46,
+      "partner_before": 20.3,
+      "partner_after": -1.74,
+      "opp1_before": 52.6,
+      "opp1_after": 74.64,
+      "opp2_before": 54.6,
+      "opp2_after": 76.64,
+      "success": true,
+      "expected_prob": 0.46236647788293417,
+      "k_factor": 41,
+      "player_wins": true
+    },
+    {
+      "id": 47,
+      "description": "Random Case 47",
+      "spread": 9.850000000000001,
+      "adjustment": 19.91896879200703,
+      "player_before": 27.1,
+      "player_after": 7.18,
+      "partner_before": 47.6,
+      "partner_after": 27.68,
+      "opp1_before": 29.3,
+      "opp1_after": 49.22,
+      "opp2_before": 25.7,
+      "opp2_after": 45.62,
+      "success": true,
+      "expected_prob": 0.5141714928778773,
+      "k_factor": 41,
+      "player_wins": true
+    },
+    {
+      "id": 48,
+      "description": "Random Case 48",
+      "spread": 7.800000000000004,
+      "adjustment": 26.07238405922446,
+      "player_before": 35.6,
+      "player_after": 9.53,
+      "partner_before": 27.2,
+      "partner_after": 1.13,
+      "opp1_before": 53.5,
+      "opp1_after": 79.57,
+      "opp2_before": 24.9,
+      "opp2_after": 50.97,
+      "success": true,
+      "expected_prob": 0.48877678315246154,
+      "k_factor": 51,
+      "player_wins": true
+    },
+    {
+      "id": 49,
+      "description": "Random Case 49",
+      "spread": 0.8500000000000085,
+      "adjustment": 34.914372787690375,
+      "player_before": 52.3,
+      "player_after": 17.39,
+      "partner_before": 45.6,
+      "partner_after": 10.69,
+      "opp1_before": 49.3,
+      "opp1_after": 84.21,
+      "opp2_before": 46.9,
+      "opp2_after": 81.81,
+      "success": true,
+      "expected_prob": 0.5012232458901374,
+      "k_factor": 70,
+      "player_wins": true
+    },
+    {
+      "id": 50,
+      "description": "Random Case 50",
+      "spread": 2.049999999999997,
+      "adjustment": 18.106205504922965,
+      "player_before": 15.2,
+      "player_after": -2.91,
+      "partner_before": 48.3,
+      "partner_after": 30.19,
+      "opp1_before": 41.6,
+      "opp1_after": 59.71,
+      "opp2_before": 26,
+      "opp2_after": 44.11,
+      "success": true,
+      "expected_prob": 0.4970498470854731,
+      "k_factor": 36,
+      "player_wins": true
+    },
+    {
+      "id": 51,
+      "description": "Random Case 51",
+      "spread": 9.950000000000003,
+      "adjustment": 21.855812055235358,
+      "player_before": 43.5,
+      "player_after": 21.64,
+      "partner_before": 23.4,
+      "partner_after": 1.54,
+      "opp1_before": 19.7,
+      "opp1_after": 41.56,
+      "opp2_before": 27.3,
+      "opp2_after": 49.16,
+      "success": true,
+      "expected_prob": 0.5143152876614365,
+      "k_factor": 45,
+      "player_wins": true
+    },
+    {
+      "id": 52,
+      "description": "Random Case 52",
+      "spread": 24.5,
+      "adjustment": 16.732799698475734,
+      "player_before": 49.7,
+      "player_after": 32.97,
+      "partner_before": 53.8,
+      "partner_after": 37.07,
+      "opp1_before": 17.1,
+      "opp1_after": 33.83,
+      "opp2_before": 37.4,
+      "opp2_after": 54.13,
+      "success": true,
+      "expected_prob": 0.535200008375674,
+      "k_factor": 36,
+      "player_wins": true
+    },
+    {
+      "id": 53,
+      "description": "Random Case 53",
+      "spread": 13.650000000000002,
+      "adjustment": 21.616477727623877,
+      "player_before": 40,
+      "player_after": 18.38,
+      "partner_before": 36.9,
+      "partner_after": 15.28,
+      "opp1_before": 30.8,
+      "opp1_after": 52.42,
+      "opp2_before": 18.8,
+      "opp2_after": 40.42,
+      "success": true,
+      "expected_prob": 0.5196338282750249,
+      "k_factor": 45,
+      "player_wins": true
+    },
+    {
+      "id": 54,
+      "description": "Random Case 54",
+      "spread": 12.899999999999999,
+      "adjustment": 21.260798710559175,
+      "player_before": 15.3,
+      "player_after": -5.96,
+      "partner_before": 38.9,
+      "partner_after": 17.64,
+      "opp1_before": 52.2,
+      "opp1_after": 73.46,
+      "opp2_before": 27.8,
+      "opp2_after": 49.06,
+      "success": true,
+      "expected_prob": 0.4814439338888005,
+      "k_factor": 41,
+      "player_wins": true
+    },
+    {
+      "id": 55,
+      "description": "Random Case 55",
+      "spread": 9.5,
+      "adjustment": 19.939604094552063,
+      "player_before": 52.4,
+      "player_after": 32.46,
+      "partner_before": 20.3,
+      "partner_after": 0.36,
+      "opp1_before": 24.5,
+      "opp1_after": 44.44,
+      "opp2_before": 29.2,
+      "opp2_after": 49.14,
+      "success": true,
+      "expected_prob": 0.5136681928158033,
+      "k_factor": 41,
+      "player_wins": true
+    },
+    {
+      "id": 56,
+      "description": "Random Case 56",
+      "spread": 1.749999999999993,
+      "adjustment": 20.396744322947555,
+      "player_before": 37.3,
+      "player_after": 16.9,
+      "partner_before": 39.4,
+      "partner_after": 19,
+      "opp1_before": 23.8,
+      "opp1_after": 44.2,
+      "opp2_before": 49.4,
+      "opp2_after": 69.8,
+      "success": true,
+      "expected_prob": 0.5025184311476206,
+      "k_factor": 41,
+      "player_wins": true
+    },
+    {
+      "id": 57,
+      "description": "Random Case 57",
+      "spread": 1.7999999999999972,
+      "adjustment": 17.906746138070176,
+      "player_before": 18.8,
+      "player_after": 0.89,
+      "partner_before": 47.3,
+      "partner_after": 29.39,
+      "opp1_before": 31.1,
+      "opp1_after": 49.01,
+      "opp2_before": 31.4,
+      "opp2_after": 49.31,
+      "success": true,
+      "expected_prob": 0.5025903850536062,
+      "k_factor": 36,
+      "player_wins": true
+    },
+    {
+      "id": 58,
+      "description": "Random Case 58",
+      "spread": 18.65,
+      "adjustment": 21.599364093883043,
+      "player_before": 25.1,
+      "player_after": 3.5,
+      "partner_before": 24.6,
+      "partner_after": 3,
+      "opp1_before": 48.8,
+      "opp1_after": 70.4,
+      "opp2_before": 38.2,
+      "opp2_after": 59.8,
+      "success": true,
+      "expected_prob": 0.4731862416126087,
+      "k_factor": 41,
+      "player_wins": true
+    },
+    {
+      "id": 59,
+      "description": "Random Case 59",
+      "spread": 8.600000000000001,
+      "adjustment": 16.395963770218103,
+      "player_before": 24.8,
+      "player_after": 8.4,
+      "partner_before": 23.2,
+      "partner_after": 6.8,
+      "opp1_before": 16.1,
+      "opp1_after": 32.5,
+      "opp2_before": 49.1,
+      "opp2_after": 65.5,
+      "success": true,
+      "expected_prob": 0.4876261321806843,
+      "k_factor": 32,
+      "player_wins": true
+    },
+    {
+      "id": 60,
+      "description": "Random Case 60",
+      "spread": 6.950000000000003,
+      "adjustment": 15.679983355644175,
+      "player_before": 54.1,
+      "player_after": 38.42,
+      "partner_before": 32.6,
+      "partner_after": 16.92,
+      "opp1_before": 29.7,
+      "opp1_after": 45.38,
+      "opp2_before": 43.1,
+      "opp2_after": 58.78,
+      "success": true,
+      "expected_prob": 0.5100005201361195,
+      "k_factor": 32,
+      "player_wins": true
+    },
+    {
+      "id": 61,
+      "description": "Random Case 61",
+      "spread": 2.950000000000003,
+      "adjustment": 29.745282645203808,
+      "player_before": 51.7,
+      "player_after": 21.95,
+      "partner_before": 52.8,
+      "partner_after": 23.05,
+      "opp1_before": 46.5,
+      "opp1_after": 76.25,
+      "opp2_before": 52.1,
+      "opp2_after": 81.85,
+      "success": true,
+      "expected_prob": 0.5042452892466032,
+      "k_factor": 60,
+      "player_wins": true
+    },
+    {
+      "id": 62,
+      "description": "Random Case 62",
+      "spread": 6.549999999999997,
+      "adjustment": 20.37700364596567,
+      "player_before": 23.5,
+      "player_after": 3.12,
+      "partner_before": 41.4,
+      "partner_after": 21.02,
+      "opp1_before": 41,
+      "opp1_after": 61.38,
+      "opp2_before": 37,
+      "opp2_after": 57.38,
+      "success": true,
+      "expected_prob": 0.4905749088508583,
+      "k_factor": 40,
+      "player_wins": true
+    },
+    {
+      "id": 63,
+      "description": "Random Case 63",
+      "spread": 21.050000000000004,
+      "adjustment": 23.95692498083747,
+      "player_before": 47.1,
+      "player_after": 23.14,
+      "partner_before": 53.6,
+      "partner_after": 29.64,
+      "opp1_before": 36.3,
+      "opp1_after": 60.26,
+      "opp2_before": 22.3,
+      "opp2_after": 46.26,
+      "success": true,
+      "expected_prob": 0.5302563729247555,
+      "k_factor": 51,
+      "player_wins": true
+    },
+    {
+      "id": 64,
+      "description": "Random Case 64",
+      "spread": 6.399999999999999,
+      "adjustment": 18.33153475528489,
+      "player_before": 26.8,
+      "player_after": 8.47,
+      "partner_before": 43.7,
+      "partner_after": 25.37,
+      "opp1_before": 54.6,
+      "opp1_after": 72.93,
+      "opp2_before": 28.7,
+      "opp2_after": 47.03,
+      "success": true,
+      "expected_prob": 0.4907907012420864,
+      "k_factor": 36,
+      "player_wins": true
+    },
+    {
+      "id": 65,
+      "description": "Random Case 65",
+      "spread": 4.600000000000001,
+      "adjustment": 17.761696367111902,
+      "player_before": 37.5,
+      "player_after": 19.74,
+      "partner_before": 30,
+      "partner_after": 12.24,
+      "opp1_before": 26.5,
+      "opp1_after": 44.26,
+      "opp2_before": 31.8,
+      "opp2_after": 49.56,
+      "success": true,
+      "expected_prob": 0.5066195453580027,
+      "k_factor": 36,
+      "player_wins": true
+    },
+    {
+      "id": 66,
+      "description": "Random Case 66",
+      "spread": 4.649999999999999,
+      "adjustment": 22.801116977669174,
+      "player_before": 35.8,
+      "player_after": 13,
+      "partner_before": 29.7,
+      "partner_after": 6.9,
+      "opp1_before": 28.8,
+      "opp1_after": 51.6,
+      "opp2_before": 46,
+      "opp2_after": 68.8,
+      "success": true,
+      "expected_prob": 0.4933085116073516,
+      "k_factor": 45,
+      "player_wins": true
+    },
+    {
+      "id": 67,
+      "description": "Random Case 67",
+      "spread": 0.44999999999999574,
+      "adjustment": 16.02072325424883,
+      "player_before": 49.8,
+      "player_after": 33.78,
+      "partner_before": 38.1,
+      "partner_after": 22.08,
+      "opp1_before": 53,
+      "opp1_after": 69.02,
+      "opp2_before": 35.8,
+      "opp2_after": 51.82,
+      "success": true,
+      "expected_prob": 0.49935239830472417,
+      "k_factor": 32,
+      "player_wins": true
+    },
+    {
+      "id": 68,
+      "description": "Random Case 68",
+      "spread": 12.899999999999995,
+      "adjustment": 17.33198161999682,
+      "player_before": 18.4,
+      "player_after": 1.07,
+      "partner_before": 45.8,
+      "partner_after": 28.47,
+      "opp1_before": 16.7,
+      "opp1_after": 34.03,
+      "opp2_before": 21.7,
+      "opp2_after": 39.03,
+      "success": true,
+      "expected_prob": 0.5185560661111994,
+      "k_factor": 36,
+      "player_wins": true
+    },
+    {
+      "id": 69,
+      "description": "Random Case 69",
+      "spread": 9.45,
+      "adjustment": 24.80658918346718,
+      "player_before": 36.3,
+      "player_after": 11.49,
+      "partner_before": 22.1,
+      "partner_after": -2.71,
+      "opp1_before": 21.3,
+      "opp1_after": 46.11,
+      "opp2_before": 18.2,
+      "opp2_after": 43.01,
+      "success": true,
+      "expected_prob": 0.5135962905202514,
+      "k_factor": 51,
+      "player_wins": true
+    },
+    {
+      "id": 70,
+      "description": "Random Case 70",
+      "spread": 11.349999999999998,
+      "adjustment": 18.587813579410017,
+      "player_before": 27,
+      "player_after": 8.41,
+      "partner_before": 16.4,
+      "partner_after": -2.19,
+      "opp1_before": 25,
+      "opp1_after": 43.59,
+      "opp2_before": 41.1,
+      "opp2_after": 59.69,
+      "success": true,
+      "expected_prob": 0.4836718450163883,
+      "k_factor": 36,
+      "player_wins": true
+    },
+    {
+      "id": 71,
+      "description": "Random Case 71",
+      "spread": 14.400000000000002,
+      "adjustment": 21.56798665172985,
+      "player_before": 40.7,
+      "player_after": 19.13,
+      "partner_before": 48.3,
+      "partner_after": 26.73,
+      "opp1_before": 33.3,
+      "opp1_after": 54.87,
+      "opp2_before": 26.9,
+      "opp2_after": 48.47,
+      "success": true,
+      "expected_prob": 0.5207114077393367,
+      "k_factor": 45,
+      "player_wins": true
+    },
+    {
+      "id": 72,
+      "description": "Random Case 72",
+      "spread": 16.950000000000003,
+      "adjustment": 19.500679249992846,
+      "player_before": 44,
+      "player_after": 24.5,
+      "partner_before": 37.7,
+      "partner_after": 18.2,
+      "opp1_before": 21.8,
+      "opp1_after": 41.3,
+      "opp2_before": 26,
+      "opp2_after": 45.5,
+      "success": true,
+      "expected_prob": 0.5243736768294428,
+      "k_factor": 41,
+      "player_wins": true
+    },
+    {
+      "id": 73,
+      "description": "Random Case 73",
+      "spread": 10.950000000000003,
+      "adjustment": 26.63357943217115,
+      "player_before": 40.2,
+      "player_after": 13.57,
+      "partner_before": 50,
+      "partner_after": 23.37,
+      "opp1_before": 43.3,
+      "opp1_after": 69.93,
+      "opp2_before": 25,
+      "opp2_after": 51.63,
+      "success": true,
+      "expected_prob": 0.5157531012332518,
+      "k_factor": 55,
+      "player_wins": true
+    },
+    {
+      "id": 74,
+      "description": "Random Case 74",
+      "spread": 1.7999999999999972,
+      "adjustment": 22.38343267258772,
+      "player_before": 18.7,
+      "player_after": -3.68,
+      "partner_before": 39.6,
+      "partner_after": 17.22,
+      "opp1_before": 31.6,
+      "opp1_after": 53.98,
+      "opp2_before": 23.1,
+      "opp2_after": 45.48,
+      "success": true,
+      "expected_prob": 0.5025903850536062,
+      "k_factor": 45,
+      "player_wins": true
+    },
+    {
+      "id": 75,
+      "description": "Random Case 75",
+      "spread": 13.5,
+      "adjustment": 17.300941555021158,
+      "player_before": 47.1,
+      "player_after": 29.8,
+      "partner_before": 16.2,
+      "partner_after": -1.1,
+      "opp1_before": 18.2,
+      "opp1_after": 35.5,
+      "opp2_before": 18.1,
+      "opp2_after": 35.4,
+      "success": true,
+      "expected_prob": 0.5194182901383012,
+      "k_factor": 36,
+      "player_wins": true
+    },
+    {
+      "id": 76,
+      "description": "Random Case 76",
+      "spread": 0.3500000000000014,
+      "adjustment": 15.98388190980134,
+      "player_before": 40.4,
+      "player_after": 24.42,
+      "partner_before": 33.9,
+      "partner_after": 17.92,
+      "opp1_before": 39.8,
+      "opp1_after": 55.78,
+      "opp2_before": 33.8,
+      "opp2_after": 49.78,
+      "success": true,
+      "expected_prob": 0.5005036903187081,
+      "k_factor": 32,
+      "player_wins": true
+    },
+    {
+      "id": 77,
+      "description": "Random Case 77",
+      "spread": 9.200000000000003,
+      "adjustment": 17.523476256219162,
+      "player_before": 49.2,
+      "player_after": 31.68,
+      "partner_before": 44.2,
+      "partner_after": 26.68,
+      "opp1_before": 52.9,
+      "opp1_after": 70.42,
+      "opp2_before": 22.1,
+      "opp2_after": 39.62,
+      "success": true,
+      "expected_prob": 0.5132367706605788,
+      "k_factor": 36,
+      "player_wins": true
+    },
+    {
+      "id": 78,
+      "description": "Random Case 78",
+      "spread": 4.200000000000003,
+      "adjustment": 15.806592273217031,
+      "player_before": 45.8,
+      "player_after": 29.99,
+      "partner_before": 40.6,
+      "partner_after": 24.79,
+      "opp1_before": 53.5,
+      "opp1_after": 69.31,
+      "opp2_before": 24.5,
+      "opp2_after": 40.31,
+      "success": true,
+      "expected_prob": 0.5060439914619678,
+      "k_factor": 32,
+      "player_wins": true
+    },
+    {
+      "id": 79,
+      "description": "Random Case 79",
+      "spread": 8.250000000000004,
+      "adjustment": 16.379855149956363,
+      "player_before": 39.8,
+      "player_after": 23.42,
+      "partner_before": 15.6,
+      "partner_after": -0.78,
+      "opp1_before": 42.6,
+      "opp1_after": 58.98,
+      "opp2_before": 29.3,
+      "opp2_after": 45.68,
+      "success": true,
+      "expected_prob": 0.48812952656386366,
+      "k_factor": 32,
+      "player_wins": true
+    },
+    {
+      "id": 80,
+      "description": "Random Case 80",
+      "spread": 28.45,
+      "adjustment": 24.338320879318058,
+      "player_before": 19,
+      "player_after": -5.34,
+      "partner_before": 25.9,
+      "partner_after": 1.56,
+      "opp1_before": 51.8,
+      "opp1_after": 76.14,
+      "opp2_before": 50,
+      "opp2_after": 74.34,
+      "success": true,
+      "expected_prob": 0.45914842490404323,
+      "k_factor": 45,
+      "player_wins": true
+    },
+    {
+      "id": 81,
+      "description": "Random Case 81",
+      "spread": 5.300000000000001,
+      "adjustment": 16.244055089316653,
+      "player_before": 23.4,
+      "player_after": 7.16,
+      "partner_before": 21.6,
+      "partner_after": 5.36,
+      "opp1_before": 35.7,
+      "opp1_after": 51.94,
+      "opp2_before": 19.9,
+      "opp2_after": 36.14,
+      "success": true,
+      "expected_prob": 0.49237327845885465,
+      "k_factor": 32,
+      "player_wins": true
+    },
+    {
+      "id": 82,
+      "description": "Random Case 82",
+      "spread": 5.800000000000004,
+      "adjustment": 15.732924938335255,
+      "player_before": 48.2,
+      "player_after": 32.47,
+      "partner_before": 29.2,
+      "partner_after": 13.47,
+      "opp1_before": 23.3,
+      "opp1_after": 39.03,
+      "opp2_before": 42.5,
+      "opp2_after": 58.23,
+      "success": true,
+      "expected_prob": 0.5083460956770233,
+      "k_factor": 32,
+      "player_wins": true
+    },
+    {
+      "id": 83,
+      "description": "Random Case 83",
+      "spread": 10.649999999999999,
+      "adjustment": 15.509702929307398,
+      "player_before": 47.9,
+      "player_after": 32.39,
+      "partner_before": 25.6,
+      "partner_after": 10.09,
+      "opp1_before": 36,
+      "opp1_after": 51.51,
+      "opp2_before": 16.2,
+      "opp2_after": 31.71,
+      "success": true,
+      "expected_prob": 0.5153217834591438,
+      "k_factor": 32,
+      "player_wins": true
+    },
+    {
+      "id": 84,
+      "description": "Random Case 84",
+      "spread": 7.200000000000003,
+      "adjustment": 25.518007494626772,
+      "player_before": 54.3,
+      "player_after": 28.78,
+      "partner_before": 20.3,
+      "partner_after": -5.22,
+      "opp1_before": 43.4,
+      "opp1_after": 68.92,
+      "opp2_before": 45.6,
+      "opp2_after": 71.12,
+      "success": true,
+      "expected_prob": 0.48963985010746464,
+      "k_factor": 50,
+      "player_wins": true
+    },
+    {
+      "id": 85,
+      "description": "Random Case 85",
+      "spread": 9.099999999999994,
+      "adjustment": 15.581025316459954,
+      "player_before": 53.9,
+      "player_after": 38.32,
+      "partner_before": 48.8,
+      "partner_after": 33.22,
+      "opp1_before": 30.1,
+      "opp1_after": 45.68,
+      "opp2_before": 54.4,
+      "opp2_after": 69.98,
+      "success": true,
+      "expected_prob": 0.5130929588606264,
+      "k_factor": 32,
+      "player_wins": true
+    },
+    {
+      "id": 86,
+      "description": "Random Case 86",
+      "spread": 8.550000000000004,
+      "adjustment": 24.872600251706462,
+      "player_before": 51.6,
+      "player_after": 26.73,
+      "partner_before": 36.6,
+      "partner_after": 11.73,
+      "opp1_before": 46.9,
+      "opp1_after": 71.77,
+      "opp2_before": 24.2,
+      "opp2_after": 49.07,
+      "success": true,
+      "expected_prob": 0.5123019558488929,
+      "k_factor": 51,
+      "player_wins": true
+    },
+    {
+      "id": 87,
+      "description": "Random Case 87",
+      "spread": 14.899999999999999,
+      "adjustment": 16.68575000363861,
+      "player_before": 15.6,
+      "player_after": -1.09,
+      "partner_before": 49.1,
+      "partner_after": 32.41,
+      "opp1_before": 49.2,
+      "opp1_after": 65.89,
+      "opp2_before": 45.3,
+      "opp2_after": 61.99,
+      "success": true,
+      "expected_prob": 0.47857031238629344,
+      "k_factor": 32,
+      "player_wins": true
+    },
+    {
+      "id": 88,
+      "description": "Random Case 88",
+      "spread": 8.649999999999999,
+      "adjustment": 26.134734743153192,
+      "player_before": 17,
+      "player_after": -9.13,
+      "partner_before": 46.5,
+      "partner_after": 20.37,
+      "opp1_before": 45.4,
+      "opp1_after": 71.53,
+      "opp2_before": 35.4,
+      "opp2_after": 61.53,
+      "success": true,
+      "expected_prob": 0.48755422072248644,
+      "k_factor": 51,
+      "player_wins": true
+    },
+    {
+      "id": 89,
+      "description": "Random Case 89",
+      "spread": 2,
+      "adjustment": 17.896384815306806,
+      "player_before": 29.3,
+      "player_after": 11.4,
+      "partner_before": 30.7,
+      "partner_after": 12.8,
+      "opp1_before": 27.1,
+      "opp1_after": 45,
+      "opp2_before": 28.9,
+      "opp2_after": 46.8,
+      "success": true,
+      "expected_prob": 0.502878199574811,
+      "k_factor": 36,
+      "player_wins": true
+    },
+    {
+      "id": 90,
+      "description": "Random Case 90",
+      "spread": 0.05000000000000426,
+      "adjustment": 20.497049812869967,
+      "player_before": 40.4,
+      "player_after": 19.9,
+      "partner_before": 44,
+      "partner_after": 23.5,
+      "opp1_before": 36.3,
+      "opp1_after": 56.8,
+      "opp2_before": 48,
+      "opp2_after": 68.5,
+      "success": true,
+      "expected_prob": 0.5000719557836594,
+      "k_factor": 41,
+      "player_wins": true
+    },
+    {
+      "id": 91,
+      "description": "Random Case 91",
+      "spread": 3.6999999999999957,
+      "adjustment": 22.26039629658351,
+      "player_before": 40.9,
+      "player_after": 18.64,
+      "partner_before": 47.2,
+      "partner_after": 24.94,
+      "opp1_before": 26.5,
+      "opp1_after": 48.76,
+      "opp2_before": 54.2,
+      "opp2_after": 76.46,
+      "success": true,
+      "expected_prob": 0.5053245267425887,
+      "k_factor": 45,
+      "player_wins": true
+    },
+    {
+      "id": 92,
+      "description": "Random Case 92",
+      "spread": 9.25,
+      "adjustment": 16.425877623686258,
+      "player_before": 28.1,
+      "player_after": 11.67,
+      "partner_before": 18.9,
+      "partner_after": 2.47,
+      "opp1_before": 49.6,
+      "opp1_after": 66.03,
+      "opp2_before": 15.9,
+      "opp2_after": 32.33,
+      "success": true,
+      "expected_prob": 0.48669132425980444,
+      "k_factor": 32,
+      "player_wins": true
+    },
+    {
+      "id": 93,
+      "description": "Random Case 93",
+      "spread": 16.299999999999997,
+      "adjustment": 19.538943990952543,
+      "player_before": 41.8,
+      "player_after": 22.26,
+      "partner_before": 29.8,
+      "partner_after": 10.26,
+      "opp1_before": 21.7,
+      "opp1_after": 41.24,
+      "opp2_before": 17.3,
+      "opp2_after": 36.84,
+      "success": true,
+      "expected_prob": 0.5234403904645721,
+      "k_factor": 41,
+      "player_wins": true
+    },
+    {
+      "id": 94,
+      "description": "Random Case 94",
+      "spread": 0.20000000000000284,
+      "adjustment": 16.009210339354638,
+      "player_before": 50.6,
+      "player_after": 34.59,
+      "partner_before": 19.7,
+      "partner_after": 3.69,
+      "opp1_before": 23.7,
+      "opp1_after": 39.71,
+      "opp2_before": 47,
+      "opp2_after": 63.01,
+      "success": true,
+      "expected_prob": 0.4997121768951676,
+      "k_factor": 32,
+      "player_wins": true
+    },
+    {
+      "id": 95,
+      "description": "Random Case 95",
+      "spread": 13.5,
+      "adjustment": 15.378614715574361,
+      "player_before": 25.2,
+      "player_after": 9.82,
+      "partner_before": 54.8,
+      "partner_after": 39.42,
+      "opp1_before": 34.1,
+      "opp1_after": 49.48,
+      "opp2_before": 18.9,
+      "opp2_after": 34.28,
+      "success": true,
+      "expected_prob": 0.5194182901383012,
+      "k_factor": 32,
+      "player_wins": true
+    },
+    {
+      "id": 96,
+      "description": "Random Case 96",
+      "spread": 8.149999999999999,
+      "adjustment": 17.577840887920317,
+      "player_before": 23.1,
+      "player_after": 5.52,
+      "partner_before": 34.9,
+      "partner_after": 17.32,
+      "opp1_before": 25,
+      "opp1_after": 42.58,
+      "opp2_before": 16.7,
+      "opp2_after": 34.28,
+      "success": true,
+      "expected_prob": 0.5117266420022134,
+      "k_factor": 36,
+      "player_wins": true
+    },
+    {
+      "id": 97,
+      "description": "Random Case 97",
+      "spread": 3.1000000000000014,
+      "adjustment": 18.160601048372133,
+      "player_before": 18.5,
+      "player_after": 0.34,
+      "partner_before": 40.3,
+      "partner_after": 22.14,
+      "opp1_before": 45.1,
+      "opp1_after": 63.26,
+      "opp2_before": 19.9,
+      "opp2_after": 38.06,
+      "success": true,
+      "expected_prob": 0.4955388597674407,
+      "k_factor": 36,
+      "player_wins": true
+    },
+    {
+      "id": 98,
+      "description": "Random Case 98",
+      "spread": 8.7,
+      "adjustment": 16.40056608705642,
+      "player_before": 22.1,
+      "player_after": 5.7,
+      "partner_before": 20.5,
+      "partner_after": 4.1,
+      "opp1_before": 32.8,
+      "opp1_after": 49.2,
+      "opp2_before": 27.2,
+      "opp2_after": 43.6,
+      "success": true,
+      "expected_prob": 0.48748230977948687,
+      "k_factor": 32,
+      "player_wins": true
+    },
+    {
+      "id": 99,
+      "description": "Random Case 99",
+      "spread": 4.899999999999999,
+      "adjustment": 18.253843176582894,
+      "player_before": 42.6,
+      "player_after": 24.35,
+      "partner_before": 17.2,
+      "partner_after": -1.05,
+      "opp1_before": 17,
+      "opp1_after": 35.25,
+      "opp2_before": 52.6,
+      "opp2_after": 70.85,
+      "success": true,
+      "expected_prob": 0.4929488006504752,
+      "k_factor": 36,
+      "player_wins": true
+    },
+    {
+      "id": 100,
+      "description": "Random Case 100",
+      "spread": 2.1499999999999986,
+      "adjustment": 20.626856428200234,
+      "player_before": 28.8,
+      "player_after": 8.17,
+      "partner_before": 41.4,
+      "partner_after": 20.77,
+      "opp1_before": 45.3,
+      "opp1_after": 65.93,
+      "opp2_before": 29.2,
+      "opp2_after": 49.83,
+      "success": true,
+      "expected_prob": 0.49690594077560396,
+      "k_factor": 41,
+      "player_wins": true
+    }
+  ],
+  "our_results": [
+    {
+      "spread": 11.05,
+      "adjustment": 3.31,
+      "before": {
+        "player": {
+          "pti": 53.9
+        },
+        "partner": {
+          "pti": 53.8
+        },
+        "opp1": {
+          "pti": 47.4
+        },
+        "opp2": {
+          "pti": 38.2
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 50.59
+        },
+        "partner": {
+          "pti": 50.49
+        },
+        "opp1": {
+          "pti": 50.71
+        },
+        "opp2": {
+          "pti": 41.51
+        }
+      },
+      "details": {
+        "team1_avg": 53.85,
+        "team2_avg": 42.8,
+        "expected_prob": 0.516,
+        "actual_result": 1.0,
+        "k_factor": 6.8,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 14.75,
+      "adjustment": 2.33,
+      "before": {
+        "player": {
+          "pti": 53.7
+        },
+        "partner": {
+          "pti": 48.5
+        },
+        "opp1": {
+          "pti": 49.5
+        },
+        "opp2": {
+          "pti": 23.2
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 51.37
+        },
+        "partner": {
+          "pti": 46.17
+        },
+        "opp1": {
+          "pti": 51.83
+        },
+        "opp2": {
+          "pti": 25.53
+        }
+      },
+      "details": {
+        "team1_avg": 51.1,
+        "team2_avg": 36.35,
+        "expected_prob": 0.521,
+        "actual_result": 1.0,
+        "k_factor": 4.9,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 12.65,
+      "adjustment": 2.52,
+      "before": {
+        "player": {
+          "pti": 25.3
+        },
+        "partner": {
+          "pti": 17.1
+        },
+        "opp1": {
+          "pti": 27.8
+        },
+        "opp2": {
+          "pti": 39.9
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 22.78
+        },
+        "partner": {
+          "pti": 14.58
+        },
+        "opp1": {
+          "pti": 30.32
+        },
+        "opp2": {
+          "pti": 42.42
+        }
+      },
+      "details": {
+        "team1_avg": 21.2,
+        "team2_avg": 33.85,
+        "expected_prob": 0.482,
+        "actual_result": 1.0,
+        "k_factor": 4.9,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 11.85,
+      "adjustment": 4.01,
+      "before": {
+        "player": {
+          "pti": 17.6
+        },
+        "partner": {
+          "pti": 33.3
+        },
+        "opp1": {
+          "pti": 22.8
+        },
+        "opp2": {
+          "pti": 51.8
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 13.59
+        },
+        "partner": {
+          "pti": 29.29
+        },
+        "opp1": {
+          "pti": 26.81
+        },
+        "opp2": {
+          "pti": 55.81
+        }
+      },
+      "details": {
+        "team1_avg": 25.45,
+        "team2_avg": 37.3,
+        "expected_prob": 0.483,
+        "actual_result": 1.0,
+        "k_factor": 7.8,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 0.1,
+      "adjustment": 3.11,
+      "before": {
+        "player": {
+          "pti": 27.5
+        },
+        "partner": {
+          "pti": 38.9
+        },
+        "opp1": {
+          "pti": 41.3
+        },
+        "opp2": {
+          "pti": 25.3
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 24.39
+        },
+        "partner": {
+          "pti": 35.79
+        },
+        "opp1": {
+          "pti": 44.41
+        },
+        "opp2": {
+          "pti": 28.41
+        }
+      },
+      "details": {
+        "team1_avg": 33.2,
+        "team2_avg": 33.3,
+        "expected_prob": 0.5,
+        "actual_result": 1.0,
+        "k_factor": 6.2,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 18.25,
+      "adjustment": 2.59,
+      "before": {
+        "player": {
+          "pti": 47.8
+        },
+        "partner": {
+          "pti": 39.6
+        },
+        "opp1": {
+          "pti": 17.9
+        },
+        "opp2": {
+          "pti": 33.0
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 45.21
+        },
+        "partner": {
+          "pti": 37.01
+        },
+        "opp1": {
+          "pti": 20.49
+        },
+        "opp2": {
+          "pti": 35.59
+        }
+      },
+      "details": {
+        "team1_avg": 43.7,
+        "team2_avg": 25.45,
+        "expected_prob": 0.526,
+        "actual_result": 1.0,
+        "k_factor": 5.5,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 15.85,
+      "adjustment": 3.25,
+      "before": {
+        "player": {
+          "pti": 19.9
+        },
+        "partner": {
+          "pti": 27.1
+        },
+        "opp1": {
+          "pti": 40.7
+        },
+        "opp2": {
+          "pti": 38.0
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 16.65
+        },
+        "partner": {
+          "pti": 23.85
+        },
+        "opp1": {
+          "pti": 43.95
+        },
+        "opp2": {
+          "pti": 41.25
+        }
+      },
+      "details": {
+        "team1_avg": 23.5,
+        "team2_avg": 39.35,
+        "expected_prob": 0.477,
+        "actual_result": 1.0,
+        "k_factor": 6.2,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 1.95,
+      "adjustment": 2.44,
+      "before": {
+        "player": {
+          "pti": 46.7
+        },
+        "partner": {
+          "pti": 35.4
+        },
+        "opp1": {
+          "pti": 35.8
+        },
+        "opp2": {
+          "pti": 50.2
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 44.26
+        },
+        "partner": {
+          "pti": 32.96
+        },
+        "opp1": {
+          "pti": 38.24
+        },
+        "opp2": {
+          "pti": 52.64
+        }
+      },
+      "details": {
+        "team1_avg": 41.05,
+        "team2_avg": 43.0,
+        "expected_prob": 0.497,
+        "actual_result": 1.0,
+        "k_factor": 4.9,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 4.7,
+      "adjustment": 2.7,
+      "before": {
+        "player": {
+          "pti": 40.7
+        },
+        "partner": {
+          "pti": 19.9
+        },
+        "opp1": {
+          "pti": 17.8
+        },
+        "opp2": {
+          "pti": 33.4
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 38.0
+        },
+        "partner": {
+          "pti": 17.2
+        },
+        "opp1": {
+          "pti": 20.5
+        },
+        "opp2": {
+          "pti": 36.1
+        }
+      },
+      "details": {
+        "team1_avg": 30.3,
+        "team2_avg": 25.6,
+        "expected_prob": 0.507,
+        "actual_result": 1.0,
+        "k_factor": 5.5,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 4.2,
+      "adjustment": 2.4,
+      "before": {
+        "player": {
+          "pti": 38.3
+        },
+        "partner": {
+          "pti": 36.2
+        },
+        "opp1": {
+          "pti": 44.1
+        },
+        "opp2": {
+          "pti": 22.0
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 35.9
+        },
+        "partner": {
+          "pti": 33.8
+        },
+        "opp1": {
+          "pti": 46.5
+        },
+        "opp2": {
+          "pti": 24.4
+        }
+      },
+      "details": {
+        "team1_avg": 37.25,
+        "team2_avg": 33.05,
+        "expected_prob": 0.506,
+        "actual_result": 1.0,
+        "k_factor": 4.9,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 16.25,
+      "adjustment": 2.9,
+      "before": {
+        "player": {
+          "pti": 49.2
+        },
+        "partner": {
+          "pti": 52.2
+        },
+        "opp1": {
+          "pti": 22.7
+        },
+        "opp2": {
+          "pti": 46.2
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 46.3
+        },
+        "partner": {
+          "pti": 49.3
+        },
+        "opp1": {
+          "pti": 25.6
+        },
+        "opp2": {
+          "pti": 49.1
+        }
+      },
+      "details": {
+        "team1_avg": 50.7,
+        "team2_avg": 34.45,
+        "expected_prob": 0.523,
+        "actual_result": 1.0,
+        "k_factor": 6.1,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 15.45,
+      "adjustment": 2.86,
+      "before": {
+        "player": {
+          "pti": 22.8
+        },
+        "partner": {
+          "pti": 36.7
+        },
+        "opp1": {
+          "pti": 51.0
+        },
+        "opp2": {
+          "pti": 39.4
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 19.94
+        },
+        "partner": {
+          "pti": 33.84
+        },
+        "opp1": {
+          "pti": 53.86
+        },
+        "opp2": {
+          "pti": 42.26
+        }
+      },
+      "details": {
+        "team1_avg": 29.75,
+        "team2_avg": 45.2,
+        "expected_prob": 0.478,
+        "actual_result": 1.0,
+        "k_factor": 5.5,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 6.85,
+      "adjustment": 2.38,
+      "before": {
+        "player": {
+          "pti": 37.5
+        },
+        "partner": {
+          "pti": 49.7
+        },
+        "opp1": {
+          "pti": 37.1
+        },
+        "opp2": {
+          "pti": 36.4
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 35.12
+        },
+        "partner": {
+          "pti": 47.32
+        },
+        "opp1": {
+          "pti": 39.48
+        },
+        "opp2": {
+          "pti": 38.78
+        }
+      },
+      "details": {
+        "team1_avg": 43.6,
+        "team2_avg": 36.75,
+        "expected_prob": 0.51,
+        "actual_result": 1.0,
+        "k_factor": 4.9,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 20.05,
+      "adjustment": 2.57,
+      "before": {
+        "player": {
+          "pti": 29.0
+        },
+        "partner": {
+          "pti": 16.7
+        },
+        "opp1": {
+          "pti": 43.9
+        },
+        "opp2": {
+          "pti": 41.9
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 26.43
+        },
+        "partner": {
+          "pti": 14.13
+        },
+        "opp1": {
+          "pti": 46.47
+        },
+        "opp2": {
+          "pti": 44.47
+        }
+      },
+      "details": {
+        "team1_avg": 22.85,
+        "team2_avg": 42.9,
+        "expected_prob": 0.471,
+        "actual_result": 1.0,
+        "k_factor": 4.9,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 2.85,
+      "adjustment": 3.08,
+      "before": {
+        "player": {
+          "pti": 40.9
+        },
+        "partner": {
+          "pti": 44.7
+        },
+        "opp1": {
+          "pti": 54.8
+        },
+        "opp2": {
+          "pti": 25.1
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 37.82
+        },
+        "partner": {
+          "pti": 41.62
+        },
+        "opp1": {
+          "pti": 57.88
+        },
+        "opp2": {
+          "pti": 28.18
+        }
+      },
+      "details": {
+        "team1_avg": 42.8,
+        "team2_avg": 39.95,
+        "expected_prob": 0.504,
+        "actual_result": 1.0,
+        "k_factor": 6.2,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 12.7,
+      "adjustment": 2.63,
+      "before": {
+        "player": {
+          "pti": 53.7
+        },
+        "partner": {
+          "pti": 42.1
+        },
+        "opp1": {
+          "pti": 22.9
+        },
+        "opp2": {
+          "pti": 47.5
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 51.07
+        },
+        "partner": {
+          "pti": 39.47
+        },
+        "opp1": {
+          "pti": 25.53
+        },
+        "opp2": {
+          "pti": 50.13
+        }
+      },
+      "details": {
+        "team1_avg": 47.9,
+        "team2_avg": 35.2,
+        "expected_prob": 0.518,
+        "actual_result": 1.0,
+        "k_factor": 5.5,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 4.75,
+      "adjustment": 2.46,
+      "before": {
+        "player": {
+          "pti": 30.1
+        },
+        "partner": {
+          "pti": 22.8
+        },
+        "opp1": {
+          "pti": 37.3
+        },
+        "opp2": {
+          "pti": 25.1
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 27.64
+        },
+        "partner": {
+          "pti": 20.34
+        },
+        "opp1": {
+          "pti": 39.76
+        },
+        "opp2": {
+          "pti": 27.56
+        }
+      },
+      "details": {
+        "team1_avg": 26.45,
+        "team2_avg": 31.2,
+        "expected_prob": 0.493,
+        "actual_result": 1.0,
+        "k_factor": 4.9,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 4.35,
+      "adjustment": 2.77,
+      "before": {
+        "player": {
+          "pti": 49.0
+        },
+        "partner": {
+          "pti": 18.7
+        },
+        "opp1": {
+          "pti": 32.9
+        },
+        "opp2": {
+          "pti": 43.5
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 46.23
+        },
+        "partner": {
+          "pti": 15.93
+        },
+        "opp1": {
+          "pti": 35.67
+        },
+        "opp2": {
+          "pti": 46.27
+        }
+      },
+      "details": {
+        "team1_avg": 33.85,
+        "team2_avg": 38.2,
+        "expected_prob": 0.494,
+        "actual_result": 1.0,
+        "k_factor": 5.5,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 18.55,
+      "adjustment": 2.56,
+      "before": {
+        "player": {
+          "pti": 20.5
+        },
+        "partner": {
+          "pti": 38.6
+        },
+        "opp1": {
+          "pti": 43.7
+        },
+        "opp2": {
+          "pti": 52.5
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 17.94
+        },
+        "partner": {
+          "pti": 36.04
+        },
+        "opp1": {
+          "pti": 46.26
+        },
+        "opp2": {
+          "pti": 55.06
+        }
+      },
+      "details": {
+        "team1_avg": 29.55,
+        "team2_avg": 48.1,
+        "expected_prob": 0.473,
+        "actual_result": 1.0,
+        "k_factor": 4.9,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 0.7,
+      "adjustment": 4.57,
+      "before": {
+        "player": {
+          "pti": 44.4
+        },
+        "partner": {
+          "pti": 39.2
+        },
+        "opp1": {
+          "pti": 48.6
+        },
+        "opp2": {
+          "pti": 36.4
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 39.83
+        },
+        "partner": {
+          "pti": 34.63
+        },
+        "opp1": {
+          "pti": 53.17
+        },
+        "opp2": {
+          "pti": 40.97
+        }
+      },
+      "details": {
+        "team1_avg": 41.8,
+        "team2_avg": 42.5,
+        "expected_prob": 0.499,
+        "actual_result": 1.0,
+        "k_factor": 9.1,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 3.9,
+      "adjustment": 2.46,
+      "before": {
+        "player": {
+          "pti": 44.5
+        },
+        "partner": {
+          "pti": 25.1
+        },
+        "opp1": {
+          "pti": 32.3
+        },
+        "opp2": {
+          "pti": 45.1
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 42.04
+        },
+        "partner": {
+          "pti": 22.64
+        },
+        "opp1": {
+          "pti": 34.76
+        },
+        "opp2": {
+          "pti": 47.56
+        }
+      },
+      "details": {
+        "team1_avg": 34.8,
+        "team2_avg": 38.7,
+        "expected_prob": 0.494,
+        "actual_result": 1.0,
+        "k_factor": 4.9,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 16.4,
+      "adjustment": 2.96,
+      "before": {
+        "player": {
+          "pti": 51.4
+        },
+        "partner": {
+          "pti": 50.4
+        },
+        "opp1": {
+          "pti": 25.6
+        },
+        "opp2": {
+          "pti": 43.4
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 48.44
+        },
+        "partner": {
+          "pti": 47.44
+        },
+        "opp1": {
+          "pti": 28.56
+        },
+        "opp2": {
+          "pti": 46.36
+        }
+      },
+      "details": {
+        "team1_avg": 50.9,
+        "team2_avg": 34.5,
+        "expected_prob": 0.524,
+        "actual_result": 1.0,
+        "k_factor": 6.2,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 0.45,
+      "adjustment": 3.41,
+      "before": {
+        "player": {
+          "pti": 37.9
+        },
+        "partner": {
+          "pti": 43.4
+        },
+        "opp1": {
+          "pti": 30.6
+        },
+        "opp2": {
+          "pti": 49.8
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 34.49
+        },
+        "partner": {
+          "pti": 39.99
+        },
+        "opp1": {
+          "pti": 34.01
+        },
+        "opp2": {
+          "pti": 53.21
+        }
+      },
+      "details": {
+        "team1_avg": 40.65,
+        "team2_avg": 40.2,
+        "expected_prob": 0.501,
+        "actual_result": 1.0,
+        "k_factor": 6.8,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 17.05,
+      "adjustment": 2.89,
+      "before": {
+        "player": {
+          "pti": 26.2
+        },
+        "partner": {
+          "pti": 51.7
+        },
+        "opp1": {
+          "pti": 24.1
+        },
+        "opp2": {
+          "pti": 19.7
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 23.31
+        },
+        "partner": {
+          "pti": 48.81
+        },
+        "opp1": {
+          "pti": 26.99
+        },
+        "opp2": {
+          "pti": 22.59
+        }
+      },
+      "details": {
+        "team1_avg": 38.95,
+        "team2_avg": 21.9,
+        "expected_prob": 0.525,
+        "actual_result": 1.0,
+        "k_factor": 6.1,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 1.75,
+      "adjustment": 3.09,
+      "before": {
+        "player": {
+          "pti": 51.7
+        },
+        "partner": {
+          "pti": 30.0
+        },
+        "opp1": {
+          "pti": 41.8
+        },
+        "opp2": {
+          "pti": 36.4
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 48.61
+        },
+        "partner": {
+          "pti": 26.91
+        },
+        "opp1": {
+          "pti": 44.89
+        },
+        "opp2": {
+          "pti": 39.49
+        }
+      },
+      "details": {
+        "team1_avg": 40.85,
+        "team2_avg": 39.1,
+        "expected_prob": 0.503,
+        "actual_result": 1.0,
+        "k_factor": 6.2,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 9.45,
+      "adjustment": 3.03,
+      "before": {
+        "player": {
+          "pti": 35.7
+        },
+        "partner": {
+          "pti": 51.8
+        },
+        "opp1": {
+          "pti": 32.6
+        },
+        "opp2": {
+          "pti": 36.0
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 32.67
+        },
+        "partner": {
+          "pti": 48.77
+        },
+        "opp1": {
+          "pti": 35.63
+        },
+        "opp2": {
+          "pti": 39.03
+        }
+      },
+      "details": {
+        "team1_avg": 43.75,
+        "team2_avg": 34.3,
+        "expected_prob": 0.514,
+        "actual_result": 1.0,
+        "k_factor": 6.2,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 0.65,
+      "adjustment": 3.1,
+      "before": {
+        "player": {
+          "pti": 42.4
+        },
+        "partner": {
+          "pti": 30.1
+        },
+        "opp1": {
+          "pti": 23.7
+        },
+        "opp2": {
+          "pti": 47.5
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 39.3
+        },
+        "partner": {
+          "pti": 27.0
+        },
+        "opp1": {
+          "pti": 26.8
+        },
+        "opp2": {
+          "pti": 50.6
+        }
+      },
+      "details": {
+        "team1_avg": 36.25,
+        "team2_avg": 35.6,
+        "expected_prob": 0.501,
+        "actual_result": 1.0,
+        "k_factor": 6.2,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 14.15,
+      "adjustment": 2.53,
+      "before": {
+        "player": {
+          "pti": 28.6
+        },
+        "partner": {
+          "pti": 45.9
+        },
+        "opp1": {
+          "pti": 52.4
+        },
+        "opp2": {
+          "pti": 50.4
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 26.07
+        },
+        "partner": {
+          "pti": 43.37
+        },
+        "opp1": {
+          "pti": 54.93
+        },
+        "opp2": {
+          "pti": 52.93
+        }
+      },
+      "details": {
+        "team1_avg": 37.25,
+        "team2_avg": 51.4,
+        "expected_prob": 0.48,
+        "actual_result": 1.0,
+        "k_factor": 4.9,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 13.15,
+      "adjustment": 3.23,
+      "before": {
+        "player": {
+          "pti": 21.2
+        },
+        "partner": {
+          "pti": 23.1
+        },
+        "opp1": {
+          "pti": 24.2
+        },
+        "opp2": {
+          "pti": 46.4
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 17.97
+        },
+        "partner": {
+          "pti": 19.87
+        },
+        "opp1": {
+          "pti": 27.43
+        },
+        "opp2": {
+          "pti": 49.63
+        }
+      },
+      "details": {
+        "team1_avg": 22.15,
+        "team2_avg": 35.3,
+        "expected_prob": 0.481,
+        "actual_result": 1.0,
+        "k_factor": 6.2,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 1.3,
+      "adjustment": 3.12,
+      "before": {
+        "player": {
+          "pti": 37.0
+        },
+        "partner": {
+          "pti": 53.1
+        },
+        "opp1": {
+          "pti": 54.0
+        },
+        "opp2": {
+          "pti": 38.7
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 33.88
+        },
+        "partner": {
+          "pti": 49.98
+        },
+        "opp1": {
+          "pti": 57.12
+        },
+        "opp2": {
+          "pti": 41.82
+        }
+      },
+      "details": {
+        "team1_avg": 45.05,
+        "team2_avg": 46.35,
+        "expected_prob": 0.498,
+        "actual_result": 1.0,
+        "k_factor": 6.2,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 13.35,
+      "adjustment": 3.55,
+      "before": {
+        "player": {
+          "pti": 19.5
+        },
+        "partner": {
+          "pti": 17.1
+        },
+        "opp1": {
+          "pti": 31.4
+        },
+        "opp2": {
+          "pti": 31.9
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 15.95
+        },
+        "partner": {
+          "pti": 13.55
+        },
+        "opp1": {
+          "pti": 34.95
+        },
+        "opp2": {
+          "pti": 35.45
+        }
+      },
+      "details": {
+        "team1_avg": 18.3,
+        "team2_avg": 31.65,
+        "expected_prob": 0.481,
+        "actual_result": 1.0,
+        "k_factor": 6.8,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 8.1,
+      "adjustment": 2.49,
+      "before": {
+        "player": {
+          "pti": 22.4
+        },
+        "partner": {
+          "pti": 16.3
+        },
+        "opp1": {
+          "pti": 38.4
+        },
+        "opp2": {
+          "pti": 16.5
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 19.91
+        },
+        "partner": {
+          "pti": 13.81
+        },
+        "opp1": {
+          "pti": 40.89
+        },
+        "opp2": {
+          "pti": 18.99
+        }
+      },
+      "details": {
+        "team1_avg": 19.35,
+        "team2_avg": 27.45,
+        "expected_prob": 0.488,
+        "actual_result": 1.0,
+        "k_factor": 4.9,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 16.15,
+      "adjustment": 3.97,
+      "before": {
+        "player": {
+          "pti": 32.6
+        },
+        "partner": {
+          "pti": 21.7
+        },
+        "opp1": {
+          "pti": 48.5
+        },
+        "opp2": {
+          "pti": 38.1
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 28.63
+        },
+        "partner": {
+          "pti": 17.73
+        },
+        "opp1": {
+          "pti": 52.47
+        },
+        "opp2": {
+          "pti": 42.07
+        }
+      },
+      "details": {
+        "team1_avg": 27.15,
+        "team2_avg": 43.3,
+        "expected_prob": 0.477,
+        "actual_result": 1.0,
+        "k_factor": 7.6,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 0.15,
+      "adjustment": 3.87,
+      "before": {
+        "player": {
+          "pti": 44.5
+        },
+        "partner": {
+          "pti": 24.4
+        },
+        "opp1": {
+          "pti": 26.8
+        },
+        "opp2": {
+          "pti": 41.8
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 40.63
+        },
+        "partner": {
+          "pti": 20.53
+        },
+        "opp1": {
+          "pti": 30.67
+        },
+        "opp2": {
+          "pti": 45.67
+        }
+      },
+      "details": {
+        "team1_avg": 34.45,
+        "team2_avg": 34.3,
+        "expected_prob": 0.5,
+        "actual_result": 1.0,
+        "k_factor": 7.8,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 3.4,
+      "adjustment": 2.71,
+      "before": {
+        "player": {
+          "pti": 18.2
+        },
+        "partner": {
+          "pti": 42.1
+        },
+        "opp1": {
+          "pti": 35.4
+        },
+        "opp2": {
+          "pti": 18.1
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 15.49
+        },
+        "partner": {
+          "pti": 39.39
+        },
+        "opp1": {
+          "pti": 38.11
+        },
+        "opp2": {
+          "pti": 20.81
+        }
+      },
+      "details": {
+        "team1_avg": 30.15,
+        "team2_avg": 26.75,
+        "expected_prob": 0.505,
+        "actual_result": 1.0,
+        "k_factor": 5.5,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 20.15,
+      "adjustment": 3.61,
+      "before": {
+        "player": {
+          "pti": 20.5
+        },
+        "partner": {
+          "pti": 19.0
+        },
+        "opp1": {
+          "pti": 27.4
+        },
+        "opp2": {
+          "pti": 52.4
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 16.89
+        },
+        "partner": {
+          "pti": 15.39
+        },
+        "opp1": {
+          "pti": 31.01
+        },
+        "opp2": {
+          "pti": 56.01
+        }
+      },
+      "details": {
+        "team1_avg": 19.75,
+        "team2_avg": 39.9,
+        "expected_prob": 0.471,
+        "actual_result": 1.0,
+        "k_factor": 6.8,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 25.1,
+      "adjustment": 2.54,
+      "before": {
+        "player": {
+          "pti": 46.5
+        },
+        "partner": {
+          "pti": 52.1
+        },
+        "opp1": {
+          "pti": 16.2
+        },
+        "opp2": {
+          "pti": 32.2
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 43.96
+        },
+        "partner": {
+          "pti": 49.56
+        },
+        "opp1": {
+          "pti": 18.74
+        },
+        "opp2": {
+          "pti": 34.74
+        }
+      },
+      "details": {
+        "team1_avg": 49.3,
+        "team2_avg": 24.2,
+        "expected_prob": 0.536,
+        "actual_result": 1.0,
+        "k_factor": 5.5,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 3.65,
+      "adjustment": 2.71,
+      "before": {
+        "player": {
+          "pti": 50.9
+        },
+        "partner": {
+          "pti": 35.0
+        },
+        "opp1": {
+          "pti": 49.0
+        },
+        "opp2": {
+          "pti": 29.6
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 48.19
+        },
+        "partner": {
+          "pti": 32.29
+        },
+        "opp1": {
+          "pti": 51.71
+        },
+        "opp2": {
+          "pti": 32.31
+        }
+      },
+      "details": {
+        "team1_avg": 42.95,
+        "team2_avg": 39.3,
+        "expected_prob": 0.505,
+        "actual_result": 1.0,
+        "k_factor": 5.5,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 2.25,
+      "adjustment": 4.53,
+      "before": {
+        "player": {
+          "pti": 49.8
+        },
+        "partner": {
+          "pti": 27.1
+        },
+        "opp1": {
+          "pti": 44.7
+        },
+        "opp2": {
+          "pti": 27.7
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 45.27
+        },
+        "partner": {
+          "pti": 22.57
+        },
+        "opp1": {
+          "pti": 49.23
+        },
+        "opp2": {
+          "pti": 32.23
+        }
+      },
+      "details": {
+        "team1_avg": 38.45,
+        "team2_avg": 36.2,
+        "expected_prob": 0.503,
+        "actual_result": 1.0,
+        "k_factor": 9.1,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 18.7,
+      "adjustment": 2.56,
+      "before": {
+        "player": {
+          "pti": 34.1
+        },
+        "partner": {
+          "pti": 16.8
+        },
+        "opp1": {
+          "pti": 49.8
+        },
+        "opp2": {
+          "pti": 38.5
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 31.54
+        },
+        "partner": {
+          "pti": 14.24
+        },
+        "opp1": {
+          "pti": 52.36
+        },
+        "opp2": {
+          "pti": 41.06
+        }
+      },
+      "details": {
+        "team1_avg": 25.45,
+        "team2_avg": 44.15,
+        "expected_prob": 0.473,
+        "actual_result": 1.0,
+        "k_factor": 4.9,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 2.05,
+      "adjustment": 2.42,
+      "before": {
+        "player": {
+          "pti": 32.5
+        },
+        "partner": {
+          "pti": 20.5
+        },
+        "opp1": {
+          "pti": 30.0
+        },
+        "opp2": {
+          "pti": 18.9
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 30.08
+        },
+        "partner": {
+          "pti": 18.08
+        },
+        "opp1": {
+          "pti": 32.42
+        },
+        "opp2": {
+          "pti": 21.32
+        }
+      },
+      "details": {
+        "team1_avg": 26.5,
+        "team2_avg": 24.45,
+        "expected_prob": 0.503,
+        "actual_result": 1.0,
+        "k_factor": 4.9,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 1.0,
+      "adjustment": 2.42,
+      "before": {
+        "player": {
+          "pti": 30.8
+        },
+        "partner": {
+          "pti": 51.5
+        },
+        "opp1": {
+          "pti": 45.7
+        },
+        "opp2": {
+          "pti": 34.6
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 28.38
+        },
+        "partner": {
+          "pti": 49.08
+        },
+        "opp1": {
+          "pti": 48.12
+        },
+        "opp2": {
+          "pti": 37.02
+        }
+      },
+      "details": {
+        "team1_avg": 41.15,
+        "team2_avg": 40.15,
+        "expected_prob": 0.501,
+        "actual_result": 1.0,
+        "k_factor": 4.9,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 2.85,
+      "adjustment": 2.41,
+      "before": {
+        "player": {
+          "pti": 46.0
+        },
+        "partner": {
+          "pti": 26.1
+        },
+        "opp1": {
+          "pti": 32.3
+        },
+        "opp2": {
+          "pti": 34.1
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 43.59
+        },
+        "partner": {
+          "pti": 23.69
+        },
+        "opp1": {
+          "pti": 34.71
+        },
+        "opp2": {
+          "pti": 36.51
+        }
+      },
+      "details": {
+        "team1_avg": 36.05,
+        "team2_avg": 33.2,
+        "expected_prob": 0.504,
+        "actual_result": 1.0,
+        "k_factor": 4.9,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 6.65,
+      "adjustment": 3.8,
+      "before": {
+        "player": {
+          "pti": 41.9
+        },
+        "partner": {
+          "pti": 43.4
+        },
+        "opp1": {
+          "pti": 42.7
+        },
+        "opp2": {
+          "pti": 29.3
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 38.1
+        },
+        "partner": {
+          "pti": 39.6
+        },
+        "opp1": {
+          "pti": 46.5
+        },
+        "opp2": {
+          "pti": 33.1
+        }
+      },
+      "details": {
+        "team1_avg": 42.65,
+        "team2_avg": 36.0,
+        "expected_prob": 0.51,
+        "actual_result": 1.0,
+        "k_factor": 7.8,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 23.85,
+      "adjustment": 2.26,
+      "before": {
+        "player": {
+          "pti": 38.3
+        },
+        "partner": {
+          "pti": 53.7
+        },
+        "opp1": {
+          "pti": 16.6
+        },
+        "opp2": {
+          "pti": 27.7
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 36.04
+        },
+        "partner": {
+          "pti": 51.44
+        },
+        "opp1": {
+          "pti": 18.86
+        },
+        "opp2": {
+          "pti": 29.96
+        }
+      },
+      "details": {
+        "team1_avg": 46.0,
+        "team2_avg": 22.15,
+        "expected_prob": 0.534,
+        "actual_result": 1.0,
+        "k_factor": 4.9,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 26.2,
+      "adjustment": 3.34,
+      "before": {
+        "player": {
+          "pti": 34.5
+        },
+        "partner": {
+          "pti": 20.3
+        },
+        "opp1": {
+          "pti": 52.6
+        },
+        "opp2": {
+          "pti": 54.6
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 31.16
+        },
+        "partner": {
+          "pti": 16.96
+        },
+        "opp1": {
+          "pti": 55.94
+        },
+        "opp2": {
+          "pti": 57.94
+        }
+      },
+      "details": {
+        "team1_avg": 27.4,
+        "team2_avg": 53.6,
+        "expected_prob": 0.462,
+        "actual_result": 1.0,
+        "k_factor": 6.2,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 9.85,
+      "adjustment": 3.02,
+      "before": {
+        "player": {
+          "pti": 27.1
+        },
+        "partner": {
+          "pti": 47.6
+        },
+        "opp1": {
+          "pti": 29.3
+        },
+        "opp2": {
+          "pti": 25.7
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 24.08
+        },
+        "partner": {
+          "pti": 44.58
+        },
+        "opp1": {
+          "pti": 32.32
+        },
+        "opp2": {
+          "pti": 28.72
+        }
+      },
+      "details": {
+        "team1_avg": 37.35,
+        "team2_avg": 27.5,
+        "expected_prob": 0.514,
+        "actual_result": 1.0,
+        "k_factor": 6.2,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 7.8,
+      "adjustment": 3.96,
+      "before": {
+        "player": {
+          "pti": 35.6
+        },
+        "partner": {
+          "pti": 27.2
+        },
+        "opp1": {
+          "pti": 53.5
+        },
+        "opp2": {
+          "pti": 24.9
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 31.64
+        },
+        "partner": {
+          "pti": 23.24
+        },
+        "opp1": {
+          "pti": 57.46
+        },
+        "opp2": {
+          "pti": 28.86
+        }
+      },
+      "details": {
+        "team1_avg": 31.4,
+        "team2_avg": 39.2,
+        "expected_prob": 0.489,
+        "actual_result": 1.0,
+        "k_factor": 7.8,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 0.85,
+      "adjustment": 5.31,
+      "before": {
+        "player": {
+          "pti": 52.3
+        },
+        "partner": {
+          "pti": 45.6
+        },
+        "opp1": {
+          "pti": 49.3
+        },
+        "opp2": {
+          "pti": 46.9
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 46.99
+        },
+        "partner": {
+          "pti": 40.29
+        },
+        "opp1": {
+          "pti": 54.61
+        },
+        "opp2": {
+          "pti": 52.21
+        }
+      },
+      "details": {
+        "team1_avg": 48.95,
+        "team2_avg": 48.1,
+        "expected_prob": 0.501,
+        "actual_result": 1.0,
+        "k_factor": 10.6,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 2.05,
+      "adjustment": 2.75,
+      "before": {
+        "player": {
+          "pti": 15.2
+        },
+        "partner": {
+          "pti": 48.3
+        },
+        "opp1": {
+          "pti": 41.6
+        },
+        "opp2": {
+          "pti": 26.0
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 12.45
+        },
+        "partner": {
+          "pti": 45.55
+        },
+        "opp1": {
+          "pti": 44.35
+        },
+        "opp2": {
+          "pti": 28.75
+        }
+      },
+      "details": {
+        "team1_avg": 31.75,
+        "team2_avg": 33.8,
+        "expected_prob": 0.497,
+        "actual_result": 1.0,
+        "k_factor": 5.5,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 9.95,
+      "adjustment": 3.32,
+      "before": {
+        "player": {
+          "pti": 43.5
+        },
+        "partner": {
+          "pti": 23.4
+        },
+        "opp1": {
+          "pti": 19.7
+        },
+        "opp2": {
+          "pti": 27.3
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 40.18
+        },
+        "partner": {
+          "pti": 20.08
+        },
+        "opp1": {
+          "pti": 23.02
+        },
+        "opp2": {
+          "pti": 30.62
+        }
+      },
+      "details": {
+        "team1_avg": 33.45,
+        "team2_avg": 23.5,
+        "expected_prob": 0.514,
+        "actual_result": 1.0,
+        "k_factor": 6.8,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 24.5,
+      "adjustment": 2.54,
+      "before": {
+        "player": {
+          "pti": 49.7
+        },
+        "partner": {
+          "pti": 53.8
+        },
+        "opp1": {
+          "pti": 17.1
+        },
+        "opp2": {
+          "pti": 37.4
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 47.16
+        },
+        "partner": {
+          "pti": 51.26
+        },
+        "opp1": {
+          "pti": 19.64
+        },
+        "opp2": {
+          "pti": 39.94
+        }
+      },
+      "details": {
+        "team1_avg": 51.75,
+        "team2_avg": 27.25,
+        "expected_prob": 0.535,
+        "actual_result": 1.0,
+        "k_factor": 5.5,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 13.65,
+      "adjustment": 3.28,
+      "before": {
+        "player": {
+          "pti": 40.0
+        },
+        "partner": {
+          "pti": 36.9
+        },
+        "opp1": {
+          "pti": 30.8
+        },
+        "opp2": {
+          "pti": 18.8
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 36.72
+        },
+        "partner": {
+          "pti": 33.62
+        },
+        "opp1": {
+          "pti": 34.08
+        },
+        "opp2": {
+          "pti": 22.08
+        }
+      },
+      "details": {
+        "team1_avg": 38.45,
+        "team2_avg": 24.8,
+        "expected_prob": 0.52,
+        "actual_result": 1.0,
+        "k_factor": 6.8,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 12.9,
+      "adjustment": 3.23,
+      "before": {
+        "player": {
+          "pti": 15.3
+        },
+        "partner": {
+          "pti": 38.9
+        },
+        "opp1": {
+          "pti": 52.2
+        },
+        "opp2": {
+          "pti": 27.8
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 12.07
+        },
+        "partner": {
+          "pti": 35.67
+        },
+        "opp1": {
+          "pti": 55.43
+        },
+        "opp2": {
+          "pti": 31.03
+        }
+      },
+      "details": {
+        "team1_avg": 27.1,
+        "team2_avg": 40.0,
+        "expected_prob": 0.481,
+        "actual_result": 1.0,
+        "k_factor": 6.2,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 9.5,
+      "adjustment": 3.03,
+      "before": {
+        "player": {
+          "pti": 52.4
+        },
+        "partner": {
+          "pti": 20.3
+        },
+        "opp1": {
+          "pti": 24.5
+        },
+        "opp2": {
+          "pti": 29.2
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 49.37
+        },
+        "partner": {
+          "pti": 17.27
+        },
+        "opp1": {
+          "pti": 27.53
+        },
+        "opp2": {
+          "pti": 32.23
+        }
+      },
+      "details": {
+        "team1_avg": 36.35,
+        "team2_avg": 26.85,
+        "expected_prob": 0.514,
+        "actual_result": 1.0,
+        "k_factor": 6.2,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 1.75,
+      "adjustment": 3.09,
+      "before": {
+        "player": {
+          "pti": 37.3
+        },
+        "partner": {
+          "pti": 39.4
+        },
+        "opp1": {
+          "pti": 23.8
+        },
+        "opp2": {
+          "pti": 49.4
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 34.21
+        },
+        "partner": {
+          "pti": 36.31
+        },
+        "opp1": {
+          "pti": 26.89
+        },
+        "opp2": {
+          "pti": 52.49
+        }
+      },
+      "details": {
+        "team1_avg": 38.35,
+        "team2_avg": 36.6,
+        "expected_prob": 0.503,
+        "actual_result": 1.0,
+        "k_factor": 6.2,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 1.8,
+      "adjustment": 2.72,
+      "before": {
+        "player": {
+          "pti": 18.8
+        },
+        "partner": {
+          "pti": 47.3
+        },
+        "opp1": {
+          "pti": 31.1
+        },
+        "opp2": {
+          "pti": 31.4
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 16.08
+        },
+        "partner": {
+          "pti": 44.58
+        },
+        "opp1": {
+          "pti": 33.82
+        },
+        "opp2": {
+          "pti": 34.12
+        }
+      },
+      "details": {
+        "team1_avg": 33.05,
+        "team2_avg": 31.25,
+        "expected_prob": 0.503,
+        "actual_result": 1.0,
+        "k_factor": 5.5,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 18.65,
+      "adjustment": 3.28,
+      "before": {
+        "player": {
+          "pti": 25.1
+        },
+        "partner": {
+          "pti": 24.6
+        },
+        "opp1": {
+          "pti": 48.8
+        },
+        "opp2": {
+          "pti": 38.2
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 21.82
+        },
+        "partner": {
+          "pti": 21.32
+        },
+        "opp1": {
+          "pti": 52.08
+        },
+        "opp2": {
+          "pti": 41.48
+        }
+      },
+      "details": {
+        "team1_avg": 24.85,
+        "team2_avg": 43.5,
+        "expected_prob": 0.473,
+        "actual_result": 1.0,
+        "k_factor": 6.2,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 8.6,
+      "adjustment": 2.49,
+      "before": {
+        "player": {
+          "pti": 24.8
+        },
+        "partner": {
+          "pti": 23.2
+        },
+        "opp1": {
+          "pti": 16.1
+        },
+        "opp2": {
+          "pti": 49.1
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 22.31
+        },
+        "partner": {
+          "pti": 20.71
+        },
+        "opp1": {
+          "pti": 18.59
+        },
+        "opp2": {
+          "pti": 51.59
+        }
+      },
+      "details": {
+        "team1_avg": 24.0,
+        "team2_avg": 32.6,
+        "expected_prob": 0.488,
+        "actual_result": 1.0,
+        "k_factor": 4.9,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 6.95,
+      "adjustment": 2.38,
+      "before": {
+        "player": {
+          "pti": 54.1
+        },
+        "partner": {
+          "pti": 32.6
+        },
+        "opp1": {
+          "pti": 29.7
+        },
+        "opp2": {
+          "pti": 43.1
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 51.72
+        },
+        "partner": {
+          "pti": 30.22
+        },
+        "opp1": {
+          "pti": 32.08
+        },
+        "opp2": {
+          "pti": 45.48
+        }
+      },
+      "details": {
+        "team1_avg": 43.35,
+        "team2_avg": 36.4,
+        "expected_prob": 0.51,
+        "actual_result": 1.0,
+        "k_factor": 4.9,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 2.95,
+      "adjustment": 4.52,
+      "before": {
+        "player": {
+          "pti": 51.7
+        },
+        "partner": {
+          "pti": 52.8
+        },
+        "opp1": {
+          "pti": 46.5
+        },
+        "opp2": {
+          "pti": 52.1
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 47.18
+        },
+        "partner": {
+          "pti": 48.28
+        },
+        "opp1": {
+          "pti": 51.02
+        },
+        "opp2": {
+          "pti": 56.62
+        }
+      },
+      "details": {
+        "team1_avg": 52.25,
+        "team2_avg": 49.3,
+        "expected_prob": 0.504,
+        "actual_result": 1.0,
+        "k_factor": 9.1,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 6.55,
+      "adjustment": 3.09,
+      "before": {
+        "player": {
+          "pti": 23.5
+        },
+        "partner": {
+          "pti": 41.4
+        },
+        "opp1": {
+          "pti": 41.0
+        },
+        "opp2": {
+          "pti": 37.0
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 20.41
+        },
+        "partner": {
+          "pti": 38.31
+        },
+        "opp1": {
+          "pti": 44.09
+        },
+        "opp2": {
+          "pti": 40.09
+        }
+      },
+      "details": {
+        "team1_avg": 32.45,
+        "team2_avg": 39.0,
+        "expected_prob": 0.491,
+        "actual_result": 1.0,
+        "k_factor": 6.1,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 21.05,
+      "adjustment": 3.64,
+      "before": {
+        "player": {
+          "pti": 47.1
+        },
+        "partner": {
+          "pti": 53.6
+        },
+        "opp1": {
+          "pti": 36.3
+        },
+        "opp2": {
+          "pti": 22.3
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 43.46
+        },
+        "partner": {
+          "pti": 49.96
+        },
+        "opp1": {
+          "pti": 39.94
+        },
+        "opp2": {
+          "pti": 25.94
+        }
+      },
+      "details": {
+        "team1_avg": 50.35,
+        "team2_avg": 29.3,
+        "expected_prob": 0.53,
+        "actual_result": 1.0,
+        "k_factor": 7.8,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 6.4,
+      "adjustment": 2.78,
+      "before": {
+        "player": {
+          "pti": 26.8
+        },
+        "partner": {
+          "pti": 43.7
+        },
+        "opp1": {
+          "pti": 54.6
+        },
+        "opp2": {
+          "pti": 28.7
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 24.02
+        },
+        "partner": {
+          "pti": 40.92
+        },
+        "opp1": {
+          "pti": 57.38
+        },
+        "opp2": {
+          "pti": 31.48
+        }
+      },
+      "details": {
+        "team1_avg": 35.25,
+        "team2_avg": 41.65,
+        "expected_prob": 0.491,
+        "actual_result": 1.0,
+        "k_factor": 5.5,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 4.6,
+      "adjustment": 2.7,
+      "before": {
+        "player": {
+          "pti": 37.5
+        },
+        "partner": {
+          "pti": 30.0
+        },
+        "opp1": {
+          "pti": 26.5
+        },
+        "opp2": {
+          "pti": 31.8
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 34.8
+        },
+        "partner": {
+          "pti": 27.3
+        },
+        "opp1": {
+          "pti": 29.2
+        },
+        "opp2": {
+          "pti": 34.5
+        }
+      },
+      "details": {
+        "team1_avg": 33.75,
+        "team2_avg": 29.15,
+        "expected_prob": 0.507,
+        "actual_result": 1.0,
+        "k_factor": 5.5,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 4.65,
+      "adjustment": 3.46,
+      "before": {
+        "player": {
+          "pti": 35.8
+        },
+        "partner": {
+          "pti": 29.7
+        },
+        "opp1": {
+          "pti": 28.8
+        },
+        "opp2": {
+          "pti": 46.0
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 32.34
+        },
+        "partner": {
+          "pti": 26.24
+        },
+        "opp1": {
+          "pti": 32.26
+        },
+        "opp2": {
+          "pti": 49.46
+        }
+      },
+      "details": {
+        "team1_avg": 32.75,
+        "team2_avg": 37.4,
+        "expected_prob": 0.493,
+        "actual_result": 1.0,
+        "k_factor": 6.8,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 0.45,
+      "adjustment": 2.43,
+      "before": {
+        "player": {
+          "pti": 49.8
+        },
+        "partner": {
+          "pti": 38.1
+        },
+        "opp1": {
+          "pti": 53.0
+        },
+        "opp2": {
+          "pti": 35.8
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 47.37
+        },
+        "partner": {
+          "pti": 35.67
+        },
+        "opp1": {
+          "pti": 55.43
+        },
+        "opp2": {
+          "pti": 38.23
+        }
+      },
+      "details": {
+        "team1_avg": 43.95,
+        "team2_avg": 44.4,
+        "expected_prob": 0.499,
+        "actual_result": 1.0,
+        "k_factor": 4.9,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 12.9,
+      "adjustment": 2.63,
+      "before": {
+        "player": {
+          "pti": 18.4
+        },
+        "partner": {
+          "pti": 45.8
+        },
+        "opp1": {
+          "pti": 16.7
+        },
+        "opp2": {
+          "pti": 21.7
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 15.77
+        },
+        "partner": {
+          "pti": 43.17
+        },
+        "opp1": {
+          "pti": 19.33
+        },
+        "opp2": {
+          "pti": 24.33
+        }
+      },
+      "details": {
+        "team1_avg": 32.1,
+        "team2_avg": 19.2,
+        "expected_prob": 0.519,
+        "actual_result": 1.0,
+        "k_factor": 5.5,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 9.45,
+      "adjustment": 3.77,
+      "before": {
+        "player": {
+          "pti": 36.3
+        },
+        "partner": {
+          "pti": 22.1
+        },
+        "opp1": {
+          "pti": 21.3
+        },
+        "opp2": {
+          "pti": 18.2
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 32.53
+        },
+        "partner": {
+          "pti": 18.33
+        },
+        "opp1": {
+          "pti": 25.07
+        },
+        "opp2": {
+          "pti": 21.97
+        }
+      },
+      "details": {
+        "team1_avg": 29.2,
+        "team2_avg": 19.75,
+        "expected_prob": 0.514,
+        "actual_result": 1.0,
+        "k_factor": 7.8,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 11.35,
+      "adjustment": 2.82,
+      "before": {
+        "player": {
+          "pti": 27.0
+        },
+        "partner": {
+          "pti": 16.4
+        },
+        "opp1": {
+          "pti": 25.0
+        },
+        "opp2": {
+          "pti": 41.1
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 24.18
+        },
+        "partner": {
+          "pti": 13.58
+        },
+        "opp1": {
+          "pti": 27.82
+        },
+        "opp2": {
+          "pti": 43.92
+        }
+      },
+      "details": {
+        "team1_avg": 21.7,
+        "team2_avg": 33.05,
+        "expected_prob": 0.484,
+        "actual_result": 1.0,
+        "k_factor": 5.5,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 14.4,
+      "adjustment": 3.27,
+      "before": {
+        "player": {
+          "pti": 40.7
+        },
+        "partner": {
+          "pti": 48.3
+        },
+        "opp1": {
+          "pti": 33.3
+        },
+        "opp2": {
+          "pti": 26.9
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 37.43
+        },
+        "partner": {
+          "pti": 45.03
+        },
+        "opp1": {
+          "pti": 36.57
+        },
+        "opp2": {
+          "pti": 30.17
+        }
+      },
+      "details": {
+        "team1_avg": 44.5,
+        "team2_avg": 30.1,
+        "expected_prob": 0.521,
+        "actual_result": 1.0,
+        "k_factor": 6.8,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 16.95,
+      "adjustment": 2.96,
+      "before": {
+        "player": {
+          "pti": 44.0
+        },
+        "partner": {
+          "pti": 37.7
+        },
+        "opp1": {
+          "pti": 21.8
+        },
+        "opp2": {
+          "pti": 26.0
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 41.04
+        },
+        "partner": {
+          "pti": 34.74
+        },
+        "opp1": {
+          "pti": 24.76
+        },
+        "opp2": {
+          "pti": 28.96
+        }
+      },
+      "details": {
+        "team1_avg": 40.85,
+        "team2_avg": 23.9,
+        "expected_prob": 0.524,
+        "actual_result": 1.0,
+        "k_factor": 6.2,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 10.95,
+      "adjustment": 4.05,
+      "before": {
+        "player": {
+          "pti": 40.2
+        },
+        "partner": {
+          "pti": 50.0
+        },
+        "opp1": {
+          "pti": 43.3
+        },
+        "opp2": {
+          "pti": 25.0
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 36.15
+        },
+        "partner": {
+          "pti": 45.95
+        },
+        "opp1": {
+          "pti": 47.35
+        },
+        "opp2": {
+          "pti": 29.05
+        }
+      },
+      "details": {
+        "team1_avg": 45.1,
+        "team2_avg": 34.15,
+        "expected_prob": 0.516,
+        "actual_result": 1.0,
+        "k_factor": 8.4,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 1.8,
+      "adjustment": 3.4,
+      "before": {
+        "player": {
+          "pti": 18.7
+        },
+        "partner": {
+          "pti": 39.6
+        },
+        "opp1": {
+          "pti": 31.6
+        },
+        "opp2": {
+          "pti": 23.1
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 15.3
+        },
+        "partner": {
+          "pti": 36.2
+        },
+        "opp1": {
+          "pti": 35.0
+        },
+        "opp2": {
+          "pti": 26.5
+        }
+      },
+      "details": {
+        "team1_avg": 29.15,
+        "team2_avg": 27.35,
+        "expected_prob": 0.503,
+        "actual_result": 1.0,
+        "k_factor": 6.8,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 13.5,
+      "adjustment": 2.63,
+      "before": {
+        "player": {
+          "pti": 47.1
+        },
+        "partner": {
+          "pti": 16.2
+        },
+        "opp1": {
+          "pti": 18.2
+        },
+        "opp2": {
+          "pti": 18.1
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 44.47
+        },
+        "partner": {
+          "pti": 13.57
+        },
+        "opp1": {
+          "pti": 20.83
+        },
+        "opp2": {
+          "pti": 20.73
+        }
+      },
+      "details": {
+        "team1_avg": 31.65,
+        "team2_avg": 18.15,
+        "expected_prob": 0.519,
+        "actual_result": 1.0,
+        "k_factor": 5.5,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 0.35,
+      "adjustment": 2.43,
+      "before": {
+        "player": {
+          "pti": 40.4
+        },
+        "partner": {
+          "pti": 33.9
+        },
+        "opp1": {
+          "pti": 39.8
+        },
+        "opp2": {
+          "pti": 33.8
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 37.97
+        },
+        "partner": {
+          "pti": 31.47
+        },
+        "opp1": {
+          "pti": 42.23
+        },
+        "opp2": {
+          "pti": 36.23
+        }
+      },
+      "details": {
+        "team1_avg": 37.15,
+        "team2_avg": 36.8,
+        "expected_prob": 0.501,
+        "actual_result": 1.0,
+        "k_factor": 4.9,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 9.2,
+      "adjustment": 2.66,
+      "before": {
+        "player": {
+          "pti": 49.2
+        },
+        "partner": {
+          "pti": 44.2
+        },
+        "opp1": {
+          "pti": 52.9
+        },
+        "opp2": {
+          "pti": 22.1
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 46.54
+        },
+        "partner": {
+          "pti": 41.54
+        },
+        "opp1": {
+          "pti": 55.56
+        },
+        "opp2": {
+          "pti": 24.76
+        }
+      },
+      "details": {
+        "team1_avg": 46.7,
+        "team2_avg": 37.5,
+        "expected_prob": 0.513,
+        "actual_result": 1.0,
+        "k_factor": 5.5,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 4.2,
+      "adjustment": 2.4,
+      "before": {
+        "player": {
+          "pti": 45.8
+        },
+        "partner": {
+          "pti": 40.6
+        },
+        "opp1": {
+          "pti": 53.5
+        },
+        "opp2": {
+          "pti": 24.5
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 43.4
+        },
+        "partner": {
+          "pti": 38.2
+        },
+        "opp1": {
+          "pti": 55.9
+        },
+        "opp2": {
+          "pti": 26.9
+        }
+      },
+      "details": {
+        "team1_avg": 43.2,
+        "team2_avg": 39.0,
+        "expected_prob": 0.506,
+        "actual_result": 1.0,
+        "k_factor": 4.9,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 8.25,
+      "adjustment": 2.49,
+      "before": {
+        "player": {
+          "pti": 39.8
+        },
+        "partner": {
+          "pti": 15.6
+        },
+        "opp1": {
+          "pti": 42.6
+        },
+        "opp2": {
+          "pti": 29.3
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 37.31
+        },
+        "partner": {
+          "pti": 13.11
+        },
+        "opp1": {
+          "pti": 45.09
+        },
+        "opp2": {
+          "pti": 31.79
+        }
+      },
+      "details": {
+        "team1_avg": 27.7,
+        "team2_avg": 35.95,
+        "expected_prob": 0.488,
+        "actual_result": 1.0,
+        "k_factor": 4.9,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 28.45,
+      "adjustment": 3.69,
+      "before": {
+        "player": {
+          "pti": 19.0
+        },
+        "partner": {
+          "pti": 25.9
+        },
+        "opp1": {
+          "pti": 51.8
+        },
+        "opp2": {
+          "pti": 50.0
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 15.31
+        },
+        "partner": {
+          "pti": 22.21
+        },
+        "opp1": {
+          "pti": 55.49
+        },
+        "opp2": {
+          "pti": 53.69
+        }
+      },
+      "details": {
+        "team1_avg": 22.45,
+        "team2_avg": 50.9,
+        "expected_prob": 0.459,
+        "actual_result": 1.0,
+        "k_factor": 6.8,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 5.3,
+      "adjustment": 2.47,
+      "before": {
+        "player": {
+          "pti": 23.4
+        },
+        "partner": {
+          "pti": 21.6
+        },
+        "opp1": {
+          "pti": 35.7
+        },
+        "opp2": {
+          "pti": 19.9
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 20.93
+        },
+        "partner": {
+          "pti": 19.13
+        },
+        "opp1": {
+          "pti": 38.17
+        },
+        "opp2": {
+          "pti": 22.37
+        }
+      },
+      "details": {
+        "team1_avg": 22.5,
+        "team2_avg": 27.8,
+        "expected_prob": 0.492,
+        "actual_result": 1.0,
+        "k_factor": 4.9,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 5.8,
+      "adjustment": 2.39,
+      "before": {
+        "player": {
+          "pti": 48.2
+        },
+        "partner": {
+          "pti": 29.2
+        },
+        "opp1": {
+          "pti": 23.3
+        },
+        "opp2": {
+          "pti": 42.5
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 45.81
+        },
+        "partner": {
+          "pti": 26.81
+        },
+        "opp1": {
+          "pti": 25.69
+        },
+        "opp2": {
+          "pti": 44.89
+        }
+      },
+      "details": {
+        "team1_avg": 38.7,
+        "team2_avg": 32.9,
+        "expected_prob": 0.508,
+        "actual_result": 1.0,
+        "k_factor": 4.9,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 10.65,
+      "adjustment": 2.36,
+      "before": {
+        "player": {
+          "pti": 47.9
+        },
+        "partner": {
+          "pti": 25.6
+        },
+        "opp1": {
+          "pti": 36.0
+        },
+        "opp2": {
+          "pti": 16.2
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 45.54
+        },
+        "partner": {
+          "pti": 23.24
+        },
+        "opp1": {
+          "pti": 38.36
+        },
+        "opp2": {
+          "pti": 18.56
+        }
+      },
+      "details": {
+        "team1_avg": 36.75,
+        "team2_avg": 26.1,
+        "expected_prob": 0.515,
+        "actual_result": 1.0,
+        "k_factor": 4.9,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 7.2,
+      "adjustment": 3.87,
+      "before": {
+        "player": {
+          "pti": 54.3
+        },
+        "partner": {
+          "pti": 20.3
+        },
+        "opp1": {
+          "pti": 43.4
+        },
+        "opp2": {
+          "pti": 45.6
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 50.43
+        },
+        "partner": {
+          "pti": 16.43
+        },
+        "opp1": {
+          "pti": 47.27
+        },
+        "opp2": {
+          "pti": 49.47
+        }
+      },
+      "details": {
+        "team1_avg": 37.3,
+        "team2_avg": 44.5,
+        "expected_prob": 0.49,
+        "actual_result": 1.0,
+        "k_factor": 7.6,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 9.1,
+      "adjustment": 2.37,
+      "before": {
+        "player": {
+          "pti": 53.9
+        },
+        "partner": {
+          "pti": 48.8
+        },
+        "opp1": {
+          "pti": 30.1
+        },
+        "opp2": {
+          "pti": 54.4
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 51.53
+        },
+        "partner": {
+          "pti": 46.43
+        },
+        "opp1": {
+          "pti": 32.47
+        },
+        "opp2": {
+          "pti": 56.77
+        }
+      },
+      "details": {
+        "team1_avg": 51.35,
+        "team2_avg": 42.25,
+        "expected_prob": 0.513,
+        "actual_result": 1.0,
+        "k_factor": 4.9,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 8.55,
+      "adjustment": 3.78,
+      "before": {
+        "player": {
+          "pti": 51.6
+        },
+        "partner": {
+          "pti": 36.6
+        },
+        "opp1": {
+          "pti": 46.9
+        },
+        "opp2": {
+          "pti": 24.2
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 47.82
+        },
+        "partner": {
+          "pti": 32.82
+        },
+        "opp1": {
+          "pti": 50.68
+        },
+        "opp2": {
+          "pti": 27.98
+        }
+      },
+      "details": {
+        "team1_avg": 44.1,
+        "team2_avg": 35.55,
+        "expected_prob": 0.512,
+        "actual_result": 1.0,
+        "k_factor": 7.8,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 14.9,
+      "adjustment": 2.53,
+      "before": {
+        "player": {
+          "pti": 15.6
+        },
+        "partner": {
+          "pti": 49.1
+        },
+        "opp1": {
+          "pti": 49.2
+        },
+        "opp2": {
+          "pti": 45.3
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 13.07
+        },
+        "partner": {
+          "pti": 46.57
+        },
+        "opp1": {
+          "pti": 51.73
+        },
+        "opp2": {
+          "pti": 47.83
+        }
+      },
+      "details": {
+        "team1_avg": 32.35,
+        "team2_avg": 47.25,
+        "expected_prob": 0.479,
+        "actual_result": 1.0,
+        "k_factor": 4.9,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 8.65,
+      "adjustment": 3.97,
+      "before": {
+        "player": {
+          "pti": 17.0
+        },
+        "partner": {
+          "pti": 46.5
+        },
+        "opp1": {
+          "pti": 45.4
+        },
+        "opp2": {
+          "pti": 35.4
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 13.03
+        },
+        "partner": {
+          "pti": 42.53
+        },
+        "opp1": {
+          "pti": 49.37
+        },
+        "opp2": {
+          "pti": 39.37
+        }
+      },
+      "details": {
+        "team1_avg": 31.75,
+        "team2_avg": 40.4,
+        "expected_prob": 0.488,
+        "actual_result": 1.0,
+        "k_factor": 7.8,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 2.0,
+      "adjustment": 2.72,
+      "before": {
+        "player": {
+          "pti": 29.3
+        },
+        "partner": {
+          "pti": 30.7
+        },
+        "opp1": {
+          "pti": 27.1
+        },
+        "opp2": {
+          "pti": 28.9
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 26.58
+        },
+        "partner": {
+          "pti": 27.98
+        },
+        "opp1": {
+          "pti": 29.82
+        },
+        "opp2": {
+          "pti": 31.62
+        }
+      },
+      "details": {
+        "team1_avg": 30.0,
+        "team2_avg": 28.0,
+        "expected_prob": 0.503,
+        "actual_result": 1.0,
+        "k_factor": 5.5,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 0.05,
+      "adjustment": 3.11,
+      "before": {
+        "player": {
+          "pti": 40.4
+        },
+        "partner": {
+          "pti": 44.0
+        },
+        "opp1": {
+          "pti": 36.3
+        },
+        "opp2": {
+          "pti": 48.0
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 37.29
+        },
+        "partner": {
+          "pti": 40.89
+        },
+        "opp1": {
+          "pti": 39.41
+        },
+        "opp2": {
+          "pti": 51.11
+        }
+      },
+      "details": {
+        "team1_avg": 42.2,
+        "team2_avg": 42.15,
+        "expected_prob": 0.5,
+        "actual_result": 1.0,
+        "k_factor": 6.2,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 3.7,
+      "adjustment": 3.38,
+      "before": {
+        "player": {
+          "pti": 40.9
+        },
+        "partner": {
+          "pti": 47.2
+        },
+        "opp1": {
+          "pti": 26.5
+        },
+        "opp2": {
+          "pti": 54.2
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 37.52
+        },
+        "partner": {
+          "pti": 43.82
+        },
+        "opp1": {
+          "pti": 29.88
+        },
+        "opp2": {
+          "pti": 57.58
+        }
+      },
+      "details": {
+        "team1_avg": 44.05,
+        "team2_avg": 40.35,
+        "expected_prob": 0.505,
+        "actual_result": 1.0,
+        "k_factor": 6.8,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 9.25,
+      "adjustment": 2.49,
+      "before": {
+        "player": {
+          "pti": 28.1
+        },
+        "partner": {
+          "pti": 18.9
+        },
+        "opp1": {
+          "pti": 49.6
+        },
+        "opp2": {
+          "pti": 15.9
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 25.61
+        },
+        "partner": {
+          "pti": 16.41
+        },
+        "opp1": {
+          "pti": 52.09
+        },
+        "opp2": {
+          "pti": 18.39
+        }
+      },
+      "details": {
+        "team1_avg": 23.5,
+        "team2_avg": 32.75,
+        "expected_prob": 0.487,
+        "actual_result": 1.0,
+        "k_factor": 4.9,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 16.3,
+      "adjustment": 2.96,
+      "before": {
+        "player": {
+          "pti": 41.8
+        },
+        "partner": {
+          "pti": 29.8
+        },
+        "opp1": {
+          "pti": 21.7
+        },
+        "opp2": {
+          "pti": 17.3
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 38.84
+        },
+        "partner": {
+          "pti": 26.84
+        },
+        "opp1": {
+          "pti": 24.66
+        },
+        "opp2": {
+          "pti": 20.26
+        }
+      },
+      "details": {
+        "team1_avg": 35.8,
+        "team2_avg": 19.5,
+        "expected_prob": 0.523,
+        "actual_result": 1.0,
+        "k_factor": 6.2,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 0.2,
+      "adjustment": 2.43,
+      "before": {
+        "player": {
+          "pti": 50.6
+        },
+        "partner": {
+          "pti": 19.7
+        },
+        "opp1": {
+          "pti": 23.7
+        },
+        "opp2": {
+          "pti": 47.0
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 48.17
+        },
+        "partner": {
+          "pti": 17.27
+        },
+        "opp1": {
+          "pti": 26.13
+        },
+        "opp2": {
+          "pti": 49.43
+        }
+      },
+      "details": {
+        "team1_avg": 35.15,
+        "team2_avg": 35.35,
+        "expected_prob": 0.5,
+        "actual_result": 1.0,
+        "k_factor": 4.9,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 13.5,
+      "adjustment": 2.34,
+      "before": {
+        "player": {
+          "pti": 25.2
+        },
+        "partner": {
+          "pti": 54.8
+        },
+        "opp1": {
+          "pti": 34.1
+        },
+        "opp2": {
+          "pti": 18.9
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 22.86
+        },
+        "partner": {
+          "pti": 52.46
+        },
+        "opp1": {
+          "pti": 36.44
+        },
+        "opp2": {
+          "pti": 21.24
+        }
+      },
+      "details": {
+        "team1_avg": 40.0,
+        "team2_avg": 26.5,
+        "expected_prob": 0.519,
+        "actual_result": 1.0,
+        "k_factor": 4.9,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 8.15,
+      "adjustment": 2.67,
+      "before": {
+        "player": {
+          "pti": 23.1
+        },
+        "partner": {
+          "pti": 34.9
+        },
+        "opp1": {
+          "pti": 25.0
+        },
+        "opp2": {
+          "pti": 16.7
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 20.43
+        },
+        "partner": {
+          "pti": 32.23
+        },
+        "opp1": {
+          "pti": 27.67
+        },
+        "opp2": {
+          "pti": 19.37
+        }
+      },
+      "details": {
+        "team1_avg": 29.0,
+        "team2_avg": 20.85,
+        "expected_prob": 0.512,
+        "actual_result": 1.0,
+        "k_factor": 5.5,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 3.1,
+      "adjustment": 2.76,
+      "before": {
+        "player": {
+          "pti": 18.5
+        },
+        "partner": {
+          "pti": 40.3
+        },
+        "opp1": {
+          "pti": 45.1
+        },
+        "opp2": {
+          "pti": 19.9
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 15.74
+        },
+        "partner": {
+          "pti": 37.54
+        },
+        "opp1": {
+          "pti": 47.86
+        },
+        "opp2": {
+          "pti": 22.66
+        }
+      },
+      "details": {
+        "team1_avg": 29.4,
+        "team2_avg": 32.5,
+        "expected_prob": 0.496,
+        "actual_result": 1.0,
+        "k_factor": 5.5,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 8.7,
+      "adjustment": 2.49,
+      "before": {
+        "player": {
+          "pti": 22.1
+        },
+        "partner": {
+          "pti": 20.5
+        },
+        "opp1": {
+          "pti": 32.8
+        },
+        "opp2": {
+          "pti": 27.2
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 19.61
+        },
+        "partner": {
+          "pti": 18.01
+        },
+        "opp1": {
+          "pti": 35.29
+        },
+        "opp2": {
+          "pti": 29.69
+        }
+      },
+      "details": {
+        "team1_avg": 21.3,
+        "team2_avg": 30.0,
+        "expected_prob": 0.487,
+        "actual_result": 1.0,
+        "k_factor": 4.9,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 4.9,
+      "adjustment": 2.77,
+      "before": {
+        "player": {
+          "pti": 42.6
+        },
+        "partner": {
+          "pti": 17.2
+        },
+        "opp1": {
+          "pti": 17.0
+        },
+        "opp2": {
+          "pti": 52.6
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 39.83
+        },
+        "partner": {
+          "pti": 14.43
+        },
+        "opp1": {
+          "pti": 19.77
+        },
+        "opp2": {
+          "pti": 55.37
+        }
+      },
+      "details": {
+        "team1_avg": 29.9,
+        "team2_avg": 34.8,
+        "expected_prob": 0.493,
+        "actual_result": 1.0,
+        "k_factor": 5.5,
+        "player_wins": true
+      }
+    },
+    {
+      "spread": 2.15,
+      "adjustment": 3.13,
+      "before": {
+        "player": {
+          "pti": 28.8
+        },
+        "partner": {
+          "pti": 41.4
+        },
+        "opp1": {
+          "pti": 45.3
+        },
+        "opp2": {
+          "pti": 29.2
+        }
+      },
+      "after": {
+        "player": {
+          "pti": 25.67
+        },
+        "partner": {
+          "pti": 38.27
+        },
+        "opp1": {
+          "pti": 48.43
+        },
+        "opp2": {
+          "pti": 32.33
+        }
+      },
+      "details": {
+        "team1_avg": 35.1,
+        "team2_avg": 37.25,
+        "expected_prob": 0.497,
+        "actual_result": 1.0,
+        "k_factor": 6.2,
+        "player_wins": true
+      }
+    }
+  ],
+  "differences": [
+    18.470000000000002,
+    12.989999999999998,
+    14.06,
+    22.36,
+    17.400000000000002,
+    14.47,
+    18.18,
+    13.650000000000002,
+    15.059999999999999,
+    13.409999999999998,
+    16.169999999999995,
+    15.940000000000003,
+    13.299999999999999,
+    14.350000000000001,
+    17.25,
+    14.709999999999999,
+    13.760000000000002,
+    15.459999999999997,
+    14.289999999999997,
+    25.49,
+    13.719999999999999,
+    16.57,
+    19.060000000000002,
+    16.13,
+    17.310000000000002,
+    16.91,
+    17.36,
+    14.12,
+    18.049999999999997,
+    17.46,
+    19.81,
+    13.879999999999999,
+    22.189999999999998,
+    21.62,
+    15.11,
+    20.190000000000005,
+    14.16,
+    15.099999999999998,
+    25.28,
+    14.299999999999999,
+    13.489999999999998,
+    13.53,
+    13.460000000000003,
+    21.21,
+    12.64,
+    18.700000000000003,
+    16.9,
+    22.109999999999996,
+    29.6,
+    15.36,
+    18.54,
+    14.19,
+    18.34,
+    18.03,
+    16.909999999999997,
+    17.310000000000002,
+    15.19,
+    18.32,
+    13.91,
+    13.3,
+    25.229999999999997,
+    17.29,
+    20.32,
+    15.55,
+    15.059999999999999,
+    19.34,
+    13.59,
+    14.700000000000003,
+    21.04,
+    15.77,
+    18.299999999999997,
+    16.54,
+    22.580000000000002,
+    18.98,
+    14.669999999999998,
+    13.55,
+    14.86,
+    13.410000000000002,
+    13.889999999999999,
+    20.65,
+    13.77,
+    13.339999999999998,
+    13.149999999999999,
+    21.65,
+    13.21,
+    21.09,
+    14.160000000000002,
+    22.160000000000004,
+    15.18,
+    17.39,
+    18.88,
+    13.939999999999998,
+    16.58,
+    13.579999999999998,
+    13.04,
+    14.909999999999997,
+    15.399999999999999,
+    13.91,
+    15.479999999999999,
+    17.5
+  ],
+  "adjustment_differences": [
+    18.474640911137595,
+    12.99114518976421,
+    14.0622967419196,
+    22.35939247062865,
+    17.39590037413786,
+    14.465369632374507,
+    18.184561086227138,
+    13.649799875708181,
+    15.05651647859371,
+    13.406592273217031,
+    16.16525630634068,
+    15.939908948992851,
+    13.304586709943756,
+    14.352312997418235,
+    17.251843104087854,
+    14.712329201648146,
+    13.758731956083324,
+    15.45535374076044,
+    14.293448271516306,
+    25.49044277690668,
+    13.71959409419,
+    16.57305666414182,
+    19.06085792371259,
+    16.129310223930275,
+    17.306744322947555,
+    16.912552088669692,
+    17.361647611790296,
+    14.121271536049592,
+    18.045528933791633,
+    17.456704507948025,
+    19.81412351481011,
+    13.882951217778258,
+    22.19124966003728,
+    21.618990765708144,
+    15.113857863132026,
+    20.19345704678746,
+    14.161872652272912,
+    15.100907155689605,
+    25.275722098701134,
+    14.300336213725656,
+    13.485595106735138,
+    13.533948425307111,
+    13.458755593434422,
+    21.211983509354997,
+    12.643388871085124,
+    18.7029744067997,
+    16.89896879200703,
+    22.11238405922446,
+    29.604372787690377,
+    15.356205504922965,
+    18.535812055235358,
+    14.192799698475735,
+    18.336477727623876,
+    18.030798710559175,
+    16.909604094552062,
+    17.306744322947555,
+    15.186746138070175,
+    18.319364093883042,
+    13.905963770218102,
+    13.299983355644176,
+    25.22528264520381,
+    17.28700364596567,
+    20.31692498083747,
+    15.551534755284889,
+    15.061696367111903,
+    19.341116977669174,
+    13.590723254248829,
+    14.701981619996822,
+    21.036589183467182,
+    15.767813579410017,
+    18.29798665172985,
+    16.540679249992845,
+    22.58357943217115,
+    18.98343267258772,
+    14.670941555021159,
+    13.55388190980134,
+    14.863476256219162,
+    13.406592273217031,
+    13.889855149956363,
+    20.648320879318057,
+    13.774055089316652,
+    13.342924938335255,
+    13.149702929307399,
+    21.64800749462677,
+    13.211025316459953,
+    21.09260025170646,
+    14.15575000363861,
+    22.164734743153193,
+    15.176384815306806,
+    17.387049812869968,
+    18.880396296583513,
+    13.935877623686258,
+    16.578943990952542,
+    13.579210339354638,
+    13.038614715574361,
+    14.907840887920317,
+    15.400601048372133,
+    13.910566087056418,
+    15.483843176582894,
+    17.496856428200235
+  ]
+}

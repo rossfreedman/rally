@@ -175,8 +175,9 @@
                         <i class="fas fa-flag-checkered text-white text-sm"></i>
                     </div>
                     Recent Match Results
-                    <span class="text-xs text-gray-500 ml-2 font-normal">(Last 10 weeks)</span>
+                    <span class="text-xs text-gray-500 ml-2 font-normal">(Last 6 weeks)</span>
                 </h2>
+                <p class="text-sm text-gray-800 mt-2 bg-yellow-100 px-3 py-2 rounded-md border border-yellow-200">Click on a date to see match scores.</p>
             </div>
             
             <div class="p-6">
@@ -510,15 +511,7 @@
     }
   }
   
-  // Auto-expand the first (most recent) week
-  document.addEventListener('DOMContentLoaded', function() {
-    const firstWeek = document.getElementById('week-1');
-    const firstIcon = document.getElementById('icon-week-1');
-    if (firstWeek) {
-      firstWeek.classList.remove('hidden');
-      firstIcon.classList.add('rotate-180');
-    }
-  });
+
 
   document.addEventListener('DOMContentLoaded', function() {
     // Load club data

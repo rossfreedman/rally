@@ -14,6 +14,9 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Global flag to track if we've already logged a successful connection
+_connection_logged = False
+
 
 def get_db_url():
     """Get database URL from environment or use default"""
@@ -47,9 +50,12 @@ def get_db_url():
     if url.startswith("postgres://"):
         url = url.replace("postgres://", "postgresql://", 1)
 
-    logger.info(
-        f"Using database URL with host: {url.split('@')[1].split('/')[0] if '@' in url else 'unknown'}"
-    )
+    # Only log database URL selection once to avoid spam
+    global _connection_logged
+    if not _connection_logged:
+        logger.info(
+            f"Using database URL with host: {url.split('@')[1].split('/')[0] if '@' in url else 'unknown'}"
+        )
     return url
 
 
@@ -145,23 +151,19 @@ def test_db_connection():
 @contextmanager
 def get_db():
     """Get database connection with retry logic and timezone configuration"""
+    global _connection_logged
     url = get_db_url()
     db_params = parse_db_url(url)
-
-    # Debug logging for Railway deployment
-    logger.info(f"Attempting database connection...")
-    logger.info(f"Host: {db_params['host']}")
-    logger.info(f"Port: {db_params['port']}")
-    logger.info(f"Database: {db_params['dbname']}")
-    logger.info(f"SSL Mode: {db_params['sslmode']}")
-    logger.info(f"Connect Timeout: {db_params['connect_timeout']}s")
 
     max_retries = 5
     retry_delay = 5
 
     for attempt in range(max_retries):
         try:
-            if attempt > 0:
+            # Only log connection details on first successful connection ever, or on retries
+            if attempt == 0 and not _connection_logged:
+                logger.info(f"🔌 Connecting to DB: {db_params['host']}:{db_params['port']}/{db_params['dbname']}")
+            elif attempt > 0:
                 logger.info(f"Connection attempt {attempt + 1}/{max_retries}")
                 time.sleep(retry_delay)
 
@@ -171,10 +173,12 @@ def get_db():
             with conn.cursor() as cursor:
                 cursor.execute("SELECT current_setting('timezone')")
                 tz = cursor.fetchone()[0]
-                logger.info(f"Database session timezone: {tz}")
+                # Only log timezone on first successful connection ever
+                if not _connection_logged:
+                    logger.info(f"✅ DB Connected! Timezone: {tz}")
+                    _connection_logged = True
 
             conn.commit()
-            logger.info("Database connection successful!")
             yield conn
             return
 

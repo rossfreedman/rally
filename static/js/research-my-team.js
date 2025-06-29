@@ -320,21 +320,23 @@ function calculatePlayerStats(matches, teamId) {
         const player = players[playerName];
         // Calculate win rate
         player.winRate = player.matches > 0 ? Math.round((player.wins / player.matches) * 100) : 0;
-        // Find best court
+        // Find best court - Fixed logic: >3 matches (>=4) AND >=70% win rate
         let bestCourt = null;
         let bestCourtWinRate = 0;
         Object.keys(player.courts).forEach(courtName => {
             const court = player.courts[courtName];
-            if (court.matches >= 3) {
+            if (court.matches > 3) {  // More than 3 matches (>=4)
                 const courtWinRate = Math.round((court.wins / court.matches) * 100);
-                if (courtWinRate > bestCourtWinRate) {
-                    bestCourtWinRate = courtWinRate;
-                    bestCourt = {
-                        name: courtName,
-                        matches: court.matches,
-                        wins: court.wins,
-                        winRate: courtWinRate
-                    };
+                if (courtWinRate >= 70) {  // Must have 70% or greater win rate
+                    if (courtWinRate > bestCourtWinRate) {
+                        bestCourtWinRate = courtWinRate;
+                        bestCourt = {
+                            name: courtName,
+                            matches: court.matches,
+                            wins: court.wins,
+                            winRate: courtWinRate
+                        };
+                    }
                 }
             }
         });
