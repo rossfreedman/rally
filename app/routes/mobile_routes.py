@@ -3146,3 +3146,48 @@ def serve_track_byes_courts():
 
 
 # Upload endpoint removed - professional photos now in place
+
+@mobile_bp.route("/pti-calculator")
+@login_required
+def pti_calculator():
+    """Serve the PTI calculator page"""
+    session_data = {"user": session["user"], "authenticated": True}
+    log_user_activity(session["user"]["email"], "page_visit", page="pti_calculator")
+    return render_template("mobile/pti_calculator.html", session_data=session_data)
+
+
+@mobile_bp.route("/api/calculate-pti", methods=["POST"])
+@login_required
+def calculate_pti_adjustment():
+    """Calculate PTI adjustments based on match results using Glicko-2 algorithm"""
+    try:
+        data = request.get_json()
+        
+        # Extract input data
+        player_pti = float(data.get('player_pti', 0))
+        partner_pti = float(data.get('partner_pti', 0))
+        opp1_pti = float(data.get('opp1_pti', 0))
+        opp2_pti = float(data.get('opp2_pti', 0))
+        
+        player_exp = float(data.get('player_exp', 3.2))
+        partner_exp = float(data.get('partner_exp', 3.2))
+        opp1_exp = float(data.get('opp1_exp', 3.2))
+        opp2_exp = float(data.get('opp2_exp', 3.2))
+        
+        match_score = data.get('match_score', '')
+        
+        # Import and use PTI calculation service
+        from app.services.pti_calculator_service import PTICalculatorService
+        
+        calculator = PTICalculatorService()
+        result = calculator.calculate_pti_adjustments(
+            player_pti, partner_pti, opp1_pti, opp2_pti,
+            player_exp, partner_exp, opp1_exp, opp2_exp,
+            match_score
+        )
+        
+        return jsonify({"success": True, "result": result})
+        
+    except Exception as e:
+        logger.error(f"Error calculating PTI adjustment: {str(e)}")
+        return jsonify({"success": False, "error": str(e)}), 500
