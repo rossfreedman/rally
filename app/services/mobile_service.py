@@ -582,10 +582,10 @@ def get_player_analysis(user):
                     "ptiChange": "N/A",
                 },
                 "court_analysis": {
-                    "court1": {"winRate": 0, "record": "0-0", "matches": 0, "topPartners": []},
-                    "court2": {"winRate": 0, "record": "0-0", "matches": 0, "topPartners": []},
-                    "court3": {"winRate": 0, "record": "0-0", "matches": 0, "topPartners": []},
-                    "court4": {"winRate": 0, "record": "0-0", "matches": 0, "topPartners": []},
+                    "court1": {"winRate": 0, "record": "0-0", "topPartners": []},
+                    "court2": {"winRate": 0, "record": "0-0", "topPartners": []},
+                    "court3": {"winRate": 0, "record": "0-0", "topPartners": []},
+                    "court4": {"winRate": 0, "record": "0-0", "topPartners": []},
                 },
                 "career_stats": {
                     "winRate": 0,
@@ -906,10 +906,10 @@ def get_player_analysis(user):
                     "ptiChange": "N/A",
                 },
                 "court_analysis": {
-                    "court1": {"winRate": 0, "record": "0-0", "matches": 0, "topPartners": []},
-                    "court2": {"winRate": 0, "record": "0-0", "matches": 0, "topPartners": []},
-                    "court3": {"winRate": 0, "record": "0-0", "matches": 0, "topPartners": []},
-                    "court4": {"winRate": 0, "record": "0-0", "matches": 0, "topPartners": []},
+                    "court1": {"winRate": 0, "record": "0-0", "topPartners": []},
+                    "court2": {"winRate": 0, "record": "0-0", "topPartners": []},
+                    "court3": {"winRate": 0, "record": "0-0", "topPartners": []},
+                    "court4": {"winRate": 0, "record": "0-0", "topPartners": []},
                 },
                 "career_stats": {
                     "winRate": 0,
@@ -1384,7 +1384,6 @@ def get_player_analysis(user):
             court_analysis[court_key] = {
                 "winRate": court_win_rate,
                 "record": f"{court_wins}-{court_losses}",
-                "matches": court_matches,
                 "topPartners": top_partners,  # All partners on this court
             }
 
@@ -1555,10 +1554,10 @@ def get_player_analysis(user):
                 "ptiChange": "N/A",
             },
             "court_analysis": {
-                "court1": {"winRate": 0, "record": "0-0", "matches": 0, "topPartners": []},
-                "court2": {"winRate": 0, "record": "0-0", "matches": 0, "topPartners": []},
-                "court3": {"winRate": 0, "record": "0-0", "matches": 0, "topPartners": []},
-                "court4": {"winRate": 0, "record": "0-0", "matches": 0, "topPartners": []},
+                "court1": {"winRate": 0, "record": "0-0", "topPartners": []},
+                "court2": {"winRate": 0, "record": "0-0", "topPartners": []},
+                "court3": {"winRate": 0, "record": "0-0", "topPartners": []},
+                "court4": {"winRate": 0, "record": "0-0", "topPartners": []},
             },
             "career_stats": {
                 "winRate": 0,
