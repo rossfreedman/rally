@@ -131,14 +131,22 @@
                                 <th class="text-left py-2 px-2 font-semibold text-gray-700 whitespace-nowrap">Player</th>
                                 <th class="text-center py-2 px-2 font-semibold text-gray-700 whitespace-nowrap">Matches</th>
                                 <th class="text-center py-2 px-2 font-semibold text-gray-700 whitespace-nowrap">Win Rate</th>
-                                <th class="text-left py-2 px-2 font-semibold text-gray-700 whitespace-nowrap">Best Court</th>
                                 <th class="text-left py-2 px-2 font-semibold text-gray-700 whitespace-nowrap">Best Partner</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for player in top_players %}
                             <tr class="border-b border-gray-50 {% if loop.index0 % 2 == 0 %}bg-white{% else %}bg-gray-50{% endif %}">
-                                <td class="py-3 px-2 font-semibold text-gray-900">{{ player.name }}</td>
+                                <td class="py-3 px-2 font-semibold text-gray-900">
+                                    {% if player.is_substitute %}
+                                        <div class="flex items-center gap-2">
+                                            <span>{{ player.name.replace(' (Sub)', '') }}</span>
+                                            <span class="px-2 py-1 bg-orange-100 text-orange-700 text-xs font-medium rounded-full">SUB</span>
+                                        </div>
+                                    {% else %}
+                                        {{ player.name }}
+                                    {% endif %}
+                                </td>
                                 <td class="py-3 px-2 text-center text-gray-700">{{ player.matches }}</td>
                                 <td class="py-3 px-2 text-center">
                                     <span class="px-2 py-1 rounded-full text-xs font-medium
@@ -148,13 +156,6 @@
                                         {% endif %}">
                                         {{ player.win_rate }}%
                                     </span>
-                                </td>
-                                <td class="py-3 px-2 text-gray-700">
-                                    {% if player.best_court == "N/A" %}
-                                        <span class="text-xs text-gray-400">Threshold not met</span>
-                                    {% else %}
-                                        {{ player.best_court|replace('court', 'Court ') }}
-                                    {% endif %}
                                 </td>
                                 <td class="py-3 px-2 text-gray-700">
                                     {% if player.best_partner == "N/A" %}
@@ -375,6 +376,7 @@
 .bg-white { background-color: #ffffff; }
 .bg-green-100 { background-color: #dcfce7; }
 .bg-yellow-100 { background-color: #fef3c7; }
+.bg-orange-100 { background-color: #fed7aa; }
 .bg-red-100 { background-color: #fee2e2; }
 .bg-gray-100 { background-color: #f3f4f6; }
 .bg-purple-50 { background-color: #faf5ff; }
@@ -391,6 +393,7 @@
 .text-yellow-500 { color: #f59e0b; }
 .text-yellow-600 { color: #d97706; }
 .text-yellow-700 { color: #b45309; }
+.text-orange-700 { color: #c2410c; }
 .text-red-500 { color: #ef4444; }
 .text-red-700 { color: #b91c1c; }
 .text-blue-500 { color: #3b82f6; }

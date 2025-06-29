@@ -4344,6 +4344,30 @@ def get_mobile_team_data(user):
                 else 0
             )
 
+            # Check if this player is a substitute (different team_id than session team)
+            is_substitute = False
+            try:
+                # Look up player's actual team_id in database
+                player_team_query = """
+                    SELECT team_id, first_name, last_name 
+                    FROM players 
+                    WHERE CONCAT(first_name, ' ', last_name) = %s 
+                    AND league_id = %s
+                    LIMIT 1
+                """
+                player_team_data = execute_query_one(player_team_query, [name, league_id_int])
+                
+                if player_team_data and player_team_data["team_id"] != team_id:
+                    is_substitute = True
+                    print(f"[DEBUG SUB] Player {name} is a substitute - their team_id: {player_team_data['team_id']}, session team_id: {team_id}")
+                elif player_team_data:
+                    print(f"[DEBUG] Player {name} is regular team member - team_ids match: {player_team_data['team_id']}")
+                else:
+                    print(f"[DEBUG] Could not find team_id for player {name}")
+            except Exception as e:
+                print(f"[DEBUG] Error checking substitute status for {name}: {e}")
+                is_substitute = False
+
             # Best court - Fixed logic: >3 matches (>=4) AND >=70% win rate
             best_court = None
             best_court_rate = 0
@@ -4366,29 +4390,31 @@ def get_mobile_team_data(user):
             best_partner_rate = 0
             for partner, pstats in stats["partners"].items():
                 if (
-                    pstats["matches"] >= 3
-                ):  # Require at least 3 matches for meaningful partnership
+                    pstats["matches"] >= 2
+                ):  # Require at least 2 matches for meaningful partnership
                     rate = (
                         round((pstats["wins"] / pstats["matches"]) * 100, 1)
                         if pstats["matches"] > 0
                         else 0
                     )
-                    if rate >= 70.0:  # Must have 70% or greater win rate for best partner
+                    if rate >= 60.0:  # Must have 60% or greater win rate for best partner
                         if rate > best_partner_rate or (
                             rate == best_partner_rate and pstats["matches"] > 0
                         ):
                             best_partner_rate = rate
                             best_partner = partner
 
-            # Removed temporary debug code for Andrew Franger
+            # Add Sub designation to player name if they're a substitute
+            display_name = f"{name} (Sub)" if is_substitute else name
             
             top_players.append(
                 {
-                    "name": name,
+                    "name": display_name,
                     "matches": stats["matches"],
                     "win_rate": win_rate,
                     "best_court": best_court or "N/A",
                     "best_partner": best_partner if best_partner else "N/A",
+                    "is_substitute": is_substitute,
                 }
             )
 
@@ -5082,15 +5108,15 @@ def calculate_team_analysis_mobile(team_stats, team_matches, team):
                     f"  - {partner_name_debug} (ID: {partner_id}): {pstats['matches']} matches, {pstats['wins']} wins"
                 )
                 if (
-                    pstats["matches"] >= 3
-                ):  # Require at least 3 matches for meaningful partnership
+                    pstats["matches"] >= 2
+                ):  # Require at least 2 matches for meaningful partnership
                     rate = (
                         round((pstats["wins"] / pstats["matches"]) * 100, 1)
                         if pstats["matches"] > 0
                         else 0
                     )
                     print(f"    -> Qualified: {rate}% win rate")
-                    if rate >= 70.0:  # Must have 70% or greater win rate for best partner
+                    if rate >= 60.0:  # Must have 60% or greater win rate for best partner
                         if rate > best_partner_rate or (
                             rate == best_partner_rate and pstats["matches"] > 0
                         ):
@@ -5098,9 +5124,9 @@ def calculate_team_analysis_mobile(team_stats, team_matches, team):
                             best_partner = get_player_name_from_id(partner_id)
                             print(f"    -> NEW BEST: {best_partner} with {rate}%")
                     else:
-                        print(f"    -> Win rate too low ({rate}% < 70%)")
+                        print(f"    -> Win rate too low ({rate}% < 60%)")
                 else:
-                    print(f"    -> Not enough matches ({pstats['matches']} < 3)")
+                    print(f"    -> Not enough matches ({pstats['matches']} < 2)")
             print(f"  Final best partner: {best_partner} ({best_partner_rate}%)")
 
             top_players.append(

@@ -3195,16 +3195,16 @@ def calculate_pti_adjustment():
         
         match_score = data.get('match_score', '')
         
-        # Import and use PTI calculation service v4 (exact reference match)
-        from app.services.pti_calculator_service_v4 import calculate_pti_v4
+        # Import and use PTI calculation service v6 (matches original exactly)
+        from app.services.pti_calculator_service_v6 import calculate_pti_v6
         
-        result = calculate_pti_v4(
+        result = calculate_pti_v6(
             player_pti, partner_pti, opp1_pti, opp2_pti,
             player_exp, partner_exp, opp1_exp, opp2_exp,
             match_score
         )
         
-        # v4 already returns {"success": True/False, "result": {...}}
+        # v6 returns {"success": True/False, "result": {...}}
         return jsonify(result)
         
     except Exception as e:
