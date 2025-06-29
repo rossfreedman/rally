@@ -1,0 +1,380 @@
+{% extends "mobile/admin_base.html" %}
+{% set page_title = "PTI Calculator" %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-6 max-w-4xl">
+    <!-- Header -->
+    <div class="text-center mb-8">
+        <h1 class="text-3xl font-bold text-gray-800 mb-2">PTI Movement Scenarios</h1>
+        <p class="text-gray-600">Negative moves are good, positive bad (beta)</p>
+    </div>
+
+    <!-- Input Form -->
+    <div class="grid md:grid-cols-2 gap-6 mb-8">
+        <!-- Player & Partner Column -->
+        <div class="space-y-4">
+            <!-- Player PTI Input -->
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text font-semibold">Player PTI:</span>
+                </label>
+                <div class="flex gap-2">
+                    <input type="number" id="ptiPlayer" class="input input-bordered flex-1" 
+                           placeholder="50" value="50" min="0" max="100" step="0.1">
+                    <select id="sigmaPlayer" class="select select-bordered">
+                        <option value="3.2" selected>30+ matches</option>
+                        <option value="4">10-30 Matches</option>
+                        <option value="5">1-10 matches</option>
+                        <option value="7">New Player</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Partner PTI Input -->
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text font-semibold">Partner PTI:</span>
+                </label>
+                <div class="flex gap-2">
+                    <input type="number" id="ptiPartner" class="input input-bordered flex-1" 
+                           placeholder="40" value="40" min="0" max="100" step="0.1">
+                    <select id="sigmaPartner" class="select select-bordered">
+                        <option value="3.2">30+ matches</option>
+                        <option value="4">10-30 Matches</option>
+                        <option value="5">1-10 matches</option>
+                        <option value="7" selected>New Player</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Match Score Input -->
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text font-semibold">Score:</span>
+                </label>
+                <input type="text" id="matchScore" class="input input-bordered" 
+                       placeholder="6-2,2-6,6-3" 
+                       title="Enter score like: 6-2,2-6,6-3">
+            </div>
+        </div>
+
+        <!-- Opponents Column -->
+        <div class="space-y-4">
+            <!-- Opponent 1 PTI Input -->
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text font-semibold">Opp PTI:</span>
+                </label>
+                <div class="flex gap-2">
+                    <input type="number" id="ptiOpp1" class="input input-bordered flex-1" 
+                           placeholder="30" value="30" min="0" max="100" step="0.1">
+                    <select id="sigmaOpp1" class="select select-bordered">
+                        <option value="3.2" selected>30+ matches</option>
+                        <option value="4">10-30 Matches</option>
+                        <option value="5">1-10 matches</option>
+                        <option value="7">New Player</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Opponent 2 PTI Input -->
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text font-semibold">Opp PTI:</span>
+                </label>
+                <div class="flex gap-2">
+                    <input type="number" id="ptiOpp2" class="input input-bordered flex-1" 
+                           placeholder="23" value="23" min="0" max="100" step="0.1">
+                    <select id="sigmaOpp2" class="select select-bordered">
+                        <option value="3.2">30+ matches</option>
+                        <option value="4" selected>10-30 Matches</option>
+                        <option value="5">1-10 matches</option>
+                        <option value="7">New Player</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Calculate Button -->
+            <div class="pt-4">
+                <button id="calculateBtn" class="btn btn-primary w-full">
+                    Calculate PTI Movement
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Card -->
+    <div id="resultsCard" class="card bg-base-100 shadow-xl mb-6" style="display: none;">
+        <div class="card-body">
+            <h2 class="card-title text-xl mb-4">Intermediate Calculations</h2>
+            
+            <!-- Summary Stats -->
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <div class="stat bg-base-200 rounded-lg p-3">
+                    <div class="stat-title">Spread</div>
+                    <div class="stat-value text-lg" id="lblSpread">0.00</div>
+                </div>
+                <div class="stat bg-base-200 rounded-lg p-3">
+                    <div class="stat-title">Adjustment</div>
+                    <div class="stat-value text-lg" id="lblAdjustment">0.00</div>
+                </div>
+            </div>
+
+            <!-- Before/After Comparison -->
+            <div class="grid grid-cols-2 gap-4">
+                <!-- Before Column -->
+                <div>
+                    <h3 class="text-lg font-bold mb-3 text-center">Before</h3>
+                    <div class="space-y-3">
+                        <!-- Player Before -->
+                        <div class="bg-base-200 p-3 rounded-lg">
+                            <div class="text-sm font-semibold mb-1">Player</div>
+                            <div class="grid grid-cols-3 gap-2 text-xs">
+                                <div>PTI: <span id="PlayerRating">0.00</span></div>
+                                <div>Mu: <span id="PlayerPerf">0.00</span></div>
+                                <div>Sigma: <span id="PlayerVol">0.00</span></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Partner Before -->
+                        <div class="bg-base-200 p-3 rounded-lg">
+                            <div class="text-sm font-semibold mb-1">Partner</div>
+                            <div class="grid grid-cols-3 gap-2 text-xs">
+                                <div>PTI: <span id="PartnerRating">0.00</span></div>
+                                <div>Mu: <span id="PartnerPerf">0.00</span></div>
+                                <div>Sigma: <span id="PartnerVol">0.00</span></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Opponent 1 Before -->
+                        <div class="bg-base-200 p-3 rounded-lg">
+                            <div class="text-sm font-semibold mb-1">Opp 1</div>
+                            <div class="grid grid-cols-3 gap-2 text-xs">
+                                <div>PTI: <span id="Opp1Rating">0.00</span></div>
+                                <div>Mu: <span id="Opp1Perf">0.00</span></div>
+                                <div>Sigma: <span id="Opp1Vol">0.00</span></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Opponent 2 Before -->
+                        <div class="bg-base-200 p-3 rounded-lg">
+                            <div class="text-sm font-semibold mb-1">Opp 2</div>
+                            <div class="grid grid-cols-3 gap-2 text-xs">
+                                <div>PTI: <span id="Opp2Rating">0.00</span></div>
+                                <div>Mu: <span id="Opp2Perf">0.00</span></div>
+                                <div>Sigma: <span id="Opp2Vol">0.00</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- After Column -->
+                <div>
+                    <h3 class="text-lg font-bold mb-3 text-center">After</h3>
+                    <div class="space-y-3">
+                        <!-- Player After -->
+                        <div class="bg-base-200 p-3 rounded-lg">
+                            <div class="text-sm font-semibold mb-1">Player</div>
+                            <div class="grid grid-cols-3 gap-2 text-xs">
+                                <div>PTI: <span id="PlayerAdjRating">0.00</span></div>
+                                <div>Mu: <span id="PlayerAdjPerf">0.00</span></div>
+                                <div>Sigma: <span id="PlayerAdjVol">0.00</span></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Partner After -->
+                        <div class="bg-base-200 p-3 rounded-lg">
+                            <div class="text-sm font-semibold mb-1">Partner</div>
+                            <div class="grid grid-cols-3 gap-2 text-xs">
+                                <div>PTI: <span id="PartnerAdjRating">0.00</span></div>
+                                <div>Mu: <span id="PartnerAdjPerf">0.00</span></div>
+                                <div>Sigma: <span id="PartnerAdjVol">0.00</span></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Opponent 1 After -->
+                        <div class="bg-base-200 p-3 rounded-lg">
+                            <div class="text-sm font-semibold mb-1">Opp 1</div>
+                            <div class="grid grid-cols-3 gap-2 text-xs">
+                                <div>PTI: <span id="Opp1AdjRating">0.00</span></div>
+                                <div>Mu: <span id="Opp1AdjPerf">0.00</span></div>
+                                <div>Sigma: <span id="Opp1AdjVol">0.00</span></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Opponent 2 After -->
+                        <div class="bg-base-200 p-3 rounded-lg">
+                            <div class="text-sm font-semibold mb-1">Opp 2</div>
+                            <div class="grid grid-cols-3 gap-2 text-xs">
+                                <div>PTI: <span id="Opp2AdjRating">0.00</span></div>
+                                <div>Mu: <span id="Opp2AdjPerf">0.00</span></div>
+                                <div>Sigma: <span id="Opp2AdjVol">0.00</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Error Alert -->
+    <div id="errorAlert" class="alert alert-error mb-4" style="display: none;">
+        <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span id="errorMessage">Error occurred during calculation</span>
+    </div>
+
+    <!-- Loading Indicator -->
+    <div id="loadingIndicator" class="text-center" style="display: none;">
+        <span class="loading loading-spinner loading-lg"></span>
+        <p class="mt-2">Calculating PTI adjustments...</p>
+    </div>
+
+    <!-- Help Section -->
+    <div class="card bg-base-100 shadow-md">
+        <div class="card-body">
+            <h3 class="card-title text-lg">How to Use</h3>
+            <div class="space-y-2 text-sm">
+                <p><strong>PTI Values:</strong> Enter current Platform Tennis Index ratings (typically 10-100)</p>
+                <p><strong>Experience Levels:</strong> Choose based on match history:
+                    <br>• 30+ matches: Established rating
+                    <br>• 10-30 Matches: Developing rating
+                    <br>• 1-10 matches: New but some data
+                    <br>• New Player: First few matches
+                </p>
+                <p><strong>Score Format:</strong> Enter as "6-2,2-6,6-3" (sets separated by commas)</p>
+                <p><strong>Rating Movement:</strong> Negative adjustments mean rating improvement, positive means decline</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const calculateBtn = document.getElementById('calculateBtn');
+    const resultsCard = document.getElementById('resultsCard');
+    const errorAlert = document.getElementById('errorAlert');
+    const loadingIndicator = document.getElementById('loadingIndicator');
+
+    // Input change handlers to auto-calculate
+    const inputs = ['ptiPlayer', 'ptiPartner', 'ptiOpp1', 'ptiOpp2', 'sigmaPlayer', 'sigmaPartner', 'sigmaOpp1', 'sigmaOpp2', 'matchScore'];
+    inputs.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.addEventListener('change', calculatePTI);
+            element.addEventListener('input', calculatePTI);
+        }
+    });
+
+    calculateBtn.addEventListener('click', calculatePTI);
+
+    function calculatePTI() {
+        // Hide previous results and errors
+        resultsCard.style.display = 'none';
+        errorAlert.style.display = 'none';
+        
+        // Get input values
+        const data = {
+            player_pti: parseFloat(document.getElementById('ptiPlayer').value) || 0,
+            partner_pti: parseFloat(document.getElementById('ptiPartner').value) || 0,
+            opp1_pti: parseFloat(document.getElementById('ptiOpp1').value) || 0,
+            opp2_pti: parseFloat(document.getElementById('ptiOpp2').value) || 0,
+            player_exp: parseFloat(document.getElementById('sigmaPlayer').value) || 3.2,
+            partner_exp: parseFloat(document.getElementById('sigmaPartner').value) || 3.2,
+            opp1_exp: parseFloat(document.getElementById('sigmaOpp1').value) || 3.2,
+            opp2_exp: parseFloat(document.getElementById('sigmaOpp2').value) || 3.2,
+            match_score: document.getElementById('matchScore').value.trim()
+        };
+
+        // Validate inputs
+        if (data.player_pti <= 0 || data.partner_pti <= 0 || data.opp1_pti <= 0 || data.opp2_pti <= 0) {
+            showError('Please enter valid PTI values for all players');
+            return;
+        }
+
+        if (!data.match_score) {
+            showError('Please enter a match score (e.g., "6-2,2-6,6-3")');
+            return;
+        }
+
+        // Show loading
+        loadingIndicator.style.display = 'block';
+
+        // Make API call
+        fetch('/api/calculate-pti', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(result => {
+            loadingIndicator.style.display = 'none';
+            
+            if (result.success) {
+                displayResults(result.result);
+            } else {
+                showError(result.error || 'Calculation failed');
+            }
+        })
+        .catch(error => {
+            loadingIndicator.style.display = 'none';
+            showError('Network error: ' + error.message);
+        });
+    }
+
+    function displayResults(result) {
+        // Update summary
+        document.getElementById('lblSpread').textContent = result.spread;
+        document.getElementById('lblAdjustment').textContent = result.adjustment;
+
+        // Update before values
+        document.getElementById('PlayerRating').textContent = result.before.player.pti;
+        document.getElementById('PlayerPerf').textContent = result.before.player.mu;
+        document.getElementById('PlayerVol').textContent = result.before.player.sigma;
+        
+        document.getElementById('PartnerRating').textContent = result.before.partner.pti;
+        document.getElementById('PartnerPerf').textContent = result.before.partner.mu;
+        document.getElementById('PartnerVol').textContent = result.before.partner.sigma;
+        
+        document.getElementById('Opp1Rating').textContent = result.before.opp1.pti;
+        document.getElementById('Opp1Perf').textContent = result.before.opp1.mu;
+        document.getElementById('Opp1Vol').textContent = result.before.opp1.sigma;
+        
+        document.getElementById('Opp2Rating').textContent = result.before.opp2.pti;
+        document.getElementById('Opp2Perf').textContent = result.before.opp2.mu;
+        document.getElementById('Opp2Vol').textContent = result.before.opp2.sigma;
+
+        // Update after values
+        document.getElementById('PlayerAdjRating').textContent = result.after.player.pti;
+        document.getElementById('PlayerAdjPerf').textContent = result.after.player.mu;
+        document.getElementById('PlayerAdjVol').textContent = result.after.player.sigma;
+        
+        document.getElementById('PartnerAdjRating').textContent = result.after.partner.pti;
+        document.getElementById('PartnerAdjPerf').textContent = result.after.partner.mu;
+        document.getElementById('PartnerAdjVol').textContent = result.after.partner.sigma;
+        
+        document.getElementById('Opp1AdjRating').textContent = result.after.opp1.pti;
+        document.getElementById('Opp1AdjPerf').textContent = result.after.opp1.mu;
+        document.getElementById('Opp1AdjVol').textContent = result.after.opp1.sigma;
+        
+        document.getElementById('Opp2AdjRating').textContent = result.after.opp2.pti;
+        document.getElementById('Opp2AdjPerf').textContent = result.after.opp2.mu;
+        document.getElementById('Opp2AdjVol').textContent = result.after.opp2.sigma;
+
+        // Show results
+        resultsCard.style.display = 'block';
+    }
+
+    function showError(message) {
+        document.getElementById('errorMessage').textContent = message;
+        errorAlert.style.display = 'block';
+    }
+
+    // Initialize with sample calculation
+    calculatePTI();
+});
+</script>
+{% endblock %} 

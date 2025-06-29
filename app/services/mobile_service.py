@@ -2223,11 +2223,12 @@ def calculate_player_streaks(club_name, user_league_db_id=None):
                         else:
                             best_loss_streak = max(best_loss_streak, 1)
 
-            # Only include players with significant WINNING streaks (current +5 or best +5)
+            # Only include players with significant WINNING streaks (current +5 or best +5) AND no losing streaks
             has_significant_current_win = current_streak >= 5
             has_significant_best_win = best_win_streak >= 5
+            is_currently_on_losing_streak = current_streak < 0
 
-            if has_significant_current_win or has_significant_best_win:
+            if (has_significant_current_win or has_significant_best_win) and not is_currently_on_losing_streak:
                 best_streak = max(best_win_streak, best_loss_streak)
                 # Convert player ID to readable name
                 player_display_name = get_player_name_from_id(player)
@@ -2248,7 +2249,7 @@ def calculate_player_streaks(club_name, user_league_db_id=None):
         )
 
         print(
-            f"[DEBUG] Found {len(significant_streaks)} players with significant streaks (+5/-5)"
+            f"[DEBUG] Found {len(significant_streaks)} players with significant winning streaks (5+ wins)"
         )
 
         return significant_streaks
