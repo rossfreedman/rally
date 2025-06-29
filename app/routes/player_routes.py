@@ -379,9 +379,10 @@ def get_team_players(team_id):
                     partner_rate = (
                         partner_stats["wins"] / partner_stats["matches"] * 100
                     )
-                    if partner_rate > best_partner_rate:
-                        best_partner_rate = partner_rate
-                        best_partner = partner
+                    if partner_rate >= 60.0:  # Must have 60% or greater win rate
+                        if partner_rate > best_partner_rate:
+                            best_partner_rate = partner_rate
+                            best_partner = partner
 
             result_players.append(
                 {

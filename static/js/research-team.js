@@ -521,9 +521,9 @@ function calculatePlayerStats(matches, teamId) {
         let bestPartnerWinRate = 0;
         Object.keys(player.partners).forEach(partnerName => {
             const partner = player.partners[partnerName];
-            if (partner.matches >= 3) {
+            if (partner.matches >= 2) {
                 const partnerWinRate = Math.round((partner.wins / partner.matches) * 100);
-                if (partnerWinRate >= 70) {
+                if (partnerWinRate >= 60) {
                     if (partnerWinRate > bestPartnerWinRate) {
                         bestPartnerWinRate = partnerWinRate;
                         bestPartner = {
