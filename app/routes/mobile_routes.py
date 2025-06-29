@@ -3176,24 +3176,36 @@ def calculate_pti_adjustment():
         opp1_pti = float(data.get('opp1_pti', 0))
         opp2_pti = float(data.get('opp2_pti', 0))
         
-        player_exp = float(data.get('player_exp', 3.2))
-        partner_exp = float(data.get('partner_exp', 3.2))
-        opp1_exp = float(data.get('opp1_exp', 3.2))
-        opp2_exp = float(data.get('opp2_exp', 3.2))
+        # Map numeric experience values to strings for v4 algorithm
+        def map_experience(exp_val):
+            exp_val = float(exp_val)
+            if exp_val >= 7.0:
+                return "New Player"
+            elif exp_val >= 5.0:
+                return "1-10"
+            elif exp_val >= 4.0:
+                return "10-30"
+            else:
+                return "30+"
+        
+        player_exp = map_experience(data.get('player_exp', 3.2))
+        partner_exp = map_experience(data.get('partner_exp', 3.2))
+        opp1_exp = map_experience(data.get('opp1_exp', 3.2))
+        opp2_exp = map_experience(data.get('opp2_exp', 3.2))
         
         match_score = data.get('match_score', '')
         
-        # Import and use PTI calculation service
-        from app.services.pti_calculator_service import PTICalculatorService
+        # Import and use PTI calculation service v4 (exact reference match)
+        from app.services.pti_calculator_service_v4 import calculate_pti_v4
         
-        calculator = PTICalculatorService()
-        result = calculator.calculate_pti_adjustments(
+        result = calculate_pti_v4(
             player_pti, partner_pti, opp1_pti, opp2_pti,
             player_exp, partner_exp, opp1_exp, opp2_exp,
             match_score
         )
         
-        return jsonify({"success": True, "result": result})
+        # v4 already returns {"success": True/False, "result": {...}}
+        return jsonify(result)
         
     except Exception as e:
         logger.error(f"Error calculating PTI adjustment: {str(e)}")
