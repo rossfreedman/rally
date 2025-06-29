@@ -325,7 +325,7 @@ function calculatePlayerStats(matches, teamId) {
         let bestCourtWinRate = 0;
         Object.keys(player.courts).forEach(courtName => {
             const court = player.courts[courtName];
-            if (court.matches >= 2) {
+            if (court.matches >= 3) {
                 const courtWinRate = Math.round((court.wins / court.matches) * 100);
                 if (courtWinRate > bestCourtWinRate) {
                     bestCourtWinRate = courtWinRate;
@@ -344,16 +344,18 @@ function calculatePlayerStats(matches, teamId) {
         let bestPartnerWinRate = 0;
         Object.keys(player.partners).forEach(partnerName => {
             const partner = players[playerName].partners[partnerName];
-            if (partner.matches >= 2) {
+            if (partner.matches >= 3) {
                 const partnerWinRate = Math.round((partner.wins / partner.matches) * 100);
-                if (partnerWinRate > bestPartnerWinRate) {
-                    bestPartnerWinRate = partnerWinRate;
-                    bestPartner = {
-                        name: partnerName,
-                        matches: partner.matches,
-                        wins: partner.wins,
-                        winRate: partnerWinRate
-                    };
+                if (partnerWinRate >= 70) {
+                    if (partnerWinRate > bestPartnerWinRate) {
+                        bestPartnerWinRate = partnerWinRate;
+                        bestPartner = {
+                            name: partnerName,
+                            matches: partner.matches,
+                            wins: partner.wins,
+                            winRate: partnerWinRate
+                        };
+                    }
                 }
             }
         });

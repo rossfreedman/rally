@@ -340,7 +340,6 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🎯 Track Byes & Courts page loaded');
-    loadInitialData();
     
     // 🔄 NEW: Auto-refresh when page becomes visible (handles back navigation after league/team switching)
     document.addEventListener('visibilitychange', function() {
@@ -361,8 +360,6 @@ document.addEventListener('DOMContentLoaded', function() {
             window.location.reload();
         }, 500);
     });
-    
-    loadInitialData();
 
     // Team selector modal functionality
     const teamSelectorLink = document.getElementById('teamSelectorLink');

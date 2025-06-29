@@ -173,6 +173,68 @@
         </div>
         {% endif %}
 
+        <!-- Best Court & Best Partner Card -->
+        {% if analyze_data.current_season and analyze_data.current_season.matches > 0 %}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-star text-yellow-500 mr-2"></i>
+                    Best Performance
+                </h2>
+            </div>
+            
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Best Court -->
+                    <div class="text-center p-4 bg-blue-50 rounded-lg">
+                        <div class="text-2xl font-bold text-blue-600 mb-2">
+                            {% if analyze_data.best_court %}
+                                {{ analyze_data.best_court }}
+                            {% else %}
+                                No Best Court
+                            {% endif %}
+                        </div>
+                        <div class="text-sm text-gray-600 mb-1">Best Court</div>
+                        {% if analyze_data.best_court %}
+                        <div class="text-xs text-gray-500">
+                            {{ analyze_data.best_court_rate }}% win rate
+                            <br>
+                            ({{ analyze_data.best_court_matches }} matches)
+                        </div>
+                        {% else %}
+                        <div class="text-xs text-gray-500">
+                            Need 3+ matches on a court
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Best Partner -->
+                    <div class="text-center p-4 bg-green-50 rounded-lg">
+                        <div class="text-2xl font-bold text-green-600 mb-2">
+                            {% if analyze_data.best_partner %}
+                                {{ analyze_data.best_partner }}
+                            {% else %}
+                                No Best Partner
+                            {% endif %}
+                        </div>
+                        <div class="text-sm text-gray-600 mb-1">Best Partner</div>
+                        {% if analyze_data.best_partner %}
+                        <div class="text-xs text-gray-500">
+                            {{ analyze_data.best_partner_rate }}% win rate
+                            <br>
+                            ({{ analyze_data.best_partner_matches }} matches)
+                        </div>
+                        {% else %}
+                        <div class="text-xs text-gray-500">
+                            Need 3+ matches with 70%+ win rate
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
         <!-- Court Performance -->
         {% if analyze_data.court_analysis %}
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -186,7 +248,7 @@
             <div class="p-6">
                 <!-- Courts Stack - Show all courts vertically full width -->
                 <div class="space-y-4">
-                    {% for court_name, court_stats in analyze_data.court_analysis.items()|sort %}
+                    {% for court_name, court_stats in analyze_data.court_analysis.items()|sort(attribute='1.matches', reverse=true) %}
                     <div class="bg-gray-50 rounded-lg p-4">
                         <!-- Court Header -->
                         <div class="flex items-center justify-between mb-4">
