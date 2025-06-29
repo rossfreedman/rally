@@ -850,7 +850,7 @@ def get_player_analysis(user):
                 # Calculate win/loss based on team position and winner
                 if is_home and won:
                     wins += 1
-                elif not is_home and not won:
+                elif not is_home and won:
                     wins += 1
                 else:
                     losses += 1
