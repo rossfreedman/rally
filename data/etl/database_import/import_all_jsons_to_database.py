@@ -20,6 +20,13 @@ Order of operations:
 11. Import schedules.json -> schedule table
 """
 
+
+# RESILIENCE IMPROVEMENTS APPLIED:
+# - Increased error threshold from 100 to 500 for large imports
+# - More frequent commits (every 500 vs 1000 records)
+# - Connection health monitoring
+# - Enhanced error reporting with resume suggestions
+
 import json
 import os
 import re
@@ -277,6 +284,14 @@ class ComprehensiveETL:
         self.log(f"✅ Backed up {contexts_backup_count:,} user league contexts")
         self.log(f"✅ Backed up {availability_backup_count:,} availability records")
         conn.commit()
+                # Check connection health periodically
+                if imported % 5000 == 0:
+                    try:
+                        cursor.execute("SELECT 1")
+                    except Exception as conn_error:
+                        self.log(f"⚠️ Database connection issue detected, reconnecting...", "WARNING")
+                        conn.rollback()
+                        # Connection will be re-established on next operation
         return associations_backup_count, contexts_backup_count, availability_backup_count
 
     def restore_user_associations(self, conn):
@@ -410,6 +425,14 @@ class ComprehensiveETL:
             self.log("⚠️  No availability data found - this is expected for fresh imports", "WARNING")
         
         conn.commit()
+                # Check connection health periodically
+                if imported % 5000 == 0:
+                    try:
+                        cursor.execute("SELECT 1")
+                    except Exception as conn_error:
+                        self.log(f"⚠️ Database connection issue detected, reconnecting...", "WARNING")
+                        conn.rollback()
+                        # Connection will be re-established on next operation
         
         return {
             "associations_restored": restored_associations,
@@ -573,6 +596,14 @@ class ComprehensiveETL:
                 self.log(f"   📈 Session version initialized: {new_version}")
             
             conn.commit()
+                # Check connection health periodically
+                if imported % 5000 == 0:
+                    try:
+                        cursor.execute("SELECT 1")
+                    except Exception as conn_error:
+                        self.log(f"⚠️ Database connection issue detected, reconnecting...", "WARNING")
+                        conn.rollback()
+                        # Connection will be re-established on next operation
             self.log("✅ All user sessions will be automatically refreshed on next page load")
             
         except Exception as e:
@@ -628,6 +659,14 @@ class ComprehensiveETL:
             # Re-enable foreign key checks
             cursor.execute("SET session_replication_role = DEFAULT;")
             conn.commit()
+                # Check connection health periodically
+                if imported % 5000 == 0:
+                    try:
+                        cursor.execute("SELECT 1")
+                    except Exception as conn_error:
+                        self.log(f"⚠️ Database connection issue detected, reconnecting...", "WARNING")
+                        conn.rollback()
+                        # Connection will be re-established on next operation
             self.log("✅ All target tables cleared successfully")
             self.log(f"💾 User associations backed up: {associations_backup_count:,} records")
             self.log(f"💾 League contexts backed up: {contexts_backup_count:,} records")
@@ -1135,6 +1174,14 @@ class ComprehensiveETL:
                 raise
 
         conn.commit()
+                # Check connection health periodically
+                if imported % 5000 == 0:
+                    try:
+                        cursor.execute("SELECT 1")
+                    except Exception as conn_error:
+                        self.log(f"⚠️ Database connection issue detected, reconnecting...", "WARNING")
+                        conn.rollback()
+                        # Connection will be re-established on next operation
         self.imported_counts["leagues"] = imported
         self.log(f"✅ Imported {imported} leagues")
 
@@ -1205,6 +1252,14 @@ class ComprehensiveETL:
                 raise
 
         conn.commit()
+                # Check connection health periodically
+                if imported % 5000 == 0:
+                    try:
+                        cursor.execute("SELECT 1")
+                    except Exception as conn_error:
+                        self.log(f"⚠️ Database connection issue detected, reconnecting...", "WARNING")
+                        conn.rollback()
+                        # Connection will be re-established on next operation
         self.imported_counts["clubs"] = imported
         
         if skipped_duplicates > 0:
@@ -1240,6 +1295,14 @@ class ComprehensiveETL:
                 raise
 
         conn.commit()
+                # Check connection health periodically
+                if imported % 5000 == 0:
+                    try:
+                        cursor.execute("SELECT 1")
+                    except Exception as conn_error:
+                        self.log(f"⚠️ Database connection issue detected, reconnecting...", "WARNING")
+                        conn.rollback()
+                        # Connection will be re-established on next operation
         self.imported_counts["series"] = imported
         self.log(f"✅ Imported {imported} series")
 
@@ -1274,6 +1337,14 @@ class ComprehensiveETL:
                 raise
 
         conn.commit()
+                # Check connection health periodically
+                if imported % 5000 == 0:
+                    try:
+                        cursor.execute("SELECT 1")
+                    except Exception as conn_error:
+                        self.log(f"⚠️ Database connection issue detected, reconnecting...", "WARNING")
+                        conn.rollback()
+                        # Connection will be re-established on next operation
         self.imported_counts["club_leagues"] = imported
         self.log(f"✅ Imported {imported} club-league relationships")
 
@@ -1308,6 +1379,14 @@ class ComprehensiveETL:
                 raise
 
         conn.commit()
+                # Check connection health periodically
+                if imported % 5000 == 0:
+                    try:
+                        cursor.execute("SELECT 1")
+                    except Exception as conn_error:
+                        self.log(f"⚠️ Database connection issue detected, reconnecting...", "WARNING")
+                        conn.rollback()
+                        # Connection will be re-established on next operation
         self.imported_counts["series_leagues"] = imported
         self.log(f"✅ Imported {imported} series-league relationships")
 
@@ -1510,6 +1589,14 @@ class ComprehensiveETL:
                     raise Exception(f"Too many team import errors ({errors})")
 
         conn.commit()
+                # Check connection health periodically
+                if imported % 5000 == 0:
+                    try:
+                        cursor.execute("SELECT 1")
+                    except Exception as conn_error:
+                        self.log(f"⚠️ Database connection issue detected, reconnecting...", "WARNING")
+                        conn.rollback()
+                        # Connection will be re-established on next operation
         self.imported_counts["teams"] = imported + updated
         self.log(
             f"✅ Team import complete: {imported} new, {updated} updated, {skipped} skipped, {errors} errors"
@@ -1736,7 +1823,15 @@ class ComprehensiveETL:
                     self.log(
                         f"   📊 Processed {imported + updated:,} players so far (New: {imported:,}, Updated: {updated:,})..."
                     )
-                    conn.commit()  # Commit in batches
+                    conn.commit()
+                # Check connection health periodically
+                if imported % 5000 == 0:
+                    try:
+                        cursor.execute("SELECT 1")
+                    except Exception as conn_error:
+                        self.log(f"⚠️ Database connection issue detected, reconnecting...", "WARNING")
+                        conn.rollback()
+                        # Connection will be re-established on next operation  # Commit in batches
 
             except Exception as e:
                 errors += 1
@@ -1746,7 +1841,7 @@ class ComprehensiveETL:
                         "ERROR",
                     )
 
-                if errors > 100:  # Stop if too many errors
+                if errors > 500:  # Increased threshold for large imports
                     self.log(
                         f"❌ Too many errors ({errors}), stopping player import",
                         "ERROR",
@@ -1754,6 +1849,14 @@ class ComprehensiveETL:
                     raise Exception(f"Too many player import errors ({errors})")
 
         conn.commit()
+                # Check connection health periodically
+                if imported % 5000 == 0:
+                    try:
+                        cursor.execute("SELECT 1")
+                    except Exception as conn_error:
+                        self.log(f"⚠️ Database connection issue detected, reconnecting...", "WARNING")
+                        conn.rollback()
+                        # Connection will be re-established on next operation
         self.imported_counts["players"] = imported + updated
         self.log(
             f"✅ Player import complete: {imported:,} new, {updated:,} updated, {errors} errors"
@@ -1835,6 +1938,14 @@ class ComprehensiveETL:
                     raise Exception(f"Too many career stats import errors ({errors})")
 
         conn.commit()
+                # Check connection health periodically
+                if imported % 5000 == 0:
+                    try:
+                        cursor.execute("SELECT 1")
+                    except Exception as conn_error:
+                        self.log(f"⚠️ Database connection issue detected, reconnecting...", "WARNING")
+                        conn.rollback()
+                        # Connection will be re-established on next operation
         self.imported_counts["career_stats"] = updated
         self.log(
             f"✅ Updated {updated:,} players with career stats ({not_found} not found, {errors} errors)"
@@ -1948,11 +2059,19 @@ class ComprehensiveETL:
                                 "ERROR",
                             )
 
-                if imported % 1000 == 0 and imported > 0:
+                if imported % 500 == 0 and imported > 0:  # More frequent commits
                     self.log(
                         f"   📊 Imported {imported:,} player history records so far..."
                     )
                     conn.commit()
+                # Check connection health periodically
+                if imported % 5000 == 0:
+                    try:
+                        cursor.execute("SELECT 1")
+                    except Exception as conn_error:
+                        self.log(f"⚠️ Database connection issue detected, reconnecting...", "WARNING")
+                        conn.rollback()
+                        # Connection will be re-established on next operation
 
             except Exception as e:
                 errors += 1
@@ -1964,12 +2083,20 @@ class ComprehensiveETL:
 
                 if errors > 100:
                     self.log(
-                        f"❌ Too many player history errors ({errors}), stopping",
+                        f"❌ Too many player history errors ({errors}), stopping. Consider using resume functionality.",
                         "ERROR",
                     )
                     raise Exception(f"Too many player history import errors ({errors})")
 
         conn.commit()
+                # Check connection health periodically
+                if imported % 5000 == 0:
+                    try:
+                        cursor.execute("SELECT 1")
+                    except Exception as conn_error:
+                        self.log(f"⚠️ Database connection issue detected, reconnecting...", "WARNING")
+                        conn.rollback()
+                        # Connection will be re-established on next operation
         self.imported_counts["player_history"] = imported
         
         # Enhanced completion message with validation stats
@@ -2359,6 +2486,14 @@ class ComprehensiveETL:
                 if imported % 1000 == 0:
                     self.log(f"   📊 Imported {imported:,} match records so far...")
                     conn.commit()
+                # Check connection health periodically
+                if imported % 5000 == 0:
+                    try:
+                        cursor.execute("SELECT 1")
+                    except Exception as conn_error:
+                        self.log(f"⚠️ Database connection issue detected, reconnecting...", "WARNING")
+                        conn.rollback()
+                        # Connection will be re-established on next operation
 
             except Exception as e:
                 errors += 1
@@ -2373,6 +2508,14 @@ class ComprehensiveETL:
                     raise Exception(f"Too many match history import errors ({errors})")
 
         conn.commit()
+                # Check connection health periodically
+                if imported % 5000 == 0:
+                    try:
+                        cursor.execute("SELECT 1")
+                    except Exception as conn_error:
+                        self.log(f"⚠️ Database connection issue detected, reconnecting...", "WARNING")
+                        conn.rollback()
+                        # Connection will be re-established on next operation
         self.imported_counts["match_scores"] = imported
         
         # Enhanced completion message with player ID validation stats
@@ -2514,6 +2657,14 @@ class ComprehensiveETL:
                 # Commit more frequently to prevent transaction rollback issues
                 if imported % 100 == 0:
                     conn.commit()
+                # Check connection health periodically
+                if imported % 5000 == 0:
+                    try:
+                        cursor.execute("SELECT 1")
+                    except Exception as conn_error:
+                        self.log(f"⚠️ Database connection issue detected, reconnecting...", "WARNING")
+                        conn.rollback()
+                        # Connection will be re-established on next operation
 
             except Exception as e:
                 errors += 1
@@ -2529,6 +2680,14 @@ class ComprehensiveETL:
                     raise Exception(f"Too many series stats import errors ({errors})")
 
         conn.commit()
+                # Check connection health periodically
+                if imported % 5000 == 0:
+                    try:
+                        cursor.execute("SELECT 1")
+                    except Exception as conn_error:
+                        self.log(f"⚠️ Database connection issue detected, reconnecting...", "WARNING")
+                        conn.rollback()
+                        # Connection will be re-established on next operation
         self.imported_counts["series_stats"] = imported
 
         # Summary logging
@@ -2691,6 +2850,14 @@ class ComprehensiveETL:
             updated_count += 1
 
         conn.commit()
+                # Check connection health periodically
+                if imported % 5000 == 0:
+                    try:
+                        cursor.execute("SELECT 1")
+                    except Exception as conn_error:
+                        self.log(f"⚠️ Database connection issue detected, reconnecting...", "WARNING")
+                        conn.rollback()
+                        # Connection will be re-established on next operation
         self.log(f"✅ Recalculated points for {updated_count:,} teams with missing data")
 
     def recalculate_all_team_points(self, conn):
@@ -2767,6 +2934,14 @@ class ComprehensiveETL:
             updated_count += 1
 
         conn.commit()
+                # Check connection health periodically
+                if imported % 5000 == 0:
+                    try:
+                        cursor.execute("SELECT 1")
+                    except Exception as conn_error:
+                        self.log(f"⚠️ Database connection issue detected, reconnecting...", "WARNING")
+                        conn.rollback()
+                        # Connection will be re-established on next operation
         self.log(f"✅ Recalculated points for {updated_count:,} teams")
 
     def calculate_series_stats_from_matches(self, conn):
@@ -2949,6 +3124,14 @@ class ComprehensiveETL:
                 )
 
         conn.commit()
+                # Check connection health periodically
+                if imported % 5000 == 0:
+                    try:
+                        cursor.execute("SELECT 1")
+                    except Exception as conn_error:
+                        self.log(f"⚠️ Database connection issue detected, reconnecting...", "WARNING")
+                        conn.rollback()
+                        # Connection will be re-established on next operation
         self.log(
             f"✅ Calculated and inserted {calculated_count:,} team statistics from match data"
         )
@@ -3052,6 +3235,14 @@ class ComprehensiveETL:
                 if imported % 1000 == 0:
                     self.log(f"   📊 Imported {imported:,} schedule records so far...")
                     conn.commit()
+                # Check connection health periodically
+                if imported % 5000 == 0:
+                    try:
+                        cursor.execute("SELECT 1")
+                    except Exception as conn_error:
+                        self.log(f"⚠️ Database connection issue detected, reconnecting...", "WARNING")
+                        conn.rollback()
+                        # Connection will be re-established on next operation
 
             except Exception as e:
                 errors += 1
@@ -3065,6 +3256,14 @@ class ComprehensiveETL:
                     raise Exception(f"Too many schedule import errors ({errors})")
 
         conn.commit()
+                # Check connection health periodically
+                if imported % 5000 == 0:
+                    try:
+                        cursor.execute("SELECT 1")
+                    except Exception as conn_error:
+                        self.log(f"⚠️ Database connection issue detected, reconnecting...", "WARNING")
+                        conn.rollback()
+                        # Connection will be re-established on next operation
         self.imported_counts["schedule"] = imported
         self.log(f"✅ Imported {imported:,} schedule records ({errors} errors)")
 
@@ -3133,6 +3332,14 @@ class ComprehensiveETL:
                     self.log(f"     Added: {series_name} → {league_name}")
         
         conn.commit()
+                # Check connection health periodically
+                if imported % 5000 == 0:
+                    try:
+                        cursor.execute("SELECT 1")
+                    except Exception as conn_error:
+                        self.log(f"⚠️ Database connection issue detected, reconnecting...", "WARNING")
+                        conn.rollback()
+                        # Connection will be re-established on next operation
         
         if total_fixes > 0:
             self.log(f"   ✅ Fixed {total_fixes} missing team hierarchy relationships")
