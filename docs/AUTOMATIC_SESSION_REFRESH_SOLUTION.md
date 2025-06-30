@@ -97,6 +97,13 @@ Run the test script to see the system in action:
 python scripts/test_session_refresh.py
 ```
 
+Or test on staging/production:
+
+```bash
+python deployment/test_staging_session_refresh.py
+python deployment/test_production_session_refresh.py
+```
+
 This demonstrates:
 - Session version tracking
 - Stale session detection

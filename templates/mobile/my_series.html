@@ -423,13 +423,13 @@ async function loadSeriesData() {
       
       if (isPlayoffTeam) {
         rowClass += ' border-l-4 border-green-500';
-        playoffIcon = '<span title="Playoff Contender" class="ml-1 text-green-600"><i class="fas fa-trophy"></i></span>';
+        playoffIcon = '<span title="Playoff Contender" class="mr-1 text-green-600"><i class="fas fa-trophy"></i></span>';
       }
       
       const totalMatches = team.matches.won + team.matches.lost + (team.matches.tied || 0);
       const avgPoints = totalMatches > 0 ? (team.points / totalMatches).toFixed(1) : '0.0';
       html += `<tr class="${rowClass}">
-        <td class="py-3 px-2 font-medium text-gray-900">${team.team}${playoffIcon}</td>
+        <td class="py-3 px-2 font-medium text-gray-900">${playoffIcon}${team.team}</td>
         <td class="py-3 px-2 text-right text-gray-700">${team.matches.won}-${team.matches.lost}</td>
         <td class="py-3 px-2 text-right font-semibold text-gray-900">${team.points}</td>
         <td class="py-3 px-2 text-right text-gray-700">${avgPoints}</td>
