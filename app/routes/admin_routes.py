@@ -432,7 +432,7 @@ def start_import():
             try:
                 for update in run_consolidation_script_generator():
                     yield update
-                    if '"success": true' in update:
+                    if '"success": true' in update or "✅ Consolidation completed successfully!" in update:
                         consolidation_success = True
             except Exception as e:
                 yield f"data: {json.dumps({'type': 'error', 'message': f'Critical error in consolidation: {str(e)}'})}\n\n"
@@ -455,7 +455,7 @@ def start_import():
             try:
                 for update in run_import_script_generator():
                     yield update
-                    if '"success": true' in update:
+                    if '"success": true' in update or "✅ Database import completed successfully!" in update:
                         import_success = True
             except Exception as e:
                 yield f"data: {json.dumps({'type': 'error', 'message': f'Critical error in import: {str(e)}'})}\n\n"
@@ -1038,11 +1038,25 @@ def run_consolidation_script_generator():
         possible_consolidation_paths = [
             os.path.join(
                 project_root,
+                "data",
+                "etl",
+                "database_import",
+                "consolidate_league_jsons_to_all.py",
+            ),
+            os.path.join(
+                project_root,
                 "etl",
                 "database_import",
                 "consolidate_league_jsons_to_all.py",
             ),
             os.path.join(project_root, "etl", "consolidate_league_jsons_to_all.py"),
+            os.path.join(
+                os.getcwd(),
+                "data",
+                "etl",
+                "database_import",
+                "consolidate_league_jsons_to_all.py",
+            ),
             os.path.join(
                 os.getcwd(),
                 "etl",
@@ -1065,31 +1079,56 @@ def run_consolidation_script_generator():
 
         env = os.environ.copy()
         env["PYTHONPATH"] = project_root
+        env["PYTHONUNBUFFERED"] = "1"  # Force unbuffered output for real-time display
 
-        result = subprocess.run(
+        # Use Popen for real-time streaming output
+        process = subprocess.Popen(
             [sys.executable, consolidation_script],
             cwd=project_root,
             env=env,
-            capture_output=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,  # Combine stderr with stdout
             text=True,
-            timeout=300,  # 5 minute timeout
+            bufsize=1,  # Line buffered
+            universal_newlines=True
         )
 
-        # Parse output for progress updates
-        if result.stdout:
-            for line in result.stdout.split("\n"):
-                if line.strip():
-                    yield f"data: {json.dumps({'type': 'output', 'message': line.strip(), 'status': 'info'})}\n\n"
-
-        if result.stderr:
-            for line in result.stderr.split("\n"):
-                if line.strip():
-                    yield f"data: {json.dumps({'type': 'output', 'message': line.strip(), 'status': 'warning'})}\n\n"
-
-        if result.returncode == 0:
-            yield f"data: {json.dumps({'type': 'output', 'message': '✅ Consolidation completed successfully!', 'status': 'success', 'success': True})}\n\n"
-        else:
-            yield f"data: {json.dumps({'type': 'output', 'message': '❌ Consolidation failed', 'status': 'error'})}\n\n"
+        consolidation_success = True
+        
+        try:
+            # Read output line by line in real-time
+            while True:
+                output = process.stdout.readline()
+                if output == '' and process.poll() is not None:
+                    break
+                if output:
+                    line = output.strip()
+                    if line:
+                        # Format message with proper line breaks after timestamp
+                        formatted_message = line.replace('] ', ']<br/>') if '] ' in line else line
+                        yield f"data: {json.dumps({'type': 'output', 'message': formatted_message, 'status': 'info'})}\n\n"
+            
+            # Wait for process to complete and get return code
+            return_code = process.wait(timeout=300)  # 5 minute timeout
+            
+            if return_code == 0:
+                yield f"data: {json.dumps({'type': 'output', 'message': '✅ Consolidation completed successfully!', 'status': 'success', 'success': True})}\n\n"
+            else:
+                consolidation_success = False
+                yield f"data: {json.dumps({'type': 'output', 'message': '❌ Consolidation failed with exit code: ' + str(return_code), 'status': 'error'})}\n\n"
+                
+        except subprocess.TimeoutExpired:
+            process.kill()
+            consolidation_success = False
+            yield f"data: {json.dumps({'type': 'output', 'message': '❌ Consolidation timed out after 5 minutes', 'status': 'error'})}\n\n"
+        except Exception as e:
+            process.kill()
+            consolidation_success = False
+            yield f"data: {json.dumps({'type': 'output', 'message': f'❌ Consolidation error: {str(e)}', 'status': 'error'})}\n\n"
+        finally:
+            if process.poll() is None:
+                process.terminate()
+                process.wait()
 
     except Exception as e:
         print(f"Error running consolidation script: {traceback.format_exc()}")
@@ -1105,13 +1144,27 @@ def run_import_script_generator():
         # Try multiple possible locations for import script
         possible_import_paths = [
             os.path.join(
-                project_root, "etl", "database_import", "json_import_all_to_database.py"
+                project_root,
+                "data",
+                "etl",
+                "database_import",
+                "import_all_jsons_to_database.py",
             ),
-            os.path.join(project_root, "etl", "json_import_all_to_database.py"),
             os.path.join(
-                os.getcwd(), "etl", "database_import", "json_import_all_to_database.py"
+                project_root, "etl", "database_import", "import_all_jsons_to_database.py"
             ),
-            os.path.join(os.getcwd(), "etl", "json_import_all_to_database.py"),
+            os.path.join(project_root, "etl", "import_all_jsons_to_database.py"),
+            os.path.join(
+                os.getcwd(),
+                "data",
+                "etl",
+                "database_import",
+                "import_all_jsons_to_database.py",
+            ),
+            os.path.join(
+                os.getcwd(), "etl", "database_import", "import_all_jsons_to_database.py"
+            ),
+            os.path.join(os.getcwd(), "etl", "import_all_jsons_to_database.py"),
         ]
 
         import_script = None
@@ -1127,31 +1180,56 @@ def run_import_script_generator():
 
         env = os.environ.copy()
         env["PYTHONPATH"] = project_root
+        env["PYTHONUNBUFFERED"] = "1"  # Force unbuffered output for real-time display
 
-        result = subprocess.run(
+        # Use Popen for real-time streaming output
+        process = subprocess.Popen(
             [sys.executable, import_script],
             cwd=project_root,
             env=env,
-            capture_output=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,  # Combine stderr with stdout
             text=True,
-            timeout=1800,  # 30 minute timeout for database import
+            bufsize=1,  # Line buffered
+            universal_newlines=True
         )
 
-        # Parse output for progress updates
-        if result.stdout:
-            for line in result.stdout.split("\n"):
-                if line.strip():
-                    yield f"data: {json.dumps({'type': 'output', 'message': line.strip(), 'status': 'info'})}\n\n"
-
-        if result.stderr:
-            for line in result.stderr.split("\n"):
-                if line.strip():
-                    yield f"data: {json.dumps({'type': 'output', 'message': line.strip(), 'status': 'warning'})}\n\n"
-
-        if result.returncode == 0:
-            yield f"data: {json.dumps({'type': 'output', 'message': '✅ Database import completed successfully!', 'status': 'success', 'success': True})}\n\n"
-        else:
-            yield f"data: {json.dumps({'type': 'output', 'message': '❌ Database import failed', 'status': 'error'})}\n\n"
+        import_success = True
+        
+        try:
+            # Read output line by line in real-time
+            while True:
+                output = process.stdout.readline()
+                if output == '' and process.poll() is not None:
+                    break
+                if output:
+                    line = output.strip()
+                    if line:
+                        # Format message with proper line breaks after timestamp
+                        formatted_message = line.replace('] ', ']<br/>') if '] ' in line else line
+                        yield f"data: {json.dumps({'type': 'output', 'message': formatted_message, 'status': 'info'})}\n\n"
+            
+            # Wait for process to complete and get return code
+            return_code = process.wait(timeout=1800)  # 30 minute timeout
+            
+            if return_code == 0:
+                yield f"data: {json.dumps({'type': 'output', 'message': '✅ Database import completed successfully!', 'status': 'success', 'success': True})}\n\n"
+            else:
+                import_success = False
+                yield f"data: {json.dumps({'type': 'output', 'message': '❌ Database import failed with exit code: ' + str(return_code), 'status': 'error'})}\n\n"
+                
+        except subprocess.TimeoutExpired:
+            process.kill()
+            import_success = False
+            yield f"data: {json.dumps({'type': 'output', 'message': '❌ Database import timed out after 30 minutes', 'status': 'error'})}\n\n"
+        except Exception as e:
+            process.kill()
+            import_success = False
+            yield f"data: {json.dumps({'type': 'output', 'message': f'❌ Database import error: {str(e)}', 'status': 'error'})}\n\n"
+        finally:
+            if process.poll() is None:
+                process.terminate()
+                process.wait()
 
     except Exception as e:
         print(f"Error running import script: {traceback.format_exc()}")
