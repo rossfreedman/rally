@@ -108,7 +108,16 @@ def fix_schema():
             else:
                 results.append("✅ match_date column already exists")
             
-            # Fix 6: Create partial unique index for user_id + match_date (if user_id exists now)
+            # Fix 6: Remove conflicting old unique constraint 
+            try:
+                cursor.execute("""
+                    DROP INDEX IF EXISTS unique_player_availability
+                """)
+                results.append("✅ Removed conflicting unique_player_availability constraint")
+            except Exception as drop_error:
+                results.append(f"⚠️ Could not remove old constraint: {str(drop_error)}")
+            
+            # Fix 7: Create partial unique index for user_id + match_date (if user_id exists now)
             try:
                 cursor.execute("""
                     CREATE UNIQUE INDEX IF NOT EXISTS idx_player_availability_user_date 
@@ -119,7 +128,7 @@ def fix_schema():
             except Exception as idx_error:
                 results.append(f"⚠️ Index creation skipped: {str(idx_error)}")
             
-            # Fix 7: Populate user_id for existing availability records (only if both columns exist)
+            # Fix 8: Populate user_id for existing availability records (only if both columns exist)
             cursor.execute("""
                 SELECT column_name FROM information_schema.columns 
                 WHERE table_name = 'player_availability' AND column_name IN ('user_id', 'tenniscores_player_id')
