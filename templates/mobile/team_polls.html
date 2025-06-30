@@ -4,6 +4,34 @@
 {% block content %}
 <div class="min-h-screen bg-gray-50">
     
+    <!-- Team Selector (Hidden) -->
+    <!-- <div class="px-4 py-1" id="teamSelectorContainer" style="display: none;">
+        <div class="text-right">
+            <button id="teamSelectorLink" class="inline-flex items-center text-xs text-gray-600 hover:text-blue-600 transition-colors">
+                <span id="teamSelectorText">Select Team</span>
+                <i class="fas fa-chevron-down text-xs ml-1"></i>
+            </button>
+        </div>
+    </div> -->
+
+    <!-- Team Selection Modal -->
+    <div id="teamSelectorModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-xl max-w-sm w-full max-h-96 overflow-hidden">
+            <!-- Modal Header -->
+            <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                <h3 class="text-lg font-semibold text-gray-900">Switch Team</h3>
+                <button id="closeTeamModal" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <!-- Team Options -->
+            <div id="teamOptionsContainer" class="p-4 space-y-2 max-h-80 overflow-y-auto">
+                <!-- Team options will be populated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
     <!-- Header -->
     <div class="bg-white border-b border-gray-100">
         <div class="flex items-center px-4 py-6">
@@ -263,6 +291,9 @@ async function loadPolls() {
                 headerElement.textContent = `Team Polls - ${data.team_name}`;
             }
             
+            // Load team selector options
+            await loadTeamSelectorOptions(data.team_id, data.team_name);
+            
             renderPolls();
         } else {
             console.error('❌ API returned error:', data.error);
@@ -273,6 +304,152 @@ async function loadPolls() {
         console.error('❌ Error loading polls:', error);
         console.error('❌ Error details:', error.message);
         hideLoadingAndShowError(`Error: ${error.message}`);
+    }
+}
+
+// Load team selector options
+async function loadTeamSelectorOptions(currentTeamId, currentTeamName) {
+    try {
+        const response = await fetch('/api/get-user-teams-in-current-league');
+        const data = await response.json();
+        
+        if (data.success && data.teams && data.teams.length > 1) {
+            // Show team selector if user has multiple teams
+            const teamSelectorContainer = document.getElementById('teamSelectorContainer');
+            const teamSelectorText = document.getElementById('teamSelectorText');
+            const teamOptionsContainer = document.getElementById('teamOptionsContainer');
+            
+            if (teamSelectorContainer && teamSelectorText && teamOptionsContainer) {
+                teamSelectorContainer.style.display = 'block';
+                teamSelectorText.textContent = `Viewing: ${currentTeamName}`;
+                
+                // Populate team options
+                teamOptionsContainer.innerHTML = data.teams.map(team => `
+                    <button onclick="switchTeamContext(${team.team_id}, '${team.team_name}')" 
+                            class="w-full flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors border border-transparent ${team.team_id == currentTeamId ? 'bg-blue-50 border-blue-200' : ''}"
+                            data-team-id="${team.team_id}"
+                            data-team-name="${team.team_name}">
+                        <div class="flex-1 text-left">
+                            <div class="font-medium ${team.team_id == currentTeamId ? 'text-blue-700' : 'text-gray-900'}">
+                                ${team.team_name}
+                            </div>
+                            <div class="text-sm text-gray-500">${team.club_name} - ${team.series_name}</div>
+                            <div class="text-xs text-gray-400">${team.match_count} matches</div>
+                        </div>
+                        <div class="ml-3">
+                            ${team.team_id == currentTeamId ? 
+                                '<div class="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center"><i class="fas fa-check text-white text-xs"></i></div>' :
+                                '<i class="fas fa-arrow-right text-gray-300 text-sm"></i>'
+                            }
+                        </div>
+                    </button>
+                `).join('');
+                
+                // Setup modal event listeners
+                setupTeamSelectorEvents();
+            }
+        }
+    } catch (error) {
+        console.error('Error loading team selector options:', error);
+    }
+}
+
+// Setup team selector event listeners
+function setupTeamSelectorEvents() {
+    const teamSelectorLink = document.getElementById('teamSelectorLink');
+    const teamSelectorModal = document.getElementById('teamSelectorModal');
+    const closeTeamModal = document.getElementById('closeTeamModal');
+    
+    if (teamSelectorLink && teamSelectorModal) {
+        // Open modal
+        teamSelectorLink.addEventListener('click', function(e) {
+            e.preventDefault();
+            teamSelectorModal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        });
+        
+        // Close modal with X button
+        if (closeTeamModal) {
+            closeTeamModal.addEventListener('click', function(e) {
+                e.preventDefault();
+                teamSelectorModal.classList.add('hidden');
+                document.body.style.overflow = '';
+            });
+        }
+        
+        // Close modal when clicking outside
+        teamSelectorModal.addEventListener('click', function(e) {
+            if (e.target === teamSelectorModal) {
+                teamSelectorModal.classList.add('hidden');
+                document.body.style.overflow = '';
+            }
+        });
+        
+        // Close on escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && !teamSelectorModal.classList.contains('hidden')) {
+                teamSelectorModal.classList.add('hidden');
+                document.body.style.overflow = '';
+            }
+        });
+    }
+}
+
+// Switch team context
+async function switchTeamContext(teamId, teamName) {
+    try {
+        // Close modal immediately
+        const teamSelectorModal = document.getElementById('teamSelectorModal');
+        if (teamSelectorModal) {
+            teamSelectorModal.classList.add('hidden');
+            document.body.style.overflow = '';
+        }
+        
+        // Show loading feedback
+        const teamSelectorText = document.getElementById('teamSelectorText');
+        if (teamSelectorText) {
+            teamSelectorText.innerHTML = `<i class="fas fa-spinner fa-spin text-xs mr-1"></i>Switching to ${teamName}...`;
+        }
+        
+        const response = await fetch('/api/switch-team-in-league', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ team_id: teamId })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            console.log(`Successfully switched to team ${teamName} (ID: ${teamId})`);
+            
+            // Show success briefly then reload
+            if (teamSelectorText) {
+                teamSelectorText.innerHTML = `<i class="fas fa-check text-xs text-green-400 mr-1"></i>Switched to ${teamName}`;
+            }
+            
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        } else {
+            console.error('Failed to switch team context:', result.error);
+            showError(result.error || 'Failed to switch team context');
+            
+            // Reset the selector
+            if (teamSelectorText) {
+                teamSelectorText.textContent = `Select Team`;
+            }
+        }
+    } catch (error) {
+        console.error('Network error switching team context:', error);
+        showError('Network error while switching team');
+        
+        // Reset the selector
+        const teamSelectorText = document.getElementById('teamSelectorText');
+        if (teamSelectorText) {
+            teamSelectorText.textContent = `Select Team`;
+        }
     }
 }
 
