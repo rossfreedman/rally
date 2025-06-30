@@ -1828,12 +1828,10 @@ def start_impersonation():
     try:
         data = request.get_json()
         target_email = data.get("user_email")
-        target_player_id = data.get("tenniscores_player_id")
+        target_player_id = data.get("tenniscores_player_id")  # Can be null for users without player contexts
         
         if not target_email:
             return jsonify({"error": "User email is required"}), 400
-        if not target_player_id:
-            return jsonify({"error": "Player ID is required"}), 400
         
         # Verify the target user exists
         target_user = execute_query_one(
@@ -1847,24 +1845,27 @@ def start_impersonation():
         if target_user.get("is_admin"):
             return jsonify({"error": "Cannot impersonate other admin users"}), 403
         
-        # Verify the user has access to this player ID
-        player_association = execute_query_one(
-            """
-            SELECT upa.*, p.first_name as player_first_name, p.last_name as player_last_name,
-                   c.name as club_name, s.name as series_name, l.league_name, l.league_id
-            FROM user_player_associations upa
-            JOIN users u ON upa.user_id = u.id
-            JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
-            JOIN clubs c ON p.club_id = c.id
-            JOIN series s ON p.series_id = s.id
-            JOIN leagues l ON p.league_id = l.id
-            WHERE u.email = %s AND upa.tenniscores_player_id = %s
-            """, 
-            [target_email, target_player_id]
-        )
-        
-        if not player_association:
-            return jsonify({"error": "User does not have access to this player ID"}), 403
+        # Handle users with and without player contexts
+        player_association = None
+        if target_player_id:
+            # Verify the user has access to this player ID
+            player_association = execute_query_one(
+                """
+                SELECT upa.*, p.first_name as player_first_name, p.last_name as player_last_name,
+                       c.name as club_name, s.name as series_name, l.league_name, l.league_id
+                FROM user_player_associations upa
+                JOIN users u ON upa.user_id = u.id
+                JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+                JOIN clubs c ON p.club_id = c.id
+                JOIN series s ON p.series_id = s.id
+                JOIN leagues l ON p.league_id = l.id
+                WHERE u.email = %s AND upa.tenniscores_player_id = %s
+                """, 
+                [target_email, target_player_id]
+            )
+            
+            if not player_association:
+                return jsonify({"error": "User does not have access to this player ID"}), 403
         
         # Backup current admin session before impersonation
         admin_session_backup = dict(session["user"])
@@ -1906,11 +1907,11 @@ def start_impersonation():
                     }
                     players_data.append(player_data)
                     
-                    # Set the target player as primary
-                    if player.tenniscores_player_id == target_player_id:
+                    # Set the target player as primary if specified
+                    if target_player_id and player.tenniscores_player_id == target_player_id:
                         primary_player = player_data
             
-            # If no primary player was set, use first available (fallback)
+            # If no primary player was set and we have players, use first available (fallback)
             if not primary_player and players_data:
                 primary_player = players_data[0]
             
@@ -1925,7 +1926,7 @@ def start_impersonation():
                 "ad_deuce_preference": user_record.ad_deuce_preference,
                 "dominant_hand": user_record.dominant_hand,
                 "players": players_data,
-                "primary_player": primary_player,
+                "primary_player": primary_player,  # This can be None for users without player contexts
             }
             
             # Use auth service to create proper session data
@@ -1938,40 +1939,49 @@ def start_impersonation():
         session["impersonation_active"] = True
         session["original_admin_session"] = admin_session_backup
         session["impersonated_user_email"] = target_email
-        session["impersonated_player_id"] = target_player_id
+        session["impersonated_player_id"] = target_player_id  # Can be None
         
         # Replace current session with target user's session
         session["user"] = target_session_data
         session.modified = True
         
-        # Log the impersonation start with player context
+        # Log the impersonation start with or without player context
+        if player_association:
+            log_details = f"Started impersonating user: {target_email} as player: {target_player_id} ({player_association['club_name']}, {player_association['series_name']})"
+            success_message = f"Successfully started impersonating {target_email} as {player_association['player_first_name']} {player_association['player_last_name']}"
+            player_context = {
+                "tenniscores_player_id": target_player_id,
+                "player_name": f"{player_association['player_first_name']} {player_association['player_last_name']}",
+                "club_name": player_association['club_name'],
+                "series_name": player_association['series_name'],
+                "league_name": player_association['league_name']
+            }
+        else:
+            log_details = f"Started impersonating user: {target_email} (no player context)"
+            success_message = f"Successfully started impersonating {target_email} (no player context)"
+            player_context = None
+        
         log_admin_action(
             admin_session_backup["email"],
             "start_impersonation",
-            f"Started impersonating user: {target_email} as player: {target_player_id} ({player_association['club_name']}, {player_association['series_name']})"
+            log_details
         )
         
         log_user_activity(
             admin_session_backup["email"],
             "admin_action",
             action="start_impersonation",
-            details=f"Started impersonating {target_email} as {target_player_id}",
+            details=f"Started impersonating {target_email} as {target_player_id or 'no player context'}",
         )
         
         return jsonify({
             "success": True,
-            "message": f"Successfully started impersonating {target_email} as {player_association['player_first_name']} {player_association['player_last_name']}",
+            "message": success_message,
             "impersonated_user": {
                 "email": target_email,
                 "first_name": target_user_data["first_name"],
                 "last_name": target_user_data["last_name"],
-                "player_context": {
-                    "tenniscores_player_id": target_player_id,
-                    "player_name": f"{player_association['player_first_name']} {player_association['player_last_name']}",
-                    "club_name": player_association['club_name'],
-                    "series_name": player_association['series_name'],
-                    "league_name": player_association['league_name']
-                }
+                "player_context": player_context
             }
         })
         

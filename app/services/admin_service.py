@@ -377,51 +377,68 @@ def log_admin_action(admin_email, action, details):
 
 
 def get_all_users_with_player_contexts():
-    """Get all users with their complete player association contexts for impersonation"""
+    """Get all non-admin users with their player association contexts for impersonation"""
     try:
-        # Get all user-player associations with full context
-        associations = execute_query(
+        # First get all non-admin users
+        all_users = execute_query(
             """
-            SELECT u.id as user_id, u.first_name, u.last_name, u.email, u.last_login,
-                   upa.tenniscores_player_id,
-                   p.first_name as player_first_name, p.last_name as player_last_name,
-                   c.name as club_name, s.name as series_name, l.league_name,
-                   l.league_id as league_id
+            SELECT u.id as user_id, u.first_name, u.last_name, u.email, u.last_login
             FROM users u
-            JOIN user_player_associations upa ON u.id = upa.user_id
-            JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
-            JOIN clubs c ON p.club_id = c.id
-            JOIN series s ON p.series_id = s.id
-            JOIN leagues l ON p.league_id = l.id
             WHERE u.is_admin = false  -- Don't allow impersonating other admins
-            ORDER BY u.last_name, u.first_name, c.name, s.name
+            ORDER BY u.last_name, u.first_name
         """
         )
         
-        # Group by user
+        # Then get all associations with full context for these users
+        user_ids = [str(user['user_id']) for user in all_users]
+        associations = []
+        
+        if user_ids:
+            user_ids_str = ','.join(user_ids)
+            associations = execute_query(
+                f"""
+                SELECT u.id as user_id, u.first_name, u.last_name, u.email, u.last_login,
+                       upa.tenniscores_player_id,
+                       p.first_name as player_first_name, p.last_name as player_last_name,
+                       c.name as club_name, s.name as series_name, l.league_name,
+                       l.league_id as league_id
+                FROM users u
+                JOIN user_player_associations upa ON u.id = upa.user_id
+                JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+                JOIN clubs c ON p.club_id = c.id
+                JOIN series s ON p.series_id = s.id
+                JOIN leagues l ON p.league_id = l.id
+                WHERE u.id IN ({user_ids_str})
+                ORDER BY u.last_name, u.first_name, c.name, s.name
+            """
+            )
+        
+        # Build users dictionary starting with all users
         users_dict = {}
+        for user in all_users:
+            user_id = user['user_id']
+            users_dict[user_id] = {
+                'id': user_id,
+                'first_name': user['first_name'],
+                'last_name': user['last_name'],
+                'email': user['email'],
+                'last_login': user['last_login'],
+                'player_contexts': []
+            }
+        
+        # Add player contexts for users who have associations
         for assoc in associations:
             user_id = assoc['user_id']
-            
-            if user_id not in users_dict:
-                users_dict[user_id] = {
-                    'id': user_id,
-                    'first_name': assoc['first_name'],
-                    'last_name': assoc['last_name'],
-                    'email': assoc['email'],
-                    'last_login': assoc['last_login'],
-                    'player_contexts': []
-                }
-            
-            users_dict[user_id]['player_contexts'].append({
-                'tenniscores_player_id': assoc['tenniscores_player_id'],
-                'player_name': f"{assoc['player_first_name']} {assoc['player_last_name']}",
-                'club_name': assoc['club_name'],
-                'series_name': assoc['series_name'],
-                'league_name': assoc['league_name'],
-                'league_id': assoc['league_id'],
-                'display_name': f"{assoc['club_name']}, {assoc['series_name']} ({assoc['league_name']})"
-            })
+            if user_id in users_dict:
+                users_dict[user_id]['player_contexts'].append({
+                    'tenniscores_player_id': assoc['tenniscores_player_id'],
+                    'player_name': f"{assoc['player_first_name']} {assoc['player_last_name']}",
+                    'club_name': assoc['club_name'],
+                    'series_name': assoc['series_name'],
+                    'league_name': assoc['league_name'],
+                    'league_id': assoc['league_id'],
+                    'display_name': f"{assoc['club_name']}, {assoc['series_name']} ({assoc['league_name']})"
+                })
         
         # Convert to list and sort
         users_list = list(users_dict.values())
