@@ -1,0 +1,29 @@
+{
+  "algorithm_version": "v3",
+  "summary": {
+    "total_cases": 100,
+    "successful_cases": 100,
+    "failed_cases": 0,
+    "avg_pti_difference": 19.9443,
+    "avg_adjustment_difference": 16.891184351952063,
+    "improvement_from_v2_percent": -19.15581311984705
+  },
+  "experience_performance": {
+    "30+": {
+      "count": 62,
+      "avg_diff": 21.390483870967742
+    },
+    "10-30": {
+      "count": 16,
+      "avg_diff": 18.2303125
+    },
+    "1-10": {
+      "count": 20,
+      "avg_diff": 17.25475
+    },
+    "New Player": {
+      "count": 2,
+      "avg_diff": 15.72
+    }
+  }
+}

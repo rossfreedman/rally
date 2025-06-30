@@ -12,7 +12,13 @@
             </div>
             <div class="ml-4">
                 <h1 class="text-xl font-bold text-gray-900">Player Analysis</h1>
-                <p class="text-sm text-gray-500">{{ session_data.user.first_name }} {{ session_data.user.last_name }}</p>
+                <p class="text-base font-semibold text-gray-700">{{ session_data.user.first_name }} {{ session_data.user.last_name }}</p>
+                {% if session_data.user.club %}
+                <p class="text-sm text-gray-600">{{ session_data.user.club }}</p>
+                {% endif %}
+                {% if session_data.user.series %}
+                <p class="text-sm text-gray-500">{{ session_data.user.series }}</p>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -173,6 +179,8 @@
         </div>
         {% endif %}
 
+
+
         <!-- Court Performance -->
         {% if analyze_data.court_analysis %}
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -186,7 +194,7 @@
             <div class="p-6">
                 <!-- Courts Stack - Show all courts vertically full width -->
                 <div class="space-y-4">
-                    {% for court_name, court_stats in analyze_data.court_analysis.items()|sort %}
+                    {% for court_name, court_stats in analyze_data.court_analysis.items()|sort(attribute='1.matches', reverse=true) %}
                     <div class="bg-gray-50 rounded-lg p-4">
                         <!-- Court Header -->
                         <div class="flex items-center justify-between mb-4">
@@ -214,9 +222,9 @@
                         <!-- Partners Section -->
                         {% if court_stats.topPartners %}
                         <div>
-                            <p class="text-sm font-medium text-gray-700 mb-3">Top Partners</p>
+                            <p class="text-sm font-medium text-gray-700 mb-3">Partners</p>
                             <div class="space-y-2">
-                                {% for partner in court_stats.topPartners[:3] %}
+                                {% for partner in court_stats.topPartners %}
                                 <div class="flex items-center justify-between py-2 px-3 bg-white rounded-lg">
                                     <div class="flex-1">
                                         <div class="font-medium text-gray-900">{{ partner.name }}</div>
@@ -498,7 +506,7 @@
     
     /* Stack some content vertically on very small screens */
     .series-name {
-        max-width: 60px;
+        max-width: 80px;
     }
 }
 </style>
@@ -712,9 +720,9 @@ async function loadSeasonHistory() {
         seriesDisplay = `Series ${seriesNumber}${suffix}`;
       }
       
-      // Truncate series name if longer than 15 characters
-      const truncatedSeries = seriesDisplay.length > 15 
-        ? seriesDisplay.substring(0, 15) + '...' 
+      // Truncate series name if longer than 22 characters
+      const truncatedSeries = seriesDisplay.length > 22 
+        ? seriesDisplay.substring(0, 22) + '...' 
         : seriesDisplay;
       
       tableHTML += `
@@ -848,6 +856,31 @@ async function loadLast3Matches() {
     error.classList.remove('hidden');
   }
 }
+
+// Initialize analyze-me page with auto-refresh capabilities
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🎯 Analyze Me page loaded');
+    
+    // 🔄 NEW: Auto-refresh when page becomes visible (handles back navigation after league switching)
+    document.addEventListener('visibilitychange', function() {
+        if (!document.hidden) {
+            console.log('🔄 Analyze Me page became visible - checking if refresh needed for current league context');
+            setTimeout(() => {
+                // Reload the page to ensure we have the correct league context data
+                window.location.reload();
+            }, 500); // Small delay to ensure any session updates are complete
+        }
+    });
+    
+    // 🔄 NEW: Also refresh when page gets focus (additional safety net)
+    window.addEventListener('focus', function() {
+        console.log('🔄 Analyze Me page got focus - checking if refresh needed');
+        setTimeout(() => {
+            // Reload the page to ensure we have the correct league context data
+            window.location.reload();
+        }, 500);
+    });
+});
 </script>
 
 {% endblock %} 

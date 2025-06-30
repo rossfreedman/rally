@@ -84,12 +84,12 @@ def get_user_player_records(user_id):
         player_records = execute_query(
             """
             SELECT p.id, p.tenniscores_player_id, p.first_name, p.last_name, 
-                   p.series_id, s.name as series_name, upa.is_primary
+                   p.series_id, s.name as series_name
             FROM user_player_associations upa
             JOIN players p ON p.tenniscores_player_id = upa.tenniscores_player_id
             JOIN series s ON s.id = p.series_id
             WHERE upa.user_id = %(user_id)s
-            ORDER BY upa.is_primary DESC, p.first_name, p.last_name
+            ORDER BY p.first_name, p.last_name
             """,
             {"user_id": user_id},
         )
@@ -106,129 +106,138 @@ def get_user_player_records(user_id):
 
 def get_player_availability(player_name, match_date, series, user_id=None):
     """
-    Get availability for a player on a specific date with verification.
+    Get availability for a player on a specific date using stable user_id reference.
+    
+    Uses the same stable reference pattern as user_player_associations:
+    1. Primary: user_id + match_date (stable - never orphaned)
+    2. Fallback: player_id + match_date (for backward compatibility) 
+    3. Last resort: player_name + match_date (for legacy data)
 
     Args:
         player_name: Name of the player (used for fallback matching)
         match_date: Date of the match
         series: Series name
-        user_id: Optional user ID to use proper user-player associations
+        user_id: User ID for stable lookup (preferred)
 
     Returns: 1 (available), 2 (unavailable), 3 (not sure), or 0 (not set)
     """
     try:
-        print(
-            f"Getting availability for {player_name} on {match_date} in series {series}"
-        )
+        print(f"Getting availability for {player_name} on {match_date} in series {series}")
         if user_id:
-            print(f"Using user_id {user_id} for proper association lookup")
+            print(f"Using user_id {user_id} for stable lookup")
 
         # Convert match_date to proper format for database query
         normalized_date = date_to_db_timestamp(match_date)
         print(f"Normalized date for query: {normalized_date}")
 
-        # Get series ID
+        # STABLE LOOKUP: Use user_id + match_date (primary method)
+        if user_id:
+            result = execute_query_one(
+                """
+                SELECT availability_status, match_date, notes
+                FROM player_availability 
+                WHERE user_id = %(user_id)s 
+                AND DATE(match_date AT TIME ZONE 'UTC') = DATE(%(match_date)s AT TIME ZONE 'UTC')
+                """,
+                {
+                    "user_id": user_id,
+                    "match_date": normalized_date,
+                },
+            )
+            
+            if result:
+                print(f"✅ Found availability via stable user_id lookup: {result}")
+                status = result["availability_status"]
+                notes = result.get("notes", "") or ""
+                return {"status": status, "notes": notes}
+            else:
+                print(f"No availability found via user_id {user_id}, trying fallback methods")
+
+        # FALLBACK 1: Use player_id + series_id (backward compatibility)
+        # Get series ID for fallback lookups
         series_record = execute_query_one(
             "SELECT id FROM series WHERE name = %(series)s", {"series": series}
         )
 
         if not series_record:
             print(f"No series found with name: {series}")
-            return 0  # Return 0 instead of None for consistency
+            return {"status": 0, "notes": ""}
 
         series_id = series_record["id"]
 
-        # If user_id is provided, use the proper association to find the player
+        # Find player record for fallback
         player_record = None
         if user_id:
+            # Try to find player via user associations
             user_players = get_user_player_records(user_id)
-            # Find the player record that matches the series
             for p in user_players:
                 if p["series_name"] == series:
                     player_record = p
-                    print(
-                        f"Found player via association: {p['first_name']} {p['last_name']} (ID: {p['tenniscores_player_id']})"
-                    )
+                    print(f"Found player via association: {p['first_name']} {p['last_name']} (ID: {p['tenniscores_player_id']})")
                     break
 
-            if not player_record:
-                print(f"No player record found for user {user_id} in series {series}")
-                # Fallback to name-based lookup
-                player_record = execute_query_one(
-                    "SELECT id, tenniscores_player_id FROM players WHERE CONCAT(first_name, ' ', last_name) = %(player_name)s AND series_id = %(series_id)s",
-                    {"player_name": player_name.strip(), "series_id": series_id},
-                )
-        else:
-            # Fallback to name-based lookup
+        if not player_record:
+            # Final fallback: name-based player lookup
             player_record = execute_query_one(
                 "SELECT id, tenniscores_player_id FROM players WHERE CONCAT(first_name, ' ', last_name) = %(player_name)s AND series_id = %(series_id)s",
                 {"player_name": player_name.strip(), "series_id": series_id},
             )
 
-        if not player_record:
-            print(f"No player record found for {player_name} in series {series}")
-            return 0
+        if player_record:
+            internal_player_id = player_record["id"]
+            print(f"Found player: internal_id={internal_player_id}")
 
-        internal_player_id = player_record["id"]
-        tenniscores_player_id = player_record["tenniscores_player_id"]
+            # FALLBACK 2: Query using player_id + series_id
+            result = execute_query_one(
+                """
+                SELECT availability_status, match_date, notes
+                FROM player_availability 
+                WHERE player_id = %(player_id)s 
+                AND DATE(match_date AT TIME ZONE 'UTC') = DATE(%(match_date)s AT TIME ZONE 'UTC')
+                AND series_id = %(series_id)s
+                """,
+                {
+                    "player_id": internal_player_id,
+                    "match_date": normalized_date,
+                    "series_id": series_id,
+                },
+            )
 
-        print(
-            f"Found player: internal_id={internal_player_id}, tenniscores_id={tenniscores_player_id}"
-        )
+            if result:
+                print(f"✅ Found availability via player_id fallback: {result}")
+                status = result["availability_status"]
+                notes = result.get("notes", "") or ""
+                return {"status": status, "notes": notes}
 
-        # Query availability using the internal player ID
+        # FALLBACK 3: Name-based search (legacy compatibility)
+        print(f"Trying name-based search for {player_name}")
         result = execute_query_one(
             """
             SELECT availability_status, match_date, notes
             FROM player_availability 
-            WHERE player_id = %(player_id)s 
+            WHERE player_name = %(player_name)s 
             AND DATE(match_date AT TIME ZONE 'UTC') = DATE(%(match_date)s AT TIME ZONE 'UTC')
             AND series_id = %(series_id)s
             """,
             {
-                "player_id": internal_player_id,
+                "player_name": player_name.strip(),
                 "match_date": normalized_date,
                 "series_id": series_id,
             },
         )
 
-        if not result:
-            # Fallback to name-based search if player_id search failed
-            print(
-                f"No availability found with player ID {internal_player_id}, trying name-based search"
-            )
-            result = execute_query_one(
-                """
-                SELECT availability_status, match_date, notes
-                FROM player_availability 
-                WHERE player_name = %(player_name)s 
-                AND DATE(match_date AT TIME ZONE 'UTC') = DATE(%(match_date)s AT TIME ZONE 'UTC')
-                AND series_id = %(series_id)s
-                """,
-                {
-                    "player_name": player_name.strip(),
-                    "match_date": normalized_date,
-                    "series_id": series_id,
-                },
-            )
-            print(f"Name-based availability lookup result: {result}")
-        else:
-            print(f"Player ID availability lookup result: {result}")
+        if result:
+            print(f"✅ Found availability via name-based fallback: {result}")
+            status = result["availability_status"]
+            notes = result.get("notes", "") or ""
+            return {"status": status, "notes": notes}
 
-        if not result:
-            print(f"No availability found for {player_name} on {match_date}")
-            return {"status": 0, "notes": ""}  # Return dict with default values
-
-        # Return both status and notes
-        status = result["availability_status"]
-        notes = result.get("notes", "") or ""  # Handle None values
-        print(f"Found availability status: {status}, notes: {notes}")
-        return {"status": status if status is not None else 0, "notes": notes}
+        print(f"No availability found for {player_name} on {match_date}")
+        return {"status": 0, "notes": ""}
 
     except Exception as e:
-        print(f"❌ Error getting player availability: {str(e)}")
-        print(traceback.format_exc())
-        return 0  # Return 0 on error
+        print(f"Error getting player availability: {str(e)}")
+        return {"status": 0, "notes": ""}
 
 
 def update_player_availability(
@@ -683,155 +692,196 @@ def init_availability_routes(app):
 
     # Route moved to mobile_routes.py blueprint
 
-    @app.route("/api/availability", methods=["GET", "POST"])
-    @login_required
-    def handle_availability():
-        """Handle availability API requests"""
-        if request.method == "POST":
-            try:
-                print(f"\n=== AVAILABILITY API POST START ===")
-                print(f"Request Content-Type: {request.content_type}")
-                print(f"Request headers: {dict(request.headers)}")
-                print(f"Session user: {session.get('user', {})}")
+    # DISABLED: The conflicting /api/availability route has been removed
+    # The modern implementation is in app/routes/api_routes.py and handles availability updates properly
+    pass
 
-                # Parse request data with detailed error logging
-                data = None
 
-                if request.is_json:
-                    try:
-                        data = request.get_json()
-                        print(f"✅ Successfully parsed JSON data: {data}")
-                    except Exception as e:
-                        error_msg = f"❌ Error parsing JSON: {str(e)}"
-                        print(error_msg)
-                        return jsonify({"error": error_msg}), 400
-                elif request.form:
-                    data = request.form.to_dict()
-                    print(f"✅ Successfully parsed form data: {data}")
-                else:
-                    error_msg = "❌ No JSON or form data found"
-                    print(error_msg)
-                    return jsonify({"error": error_msg}), 400
+def set_player_availability(player_name, match_date, series, status, notes="", user_id=None):
+    """
+    Set availability for a player using stable user_id reference.
+    
+    Uses the same stable reference pattern as user_player_associations:
+    - Primary: Store using user_id + match_date (stable - never orphaned)
+    - Fallback: Continue to populate player_id for backward compatibility
+    
+    Args:
+        player_name: Name of the player
+        match_date: Date of the match  
+        series: Series name
+        status: Availability status (1=available, 2=unavailable, 3=not sure)
+        notes: Optional notes
+        user_id: User ID for stable storage (required for new records)
+        
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    try:
+        print(f"Setting availability for {player_name} on {match_date}: {status}")
+        
+        # Convert match_date to proper format
+        normalized_date = date_to_db_timestamp(match_date)
+        
+        # Get series_id for backward compatibility
+        series_record = execute_query_one(
+            "SELECT id FROM series WHERE name = %(series)s", {"series": series}
+        )
+        
+        if not series_record:
+            print(f"Series not found: {series}")
+            return False
+            
+        series_id = series_record["id"]
 
-                # Validate data is not None
-                if not data:
-                    error_msg = "❌ Parsed data is empty or None"
-                    print(error_msg)
-                    return jsonify({"error": error_msg}), 400
+        # Get player record for backward compatibility
+        player_record = None
+        if user_id:
+            # Try to find player via user associations
+            user_players = get_user_player_records(user_id)
+            for p in user_players:
+                if p["series_name"] == series:
+                    player_record = p
+                    break
+        
+        if not player_record:
+            # Fallback to name-based lookup
+            player_record = execute_query_one(
+                "SELECT id FROM players WHERE CONCAT(first_name, ' ', last_name) = %(player_name)s AND series_id = %(series_id)s",
+                {"player_name": player_name.strip(), "series_id": series_id},
+            )
 
-                print(f"✅ Final parsed data: {data}")
-                print(f"✅ Data type: {type(data)}")
-                print(f"✅ Keys in data: {list(data.keys())}")
+        player_id = player_record["id"] if player_record else None
 
-                # Extract and validate required fields with detailed logging
-                player_name = data.get("player_name")
-                match_date = data.get("match_date")
-                availability_status = data.get("availability_status")
-                series = data.get("series")
-
-                print(f"✅ Extracted fields:")
-                print(f"  - player_name: '{player_name}' (type: {type(player_name)})")
-                print(f"  - match_date: '{match_date}' (type: {type(match_date)})")
-                print(
-                    f"  - availability_status: '{availability_status}' (type: {type(availability_status)})"
+        if not user_id:
+            print("Warning: No user_id provided. Availability may become orphaned during ETL imports.")
+            # For backward compatibility, still allow setting availability without user_id
+            # but warn that it may become orphaned
+        
+        # STABLE APPROACH: Use user_id + match_date as primary key (upsert)
+        if user_id:
+            # Check if record already exists with user_id
+            existing = execute_query_one(
+                """
+                SELECT id FROM player_availability 
+                WHERE user_id = %(user_id)s 
+                AND DATE(match_date AT TIME ZONE 'UTC') = DATE(%(match_date)s AT TIME ZONE 'UTC')
+                """,
+                {
+                    "user_id": user_id,
+                    "match_date": normalized_date,
+                },
+            )
+            
+            if existing:
+                # Update existing record
+                execute_query(
+                    """
+                    UPDATE player_availability 
+                    SET availability_status = %(status)s,
+                        notes = %(notes)s,
+                        player_id = %(player_id)s,
+                        series_id = %(series_id)s,
+                        player_name = %(player_name)s,
+                        updated_at = CURRENT_TIMESTAMP
+                    WHERE user_id = %(user_id)s 
+                    AND DATE(match_date AT TIME ZONE 'UTC') = DATE(%(match_date)s AT TIME ZONE 'UTC')
+                    """,
+                    {
+                        "status": status,
+                        "notes": notes or "",
+                        "player_id": player_id,
+                        "series_id": series_id,
+                        "player_name": player_name.strip(),
+                        "user_id": user_id,
+                        "match_date": normalized_date,
+                    },
                 )
-                print(f"  - series: '{series}' (type: {type(series)})")
-
-                # Validate required fields
-                required_fields = [
-                    "player_name",
-                    "match_date",
-                    "availability_status",
-                    "series",
-                ]
-                missing_fields = [
-                    field
-                    for field in required_fields
-                    if field not in data or data[field] is None or data[field] == ""
-                ]
-
-                if missing_fields:
-                    error_msg = f"❌ Missing or empty required fields: {missing_fields}"
-                    print(error_msg)
-                    return jsonify({"error": error_msg}), 400
-
-                # Convert and validate availability_status
-                try:
-                    status = int(availability_status)
-                    print(f"✅ Converted availability_status to int: {status}")
-                except (ValueError, TypeError) as e:
-                    error_msg = f"❌ Error converting availability_status '{availability_status}' to int: {str(e)}"
-                    print(error_msg)
-                    return jsonify({"error": error_msg}), 400
-
-                # Validate status range
-                if status not in [1, 2, 3]:
-                    error_msg = (
-                        f"❌ Invalid availability status: {status} (must be 1, 2, or 3)"
-                    )
-                    print(error_msg)
-                    return jsonify({"error": error_msg}), 400
-
-                # Verify user session
-                user = session.get("user")
-                if not user:
-                    error_msg = "❌ No user found in session"
-                    print(error_msg)
-                    return jsonify({"error": error_msg}), 401
-
-                user_id = user.get("id")
-                expected_player_name = f"{user['first_name']} {user['last_name']}"
-                if player_name != expected_player_name:
-                    error_msg = f"❌ Player name mismatch: received '{player_name}' vs expected '{expected_player_name}'"
-                    print(error_msg)
-                    return jsonify({"error": error_msg}), 403
-
-                print(
-                    f"✅ All validations passed. Calling update_player_availability with user_id {user_id}..."
+                print(f"✅ Updated availability via user_id {user_id}")
+                return True
+            else:
+                # Insert new record with stable user_id reference
+                execute_query(
+                    """
+                    INSERT INTO player_availability 
+                    (user_id, match_date, availability_status, notes, player_id, series_id, player_name, updated_at)
+                    VALUES (%(user_id)s, %(match_date)s, %(status)s, %(notes)s, %(player_id)s, %(series_id)s, %(player_name)s, CURRENT_TIMESTAMP)
+                    """,
+                    {
+                        "user_id": user_id,
+                        "match_date": normalized_date,
+                        "status": status,
+                        "notes": notes or "",
+                        "player_id": player_id,
+                        "series_id": series_id,
+                        "player_name": player_name.strip(),
+                    },
                 )
-
-                # Call the update function with proper user association
-                success = update_player_availability(
-                    player_name, match_date, status, series, user_id
-                )
-
-                if success:
-                    print(f"✅ Successfully updated availability")
-                    return jsonify({"status": "success"})
-                else:
-                    error_msg = "❌ update_player_availability returned False"
-                    print(error_msg)
-                    return (
-                        jsonify(
-                            {
-                                "error": "Failed to update availability - database operation failed"
-                            }
-                        ),
-                        500,
-                    )
-
-            except Exception as e:
-                error_msg = (
-                    f"❌ Unhandled exception in availability POST handler: {str(e)}"
-                )
-                print(error_msg)
-                print(f"❌ Full traceback:\n{traceback.format_exc()}")
-                return jsonify({"error": f"Server error: {str(e)}"}), 500
+                print(f"✅ Inserted new availability via user_id {user_id}")
+                return True
+        
+        # FALLBACK: Legacy approach using player_id (for backward compatibility)
+        if not player_id:
+            print(f"No player found for {player_name} in series {series}")
+            return False
+            
+        # Check if record exists using legacy player_id approach
+        existing = execute_query_one(
+            """
+            SELECT id FROM player_availability 
+            WHERE player_id = %(player_id)s 
+            AND DATE(match_date AT TIME ZONE 'UTC') = DATE(%(match_date)s AT TIME ZONE 'UTC')
+            AND series_id = %(series_id)s
+            """,
+            {
+                "player_id": player_id,
+                "match_date": normalized_date,
+                "series_id": series_id,
+            },
+        )
+        
+        if existing:
+            # Update existing record (legacy approach)
+            execute_query(
+                """
+                UPDATE player_availability 
+                SET availability_status = %(status)s,
+                    notes = %(notes)s,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE player_id = %(player_id)s 
+                AND DATE(match_date AT TIME ZONE 'UTC') = DATE(%(match_date)s AT TIME ZONE 'UTC')
+                AND series_id = %(series_id)s
+                """,
+                {
+                    "status": status,
+                    "notes": notes or "",
+                    "player_id": player_id,
+                    "match_date": normalized_date,
+                    "series_id": series_id,
+                },
+            )
+            print(f"⚠️  Updated availability via legacy player_id {player_id}")
+            return True
         else:
-            # GET request handling
-            try:
-                player_name = request.args.get("player_name")
-                match_date = request.args.get("match_date")
-                series = request.args.get("series")
+            # Insert new record (legacy approach) 
+            execute_query(
+                """
+                INSERT INTO player_availability 
+                (player_id, series_id, match_date, availability_status, notes, player_name, updated_at)
+                VALUES (%(player_id)s, %(series_id)s, %(match_date)s, %(status)s, %(notes)s, %(player_name)s, CURRENT_TIMESTAMP)
+                """,
+                {
+                    "player_id": player_id,
+                    "series_id": series_id,
+                    "match_date": normalized_date,
+                    "status": status,
+                    "notes": notes or "",
+                    "player_name": player_name.strip(),
+                },
+            )
+            print(f"⚠️  Inserted new availability via legacy player_id {player_id}")
+            return True
 
-                print(f"\n=== AVAILABILITY API GET ===")
-                print(
-                    f"Query params: player_name={player_name}, match_date={match_date}, series={series}"
-                )
-
-                is_available = get_player_availability(player_name, match_date, series)
-                return jsonify({"is_available": is_available})
-            except Exception as e:
-                error_msg = f"❌ Error in availability GET handler: {str(e)}"
-                print(error_msg)
-                return jsonify({"error": error_msg}), 500
+    except Exception as e:
+        print(f"❌ Error setting player availability: {str(e)}")
+        print(traceback.format_exc())
+        return False

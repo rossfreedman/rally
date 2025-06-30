@@ -230,22 +230,87 @@ def get_series_stats_data():
             f"[DEBUG] Getting series stats for user series: {user_series}, league: {user_league_id}"
         )
 
+        # CRITICAL FIX: Apply reverse series mapping
+        # The user session contains database format (e.g., "S2B") but series_stats table 
+        # uses user-facing format (e.g., "Series 2B"). Need to convert database format to user format.
+        mapped_series = user_series  # Default to original
+        
+        if user_league_id:
+            # Convert league_id to string format needed by team_format_mappings table
+            league_id_str = None
+            if isinstance(user_league_id, int):
+                # Convert integer league_id to string league_id (e.g., 4554 -> "NSTF")
+                try:
+                    league_lookup = execute_query_one(
+                        "SELECT league_id FROM leagues WHERE id = %s", [user_league_id]
+                    )
+                    if league_lookup:
+                        league_id_str = league_lookup["league_id"]
+                    else:
+                        print(f"[DEBUG] Could not find string league_id for integer {user_league_id}")
+                except Exception as e:
+                    print(f"[DEBUG] Error looking up league_id: {e}")
+            else:
+                league_id_str = str(user_league_id)
+            
+            if league_id_str:
+                print(f"[DEBUG] Using league_id_str: {league_id_str} for mapping lookup")
+                
+                # Simplified fallback for NSTF series mapping (known working patterns)
+                if league_id_str == "NSTF" and user_series.startswith("S"):
+                    # NSTF database format: S2B -> Series 2B
+                    series_suffix = user_series[1:]  # Remove "S" prefix
+                    mapped_series = f"Series {series_suffix}"
+                    print(f"[DEBUG] Applied NSTF fallback mapping: '{user_series}' -> '{mapped_series}'")
+                else:
+                    # Try database query for other leagues
+                    try:
+                        reverse_mapping_query = """
+                            SELECT user_input_format
+                            FROM team_format_mappings
+                            WHERE league_id = %s 
+                            AND database_series_format = %s 
+                            AND is_active = true
+                            ORDER BY 
+                                CASE WHEN user_input_format LIKE 'Series%' THEN 1 
+                                     WHEN user_input_format LIKE 'Division%' THEN 2 
+                                     ELSE 3 END,
+                                LENGTH(user_input_format) DESC
+                            LIMIT 1
+                        """
+                        
+                        reverse_mapping = execute_query_one(reverse_mapping_query, [league_id_str, user_series])
+                        
+                        if reverse_mapping:
+                            mapped_series = reverse_mapping["user_input_format"]
+                            print(f"[DEBUG] Applied database reverse mapping: '{user_series}' -> '{mapped_series}' for league {league_id_str}")
+                        else:
+                            print(f"[DEBUG] No reverse mapping found for '{user_series}' in league {league_id_str}")
+                            
+                    except Exception as e:
+                        print(f"[DEBUG] Reverse mapping query failed: {e}")
+            else:
+                print(f"[DEBUG] Could not determine string league_id from {user_league_id}")
+
         # Convert league_id string to integer foreign key if needed
         league_id_int = None
         if user_league_id:
             try:
-                league_record = execute_query_one(
-                    "SELECT id FROM leagues WHERE league_id = %s", [user_league_id]
-                )
-                if league_record:
-                    league_id_int = league_record["id"]
-                    print(
-                        f"[DEBUG] Converted league_id '{user_league_id}' to integer: {league_id_int}"
+                if isinstance(user_league_id, int):
+                    league_id_int = user_league_id
+                else:
+                    league_record = execute_query_one(
+                        "SELECT id FROM leagues WHERE league_id = %s", [user_league_id]
                     )
+                    if league_record:
+                        league_id_int = league_record["id"]
+                        print(
+                            f"[DEBUG] Converted league_id '{user_league_id}' to integer: {league_id_int}"
+                        )
             except Exception as e:
                 print(f"[DEBUG] Could not convert league ID: {e}")
 
-        # Query series stats from database, filtering by user's series and league
+        # Query series stats from database, filtering by user's mapped series and league
         if league_id_int:
             series_stats_query = """
                 SELECT 
@@ -269,7 +334,7 @@ def get_series_stats_data():
                 WHERE s.series = %s AND s.league_id = %s
                 ORDER BY s.points DESC, s.team ASC
             """
-            db_results = execute_query(series_stats_query, [user_series, league_id_int])
+            db_results = execute_query(series_stats_query, [mapped_series, league_id_int])
         else:
             # Fallback without league filtering
             series_stats_query = """
@@ -292,9 +357,9 @@ def get_series_stats_data():
                 WHERE s.series = %s
                 ORDER BY s.points DESC, s.team ASC
             """
-            db_results = execute_query(series_stats_query, [user_series])
+            db_results = execute_query(series_stats_query, [mapped_series])
 
-        print(f"[DEBUG] Found {len(db_results)} teams in series '{user_series}'")
+        print(f"[DEBUG] Found {len(db_results)} teams in mapped series '{mapped_series}' (original: '{user_series}')")
 
         # Transform database results to match the expected frontend format
         teams = []
@@ -775,56 +840,100 @@ def remove_practice_times_data():
         except Exception as e:
             print(f"Could not get league ID for user: {e}")
 
-        # Count practice entries before removal from database
+        # FIXED: Use priority-based team detection (same as availability page and other functions)
+        user_team_id = None
+        
+        # PRIORITY 1: Use team_id from session if available (most reliable for multi-team players)
+        session_team_id = user.get("team_id")
+        print(f"[DEBUG] Practice removal: session_team_id from user: {session_team_id}")
+        
+        if session_team_id:
+            user_team_id = session_team_id
+            print(f"[DEBUG] Practice removal: Using team_id from session: {user_team_id}")
+        
+        # PRIORITY 2: Use team_context from user if provided
+        if not user_team_id:
+            team_context = user.get("team_context")
+            if team_context:
+                user_team_id = team_context
+                print(f"[DEBUG] Practice removal: Using team_context: {user_team_id}")
+        
+        # PRIORITY 3: Fallback to session service
+        if not user_team_id:
+            try:
+                from app.services.session_service import get_session_data_for_user
+                session_data = get_session_data_for_user(user["email"])
+                if session_data:
+                    user_team_id = session_data.get("team_id")
+                    print(f"[DEBUG] Practice removal: Found team_id via session service: {user_team_id}")
+            except Exception as e:
+                print(f"Could not get team ID via session service: {e}")
+
+        if not user_team_id:
+            return jsonify({"success": False, "message": "Could not determine your team. Please check your profile settings."}), 400
+
+        # Count practice entries before removal using team_id for precision
         practice_description = f"{user_club} Practice - {user_series}"
 
+        # FIXED: Use team_id-based counting for accuracy (handle NULL league_id)
         practice_count_query = """
             SELECT COUNT(*) as count
             FROM schedule 
-            WHERE home_team = %(practice_desc)s
-            AND location = %(club)s
-            AND (league_id = %(league_id)s OR %(league_id)s IS NULL)
+            WHERE home_team_id = %(team_id)s
+            AND (league_id = %(league_id)s OR (league_id IS NULL AND %(league_id)s IS NOT NULL))
+            AND home_team = %(practice_desc)s
         """
 
         try:
             practice_count_result = execute_query_one(
                 practice_count_query,
                 {
-                    "practice_desc": practice_description,
-                    "club": user_club,
+                    "team_id": user_team_id,
                     "league_id": league_id,
+                    "practice_desc": practice_description,
                 },
             )
             practice_count = (
                 practice_count_result["count"] if practice_count_result else 0
             )
             print(
-                f"Found {practice_count} practice entries for {user_club} - {user_series} to remove"
+                f"Found {practice_count} practice entries for team_id {user_team_id} ({user_club} - {user_series}) to remove"
             )
         except Exception as e:
             print(f"Error counting practice entries: {e}")
             practice_count = 0
 
-        # Remove practice entries from database
+        if practice_count == 0:
+            return jsonify(
+                {
+                    "success": True,
+                    "message": "No practice times found to remove.",
+                    "count": 0,
+                    "series": user_series,
+                    "club": user_club,
+                }
+            )
+
+        # FIXED: Remove practice entries using team_id for precision and security (handle NULL league_id)
         try:
             delete_query = """
                 DELETE FROM schedule 
-                WHERE home_team = %(practice_desc)s
-                AND location = %(club)s
-                AND (league_id = %(league_id)s OR %(league_id)s IS NULL)
+                WHERE home_team_id = %(team_id)s
+                AND (league_id = %(league_id)s OR (league_id IS NULL AND %(league_id)s IS NOT NULL))
+                AND home_team = %(practice_desc)s
             """
 
             execute_query(
                 delete_query,
                 {
-                    "practice_desc": practice_description,
-                    "club": user_club,
+                    "team_id": user_team_id,
                     "league_id": league_id,
+                    "practice_desc": practice_description,
                 },
             )
 
             print(
-                f"Successfully removed {practice_count} practice entries from database"
+                f"Successfully removed {practice_count} practice entries for team_id {user_team_id}"
             )
 
         except Exception as e:
@@ -842,7 +951,7 @@ def remove_practice_times_data():
         log_user_activity(
             user["email"],
             "practice_times_removed",
-            details=f"Removed {practice_count} practice times for {user_series} at {user_club}",
+            details=f"Removed {practice_count} practice times for {user_series} at {user_club} (team_id: {user_team_id})",
         )
 
         return jsonify(
@@ -864,7 +973,7 @@ def remove_practice_times_data():
 
 
 def get_team_schedule_data_data():
-    """Get team schedule data - OPTIMIZED for faster loading"""
+    """Get team schedule data - OPTIMIZED for faster loading with priority-based team detection"""
     try:
         import json
         import os
@@ -873,7 +982,7 @@ def get_team_schedule_data_data():
 
         from flask import jsonify, session
 
-        from database_utils import execute_query
+        from database_utils import execute_query, execute_query_one
 
         # Import the get_matches_for_user_club function
         from routes.act.schedule import get_matches_for_user_club
@@ -885,14 +994,82 @@ def get_team_schedule_data_data():
             print("❌ No user in session")
             return jsonify({"error": "Not authenticated"}), 401
 
-        club_name = user.get("club")
-        series = user.get("series")
-        print(f"User: {user.get('email')}")
-        print(f"Club: {club_name}")
-        print(f"Series: {series}")
+        user_email = user.get("email")
+        print(f"User: {user_email}")
+
+        # PRIORITY-BASED TEAM DETECTION (same as analyze-me, track-byes-courts, and polls pages)
+        user_team_id = None
+        user_team_name = None
+        club_name = None
+        series = None
+        
+        # PRIORITY 1: Use team_id from session if available (most reliable for multi-team players)
+        session_team_id = user.get("team_id")
+        print(f"[DEBUG] Team-schedule: session_team_id from user: {session_team_id}")
+        
+        if session_team_id:
+            try:
+                # Get team info for the specific team_id from session
+                session_team_query = """
+                    SELECT t.id, t.team_name, c.name as club_name, s.name as series_name
+                    FROM teams t
+                    JOIN clubs c ON t.club_id = c.id
+                    JOIN series s ON t.series_id = s.id
+                    WHERE t.id = %s
+                """
+                session_team_result = execute_query_one(session_team_query, [session_team_id])
+                if session_team_result:
+                    user_team_id = session_team_result['id'] 
+                    user_team_name = session_team_result['team_name']
+                    club_name = session_team_result['club_name']
+                    series = session_team_result['series_name']
+                    print(f"[DEBUG] Team-schedule: Using team_id from session: team_id={user_team_id}, team_name={user_team_name}, club={club_name}, series={series}")
+                else:
+                    print(f"[DEBUG] Team-schedule: Session team_id {session_team_id} not found in teams table")
+            except Exception as e:
+                print(f"[DEBUG] Team-schedule: Error getting team from session team_id {session_team_id}: {e}")
+        
+        # PRIORITY 2: Use team_context from user if provided (from composite player URL)
+        if not user_team_id:
+            team_context = user.get("team_context") if user else None
+            if team_context:
+                try:
+                    # Get team info for the specific team_id from team context
+                    team_context_query = """
+                        SELECT t.id, t.team_name, c.name as club_name, s.name as series_name
+                        FROM teams t
+                        JOIN clubs c ON t.club_id = c.id
+                        JOIN series s ON t.series_id = s.id
+                        WHERE t.id = %s
+                    """
+                    team_context_result = execute_query_one(team_context_query, [team_context])
+                    if team_context_result:
+                        user_team_id = team_context_result['id'] 
+                        user_team_name = team_context_result['team_name']
+                        club_name = team_context_result['club_name']
+                        series = team_context_result['series_name']
+                        print(f"[DEBUG] Team-schedule: Using team_context from URL: team_id={user_team_id}, team_name={user_team_name}, club={club_name}, series={series}")
+                    else:
+                        print(f"[DEBUG] Team-schedule: team_context {team_context} not found in teams table")
+                except Exception as e:
+                    print(f"[DEBUG] Team-schedule: Error getting team from team_context {team_context}: {e}")
+        
+        # PRIORITY 3: Fallback to legacy session club/series if no direct team_id
+        if not user_team_id:
+            print(f"[DEBUG] Team-schedule: No direct team_id, using legacy session club/series")
+            club_name = user.get("club")
+            series = user.get("series")
+            
+            if not club_name or not series:
+                print("❌ Missing club or series in session")
+                return jsonify({"error": "Club or series not set in profile"}), 400
+                
+            print(f"[DEBUG] Team-schedule: Legacy fallback: club={club_name}, series={series}")
+
+        print(f"[DEBUG] Team-schedule: Final team selection: team_id={user_team_id}, club={club_name}, series={series}")
 
         if not club_name or not series:
-            print("❌ Missing club or series")
+            print("❌ Missing club or series after team detection")
             return jsonify({"error": "Club or series not set in profile"}), 400
 
         # Get series ID first since we want all players in the series
@@ -992,14 +1169,64 @@ def get_team_schedule_data_data():
 
         # Use the same logic as get_matches_for_user_club to get matches
         print("\n=== Getting matches using same logic as availability page ===")
-        matches = get_matches_for_user_club(user)
+        
+        # ENHANCED: Pass the detected team_id to get_matches_for_user_club for better reliability
+        user_with_team_id = user.copy()
+        if user_team_id:
+            user_with_team_id["team_id"] = user_team_id
+            print(f"[DEBUG] Team-schedule: Passing team_id {user_team_id} to get_matches_for_user_club")
+        
+        matches = get_matches_for_user_club(user_with_team_id)
 
         if not matches:
-            print("❌ No matches found")
-            return (
-                jsonify({"error": "No matches or practices found for your team"}),
-                404,
-            )
+            print("❌ No upcoming matches found")
+            
+            # IMPROVED ERROR HANDLING: Check if team exists but just has no upcoming schedule
+            if user_team_id:
+                # Check if this team has any completed matches (to confirm team exists and is active)
+                # UPDATED: Show all historical matches (removed 6-month filter to support completed seasons)
+                completed_matches_query = """
+                    SELECT COUNT(*) as count
+                    FROM match_scores 
+                    WHERE (home_team_id = %s OR away_team_id = %s)
+                """
+                
+                try:
+                    completed_result = execute_query_one(completed_matches_query, [user_team_id, user_team_id])
+                    completed_count = completed_result["count"] if completed_result else 0
+                    
+                    if completed_count > 0:
+                        # Team exists and has completed matches, just no upcoming schedule  
+                        print(f"✓ Team {user_team_id} has {completed_count} completed matches but no upcoming schedule")
+                        return jsonify({
+                            "players_schedule": {},
+                            "match_dates": [],
+                            "event_details": {},
+                            "message": f"No upcoming matches scheduled for your team. Your team has played {completed_count} matches total. You can view historical schedule data on other pages.",
+                            "team_status": "active_no_schedule"
+                        })
+                    else:
+                        # Team exists but no match activity
+                        print(f"⚠️ Team {user_team_id} has no match history")
+                        return jsonify({
+                            "players_schedule": {},
+                            "match_dates": [],
+                            "event_details": {},
+                            "message": "No upcoming matches scheduled and no match history for your team.",
+                            "team_status": "inactive"
+                        })
+                        
+                except Exception as e:
+                    print(f"Error checking completed matches: {e}")
+            
+            # Fallback error for teams without team_id or when query fails
+            return jsonify({
+                "players_schedule": {},
+                "match_dates": [],
+                "event_details": {},
+                "message": "No upcoming matches or practices found for your team.",
+                "team_status": "no_schedule"
+            })
 
         print(f"✓ Found {len(matches)} matches/practices")
 

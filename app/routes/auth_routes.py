@@ -12,10 +12,10 @@ from flask import (
 
 from app.services.auth_service_refactored import (
     authenticate_user,
-    create_session_data,
     get_clubs_list,
     register_user,
 )
+from app.services.association_discovery_service import AssociationDiscoveryService
 
 # Create Blueprint
 auth_bp = Blueprint("auth", __name__)
@@ -90,11 +90,37 @@ def handle_register():
             else:
                 return jsonify({"error": result["error"]}), 500
 
-        # Set session data using the refactored service that handles user_player_associations
-        session["user"] = create_session_data(result["user"])
+        # Set session data directly from register_user result (don't call create_session_data again)
+        session["user"] = result["user"]  # Use the session data directly from register_user
         session.permanent = True
 
-        logger.info(f"Registration: Session created for user {email}")
+        logger.info(f"Registration: Session created for user {email} with player_id: {result['user'].get('tenniscores_player_id', 'None')}")
+
+        # 🔍 ENHANCEMENT: Run association discovery after registration to find additional league connections
+        try:
+            user_id = result["user"]["id"]
+            discovery_result = AssociationDiscoveryService.discover_missing_associations(user_id, email)
+            
+            if discovery_result.get("success") and discovery_result.get("associations_created", 0) > 0:
+                logger.info(f"🎯 Registration discovery: Found {discovery_result['associations_created']} additional associations for {email}")
+                
+                # Update session with any new associations found
+                try:
+                    # Rebuild session data to include new associations
+                    from app.services.session_service import get_session_data_for_user
+                    updated_session_data = get_session_data_for_user(email)
+                    if updated_session_data:
+                        session["user"] = updated_session_data
+                        logger.info(f"Registration: Updated session with new associations")
+                    else:
+                        logger.warning(f"Failed to rebuild session data after discovery")
+                except Exception as session_update_error:
+                    logger.warning(f"Failed to update session with new associations: {session_update_error}")
+                    # Continue anyway - user will see new associations on next login
+            
+        except Exception as discovery_error:
+            logger.warning(f"Association discovery failed during registration for {email}: {discovery_error}")
+            # Don't fail registration if discovery fails - it's an enhancement, not critical
 
         return (
             jsonify(
@@ -166,35 +192,35 @@ def handle_login():
             logger.warning(f"Authentication failed: {result['error']}")
             return jsonify({"error": result["error"]}), 401
 
-        # Set session data
+        # Set session data directly from authenticate_user result (don't call create_session_data again)
         try:
-            session["user"] = create_session_data(result["user"])
+            session["user"] = result["user"]  # Use the session data directly from authenticate_user
             session.permanent = True
-            logger.info(f"Session created for user: {email}")
+            logger.info(f"Session created for user: {email} with player_id: {result['user'].get('tenniscores_player_id', 'None')}")
         except Exception as session_error:
             logger.error(f"Session creation error: {session_error}")
             return jsonify({"error": "Session creation failed"}), 500
 
-        # Extract club and series from primary player or session data
-        user_data = result["user"]
-        primary_player = user_data.get("primary_player")
-        session_user = session.get("user", {})
+        # 🔍 ENHANCEMENT: Run association discovery on login to find missing league connections
+        try:
+            user_id = result["user"]["id"]
+            discovery_result = AssociationDiscoveryService.discover_missing_associations(user_id, email)
+            
+            if discovery_result.get("success") and discovery_result.get("associations_created", 0) > 0:
+                logger.info(f"🎯 Login discovery: Created {discovery_result['associations_created']} new associations for {email}")
+                # Note: We don't update the session here as it would require rebuilding session data
+                # The user will see the new associations on their next login or page refresh
+            
+        except Exception as discovery_error:
+            logger.warning(f"Association discovery failed during login for {email}: {discovery_error}")
+            # Don't fail login if discovery fails - it's an enhancement, not critical
 
-        # Get club and series from primary player if available, otherwise from session
-        if primary_player:
-            club = (
-                primary_player.get("club", {}).get("name")
-                if isinstance(primary_player.get("club"), dict)
-                else primary_player.get("club", "")
-            )
-            series = (
-                primary_player.get("series", {}).get("name")
-                if isinstance(primary_player.get("series"), dict)
-                else primary_player.get("series", "")
-            )
-        else:
-            club = session_user.get("club", "")
-            series = session_user.get("series", "")
+        # Get user data for response
+        user_data = result["user"]
+        
+        # Extract club and series for response
+        club = user_data.get("club", "")
+        series = user_data.get("series", "")
 
         # Check for redirect_after_login in session
         redirect_url = session.pop("redirect_after_login", "/mobile")
@@ -210,6 +236,7 @@ def handle_login():
                     "last_name": user_data["last_name"],
                     "club": club,
                     "series": series,
+                    "tenniscores_player_id": user_data.get("tenniscores_player_id", ""),
                 },
             }
         )
@@ -296,3 +323,15 @@ def get_clubs():
     except Exception as e:
         logger.error(f"Error getting clubs: {str(e)}")
         return jsonify({"error": str(e)}), 500
+
+
+@auth_bp.route("/terms")
+def terms_of_use():
+    """Serve the Terms of Use page"""
+    return render_template("legal/terms_of_use.html")
+
+
+@auth_bp.route("/privacy")
+def privacy_policy():
+    """Serve the Privacy Policy page"""
+    return render_template("legal/privacy_policy.html")

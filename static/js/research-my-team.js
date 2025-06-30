@@ -244,8 +244,31 @@ function calculatePlayerStats(matches, teamId) {
         // Determine if team won
         const winnerIsHome = match["Winner"] === "home";
         const teamWon = (isHome && winnerIsHome) || (!isHome && !winnerIsHome);
-        // Figure out which court based on position in the match list
-        const courtIndex = matches.indexOf(match) % 4;
+        // FIXED: Court assignment based on database ID order within team matchup
+        // First, group matches by team matchup to get correct court order
+        const matchDate = match["Date"];
+        const homeTeam = match["Home Team"];
+        const awayTeam = match["Away Team"];
+        
+        // Get all matches for this same team matchup on this date
+        const teamMatchupMatches = matches.filter(m => 
+            m["Date"] === matchDate && 
+            m["Home Team"] === homeTeam && 
+            m["Away Team"] === awayTeam
+        );
+        
+        // Sort by ID to ensure correct database order (court assignment is based on ID order)
+        teamMatchupMatches.sort((a, b) => (a.id || 0) - (b.id || 0));
+        
+        // Find this match's position in the correctly ordered team matchup
+        const courtIndex = teamMatchupMatches.findIndex(m => 
+            (m.id && match.id && m.id === match.id) ||
+            (m["Home Player 1"] === match["Home Player 1"] && 
+             m["Home Player 2"] === match["Home Player 2"] &&
+             m["Away Player 1"] === match["Away Player 1"] && 
+             m["Away Player 2"] === match["Away Player 2"])
+        );
+        
         const courtName = `Court ${courtIndex + 1}`;
         // Update player stats
         [player1, player2].forEach(player => {
@@ -297,21 +320,23 @@ function calculatePlayerStats(matches, teamId) {
         const player = players[playerName];
         // Calculate win rate
         player.winRate = player.matches > 0 ? Math.round((player.wins / player.matches) * 100) : 0;
-        // Find best court
+        // Find best court - Fixed logic: >3 matches (>=4) AND >=70% win rate
         let bestCourt = null;
         let bestCourtWinRate = 0;
         Object.keys(player.courts).forEach(courtName => {
             const court = player.courts[courtName];
-            if (court.matches >= 2) {
+            if (court.matches > 3) {  // More than 3 matches (>=4)
                 const courtWinRate = Math.round((court.wins / court.matches) * 100);
-                if (courtWinRate > bestCourtWinRate) {
-                    bestCourtWinRate = courtWinRate;
-                    bestCourt = {
-                        name: courtName,
-                        matches: court.matches,
-                        wins: court.wins,
-                        winRate: courtWinRate
-                    };
+                if (courtWinRate >= 70) {  // Must have 70% or greater win rate
+                    if (courtWinRate > bestCourtWinRate) {
+                        bestCourtWinRate = courtWinRate;
+                        bestCourt = {
+                            name: courtName,
+                            matches: court.matches,
+                            wins: court.wins,
+                            winRate: courtWinRate
+                        };
+                    }
                 }
             }
         });
@@ -323,14 +348,16 @@ function calculatePlayerStats(matches, teamId) {
             const partner = players[playerName].partners[partnerName];
             if (partner.matches >= 2) {
                 const partnerWinRate = Math.round((partner.wins / partner.matches) * 100);
-                if (partnerWinRate > bestPartnerWinRate) {
-                    bestPartnerWinRate = partnerWinRate;
-                    bestPartner = {
-                        name: partnerName,
-                        matches: partner.matches,
-                        wins: partner.wins,
-                        winRate: partnerWinRate
-                    };
+                if (partnerWinRate >= 60) {
+                    if (partnerWinRate > bestPartnerWinRate) {
+                        bestPartnerWinRate = partnerWinRate;
+                        bestPartner = {
+                            name: partnerName,
+                            matches: partner.matches,
+                            wins: partner.wins,
+                            winRate: partnerWinRate
+                        };
+                    }
                 }
             }
         });
@@ -339,9 +366,9 @@ function calculatePlayerStats(matches, teamId) {
     return players;
 }
 
-// Get upcoming matches
+// Get recent matches (updated to show all matches instead of just upcoming)
 function getUpcomingMatches(matches, teamId) {
-    // Sort matches by date
+    // Sort matches by date (most recent first)
     const sortedMatches = [...matches].sort((a, b) => {
         // Try to parse date in MM/DD/YYYY or similar
         const parseDate = (d) => {
@@ -355,30 +382,18 @@ function getUpcomingMatches(matches, teamId) {
         };
         const dateA = parseDate(a.date || a.Date);
         const dateB = parseDate(b.date || b.Date);
-        return dateA - dateB;
+        return dateB - dateA; // Changed to descending order (most recent first)
     });
-    // Get current date
-    const currentDate = new Date();
-    // Filter for upcoming matches
-    return sortedMatches.filter(match => {
-        const matchDate = (() => {
-            const d = match.date || match.Date;
-            if (!d) return new Date(0);
-            const parts = d.split("/");
-            if (parts.length === 3) {
-                // MM/DD/YYYY
-                return new Date(parts[2], parts[0] - 1, parts[1]);
-            }
-            return new Date(d);
-        })();
-        return matchDate >= currentDate;
-    }).slice(0, 3); // Get next 3 matches
+    
+    // UPDATED: Show recent matches instead of filtering by current date
+    // This supports completed seasons where no upcoming matches exist
+    return sortedMatches.slice(0, 5); // Show last 5 matches instead of next 3
 }
 
-// Generate HTML for upcoming matches (copied/adapted from research-team.js)
+// Generate HTML for recent matches (updated to show historical data)
 function generateUpcomingMatchesHTML(upcomingMatches) {
     if (!upcomingMatches || upcomingMatches.length === 0) {
-        return `<p class="text-center">No upcoming matches scheduled</p>`;
+        return `<p class="text-center">No recent matches found</p>`;
     }
     return `
                 <div class="table-responsive">

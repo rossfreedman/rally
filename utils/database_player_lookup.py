@@ -56,17 +56,72 @@ NAME_VARIATIONS = {
     "andy": ["andrew"],
     "andrew": ["andy"],
     "p": ["peter"],
-    "peter": ["p"],
+    "peter": ["p", "pete"],
+    "pete": ["peter"],
     "rj": ["ryan"],
     "ryan": ["rj"],
+    "nick": ["nicholas"],
+    "nicholas": ["nick"],
+    "zach": ["zachary"],
+    "zachary": ["zach"],
+    "tim": ["timothy"],
+    "timothy": ["tim"],
+    "frank": ["francis"],
+    "francis": ["frank"],
+    "ted": ["theodore"],
+    "theodore": ["ted"],
+    "ken": ["kenneth"],
+    "kenneth": ["ken"],
+    "olg": ["olga"],  # Fix for Olg Martinsone case
+    "olga": ["olg"],  # Bidirectional mapping
 }
 
 
 def normalize_name(name: str) -> str:
-    """Normalize name for comparison (lowercase, stripped)"""
+    """Normalize player name for consistent matching"""
     if not name:
         return ""
-    return name.strip().lower()
+    return name.replace(",", "").replace("  ", " ").strip().lower()
+
+
+def normalize_series_name(series_name: str, league_id: str = None) -> str:
+    """
+    Normalize series names using database mappings instead of hard-coded logic.
+    
+    Args:
+        series_name: User-provided series name (e.g., "Series 1", "Division 1a")
+        league_id: League identifier for context-specific mapping
+        
+    Returns:
+        Database series name if mapping exists, otherwise original name
+    """
+    if not series_name:
+        return ""
+    
+    series_name = series_name.strip()
+    
+    # If we have a league_id, try to get the database mapping
+    if league_id:
+        try:
+            mapping_query = """
+                SELECT database_series_name
+                FROM series_name_mappings
+                WHERE league_id = %s AND user_series_name = %s
+                LIMIT 1
+            """
+            
+            mapping_result = execute_query_one(mapping_query, [league_id, series_name])
+            
+            if mapping_result:
+                mapped_name = mapping_result["database_series_name"]
+                logger.info(f"Mapped series '{series_name}' -> '{mapped_name}' for league {league_id}")
+                return mapped_name
+                
+        except Exception as e:
+            logger.warning(f"Error querying series mapping for '{series_name}' in {league_id}: {e}")
+    
+    # If no mapping found or no league_id provided, return original
+    return series_name
 
 
 def get_name_variations(first_name: str) -> List[str]:
@@ -120,15 +175,19 @@ def find_player_by_database_lookup(
         # Normalize inputs
         norm_last = normalize_name(last_name)
         norm_club = normalize_name(club_name)
-        norm_series = normalize_name(series_name)
+        norm_series = normalize_series_name(series_name, league_id)
 
         # Get name variations for first name
         first_name_variations = get_name_variations(first_name)
+        
+        # Get all possible series name variations for better matching
+        series_variations = get_series_name_variations(series_name, league_id)
 
         logger.info(
             f"Database lookup for: {first_name} {last_name} ({club_name}, {series_name}, {league_id})"
         )
         logger.info(f"First name variations: {first_name_variations}")
+        logger.info(f"Series variations: {series_variations}")
 
         # Get league database ID
         league_record = execute_query_one(
@@ -150,6 +209,11 @@ def find_player_by_database_lookup(
         name_conditions = " OR ".join(
             ["LOWER(TRIM(p.first_name)) = %s"] * len(first_name_variations)
         )
+        
+        # Build query with OR conditions for series variations
+        series_conditions = " OR ".join(
+            ["LOWER(TRIM(s.name)) = %s"] * len(series_variations)
+        )
 
         primary_query = f"""
             SELECT p.tenniscores_player_id, p.first_name, p.last_name, c.name as club_name, s.name as series_name
@@ -161,11 +225,11 @@ def find_player_by_database_lookup(
             AND ({name_conditions})
             AND LOWER(TRIM(p.last_name)) = %s  
             AND LOWER(TRIM(c.name)) = %s
-            AND LOWER(TRIM(s.name)) = %s
+            AND ({series_conditions})
         """
 
         params = (
-            [league_db_id] + first_name_variations + [norm_last, norm_club, norm_series]
+            [league_db_id] + first_name_variations + [norm_last, norm_club] + [var.lower() for var in series_variations]
         )
         primary_matches = execute_query(primary_query, params)
 
@@ -319,6 +383,21 @@ def find_player_by_database_lookup(
             logger.info(
                 f"⚠️ FALLBACK 2.5: Multiple matches for {last_name} + {club_name} + {series_name}: {match_names}"
             )
+            
+            # CRITICAL FIX: High-confidence fallback found multiple matches
+            # This is a very strong signal - same last name + club + series + league
+            # Return the matches for user selection instead of continuing to weaker fallbacks
+            logger.info(
+                f"✅ FALLBACK 2.5: Found multiple high-confidence matches - returning for user selection"
+            )
+            logger.info(
+                f"✅ FALLBACK 2.5: Exact club + series + last name match with multiple first names"
+            )
+            return {
+                "match_type": "multiple_high_confidence",
+                "matches": fallback2_5_matches,
+                "message": f"Multiple high-confidence matches found: {match_names}. Exact club, series, and last name match with different first names.",
+            }
         else:
             logger.info(
                 f"❌ FALLBACK 2.5: No matches found for {last_name} + {club_name} + {series_name}"
@@ -410,6 +489,21 @@ def find_player_by_database_lookup(
             logger.info(
                 f"⚠️ FALLBACK 4: Multiple matches for {last_name} + {club_name}: {match_names}"
             )
+            
+            # CONSISTENT FIX: High-confidence fallback found multiple matches  
+            # Same last name + club + league is also high confidence
+            # Return the matches for user selection instead of continuing to riskier fallbacks
+            logger.info(
+                f"✅ FALLBACK 4: Found multiple high-confidence matches - returning for user selection"
+            )
+            logger.info(
+                f"✅ FALLBACK 4: Exact club + last name match with multiple first names/series"
+            )
+            return {
+                "match_type": "multiple_high_confidence",
+                "matches": fallback4_matches,
+                "message": f"Multiple high-confidence matches found: {match_names}. Exact club and last name match with different first names/series.",
+            }
         else:
             logger.info(
                 f"❌ FALLBACK 4: No matches found for {last_name} + {club_name}"
@@ -525,7 +619,7 @@ def search_players_by_name(
 
         if series_name:
             conditions.append("LOWER(TRIM(s.name)) LIKE %s")
-            params.append(f"%{normalize_name(series_name)}%")
+            params.append(f"%{normalize_series_name(series_name, league_id)}%")
 
         query = f"""
             SELECT p.tenniscores_player_id, p.first_name, p.last_name, 
@@ -589,7 +683,7 @@ def find_potential_player_matches(
         # Normalize inputs
         norm_last = normalize_name(last_name)
         norm_club = normalize_name(club_name)
-        norm_series = normalize_name(series_name)
+        norm_series = normalize_series_name(series_name, league_id)
 
         # Get name variations for first name
         first_name_variations = get_name_variations(first_name)
@@ -916,3 +1010,58 @@ def suggest_registration_corrections(
     except Exception as e:
         logger.error(f"Error generating registration suggestions: {str(e)}")
         return {"has_suggestions": False, "message": "Unable to generate suggestions"}
+
+
+def get_series_name_variations(series_name: str, league_id: str = None) -> List[str]:
+    """
+    Get all possible variations of a series name using database mappings.
+    
+    Args:
+        series_name: User-provided series name
+        league_id: League identifier for context-specific mapping
+        
+    Returns:
+        List of all possible variations to check against database
+    """
+    if not series_name:
+        return []
+    
+    variations = [series_name.strip()]  # Always include original
+    
+    # If we have a league_id, get all mapped variations from database
+    if league_id:
+        try:
+            # Get all mappings for this league that might match
+            mappings_query = """
+                SELECT user_series_name, database_series_name
+                FROM series_name_mappings
+                WHERE league_id = %s 
+                AND (user_series_name = %s OR database_series_name = %s)
+            """
+            
+            mappings = execute_query(mappings_query, [league_id, series_name, series_name])
+            
+            for mapping in mappings:
+                user_name = mapping["user_series_name"]
+                db_name = mapping["database_series_name"]
+                
+                # Add both directions of the mapping
+                if user_name not in variations:
+                    variations.append(user_name)
+                if db_name not in variations:
+                    variations.append(db_name)
+                    
+            logger.info(f"Found {len(variations)} series variations for '{series_name}' in {league_id}: {variations}")
+            
+        except Exception as e:
+            logger.warning(f"Error getting series variations for '{series_name}' in {league_id}: {e}")
+    
+    # Remove duplicates while preserving order
+    seen = set()
+    unique_variations = []
+    for variation in variations:
+        if variation and variation not in seen:
+            seen.add(variation)
+            unique_variations.append(variation)
+    
+    return unique_variations

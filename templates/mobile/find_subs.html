@@ -7,7 +7,7 @@
     <!-- Header -->
     <div class="bg-white border-b border-gray-100">
         <div class="flex items-center px-4 py-6">
-            <div class="w-12 h-12 bg-lime-600 rounded-full flex items-center justify-center shadow-sm flex-shrink-0" style="width: 3rem; height: 3rem; aspect-ratio: 1; background-color: #65a30d !important;">
+            <div class="w-12 h-12 bg-sky-600 rounded-full flex items-center justify-center shadow-sm flex-shrink-0" style="background-color: #0284c7 !important;">
                 <i class="fas fa-user-plus text-white text-lg"></i>
             </div>
             <div class="ml-4">
@@ -331,7 +331,9 @@ async function fetchAndRenderSubsMobile() {
                             <i class="fas fa-chart-line text-blue-500 w-4"></i>
                             <div>
                                 <div class="text-gray-500">PTI</div>
-                                <div class="font-semibold text-gray-900">${player.pti || player.rating || 'N/A'}</div>
+                                <div class="font-semibold text-gray-900">
+                    ${player.pti || player.rating || '<span class="text-xs text-gray-400 font-normal">Threshold not met</span>'}
+                </div>
                             </div>
                         </div>
                     </div>

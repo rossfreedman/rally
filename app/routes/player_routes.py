@@ -46,13 +46,14 @@ def get_players_by_series():
         print(f"User club: {session['user'].get('club')}")
         print(f"User league: {session['user'].get('league_id')}")
 
-        # Get user information
-        user_league_id = session["user"].get("league_id", "")
+        # Get user information - FIXED: Use string league ID instead of integer
+        user_league_string_id = session["user"].get("league_string_id", "")
+        user_league_id = session["user"].get("league_id", "")  # Keep for team filtering
         user_club = session["user"].get("club")
 
         # Get players from database using new multi-league schema
         all_players = get_players_by_league_and_series(
-            league_id=user_league_id, series_name=series, club_name=user_club
+            league_id=user_league_string_id, series_name=series, club_name=user_club
         )
 
         # Handle team filtering if requested
@@ -78,29 +79,57 @@ def get_players_by_series():
                     elif isinstance(user_league_id, int):
                         league_id_int = user_league_id
 
-                # Get all players who have played for this team from database
+                # Get all players who have played for this team from database (FIXED: Use team_id)
                 if league_id_int:
-                    team_players_query = """
-                        SELECT DISTINCT 
-                            home_player_1_id as player_id FROM match_scores 
-                        WHERE home_team = %s AND league_id = %s AND home_player_1_id IS NOT NULL
-                        UNION
-                        SELECT DISTINCT 
-                            home_player_2_id as player_id FROM match_scores 
-                        WHERE home_team = %s AND league_id = %s AND home_player_2_id IS NOT NULL
-                        UNION
-                        SELECT DISTINCT 
-                            away_player_1_id as player_id FROM match_scores 
-                        WHERE away_team = %s AND league_id = %s AND away_player_1_id IS NOT NULL
-                        UNION
-                        SELECT DISTINCT 
-                            away_player_2_id as player_id FROM match_scores 
-                        WHERE away_team = %s AND league_id = %s AND away_player_2_id IS NOT NULL
-                    """
-                    team_player_records = execute_query(team_players_query, [
-                        team_id, league_id_int, team_id, league_id_int,
-                        team_id, league_id_int, team_id, league_id_int
-                    ])
+                    # Try using team_id as integer first (new optimized approach)
+                    try:
+                        team_id_int = int(team_id)
+                        team_players_query = """
+                            SELECT DISTINCT 
+                                home_player_1_id as player_id FROM match_scores 
+                            WHERE home_team_id = %s AND league_id = %s AND home_player_1_id IS NOT NULL
+                            UNION
+                            SELECT DISTINCT 
+                                home_player_2_id as player_id FROM match_scores 
+                            WHERE home_team_id = %s AND league_id = %s AND home_player_2_id IS NOT NULL
+                            UNION
+                            SELECT DISTINCT 
+                                away_player_1_id as player_id FROM match_scores 
+                            WHERE away_team_id = %s AND league_id = %s AND away_player_1_id IS NOT NULL
+                            UNION
+                            SELECT DISTINCT 
+                                away_player_2_id as player_id FROM match_scores 
+                            WHERE away_team_id = %s AND league_id = %s AND away_player_2_id IS NOT NULL
+                        """
+                        team_player_records = execute_query(team_players_query, [
+                            team_id_int, league_id_int, team_id_int, league_id_int,
+                            team_id_int, league_id_int, team_id_int, league_id_int
+                        ])
+                        print(f"[DEBUG] Using team_id optimization: Found {len(team_player_records)} players for team_id {team_id_int}")
+                    except ValueError:
+                        # Fallback to team name if team_id is not an integer
+                        team_players_query = """
+                            SELECT DISTINCT 
+                                home_player_1_id as player_id FROM match_scores 
+                            WHERE home_team = %s AND league_id = %s AND home_player_1_id IS NOT NULL
+                            UNION
+                            SELECT DISTINCT 
+                                home_player_2_id as player_id FROM match_scores 
+                            WHERE home_team = %s AND league_id = %s AND home_player_2_id IS NOT NULL
+                            UNION
+                            SELECT DISTINCT 
+                                away_player_1_id as player_id FROM match_scores 
+                            WHERE away_team = %s AND league_id = %s AND away_player_1_id IS NOT NULL
+                            UNION
+                            SELECT DISTINCT 
+                                away_player_2_id as player_id FROM match_scores 
+                            WHERE away_team = %s AND league_id = %s AND away_player_2_id IS NOT NULL
+                        """
+                        team_player_records = execute_query(team_players_query, [
+                            team_id, league_id_int, team_id, league_id_int,
+                            team_id, league_id_int, team_id, league_id_int
+                        ])
+                        print(f"[DEBUG] Using team_name fallback: Found {len(team_player_records)} players for team_name {team_id}")
                     
                     # Convert player IDs to names for filtering
                     for record in team_player_records:
@@ -179,27 +208,51 @@ def get_team_players(team_id):
         if not league_id_int:
             return jsonify({"error": "League context required"}), 400
 
-        # FIXED: Get team matches from database instead of JSON
-        team_matches_query = """
-            SELECT 
-                TO_CHAR(match_date, 'DD-Mon-YY') as match_date_formatted,
-                match_date,
-                home_team,
-                away_team,
-                winner,
-                scores,
-                home_player_1_id,
-                home_player_2_id,
-                away_player_1_id,
-                away_player_2_id,
-                id
-            FROM match_scores
-            WHERE (home_team = %s OR away_team = %s)
-            AND league_id = %s
-            ORDER BY match_date, id
-        """
-        
-        matches = execute_query(team_matches_query, [team_id, team_id, league_id_int])
+        # FIXED: Get team matches from database using team_id optimization
+        try:
+            team_id_int = int(team_id)
+            team_matches_query = """
+                SELECT 
+                    TO_CHAR(match_date, 'DD-Mon-YY') as match_date_formatted,
+                    match_date,
+                    home_team,
+                    away_team,
+                    winner,
+                    scores,
+                    home_player_1_id,
+                    home_player_2_id,
+                    away_player_1_id,
+                    away_player_2_id,
+                    id
+                FROM match_scores
+                WHERE (home_team_id = %s OR away_team_id = %s)
+                AND league_id = %s
+                ORDER BY match_date, id
+            """
+            matches = execute_query(team_matches_query, [team_id_int, team_id_int, league_id_int])
+            print(f"[DEBUG] Using team_id optimization: Found {len(matches)} matches for team_id {team_id_int}")
+        except ValueError:
+            # Fallback to team name if team_id is not an integer
+            team_matches_query = """
+                SELECT 
+                    TO_CHAR(match_date, 'DD-Mon-YY') as match_date_formatted,
+                    match_date,
+                    home_team,
+                    away_team,
+                    winner,
+                    scores,
+                    home_player_1_id,
+                    home_player_2_id,
+                    away_player_1_id,
+                    away_player_2_id,
+                    id
+                FROM match_scores
+                WHERE (home_team = %s OR away_team = %s)
+                AND league_id = %s
+                ORDER BY match_date, id
+            """
+            matches = execute_query(team_matches_query, [team_id, team_id, league_id_int])
+            print(f"[DEBUG] Using team_name fallback: Found {len(matches)} matches for team_name {team_id}")
         
         if not matches:
             return jsonify({"players": [], "teamId": team_id})
@@ -307,15 +360,16 @@ def get_team_players(team_id):
                 (stats["wins"] / stats["matches"] * 100) if stats["matches"] > 0 else 0
             )
 
-            # Find best court
+            # Find best court - Fixed logic: >3 matches (>=4) AND >=70% win rate
             best_court = None
             best_court_rate = 0
             for court, court_stats in stats["courts"].items():
-                if court_stats["matches"] >= 2:
+                if court_stats["matches"] > 3:  # More than 3 matches (>=4)
                     court_rate = court_stats["wins"] / court_stats["matches"] * 100
-                    if court_rate > best_court_rate:
-                        best_court_rate = court_rate
-                        best_court = f"{court} ({court_rate:.1f}%)"
+                    if court_rate >= 70.0:  # Must have 70% or greater win rate
+                        if court_rate > best_court_rate:
+                            best_court_rate = court_rate
+                            best_court = court
 
             # Find best partner
             best_partner = None
@@ -325,9 +379,10 @@ def get_team_players(team_id):
                     partner_rate = (
                         partner_stats["wins"] / partner_stats["matches"] * 100
                     )
-                    if partner_rate > best_partner_rate:
-                        best_partner_rate = partner_rate
-                        best_partner = f"{partner} ({partner_rate:.1f}%)"
+                    if partner_rate >= 60.0:  # Must have 60% or greater win rate
+                        if partner_rate > best_partner_rate:
+                            best_partner_rate = partner_rate
+                            best_partner = partner
 
             result_players.append(
                 {
@@ -509,24 +564,28 @@ def get_specific_player_history(player_name):
         first_name = name_parts[0]
         last_name = " ".join(name_parts[1:])  # Handle names with multiple last name parts
 
-        # Search for player in database
+        # Search for player in database, prioritizing the one with PTI history
         if league_id_int:
             player_search_query = """
-                SELECT id, first_name, last_name, pti, tenniscores_player_id
-                FROM players 
-                WHERE LOWER(first_name) = LOWER(%s) AND LOWER(last_name) = LOWER(%s)
-                AND league_id = %s
-                ORDER BY id DESC
+                SELECT 
+                    p.id, p.first_name, p.last_name, p.pti, p.tenniscores_player_id,
+                    (SELECT COUNT(*) FROM player_history ph WHERE ph.player_id = p.id) as history_count
+                FROM players p
+                WHERE LOWER(p.first_name) = LOWER(%s) AND LOWER(p.last_name) = LOWER(%s)
+                AND p.league_id = %s
+                ORDER BY history_count DESC, p.id DESC
                 LIMIT 1
             """
             player_data = execute_query_one(player_search_query, [first_name, last_name, league_id_int])
         else:
             # Fallback without league filter
             player_search_query = """
-                SELECT id, first_name, last_name, pti, tenniscores_player_id
-                FROM players 
-                WHERE LOWER(first_name) = LOWER(%s) AND LOWER(last_name) = LOWER(%s)
-                ORDER BY id DESC
+                SELECT 
+                    p.id, p.first_name, p.last_name, p.pti, p.tenniscores_player_id,
+                    (SELECT COUNT(*) FROM player_history ph WHERE ph.player_id = p.id) as history_count
+                FROM players p
+                WHERE LOWER(p.first_name) = LOWER(%s) AND LOWER(p.last_name) = LOWER(%s)
+                ORDER BY history_count DESC, p.id DESC
                 LIMIT 1
             """
             player_data = execute_query_one(player_search_query, [first_name, last_name])

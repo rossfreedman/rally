@@ -6,6 +6,7 @@ These routes handle API endpoints for data retrieval, research, analytics, and o
 """
 
 import json
+import logging
 import os
 from datetime import datetime
 from functools import wraps
@@ -248,11 +249,58 @@ def get_last_3_matches():
                 get_player_name(opponent2_id) if opponent2_id else "Unknown"
             )
 
+            # Format scores so logged-in player's team score comes first
+            def format_scores_for_player_team(raw_scores, player_was_home):
+                """Format scores so the logged-in player's team score appears first in each set"""
+                if not raw_scores:
+                    return raw_scores
+                
+                try:
+                    # Split by sets (comma-separated)
+                    sets = raw_scores.split(", ")
+                    formatted_sets = []
+                    
+                    for set_score in sets:
+                        if "-" not in set_score:
+                            formatted_sets.append(set_score)
+                            continue
+                            
+                        # Split individual set score
+                        scores = set_score.split("-")
+                        if len(scores) != 2:
+                            formatted_sets.append(set_score)
+                            continue
+                            
+                        try:
+                            home_score = int(scores[0])
+                            away_score = int(scores[1])
+                            
+                            # Always show the logged-in player's team score first
+                            if player_was_home:
+                                # Player was home - show home score first (already correct)
+                                formatted_sets.append(f"{home_score}-{away_score}")
+                            else:
+                                # Player was away - show away score first
+                                formatted_sets.append(f"{away_score}-{home_score}")
+                        except (ValueError, IndexError):
+                            # If we can't parse scores, keep original
+                            formatted_sets.append(set_score)
+                    
+                    return ", ".join(formatted_sets)
+                    
+                except Exception:
+                    # If anything goes wrong, return original scores
+                    return raw_scores
+
+            formatted_scores = format_scores_for_player_team(
+                match.get("Scores"), is_home
+            )
+
             processed_match = {
                 "date": match.get("Date"),
                 "home_team": match.get("Home Team"),
                 "away_team": match.get("Away Team"),
-                "scores": match.get("Scores"),
+                "scores": formatted_scores,
                 "player_was_home": is_home,
                 "player_won": player_won,
                 "partner_name": partner_name,
@@ -336,25 +384,40 @@ def get_team_last_3_matches():
         team_id = team_record["id"]
         team_name = team_record["team_name"]
 
-        # Query the last 3 matches using team_id (much more efficient!)
-        matches_query = """
+        # Query the last 3 TEAM matches (not individual player matches)
+        # Group by date and teams to get unique team match dates
+        team_matches_query = """
+            WITH team_match_dates AS (
+                SELECT DISTINCT 
+                    match_date,
+                    home_team,
+                    away_team
+                FROM match_scores
+                WHERE (home_team_id = %s OR away_team_id = %s)
+                ORDER BY match_date DESC
+                LIMIT 3
+            )
             SELECT 
-                TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
-                match_date,
-                home_team as "Home Team",
-                away_team as "Away Team",
-                winner as "Winner",
-                scores as "Scores",
-                home_player_1_id as "Home Player 1",
-                home_player_2_id as "Home Player 2",
-                away_player_1_id as "Away Player 1",
-                away_player_2_id as "Away Player 2"
-            FROM match_scores
-            WHERE (home_team_id = %s OR away_team_id = %s)
-            ORDER BY match_date DESC
-            LIMIT 3
+                TO_CHAR(ms.match_date, 'DD-Mon-YY') as "Date",
+                ms.match_date,
+                ms.home_team as "Home Team",
+                ms.away_team as "Away Team",
+                ms.winner as "Winner",
+                ms.scores as "Scores",
+                ms.home_player_1_id as "Home Player 1",
+                ms.home_player_2_id as "Home Player 2",
+                ms.away_player_1_id as "Away Player 1",
+                ms.away_player_2_id as "Away Player 2"
+            FROM match_scores ms
+            INNER JOIN team_match_dates tmd ON (
+                ms.match_date = tmd.match_date 
+                AND ms.home_team = tmd.home_team 
+                AND ms.away_team = tmd.away_team
+            )
+            WHERE (ms.home_team_id = %s OR ms.away_team_id = %s)
+            ORDER BY ms.match_date DESC, ms.id
         """
-        matches = execute_query(matches_query, [team_id, team_id])
+        matches = execute_query(team_matches_query, [team_id, team_id, team_id, team_id])
 
         if not matches:
             return jsonify(
@@ -393,54 +456,122 @@ def get_team_last_3_matches():
             except Exception:
                 return f"Player {player_id[:8]}..."
 
-        # Process matches to add readable information
-        processed_matches = []
+        # Group matches by team match (date + teams) and process
+        from collections import defaultdict
+        team_matches_grouped = defaultdict(list)
+        
+        # Group individual player matches by team match
         for match in matches:
-            is_home = match.get("Home Team") == team_name
-            winner = match.get("Winner", "").lower()
+            match_key = (match.get("Date"), match.get("Home Team"), match.get("Away Team"))
+            team_matches_grouped[match_key].append(match)
 
-            # Determine if team won
-            team_won = (is_home and winner == "home") or (
-                not is_home and winner == "away"
-            )
-
-            # Get our team's players
-            if is_home:
-                our_player1_id = match.get("Home Player 1")
-                our_player2_id = match.get("Home Player 2")
-                opponent_team = match.get("Away Team")
-                opponent_player1_id = match.get("Away Player 1")
-                opponent_player2_id = match.get("Away Player 2")
-            else:
-                our_player1_id = match.get("Away Player 1")
-                our_player2_id = match.get("Away Player 2")
-                opponent_team = match.get("Home Team")
-                opponent_player1_id = match.get("Home Player 1")
-                opponent_player2_id = match.get("Home Player 2")
-
-            # Get readable names
-            our_player1_name = (
-                get_player_name(our_player1_id) if our_player1_id else "Unknown"
-            )
-            our_player2_name = (
-                get_player_name(our_player2_id) if our_player2_id else "Unknown"
-            )
-            opponent_player1_name = (
-                get_player_name(opponent_player1_id)
-                if opponent_player1_id
-                else "Unknown"
-            )
-            opponent_player2_name = (
-                get_player_name(opponent_player2_id)
-                if opponent_player2_id
-                else "Unknown"
-            )
-
+        processed_matches = []
+        
+        # Process each team match
+        for (date, home_team, away_team), individual_matches in team_matches_grouped.items():
+            is_home = home_team == team_name
+            opponent_team = away_team if is_home else home_team
+            
+            # Calculate team points based on sets won + match bonus
+            our_team_points = 0
+            opponent_team_points = 0
+            
+            # Collect all players for display
+            our_players = set()
+            opponent_players = set()
+            
+            for match in individual_matches:
+                winner = match.get("Winner", "").lower()
+                scores = match.get("Scores", "")
+                
+                # Determine which team won this individual match
+                individual_team_won = (is_home and winner == "home") or (not is_home and winner == "away")
+                
+                # Calculate points from sets
+                match_our_points = 0
+                match_opponent_points = 0
+                
+                if scores:
+                    # Parse set scores (format: "6-4, 4-6, 6-3" or similar)
+                    sets = [s.strip() for s in scores.split(',')]
+                    
+                    for set_score in sets:
+                        if '-' in set_score:
+                            try:
+                                # Remove any extra formatting like tiebreak scores [7-5]
+                                clean_score = set_score.split('[')[0].strip()
+                                home_score, away_score = map(int, clean_score.split('-'))
+                                
+                                # Award point for set win
+                                if home_score > away_score:
+                                    # Home team won this set
+                                    if is_home:
+                                        match_our_points += 1
+                                    else:
+                                        match_opponent_points += 1
+                                elif away_score > home_score:
+                                    # Away team won this set
+                                    if is_home:
+                                        match_opponent_points += 1
+                                    else:
+                                        match_our_points += 1
+                            except (ValueError, IndexError):
+                                # If we can't parse the score, skip it
+                                continue
+                
+                # Add bonus point for winning the match
+                if individual_team_won:
+                    match_our_points += 1
+                else:
+                    match_opponent_points += 1
+                
+                # Add to team totals
+                our_team_points += match_our_points
+                opponent_team_points += match_opponent_points
+                
+                # Collect player names
+                if is_home:
+                    our_player1_id = match.get("Home Player 1")
+                    our_player2_id = match.get("Home Player 2")
+                    opponent_player1_id = match.get("Away Player 1")
+                    opponent_player2_id = match.get("Away Player 2")
+                else:
+                    our_player1_id = match.get("Away Player 1")
+                    our_player2_id = match.get("Away Player 2")
+                    opponent_player1_id = match.get("Home Player 1")
+                    opponent_player2_id = match.get("Home Player 2")
+                
+                # Add player names (avoid duplicates)
+                if our_player1_id:
+                    our_players.add(get_player_name(our_player1_id) or "Unknown")
+                if our_player2_id:
+                    our_players.add(get_player_name(our_player2_id) or "Unknown")
+                if opponent_player1_id:
+                    opponent_players.add(get_player_name(opponent_player1_id) or "Unknown")
+                if opponent_player2_id:
+                    opponent_players.add(get_player_name(opponent_player2_id) or "Unknown")
+            
+            # Determine team match result based on total points
+            team_won = our_team_points > opponent_team_points
+            
+            # Format player lists for display
+            our_players_list = sorted(list(our_players))
+            opponent_players_list = sorted(list(opponent_players))
+            
+            # Use first two players for the main display
+            our_player1_name = our_players_list[0] if our_players_list else "Unknown"
+            our_player2_name = our_players_list[1] if len(our_players_list) > 1 else "Unknown"
+            opponent_player1_name = opponent_players_list[0] if opponent_players_list else "Unknown"
+            opponent_player2_name = opponent_players_list[1] if len(opponent_players_list) > 1 else "Unknown"
+            
+            # Create team match summary with proper paddle tennis scoring
+            team_score_summary = f"{our_team_points}-{opponent_team_points}"
+            
             processed_match = {
-                "date": match.get("Date"),
-                "home_team": match.get("Home Team"),
-                "away_team": match.get("Away Team"),
-                "scores": match.get("Scores"),
+                "date": date,
+                "home_team": home_team,
+                "away_team": away_team,
+                "scores": team_score_summary,  # Show team points like "15-12"
                 "team_was_home": is_home,
                 "team_won": team_won,
                 "our_player1_name": our_player1_name,
@@ -449,6 +580,9 @@ def get_team_last_3_matches():
                 "opponent_player1_name": opponent_player1_name,
                 "opponent_player2_name": opponent_player2_name,
                 "match_result": "Won" if team_won else "Lost",
+                "individual_matches_count": len(individual_matches),
+                "our_team_points": our_team_points,
+                "opponent_team_points": opponent_team_points
             }
             processed_matches.append(processed_match)
 
@@ -920,6 +1054,35 @@ def add_practice_times():
         except Exception as e:
             print(f"Could not get league ID for user: {e}")
 
+        # FIXED: Use priority-based team detection (same as availability page and other functions)
+        user_team_id = None
+        
+        # PRIORITY 1: Use team_id from session if available (most reliable for multi-team players)
+        session_team_id = user.get("team_id")
+        print(f"[DEBUG] Practice add: session_team_id from user: {session_team_id}")
+        
+        if session_team_id:
+            user_team_id = session_team_id
+            print(f"[DEBUG] Practice add: Using team_id from session: {user_team_id}")
+        
+        # PRIORITY 2: Use team_context from user if provided
+        if not user_team_id:
+            team_context = user.get("team_context")
+            if team_context:
+                user_team_id = team_context
+                print(f"[DEBUG] Practice add: Using team_context: {user_team_id}")
+        
+        # PRIORITY 3: Fallback to session service
+        if not user_team_id:
+            try:
+                from app.services.session_service import get_session_data_for_user
+                session_data = get_session_data_for_user(user["email"])
+                if session_data:
+                    user_team_id = session_data.get("team_id")
+                    print(f"[DEBUG] Practice add: Found team_id via session service: {user_team_id}")
+            except Exception as e:
+                print(f"Could not get team ID via session service: {e}")
+
         # Convert day name to number (0=Monday, 6=Sunday)
         day_map = {
             "Monday": 0,
@@ -939,13 +1102,16 @@ def add_practice_times():
         current_date = first_date_obj
         practices_added = 0
         added_practices = []  # Track the specific practices added
-        failed_practices = []  # Track any failures
+        failed_practices = []
 
         # Check for existing practices to avoid duplicates
         practice_description = f"{user_club} Practice - {user_series}"
+        
+        # FIXED: Use team_id-based duplicate checking for precision (handle NULL league_id)
         existing_query = """
             SELECT match_date FROM schedule 
-            WHERE league_id = %(league_id)s 
+            WHERE home_team_id = %(team_id)s
+            AND (league_id = %(league_id)s OR (league_id IS NULL AND %(league_id)s IS NOT NULL))
             AND home_team = %(practice_desc)s
             AND match_date BETWEEN %(start_date)s AND %(end_date)s
         """
@@ -954,6 +1120,7 @@ def add_practice_times():
             existing_practices = execute_query(
                 existing_query,
                 {
+                    "team_id": user_team_id,
                     "league_id": league_id,
                     "practice_desc": practice_description,
                     "start_date": first_date_obj.date(),
@@ -985,17 +1152,18 @@ def add_practice_times():
                     # Parse formatted time back to time object for database storage
                     time_obj = datetime.strptime(formatted_time, "%I:%M %p").time()
 
-                    # Insert practice into schedule table
+                    # FIXED: Insert practice into schedule table with proper team_id
                     execute_query(
                         """
-                        INSERT INTO schedule (league_id, match_date, match_time, home_team, away_team, location)
-                        VALUES (%(league_id)s, %(match_date)s, %(match_time)s, %(practice_desc)s, '', %(location)s)
+                        INSERT INTO schedule (league_id, match_date, match_time, home_team, away_team, home_team_id, location)
+                        VALUES (%(league_id)s, %(match_date)s, %(match_time)s, %(practice_desc)s, '', %(team_id)s, %(location)s)
                     """,
                         {
                             "league_id": league_id,
                             "match_date": current_date.date(),
                             "match_time": time_obj,
                             "practice_desc": practice_description,
+                            "team_id": user_team_id,  # This is the key fix
                             "location": user_club,
                         },
                     )
@@ -1140,11 +1308,10 @@ def update_availability():
                 400,
             )
 
-        # Convert date to proper UTC midnight format
-        # Parse the date string (format: YYYY-MM-DD)
+        # Parse date and store as UTC midnight (required by database constraint)
         try:
             date_obj = datetime.strptime(match_date, "%Y-%m-%d")
-            # Create UTC midnight timestamp
+            # Create UTC midnight timestamp to satisfy database constraint
             utc_midnight = date_obj.replace(hour=0, minute=0, second=0, microsecond=0)
             utc_timezone = pytz.UTC
             utc_date = utc_timezone.localize(utc_midnight)
@@ -1193,17 +1360,32 @@ def update_availability():
                 if not user_record:
                     return jsonify({"error": "User not found"}), 404
 
-                # Get primary player association
-                primary_association = (
-                    db_session.query(UserPlayerAssociation)
-                    .filter(
-                        UserPlayerAssociation.user_id == user_record.id,
-                        UserPlayerAssociation.is_primary == True,
+                # Get player association based on current league context
+                player_association = None
+                
+                # First try: get association for current league context
+                if user_record.league_context:
+                    associations = (
+                        db_session.query(UserPlayerAssociation)
+                        .filter(UserPlayerAssociation.user_id == user_record.id)
+                        .all()
                     )
-                    .first()
-                )
+                    
+                    for assoc in associations:
+                        player = assoc.get_player(db_session)
+                        if player and player.league_id == user_record.league_context:
+                            player_association = assoc
+                            break
+                
+                # Fallback: get any association
+                if not player_association:
+                    player_association = (
+                        db_session.query(UserPlayerAssociation)
+                        .filter(UserPlayerAssociation.user_id == user_record.id)
+                        .first()
+                    )
 
-                if not primary_association:
+                if not player_association:
                     return (
                         jsonify(
                             {
@@ -1214,7 +1396,7 @@ def update_availability():
                     )
 
                 # Check if the player association has a valid player record
-                player = primary_association.get_player(db_session)
+                player = player_association.get_player(db_session)
                 if not player:
                     return (
                         jsonify(
@@ -1236,52 +1418,68 @@ def update_availability():
         finally:
             db_session.close()
 
-        # Get the internal player.id for the database FK relationship
+        # Get the internal player.id for backward compatibility
         player_db_id = player.id
 
+        # CRITICAL: Get user_id for stable reference pattern
+        user_record = (
+            db_session.query(User).filter(User.email == user_email).first()
+        )
+        
+        if not user_record:
+            return jsonify({"error": "User not found"}), 404
+            
+        user_id = user_record.id
+
         print(
-            f"Updating availability: {player_name} (tenniscores_id: {tenniscores_player_id}, db_id: {player_db_id}) for {match_date} status {availability_status} series_id {series_id}"
+            f"Updating availability: {player_name} (tenniscores_id: {tenniscores_player_id}, db_id: {player_db_id}, user_id: {user_id}) for {match_date} status {availability_status}"
         )
 
-        # Check if record exists using player_id (internal database ID)
+        # STABLE APPROACH: Use user_id + match_date as primary key (same pattern as user_player_associations)
         check_query = """
             SELECT id FROM player_availability 
-            WHERE player_id = %s AND match_date = %s AND series_id = %s
+            WHERE user_id = %s AND DATE(match_date AT TIME ZONE 'UTC') = DATE(%s AT TIME ZONE 'UTC')
         """
         existing_record = execute_query_one(
-            check_query, (player_db_id, formatted_date, series_id)
+            check_query, (user_id, formatted_date)
         )
 
         if existing_record:
-            # Update existing record
+            # Update existing record using stable user_id reference
             update_query = """
                 UPDATE player_availability 
-                SET availability_status = %s, notes = %s, updated_at = CURRENT_TIMESTAMP
-                WHERE player_id = %s AND match_date = %s AND series_id = %s
+                SET availability_status = %s, 
+                    notes = %s, 
+                    player_id = %s,
+                    series_id = %s,
+                    player_name = %s,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE user_id = %s AND DATE(match_date AT TIME ZONE 'UTC') = DATE(%s AT TIME ZONE 'UTC')
             """
             result = execute_update(
                 update_query,
-                (availability_status, notes, player_db_id, formatted_date, series_id),
+                (availability_status, notes, player_db_id, series_id, player_name, user_id, formatted_date),
             )
-            print(f"Updated existing availability record: {result}")
+            print(f"✅ Updated existing availability record via stable user_id: {result}")
         else:
-            # Insert new record using existing schema (player_id + player_name)
+            # Insert new record using stable user_id reference
             insert_query = """
-                INSERT INTO player_availability (player_id, player_name, match_date, availability_status, series_id, notes, updated_at)
-                VALUES (%s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+                INSERT INTO player_availability (user_id, match_date, availability_status, notes, player_id, series_id, player_name, updated_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
             """
             result = execute_update(
                 insert_query,
                 (
-                    player_db_id,
-                    player_name,
+                    user_id,
                     formatted_date,
                     availability_status,
-                    series_id,
                     notes,
+                    player_db_id,
+                    series_id,
+                    player_name,
                 ),
             )
-            print(f"Created new availability record: {result}")
+            print(f"✅ Created new availability record via stable user_id: {result}")
 
         # Log the activity using comprehensive logging
         status_descriptions = {1: "available", 2: "unavailable", 3: "not sure"}
@@ -1340,11 +1538,11 @@ def get_user_settings():
     try:
         user_email = session["user"]["email"]
 
-        # Get basic user data (no more foreign keys)
+        # Get basic user data including league_context
         user_data = execute_query_one(
             """
             SELECT u.first_name, u.last_name, u.email, u.is_admin, 
-                   u.ad_deuce_preference, u.dominant_hand
+                   u.ad_deuce_preference, u.dominant_hand, u.league_context
             FROM users u
             WHERE u.email = %s
         """,
@@ -1362,33 +1560,41 @@ def get_user_settings():
             )
 
             if user_record:
-                # Get primary player association
-                primary_association = (
+                # Get player based on league context
+                club_name = series_name = league_id = league_name = tenniscores_player_id = ""
+                
+                # Get all associations for this user
+                associations = (
                     db_session.query(UserPlayerAssociation)
-                    .filter(
-                        UserPlayerAssociation.user_id == user_record.id,
-                        UserPlayerAssociation.is_primary == True,
-                    )
-                    .first()
+                    .filter(UserPlayerAssociation.user_id == user_record.id)
+                    .all()
                 )
-
-                if primary_association:
-                    player = primary_association.get_player(db_session)
-                    if player:
-                        club_name = player.club.name
-                        series_name = player.series.name
-                        league_id = player.league.league_id
-                        league_name = player.league.league_name
-                        tenniscores_player_id = player.tenniscores_player_id
-                    else:
-                        club_name = series_name = league_id = league_name = (
-                            tenniscores_player_id
-                        ) = ""
-                else:
-                    # No player association found
-                    club_name = series_name = league_id = league_name = (
-                        tenniscores_player_id
-                    ) = ""
+                
+                selected_player = None
+                
+                # First priority: find player matching league_context
+                if user_record.league_context and associations:
+                    for assoc in associations:
+                        player = assoc.get_player(db_session)
+                        if player and player.league and player.league.id == user_record.league_context:
+                            selected_player = player
+                            break
+                
+                # Second priority: use first available player
+                if not selected_player and associations:
+                    for assoc in associations:
+                        player = assoc.get_player(db_session)
+                        if player and player.club and player.series and player.league:
+                            selected_player = player
+                            break
+                
+                # Extract player data if found
+                if selected_player:
+                    club_name = selected_player.club.name if selected_player.club else ""
+                    series_name = selected_player.series.name if selected_player.series else ""
+                    league_id = selected_player.league.league_id if selected_player.league else ""
+                    league_name = selected_player.league.league_name if selected_player.league else ""
+                    tenniscores_player_id = selected_player.tenniscores_player_id
             else:
                 club_name = series_name = league_id = league_name = (
                     tenniscores_player_id
@@ -1405,6 +1611,7 @@ def get_user_settings():
             "series": series_name,
             "league_id": league_id,
             "league_name": league_name,
+            "league_context": user_data["league_context"],  # Add league context to response
             "tenniscores_player_id": tenniscores_player_id,
             "ad_deuce_preference": user_data["ad_deuce_preference"] or "",
             "dominant_hand": user_data["dominant_hand"] or "",
@@ -1434,8 +1641,9 @@ def convert_series_to_mapping_id(series_name, club_name, league_id=None):
 @api_bp.route("/api/update-settings", methods=["POST"])
 @login_required
 def update_settings():
-    """Update user settings"""
+    """Update user settings using simplified session management"""
     try:
+        from app.services.session_service import switch_user_league, get_session_data_for_user
         import logging
 
         logger = logging.getLogger(__name__)
@@ -1443,310 +1651,60 @@ def update_settings():
         user_email = session["user"]["email"]
 
         # Validate required fields
-        if (
-            not data.get("firstName")
-            or not data.get("lastName")
-            or not data.get("email")
-        ):
-            return (
-                jsonify({"error": "First name, last name, and email are required"}),
-                400,
-            )
+        if not data.get("firstName") or not data.get("lastName") or not data.get("email"):
+            return jsonify({"error": "First name, last name, and email are required"}), 400
 
-        # Enhanced player ID lookup logic:
-        # 1. Always retry if user requests it OR they don't have a player ID
-        # 2. Always retry if league/club/series has changed from current session
-        # 3. Use database-only lookup strategy
-        force_player_id_retry = data.get("forcePlayerIdRetry", False)
-        current_player_id = session["user"].get("tenniscores_player_id")
+        logger.info(f"Settings update for {user_email}: {data}")
 
-        # Check if league/club/series has changed from current session
-        current_league_id = session["user"].get("league_id")
-        current_club = session["user"].get("club")
-        current_series = session["user"].get("series")
-
-        new_league_id = data.get("league_id")
-        new_club = data.get("club")
-        new_series = data.get("series")
-
-        settings_changed = (
-            new_league_id != current_league_id
-            or new_club != current_club
-            or new_series != current_series
-        )
-
-        should_retry_player_id = (
-            force_player_id_retry or not current_player_id or settings_changed
-        )
-
-        found_player_id = None
-        player_association_created = False
-
-        if (
-            should_retry_player_id
-            and data.get("firstName")
-            and data.get("lastName")
-            and data.get("club")
-            and data.get("series")
-        ):
-            try:
-                reason = []
-                if force_player_id_retry:
-                    reason.append("user requested retry")
-                if not current_player_id:
-                    reason.append("no existing player ID")
-                if settings_changed:
-                    reason.append(
-                        f"settings changed (league: {current_league_id} -> {new_league_id}, club: {current_club} -> {new_club}, series: {current_series} -> {new_series})"
-                    )
-
-                logger.info(
-                    f"Settings update: Retrying player ID lookup because: {', '.join(reason)}"
-                )
-
-                # Use database-only lookup - NO MORE JSON FILES
-                lookup_result = find_player_by_database_lookup(
-                    first_name=data["firstName"],
-                    last_name=data["lastName"],
-                    club_name=data["club"],
-                    series_name=data["series"],
-                    league_id=data.get("league_id"),
-                )
-
-                # Extract player ID from the enhanced result
-                found_player_id = None
-                if lookup_result and lookup_result.get("player"):
-                    found_player_id = lookup_result["player"]["tenniscores_player_id"]
-                    logger.info(
-                        f"Settings update: Match type: {lookup_result['match_type']} - {lookup_result['message']}"
-                    )
-
-                if found_player_id:
-                    logger.info(
-                        f"Settings update: Found player ID via database lookup: {found_player_id}"
-                    )
-
-                    # Create user-player association if player found
-                    db_session = SessionLocal()
-                    try:
-                        # Get user and player records
-                        user_record = (
-                            db_session.query(User)
-                            .filter(User.email == user_email)
-                            .first()
-                        )
-                        player_record = (
-                            db_session.query(Player)
-                            .filter(
-                                Player.tenniscores_player_id == found_player_id,
-                                Player.is_active == True,
-                            )
-                            .first()
-                        )
-
-                        if user_record and player_record:
-                            # Check if association already exists
-                            existing = (
-                                db_session.query(UserPlayerAssociation)
-                                .filter(
-                                    UserPlayerAssociation.user_id == user_record.id,
-                                    UserPlayerAssociation.tenniscores_player_id
-                                    == player_record.tenniscores_player_id,
-                                )
-                                .first()
-                            )
-
-                            if not existing:
-                                # Unset any existing primary associations for this user
-                                db_session.query(UserPlayerAssociation).filter(
-                                    UserPlayerAssociation.user_id == user_record.id,
-                                    UserPlayerAssociation.is_primary == True,
-                                ).update({"is_primary": False})
-
-                                # Create new association as primary
-                                association = UserPlayerAssociation(
-                                    user_id=user_record.id,
-                                    tenniscores_player_id=player_record.tenniscores_player_id,
-                                    is_primary=True,
-                                )
-                                db_session.add(association)
-
-                                # ✅ CRITICAL: Ensure player has team assignment for polls functionality
-                                from app.services.auth_service_refactored import (
-                                    assign_player_to_team,
-                                )
-
-                                team_assigned = assign_player_to_team(
-                                    player_record, db_session
-                                )
-                                if team_assigned:
-                                    logger.info(
-                                        f"Settings update: Team assignment successful for {player_record.full_name}"
-                                    )
-                                else:
-                                    logger.warning(
-                                        f"Settings update: Could not assign team to {player_record.full_name}"
-                                    )
-
-                                db_session.commit()
-                                player_association_created = True
-                                logger.info(
-                                    f"Settings update: Created new primary association between user {user_email} and player {player_record.full_name}"
-                                )
-                            else:
-                                # Association exists - make sure it's primary if settings changed
-                                if settings_changed and not existing.is_primary:
-                                    # Unset other primary associations
-                                    db_session.query(UserPlayerAssociation).filter(
-                                        UserPlayerAssociation.user_id == user_record.id,
-                                        UserPlayerAssociation.is_primary == True,
-                                    ).update({"is_primary": False})
-
-                                    # Set this association as primary
-                                    existing.is_primary = True
-                                    db_session.commit()
-                                    logger.info(
-                                        f"Settings update: Updated existing association to primary for user {user_email} and player {player_record.full_name}"
-                                    )
-                                else:
-                                    logger.info(
-                                        f"Settings update: Association already exists between user {user_email} and player {player_record.full_name}"
-                                    )
-                        else:
-                            logger.warning(
-                                f"Settings update: Could not find user or player record for association"
-                            )
-
-                    except Exception as assoc_error:
-                        db_session.rollback()
-                        logger.error(
-                            f"Settings update: Error creating user-player association: {str(assoc_error)}"
-                        )
-                    finally:
-                        db_session.close()
-                else:
-                    logger.info(
-                        f"Settings update: No player ID found via database lookup"
-                    )
-
-            except Exception as lookup_error:
-                logger.warning(
-                    f"Settings update: Player ID lookup error: {str(lookup_error)}"
-                )
-                found_player_id = None
-
-        # Update user data (only basic user fields - no foreign keys)
-        success = execute_update(
-            """
+        # Update basic user data
+        execute_query("""
             UPDATE users 
             SET first_name = %s, last_name = %s, email = %s,
                 ad_deuce_preference = %s, dominant_hand = %s
             WHERE email = %s
-        """,
-            (
-                data["firstName"],
-                data["lastName"],
-                data["email"],
-                data.get("adDeuce", ""),
-                data.get("dominantHand", ""),
-                user_email,
-            ),
-        )
+        """, [
+            data.get("firstName"),
+            data.get("lastName"), 
+            data.get("email"),
+            data.get("adDeuce", ""),
+            data.get("dominantHand", ""),
+            user_email
+        ])
 
-        if not success:
-            return jsonify({"error": "Failed to update user data"}), 500
+        # Handle league switching if league changed
+        new_league_id = data.get("league_id")
+        current_league_id = session["user"].get("league_id")
+        
+        if new_league_id and new_league_id != current_league_id:
+            logger.info(f"League change requested: {current_league_id} -> {new_league_id}")
+            
+            # Switch to new league
+            if switch_user_league(user_email, new_league_id):
+                logger.info(f"Successfully switched to {new_league_id}")
+            else:
+                return jsonify({
+                    "success": False, 
+                    "message": f"Could not switch to {new_league_id}. You may not have a player record in that league."
+                }), 400
 
-        logger.info(f"Settings update: Updated user basic data")
-
-        # Get updated user data with player associations for session
-        db_session = SessionLocal()
-        try:
-            user_record = (
-                db_session.query(User).filter(User.email == data["email"]).first()
-            )
-
-            if not user_record:
-                return jsonify({"error": "Failed to retrieve updated user data"}), 500
-
-            # Get associated players
-            associations = (
-                db_session.query(UserPlayerAssociation)
-                .filter(UserPlayerAssociation.user_id == user_record.id)
-                .all()
-            )
-
-            # Find primary player for session data
-            primary_player = None
-            current_player_id = None
-
-            for assoc in associations:
-                if assoc.is_primary:
-                    player = assoc.get_player(db_session)
-                    if player and player.club and player.series and player.league:
-                        primary_player = {
-                            "club": player.club.name,
-                            "series": player.series.name,
-                            "league_id": player.league.league_id,
-                            "league_name": player.league.league_name,
-                            "tenniscores_player_id": player.tenniscores_player_id,
-                        }
-                        current_player_id = player.tenniscores_player_id
-                        break
-
-            # Update session with new user data
-            session["user"] = {
-                "id": user_record.id,
-                "email": user_record.email,
-                "first_name": user_record.first_name,
-                "last_name": user_record.last_name,
-                "ad_deuce_preference": user_record.ad_deuce_preference,
-                "dominant_hand": user_record.dominant_hand,
-                "club": (
-                    primary_player["club"] if primary_player else data.get("club", "")
-                ),
-                "series": (
-                    primary_player["series"]
-                    if primary_player
-                    else data.get("series", "")
-                ),
-                "league_id": (
-                    primary_player["league_id"]
-                    if primary_player
-                    else data.get("league_id")
-                ),
-                "league_name": primary_player["league_name"] if primary_player else "",
-                "is_admin": user_record.is_admin,
-                "tenniscores_player_id": current_player_id,
-                "settings": "{}",  # Default empty settings for consistency with auth
-            }
-
-            # Explicitly mark session as modified to ensure persistence
+        # Rebuild session from database (this gets the updated league_context)
+        fresh_session_data = get_session_data_for_user(user_email)
+        if fresh_session_data:
+            session["user"] = fresh_session_data
             session.modified = True
+            logger.info(f"Session updated: {fresh_session_data['league_name']} - {fresh_session_data['club']}")
+        else:
+            return jsonify({"success": False, "message": "Failed to update session"}), 500
 
-            logger.info(
-                f"Settings update: Session updated with player ID: {current_player_id}"
-            )
-
-            return jsonify(
-                {
-                    "success": True,
-                    "message": "Settings updated successfully",
-                    "user": session["user"],
-                    "player_id_updated": found_player_id is not None,
-                    "player_id": current_player_id,
-                    "player_association_created": player_association_created,
-                    "player_id_retry_attempted": should_retry_player_id,
-                    "player_id_retry_successful": found_player_id is not None,
-                    "force_retry_requested": force_player_id_retry,
-                }
-            )
-
-        finally:
-            db_session.close()
+        return jsonify({
+            "success": True, 
+            "message": "Settings updated successfully",
+            "user": fresh_session_data
+        })
 
     except Exception as e:
-        print(f"Error updating settings: {str(e)}")
-        return jsonify({"error": "Failed to update settings"}), 500
+        logger.error(f"Error updating settings: {str(e)}")
+        return jsonify({"success": False, "message": f"Update failed: {str(e)}"}), 500
 
 
 @api_bp.route("/api/retry-player-id", methods=["POST"])
@@ -1853,9 +1811,11 @@ def retry_player_id_lookup():
                             association = UserPlayerAssociation(
                                 user_id=user_record.id,
                                 tenniscores_player_id=player_record.tenniscores_player_id,
-                                is_primary=True,  # First association becomes primary
                             )
                             db_session.add(association)
+                            
+                            # Update user's league context
+                            user_record.league_context = player_record.league_id
 
                             # ✅ CRITICAL: Ensure player has team assignment for polls functionality
                             from app.services.auth_service_refactored import (
@@ -1878,6 +1838,7 @@ def retry_player_id_lookup():
 
                             # Update session with player data
                             session["user"]["tenniscores_player_id"] = found_player_id
+                            session["user"]["league_context"] = player_record.league_id
                             if (
                                 player_record.club
                                 and player_record.series
@@ -1911,6 +1872,7 @@ def retry_player_id_lookup():
 
                             # Update session anyway in case it was missing
                             session["user"]["tenniscores_player_id"] = found_player_id
+                            session["user"]["league_context"] = player_record.league_id
                             session.modified = True
 
                             return jsonify(
@@ -2075,6 +2037,94 @@ def get_series_by_league():
         return jsonify({"error": str(e)}), 500
 
 
+@api_bp.route("/api/get-user-facing-series-by-league")
+def get_user_facing_series_by_league():
+    """Get user-facing series names using database mappings instead of hard-coded transformations"""
+    try:
+        league_id = request.args.get("league_id")
+
+        if not league_id:
+            # Return all series if no league specified
+            query = """
+                SELECT DISTINCT s.name as series_name
+                FROM series s
+                ORDER BY s.name
+            """
+            series_data = execute_query(query)
+            
+            # For leagues without mappings, return database names as-is
+            series_names = [item["series_name"] for item in series_data]
+            
+        else:
+            # First, get all actual series in this league from the database
+            series_query = """
+                SELECT DISTINCT s.name as database_series_name
+                FROM series s
+                JOIN series_leagues sl ON s.id = sl.series_id
+                JOIN leagues l ON sl.league_id = l.id
+                WHERE l.league_id = %s
+                ORDER BY s.name
+            """
+            series_data = execute_query(series_query, (league_id,))
+            
+            # Get user-facing names from series_name_mappings table
+            # This maps database names back to user-facing names
+            user_facing_names = []
+            
+            for series_item in series_data:
+                database_name = series_item["database_series_name"]
+                
+                # Check if there's a reverse mapping (database_series_name -> user_series_name)
+                reverse_mapping_query = """
+                    SELECT user_series_name
+                    FROM series_name_mappings
+                    WHERE league_id = %s AND database_series_name = %s
+                    ORDER BY user_series_name
+                    LIMIT 1
+                """
+                
+                mapping_result = execute_query_one(reverse_mapping_query, (league_id, database_name))
+                
+                if mapping_result:
+                    # Use the user-facing name from the mapping
+                    user_facing_name = mapping_result["user_series_name"]
+                    user_facing_names.append(user_facing_name)
+                else:
+                    # No mapping found, use database name as-is
+                    user_facing_names.append(database_name)
+            
+            series_names = user_facing_names
+
+        # Sort series properly (numbers before letters)
+        def get_sort_key(series_name):
+            import re
+            
+            # Extract number and suffix for proper sorting
+            match = re.match(r'^(?:Series\s+)?(\d+)([a-zA-Z]*)$', series_name)
+            if match:
+                number = int(match.group(1))
+                suffix = match.group(2) or ''
+                return (0, number, suffix)  # Numbers first
+            
+            # Handle letter-only series (Series A, Series B, etc.)
+            match = re.match(r'^(?:Series\s+)?([A-Z]+)$', series_name)
+            if match:
+                letter = match.group(1)
+                return (1, 0, letter)  # Letters after numbers
+            
+            # Everything else goes last
+            return (2, 0, series_name)
+
+        series_names.sort(key=get_sort_key)
+        
+        print(f"[API] Returning user-facing series for {league_id}: {series_names}")
+        return jsonify({"series": series_names})
+
+    except Exception as e:
+        print(f"Error getting user-facing series by league: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
 @api_bp.route("/api/teams")
 @login_required
 def get_teams():
@@ -2127,6 +2177,75 @@ def get_teams():
 
     except Exception as e:
         print(f"Error getting teams: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+@api_bp.route("/api/club-players-metadata")
+@login_required
+def get_club_players_metadata():
+    """Get metadata for club players page (series list, PTI range, etc.) without requiring filter criteria"""
+    try:
+        from database_utils import execute_query
+        
+        user_club = session["user"].get("club")
+        user_league_id = session["user"].get("league_id", "")
+        
+        # Convert league_id to integer foreign key
+        user_league_db_id = None
+        if user_league_id:
+            try:
+                user_league_db_id = int(user_league_id)
+            except (ValueError, TypeError):
+                try:
+                    league_record = execute_query_one(
+                        "SELECT id FROM leagues WHERE league_id = %s", [user_league_id]
+                    )
+                    if league_record:
+                        user_league_db_id = league_record["id"]
+                except Exception:
+                    pass
+        
+        # Get available series for the user's league
+        available_series = []
+        if user_league_db_id:
+            series_query = """
+                SELECT DISTINCT s.name as series_name
+                FROM players p
+                JOIN series s ON p.series_id = s.id
+                WHERE p.league_id = %s AND p.is_active = true
+                ORDER BY s.name
+            """
+            series_results = execute_query(series_query, (user_league_db_id,))
+            available_series = [row["series_name"] for row in series_results]
+        
+        # Get PTI range for the user's league
+        pti_range = {"min": -30, "max": 100}
+        pti_filters_available = False
+        if user_league_db_id:
+            pti_query = """
+                SELECT MIN(p.pti) as min_pti, MAX(p.pti) as max_pti, COUNT(*) as total_players,
+                       COUNT(CASE WHEN p.pti IS NOT NULL THEN 1 END) as players_with_pti
+                FROM players p
+                WHERE p.league_id = %s AND p.is_active = true
+            """
+            pti_result = execute_query_one(pti_query, (user_league_db_id,))
+            if pti_result and pti_result["min_pti"] is not None:
+                pti_range = {"min": float(pti_result["min_pti"]), "max": float(pti_result["max_pti"])}
+                # Show PTI filters if at least 10% of players have PTI values
+                pti_percentage = (pti_result["players_with_pti"] / pti_result["total_players"] * 100) if pti_result["total_players"] > 0 else 0
+                pti_filters_available = pti_percentage >= 10.0
+        
+        return jsonify({
+            "available_series": available_series,
+            "pti_range": pti_range,
+            "pti_filters_available": pti_filters_available,
+            "user_club": user_club or "Unknown Club",
+        })
+
+    except Exception as e:
+        print(f"Error in club-players-metadata API: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
         return jsonify({"error": str(e)}), 500
 
 
@@ -2200,30 +2319,73 @@ def debug_club_data():
 @api_bp.route("/api/pti-analysis/players")
 @login_required
 def get_pti_analysis_players():
-    """Get all players with PTI data for analysis"""
+    """Get all players with PTI data for analysis - FIXED: Now league context aware"""
     try:
-        query = """
-            SELECT 
-                CONCAT(p.first_name, ' ', p.last_name) as name,
-                p.first_name as "First Name",
-                p.last_name as "Last Name", 
-                p.pti as "PTI",
-                p.wins,
-                p.losses,
-                p.win_percentage,
-                l.league_name as league,
-                c.name as club,
-                s.name as series
-            FROM players p
-            LEFT JOIN leagues l ON p.league_id = l.id
-            LEFT JOIN clubs c ON p.club_id = c.id  
-            LEFT JOIN series s ON p.series_id = s.id
-            WHERE p.is_active = true
-            AND p.pti IS NOT NULL
-            ORDER BY p.first_name, p.last_name
-        """
-
-        players_data = execute_query(query)
+        # Get user's current league context
+        user = session["user"]
+        user_league_id = user.get("league_id", "")
+        
+        # Convert string league_id to integer foreign key if needed
+        league_id_int = None
+        if isinstance(user_league_id, str) and user_league_id != "":
+            try:
+                league_record = execute_query_one(
+                    "SELECT id FROM leagues WHERE league_id = %s", [user_league_id]
+                )
+                if league_record:
+                    league_id_int = league_record["id"]
+            except Exception as e:
+                pass
+        elif isinstance(user_league_id, int):
+            league_id_int = user_league_id
+        
+        # Build query with league filtering
+        if league_id_int:
+            query = """
+                SELECT 
+                    CONCAT(p.first_name, ' ', p.last_name) as name,
+                    p.first_name as "First Name",
+                    p.last_name as "Last Name", 
+                    p.pti as "PTI",
+                    p.wins,
+                    p.losses,
+                    p.win_percentage,
+                    l.league_name as league,
+                    c.name as club,
+                    s.name as series
+                FROM players p
+                LEFT JOIN leagues l ON p.league_id = l.id
+                LEFT JOIN clubs c ON p.club_id = c.id  
+                LEFT JOIN series s ON p.series_id = s.id
+                WHERE p.is_active = true
+                AND p.pti IS NOT NULL
+                AND p.league_id = %s
+                ORDER BY p.first_name, p.last_name
+            """
+            players_data = execute_query(query, [league_id_int])
+        else:
+            # Fallback: return all players if no league context
+            query = """
+                SELECT 
+                    CONCAT(p.first_name, ' ', p.last_name) as name,
+                    p.first_name as "First Name",
+                    p.last_name as "Last Name", 
+                    p.pti as "PTI",
+                    p.wins,
+                    p.losses,
+                    p.win_percentage,
+                    l.league_name as league,
+                    c.name as club,
+                    s.name as series
+                FROM players p
+                LEFT JOIN leagues l ON p.league_id = l.id
+                LEFT JOIN clubs c ON p.club_id = c.id  
+                LEFT JOIN series s ON p.series_id = s.id
+                WHERE p.is_active = true
+                AND p.pti IS NOT NULL
+                ORDER BY p.first_name, p.last_name
+            """
+            players_data = execute_query(query)
 
         return jsonify(players_data)
 
@@ -2294,9 +2456,28 @@ def get_pti_analysis_player_history():
 @api_bp.route("/api/pti-analysis/match-history")
 @login_required
 def get_pti_analysis_match_history():
-    """Get match history data for PTI analysis"""
+    """Get match history data for PTI analysis - FIXED: Now league context aware"""
     try:
-        query = """
+        # Get user's current league context
+        user = session["user"]
+        user_league_id = user.get("league_id", "")
+        
+        # Convert string league_id to integer foreign key if needed
+        league_id_int = None
+        if isinstance(user_league_id, str) and user_league_id != "":
+            try:
+                league_record = execute_query_one(
+                    "SELECT id FROM leagues WHERE league_id = %s", [user_league_id]
+                )
+                if league_record:
+                    league_id_int = league_record["id"]
+            except Exception as e:
+                pass
+        elif isinstance(user_league_id, int):
+            league_id_int = user_league_id
+        
+        # Build query with league filtering
+        base_query = """
             SELECT 
                 TO_CHAR(ms.match_date, 'DD-Mon-YY') as "Date",
                 ms.home_team as "Home Team",
@@ -2339,10 +2520,14 @@ def get_pti_analysis_match_history():
             )
             LEFT JOIN leagues l ON ms.league_id = l.id
             WHERE ms.match_date IS NOT NULL
-            ORDER BY ms.match_date DESC
         """
-
-        match_data = execute_query(query)
+        
+        if league_id_int:
+            query = base_query + " AND ms.league_id = %s ORDER BY ms.match_date DESC"
+            match_data = execute_query(query, [league_id_int])
+        else:
+            query = base_query + " ORDER BY ms.match_date DESC"
+            match_data = execute_query(query)
 
         return jsonify(match_data)
 
@@ -2513,3 +2698,383 @@ def handle_player_season_tracking():
 
         print(f"Full traceback: {traceback.format_exc()}")
         return jsonify({"error": "Internal server error"}), 500
+
+
+@api_bp.route("/api/switch-team-context", methods=["POST"])
+@login_required
+def switch_team_context():
+    """API endpoint for switching user's team/league context using existing league_context field"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"success": False, "error": "No data provided"}), 400
+        
+        team_id = data.get("team_id")
+        
+        if not team_id:
+            return jsonify({"success": False, "error": "team_id required"}), 400
+        
+        user_id = session["user"]["id"]
+        
+        # Get the league for this team and verify user access
+        team_league_query = """
+            SELECT t.league_id, l.league_name, t.team_name
+            FROM teams t
+            JOIN leagues l ON t.league_id = l.id
+            JOIN players p ON t.id = p.team_id
+            JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
+            WHERE upa.user_id = %s AND t.id = %s AND p.is_active = TRUE
+        """
+        team_info = execute_query_one(team_league_query, [user_id, team_id])
+        
+        if not team_info:
+            return jsonify({"success": False, "error": "User does not have access to this team"}), 403
+        
+        league_id = team_info["league_id"]
+        league_name = team_info["league_name"]
+        team_name = team_info["team_name"]
+        
+        # Update user's league_context field
+        update_query = "UPDATE users SET league_context = %s WHERE id = %s"
+        execute_query(update_query, [league_id, user_id])
+        
+        # Update current session
+        session["user"]["league_context"] = league_id
+        session.modified = True
+        
+        return jsonify({
+            "success": True,
+            "league_id": league_id,
+            "team_id": team_id,
+            "message": f"Switched to {team_name} ({league_name})"
+        })
+            
+    except Exception as e:
+        logger.error(f"Error switching team context: {e}")
+        return jsonify({
+            "success": False,
+            "error": "Failed to switch team context"
+        }), 500
+
+
+@api_bp.route("/api/user-context-info", methods=["GET"])
+@login_required
+def get_user_context_info():
+    """Get current user context information"""
+    try:
+        from app.services.context_service import ContextService
+        
+        user_id = session["user"]["id"]
+        
+        # Get context info
+        context_info = ContextService.get_context_info(user_id)
+        user_leagues = ContextService.get_user_leagues(user_id)
+        user_teams = ContextService.get_user_teams(user_id)
+        
+        return jsonify({
+            "success": True,
+            "context": context_info,
+            "leagues": user_leagues,
+            "teams": user_teams,
+            "is_multi_league": len(user_leagues) > 1,
+            "is_multi_team": len(user_teams) > 1
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting user context info: {e}")
+        return jsonify({
+            "success": False,
+            "error": "Failed to get context info"
+        }), 500
+
+
+@api_bp.route("/api/switch-league", methods=["POST"])
+@login_required
+def switch_league():
+    """Simple league switching API using new session service"""
+    try:
+        from app.services.session_service import switch_user_league, get_session_data_for_user
+        import logging
+
+        logger = logging.getLogger(__name__)
+        data = request.get_json()
+        
+        if not data or not data.get("league_id"):
+            return jsonify({"success": False, "error": "league_id required"}), 400
+        
+        user_email = session["user"]["email"]
+        new_league_id = data.get("league_id")
+        
+        logger.info(f"League switch requested: {user_email} -> {new_league_id}")
+        
+        # Switch to new league
+        if switch_user_league(user_email, new_league_id):
+            # Rebuild session from database
+            fresh_session_data = get_session_data_for_user(user_email)
+            if fresh_session_data:
+                session["user"] = fresh_session_data
+                session.modified = True
+                
+                return jsonify({
+                    "success": True,
+                    "message": f"Switched to {fresh_session_data['league_name']}",
+                    "user": fresh_session_data
+                })
+            else:
+                return jsonify({"success": False, "error": "Failed to update session"}), 500
+        else:
+            return jsonify({
+                "success": False, 
+                "error": f"Could not switch to {new_league_id}. You may not have a player record in that league."
+            }), 400
+            
+    except Exception as e:
+        logger.error(f"Error switching league: {str(e)}")
+        return jsonify({"success": False, "error": f"League switch failed: {str(e)}"}), 500
+
+
+@api_bp.route("/api/get-user-teams", methods=["GET"])
+@login_required
+def get_user_teams():
+    """
+    API endpoint to get user's teams for enhanced league/team context switching.
+    Returns teams user belongs to and current team context.
+    """
+    try:
+        user_id = session["user"]["id"]
+        user_email = session["user"]["email"]
+        
+        # Get user's teams across all leagues
+        teams_query = """
+            SELECT DISTINCT 
+                t.id,
+                t.team_name,
+                c.name as club_name,
+                s.name as series_name,
+                l.id as league_db_id,
+                l.league_id as league_string_id,
+                l.league_name,
+                COUNT(ms.id) as match_count
+            FROM teams t
+            JOIN players p ON t.id = p.team_id
+            JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
+            JOIN clubs c ON t.club_id = c.id
+            JOIN series s ON t.series_id = s.id
+            JOIN leagues l ON t.league_id = l.id
+            LEFT JOIN match_scores ms ON (t.id = ms.home_team_id OR t.id = ms.away_team_id)
+            WHERE upa.user_id = %s 
+                AND p.is_active = TRUE 
+                AND t.is_active = TRUE
+            GROUP BY t.id, t.team_name, c.name, s.name, l.id, l.league_id, l.league_name
+            ORDER BY l.league_name, c.name, s.name
+        """
+        
+        teams_result = execute_query(teams_query, [user_id])
+        teams = [dict(team) for team in teams_result] if teams_result else []
+        
+        # Get current team context based on user's league_context
+        current_team = None
+        if session["user"].get("league_context"):
+            league_context = session["user"]["league_context"]
+            
+            # Find user's active team in current league context
+            current_team_query = """
+                SELECT DISTINCT
+                    t.id,
+                    t.team_name,
+                    c.name as club_name,
+                    s.name as series_name,
+                    l.id as league_db_id,
+                    l.league_id as league_string_id,
+                    l.league_name
+                FROM teams t
+                JOIN players p ON t.id = p.team_id
+                JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
+                JOIN clubs c ON t.club_id = c.id
+                JOIN series s ON t.series_id = s.id
+                JOIN leagues l ON t.league_id = l.id
+                WHERE upa.user_id = %s 
+                    AND l.id = %s
+                    AND p.is_active = TRUE 
+                    AND t.is_active = TRUE
+                ORDER BY t.team_name
+                LIMIT 1
+            """
+            
+            current_team_result = execute_query_one(current_team_query, [user_id, league_context])
+            if current_team_result:
+                current_team = dict(current_team_result)
+        
+        # Filter teams for current league if we have league context
+        current_league_teams = []
+        if session["user"].get("league_context"):
+            league_context = session["user"]["league_context"]
+            current_league_teams = [team for team in teams if team["league_db_id"] == league_context]
+        
+        return jsonify({
+            "success": True,
+            "teams": teams,
+            "current_team": current_team,
+            "current_league_teams": current_league_teams,
+            "has_multiple_teams": len(teams) > 1,
+            "has_multiple_teams_in_current_league": len(current_league_teams) > 1,
+            "user_id": user_id
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting user teams for user {session.get('user', {}).get('id', 'unknown')}: {e}")
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "teams": [],
+            "current_team": None
+        }), 500
+
+
+@api_bp.route("/api/switch-team-in-league", methods=["POST"])
+@login_required
+def switch_team_in_league():
+    """
+    API endpoint for switching user's team/club within the same league.
+    This is separate from league switching - it only changes team context within current league.
+    """
+    try:
+        from app.services.session_service import (
+            switch_user_team_in_league, 
+            get_session_data_for_user_team
+        )
+        import logging
+
+        logger = logging.getLogger(__name__)
+        data = request.get_json()
+        
+        if not data or not data.get("team_id"):
+            return jsonify({"success": False, "error": "team_id required"}), 400
+        
+        team_id = data.get("team_id")
+        user_email = session["user"]["email"]
+        
+        # Validate team switch using session service
+        if not switch_user_team_in_league(user_email, team_id):
+            return jsonify({"success": False, "error": "Cannot switch to this team"}), 400
+        
+        # Build new session data with team context
+        fresh_session_data = get_session_data_for_user_team(user_email, team_id)
+        if not fresh_session_data:
+            return jsonify({"success": False, "error": "Failed to build session with new team"}), 500
+        
+        # Update session
+        session["user"] = fresh_session_data
+        session.modified = True
+        
+        logger.info(f"User {user_email} switched to team {fresh_session_data['team_name']} (ID: {team_id})")
+        
+        return jsonify({
+            "success": True,
+            "team_id": team_id,
+            "team_name": fresh_session_data.get("team_name"),
+            "club_name": fresh_session_data["club"],
+            "series_name": fresh_session_data["series"],
+            "league_name": fresh_session_data["league_name"],
+            "message": f"Switched to {fresh_session_data['club']} - {fresh_session_data['series']}"
+        })
+        
+    except Exception as e:
+        logger.error(f"Error switching team: {str(e)}")
+        return jsonify({"success": False, "error": f"Team switch failed: {str(e)}"}), 500
+
+
+@api_bp.route("/api/get-user-teams-in-current-league", methods=["GET"])
+@login_required
+def get_user_teams_in_current_league():
+    """
+    API endpoint to get user's teams within their current league only.
+    Used for club/team switching within the same league.
+    """
+    try:
+        logger = logging.getLogger(__name__)
+        user_id = session["user"]["id"]
+        current_league_context = session["user"].get("league_context")
+        
+        logger.info(f"get_user_teams_in_current_league called for user {user_id}, league_context: {current_league_context}")
+        logger.info(f"Full session user data: {session.get('user', {})}")
+        
+        # Fallback to league_id if league_context is not set
+        if not current_league_context:
+            current_league_context = session["user"].get("league_id")
+            logger.info(f"league_context was None, trying league_id fallback: {current_league_context}")
+        
+        # Convert string league_id to numeric league_id if needed
+        if isinstance(current_league_context, str):
+            league_lookup_query = "SELECT id FROM leagues WHERE league_id = %s"
+            league_record = execute_query_one(league_lookup_query, [current_league_context])
+            if league_record:
+                current_league_context = league_record["id"]
+                logger.info(f"Converted string league_id to numeric id: {current_league_context}")
+            else:
+                logger.error(f"Could not find league with league_id: {current_league_context}")
+                return jsonify({
+                    "success": False,
+                    "error": "Invalid league context",
+                    "teams": []
+                }), 400
+        
+        if not current_league_context:
+            logger.error(f"No league context or league_id found for user {user_id}")
+            return jsonify({
+                "success": False,
+                "error": "No league context found",
+                "teams": []
+            }), 400
+        
+        # Get user's teams in current league only
+        teams_query = """
+            SELECT DISTINCT 
+                t.id as team_id,
+                t.team_name,
+                c.name as club_name,
+                s.name as series_name,
+                l.league_name,
+                COUNT(ms.id) as match_count,
+                -- Check if this is the current team context
+                CASE WHEN t.id = %s THEN true ELSE false END as is_current
+            FROM teams t
+            JOIN players p ON t.id = p.team_id
+            JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
+            JOIN clubs c ON t.club_id = c.id
+            JOIN series s ON t.series_id = s.id
+            JOIN leagues l ON t.league_id = l.id
+            LEFT JOIN match_scores ms ON (t.id = ms.home_team_id OR t.id = ms.away_team_id)
+            WHERE upa.user_id = %s 
+                AND t.league_id = %s
+                AND p.is_active = TRUE 
+                AND t.is_active = TRUE
+            GROUP BY t.id, t.team_name, c.name, s.name, l.league_name
+            ORDER BY c.name, s.name
+        """
+        
+        current_team_id = session["user"].get("team_id")
+        logger.info(f"Executing teams query with params: current_team_id={current_team_id}, user_id={user_id}, league_context={current_league_context}")
+        
+        teams_result = execute_query(teams_query, [current_team_id, user_id, current_league_context])
+        teams = [dict(team) for team in teams_result] if teams_result else []
+        
+        logger.info(f"Query returned {len(teams)} teams: {teams}")
+        
+        return jsonify({
+            "success": True,
+            "teams": teams,
+            "has_multiple_teams": len(teams) > 1,
+            "current_league_id": current_league_context
+        })
+        
+    except Exception as e:
+        import traceback
+        logger.error(f"Error getting user teams in current league: {e}")
+        logger.error(f"Full traceback: {traceback.format_exc()}")
+        logger.error(f"Session data: {session.get('user', {})}")
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "teams": []
+        }), 500

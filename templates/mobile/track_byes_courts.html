@@ -4,21 +4,84 @@
 {% block content %}
 <div class="min-h-screen bg-gray-50">
     
+    <!-- Team Selector (Very Discreet) -->
+    {% if user_teams and user_teams|length > 1 %}
+    <div class="px-4 py-1">
+        <div class="text-right">
+            <button id="teamSelectorLink" class="inline-flex items-center text-xs text-gray-600 hover:text-blue-600 transition-colors">
+                {% if current_team_info %}
+                <span>Viewing: {{ current_team_info.team_name }}</span>
+                <i class="fas fa-chevron-down text-xs ml-1"></i>
+                {% else %}
+                <span>Select Team</span>
+                <i class="fas fa-chevron-down text-xs ml-1"></i>
+                {% endif %}
+            </button>
+        </div>
+    </div>
+
+    <!-- Team Selection Modal -->
+    <div id="teamSelectorModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-xl max-w-sm w-full max-h-96 overflow-hidden">
+            <!-- Modal Header -->
+            <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                <h3 class="text-lg font-semibold text-gray-900">Switch Team</h3>
+                <button id="closeTeamModal" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+                            <!-- Team Options -->
+                <div class="p-4 space-y-2 max-h-80 overflow-y-auto">
+                    {% for team in user_teams %}
+                    <a href="{{ url_for('mobile.serve_track_byes_courts', team_id=team.id) }}" 
+                       class="team-option-link flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors group {% if team.id == team_id %}bg-blue-50 border border-blue-200{% else %}border border-transparent{% endif %}"
+                       data-team-id="{{ team.id }}"
+                       data-team-name="{{ team.team_name }}">
+                        <div class="flex-1">
+                            <div class="font-medium {% if team.id == team_id %}text-blue-700{% else %}text-gray-900{% endif %}">
+                                {{ team.team_name }}
+                            </div>
+                            <div class="text-sm text-gray-500">{{ team.club_name }} - {{ team.series_name }}</div>
+                            <div class="text-xs text-gray-400">{{ team.match_count }} matches</div>
+                        </div>
+                        <div class="ml-3">
+                            {% if team.id == team_id %}
+                            <div class="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                                <i class="fas fa-check text-white text-xs"></i>
+                            </div>
+                            {% else %}
+                            <i class="fas fa-arrow-right text-gray-300 group-hover:text-gray-500 text-sm"></i>
+                            {% endif %}
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+        </div>
+    </div>
+    {% endif %}
+    
     <!-- Header -->
     <div class="bg-white border-b border-gray-100">
         <div class="flex items-center px-4 py-6">
-            <div class="w-12 h-12 bg-purple-600 rounded-full flex items-center justify-center shadow-sm">
+            <div class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center shadow-sm">
                 <i class="fas fa-clipboard-list text-white text-lg"></i>
             </div>
             <div class="ml-4">
                 <h1 class="text-xl font-bold text-gray-900">Track Byes & Court Assignments</h1>
+                {% if current_team_info %}
+                <p class="text-sm text-gray-500">{{ current_team_info.team_name }}</p>
+                {% else %}
                 <p class="text-sm text-gray-500">Review previous player assignments</p>
+                {% endif %}
             </div>
         </div>
     </div>
 
     <!-- Content -->
     <div class="px-4 py-6 space-y-6">
+
+        
 
         <!-- Legend -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -276,6 +339,166 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('🎯 Track Byes & Courts page loaded');
+    
+    // 🔄 NEW: Auto-refresh when page becomes visible (handles back navigation after league/team switching)
+    document.addEventListener('visibilitychange', function() {
+        if (!document.hidden) {
+            console.log('🔄 Track Byes & Courts page became visible - refreshing for current team context');
+            setTimeout(() => {
+                // Reload the page to ensure we have the correct team context data
+                window.location.reload();
+            }, 500); // Small delay to ensure any session updates are complete
+        }
+    });
+    
+    // 🔄 NEW: Also refresh when page gets focus (additional safety net)
+    window.addEventListener('focus', function() {
+        console.log('🔄 Track Byes & Courts page got focus - refreshing data');
+        setTimeout(() => {
+            // Reload the page to ensure we have the correct team context data
+            window.location.reload();
+        }, 500);
+    });
+
+    // Team selector modal functionality
+    const teamSelectorLink = document.getElementById('teamSelectorLink');
+    const teamSelectorModal = document.getElementById('teamSelectorModal');
+    const closeTeamModal = document.getElementById('closeTeamModal');
+    
+    if (teamSelectorLink && teamSelectorModal) {
+        // Open modal
+        teamSelectorLink.addEventListener('click', function(e) {
+            e.preventDefault();
+            teamSelectorModal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden'; // Prevent background scrolling
+        });
+        
+        // Close modal with X button
+        if (closeTeamModal) {
+            closeTeamModal.addEventListener('click', function(e) {
+                e.preventDefault();
+                teamSelectorModal.classList.add('hidden');
+                document.body.style.overflow = ''; // Restore scrolling
+            });
+        }
+        
+        // Close modal when clicking outside
+        teamSelectorModal.addEventListener('click', function(e) {
+            if (e.target === teamSelectorModal) {
+                teamSelectorModal.classList.add('hidden');
+                document.body.style.overflow = ''; // Restore scrolling
+            }
+        });
+        
+        // Close on escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && !teamSelectorModal.classList.contains('hidden')) {
+                teamSelectorModal.classList.add('hidden');
+                document.body.style.overflow = ''; // Restore scrolling
+            }
+        });
+
+        // Handle team option clicks for API-based context switching
+        const teamOptionLinks = document.querySelectorAll('.team-option-link');
+        teamOptionLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault(); // Prevent default link behavior
+                
+                const teamId = parseInt(this.dataset.teamId);
+                const teamName = this.dataset.teamName;
+                
+                // Close modal immediately for responsive feel
+                teamSelectorModal.classList.add('hidden');
+                document.body.style.overflow = ''; // Restore scrolling
+                
+                // Show loading feedback
+                if (teamSelectorLink) {
+                    teamSelectorLink.innerHTML = `
+                        <i class="fas fa-spinner fa-spin text-xs mr-1"></i>
+                        <span>Switching to ${teamName}...</span>
+                    `;
+                }
+                
+                // Call API to switch team context
+                switchTeamContext(teamId, teamName);
+            });
+        });
+    }
+
+    // Simple team context switching function using existing league_context field
+    async function switchTeamContext(teamId, teamName) {
+        try {
+            const response = await fetch('/api/switch-team-context', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ team_id: teamId })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                // Context switched successfully - reload page to show new team's data
+                console.log(`Successfully switched to team ${teamName} (ID: ${teamId})`);
+                
+                // Reload the page to show the new team's data
+                window.location.reload();
+            } else {
+                // Show error message
+                console.error('Failed to switch team context:', result.error);
+                showError(result.error || 'Failed to switch team context');
+                
+                // Reset the team selector link
+                resetTeamSelectorLink();
+            }
+        } catch (error) {
+            console.error('Network error switching team context:', error);
+            showError('Network error while switching team');
+            
+            // Reset the team selector link
+            resetTeamSelectorLink();
+        }
+    }
+
+    // Helper function to reset the team selector link
+    function resetTeamSelectorLink() {
+        if (teamSelectorLink) {
+            teamSelectorLink.innerHTML = `
+                {% if current_team_info %}
+                <span>Viewing: {{ current_team_info.team_name }}</span>
+                <i class="fas fa-chevron-down text-xs ml-1"></i>
+                {% else %}
+                <span>Select Team</span>
+                <i class="fas fa-chevron-down text-xs ml-1"></i>
+                {% endif %}
+            `;
+        }
+    }
+
+    // Function to show error messages
+    function showError(message) {
+        // Create a simple toast notification
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'fixed top-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+        errorDiv.innerHTML = `
+            <div class="flex items-center">
+                <i class="fas fa-exclamation-triangle mr-2"></i>
+                <span>${message}</span>
+            </div>
+        `;
+        
+        document.body.appendChild(errorDiv);
+        
+        // Remove after 5 seconds
+        setTimeout(() => {
+            if (errorDiv.parentNode) {
+                errorDiv.parentNode.removeChild(errorDiv);
+            }
+                 }, 5000);
+     }
+    
     // Global variable to store season tracking data
     let seasonTrackingData = {};
 
@@ -544,6 +767,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 300);
         }, 3000);
     }
+
 });
 </script>
 {% endblock %} 

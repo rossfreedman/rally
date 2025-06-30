@@ -17,32 +17,72 @@ polls_bp = Blueprint("polls", __name__)
 
 
 def get_user_team_id(user):
-    """Get user's team ID from their player association (integer foreign key)"""
+    """Get user's team ID from their player association for the CURRENT league context"""
     try:
         user_id = user.get("id")
         if not user_id:
             print(f"❌ No user_id provided to get_user_team_id")
             return None
 
-        # ✅ FIX: More robust team ID lookup with fallbacks
-        # Try primary association first
-        primary_team_query = """
-            SELECT p.team_id
-            FROM players p
-            JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
-            WHERE upa.user_id = %s AND upa.is_primary = TRUE AND p.is_active = TRUE AND p.team_id IS NOT NULL
-            LIMIT 1
-        """
-        result = execute_query_one(primary_team_query, [user_id])
-        if result and result["team_id"]:
-            print(f"✅ Found team_id via primary association: {result['team_id']}")
-            return result["team_id"]
+        # 🎯 NEW: Get current league context from session
+        current_league_context = user.get("league_context")  # This should be the integer DB ID
+        current_league_id = user.get("league_id")  # String league identifier
+        
+        print(f"[DEBUG] get_user_team_id for user {user_id}")
+        print(f"[DEBUG] Current league_context: {current_league_context}")
+        print(f"[DEBUG] Current league_id: {current_league_id}")
 
-        # ✅ FIX: Fallback to any association if no primary
-        any_team_query = """
-            SELECT p.team_id
+        # 🎯 NEW: Convert league context to proper integer if needed
+        league_db_id = None
+        if current_league_context:
+            try:
+                league_db_id = int(current_league_context)
+                print(f"[DEBUG] Using league_context as DB ID: {league_db_id}")
+            except (ValueError, TypeError):
+                print(f"[DEBUG] league_context is not a valid integer: {current_league_context}")
+        
+        # Fallback: Try to convert string league_id to integer DB ID
+        if not league_db_id and current_league_id:
+            try:
+                league_record = execute_query_one(
+                    "SELECT id FROM leagues WHERE league_id = %s", [current_league_id]
+                )
+                if league_record:
+                    league_db_id = league_record["id"]
+                    print(f"[DEBUG] Converted league_id '{current_league_id}' to DB ID: {league_db_id}")
+            except Exception as e:
+                print(f"[DEBUG] Failed to convert league_id to DB ID: {e}")
+
+        # 🎯 NEW: Query team ID filtered by current league context
+        if league_db_id:
+            # Use league-aware team lookup
+            league_aware_team_query = """
+                SELECT p.team_id, t.team_name, t.team_alias, l.league_name
+                FROM players p
+                JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
+                JOIN teams t ON p.team_id = t.id
+                JOIN leagues l ON p.league_id = l.id
+                WHERE upa.user_id = %s 
+                AND p.is_active = TRUE 
+                AND p.team_id IS NOT NULL
+                AND p.league_id = %s
+                LIMIT 1
+            """
+            result = execute_query_one(league_aware_team_query, [user_id, league_db_id])
+            if result and result["team_id"]:
+                team_display = result.get("team_alias") or result.get("team_name")
+                print(f"✅ Found team_id {result['team_id']} for current league context: {team_display}")
+                return result["team_id"]
+            else:
+                print(f"⚠️ No team found for user {user_id} in league {league_db_id}")
+
+        # 🎯 FALLBACK: If no league context or no team found, try any active team
+        print(f"[DEBUG] Using fallback - any active team for user {user_id}")
+        fallback_team_query = """
+            SELECT p.team_id, t.team_name, t.team_alias
             FROM players p
             JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
+            JOIN teams t ON p.team_id = t.id
             JOIN leagues l ON p.league_id = l.id
             WHERE upa.user_id = %s AND p.is_active = TRUE AND p.team_id IS NOT NULL
             ORDER BY 
@@ -50,49 +90,13 @@ def get_user_team_id(user):
                 p.id
             LIMIT 1
         """
-        result = execute_query_one(any_team_query, [user_id])
+        result = execute_query_one(fallback_team_query, [user_id])
         if result and result["team_id"]:
-            print(f"✅ Found team_id via any association: {result['team_id']}")
+            team_display = result.get("team_alias") or result.get("team_name")
+            print(f"✅ Found fallback team_id {result['team_id']}: {team_display}")
             return result["team_id"]
 
-        # ✅ FIX: Last resort - try to create team assignment if player exists but no team
-        try:
-            from app.services.auth_service_refactored import assign_player_to_team
-            from app.models.database_models import Player
-            from database_config import get_db_session
-            
-            db_session = get_db_session()
-            try:
-                # Find user's player without team
-                unassigned_player_query = """
-                    SELECT p.id
-                    FROM players p
-                    JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
-                    WHERE upa.user_id = %s AND p.is_active = TRUE AND p.team_id IS NULL
-                    LIMIT 1
-                """
-                unassigned = execute_query_one(unassigned_player_query, [user_id])
-                
-                if unassigned:
-                    player = db_session.query(Player).filter(Player.id == unassigned["id"]).first()
-                    if player:
-                        print(f"🔧 Attempting to assign team to unassigned player {player.id}")
-                        team_assigned = assign_player_to_team(player, db_session)
-                        if team_assigned:
-                            db_session.commit()
-                            print(f"✅ Successfully assigned team to player {player.id}")
-                            # Try the query again
-                            result = execute_query_one(any_team_query, [user_id])
-                            if result and result["team_id"]:
-                                return result["team_id"]
-                        else:
-                            db_session.rollback()
-            finally:
-                db_session.close()
-        except Exception as team_assignment_error:
-            print(f"⚠️ Team assignment attempt failed: {team_assignment_error}")
-
-        print(f"❌ Could not find team_id for user {user_id}")
+        print(f"❌ Could not find any team_id for user {user_id}")
         return None
         
     except Exception as e:
@@ -129,9 +133,73 @@ def create_poll():
         user_id = session["user"]["id"]
         user = session["user"]
 
-        # Get user's team ID from player association
-        team_id = get_user_team_id(user)
-        if not team_id:
+        # PRIORITY-BASED TEAM DETECTION (same as poll viewing API)
+        user_team_id = None
+        user_team_name = None
+        
+        # PRIORITY 1: Use team_id from session if available (most reliable for multi-team players)
+        session_team_id = user.get("team_id")
+        print(f"🔥 Poll Creation: session_team_id from user: {session_team_id}")
+        
+        if session_team_id:
+            try:
+                # Get team name for the specific team_id from session
+                session_team_query = """
+                    SELECT t.id, t.team_name
+                    FROM teams t
+                    WHERE t.id = %s
+                """
+                session_team_result = execute_query_one(session_team_query, [session_team_id])
+                if session_team_result:
+                    user_team_id = session_team_result['id'] 
+                    user_team_name = session_team_result['team_name']
+                    print(f"🔥 Poll Creation: Using team_id from session: team_id={user_team_id}, team_name={user_team_name}")
+                else:
+                    print(f"🔥 Poll Creation: Session team_id {session_team_id} not found in teams table")
+            except Exception as e:
+                print(f"🔥 Poll Creation: Error getting team from session team_id {session_team_id}: {e}")
+        
+        # PRIORITY 2: Use team_context from user if provided (from composite player URL)
+        if not user_team_id:
+            team_context = user.get("team_context") if user else None
+            if team_context:
+                try:
+                    # Get team name for the specific team_id from team context
+                    team_context_query = """
+                        SELECT t.id, t.team_name
+                        FROM teams t
+                        WHERE t.id = %s
+                    """
+                    team_context_result = execute_query_one(team_context_query, [team_context])
+                    if team_context_result:
+                        user_team_id = team_context_result['id'] 
+                        user_team_name = team_context_result['team_name']
+                        print(f"🔥 Poll Creation: Using team_context from URL: team_id={user_team_id}, team_name={user_team_name}")
+                    else:
+                        print(f"🔥 Poll Creation: team_context {team_context} not found in teams table")
+                except Exception as e:
+                    print(f"🔥 Poll Creation: Error getting team from team_context {team_context}: {e}")
+        
+        # PRIORITY 3: Use legacy get_user_team_id as fallback if no direct team_id
+        if not user_team_id:
+            print(f"🔥 Poll Creation: No direct team_id, using legacy get_user_team_id fallback")
+            user_team_id = get_user_team_id(user)
+            if user_team_id:
+                try:
+                    session_team_query = """
+                        SELECT t.id, t.team_name
+                        FROM teams t
+                        WHERE t.id = %s
+                    """
+                    session_team_result = execute_query_one(session_team_query, [user_team_id])
+                    if session_team_result:
+                        user_team_name = session_team_result['team_name']
+                        print(f"🔥 Poll Creation: Legacy function provided: team_id={user_team_id}, team_name={user_team_name}")
+                except Exception as e:
+                    print(f"🔥 Poll Creation: Error getting team name from legacy team_id: {e}")
+        
+        # If still no team, return error
+        if not user_team_id:
             print(
                 f"🔥 Could not determine team ID for user: {user.get('email')} (user_id: {user_id})"
             )
@@ -142,7 +210,11 @@ def create_poll():
                 400,
             )
 
-        print(f"🔥 User ID: {user_id}, Team ID: {team_id}")
+        print(f"🔥 Poll Creation: Final team selection: team_id={user_team_id}, team_name={user_team_name}")
+        print(f"🔥 User ID: {user_id}, Team ID: {user_team_id}")
+        
+        # Use the determined team_id for poll creation
+        team_id = user_team_id
 
         # Create the poll with team_id
         poll_query = """
@@ -212,14 +284,79 @@ def create_poll():
 @polls_bp.route("/api/polls/my-team")
 @login_required
 def get_my_team_polls():
-    """Get all polls for the current user's team"""
+    """Get all polls for the current user's team using priority-based team detection like analyze-me"""
     try:
         user = session["user"]
         user_id = user["id"]
-
-        # Get user's team ID
-        team_id = get_user_team_id(user)
-        if not team_id:
+        user_email = user.get("email")
+        
+        # PRIORITY-BASED TEAM DETECTION (same as analyze-me and track-byes-courts pages)
+        user_team_id = None
+        user_team_name = None
+        
+        # PRIORITY 1: Use team_id from session if available (most reliable for multi-team players)
+        session_team_id = user.get("team_id")
+        print(f"[DEBUG] Polls: session_team_id from user: {session_team_id}")
+        
+        if session_team_id:
+            try:
+                # Get team name for the specific team_id from session
+                session_team_query = """
+                    SELECT t.id, t.team_name
+                    FROM teams t
+                    WHERE t.id = %s
+                """
+                session_team_result = execute_query_one(session_team_query, [session_team_id])
+                if session_team_result:
+                    user_team_id = session_team_result['id'] 
+                    user_team_name = session_team_result['team_name']
+                    print(f"[DEBUG] Polls: Using team_id from session: team_id={user_team_id}, team_name={user_team_name}")
+                else:
+                    print(f"[DEBUG] Polls: Session team_id {session_team_id} not found in teams table")
+            except Exception as e:
+                print(f"[DEBUG] Polls: Error getting team from session team_id {session_team_id}: {e}")
+        
+        # PRIORITY 2: Use team_context from user if provided (from composite player URL)
+        if not user_team_id:
+            team_context = user.get("team_context") if user else None
+            if team_context:
+                try:
+                    # Get team name for the specific team_id from team context
+                    team_context_query = """
+                        SELECT t.id, t.team_name
+                        FROM teams t
+                        WHERE t.id = %s
+                    """
+                    team_context_result = execute_query_one(team_context_query, [team_context])
+                    if team_context_result:
+                        user_team_id = team_context_result['id'] 
+                        user_team_name = team_context_result['team_name']
+                        print(f"[DEBUG] Polls: Using team_context from URL: team_id={user_team_id}, team_name={user_team_name}")
+                    else:
+                        print(f"[DEBUG] Polls: team_context {team_context} not found in teams table")
+                except Exception as e:
+                    print(f"[DEBUG] Polls: Error getting team from team_context {team_context}: {e}")
+        
+        # PRIORITY 3: Use legacy get_user_team_id as fallback if no direct team_id
+        if not user_team_id:
+            print(f"[DEBUG] Polls: No direct team_id, using legacy get_user_team_id fallback")
+            user_team_id = get_user_team_id(user)
+            if user_team_id:
+                try:
+                    session_team_query = """
+                        SELECT t.id, t.team_name
+                        FROM teams t
+                        WHERE t.id = %s
+                    """
+                    session_team_result = execute_query_one(session_team_query, [user_team_id])
+                    if session_team_result:
+                        user_team_name = session_team_result['team_name']
+                        print(f"[DEBUG] Polls: Legacy function provided: team_id={user_team_id}, team_name={user_team_name}")
+                except Exception as e:
+                    print(f"[DEBUG] Polls: Error getting team name from legacy team_id: {e}")
+        
+        # If still no team, return error
+        if not user_team_id:
             print(
                 f"[DEBUG] Could not determine team ID for user: {user.get('email')} (user_id: {user_id})"
             )
@@ -230,8 +367,12 @@ def get_my_team_polls():
                 400,
             )
 
+        print(f"[DEBUG] Polls: Final team selection: team_id={user_team_id}, team_name={user_team_name}")
         print(f"[DEBUG] Getting polls for user: {user.get('email')}")
-        print(f"[DEBUG] Team ID: {team_id} (integer foreign key)")
+        print(f"[DEBUG] Team ID: {user_team_id} (integer foreign key)")
+        
+        # Use the determined team_id for the rest of the function
+        team_id = user_team_id
 
         # Get polls for this specific team only
         polls_query = """
