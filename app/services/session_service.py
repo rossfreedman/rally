@@ -273,3 +273,201 @@ def update_session_from_db(session: Dict[str, Any]) -> Dict[str, Any]:
     except Exception as e:
         logger.error(f"Error refreshing session: {e}")
         return session 
+
+
+def switch_user_team_in_league(user_email: str, team_id: int) -> bool:
+    """
+    Switch user to a different team within the same league.
+    This updates their session context but keeps the league_context the same.
+    
+    Args:
+        user_email: User's email
+        team_id: New team ID (integer)
+        
+    Returns:
+        True if successful, False otherwise
+    """
+    try:
+        # Get user ID and current league context
+        user_info = execute_query_one(
+            "SELECT id, league_context FROM users WHERE email = %s", 
+            [user_email]
+        )
+        
+        if not user_info or not user_info["league_context"]:
+            logger.error(f"User {user_email} not found or has no league context")
+            return False
+            
+        user_id = user_info["id"]
+        current_league_id = user_info["league_context"]
+        
+        # Verify user has access to this team and it's in the same league
+        team_verification_query = """
+            SELECT 
+                t.id as team_id,
+                t.team_name,
+                t.league_id,
+                c.name as club_name,
+                s.name as series_name
+            FROM teams t
+            JOIN clubs c ON t.club_id = c.id
+            JOIN series s ON t.series_id = s.id
+            JOIN players p ON t.id = p.team_id
+            JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
+            WHERE upa.user_id = %s AND t.id = %s AND p.is_active = TRUE
+        """
+        
+        team_info = execute_query_one(team_verification_query, [user_id, team_id])
+        
+        if not team_info:
+            logger.error(f"User {user_email} does not have access to team {team_id}")
+            return False
+        
+        # Verify team is in the same league as current context
+        if team_info["league_id"] != current_league_id:
+            logger.error(f"Team {team_id} is not in user's current league context {current_league_id}")
+            return False
+        
+        logger.info(f"Switched {user_email} to team {team_info['team_name']} (ID: {team_id}) in same league")
+        return True
+        
+    except Exception as e:
+        logger.error(f"Error switching {user_email} to team {team_id}: {e}")
+        return False
+
+
+def get_session_data_for_user_team(user_email: str, team_id: int) -> Optional[Dict[str, Any]]:
+    """
+    Get session data for a user with a specific team context.
+    Used after team switching to build session with the new team.
+    
+    Args:
+        user_email: User's email address
+        team_id: Specific team ID to use for context
+        
+    Returns:
+        Complete session dict with team context or None if invalid
+    """
+    print(f"[SESSION_SERVICE] Getting session data for: {user_email} with team_id: {team_id}")
+    try:
+        # Build session with specific team context
+        session_query = """
+            SELECT 
+                u.id,
+                u.email, 
+                u.first_name, 
+                u.last_name,
+                u.is_admin,
+                u.ad_deuce_preference,
+                u.dominant_hand,
+                u.league_context,
+                -- Player data from specific team
+                p.tenniscores_player_id,
+                p.team_id,
+                p.club_id,
+                p.series_id,
+                c.name as club,
+                s.name as series,
+                l.id as league_db_id,
+                l.league_id as league_string_id,
+                l.league_name,
+                t.team_name
+            FROM users u
+            JOIN user_player_associations upa ON u.id = upa.user_id
+            JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id 
+                AND p.team_id = %s
+                AND p.is_active = TRUE
+            JOIN teams t ON p.team_id = t.id
+            JOIN clubs c ON p.club_id = c.id
+            JOIN series s ON p.series_id = s.id
+            JOIN leagues l ON p.league_id = l.id
+            WHERE u.email = %s
+            LIMIT 1
+        """
+        
+        result = execute_query_one(session_query, [team_id, user_email])
+        print(f"[SESSION_SERVICE] Team-specific query result: {result}")
+        
+        if not result:
+            logger.warning(f"No user/team combination found for email: {user_email}, team_id: {team_id}")
+            print(f"[SESSION_SERVICE] No user/team found for: {user_email}, team_id: {team_id}")
+            return None
+            
+        # Build standard session structure with team-specific data
+        session_data = {
+            "id": result["id"],
+            "email": result["email"],
+            "first_name": result["first_name"],
+            "last_name": result["last_name"],
+            "is_admin": result["is_admin"],
+            "ad_deuce_preference": result["ad_deuce_preference"] or "",
+            "dominant_hand": result["dominant_hand"] or "",
+            "league_context": result["league_context"],
+            
+            # Team-specific player data
+            "club": result["club"] or "",
+            "series": result["series"] or "",
+            "club_id": result["club_id"],
+            "series_id": result["series_id"],
+            "team_id": result["team_id"],
+            "team_name": result["team_name"],
+            "tenniscores_player_id": result["tenniscores_player_id"] or "",
+            
+            # League data
+            "league_id": result["league_db_id"],
+            "league_string_id": result["league_string_id"] or "",
+            "league_name": result["league_name"] or "",
+            
+            # Legacy fields for compatibility
+            "settings": "{}",
+        }
+        
+        print(f"[SESSION_SERVICE] Built team-specific session data: {session_data}")
+        logger.info(f"Built team session for {user_email}: {session_data['league_name']} - {session_data['club']} - {session_data['series']}")
+        return session_data
+        
+    except Exception as e:
+        print(f"[SESSION_SERVICE] ERROR building team session: {e}")
+        import traceback
+        print(f"[SESSION_SERVICE] Traceback: {traceback.format_exc()}")
+        logger.error(f"Error building team session data for {user_email}: {e}")
+        return None
+
+
+def get_user_teams_in_league(user_email: str, league_id: int) -> list:
+    """
+    Get all teams this user can switch to within a specific league.
+    
+    Args:
+        user_email: User's email
+        league_id: League database ID (integer)
+        
+    Returns:
+        List of team dicts with team_id, team_name, club_name, series_name
+    """
+    try:
+        teams_query = """
+            SELECT DISTINCT 
+                t.id as team_id,
+                t.team_name,
+                c.name as club_name,
+                s.name as series_name,
+                COUNT(ms.id) as match_count
+            FROM users u
+            JOIN user_player_associations upa ON u.id = upa.user_id
+            JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+            JOIN teams t ON p.team_id = t.id
+            JOIN clubs c ON t.club_id = c.id
+            JOIN series s ON t.series_id = s.id
+            LEFT JOIN match_scores ms ON (t.id = ms.home_team_id OR t.id = ms.away_team_id)
+            WHERE u.email = %s AND t.league_id = %s AND p.is_active = true AND t.is_active = true
+            GROUP BY t.id, t.team_name, c.name, s.name
+            ORDER BY c.name, s.name
+        """
+        
+        teams = execute_query(teams_query, [user_email, league_id])
+        return [dict(team) for team in teams] if teams else []
+        
+    except Exception as e:
+        logger.error(f"Error getting teams for {user_email} in league {league_id}: {e}")
+        return [] 

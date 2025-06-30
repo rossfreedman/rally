@@ -86,6 +86,15 @@
              
              // Check if user has multiple clubs in current league
              checkMultipleClubs();
+             
+             // TEMPORARY: Show club switcher for testing
+             setTimeout(() => {
+               const clubButton = document.getElementById('clubSwitcherTrigger');
+               if (clubButton) {
+                 console.log('🧪 TEMP: Showing club button for testing');
+                 clubButton.classList.remove('hidden');
+               }
+             }, 1000);
            });
            
            async function checkMultipleLeagues() {
@@ -112,23 +121,118 @@
            
            async function checkMultipleClubs() {
              try {
+               console.log('🔍 Checking for multiple clubs...');
                // Check if this specific user has multiple teams in current league
-               const response = await fetch('/api/get-user-teams');
+               const response = await fetch('/api/get-user-teams-in-current-league');
+               console.log('📡 API Response status:', response.status);
                const data = await response.json();
+               console.log('📊 API Response data:', data);
                
-               if (data.success && data.has_multiple_teams_in_current_league) {
+               if (data.success && data.has_multiple_teams) {
+                 console.log('✅ User has multiple teams, showing club switcher button');
                  const clubButton = document.getElementById('clubSwitcherTrigger');
                  if (clubButton) {
                    clubButton.classList.remove('hidden');
+                   console.log('✅ Club switcher button shown');
+                 } else {
+                   console.error('❌ Club switcher button not found in DOM');
                  }
+               } else {
+                 console.log('⚠️ User does not have multiple teams or API failed:', data);
                }
              } catch (error) {
-               console.error('Error checking multiple clubs:', error);
+               console.error('❌ Error checking multiple clubs:', error);
              }
            }
            
            function showClubSwitcher() {
-             alert('Club switching functionality coming soon!');
+             const modal = document.getElementById('clubSwitcherModal');
+             if (modal) {
+               modal.classList.remove('hidden');
+               document.body.style.overflow = 'hidden';
+               loadClubSwitcherOptions();
+             }
+           }
+           
+           async function loadClubSwitcherOptions() {
+             try {
+               const response = await fetch('/api/get-user-teams-in-current-league');
+               const data = await response.json();
+               
+               if (data.success && data.teams) {
+                 const optionsContainer = document.querySelector('#clubSwitcherModal .club-options');
+                 if (optionsContainer) {
+                   optionsContainer.innerHTML = data.teams.map(team => `
+                     <button onclick="switchTeamInLeague(${team.team_id}, '${team.team_name}', '${team.club_name}', '${team.series_name}')" 
+                             class="team-switch-btn w-full flex items-center justify-between p-4 rounded-lg bg-white hover:bg-green-50 transition-all duration-200 border-2 border-gray-300 hover:border-green-400 hover:shadow-md group
+                                    ${team.is_current ? 'bg-green-100 border-green-400' : ''}">
+                         <div class="text-left">
+                             <div class="font-bold text-gray-900 group-hover:text-green-900">${team.club_name}</div>
+                             <div class="text-sm text-gray-600 group-hover:text-green-700">${team.series_name} • ${team.match_count} matches</div>
+                         </div>
+                         <div class="text-sm ${team.is_current ? 'bg-green-600 text-white px-3 py-1 rounded' : 'bg-green-500 group-hover:bg-green-600 text-white px-3 py-1 rounded'}">
+                             ${team.is_current ? 'Current' : 'Switch'}
+                         </div>
+                     </button>
+                   `).join('');
+                 }
+               }
+             } catch (error) {
+               console.error('Error loading club switcher options:', error);
+             }
+           }
+           
+           async function switchTeamInLeague(teamId, teamName, clubName, seriesName) {
+             try {
+               // Close modal first
+               const modal = document.getElementById('clubSwitcherModal');
+               if (modal) {
+                 modal.classList.add('hidden');
+                 document.body.style.overflow = '';
+               }
+               
+               // Show loading
+               const clubButton = document.getElementById('clubSwitcherTrigger');
+               if (clubButton) {
+                 clubButton.innerHTML = '<i class="fas fa-spinner fa-spin text-xs"></i>';
+                 clubButton.disabled = true;
+               }
+               
+               const response = await fetch('/api/switch-team-in-league', {
+                 method: 'POST',
+                 headers: {
+                   'Content-Type': 'application/json',
+                 },
+                 body: JSON.stringify({
+                   team_id: teamId
+                 })
+               });
+               
+               const data = await response.json();
+               
+               if (data.success) {
+                 // Show success briefly then reload
+                 if (clubButton) {
+                   clubButton.innerHTML = '<i class="fas fa-check text-xs text-green-400"></i>';
+                 }
+                 
+                 setTimeout(() => {
+                   window.location.reload();
+                 }, 1000);
+               } else {
+                 throw new Error(data.error || 'Team switch failed');
+               }
+             } catch (error) {
+               console.error('Team switch error:', error);
+               alert(`Failed to switch teams: ${error.message}`);
+               
+               // Reset button
+               const clubButton = document.getElementById('clubSwitcherTrigger');
+               if (clubButton) {
+                 clubButton.innerHTML = '(change)';
+                 clubButton.disabled = false;
+               }
+             }
            }
          </script>
          {% endif %}
@@ -521,6 +625,47 @@
     </div>
 </div>
 
+<!-- Club/Team Switching Modal (Only on home page) -->
+<div id="clubSwitcherModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl shadow-xl max-w-sm w-full max-h-96 overflow-hidden">
+        <!-- Modal Header -->
+        <div class="px-6 py-4 bg-black border-b border-gray-700 flex items-center justify-between">
+            <h3 class="text-lg font-semibold text-white">
+                Switch Team
+            </h3>
+            <button id="closeClubModal" class="text-gray-300 hover:text-white transition-colors text-xl font-bold" onclick="closeClubSwitcher()">
+                ×
+            </button>
+        </div>
+        
+        <!-- Current Team Display -->
+        <div class="px-6 py-4" style="background: linear-gradient(135deg, #059669, #047857); border-bottom: 2px solid #065f46;">
+            <div class="flex items-center gap-3 mb-3">
+                <span class="bg-white text-green-700 px-3 py-1 rounded-full text-xs font-bold shadow-sm">
+                    CURRENT
+                </span>
+                <span class="text-white font-bold text-sm uppercase tracking-wide">ACTIVE TEAM</span>
+            </div>
+            <div class="font-bold text-white text-lg mb-1">{{ session_data.user.club }}</div>
+            <div class="text-white text-sm">{{ session_data.user.series }} • {{ session_data.user.league_name }}</div>
+        </div>
+        
+        <!-- Available Team Options -->
+        <div class="p-4 bg-gray-50">
+            <div class="text-sm font-bold text-gray-800 mb-3 uppercase tracking-wide">
+                Switch to Different Team (Same League)
+            </div>
+            <div class="space-y-2 club-options">
+                <!-- Options will be loaded dynamically -->
+                <div class="text-center py-4 text-gray-500">
+                    <i class="fas fa-spinner fa-spin"></i> Loading teams...
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <script>
 // Initialize league switcher modal functionality (only on home page)
 document.addEventListener('DOMContentLoaded', function() {
@@ -569,8 +714,37 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 });
+
+// Club Switcher Modal Event Handlers
+function closeClubSwitcher() {
+    const modal = document.getElementById('clubSwitcherModal');
+    if (modal) {
+        modal.classList.add('hidden');
+        document.body.style.overflow = '';
+    }
+}
+
+// Initialize club switcher modal functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const clubSwitcherModal = document.getElementById('clubSwitcherModal');
+    
+    if (clubSwitcherModal) {
+        // Close modal when clicking outside
+        clubSwitcherModal.addEventListener('click', function(e) {
+            if (e.target === clubSwitcherModal) {
+                closeClubSwitcher();
+            }
+        });
+        
+        // Close on escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && !clubSwitcherModal.classList.contains('hidden')) {
+                closeClubSwitcher();
+            }
+        });
+    }
+});
 </script>
-{% endif %}
 
 <script>
 // Home page impersonation status checker
