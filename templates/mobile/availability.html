@@ -4,6 +4,70 @@
 {% block content %}
 <div class="min-h-screen bg-gray-50">
     
+    <!-- Team Selector (if user has multiple teams) -->
+    {% if user_teams and user_teams|length > 1 %}
+    <div class="px-4 py-1">
+        <div class="text-right">
+            <button id="teamSelectorLink" class="inline-flex items-center text-xs text-gray-600 hover:text-blue-600 transition-colors">
+                {% if current_team_info %}
+                <span>Viewing: {{ current_team_info.team_name }}</span>
+                <i class="fas fa-chevron-down text-xs ml-1"></i>
+                {% else %}
+                <span>Select Team</span>
+                <i class="fas fa-chevron-down text-xs ml-1"></i>
+                {% endif %}
+            </button>
+        </div>
+    </div>
+
+    <!-- Team Selection Modal (hidden by default) -->
+    <div id="teamSelectorModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4" style="display: none !important;">
+        <div class="bg-white rounded-xl shadow-xl max-w-sm w-full max-h-96 overflow-hidden">
+            <!-- Modal Header -->
+            <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                <h3 class="text-lg font-semibold text-gray-900">Switch Team</h3>
+                <button id="closeTeamModal" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <!-- Team Options -->
+            <div class="p-4 space-y-2 max-h-80 overflow-y-auto">
+                {% for team in user_teams %}
+                <a href="{{ url_for('mobile.serve_mobile_availability') }}?team_id={{ team.team_id }}" 
+                   class="team-option-link block w-full flex items-center justify-between p-4 rounded-lg hover:bg-gray-50 transition-colors border border-gray-200 hover:border-gray-300 text-left
+                          {% if team.team_id == (current_team_info.team_id if current_team_info else None) %}bg-blue-50 border-blue-200{% endif %}"
+                   data-team-id="{{ team.team_id }}"
+                   data-team-name="{{ team.team_name }}">
+                    <div class="flex-1">
+                        <div class="font-medium {% if team.team_id == (current_team_info.team_id if current_team_info else None) %}text-blue-700{% else %}text-gray-900{% endif %}">
+                            {{ team.team_name }}
+                        </div>
+                        <div class="text-sm text-gray-500 mt-1">
+                            {{ team.club_name }} • {{ team.series_name }}
+                        </div>
+                        <div class="text-xs text-gray-400 mt-1">
+                            {{ team.league_name }} • {{ team.match_count }} matches
+                        </div>
+                    </div>
+                    <div class="ml-4">
+                        {% if team.team_id == (current_team_info.team_id if current_team_info else None) %}
+                            <div class="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                                <i class="fas fa-check text-white text-xs"></i>
+                            </div>
+                        {% else %}
+                            <div class="w-6 h-6 border-2 border-gray-300 rounded-full flex items-center justify-center hover:border-blue-400 transition-colors">
+                                <i class="fas fa-arrow-right text-gray-400 text-xs hover:text-blue-500"></i>
+                            </div>
+                        {% endif %}
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Header -->
     <div class="bg-white border-b border-gray-100">
         <div class="flex items-center px-4 py-6">
@@ -38,8 +102,9 @@
             </div>
         </div>
 
-        <!-- Match Cards -->
+        <!-- Match Cards or Empty State -->
         <div class="space-y-6" id="availability-list">
+            {% if match_avail_pairs %}
             {% set last_date = None %}
             {% for match, avail in match_avail_pairs %}
                 {% if match.date != last_date %}
@@ -191,6 +256,30 @@
                 </div>
                 {% if loop.last %}</div>{% endif %}
             {% endfor %}
+            {% else %}
+            <!-- Empty State - No Schedule Data -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="px-6 py-8 text-center">
+                    <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-calendar-times text-gray-400 text-2xl"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">No Schedule Available</h3>
+                    <p class="text-gray-600 mb-4">
+                        {% if current_team_info %}
+                        No schedule data is available for {{ current_team_info.team_name }}.
+                        {% else %}
+                        No schedule data is available for your current team.
+                        {% endif %}
+                    </p>
+                    {% if user_teams and user_teams|length > 1 %}
+                    <button id="switchTeamBtn" class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                        <i class="fas fa-exchange-alt mr-2"></i>
+                        Switch to Different Team
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>
@@ -615,6 +704,115 @@ console.log('Available functions:');
 console.log('- openNoteModal:', typeof window.openNoteModal);
 console.log('- closeNoteModal:', typeof window.closeNoteModal);
 console.log('- saveNoteFromModal:', typeof window.saveNoteFromModal);
+
+    // Initialize team selector modal functionality
+    const teamSelectorLink = document.getElementById('teamSelectorLink');
+    const switchTeamBtn = document.getElementById('switchTeamBtn');
+    const teamSelectorModal = document.getElementById('teamSelectorModal');
+    const closeTeamModal = document.getElementById('closeTeamModal');
+
+    // Debug logging to understand what's happening
+    console.log('[DEBUG] Team modal elements:', {
+        teamSelectorLink: !!teamSelectorLink,
+        switchTeamBtn: !!switchTeamBtn,
+        teamSelectorModal: !!teamSelectorModal,
+        closeTeamModal: !!closeTeamModal
+    });
+
+    // Ensure modal starts hidden
+    if (teamSelectorModal) {
+        teamSelectorModal.classList.add('hidden');
+        teamSelectorModal.style.display = 'none';
+        console.log('[DEBUG] Team modal ensured to be hidden on page load');
+        
+        // Add a safeguard to prevent any unwanted automatic opening
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                    const target = mutation.target;
+                    // If the modal loses the 'hidden' class without user interaction, add it back
+                    if (!target.classList.contains('hidden') && target.style.display !== 'flex') {
+                        console.log('[DEBUG] Auto-correcting unwanted modal visibility');
+                        target.classList.add('hidden');
+                        target.style.display = 'none';
+                    }
+                }
+            });
+        });
+        
+        observer.observe(teamSelectorModal, { attributes: true });
+        console.log('[DEBUG] Modal visibility safeguard installed');
+    }
+
+    // Function to open team selector modal
+    function openTeamSelectorModal(e) {
+        e.preventDefault();
+        console.log('[DEBUG] openTeamSelectorModal called');
+        if (teamSelectorModal) {
+            // Remove both the hidden class and the inline style
+            teamSelectorModal.classList.remove('hidden');
+            teamSelectorModal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+            console.log('[DEBUG] Team modal shown');
+        }
+    }
+
+    // Function to close team selector modal
+    function closeTeamSelectorModal() {
+        console.log('[DEBUG] closeTeamSelectorModal called');
+        if (teamSelectorModal) {
+            teamSelectorModal.classList.add('hidden');
+            teamSelectorModal.style.display = 'none';
+            document.body.style.overflow = '';
+            console.log('[DEBUG] Team modal hidden');
+        }
+    }
+
+    // Add event listeners for both buttons (only once)
+    if (teamSelectorLink && !teamSelectorLink.hasAttribute('data-listener-added')) {
+        teamSelectorLink.addEventListener('click', openTeamSelectorModal);
+        teamSelectorLink.setAttribute('data-listener-added', 'true');
+        console.log('[DEBUG] Team selector link listener added');
+    }
+    if (switchTeamBtn && !switchTeamBtn.hasAttribute('data-listener-added')) {
+        switchTeamBtn.addEventListener('click', openTeamSelectorModal);
+        switchTeamBtn.setAttribute('data-listener-added', 'true');
+        console.log('[DEBUG] Switch team button listener added');
+    }
+
+    if (teamSelectorModal) {
+        // Close modal with X button
+        if (closeTeamModal && !closeTeamModal.hasAttribute('data-listener-added')) {
+            closeTeamModal.addEventListener('click', function(e) {
+                e.preventDefault();
+                closeTeamSelectorModal();
+            });
+            closeTeamModal.setAttribute('data-listener-added', 'true');
+            console.log('[DEBUG] Close team modal button listener added');
+        }
+        
+        // Close modal when clicking outside (only add once)
+        if (!teamSelectorModal.hasAttribute('data-listener-added')) {
+            teamSelectorModal.addEventListener('click', function(e) {
+                if (e.target === teamSelectorModal) {
+                    closeTeamSelectorModal();
+                }
+            });
+            teamSelectorModal.setAttribute('data-listener-added', 'true');
+            console.log('[DEBUG] Team modal outside click listener added');
+        }
+        
+        // Close on escape key (only add once per page)
+        if (!document.hasAttribute('data-escape-listener-added')) {
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && !teamSelectorModal.classList.contains('hidden')) {
+                    closeTeamSelectorModal();
+                }
+            });
+            document.setAttribute('data-escape-listener-added', 'true');
+            console.log('[DEBUG] Escape key listener added');
+        }
+    }
 
 // Close modal when clicking outside
 document.addEventListener('click', function(event) {
