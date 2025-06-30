@@ -1153,7 +1153,14 @@ def get_team_schedule_data_data():
 
         # Use the same logic as get_matches_for_user_club to get matches
         print("\n=== Getting matches using same logic as availability page ===")
-        matches = get_matches_for_user_club(user)
+        
+        # ENHANCED: Pass the detected team_id to get_matches_for_user_club for better reliability
+        user_with_team_id = user.copy()
+        if user_team_id:
+            user_with_team_id["team_id"] = user_team_id
+            print(f"[DEBUG] Team-schedule: Passing team_id {user_team_id} to get_matches_for_user_club")
+        
+        matches = get_matches_for_user_club(user_with_team_id)
 
         if not matches:
             print("❌ No matches found")
