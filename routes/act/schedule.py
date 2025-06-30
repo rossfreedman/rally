@@ -54,6 +54,61 @@ def get_matches_for_user_club(user):
                 matches_query, [practice_search, user_team_id, user_team_id, practice_search]
             )
             
+            # FALLBACK: If no matches found with team_id, try string pattern matching
+            # This handles cases where schedule records exist with string names but no team_id foreign keys
+            if not matches:
+                print(f"No matches found with team_id {user_team_id}, trying string pattern fallback...")
+                
+                # Build string patterns like the legacy method
+                if "Series" in user_series:
+                    series_code = user_series.replace("Series ", "S")
+                    user_team_pattern = f"{user_club} {series_code} - {user_series}"
+                elif "Division" in user_series:
+                    division_num = user_series.replace("Division ", "")
+                    user_team_pattern = f"{user_club} {division_num} - Series {division_num}"
+                else:
+                    series_num = user_series.split()[-1] if user_series else ""
+                    user_team_pattern = f"{user_club} - {series_num}"
+                
+                print(f"Trying string pattern: {user_team_pattern}")
+                
+                # Try legacy string pattern matching
+                legacy_matches_query = """
+                    SELECT 
+                        s.match_date,
+                        s.match_time,
+                        s.home_team,
+                        s.away_team,
+                        s.location,
+                        c.club_address,
+                        l.league_id,
+                        CASE 
+                            WHEN s.home_team ILIKE %s THEN 'practice'
+                            ELSE 'match'
+                        END as type
+                    FROM schedule s
+                    LEFT JOIN leagues l ON s.league_id = l.id
+                    LEFT JOIN clubs c ON s.location = c.name
+                    WHERE (s.home_team ILIKE %s OR s.away_team ILIKE %s OR s.home_team ILIKE %s)
+                    ORDER BY s.match_date, s.match_time
+                """
+                
+                if "Division" in user_series:
+                    division_num = user_series.replace("Division ", "")
+                    practice_pattern = f"{user_club} Practice - Series {division_num}"
+                else:
+                    practice_pattern = f"{user_club} Practice - {user_series}"
+                
+                practice_search_legacy = f"%{practice_pattern}%"
+                team_search = f"%{user_team_pattern}%"
+                
+                matches = execute_query(
+                    legacy_matches_query, [practice_search_legacy, practice_search_legacy, team_search, team_search]
+                )
+                
+                if matches:
+                    print(f"Found {len(matches)} matches using string pattern fallback")
+            
         else:
             # FALLBACK: Use legacy string pattern matching when team_id not available
             print(f"No team_id available, falling back to pattern matching")
