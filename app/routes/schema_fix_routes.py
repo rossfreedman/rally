@@ -51,38 +51,100 @@ def fix_schema():
             """)
             results.append("✅ logo_filename column added")
             
-            # Fix 4: Add user_id column to player_availability (CRITICAL for availability page)
+            # Fix 4: Check what columns exist in player_availability table
             cursor.execute("""
-                ALTER TABLE player_availability 
-                ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id)
+                SELECT column_name, data_type 
+                FROM information_schema.columns 
+                WHERE table_name = 'player_availability'
+                ORDER BY ordinal_position
             """)
-            results.append("✅ user_id column added to player_availability")
+            existing_columns = cursor.fetchall()
+            column_names = [col[0] for col in existing_columns]
+            results.append(f"📋 player_availability existing columns: {', '.join(column_names)}")
             
-            # Fix 5: Create partial unique index for user_id + match_date
-            cursor.execute("""
-                CREATE UNIQUE INDEX IF NOT EXISTS idx_player_availability_user_date 
-                ON player_availability (user_id, match_date)
-                WHERE user_id IS NOT NULL
-            """)
-            results.append("✅ user_id + match_date unique index created")
-            
-            # Fix 6: Populate user_id for existing availability records where possible
-            cursor.execute("""
-                UPDATE player_availability 
-                SET user_id = (
-                    SELECT upa.user_id 
-                    FROM user_player_associations upa 
-                    WHERE upa.tenniscores_player_id = player_availability.tenniscores_player_id
-                    LIMIT 1
-                )
-                WHERE user_id IS NULL 
-                AND tenniscores_player_id IS NOT NULL
-            """)
-            updated_count = cursor.rowcount
-            if updated_count > 0:
-                results.append(f"✅ Populated user_id for {updated_count} existing availability records")
+            # Fix 5: Add missing columns to player_availability table
+            if 'user_id' not in column_names:
+                cursor.execute("""
+                    ALTER TABLE player_availability 
+                    ADD COLUMN user_id INTEGER REFERENCES users(id)
+                """)
+                results.append("✅ user_id column added to player_availability")
             else:
-                results.append("✅ No existing availability records needed user_id population")
+                results.append("✅ user_id column already exists")
+                
+            if 'tenniscores_player_id' not in column_names:
+                cursor.execute("""
+                    ALTER TABLE player_availability 
+                    ADD COLUMN tenniscores_player_id VARCHAR(255)
+                """)
+                results.append("✅ tenniscores_player_id column added to player_availability")
+            else:
+                results.append("✅ tenniscores_player_id column already exists")
+                
+            if 'availability_status' not in column_names:
+                cursor.execute("""
+                    ALTER TABLE player_availability 
+                    ADD COLUMN availability_status INTEGER DEFAULT 1
+                """)
+                results.append("✅ availability_status column added to player_availability")
+            else:
+                results.append("✅ availability_status column already exists")
+                
+            if 'notes' not in column_names:
+                cursor.execute("""
+                    ALTER TABLE player_availability 
+                    ADD COLUMN notes TEXT
+                """)
+                results.append("✅ notes column added to player_availability")
+            else:
+                results.append("✅ notes column already exists")
+                
+            if 'match_date' not in column_names:
+                cursor.execute("""
+                    ALTER TABLE player_availability 
+                    ADD COLUMN match_date DATE
+                """)
+                results.append("✅ match_date column added to player_availability")
+            else:
+                results.append("✅ match_date column already exists")
+            
+            # Fix 6: Create partial unique index for user_id + match_date (if user_id exists now)
+            try:
+                cursor.execute("""
+                    CREATE UNIQUE INDEX IF NOT EXISTS idx_player_availability_user_date 
+                    ON player_availability (user_id, match_date)
+                    WHERE user_id IS NOT NULL
+                """)
+                results.append("✅ user_id + match_date unique index created")
+            except Exception as idx_error:
+                results.append(f"⚠️ Index creation skipped: {str(idx_error)}")
+            
+            # Fix 7: Populate user_id for existing availability records (only if both columns exist)
+            cursor.execute("""
+                SELECT column_name FROM information_schema.columns 
+                WHERE table_name = 'player_availability' AND column_name IN ('user_id', 'tenniscores_player_id')
+            """)
+            available_cols = [row[0] for row in cursor.fetchall()]
+            
+            if 'user_id' in available_cols and 'tenniscores_player_id' in available_cols:
+                cursor.execute("""
+                    UPDATE player_availability 
+                    SET user_id = (
+                        SELECT upa.user_id 
+                        FROM user_player_associations upa 
+                        WHERE upa.tenniscores_player_id = player_availability.tenniscores_player_id
+                        LIMIT 1
+                    )
+                    WHERE user_id IS NULL 
+                    AND tenniscores_player_id IS NOT NULL
+                """)
+                updated_count = cursor.rowcount
+                if updated_count > 0:
+                    results.append(f"✅ Populated user_id for {updated_count} existing availability records")
+                else:
+                    results.append("✅ No existing availability records needed user_id population")
+            else:
+                results.append("⚠️ Skipped user_id population - missing required columns")
             
             conn.commit()
             
