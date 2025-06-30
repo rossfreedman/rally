@@ -148,8 +148,8 @@ def main():
         return 1
     
     if current_branch == 'main':
-        print("❌ You're on main branch. Switch to your feature branch first.")
-        return 1
+        print("⚠️  You're on main branch. Deploying main directly to staging...")
+        # Allow main→staging deployment for quick testing
     
     print(f"📦 Deploying feature branch: {current_branch}")
     
