@@ -319,16 +319,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const errorAlert = document.getElementById('errorAlert');
     const loadingIndicator = document.getElementById('loadingIndicator');
 
-    // Input change handlers to auto-calculate
-    const inputs = ['ptiPlayer', 'ptiPartner', 'ptiOpp1', 'ptiOpp2', 'sigmaPlayer', 'sigmaPartner', 'sigmaOpp1', 'sigmaOpp2', 'matchScore'];
-    inputs.forEach(id => {
-        const element = document.getElementById(id);
-        if (element) {
-            element.addEventListener('change', calculatePTI);
-            element.addEventListener('input', calculatePTI);
-        }
-    });
-
     calculateBtn.addEventListener('click', calculatePTI);
 
     function calculatePTI() {
@@ -357,6 +347,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Show loading
         loadingIndicator.style.display = 'block';
+        
+        // Track when loading started for minimum display time
+        const loadingStartTime = Date.now();
+        const minLoadingTime = 2000; // Show loading for at least 2 seconds
 
         // Make API call
         fetch('/api/calculate-pti', {
@@ -368,17 +362,29 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .then(response => response.json())
         .then(result => {
-            loadingIndicator.style.display = 'none';
+            // Calculate how long to wait before hiding loading
+            const elapsedTime = Date.now() - loadingStartTime;
+            const remainingTime = Math.max(0, minLoadingTime - elapsedTime);
             
-            if (result.success) {
-                displayResults(result.result);
-            } else {
-                showError(result.error || 'Calculation failed');
-            }
+            setTimeout(() => {
+                loadingIndicator.style.display = 'none';
+                
+                if (result.success) {
+                    displayResults(result.result);
+                } else {
+                    showError(result.error || 'Calculation failed');
+                }
+            }, remainingTime);
         })
         .catch(error => {
-            loadingIndicator.style.display = 'none';
-            showError('Network error: ' + error.message);
+            // Same minimum loading time for errors
+            const elapsedTime = Date.now() - loadingStartTime;
+            const remainingTime = Math.max(0, minLoadingTime - elapsedTime);
+            
+            setTimeout(() => {
+                loadingIndicator.style.display = 'none';
+                showError('Network error: ' + error.message);
+            }, remainingTime);
         });
     }
 
@@ -423,15 +429,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Show results
         resultsCard.style.display = 'block';
+        
+        // Auto scroll down 400px to show results
+        window.scrollBy({
+            top: 400,
+            behavior: 'smooth'
+        });
     }
 
     function showError(message) {
         document.getElementById('errorMessage').textContent = message;
         errorAlert.style.display = 'block';
     }
-
-    // Initialize with sample calculation
-    calculatePTI();
 });
 </script>
 {% endblock %} 
