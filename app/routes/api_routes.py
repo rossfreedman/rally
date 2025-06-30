@@ -1418,52 +1418,68 @@ def update_availability():
         finally:
             db_session.close()
 
-        # Get the internal player.id for the database FK relationship
+        # Get the internal player.id for backward compatibility
         player_db_id = player.id
 
+        # CRITICAL: Get user_id for stable reference pattern
+        user_record = (
+            db_session.query(User).filter(User.email == user_email).first()
+        )
+        
+        if not user_record:
+            return jsonify({"error": "User not found"}), 404
+            
+        user_id = user_record.id
+
         print(
-            f"Updating availability: {player_name} (tenniscores_id: {tenniscores_player_id}, db_id: {player_db_id}) for {match_date} status {availability_status} series_id {series_id}"
+            f"Updating availability: {player_name} (tenniscores_id: {tenniscores_player_id}, db_id: {player_db_id}, user_id: {user_id}) for {match_date} status {availability_status}"
         )
 
-        # Check if record exists using player_id (internal database ID)
+        # STABLE APPROACH: Use user_id + match_date as primary key (same pattern as user_player_associations)
         check_query = """
             SELECT id FROM player_availability 
-            WHERE player_id = %s AND match_date = %s AND series_id = %s
+            WHERE user_id = %s AND DATE(match_date AT TIME ZONE 'UTC') = DATE(%s AT TIME ZONE 'UTC')
         """
         existing_record = execute_query_one(
-            check_query, (player_db_id, formatted_date, series_id)
+            check_query, (user_id, formatted_date)
         )
 
         if existing_record:
-            # Update existing record
+            # Update existing record using stable user_id reference
             update_query = """
                 UPDATE player_availability 
-                SET availability_status = %s, notes = %s, updated_at = CURRENT_TIMESTAMP
-                WHERE player_id = %s AND match_date = %s AND series_id = %s
+                SET availability_status = %s, 
+                    notes = %s, 
+                    player_id = %s,
+                    series_id = %s,
+                    player_name = %s,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE user_id = %s AND DATE(match_date AT TIME ZONE 'UTC') = DATE(%s AT TIME ZONE 'UTC')
             """
             result = execute_update(
                 update_query,
-                (availability_status, notes, player_db_id, formatted_date, series_id),
+                (availability_status, notes, player_db_id, series_id, player_name, user_id, formatted_date),
             )
-            print(f"Updated existing availability record: {result}")
+            print(f"✅ Updated existing availability record via stable user_id: {result}")
         else:
-            # Insert new record using existing schema (player_id + player_name)
+            # Insert new record using stable user_id reference
             insert_query = """
-                INSERT INTO player_availability (player_id, player_name, match_date, availability_status, series_id, notes, updated_at)
-                VALUES (%s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+                INSERT INTO player_availability (user_id, match_date, availability_status, notes, player_id, series_id, player_name, updated_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
             """
             result = execute_update(
                 insert_query,
                 (
-                    player_db_id,
-                    player_name,
+                    user_id,
                     formatted_date,
                     availability_status,
-                    series_id,
                     notes,
+                    player_db_id,
+                    series_id,
+                    player_name,
                 ),
             )
-            print(f"Created new availability record: {result}")
+            print(f"✅ Created new availability record via stable user_id: {result}")
 
         # Log the activity using comprehensive logging
         status_descriptions = {1: "available", 2: "unavailable", 3: "not sure"}

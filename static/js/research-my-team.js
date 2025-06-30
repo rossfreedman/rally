@@ -366,9 +366,9 @@ function calculatePlayerStats(matches, teamId) {
     return players;
 }
 
-// Get upcoming matches
+// Get recent matches (updated to show all matches instead of just upcoming)
 function getUpcomingMatches(matches, teamId) {
-    // Sort matches by date
+    // Sort matches by date (most recent first)
     const sortedMatches = [...matches].sort((a, b) => {
         // Try to parse date in MM/DD/YYYY or similar
         const parseDate = (d) => {
@@ -382,30 +382,18 @@ function getUpcomingMatches(matches, teamId) {
         };
         const dateA = parseDate(a.date || a.Date);
         const dateB = parseDate(b.date || b.Date);
-        return dateA - dateB;
+        return dateB - dateA; // Changed to descending order (most recent first)
     });
-    // Get current date
-    const currentDate = new Date();
-    // Filter for upcoming matches
-    return sortedMatches.filter(match => {
-        const matchDate = (() => {
-            const d = match.date || match.Date;
-            if (!d) return new Date(0);
-            const parts = d.split("/");
-            if (parts.length === 3) {
-                // MM/DD/YYYY
-                return new Date(parts[2], parts[0] - 1, parts[1]);
-            }
-            return new Date(d);
-        })();
-        return matchDate >= currentDate;
-    }).slice(0, 3); // Get next 3 matches
+    
+    // UPDATED: Show recent matches instead of filtering by current date
+    // This supports completed seasons where no upcoming matches exist
+    return sortedMatches.slice(0, 5); // Show last 5 matches instead of next 3
 }
 
-// Generate HTML for upcoming matches (copied/adapted from research-team.js)
+// Generate HTML for recent matches (updated to show historical data)
 function generateUpcomingMatchesHTML(upcomingMatches) {
     if (!upcomingMatches || upcomingMatches.length === 0) {
-        return `<p class="text-center">No upcoming matches scheduled</p>`;
+        return `<p class="text-center">No recent matches found</p>`;
     }
     return `
                 <div class="table-responsive">

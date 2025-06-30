@@ -233,11 +233,8 @@
     <div id="navDrawer" class="fixed top-0 right-0 h-full w-full bg-white z-50 transform translate-x-full transition-transform duration-300 drawer-right" style="transform: translateX(100%) !important; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);">
         <div class="flex flex-col h-full">
             <!-- Nav Drawer Top Bar -->
-            <div class="flex items-center justify-end px-6 py-4 border-b border-gray-100" style="background: rgba(255, 255, 255, 0.9); margin-top: 60px;">
-                <button onclick="logoutUser()" style="background: #dc2626; border: 1px solid #991b1b; border-radius: 6px; color: white; font-weight: normal; font-size: 12px; padding: 6px 12px; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; align-items: center; gap: 4px;" title="Logout" onmouseover="this.style.background='#b91c1c'" onmouseout="this.style.background='#dc2626'">
-                    <i class="fas fa-sign-out-alt" style="font-size: 12px; color: white;"></i>
-                    <span style="color: white;">Logout</span>
-                </button>
+            <div class="px-6 py-4 border-b border-gray-100" style="background: rgba(255, 255, 255, 0.9); margin-top: 60px;">
+                <!-- Top bar without logout button -->
             </div>
             
             <!-- Navigation Content -->
@@ -361,6 +358,10 @@
                                     <i class="fas fa-shield-alt text-gray-600 text-xl mb-2"></i>
                                     <span class="text-xs font-medium text-gray-700">Admin</span>
                                 </a>
+                                <button onclick="logoutUser()" class="candy-box-item bg-gradient-to-br from-red-50 to-red-100 border border-red-200 rounded-xl p-3 flex flex-col items-center text-center hover:shadow-md transition-all duration-200 hover:scale-105 cursor-pointer">
+                                    <i class="fas fa-sign-out-alt text-red-600 text-xl mb-2"></i>
+                                    <span class="text-xs font-medium text-gray-700">Logout</span>
+                                </button>
                             </div>
                         </div>
                         

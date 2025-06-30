@@ -1184,11 +1184,11 @@ def get_team_schedule_data_data():
             # IMPROVED ERROR HANDLING: Check if team exists but just has no upcoming schedule
             if user_team_id:
                 # Check if this team has any completed matches (to confirm team exists and is active)
+                # UPDATED: Show all historical matches (removed 6-month filter to support completed seasons)
                 completed_matches_query = """
                     SELECT COUNT(*) as count
                     FROM match_scores 
                     WHERE (home_team_id = %s OR away_team_id = %s)
-                    AND match_date >= CURRENT_DATE - INTERVAL '6 months'
                 """
                 
                 try:
@@ -1196,23 +1196,23 @@ def get_team_schedule_data_data():
                     completed_count = completed_result["count"] if completed_result else 0
                     
                     if completed_count > 0:
-                        # Team exists and has recent matches, just no upcoming schedule
-                        print(f"✓ Team {user_team_id} has {completed_count} recent completed matches but no upcoming schedule")
+                        # Team exists and has completed matches, just no upcoming schedule  
+                        print(f"✓ Team {user_team_id} has {completed_count} completed matches but no upcoming schedule")
                         return jsonify({
                             "players_schedule": {},
                             "match_dates": [],
                             "event_details": {},
-                            "message": f"No upcoming matches scheduled for your team. Your team has played {completed_count} matches in the last 6 months.",
+                            "message": f"No upcoming matches scheduled for your team. Your team has played {completed_count} matches total. You can view historical schedule data on other pages.",
                             "team_status": "active_no_schedule"
                         })
                     else:
-                        # Team exists but no recent activity
-                        print(f"⚠️ Team {user_team_id} has no recent matches")
+                        # Team exists but no match activity
+                        print(f"⚠️ Team {user_team_id} has no match history")
                         return jsonify({
                             "players_schedule": {},
                             "match_dates": [],
                             "event_details": {},
-                            "message": "No upcoming matches scheduled and no recent match activity for your team.",
+                            "message": "No upcoming matches scheduled and no match history for your team.",
                             "team_status": "inactive"
                         })
                         
