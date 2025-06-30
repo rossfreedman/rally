@@ -306,6 +306,11 @@ def get_team_players(team_id):
                                 
                             # Initialize player if not seen before
                             if player_name not in players:
+                                # Handle None PTI values
+                                pti_value = player_data.get("pti")
+                                if pti_value is None:
+                                    pti_value = 0.0
+                                
                                 players[player_name] = {
                                     "name": player_name,
                                     "matches": 0,
@@ -317,7 +322,7 @@ def get_team_players(team_id):
                                         "Court 4": {"matches": 0, "wins": 0},
                                     },
                                     "partners": {},
-                                    "pti": float(player_data.get("pti", 0.0)),
+                                    "pti": float(pti_value),
                                 }
                     except Exception as e:
                         print(f"Error getting player data for {player_id}: {e}")
@@ -508,10 +513,19 @@ def get_player_history():
 
         pti_records = execute_query(pti_history_query, [player_db_id])
 
+        # Get current PTI - handle None values properly
+        current_pti = player_db_data.get("pti")
+        if current_pti is None:
+            # If current PTI is None, get the most recent PTI from history
+            if pti_records:
+                current_pti = pti_records[-1]["end_pti"]  # Most recent record
+            else:
+                current_pti = 0.0
+
         # Format response to match expected structure
         player_record = {
             "name": f"{player_db_data['first_name']} {player_db_data['last_name']}",
-            "current_pti": float(player_db_data.get("pti", 0.0)),
+            "current_pti": float(current_pti),
             "matches": []
         }
 
@@ -612,10 +626,19 @@ def get_specific_player_history(player_name):
 
         pti_records = execute_query(pti_history_query, [player_db_id])
 
+        # Get current PTI - handle None values properly
+        current_pti = player_data.get("pti")
+        if current_pti is None:
+            # If current PTI is None, get the most recent PTI from history
+            if pti_records:
+                current_pti = pti_records[-1]["end_pti"]  # Most recent record
+            else:
+                current_pti = 0.0
+
         # Format response to match expected structure
         player_record = {
             "name": f"{player_data['first_name']} {player_data['last_name']}",
-            "current_pti": float(player_data.get("pti", 0.0)),
+            "current_pti": float(current_pti),
             "player_id": player_data["tenniscores_player_id"],
             "matches": []
         }

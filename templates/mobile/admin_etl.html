@@ -337,11 +337,19 @@
       <div class="flex flex-col gap-3 mb-6">
         <button id="start-import" class="btn btn-success flex items-center">
           <i class="fas fa-upload mr-2"></i>
-          Start Import Process
+          Start Import Process (Legacy - 15min timeout)
+        </button>
+        <button id="start-background-import" class="btn btn-primary flex items-center">
+          <i class="fas fa-rocket mr-2"></i>
+          Start Background Import (Recommended)
         </button>
         <button id="stop-import" class="btn btn-error flex items-center hidden">
           <i class="fas fa-stop mr-2"></i>
           Stop Import
+        </button>
+        <button id="stop-background-import" class="btn btn-error flex items-center hidden">
+          <i class="fas fa-stop mr-2"></i>
+          Stop Background Import
         </button>
         <button id="clear-import-output" class="btn btn-outline flex items-center">
           <i class="fas fa-eraser mr-2"></i>
@@ -460,6 +468,10 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('start-import').addEventListener('click', startImport);
   document.getElementById('stop-import').addEventListener('click', stopImport);
   document.getElementById('clear-import-output').addEventListener('click', clearImportOutput);
+  
+  // Background import functionality
+  document.getElementById('start-background-import').addEventListener('click', startBackgroundImport);
+  document.getElementById('stop-background-import').addEventListener('click', stopBackgroundImport);
   
   // Process management
   document.getElementById('clear-processes').addEventListener('click', clearStuckProcesses);
@@ -969,6 +981,145 @@ document.addEventListener('DOMContentLoaded', function() {
       .catch(error => {
         console.error('Error checking system status:', error);
       });
+  }
+
+  // Background import functionality
+  let backgroundJobTimer = null;
+  
+  function startBackgroundImport() {
+    // Hide legacy import button and show background controls
+    document.getElementById('start-background-import').classList.add('hidden');
+    document.getElementById('stop-background-import').classList.remove('hidden');
+    document.getElementById('start-import').classList.add('hidden');
+    document.getElementById('import-progress').classList.remove('hidden');
+    
+    clearImportOutput();
+    appendToImportOutput('🚀 Starting background ETL job (no timeout limits)...', 'info');
+    
+    // Start background job
+    fetch('/api/admin/background/etl/start', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.status === 'success') {
+        appendToImportOutput('✅ Background job started successfully!', 'success');
+        window.backgroundStartTime = new Date();
+        document.getElementById('import-current-status').classList.remove('hidden');
+        document.getElementById('import-current-step').textContent = 'Background job starting...';
+        
+        // Start polling for status updates
+        backgroundJobTimer = setInterval(pollBackgroundJobStatus, 5000); // Every 5 seconds
+        showToast('Background ETL job started', 'success');
+      } else {
+        appendToImportOutput(`❌ Failed to start background job: ${data.error}`, 'error');
+        resetBackgroundImportUI();
+        showToast(data.error, 'error');
+      }
+    })
+    .catch(error => {
+      appendToImportOutput(`❌ Error starting background job: ${error}`, 'error');
+      resetBackgroundImportUI();
+      showToast('Failed to start background job', 'error');
+    });
+  }
+  
+  function stopBackgroundImport() {
+    fetch('/api/admin/background/etl/stop', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.status === 'success') {
+        appendToImportOutput('⏹️ Background job stopped by user', 'warning');
+        showToast('Background job stopped', 'success');
+      } else {
+        appendToImportOutput(`❌ Failed to stop background job: ${data.error}`, 'error');
+        showToast(data.error, 'error');
+      }
+      resetBackgroundImportUI();
+    })
+    .catch(error => {
+      appendToImportOutput(`❌ Error stopping background job: ${error}`, 'error');
+      resetBackgroundImportUI();
+      showToast('Failed to stop background job', 'error');
+    });
+  }
+  
+  function pollBackgroundJobStatus() {
+    fetch('/api/admin/background/etl/status')
+    .then(response => response.json())
+    .then(data => {
+      const jobStatus = data.job_status;
+      
+      if (!jobStatus.active) {
+        // Job finished
+        clearInterval(backgroundJobTimer);
+        backgroundJobTimer = null;
+        
+        if (jobStatus.status === 'completed') {
+          appendToImportOutput('🎉 Background ETL job completed successfully!', 'success');
+          document.getElementById('import-progress-bar').style.width = '100%';
+          document.getElementById('import-progress-text').textContent = '100%';
+          document.getElementById('import-current-step').textContent = 'Background job completed!';
+          showToast('Background ETL completed successfully!', 'success');
+        } else if (jobStatus.status === 'failed') {
+          appendToImportOutput('❌ Background ETL job failed', 'error');
+          document.getElementById('import-current-step').textContent = 'Background job failed';
+          showToast('Background ETL job failed', 'error');
+        } else if (jobStatus.status === 'stopped') {
+          appendToImportOutput('⏹️ Background ETL job was stopped', 'warning');
+          document.getElementById('import-current-step').textContent = 'Background job stopped';
+        }
+        
+        resetBackgroundImportUI();
+        return;
+      }
+      
+      // Update progress and status
+      if (jobStatus.progress) {
+        document.getElementById('import-progress-bar').style.width = jobStatus.progress + '%';
+        document.getElementById('import-progress-text').textContent = jobStatus.progress + '%';
+      }
+      
+      if (jobStatus.status) {
+        document.getElementById('import-current-step').textContent = `Background job: ${jobStatus.status}`;
+      }
+      
+      // Update elapsed time
+      if (window.backgroundStartTime) {
+        const elapsed = formatElapsedTime(window.backgroundStartTime);
+        document.getElementById('import-elapsed-time').textContent = `Elapsed: ${elapsed}`;
+        
+        // Log progress every minute
+        if (Math.floor((new Date() - window.backgroundStartTime) / 60000) % 1 === 0) {
+          appendToImportOutput(`⏰ Background job running - Elapsed: ${elapsed}`, 'info');
+        }
+      }
+    })
+    .catch(error => {
+      console.error('Error polling background job status:', error);
+    });
+  }
+  
+  function resetBackgroundImportUI() {
+    document.getElementById('start-background-import').classList.remove('hidden');
+    document.getElementById('stop-background-import').classList.add('hidden');
+    document.getElementById('start-import').classList.remove('hidden');
+    document.getElementById('import-current-status').classList.add('hidden');
+    
+    if (backgroundJobTimer) {
+      clearInterval(backgroundJobTimer);
+      backgroundJobTimer = null;
+    }
+    
+    if (window.backgroundStartTime) {
+      const totalElapsed = formatElapsedTime(window.backgroundStartTime);
+      appendToImportOutput(`⏱️ Total background job time: ${totalElapsed}`, 'info');
+      window.backgroundStartTime = null;
+    }
   }
 
   // Refresh system status every 30 seconds
