@@ -1163,11 +1163,54 @@ def get_team_schedule_data_data():
         matches = get_matches_for_user_club(user_with_team_id)
 
         if not matches:
-            print("❌ No matches found")
-            return (
-                jsonify({"error": "No matches or practices found for your team"}),
-                404,
-            )
+            print("❌ No upcoming matches found")
+            
+            # IMPROVED ERROR HANDLING: Check if team exists but just has no upcoming schedule
+            if user_team_id:
+                # Check if this team has any completed matches (to confirm team exists and is active)
+                completed_matches_query = """
+                    SELECT COUNT(*) as count
+                    FROM match_scores 
+                    WHERE (home_team_id = %s OR away_team_id = %s)
+                    AND match_date >= CURRENT_DATE - INTERVAL '6 months'
+                """
+                
+                try:
+                    completed_result = execute_query_one(completed_matches_query, [user_team_id, user_team_id])
+                    completed_count = completed_result["count"] if completed_result else 0
+                    
+                    if completed_count > 0:
+                        # Team exists and has recent matches, just no upcoming schedule
+                        print(f"✓ Team {user_team_id} has {completed_count} recent completed matches but no upcoming schedule")
+                        return jsonify({
+                            "players_schedule": {},
+                            "match_dates": [],
+                            "event_details": {},
+                            "message": f"No upcoming matches scheduled for your team. Your team has played {completed_count} matches in the last 6 months.",
+                            "team_status": "active_no_schedule"
+                        })
+                    else:
+                        # Team exists but no recent activity
+                        print(f"⚠️ Team {user_team_id} has no recent matches")
+                        return jsonify({
+                            "players_schedule": {},
+                            "match_dates": [],
+                            "event_details": {},
+                            "message": "No upcoming matches scheduled and no recent match activity for your team.",
+                            "team_status": "inactive"
+                        })
+                        
+                except Exception as e:
+                    print(f"Error checking completed matches: {e}")
+            
+            # Fallback error for teams without team_id or when query fails
+            return jsonify({
+                "players_schedule": {},
+                "match_dates": [],
+                "event_details": {},
+                "message": "No upcoming matches or practices found for your team.",
+                "team_status": "no_schedule"
+            })
 
         print(f"✓ Found {len(matches)} matches/practices")
 
