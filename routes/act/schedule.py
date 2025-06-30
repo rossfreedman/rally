@@ -8,79 +8,118 @@ from utils.logging import log_user_activity
 
 
 def get_matches_for_user_club(user):
-    """Get upcoming matches and practices for a user's club from the database"""
+    """Get upcoming matches and practices for a user's club from the database - ENHANCED with team_id support"""
     try:
         # Get user's club and series
         user_club = user.get("club")
         user_series = user.get("series")
+        user_team_id = user.get("team_id")  # NEW: Get team_id from priority-based team detection
+        
         if not user_club or not user_series:
             print("Missing club or series in user data")
             return []
 
-        print(f"Looking for matches for club: {user_club}, series: {user_series}")
+        print(f"Looking for matches for club: {user_club}, series: {user_series}, team_id: {user_team_id}")
 
-        # Handle different series name formats
-        # For NSTF: "Series 2B" -> "Tennaqua S2B - Series 2B"
-        # For CNSWPL: "Division 12" -> "Tennaqua 12 - Division 12"
-        # For APTA: "Chicago 22" -> "Tennaqua - 22"
-
-        if "Series" in user_series:
-            # NSTF format: "Series 2B" -> "S2B"
-            series_code = user_series.replace("Series ", "S")
-            user_team_pattern = f"{user_club} {series_code} - {user_series}"
-        elif "Division" in user_series:
-            # CNSWPL format: "Division 12" -> "12"
-            # FIXED: Schedule uses "Series 16" format, not "Division 16"
-            division_num = user_series.replace("Division ", "")
-            user_team_pattern = f"{user_club} {division_num} - Series {division_num}"
+        # ENHANCED: Use team_id-based queries when available (much more reliable)
+        if user_team_id:
+            print(f"Using team_id-based query for team_id: {user_team_id}")
+            
+            # Query using team_id (more reliable than string matching)
+            matches_query = """
+                SELECT 
+                    s.match_date,
+                    s.match_time,
+                    s.home_team,
+                    s.away_team,
+                    s.location,
+                    c.club_address,
+                    l.league_id,
+                    CASE 
+                        WHEN s.home_team ILIKE %s THEN 'practice'
+                        ELSE 'match'
+                    END as type
+                FROM schedule s
+                LEFT JOIN leagues l ON s.league_id = l.id
+                LEFT JOIN clubs c ON s.location = c.name
+                WHERE (s.home_team_id = %s OR s.away_team_id = %s OR s.home_team ILIKE %s)
+                ORDER BY s.match_date, s.match_time
+            """
+            
+            # Practice pattern for ILIKE search (fallback for practices not using team_id)
+            practice_pattern = f"{user_club} Practice%"
+            practice_search = f"%{practice_pattern}%"
+            
+            matches = execute_query(
+                matches_query, [practice_search, user_team_id, user_team_id, practice_search]
+            )
+            
         else:
-            # APTA format: "Chicago 22" -> extract number
-            series_num = user_series.split()[-1] if user_series else ""
-            user_team_pattern = f"{user_club} - {series_num}"
+            # FALLBACK: Use legacy string pattern matching when team_id not available
+            print(f"No team_id available, falling back to pattern matching")
+            
+            # Handle different series name formats
+            # For NSTF: "Series 2B" -> "Tennaqua S2B - Series 2B"
+            # For CNSWPL: "Division 12" -> "Tennaqua 12 - Division 12"
+            # For APTA: "Chicago 22" -> "Tennaqua - 22"
 
-        print(f"Looking for team pattern: {user_team_pattern}")
+            if "Series" in user_series:
+                # NSTF format: "Series 2B" -> "S2B"
+                series_code = user_series.replace("Series ", "S")
+                user_team_pattern = f"{user_club} {series_code} - {user_series}"
+            elif "Division" in user_series:
+                # CNSWPL format: "Division 12" -> "12"
+                # FIXED: Schedule uses "Series 16" format, not "Division 16"
+                division_num = user_series.replace("Division ", "")
+                user_team_pattern = f"{user_club} {division_num} - Series {division_num}"
+            else:
+                # APTA format: "Chicago 22" -> extract number
+                series_num = user_series.split()[-1] if user_series else ""
+                user_team_pattern = f"{user_club} - {series_num}"
 
-        # Create practice pattern for this user's club and series
-        # FIXED: For CNSWPL, practices also use "Series" format
-        if "Division" in user_series:
-            division_num = user_series.replace("Division ", "")
-            practice_pattern = f"{user_club} Practice - Series {division_num}"
-        else:
-            practice_pattern = f"{user_club} Practice - {user_series}"
-        print(f"Looking for practice pattern: {practice_pattern}")
+            print(f"Looking for team pattern: {user_team_pattern}")
 
-        # Query the database for matches where user's team is playing
-        # Include both regular matches and practice entries
-        # JOIN with clubs table to get club address for Google Maps links
-        matches_query = """
-            SELECT 
-                s.match_date,
-                s.match_time,
-                s.home_team,
-                s.away_team,
-                s.location,
-                c.club_address,
-                l.league_id,
-                CASE 
-                    WHEN s.home_team ILIKE %s THEN 'practice'
-                    ELSE 'match'
-                END as type
-            FROM schedule s
-            LEFT JOIN leagues l ON s.league_id = l.id
-            LEFT JOIN clubs c ON s.location = c.name
-            WHERE (s.home_team ILIKE %s OR s.away_team ILIKE %s OR s.home_team ILIKE %s)
-            ORDER BY s.match_date, s.match_time
-        """
+            # Create practice pattern for this user's club and series
+            # FIXED: For CNSWPL, practices also use "Series" format
+            if "Division" in user_series:
+                division_num = user_series.replace("Division ", "")
+                practice_pattern = f"{user_club} Practice - Series {division_num}"
+            else:
+                practice_pattern = f"{user_club} Practice - {user_series}"
+            print(f"Looking for practice pattern: {practice_pattern}")
 
-        # Search patterns:
-        # 1. Practice pattern: "Tennaqua Practice - Chicago 22"
-        # 2. Team pattern for regular matches: "Tennaqua - 22"
-        practice_search = f"%{practice_pattern}%"
-        team_search = f"%{user_team_pattern}%"
+            # Query the database for matches where user's team is playing
+            # Include both regular matches and practice entries
+            # JOIN with clubs table to get club address for Google Maps links
+            matches_query = """
+                SELECT 
+                    s.match_date,
+                    s.match_time,
+                    s.home_team,
+                    s.away_team,
+                    s.location,
+                    c.club_address,
+                    l.league_id,
+                    CASE 
+                        WHEN s.home_team ILIKE %s THEN 'practice'
+                        ELSE 'match'
+                    END as type
+                FROM schedule s
+                LEFT JOIN leagues l ON s.league_id = l.id
+                LEFT JOIN clubs c ON s.location = c.name
+                WHERE (s.home_team ILIKE %s OR s.away_team ILIKE %s OR s.home_team ILIKE %s)
+                ORDER BY s.match_date, s.match_time
+            """
 
-        matches = execute_query(
-            matches_query, [practice_search, practice_search, team_search, team_search]
-        )
+            # Search patterns:
+            # 1. Practice pattern: "Tennaqua Practice - Chicago 22"
+            # 2. Team pattern for regular matches: "Tennaqua - 22"
+            practice_search = f"%{practice_pattern}%"
+            team_search = f"%{user_team_pattern}%"
+
+            matches = execute_query(
+                matches_query, [practice_search, practice_search, team_search, team_search]
+            )
 
         filtered_matches = []
         for match in matches:
