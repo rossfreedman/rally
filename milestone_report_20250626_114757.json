@@ -1,0 +1,40 @@
+{
+  "timestamp": "2025-06-26T11:47:57.037802",
+  "duration_seconds": 12.545231103897095,
+  "target_branch": "production",
+  "results": {
+    "deployment_status": {
+      "status": "out_of_sync",
+      "message": "Changes detected: 4 unpushed commits"
+    },
+    "git_changes": {
+      "has_changes": true,
+      "uncommitted_files": [],
+      "unpushed_commits": [
+        "813d9e3 Admin dashboard improvements and test scripts",
+        "f60a7ad Redesign mobile hamburger menu: compact 2-column layout",
+        "a6f8888 Implement comprehensive orphaned ID prevention system",
+        "ba6f3f0 Fix: Resolve orphaned series_stats league and team IDs platform-wide"
+      ],
+      "current_branch": "main",
+      "summary": "4 unpushed commits"
+    },
+    "git_deployment": {
+      "status": "success",
+      "branch": "main",
+      "message": "Deployed to main",
+      "files_deployed": 0,
+      "commits_pushed": 4
+    },
+    "database_sync": {
+      "status": "differences",
+      "message": "Databases have schema or data differences"
+    },
+    "backup": {
+      "status": "success",
+      "message": "Code and database backup created"
+    },
+    "overall_success": true
+  },
+  "success": true
+}

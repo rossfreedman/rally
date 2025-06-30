@@ -4,7 +4,9 @@ This module contains routes for mobile-specific pages and user interactions.
 """
 
 import json
+import logging
 import os
+import re
 from datetime import datetime
 from urllib.parse import unquote
 
@@ -51,6 +53,9 @@ from routes.act.schedule import get_matches_for_user_club
 from utils.auth import login_required
 from utils.logging import log_user_activity
 
+# Create logger
+logger = logging.getLogger(__name__)
+
 # Create mobile blueprint
 mobile_bp = Blueprint("mobile", __name__)
 
@@ -68,14 +73,47 @@ def serve_mobile():
         print("Admin route detected in mobile, redirecting to serve_admin")
         return redirect(url_for("admin.serve_admin"))
 
-    # Create session data script
-    session_data = {"user": session["user"], "authenticated": True}
-
-    # Log mobile access
+    # Use new session service to get fresh session data, but preserve team context if recently switched
+    from app.services.session_service import get_session_data_for_user, get_session_data_for_user_team
+    
     try:
-        log_user_activity(session["user"]["email"], "page_visit", page="mobile_home")
+        user_email = session["user"]["email"]
+        current_team_id = session["user"].get("team_id")
+        
+        print(f"[DEBUG] Current session team_id: {current_team_id}")
+        
+        # Check if we have a team context that should be preserved
+        if current_team_id:
+            print(f"[DEBUG] Getting fresh session data with team context: {current_team_id}")
+            fresh_session_data = get_session_data_for_user_team(user_email, current_team_id)
+        else:
+            print(f"[DEBUG] Getting fresh session data without team context")
+            fresh_session_data = get_session_data_for_user(user_email)
+            
+        print(f"[DEBUG] Fresh session data result: {fresh_session_data}")
+        
+        if fresh_session_data:
+            # Update the Flask session with fresh data
+            session["user"] = fresh_session_data
+            session.modified = True
+            session_data = {"user": fresh_session_data, "authenticated": True}
+            print(f"[DEBUG] Using fresh session data and updated Flask session")
+        else:
+            # Fallback to old session if session service fails
+            session_data = {"user": session["user"], "authenticated": True}
+            print(f"[DEBUG] Using fallback session data: {session['user']}")
+        
+        # Log mobile access
+        log_user_activity(user_email, "page_visit", page="mobile_home")
+        
     except Exception as e:
-        print(f"Error logging mobile access: {str(e)}")
+        print(f"Error with new session service: {str(e)}")
+        # Fallback to old session
+        session_data = {"user": session["user"], "authenticated": True}
+        try:
+            log_user_activity(session["user"]["email"], "page_visit", page="mobile_home")
+        except Exception as e2:
+            print(f"Error logging mobile access: {str(e2)}")
 
     return render_template("mobile/index.html", session_data=session_data)
 
@@ -131,11 +169,235 @@ def serve_mobile_profile():
 @mobile_bp.route("/mobile/player-detail/<player_id>")
 @login_required
 def serve_mobile_player_detail(player_id):
-    """Serve the mobile player detail page (server-rendered, consistent with other mobile pages)"""
-    player_name = unquote(player_id)
+    """Serve the mobile player detail page with proper team context filtering"""
+    player_identifier = unquote(player_id)
+    
+    # Determine if this is a player_id (alphanumeric with dashes) or a player name
+    # Player IDs look like: nndz-WlNhd3hMYi9nQT09
+    # Composite IDs look like: nndz-WlNhd3hMYi9nQT09_team_123
+    # Player names look like: John Smith
+    
+    actual_player_id = player_identifier
+    team_id = None
+    
+    # Check if this is a composite ID (player_id_team_teamID)
+    if '_team_' in player_identifier:
+        parts = player_identifier.split('_team_')
+        if len(parts) == 2:
+            actual_player_id = parts[0]
+            try:
+                team_id = int(parts[1])
+            except ValueError:
+                team_id = None
+    
+    is_player_id = bool(re.match(r'^[a-zA-Z0-9\-]+$', actual_player_id) and '-' in actual_player_id)
+    
+    # Get viewing user's league context for filtering
+    viewing_user = session["user"].copy()
+    viewing_user_league = viewing_user.get("league_id", "")
+    league_id_int = None
+    
+    if isinstance(viewing_user_league, str) and viewing_user_league != "":
+        try:
+            league_record = execute_query_one(
+                "SELECT id FROM leagues WHERE league_id = %s", [viewing_user_league]
+            )
+            if league_record:
+                league_id_int = league_record["id"]
+        except Exception:
+            pass
+    elif isinstance(viewing_user_league, int):
+        league_id_int = viewing_user_league
+    
+    if is_player_id:
+        # Look up player by tenniscores_player_id with proper team and league filtering
+        from database_utils import execute_query_one, execute_query
+        
+        if team_id:
+            # Use team-specific lookup for better context
+            player_query = """
+                SELECT CONCAT(p.first_name, ' ', p.last_name) as full_name,
+                       p.tenniscores_player_id, p.league_id, p.team_id
+                FROM players p
+                WHERE p.tenniscores_player_id = %s AND p.team_id = %s
+                LIMIT 1
+            """
+            player_record = execute_query_one(player_query, [actual_player_id, team_id])
+        else:
+            # For multi-team players, prefer team with most recent activity in viewer's league
+            if league_id_int:
+                player_query = """
+                    SELECT CONCAT(p.first_name, ' ', p.last_name) as full_name,
+                           p.tenniscores_player_id, p.league_id, p.team_id,
+                           (SELECT MAX(match_date) 
+                            FROM match_scores ms 
+                            WHERE (ms.home_player_1_id = p.tenniscores_player_id 
+                                   OR ms.home_player_2_id = p.tenniscores_player_id
+                                   OR ms.away_player_1_id = p.tenniscores_player_id 
+                                   OR ms.away_player_2_id = p.tenniscores_player_id)
+                            AND (ms.home_team_id = p.team_id OR ms.away_team_id = p.team_id)
+                            AND ms.league_id = p.league_id
+                           ) as last_match_date
+                    FROM players p
+                    WHERE p.tenniscores_player_id = %s AND p.league_id = %s AND p.is_active = TRUE
+                    ORDER BY last_match_date DESC NULLS LAST, p.team_id DESC
+                    LIMIT 1
+                """
+                player_record = execute_query_one(player_query, [actual_player_id, league_id_int])
+            else:
+                player_query = """
+                    SELECT CONCAT(first_name, ' ', last_name) as full_name,
+                           tenniscores_player_id, league_id, team_id
+                    FROM players 
+                    WHERE tenniscores_player_id = %s
+                    ORDER BY id DESC
+                    LIMIT 1
+                """
+                player_record = execute_query_one(player_query, [actual_player_id])
+        
+        if player_record:
+            player_name = player_record["full_name"]
+            # Use the team_id from the database record if not explicitly provided
+            if not team_id:
+                team_id = player_record.get("team_id")
+        else:
+            # Player ID not found, return error
+            session_data = {"user": session["user"], "authenticated": True}
+            analyze_data = {"error": f"Player not found for ID: {player_identifier}"}
+            return render_template(
+                "mobile/player_detail.html",
+                session_data=session_data,
+                analyze_data=analyze_data,
+                player_name=f"Player ID: {player_identifier}",
+            )
+    else:
+        # Treat as player name - find best matching player record in viewer's league
+        player_name = player_identifier
+        name_parts = player_name.strip().split()
+        
+        if len(name_parts) >= 2:
+            first_name = name_parts[0]
+            last_name = " ".join(name_parts[1:])
+            
+            # For name-based lookups, prefer player in viewer's league with recent activity
+            if league_id_int:
+                name_lookup_query = """
+                    SELECT p.tenniscores_player_id, p.team_id, p.league_id,
+                           (SELECT MAX(match_date) 
+                            FROM match_scores ms 
+                            WHERE (ms.home_player_1_id = p.tenniscores_player_id 
+                                   OR ms.home_player_2_id = p.tenniscores_player_id
+                                   OR ms.away_player_1_id = p.tenniscores_player_id 
+                                   OR ms.away_player_2_id = p.tenniscores_player_id)
+                            AND ms.league_id = p.league_id
+                           ) as last_match_date
+                    FROM players p
+                    WHERE p.first_name = %s AND p.last_name = %s 
+                    AND p.league_id = %s AND p.is_active = TRUE
+                    ORDER BY last_match_date DESC NULLS LAST, p.id DESC
+                    LIMIT 1
+                """
+                name_record = execute_query_one(name_lookup_query, [first_name, last_name, league_id_int])
+            else:
+                name_lookup_query = """
+                    SELECT tenniscores_player_id, team_id, league_id
+                    FROM players 
+                    WHERE first_name = %s AND last_name = %s
+                    ORDER BY id DESC
+                    LIMIT 1
+                """
+                name_record = execute_query_one(name_lookup_query, [first_name, last_name])
+            
+            if name_record:
+                actual_player_id = name_record["tenniscores_player_id"]
+                team_id = name_record.get("team_id")
+                print(f"[DEBUG] Name lookup found player_id {actual_player_id} with team_id {team_id}")
+            else:
+                print(f"[DEBUG] No player record found for name: {player_name}")
 
-    # Use the mobile service function with user context for league filtering
-    analyze_data = get_player_analysis_by_name(player_name, session["user"])
+    # Create player user dict with team context for mobile service
+    if actual_player_id:
+        # Create a user dict with the specific player ID and team context
+        player_user_dict = {
+            "first_name": player_name.split()[0] if player_name else "",
+            "last_name": " ".join(player_name.split()[1:]) if len(player_name.split()) > 1 else "",
+            "tenniscores_player_id": actual_player_id,
+            "league_id": viewing_user.get("league_id"),
+            "email": viewing_user.get("email", "")
+        }
+        
+        # Add team context for filtering
+        if team_id:
+            player_user_dict["team_context"] = team_id
+            print(f"[DEBUG] Player detail - Using player ID {actual_player_id} with team context {team_id}")
+        else:
+            print(f"[DEBUG] Player detail - Using player ID {actual_player_id} without specific team context")
+        
+        # Import the direct player analysis function
+        from app.services.mobile_service import get_player_analysis
+        analyze_data = get_player_analysis(player_user_dict)
+    else:
+        # Final fallback to name-based analysis
+        from app.services.mobile_service import get_player_analysis_by_name
+        analyze_data = get_player_analysis_by_name(player_name, viewing_user)
+
+    # Get additional player info (team name and series) for the header using team context
+    player_info = {"club": None, "series": None, "team_name": None}
+    if actual_player_id:
+        # Use team-specific lookup for accurate context when team_id is available
+        if team_id:
+            player_info_query = """
+                SELECT 
+                    c.name as club_name,
+                    s.name as series_name,
+                    t.team_name
+                FROM players p
+                LEFT JOIN clubs c ON p.club_id = c.id
+                LEFT JOIN series s ON p.series_id = s.id
+                LEFT JOIN teams t ON p.team_id = t.id
+                WHERE p.tenniscores_player_id = %s AND p.team_id = %s
+                LIMIT 1
+            """
+            player_record = execute_query_one(player_info_query, [actual_player_id, team_id])
+        else:
+            # Fallback to any matching player record (multi-team scenario)
+            if league_id_int:
+                player_info_query = """
+                    SELECT 
+                        c.name as club_name,
+                        s.name as series_name,
+                        t.team_name
+                    FROM players p
+                    LEFT JOIN clubs c ON p.club_id = c.id
+                    LEFT JOIN series s ON p.series_id = s.id
+                    LEFT JOIN teams t ON p.team_id = t.id
+                    WHERE p.tenniscores_player_id = %s AND p.league_id = %s
+                    ORDER BY p.id DESC
+                    LIMIT 1
+                """
+                player_record = execute_query_one(player_info_query, [actual_player_id, league_id_int])
+            else:
+                player_info_query = """
+                    SELECT 
+                        c.name as club_name,
+                        s.name as series_name,
+                        t.team_name
+                    FROM players p
+                    LEFT JOIN clubs c ON p.club_id = c.id
+                    LEFT JOIN series s ON p.series_id = s.id
+                    LEFT JOIN teams t ON p.team_id = t.id
+                    WHERE p.tenniscores_player_id = %s
+                    ORDER BY p.id DESC
+                    LIMIT 1
+                """
+                player_record = execute_query_one(player_info_query, [actual_player_id])
+        
+        if player_record:
+            player_info = {
+                "club": player_record["club_name"],
+                "series": player_record["series_name"], 
+                "team_name": player_record["team_name"]
+            }
 
     # PTI data is now handled within the service function with proper league filtering
 
@@ -151,6 +413,7 @@ def serve_mobile_player_detail(player_id):
         session_data=session_data,
         analyze_data=analyze_data,
         player_name=player_name,
+        player_info=player_info,
     )
 
 
@@ -246,6 +509,8 @@ def serve_mobile_analyze_me():
                     league_id
                 FROM players 
                 WHERE first_name = %s AND last_name = %s
+                ORDER BY id DESC
+                LIMIT 1
             """
 
             player_data = execute_query_one(
@@ -447,48 +712,91 @@ def get_season_history():
         if not player_id:
             return jsonify({"error": "Player ID not found"}), 400
 
-        # Get player's database ID - prioritize the player record that has actual PTI history
-        player_query = """
-            SELECT 
-                p.id,
-                p.pti as current_pti,
-                p.series_id,
-                s.name as series_name,
-                (SELECT COUNT(*) FROM player_history ph WHERE ph.player_id = p.id) as history_count
-            FROM players p
-            LEFT JOIN series s ON p.series_id = s.id
-            WHERE p.tenniscores_player_id = %s
-            ORDER BY history_count DESC, p.id DESC
-        """
-        player_data = execute_query_one(player_query, [player_id])
+        # Get current team context from session service
+        from app.services.session_service import get_session_data_for_user
+        session_data = get_session_data_for_user(user["email"])
+        current_team_id = session_data.get("team_id") if session_data else None
+
+        # Get player's database ID - prioritize the player record for current team context
+        if current_team_id:
+            # First try to get the player record that matches the current team context
+            player_query = """
+                SELECT 
+                    p.id,
+                    p.pti as current_pti,
+                    p.series_id,
+                    p.team_id,
+                    s.name as series_name,
+                    t.team_name,
+                    (SELECT COUNT(*) FROM player_history ph WHERE ph.player_id = p.id) as history_count
+                FROM players p
+                LEFT JOIN series s ON p.series_id = s.id
+                LEFT JOIN teams t ON p.team_id = t.id
+                WHERE p.tenniscores_player_id = %s AND p.team_id = %s
+                ORDER BY history_count DESC, p.id DESC
+            """
+            player_data = execute_query_one(player_query, [player_id, current_team_id])
+        else:
+            # Fallback to any player record if no team context
+            player_query = """
+                SELECT 
+                    p.id,
+                    p.pti as current_pti,
+                    p.series_id,
+                    p.team_id,
+                    s.name as series_name,
+                    t.team_name,
+                    (SELECT COUNT(*) FROM player_history ph WHERE ph.player_id = p.id) as history_count
+                FROM players p
+                LEFT JOIN series s ON p.series_id = s.id
+                LEFT JOIN teams t ON p.team_id = t.id
+                WHERE p.tenniscores_player_id = %s
+                ORDER BY history_count DESC, p.id DESC
+            """
+            player_data = execute_query_one(player_query, [player_id])
 
         if not player_data:
             return jsonify({"error": "Player not found"}), 404
 
         player_db_id = player_data["id"]
+        player_team_id = player_data["team_id"]
 
         # Debug logging
         print(f"[DEBUG] Season History - Player ID: {player_id}")
+        print(f"[DEBUG] Season History - Current Team Context: {current_team_id}")
         print(
             f"[DEBUG] Season History - Player DB ID: {player_db_id} (with {player_data['history_count']} history records)"
         )
+        print(f"[DEBUG] Season History - Player Team ID: {player_team_id}")
         print(
             f"[DEBUG] Season History - Player Series: {player_data.get('series_name')}"
         )
+        print(f"[DEBUG] Season History - Team Name: {player_data.get('team_name')}")
         print(
             f"[DEBUG] Season History - Player Current PTI: {player_data.get('current_pti')}"
         )
+        print(f"[DEBUG] Season History - APPROACH: Using specific player_db_id {player_db_id} to eliminate cross-team contamination")
 
-        # Debug: Check all player_history records for this player
+        # Get season history data for ONLY the current team/series context
+        # Filter by specific player_id AND series to avoid showing multiple series per season
+        current_series_name = player_data.get("series_name", "")
+        
+        # Safety check - if no team context, return empty results to avoid showing mixed data
+        if not player_team_id or not current_series_name:
+            print(f"[DEBUG] Season History - Missing team context (team_id: {player_team_id}, series: {current_series_name})")
+            return jsonify({"error": "No season history found - missing team context"}), 404
+
+        # CORE FIX: Use ONLY the specific player record ID for current team context
+        # This eliminates all cross-team contamination
         debug_query = """
             SELECT series, date, end_pti 
             FROM player_history 
-            WHERE player_id = %s 
+            WHERE player_id = %s
             ORDER BY date DESC 
         """
         debug_records = execute_query(debug_query, [player_db_id])
         print(
-            f"[DEBUG] Season History - ALL {len(debug_records)} player_history records for player_id {player_db_id}:"
+            f"[DEBUG] Season History - {len(debug_records)} player_history records for player_id {player_db_id} (team: {player_data.get('team_name')}, series: {current_series_name}):"
         )
 
         # Group by series to see what series this player actually has
@@ -510,7 +818,6 @@ def get_season_history():
                 f"  Date: {record['date']}, Series: {record['series']}, PTI: {record['end_pti']}"
             )
 
-        # Get season history data aggregated by series and tennis season (Aug-May)
         season_history_query = """
             WITH season_data AS (
                 SELECT 
@@ -544,26 +851,65 @@ def get_season_history():
                 WHERE player_id = %s
                 ORDER BY date DESC
             ),
-            season_summary AS (
+            career_start AS (
+                SELECT end_pti as first_career_pti
+                FROM season_data 
+                ORDER BY date ASC 
+                LIMIT 1
+            ),
+            season_boundaries AS (
                 SELECT 
-                    series,
                     season_year,
-                    MAX(CASE WHEN rn_start = 1 THEN end_pti END) as pti_start,
-                    MAX(CASE WHEN rn_end = 1 THEN end_pti END) as pti_end,
+                    MIN(date) as season_start_date,
+                    MAX(date) as season_end_date,
                     COUNT(*) as matches_count
                 FROM season_data
-                GROUP BY series, season_year
+                GROUP BY season_year
                 HAVING COUNT(*) >= 3  -- Only show seasons with at least 3 matches
+            ),
+            season_summary AS (
+                SELECT 
+                    sb.season_year,
+                    CASE 
+                        WHEN ROW_NUMBER() OVER (ORDER BY sb.season_year ASC) = 1 THEN 
+                            cs.first_career_pti  -- Use career start PTI for first season
+                        ELSE 
+                            (SELECT end_pti FROM season_data sd WHERE sd.season_year = sb.season_year AND sd.date = sb.season_start_date LIMIT 1)
+                    END as pti_start,
+                    (SELECT end_pti FROM season_data sd WHERE sd.season_year = sb.season_year AND sd.date = sb.season_end_date LIMIT 1) as pti_end,
+                    sb.matches_count,
+                    -- Get the series with the highest numeric value (excluding tournaments)
+                    (
+                        SELECT series 
+                        FROM season_data sd2
+                        WHERE sd2.season_year = sb.season_year
+                        AND POSITION('tournament' IN LOWER(series)) = 0
+                        AND POSITION('pti' IN LOWER(series)) = 0
+                        AND (
+                            series ~ '^Series\s+[0-9]+'
+                            OR series ~ '^Division\s+[0-9]+'
+                            OR series ~ '^Chicago[:\s]+[0-9]+'
+                        )
+                        ORDER BY 
+                            CASE 
+                                WHEN series ~ '\d+' THEN 
+                                    CAST(regexp_replace(series, '[^0-9]', '', 'g') AS INTEGER)
+                                ELSE 0 
+                            END DESC
+                        LIMIT 1
+                    ) as highest_series
+                FROM season_boundaries sb
+                CROSS JOIN career_start cs
             )
             SELECT 
-                series,
+                highest_series as series,
                 season_year,
                 pti_start,
                 pti_end,
                 (pti_end - pti_start) as trend,
                 matches_count
             FROM season_summary
-            ORDER BY season_year ASC, series
+            ORDER BY season_year ASC  -- Earliest seasons first
             LIMIT 10
         """
 
@@ -578,7 +924,7 @@ def get_season_history():
                 date,
                 end_pti
             FROM player_history
-            WHERE player_id = %s
+            WHERE player_id = %s 
             ORDER BY season_year, series, date
         """
         debug_season_records = execute_query(debug_season_query, [player_db_id])
@@ -591,108 +937,16 @@ def get_season_history():
         season_records = execute_query(season_history_query, [player_db_id])
 
         print(
-            f"[DEBUG] Season History - Direct player_id query returned {len(season_records) if season_records else 0} records"
+            f"[DEBUG] Season History - One-per-season query returned {len(season_records) if season_records else 0} records for player_id {player_db_id}"
         )
         if season_records:
             print(
-                f"[DEBUG] Season History - Direct query results (showing ALL series this player has participated in):"
+                f"[DEBUG] Season History - One row per season results (NO year repetition):"
             )
             for record in season_records:
                 print(
                     f"  Series: {record['series']}, Season: {record['season_year']}, PTI: {record['pti_start']} -> {record['pti_end']}, Matches: {record['matches_count']}"
                 )
-
-        if not season_records:
-            # Try series matching as fallback
-            series_name = player_data.get("series_name", "")
-            print(
-                f"[DEBUG] Season History - No direct results, trying series fallback with: '{series_name}'"
-            )
-            if series_name:
-                # Create more precise series patterns to avoid false matches
-                series_patterns = [f"%{series_name}%"]  # Exact series name match only
-
-                # Only add first-word pattern if series name is very specific (has colon or numbers)
-                if ":" in series_name or any(char.isdigit() for char in series_name):
-                    first_part = (
-                        series_name.split()[0] if " " in series_name else series_name
-                    )
-                    # Add pattern with colon to match "Chicago:" vs "Chicago 34"
-                    if ":" not in first_part:
-                        series_patterns.append(f"%{first_part}:%")
-                    series_patterns.append(f"%{first_part}%")
-
-                print(
-                    f"[DEBUG] Season History - Trying series patterns: {series_patterns}"
-                )
-
-                for pattern in series_patterns:
-                    print(f"[DEBUG] Season History - Trying pattern: '{pattern}'")
-                    fallback_query = """
-                        WITH season_data AS (
-                            SELECT 
-                                series,
-                                -- Calculate tennis season year (Aug-May spans two calendar years)
-                                CASE 
-                                    WHEN EXTRACT(MONTH FROM date) >= 8 THEN EXTRACT(YEAR FROM date)
-                                    ELSE EXTRACT(YEAR FROM date) - 1
-                                END as season_year,
-                                date,
-                                end_pti,
-                                ROW_NUMBER() OVER (
-                                    PARTITION BY series, 
-                                    CASE 
-                                        WHEN EXTRACT(MONTH FROM date) >= 8 THEN EXTRACT(YEAR FROM date)
-                                        ELSE EXTRACT(YEAR FROM date) - 1
-                                    END 
-                                    ORDER BY date ASC
-                                ) as rn_start,
-                                ROW_NUMBER() OVER (
-                                    PARTITION BY series, 
-                                    CASE 
-                                        WHEN EXTRACT(MONTH FROM date) >= 8 THEN EXTRACT(YEAR FROM date)
-                                        ELSE EXTRACT(YEAR FROM date) - 1
-                                    END 
-                                    ORDER BY date DESC
-                                ) as rn_end
-                            FROM player_history
-                            WHERE series ILIKE %s
-                            ORDER BY date DESC
-                        ),
-                        season_summary AS (
-                            SELECT 
-                                series,
-                                season_year,
-                                MAX(CASE WHEN rn_start = 1 THEN end_pti END) as pti_start,
-                                MAX(CASE WHEN rn_end = 1 THEN end_pti END) as pti_end,
-                                COUNT(*) as matches_count
-                            FROM season_data
-                            GROUP BY series, season_year
-                            HAVING COUNT(*) >= 3  -- Only show seasons with at least 3 matches
-                        )
-                        SELECT 
-                            series,
-                            season_year,
-                            pti_start,
-                            pti_end,
-                            (pti_end - pti_start) as trend,
-                            matches_count
-                        FROM season_summary
-                        ORDER BY season_year ASC, series
-                        LIMIT 10
-                    """
-
-                    season_records = execute_query(fallback_query, [pattern])
-                    print(
-                        f"[DEBUG] Season History - Pattern '{pattern}' returned {len(season_records) if season_records else 0} records"
-                    )
-                    if season_records:
-                        print(f"[DEBUG] Season History - Fallback query results:")
-                        for record in season_records:
-                            print(
-                                f"  Series: {record['series']}, Season: {record['season_year']}, PTI: {record['pti_start']} -> {record['pti_end']}"
-                            )
-                        break
 
         if not season_records:
             print(
@@ -768,7 +1022,7 @@ def get_player_season_history(player_name):
 
         player_name = unquote(player_name)
 
-        # Find the player in the database by name
+        # Find the player in the database by name, prioritizing the one with PTI history
         player_query = """
             SELECT 
                 p.id,
@@ -777,10 +1031,13 @@ def get_player_season_history(player_name):
                 p.series_id,
                 s.name as series_name,
                 p.first_name,
-                p.last_name
+                p.last_name,
+                (SELECT COUNT(*) FROM player_history ph WHERE ph.player_id = p.id) as history_count
             FROM players p
             LEFT JOIN series s ON p.series_id = s.id
             WHERE CONCAT(p.first_name, ' ', p.last_name) = %s
+            ORDER BY history_count DESC, p.id DESC
+            LIMIT 1
         """
         player_data = execute_query_one(player_query, [player_name])
 
@@ -801,7 +1058,8 @@ def get_player_season_history(player_name):
             f"[DEBUG] Player Season History - Player Series: {player_data.get('series_name')}"
         )
 
-        # FIRST: Try to get season history using the proper foreign key relationship (player_id)
+        # Get season history using the team-specific player record
+        # Fixed to show ONE row per season instead of multiple rows per series
         season_history_query = """
             WITH season_data AS (
                 SELECT 
@@ -833,26 +1091,65 @@ def get_player_season_history(player_name):
                 WHERE player_id = %s
                 ORDER BY date DESC
             ),
-            season_summary AS (
+            career_start AS (
+                SELECT end_pti as first_career_pti
+                FROM season_data 
+                ORDER BY date ASC 
+                LIMIT 1
+            ),
+            season_boundaries AS (
                 SELECT 
-                    series,
                     season_year,
-                    MAX(CASE WHEN rn_start = 1 THEN end_pti END) as pti_start,
-                    MAX(CASE WHEN rn_end = 1 THEN end_pti END) as pti_end,
+                    MIN(date) as season_start_date,
+                    MAX(date) as season_end_date,
                     COUNT(*) as matches_count
                 FROM season_data
-                GROUP BY series, season_year
+                GROUP BY season_year
                 HAVING COUNT(*) >= 3  -- Only show seasons with at least 3 matches
+            ),
+            season_summary AS (
+                SELECT 
+                    sb.season_year,
+                    CASE 
+                        WHEN ROW_NUMBER() OVER (ORDER BY sb.season_year ASC) = 1 THEN 
+                            cs.first_career_pti  -- Use career start PTI for first season
+                        ELSE 
+                            (SELECT end_pti FROM season_data sd WHERE sd.season_year = sb.season_year AND sd.date = sb.season_start_date LIMIT 1)
+                    END as pti_start,
+                    (SELECT end_pti FROM season_data sd WHERE sd.season_year = sb.season_year AND sd.date = sb.season_end_date LIMIT 1) as pti_end,
+                    sb.matches_count,
+                    -- Get the series with the highest numeric value (excluding tournaments)
+                    (
+                        SELECT series 
+                        FROM season_data sd2
+                        WHERE sd2.season_year = sb.season_year
+                        AND POSITION('tournament' IN LOWER(series)) = 0
+                        AND POSITION('pti' IN LOWER(series)) = 0
+                        AND (
+                            series ~ '^Series\s+[0-9]+'
+                            OR series ~ '^Division\s+[0-9]+'
+                            OR series ~ '^Chicago[:\s]+[0-9]+'
+                        )
+                        ORDER BY 
+                            CASE 
+                                WHEN series ~ '\d+' THEN 
+                                    CAST(regexp_replace(series, '[^0-9]', '', 'g') AS INTEGER)
+                                ELSE 0 
+                            END DESC
+                        LIMIT 1
+                    ) as highest_series
+                FROM season_boundaries sb
+                CROSS JOIN career_start cs
             )
             SELECT 
-                series,
+                highest_series as series,
                 season_year,
                 pti_start,
                 pti_end,
                 (pti_end - pti_start) as trend,
                 matches_count
             FROM season_summary
-            ORDER BY season_year DESC, series  -- Most recent seasons first
+            ORDER BY season_year ASC  -- Earliest seasons first
             LIMIT 10
         """
 
@@ -926,7 +1223,7 @@ def get_player_season_history(player_name):
                     (pti_end - pti_start) as trend,
                     matches_count
                 FROM season_summary
-                ORDER BY season_year DESC, series
+                ORDER BY season_year ASC, series
                 LIMIT 10
             """
 
@@ -1008,11 +1305,8 @@ def get_player_season_history(player_name):
 @login_required
 def serve_mobile_my_team():
     """Serve the mobile My Team page"""
-    print(f"🔥 ROUTE CALLED: /mobile/my-team with user: {session['user']['email']}")
     try:
-        print(f"🔥 ABOUT TO CALL: get_mobile_team_data")
         result = get_mobile_team_data(session["user"])
-        print(f"🔥 RESULT FROM get_mobile_team_data: {type(result)}")
 
         session_data = {"user": session["user"], "authenticated": True}
 
@@ -1025,7 +1319,7 @@ def serve_mobile_my_team():
         strength_of_schedule = result.get("strength_of_schedule", {})
         error = result.get("error")
 
-        return render_template(
+        response = render_template(
             "mobile/my_team.html",
             session_data=session_data,
             team_data=team_data,
@@ -1034,6 +1328,16 @@ def serve_mobile_my_team():
             strength_of_schedule=strength_of_schedule,
             error=error,
         )
+        
+        # Add cache-busting headers to ensure fresh data
+        from flask import make_response
+        response = make_response(response)
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        response.headers['Last-Modified'] = 'Thu, 01 Jan 1970 00:00:00 GMT'
+        
+        return response
 
     except Exception as e:
         print(f"Error serving mobile my team: {str(e)}")
@@ -1547,25 +1851,61 @@ def serve_mobile_practice_times():
 @mobile_bp.route("/mobile/availability")
 @login_required
 def serve_mobile_availability():
-    """Serve the mobile availability page for viewing/setting user availability"""
+    """Serve the mobile availability page for viewing/setting user availability with team switching support"""
     try:
         user = session.get("user")
         if not user:
             return jsonify({"error": "No user in session"}), 400
 
-        user_id = user.get("id")  # Add user_id extraction
-        player_name = f"{user['first_name']} {user['last_name']}"
-        series = user["series"]
+        user_email = user.get("email")
+        
+        # Check for team_id parameter for team switching
+        requested_team_id = request.args.get('team_id')
+        if requested_team_id:
+            try:
+                requested_team_id = int(requested_team_id)
+                print(f"[DEBUG] Team switching requested: team_id={requested_team_id}")
+                
+                # Update session with new team context
+                from app.services.session_service import get_session_data_for_user_team
+                fresh_session_data = get_session_data_for_user_team(user_email, requested_team_id)
+                
+                if fresh_session_data:
+                    # Update Flask session with new team context
+                    session["user"] = fresh_session_data
+                    session.modified = True
+                    user = fresh_session_data
+                    print(f"[DEBUG] Updated session to team {requested_team_id}")
+                else:
+                    print(f"[DEBUG] Failed to get session data for team {requested_team_id}")
+            except (ValueError, TypeError):
+                print(f"[DEBUG] Invalid team_id parameter: {requested_team_id}")
 
-        # Get matches for the user's club/series using existing function (same as availability-calendar)
-        matches = get_matches_for_user_club(user)
+        # Get user's available teams for team switching (after team context is set)
+        from app.services.session_service import get_user_teams_in_league
+        current_league_id = user.get("league_id")
+        if current_league_id:
+            user_teams = get_user_teams_in_league(user_email, current_league_id)
+            # Add league_name to each team for template compatibility
+            for team in user_teams:
+                team["league_name"] = user.get("league_name", "")
+        else:
+            user_teams = []
+        
+        # Get current team info
+        current_team_info = None
+        current_team_id = user.get("team_id")
+        if current_team_id:
+            for team in user_teams:
+                if team.get("team_id") == current_team_id:
+                    current_team_info = team
+                    break
 
-        # Get this user's availability for each match using existing function (same as availability-calendar)
-        # FIXED: Pass user_id parameter for proper user-player associations
-        availability = get_user_availability(player_name, matches, series, user_id)
+        # Get availability data using session service for accurate team_id filtering
+        # IMPORTANT: Pass the user data directly to preserve team context
+        availability_data = get_mobile_availability_data(user)
 
-        # Create match-availability pairs for the template
-        match_avail_pairs = list(zip(matches, availability))
+        # No auto-redirect - respect user's team selection and show appropriate messaging
 
         session_data = {"user": user, "authenticated": True}
 
@@ -1576,11 +1916,14 @@ def serve_mobile_availability():
         return render_template(
             "mobile/availability.html",
             session_data=session_data,
-            match_avail_pairs=match_avail_pairs,
-            players=[{"name": player_name}],
+            user_teams=user_teams,
+            current_team_info=current_team_info,
+            **availability_data
         )
     except Exception as e:
         print(f"Error serving mobile availability: {str(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
         return f"Error loading availability page: {str(e)}", 500
 
 
@@ -1712,12 +2055,20 @@ def serve_mobile_availability_calendar():
         if not user:
             return jsonify({"error": "No user in session"}), 400
 
-        user_id = user.get("id")  # Add user_id extraction
+        user_id = user.get("id")
         player_name = f"{user['first_name']} {user['last_name']}"
         series = user["series"]
 
-        # Get matches for the user's club/series using existing function
-        matches = get_matches_for_user_club(user)
+        # FIXED: Use the optimized team_id-based availability data (same as /mobile/availability)
+        availability_data = get_mobile_availability_data(user)
+        
+        # Extract matches from the availability data
+        matches = []
+        for match_avail_pair in availability_data.get("match_avail_pairs", []):
+            match_data = match_avail_pair[0]  # First element is the match
+            matches.append(match_data)
+        
+        print(f"[CALENDAR] Found {len(matches)} matches for calendar using team_id approach")
 
         # Get this user's availability for each match using existing function
         # FIXED: Pass user_id parameter for proper user-player associations
@@ -1741,6 +2092,8 @@ def serve_mobile_availability_calendar():
 
     except Exception as e:
         print(f"ERROR in mobile_availability_calendar: {str(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
         return f"Error: {str(e)}", 500
 
 
@@ -2407,7 +2760,7 @@ def get_team_members_with_court_stats(team_id, user):
 
         # Use the same court assignment logic as my-team page with league filtering
         court_assignments = calculate_player_court_stats(
-            team_matches, team_name, members, user_league_id
+            team_matches, team_name, members, user_league_id, team_id
         )
 
         # If no court assignments found, create sample data for testing court display
@@ -2474,8 +2827,8 @@ def create_sample_court_data(members):
     return court_assignments
 
 
-def calculate_player_court_stats(team_matches, team_name, members, user_league_id=None):
-    """Calculate how many times each player played on each court, filtered by league context"""
+def calculate_player_court_stats(team_matches, team_name, members, user_league_id=None, team_id=None):
+    """Calculate how many times each player played on each court, filtered by league and team context"""
     try:
         from collections import defaultdict
         from datetime import datetime
@@ -2520,8 +2873,35 @@ def calculate_player_court_stats(team_matches, team_name, members, user_league_i
 
             player_name = f"{member['first_name']} {member['last_name']}"
 
-            # Get player matches filtered by league if available
-            if league_id_int:
+            # Get player matches filtered by league and team if available
+            if league_id_int and team_id:
+                # Filter by both league and team for multi-team players
+                all_player_matches_query = """
+                    SELECT 
+                        TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
+                        match_date,
+                        home_team as "Home Team",
+                        away_team as "Away Team",
+                        home_player_1_id as "Home Player 1",
+                        home_player_2_id as "Home Player 2",
+                        away_player_1_id as "Away Player 1",
+                        away_player_2_id as "Away Player 2",
+                        id
+                    FROM match_scores
+                    WHERE (home_player_1_id = %s 
+                       OR home_player_2_id = %s 
+                       OR away_player_1_id = %s 
+                       OR away_player_2_id = %s)
+                    AND league_id = %s
+                    AND (home_team_id = %s OR away_team_id = %s)
+                    ORDER BY match_date, id
+                """
+                player_matches = execute_query(
+                    all_player_matches_query,
+                    [player_id, player_id, player_id, player_id, league_id_int, team_id, team_id],
+                )
+            elif league_id_int:
+                # Filter by league only if no team_id available
                 all_player_matches_query = """
                     SELECT 
                         TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
@@ -2545,8 +2925,33 @@ def calculate_player_court_stats(team_matches, team_name, members, user_league_i
                     all_player_matches_query,
                     [player_id, player_id, player_id, player_id, league_id_int],
                 )
+            elif team_id:
+                # Filter by team only if no league filter available
+                all_player_matches_query = """
+                    SELECT 
+                        TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
+                        match_date,
+                        home_team as "Home Team",
+                        away_team as "Away Team",
+                        home_player_1_id as "Home Player 1",
+                        home_player_2_id as "Home Player 2",
+                        away_player_1_id as "Away Player 1",
+                        away_player_2_id as "Away Player 2",
+                        id
+                    FROM match_scores
+                    WHERE (home_player_1_id = %s 
+                       OR home_player_2_id = %s 
+                       OR away_player_1_id = %s 
+                       OR away_player_2_id = %s)
+                    AND (home_team_id = %s OR away_team_id = %s)
+                    ORDER BY match_date, id
+                """
+                player_matches = execute_query(
+                    all_player_matches_query,
+                    [player_id, player_id, player_id, player_id, team_id, team_id],
+                )
             else:
-                # Fallback to all matches if no league filter available
+                # Fallback to all matches if no filters available
                 all_player_matches_query = """
                     SELECT 
                         TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
@@ -2598,18 +3003,32 @@ def calculate_player_court_stats(team_matches, team_name, members, user_league_i
                 match_id = match.get("id")
 
                 # Get ALL matches for this team matchup on this date, ordered by database ID
-                team_matchup_query = """
-                    SELECT id, home_player_1_id, home_player_2_id, away_player_1_id, away_player_2_id
-                    FROM match_scores 
-                    WHERE TO_CHAR(match_date, 'DD-Mon-YY') = %s
-                    AND home_team = %s 
-                    AND away_team = %s
-                    ORDER BY id
-                """
-
-                team_day_matches_ordered = execute_query(
-                    team_matchup_query, [match_date, home_team, away_team]
-                )
+                # Include league filter if available to ensure we're looking at the right context
+                if league_id_int:
+                    team_matchup_query = """
+                        SELECT id, home_player_1_id, home_player_2_id, away_player_1_id, away_player_2_id
+                        FROM match_scores 
+                        WHERE TO_CHAR(match_date, 'DD-Mon-YY') = %s
+                        AND home_team = %s 
+                        AND away_team = %s
+                        AND league_id = %s
+                        ORDER BY id
+                    """
+                    team_day_matches_ordered = execute_query(
+                        team_matchup_query, [match_date, home_team, away_team, league_id_int]
+                    )
+                else:
+                    team_matchup_query = """
+                        SELECT id, home_player_1_id, home_player_2_id, away_player_1_id, away_player_2_id
+                        FROM match_scores 
+                        WHERE TO_CHAR(match_date, 'DD-Mon-YY') = %s
+                        AND home_team = %s 
+                        AND away_team = %s
+                        ORDER BY id
+                    """
+                    team_day_matches_ordered = execute_query(
+                        team_matchup_query, [match_date, home_team, away_team]
+                    )
 
                 # Find this match's position within the ordered team matchup to assign court
                 court_num = None
@@ -2636,177 +3055,281 @@ def calculate_player_court_stats(team_matches, team_name, members, user_league_i
         return {}
 
 
+def get_mobile_track_byes_data(user):
+    """Get track byes and court assignment data for mobile interface using priority-based team detection like analyze-me"""
+    try:
+        from app.services.session_service import get_session_data_for_user
+        from database_utils import execute_query_one
+        
+        user_email = user.get("email")
+        player_id = user.get("tenniscores_player_id")
+        
+        # PRIORITY-BASED TEAM DETECTION (same as analyze-me page)
+        user_team_id = None
+        user_team_name = None
+        
+        # PRIORITY 1: Use team_id from session if available (most reliable for multi-team players)
+        session_team_id = user.get("team_id")
+        print(f"[DEBUG] Track-byes-courts: session_team_id from user: {session_team_id}")
+        
+        if session_team_id:
+            try:
+                # Get team name for the specific team_id from session
+                session_team_query = """
+                    SELECT t.id, t.team_name
+                    FROM teams t
+                    WHERE t.id = %s
+                """
+                session_team_result = execute_query_one(session_team_query, [session_team_id])
+                if session_team_result:
+                    user_team_id = session_team_result['id'] 
+                    user_team_name = session_team_result['team_name']
+                    print(f"[DEBUG] Track-byes-courts: Using team_id from session: team_id={user_team_id}, team_name={user_team_name}")
+                else:
+                    print(f"[DEBUG] Track-byes-courts: Session team_id {session_team_id} not found in teams table")
+            except Exception as e:
+                print(f"[DEBUG] Track-byes-courts: Error getting team from session team_id {session_team_id}: {e}")
+        
+        # PRIORITY 2: Use team_context from user if provided (from composite player URL)
+        if not user_team_id:
+            team_context = user.get("team_context") if user else None
+            if team_context:
+                try:
+                    # Get team name for the specific team_id from team context
+                    team_context_query = """
+                        SELECT t.id, t.team_name
+                        FROM teams t
+                        WHERE t.id = %s
+                    """
+                    team_context_result = execute_query_one(team_context_query, [team_context])
+                    if team_context_result:
+                        user_team_id = team_context_result['id'] 
+                        user_team_name = team_context_result['team_name']
+                        print(f"[DEBUG] Track-byes-courts: Using team_context from URL: team_id={user_team_id}, team_name={user_team_name}")
+                    else:
+                        print(f"[DEBUG] Track-byes-courts: team_context {team_context} not found in teams table")
+                except Exception as e:
+                    print(f"[DEBUG] Track-byes-courts: Error getting team from team_context {team_context}: {e}")
+        
+        # PRIORITY 3: Use session service as fallback if no direct team_id
+        if not user_team_id:
+            print(f"[DEBUG] Track-byes-courts: No direct team_id, using session service fallback")
+            session_data = get_session_data_for_user(user_email)
+            if session_data:
+                user_team_id = session_data.get("team_id")
+                if user_team_id:
+                    try:
+                        session_team_query = """
+                            SELECT t.id, t.team_name
+                            FROM teams t
+                            WHERE t.id = %s
+                        """
+                        session_team_result = execute_query_one(session_team_query, [user_team_id])
+                        if session_team_result:
+                            user_team_name = session_team_result['team_name']
+                            print(f"[DEBUG] Track-byes-courts: Session service provided: team_id={user_team_id}, team_name={user_team_name}")
+                    except Exception as e:
+                        print(f"[DEBUG] Track-byes-courts: Error getting team name from session service team_id: {e}")
+        
+        # If still no team, return error
+        if not user_team_id:
+            return {
+                "team_members": [],
+                "current_team_info": None,
+                "user_teams": [],
+                "available_courts": [
+                    {"key": "court1", "name": "Court 1"},
+                    {"key": "court2", "name": "Court 2"},
+                    {"key": "court3", "name": "Court 3"},
+                    {"key": "court4", "name": "Court 4"},
+                ],
+                "error": "No team ID found - please check your profile settings"
+            }
+        
+        print(f"[DEBUG] Track-byes-courts: Final team selection: team_id={user_team_id}, team_name={user_team_name}")
+        
+        # Get team members with court stats using existing function
+        team_members = get_team_members_with_court_stats(user_team_id, user)
+        
+        # Get additional team info from session or database
+        session_data = get_session_data_for_user(user_email)
+        
+        # Get current team info
+        current_team_info = {
+            "team_id": user_team_id,
+            "team_name": user_team_name or session_data.get("series", "Unknown Team"),
+            "club_name": session_data.get("club", "Unknown Club") if session_data else "Unknown Club",
+            "series_name": session_data.get("series", "Unknown Series") if session_data else "Unknown Series"
+        }
+        
+        # For now, just return single team - multi-team support can be added later
+        user_teams = [current_team_info]
+        
+        # Standard courts available
+        available_courts = [
+            {"key": "court1", "name": "Court 1"},
+            {"key": "court2", "name": "Court 2"},
+            {"key": "court3", "name": "Court 3"},
+            {"key": "court4", "name": "Court 4"},
+        ]
+        
+        return {
+            "team_members": team_members,
+            "current_team_info": current_team_info,
+            "user_teams": user_teams,
+            "available_courts": available_courts,
+            "team_id": user_team_id
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting mobile track byes data: {str(e)}")
+        import traceback
+        print(f"[DEBUG] Track-byes-courts error traceback: {traceback.format_exc()}")
+        return {
+            "team_members": [],
+            "current_team_info": None,
+            "user_teams": [],
+            "available_courts": [
+                {"key": "court1", "name": "Court 1"},
+                {"key": "court2", "name": "Court 2"},
+                {"key": "court3", "name": "Court 3"},
+                {"key": "court4", "name": "Court 4"},
+            ],
+            "error": str(e)
+        }
+
+
+def get_court_assignments_data(user):
+    """Get court assignments data for mobile interface"""
+    try:
+        # This is a simplified version - could be expanded for more complex court assignment tracking
+        return {
+            "assignments_summary": "Court assignments based on historical match data",
+            "last_updated": datetime.now().strftime("%Y-%m-%d %H:%M"),
+            "data_source": "Database match records"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting court assignments data: {str(e)}")
+        return {
+            "assignments_summary": "Error loading court assignments",
+            "last_updated": None,
+            "data_source": "Error",
+            "error": str(e)
+        }
+
+
 @mobile_bp.route("/mobile/track-byes-courts")
 @login_required
 def serve_track_byes_courts():
-    """Serve the Track Byes & Court Assignments page with dynamic court data and real team members"""
+    """Serve the Track Byes & Court Assignments page with simple league switching"""
     try:
+        from app.services.session_service import switch_user_league, get_session_data_for_user
+        
         user = session["user"]
+        user_email = user.get("email")
 
-        # Get user's team ID
-        team_id = get_user_team_id(user)
+        # Handle league switching via URL parameter (?league_id=APTA_CHICAGO or ?league_id=NSTF)
+        requested_league_id = request.args.get('league_id')
+        if requested_league_id:
+            logger.info(f"League switch requested via URL: {user_email} -> {requested_league_id}")
+            
+            # Switch to new league
+            if switch_user_league(user_email, requested_league_id):
+                # Update session with fresh data
+                fresh_session_data = get_session_data_for_user(user_email)
+                if fresh_session_data:
+                    session["user"] = fresh_session_data
+                    session.modified = True
+                    user = session["user"]  # Use updated user data
+                    logger.info(f"Successfully switched to {fresh_session_data['league_name']}")
+                else:
+                    logger.warning(f"Failed to refresh session after league switch")
+            else:
+                logger.warning(f"Failed to switch to league: {requested_league_id}")
 
-        # Get actual team members with their court assignment statistics
-        team_members = []
-        if team_id:
-            team_members = get_team_members_with_court_stats(team_id, user)
-
-        # If no team members found, provide sample data as fallback
-        if not team_members:
-            team_members = [
-                {
-                    "id": 1,
-                    "name": "John Smith",
-                    "first_name": "John",
-                    "last_name": "Smith",
-                    "pti": 25.0,
-                    "match_count": 8,
-                    "court_stats": {"court1": 0, "court2": 0, "court3": 0, "court4": 0},
-                },
-                {
-                    "id": 2,
-                    "name": "Sarah Johnson",
-                    "first_name": "Sarah",
-                    "last_name": "Johnson",
-                    "pti": 30.0,
-                    "match_count": 6,
-                    "court_stats": {"court1": 0, "court2": 0, "court3": 0, "court4": 0},
-                },
-                {
-                    "id": 3,
-                    "name": "Mike Davis",
-                    "first_name": "Mike",
-                    "last_name": "Davis",
-                    "pti": 28.0,
-                    "match_count": 5,
-                    "court_stats": {"court1": 0, "court2": 0, "court3": 0, "court4": 0},
-                },
-                {
-                    "id": 4,
-                    "name": "Lisa Wilson",
-                    "first_name": "Lisa",
-                    "last_name": "Wilson",
-                    "pti": 32.0,
-                    "match_count": 7,
-                    "court_stats": {"court1": 0, "court2": 0, "court3": 0, "court4": 0},
-                },
-                {
-                    "id": 5,
-                    "name": "David Brown",
-                    "first_name": "David",
-                    "last_name": "Brown",
-                    "pti": 26.0,
-                    "match_count": 4,
-                    "court_stats": {"court1": 0, "court2": 0, "court3": 0, "court4": 0},
-                },
-                {
-                    "id": 6,
-                    "name": "Emily Chen",
-                    "first_name": "Emily",
-                    "last_name": "Chen",
-                    "pti": 29.0,
-                    "match_count": 9,
-                    "court_stats": {"court1": 0, "court2": 0, "court3": 0, "court4": 0},
-                },
-            ]
-
-        # Get dynamic court data using the same logic as my-team page
-        team_data = get_mobile_team_data(user)
-        court_analysis = team_data.get("court_analysis", {})
-
-        # Extract court information dynamically
-        available_courts = []
-        for court_key in sorted(court_analysis.keys()):
-            court_number = court_key.replace("court", "")
-            available_courts.append(
-                {
-                    "number": court_number,
-                    "key": court_key,
-                    "name": f"Court {court_number}",
-                }
-            )
-
-        # If no courts found, default to 4 courts
-        if not available_courts:
-            available_courts = [
-                {"number": "1", "key": "court1", "name": "Court 1"},
-                {"number": "2", "key": "court2", "name": "Court 2"},
-                {"number": "3", "key": "court3", "name": "Court 3"},
-                {"number": "4", "key": "court4", "name": "Court 4"},
-            ]
-            # Ensure team members have empty court stats for template rendering
-            for member in team_members:
-                if "court_stats" not in member or not member["court_stats"]:
-                    member["court_stats"] = {
-                        "court1": 0,
-                        "court2": 0,
-                        "court3": 0,
-                        "court4": 0,
-                    }
-
+        # Get updated track byes and courts data
+        track_byes_data = get_mobile_track_byes_data(user)
+        court_assignments_data = get_court_assignments_data(user)
+        
         session_data = {"user": user, "authenticated": True}
-
         log_user_activity(user["email"], "page_visit", page="track_byes_courts")
-
+        
+        # Extract data for template - the template expects individual variables, not nested data
         return render_template(
             "mobile/track_byes_courts.html",
             session_data=session_data,
-            available_courts=available_courts,
-            court_analysis=court_analysis,
-            team_members=team_members,
-            team_id=team_id,
+            team_members=track_byes_data.get("team_members", []),
+            current_team_info=track_byes_data.get("current_team_info"),
+            user_teams=track_byes_data.get("user_teams", []),
+            available_courts=track_byes_data.get("available_courts", []),
+            team_id=track_byes_data.get("team_id"),
+            court_assignments_data=court_assignments_data,
         )
-
+        
     except Exception as e:
-        print(f"Error serving track byes courts page: {str(e)}")
-        import traceback
-
-        print(f"Full traceback: {traceback.format_exc()}")
-
-        # Fallback with default courts and sample team members
-        session_data = {"user": session.get("user"), "authenticated": True}
-
-        default_courts = [
-            {"number": "1", "key": "court1", "name": "Court 1"},
-            {"number": "2", "key": "court2", "name": "Court 2"},
-            {"number": "3", "key": "court3", "name": "Court 3"},
-            {"number": "4", "key": "court4", "name": "Court 4"},
-        ]
-
-        fallback_members = [
-            {
-                "id": 1,
-                "name": "John Smith",
-                "first_name": "John",
-                "last_name": "Smith",
-                "pti": 25.0,
-                "match_count": 0,
-                "court_stats": {"court1": 0, "court2": 0, "court3": 0, "court4": 0},
-            },
-            {
-                "id": 2,
-                "name": "Sarah Johnson",
-                "first_name": "Sarah",
-                "last_name": "Johnson",
-                "pti": 30.0,
-                "match_count": 0,
-                "court_stats": {"court1": 0, "court2": 0, "court3": 0, "court4": 0},
-            },
-        ]
-
+        logger.error(f"Error serving track-byes-courts: {str(e)}")
         return render_template(
-            "mobile/track_byes_courts.html",
-            session_data=session_data,
-            available_courts=default_courts,
-            court_analysis={},
-            team_members=fallback_members,
-            team_id=None,
-            error="Could not load dynamic data",
-        )
-
-    except Exception as e:
-        print(f"Critical error serving track byes courts page: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+            "mobile/error.html",
+            error_message="Failed to load track byes and courts data"
+        ), 500
 
 
 # Upload endpoint removed - professional photos now in place
+
+@mobile_bp.route("/pti-calculator")
+@login_required
+def pti_calculator():
+    """Serve the PTI calculator page"""
+    session_data = {"user": session["user"], "authenticated": True}
+    log_user_activity(session["user"]["email"], "page_visit", page="pti_calculator")
+    return render_template("mobile/pti_calculator.html", session_data=session_data)
+
+
+@mobile_bp.route("/api/calculate-pti", methods=["POST"])
+@login_required
+def calculate_pti_adjustment():
+    """Calculate PTI adjustments based on match results using Glicko-2 algorithm"""
+    try:
+        data = request.get_json()
+        
+        # Extract input data
+        player_pti = float(data.get('player_pti', 0))
+        partner_pti = float(data.get('partner_pti', 0))
+        opp1_pti = float(data.get('opp1_pti', 0))
+        opp2_pti = float(data.get('opp2_pti', 0))
+        
+        # Map numeric experience values to strings for v4 algorithm
+        def map_experience(exp_val):
+            exp_val = float(exp_val)
+            if exp_val >= 7.0:
+                return "New Player"
+            elif exp_val >= 5.0:
+                return "1-10"
+            elif exp_val >= 4.0:
+                return "10-30"
+            else:
+                return "30+"
+        
+        player_exp = map_experience(data.get('player_exp', 3.2))
+        partner_exp = map_experience(data.get('partner_exp', 3.2))
+        opp1_exp = map_experience(data.get('opp1_exp', 3.2))
+        opp2_exp = map_experience(data.get('opp2_exp', 3.2))
+        
+        match_score = data.get('match_score', '')
+        
+        # Import and use PTI calculation service v6 (matches original exactly)
+        from app.services.pti_calculator_service_v6 import calculate_pti_v6
+        
+        result = calculate_pti_v6(
+            player_pti, partner_pti, opp1_pti, opp2_pti,
+            player_exp, partner_exp, opp1_exp, opp2_exp,
+            match_score
+        )
+        
+        # v6 returns {"success": True/False, "result": {...}}
+        return jsonify(result)
+        
+    except Exception as e:
+        logger.error(f"Error calculating PTI adjustment: {str(e)}")
+        return jsonify({"success": False, "error": str(e)}), 500

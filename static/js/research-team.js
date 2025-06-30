@@ -408,8 +408,31 @@ function calculatePlayerStats(matches, teamId) {
         const winnerIsHome = match["Winner"] === "home";
         const teamWon = (isHome && winnerIsHome) || (!isHome && !winnerIsHome);
         
-        // Figure out which court based on position in the match list
-        const courtIndex = matches.indexOf(match) % 4;
+        // FIXED: Court assignment based on database ID order within team matchup
+        // First, group matches by team matchup to get correct court order
+        const matchDate = match["Date"];
+        const homeTeam = match["Home Team"];
+        const awayTeam = match["Away Team"];
+        
+        // Get all matches for this same team matchup on this date
+        const teamMatchupMatches = matches.filter(m => 
+            m["Date"] === matchDate && 
+            m["Home Team"] === homeTeam && 
+            m["Away Team"] === awayTeam
+        );
+        
+        // Sort by ID to ensure correct database order (court assignment is based on ID order)
+        teamMatchupMatches.sort((a, b) => (a.id || 0) - (b.id || 0));
+        
+        // Find this match's position in the correctly ordered team matchup
+        const courtIndex = teamMatchupMatches.findIndex(m => 
+            (m.id && match.id && m.id === match.id) ||
+            (m["Home Player 1"] === match["Home Player 1"] && 
+             m["Home Player 2"] === match["Home Player 2"] &&
+             m["Away Player 1"] === match["Away Player 1"] && 
+             m["Away Player 2"] === match["Away Player 2"])
+        );
+        
         const courtName = `Court ${courtIndex + 1}`;
         
         // Update player stats
@@ -471,21 +494,23 @@ function calculatePlayerStats(matches, teamId) {
         // Calculate win rate
         player.winRate = player.matches > 0 ? Math.round((player.wins / player.matches) * 100) : 0;
         
-        // Find best court
+        // Find best court - Fixed logic: >3 matches (>=4) AND >=70% win rate
         let bestCourt = null;
         let bestCourtWinRate = 0;
         Object.keys(player.courts).forEach(courtName => {
             const court = player.courts[courtName];
-            if (court.matches >= 2) {
+            if (court.matches > 3) {  // More than 3 matches (>=4)
                 const courtWinRate = Math.round((court.wins / court.matches) * 100);
-                if (courtWinRate > bestCourtWinRate) {
-                    bestCourtWinRate = courtWinRate;
-                    bestCourt = {
-                        name: courtName,
-                        matches: court.matches,
-                        wins: court.wins,
-                        winRate: courtWinRate
-                    };
+                if (courtWinRate >= 70) {  // Must have 70% or greater win rate
+                    if (courtWinRate > bestCourtWinRate) {
+                        bestCourtWinRate = courtWinRate;
+                        bestCourt = {
+                            name: courtName,
+                            matches: court.matches,
+                            wins: court.wins,
+                            winRate: courtWinRate
+                        };
+                    }
                 }
             }
         });
@@ -498,14 +523,16 @@ function calculatePlayerStats(matches, teamId) {
             const partner = player.partners[partnerName];
             if (partner.matches >= 2) {
                 const partnerWinRate = Math.round((partner.wins / partner.matches) * 100);
-                if (partnerWinRate > bestPartnerWinRate) {
-                    bestPartnerWinRate = partnerWinRate;
-                    bestPartner = {
-                        name: partnerName,
-                        matches: partner.matches,
-                        wins: partner.wins,
-                        winRate: partnerWinRate
-                    };
+                if (partnerWinRate >= 60) {
+                    if (partnerWinRate > bestPartnerWinRate) {
+                        bestPartnerWinRate = partnerWinRate;
+                        bestPartner = {
+                            name: partnerName,
+                            matches: partner.matches,
+                            wins: partner.wins,
+                            winRate: partnerWinRate
+                        };
+                    }
                 }
             }
         });
@@ -515,23 +542,18 @@ function calculatePlayerStats(matches, teamId) {
     return players;
 }
 
-// Get upcoming matches
+// Get recent matches (updated to show all matches instead of just upcoming)
 function getUpcomingMatches(matches, teamId) {
-    // Sort matches by date
+    // Sort matches by date (most recent first)
     const sortedMatches = [...matches].sort((a, b) => {
         const dateA = new Date(a["Date"].split('-').reverse().join('-'));
         const dateB = new Date(b["Date"].split('-').reverse().join('-'));
-        return dateA - dateB;
+        return dateB - dateA; // Changed to descending order (most recent first)
     });
     
-    // Get current date
-    const currentDate = new Date();
-    
-    // Filter for upcoming matches
-    return sortedMatches.filter(match => {
-        const matchDate = new Date(match["Date"].split('-').reverse().join('-'));
-        return matchDate >= currentDate;
-    }).slice(0, 3); // Get next 3 matches
+    // UPDATED: Show recent matches instead of filtering by current date
+    // This supports completed seasons where no upcoming matches exist
+    return sortedMatches.slice(0, 5); // Show last 5 matches instead of next 3
 }
 
 // Generate HTML for court cards
@@ -606,10 +628,10 @@ function generatePlayerRows(playerStats) {
     }).join('');
 }
 
-// Generate HTML for upcoming matches
+// Generate HTML for recent matches (updated to show historical data)
 function generateUpcomingMatchesHTML(upcomingMatches) {
     if (upcomingMatches.length === 0) {
-        return `<p class="text-center">No upcoming matches scheduled</p>`;
+        return `<p class="text-center">No recent matches found</p>`;
     }
     
     return `

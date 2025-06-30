@@ -1,0 +1,373 @@
+<!-- 
+Universal Team Selector Component
+================================
+
+This component provides team switching functionality for users with multiple leagues/teams.
+Can be included on any page where team context is relevant.
+
+Usage:
+{% include 'components/team_selector.html' %}
+
+Requirements:
+- user_teams: List of teams user has access to
+- current_team_info: Current team context (optional)
+- page_endpoint: Current page endpoint for redirect (optional)
+-->
+
+{% if user_teams and user_teams|length > 1 %}
+<div class="team-selector-container">
+    <!-- Trigger Button -->
+    <div class="px-4 py-2">
+        <div class="text-right">
+            <button id="teamSelectorTrigger" 
+                    class="inline-flex items-center text-sm text-gray-600 hover:text-blue-600 transition-colors duration-200 bg-white border border-gray-200 rounded-lg px-3 py-2 shadow-sm hover:shadow-md">
+                <i class="fas fa-users text-xs mr-2"></i>
+                {% if current_team_info %}
+                    <span>{{ current_team_info.team_name }}</span>
+                {% else %}
+                    <span>Select Team</span>
+                {% endif %}
+                <i class="fas fa-chevron-down text-xs ml-2"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Team Selection Modal -->
+    <div id="teamSelectorModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full max-h-96 overflow-hidden">
+            <!-- Modal Header -->
+            <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-blue-50 to-indigo-50">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-900">Switch Team Context</h3>
+                    <p class="text-sm text-gray-600 mt-1">Choose your active team for this session</p>
+                </div>
+                <button id="closeTeamModal" class="text-gray-400 hover:text-gray-600 transition-colors p-2 rounded-lg hover:bg-gray-100">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+            </div>
+            
+            <!-- Team Options -->
+            <div class="p-4 space-y-2 max-h-80 overflow-y-auto">
+                {% for team in user_teams %}
+                <button onclick="switchToTeam({{ team.id }}, '{{ team.team_name }}')"
+                        class="team-option w-full flex items-center justify-between p-4 rounded-lg hover:bg-gray-50 transition-colors group text-left
+                               {% if team.id == (current_team_info.id if current_team_info else None) %}bg-blue-50 border-2 border-blue-200 ring-2 ring-blue-100{% else %}border border-gray-200 hover:border-gray-300{% endif %}"
+                        data-team-id="{{ team.id }}"
+                        data-team-name="{{ team.team_name }}">
+                    <div class="flex-1">
+                        <div class="font-medium {% if team.id == (current_team_info.id if current_team_info else None) %}text-blue-700{% else %}text-gray-900{% endif %}">
+                            {{ team.team_name }}
+                        </div>
+                        <div class="text-sm text-gray-500 mt-1">
+                            {{ team.club_name }} • {{ team.series_name }}
+                        </div>
+                        <div class="text-xs text-gray-400 mt-1">
+                            {{ team.league_name }} • {{ team.match_count }} matches
+                        </div>
+                    </div>
+                    <div class="ml-4">
+                        {% if team.id == (current_team_info.id if current_team_info else None) %}
+                            <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                                <i class="fas fa-check text-white text-sm"></i>
+                            </div>
+                        {% else %}
+                            <div class="w-8 h-8 border-2 border-gray-300 rounded-full flex items-center justify-center group-hover:border-blue-400 transition-colors">
+                                <i class="fas fa-arrow-right text-gray-400 text-sm group-hover:text-blue-500"></i>
+                            </div>
+                        {% endif %}
+                    </div>
+                </button>
+                {% endfor %}
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="px-6 py-4 border-t border-gray-100 bg-gray-50">
+                <div class="flex items-center justify-between">
+                    <div class="text-xs text-gray-500">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        Team context affects data filtering across the app
+                    </div>
+                    <button onclick="closeTeamSelector()" 
+                            class="text-sm text-gray-600 hover:text-gray-800 px-3 py-1 rounded hover:bg-gray-200 transition-colors">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Context Info Bar (optional, shows current context) -->
+{% if current_team_info and user_teams|length > 1 %}
+<div class="context-info-bar bg-gradient-to-r from-blue-50 to-indigo-50 border-b border-blue-100 px-4 py-2">
+    <div class="flex items-center justify-between">
+        <div class="flex items-center text-sm text-blue-700">
+            <i class="fas fa-layer-group mr-2"></i>
+            <span class="font-medium">Current Context:</span>
+            <span class="ml-2">{{ current_team_info.team_name }}</span>
+            <span class="mx-2 text-blue-400">•</span>
+            <span>{{ current_team_info.league_name }}</span>
+        </div>
+        <button onclick="openTeamSelector()" 
+                class="text-xs text-blue-600 hover:text-blue-800 underline">
+            Switch Team
+        </button>
+    </div>
+</div>
+{% endif %}
+
+<style>
+/* Team Selector Specific Styles */
+.team-selector-container .team-option {
+    transition: all 0.2s ease;
+}
+
+.team-selector-container .team-option:hover {
+    transform: translateY(-1px);
+    shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.team-selector-container #teamSelectorModal {
+    backdrop-filter: blur(4px);
+}
+
+/* Animation classes */
+.fade-in {
+    animation: fadeIn 0.2s ease;
+}
+
+.fade-out {
+    animation: fadeOut 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes fadeOut {
+    from { opacity: 1; transform: scale(1); }
+    to { opacity: 0; transform: scale(0.95); }
+}
+
+/* Loading state */
+.team-switching {
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+.team-switching::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid #3b82f6;
+    border-radius: 50%;
+    border-top-color: transparent;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+</style>
+
+<script>
+// Team Selector JavaScript
+(function() {
+    let isLoading = false;
+
+    // Initialize team selector
+    function initTeamSelector() {
+        const trigger = document.getElementById('teamSelectorTrigger');
+        const modal = document.getElementById('teamSelectorModal');
+        const closeBtn = document.getElementById('closeTeamModal');
+
+        if (!trigger || !modal) return;
+
+        // Open modal
+        trigger.addEventListener('click', openTeamSelector);
+
+        // Close modal
+        if (closeBtn) {
+            closeBtn.addEventListener('click', closeTeamSelector);
+        }
+
+        // Close on outside click
+        modal.addEventListener('click', function(e) {
+            if (e.target === modal) {
+                closeTeamSelector();
+            }
+        });
+
+        // Close on escape
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
+                closeTeamSelector();
+            }
+        });
+    }
+
+    // Open team selector modal
+    window.openTeamSelector = function() {
+        const modal = document.getElementById('teamSelectorModal');
+        if (modal && !isLoading) {
+            modal.classList.remove('hidden');
+            modal.querySelector('.bg-white').classList.add('fade-in');
+            document.body.style.overflow = 'hidden';
+        }
+    };
+
+    // Close team selector modal
+    window.closeTeamSelector = function() {
+        const modal = document.getElementById('teamSelectorModal');
+        if (modal) {
+            modal.querySelector('.bg-white').classList.add('fade-out');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.querySelector('.bg-white').classList.remove('fade-in', 'fade-out');
+                document.body.style.overflow = '';
+            }, 200);
+        }
+    };
+
+    // Switch to selected team
+    window.switchToTeam = function(teamId, teamName) {
+        if (isLoading) return;
+
+        isLoading = true;
+        
+        // Show loading state
+        const trigger = document.getElementById('teamSelectorTrigger');
+        if (trigger) {
+            trigger.classList.add('team-switching');
+            trigger.innerHTML = `
+                <i class="fas fa-spinner fa-spin text-xs mr-2"></i>
+                <span>Switching to ${teamName}...</span>
+            `;
+        }
+
+        // Close modal immediately for responsive feel
+        closeTeamSelector();
+
+        // Get current page endpoint or use current URL
+        const currentPath = window.location.pathname;
+        const currentSearch = window.location.search;
+        
+        // Build URL with team parameter
+        const separator = currentSearch ? '&' : '?';
+        const newUrl = `${currentPath}${currentSearch}${separator}team_id=${teamId}`;
+
+        // Navigate to new URL with team context
+        setTimeout(() => {
+            window.location.href = newUrl;
+        }, 300);
+    };
+
+    // API method to switch context via AJAX (for SPA-style switching)
+    window.switchTeamContext = async function(teamId, teamName) {
+        if (isLoading) return;
+
+        isLoading = true;
+
+        try {
+            const response = await fetch('/api/switch-team-context', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ team_id: teamId })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                // Update UI to reflect new context
+                updateContextUI(result.context);
+                
+                // Show success message
+                showContextMessage(`Switched to ${teamName}`, 'success');
+                
+                // Optionally reload page data without full page refresh
+                if (window.reloadPageData && typeof window.reloadPageData === 'function') {
+                    window.reloadPageData();
+                }
+            } else {
+                showContextMessage(result.error || 'Failed to switch team', 'error');
+            }
+        } catch (error) {
+            console.error('Error switching team context:', error);
+            showContextMessage('Network error while switching team', 'error');
+        } finally {
+            isLoading = false;
+        }
+    };
+
+    // Update context UI after successful switch
+    function updateContextUI(contextInfo) {
+        const trigger = document.getElementById('teamSelectorTrigger');
+        if (trigger && contextInfo.team_name) {
+            trigger.innerHTML = `
+                <i class="fas fa-users text-xs mr-2"></i>
+                <span>${contextInfo.team_name}</span>
+                <i class="fas fa-chevron-down text-xs ml-2"></i>
+            `;
+        }
+
+        // Update context info bar if present
+        const contextBar = document.querySelector('.context-info-bar');
+        if (contextBar && contextInfo.team_name) {
+            const contextText = contextBar.querySelector('span:nth-of-type(2)');
+            const leagueText = contextBar.querySelector('span:nth-of-type(4)');
+            if (contextText) contextText.textContent = contextInfo.team_name;
+            if (leagueText) leagueText.textContent = contextInfo.league_name;
+        }
+    }
+
+    // Show context switching messages
+    function showContextMessage(message, type = 'info') {
+        // Create or update toast notification
+        let toast = document.getElementById('context-toast');
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.id = 'context-toast';
+            toast.className = 'fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg transition-all duration-300 transform translate-x-full';
+            document.body.appendChild(toast);
+        }
+
+        // Set message and styling
+        const bgColor = type === 'success' ? 'bg-green-500' : type === 'error' ? 'bg-red-500' : 'bg-blue-500';
+        toast.className = `fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg transition-all duration-300 text-white ${bgColor}`;
+        toast.innerHTML = `
+            <div class="flex items-center">
+                <i class="fas fa-${type === 'success' ? 'check' : type === 'error' ? 'exclamation-triangle' : 'info'} mr-2"></i>
+                <span>${message}</span>
+            </div>
+        `;
+
+        // Show toast
+        setTimeout(() => toast.classList.remove('translate-x-full'), 100);
+
+        // Hide toast after delay
+        setTimeout(() => {
+            toast.classList.add('translate-x-full');
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.parentNode.removeChild(toast);
+                }
+            }, 300);
+        }, 3000);
+    }
+
+    // Initialize when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initTeamSelector);
+    } else {
+        initTeamSelector();
+    }
+})();
+</script>
+{% endif %} 

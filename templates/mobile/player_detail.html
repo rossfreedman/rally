@@ -20,7 +20,13 @@
             </div>
             <div class="ml-4">
                 <h1 class="text-xl font-bold text-gray-900">Player Details</h1>
-                <p class="text-sm text-gray-500">{{ player_name }}</p>
+                <p class="text-lg font-semibold text-gray-900">{{ player_name }}</p>
+                {% if player_info.club %}
+                <p class="text-sm text-gray-600 font-medium">{{ player_info.club }}</p>
+                {% endif %}
+                {% if player_info.series %}
+                <p class="text-sm text-gray-500">{{ player_info.series }}</p>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -38,8 +44,7 @@
         </div>
         {% endif %}
 
-        <!-- Current PTI (only show if PTI data is available) -->
-        {% if analyze_data.pti_data_available %}
+        <!-- Current PTI (always show, with appropriate messaging) -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             <div class="px-6 py-4 border-b border-gray-50">
                 <h2 class="text-lg font-semibold text-gray-900 flex items-center">
@@ -50,7 +55,7 @@
             
             <div class="p-6">
                 <div class="text-center">
-                    {% if analyze_data.current_pti is defined and analyze_data.current_pti is not none %}
+                    {% if analyze_data.pti_data_available and analyze_data.current_pti is defined and analyze_data.current_pti is not none %}
                     <div class="mb-2">
                         <span class="text-4xl font-bold text-gray-900">{{ (analyze_data.current_pti or 0)|round(1, 'common') }}</span>
                         {% if analyze_data.weekly_pti_change is defined and analyze_data.weekly_pti_change is not none %}
@@ -67,12 +72,13 @@
                     </div>
                     {% else %}
                     <div class="text-2xl text-gray-400">No PTI data available</div>
+                    <div class="text-sm text-gray-500 mt-2">This player's league may not track PTI ratings</div>
                     {% endif %}
                 </div>
             </div>
         </div>
         
-        <!-- PTI History Chart (only show if PTI data is available) -->
+        <!-- PTI History Chart (always show, with appropriate messaging) -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             <div class="px-6 py-4 border-b border-gray-50">
                 <h2 class="text-lg font-semibold text-gray-900 flex items-center">
@@ -82,10 +88,19 @@
             </div>
             
             <div class="p-6">
+                {% if analyze_data.pti_data_available %}
                 <div id="ptiHistoryChart" style="height:400px;"></div>
+                {% else %}
+                <div class="flex items-center justify-center h-full text-gray-500" style="height:200px;">
+                    <div class="text-center">
+                        <i class="fas fa-chart-line text-4xl mb-2"></i>
+                        <div>No PTI history data available</div>
+                        <div class="text-sm">This player's league may not track PTI ratings</div>
+                    </div>
+                </div>
+                {% endif %}
             </div>
         </div>
-        {% endif %}
 
         <!-- Current Season Stats -->
         {% if analyze_data.current_season %}
@@ -102,7 +117,13 @@
                 <div class="grid grid-cols-2 gap-4 mb-6">
                     <!-- Matches -->
                     <div class="text-center">
-                        <div class="text-3xl font-bold text-gray-900 mb-1">{{ analyze_data.current_season.matches or 'N/A' }}</div>
+                        <div class="text-3xl font-bold text-gray-900 mb-1">
+                            {% if analyze_data.current_season.matches %}
+                                {{ analyze_data.current_season.matches }}
+                            {% else %}
+                                <span class="text-xs text-gray-400 font-normal">Threshold not met</span>
+                            {% endif %}
+                        </div>
                         <div class="text-sm text-gray-500 uppercase tracking-wide">Matches</div>
                     </div>
                     
@@ -116,7 +137,7 @@
                             {% if analyze_data.current_season.winRate is defined %}
                             {{ analyze_data.current_season.winRate|round(0)|int }}%
                             {% else %}
-                            N/A
+                            <span class="text-xs text-gray-400 font-normal">Threshold not met</span>
                             {% endif %}
                         </div>
                         <div class="text-sm text-gray-500 uppercase tracking-wide">Win Rate</div>
@@ -196,7 +217,13 @@
                 <div class="grid grid-cols-2 gap-4 mb-6">
                     <!-- Career Matches -->
                     <div class="text-center">
-                        <div class="text-3xl font-bold text-gray-900 mb-1">{{ analyze_data.career_stats.matches or 'N/A' }}</div>
+                        <div class="text-3xl font-bold text-gray-900 mb-1">
+                            {% if analyze_data.career_stats.matches %}
+                                {{ analyze_data.career_stats.matches }}
+                            {% else %}
+                                <span class="text-xs text-gray-400 font-normal">Threshold not met</span>
+                            {% endif %}
+                        </div>
                         <div class="text-sm text-gray-500 uppercase tracking-wide">Career Matches</div>
                     </div>
                     
@@ -210,7 +237,7 @@
                             {% if analyze_data.career_stats.winRate is defined %}
                             {{ analyze_data.career_stats.winRate|round(0)|int }}%
                             {% else %}
-                            N/A
+                            <span class="text-xs text-gray-400 font-normal">Threshold not met</span>
                             {% endif %}
                         </div>
                         <div class="text-sm text-gray-500 uppercase tracking-wide">Career Win Rate</div>
@@ -268,7 +295,13 @@
                             <h3 class="text-lg font-semibold text-gray-900">{{ court|capitalize }}</h3>
                             <div class="flex items-center gap-3">
                                 <!-- Record -->
-                                <span class="text-sm font-medium text-gray-700">{{ stats.record if stats else 'N/A' }}</span>
+                                <span class="text-sm font-medium text-gray-700">
+                                    {% if stats and stats.record %}
+                                        {{ stats.record }}
+                                    {% else %}
+                                        <span class="text-xs text-gray-400">Threshold not met</span>
+                                    {% endif %}
+                                </span>
                                 <!-- Win Rate Badge -->
                                 {% if stats and stats.winRate is defined and stats.winRate is not none and stats.record != '0-0' %}
                                 <div class="px-3 py-1 rounded-full text-sm font-medium
@@ -856,9 +889,9 @@ async function loadSeasonHistory() {
          seriesDisplay = `Series ${seriesNumber}${suffix}`;
        }
       
-      // Truncate series name if longer than 15 characters
-      const truncatedSeries = seriesDisplay.length > 15 
-        ? seriesDisplay.substring(0, 15) + '...' 
+      // Truncate series name if longer than 20 characters
+      const truncatedSeries = seriesDisplay.length > 20 
+        ? seriesDisplay.substring(0, 20) + '...' 
         : seriesDisplay;
       
       tableHTML += `

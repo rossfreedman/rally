@@ -197,11 +197,24 @@
             width: 100%;
             background: #fff;
             color: #888;
-            font-size: 13px;
+            font-size: 11px;
             text-align: center;
-            padding: 10px 0 8px 0;
+            padding: 8px 0 6px 0;
             box-shadow: 0 -2px 8px rgba(0,0,0,0.03);
             z-index: 100;
+            line-height: 1.4;
+        }
+
+        .rally-footer a {
+            color: #6c757d;
+            text-decoration: none;
+            margin: 0 8px;
+            font-size: 10px;
+        }
+
+        .rally-footer a:hover {
+            color: #333;
+            text-decoration: underline;
         }
 
         .login-stack {
@@ -343,7 +356,9 @@
                     <div class="form-check mb-4" style="text-align: left;">
                         <input class="form-check-input" type="checkbox" id="textNotifications" required>
                         <label class="form-check-label" for="textNotifications" style="font-size: 0.85rem;">
-                            I agree to receive text notifications from my team captain through Rally.
+                            I agree to receive text message notifications from my team captain through Rally.
+                            Message frequency varies. Message and data rates may apply. 
+                            Reply STOP to unsubscribe or HELP for help.
                         </label>
                     </div>
                     
@@ -355,6 +370,9 @@
                 </form>
             </div>
         </div>
+        
+        <!-- Extra spacing for auto-scroll functionality -->
+        <div style="height: 200px;"></div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -457,98 +475,38 @@
 
         // Load series filtered by league
         function loadSeriesByLeague(leagueId = null) {
-            const url = leagueId ? `/api/get-series-by-league?league_id=${leagueId}` : '/api/get-series-by-league';
-            
-            console.log('Loading series from:', url);
+            // Use the new API endpoint that returns user-facing series names from database mappings
+            const url = leagueId ? `/api/get-user-facing-series-by-league?league_id=${leagueId}` : '/api/get-user-facing-series-by-league';
             
             fetch(url).then(r => r.json()).then(data => {
-                console.log('Series data received:', data);
                 const seriesSelect = document.getElementById('series');
-                
-                if (!seriesSelect) {
-                    console.error('Series select element not found');
-                    return;
-                }
-                
                 seriesSelect.innerHTML = '<option value="">Select your series</option>';
                 
                 if (data.series && Array.isArray(data.series)) {
-                    console.log(`Adding ${data.series.length} series options`);
-                    
-                    // Create a map to track unique display names and prevent duplicates
-                    const uniqueSeries = new Map();
-                    
+                    // Series names are already properly formatted by the database mapping system
+                    // No need for client-side transformations - just use them directly
                     data.series.forEach(series => {
-                        // Create alias from series name (extract number and format as "Series X [suffix]")
-                        let seriesDisplay = series;
-                        const numberMatch = series.match(/(\d+)(\s+\w+)*$/);
-                        if (numberMatch) {
-                            const seriesNumber = numberMatch[1];
-                            const suffix = numberMatch[2] || '';
-                            seriesDisplay = `Series ${seriesNumber}${suffix}`;
-                        }
-                        
-                        // Only add if we haven't seen this display name before
-                        if (!uniqueSeries.has(seriesDisplay)) {
-                            uniqueSeries.set(seriesDisplay, series);
-                        }
-                    });
-                    
-                    // Add the unique options to the select
-                    uniqueSeries.forEach((originalValue, displayText) => {
                         const option = document.createElement('option');
-                        option.value = originalValue;
-                        option.textContent = displayText;
+                        option.value = series;  // Use the user-facing name as the value
+                        option.textContent = series;  // Display the user-facing name
                         seriesSelect.appendChild(option);
                     });
-                } else {
-                    console.warn('No series data found or invalid format');
                 }
             }).catch(error => {
                 console.error('Error loading series:', error);
-                // Fallback to all series
-                fetch('/api/get-series').then(r => r.json()).then(data => {
-                    console.log('Fallback series data received:', data);
+                // Fallback to original API if new one fails
+                const fallbackUrl = leagueId ? `/api/get-series-by-league?league_id=${leagueId}` : '/api/get-series-by-league';
+                fetch(fallbackUrl).then(r => r.json()).then(data => {
                     const seriesSelect = document.getElementById('series');
-                    if (!seriesSelect) {
-                        console.error('Series select element not found in fallback');
-                        return;
-                    }
                     seriesSelect.innerHTML = '<option value="">Select your series</option>';
-                    if (data.all_series && Array.isArray(data.all_series)) {
-                        console.log(`Adding ${data.all_series.length} fallback series options`);
-                        
-                        // Create a map to track unique display names and prevent duplicates
-                        const uniqueSeries = new Map();
-                        
-                        data.all_series.forEach(series => {
-                            // Create alias from series name (extract number and format as "Series X [suffix]")
-                            let seriesDisplay = series;
-                            const numberMatch = series.match(/(\d+)(\s+\w+)*$/);
-                            if (numberMatch) {
-                                const seriesNumber = numberMatch[1];
-                                const suffix = numberMatch[2] || '';
-                                seriesDisplay = `Series ${seriesNumber}${suffix}`;
-                            }
-                            
-                            // Only add if we haven't seen this display name before
-                            if (!uniqueSeries.has(seriesDisplay)) {
-                                uniqueSeries.set(seriesDisplay, series);
-                            }
-                        });
-                        
-                        // Add the unique options to the select
-                        uniqueSeries.forEach((originalValue, displayText) => {
+                    if (data.series && Array.isArray(data.series)) {
+                        data.series.forEach(series => {
                             const option = document.createElement('option');
-                            option.value = originalValue;
-                            option.textContent = displayText;
+                            option.value = series;
+                            option.textContent = series;
                             seriesSelect.appendChild(option);
                         });
-                    } else {
-                        console.warn('No fallback series data found or invalid format');
                     }
-                }).catch(fallbackError => {
-                    console.error('Fallback series loading failed:', fallbackError);
                 });
             });
         }
@@ -620,6 +578,22 @@
                 // Also validate on blur events
                 registerPassword.addEventListener('blur', validatePasswordMatch);
                 confirmPassword.addEventListener('blur', validatePasswordMatch);
+            }
+            
+            // Auto-scroll to bottom when text notifications checkbox is clicked
+            const textNotificationsCheckbox = document.getElementById('textNotifications');
+            if (textNotificationsCheckbox) {
+                textNotificationsCheckbox.addEventListener('change', function() {
+                    if (this.checked) {
+                        // Smooth scroll to the very bottom of the page
+                        setTimeout(() => {
+                            window.scrollTo({
+                                top: document.body.scrollHeight,
+                                behavior: 'smooth'
+                            });
+                        }, 100); // Small delay to ensure checkbox state is updated
+                    }
+                });
             }
         });
 
@@ -784,7 +758,9 @@
     </script>
     <!-- Footer for branding -->
     <footer class="rally-footer">
-        &copy; 2024 Rally. All rights reserved.
+        © 2025 Rally LLC. All rights reserved.
+        <br>
+        <a href="/terms">Terms of Use</a> | <a href="/privacy">Privacy Policy</a>
     </footer>
 </body>
 </html> 

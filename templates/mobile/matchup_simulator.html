@@ -565,11 +565,11 @@ document.addEventListener('DOMContentLoaded', function() {
             
             let reasons = [];
             
-            // Check average PTI difference
+            // Check average PTI difference (lower PTI = stronger player)
             const winnerPTI = winnerData.metrics?.average_pti || 0;
             const loserPTI = loserData.metrics?.average_pti || 0;
-            if (winnerPTI > loserPTI + 2) {
-                reasons.push(`higher average PTI (${winnerPTI.toFixed(1)} vs ${loserPTI.toFixed(1)})`);
+            if (winnerPTI < loserPTI - 2) {
+                reasons.push(`lower average PTI (${winnerPTI.toFixed(1)} vs ${loserPTI.toFixed(1)})`);
             }
             
             // Check individual win rates
@@ -700,10 +700,10 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Helper functions for colors (same as before)
         function getPTIColor(pti) {
-            if (pti >= 30) return 'text-green-600';
-            if (pti >= 25) return 'text-blue-600';
-            if (pti >= 20) return 'text-yellow-600';
-            return 'text-red-600';
+            if (pti <= 20) return 'text-green-600';    // Strong players (low PTI)
+            if (pti <= 25) return 'text-blue-600';     // Good players
+            if (pti <= 30) return 'text-yellow-600';   // Average players
+            return 'text-red-600';                     // Weak players (high PTI)
         }
         
         function getWinRateColor(rate) {
@@ -760,7 +760,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Calculate advantages for each metric
-        const ptiAdvantage = getAdvantageIndicator(favoriteMetrics.average_pti || 0, underdogMetrics.average_pti || 0);
+        const ptiAdvantage = getAdvantageIndicator(favoriteMetrics.average_pti || 0, underdogMetrics.average_pti || 0, false); // Lower PTI is better
         const winRateAdvantage = getAdvantageIndicator(favoriteMetrics.individual_win_rates || 0, underdogMetrics.individual_win_rates || 0);
         const formAdvantage = getAdvantageIndicator(favoriteMetrics.recent_individual_form || 0, underdogMetrics.recent_individual_form || 0);
         const h2hAdvantage = getAdvantageIndicator(favoriteMetrics.head_to_head_record || 0, underdogMetrics.head_to_head_record || 0);

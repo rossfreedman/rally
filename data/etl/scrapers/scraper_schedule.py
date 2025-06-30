@@ -7,6 +7,33 @@ import requests
 from bs4 import BeautifulSoup
 
 
+def normalize_league_id(league_subdomain):
+    """
+    Normalize league subdomain input to prevent duplicate directories.
+    
+    Args:
+        league_subdomain (str): Raw user input (e.g., 'aptachicago', 'apta_chicago')
+    
+    Returns:
+        str: Standardized league ID (e.g., 'APTA_CHICAGO')
+    """
+    # Convert to lowercase and handle common variations
+    normalized = league_subdomain.lower().strip()
+    
+    # Define mapping for known league variations
+    league_mappings = {
+        'aptachicago': 'APTA_CHICAGO',
+        'apta_chicago': 'APTA_CHICAGO', 
+        'apta-chicago': 'APTA_CHICAGO',
+        'chicago': 'APTA_CHICAGO',
+        'nstf': 'NSTF',
+        'cnswpl': 'CNSWPL',
+        'cita': 'CITA'
+    }
+    
+    return league_mappings.get(normalized, normalized.upper())
+
+
 # Dynamic League Configuration - User Input Based
 def get_league_config(league_subdomain=None):
     """Get dynamic league configuration based on user input"""
@@ -14,9 +41,12 @@ def get_league_config(league_subdomain=None):
         raise ValueError("League subdomain must be provided")
 
     base_url = build_base_url(league_subdomain)
+    
+    # Normalize the league ID to prevent duplicate directories
+    normalized_league_id = normalize_league_id(league_subdomain)
 
     return {
-        "league_id": league_subdomain.upper(),
+        "league_id": normalized_league_id,
         "subdomain": league_subdomain,
         "base_url": base_url,
         "main_page": base_url,
@@ -204,6 +234,9 @@ def scrape_tennis_schedule(league_subdomain):
                     elif series_number.startswith("Series "):
                         # Series name already has "Series" prefix, use as-is
                         formatted_series = series_number
+                    elif "SW" in series_number:
+                        # Handle SW series: "23 SW" -> "Chicago 23 SW"
+                        formatted_series = f"Chicago {series_number}"
                     else:
                         # Handle non-numeric series (like "2B", "3A", etc.)
                         formatted_series = f"Series {series_number}"

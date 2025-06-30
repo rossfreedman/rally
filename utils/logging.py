@@ -18,6 +18,16 @@ def log_user_activity(user_email, activity_type, **kwargs):
         action = kwargs.pop("action", None)
         details = kwargs.pop("details", None)
 
+        # Check for impersonation in session (only if we're in a request context)
+        is_impersonating = False
+        if request:
+            from flask import session
+            is_impersonating = session.get("impersonation_active", False)
+            
+            # Add impersonation marker to details if applicable
+            if is_impersonating and not (details and "[IMPERSONATION]" in details):
+                details = f"[IMPERSONATION] {details}" if details else "[IMPERSONATION] Activity"
+
         # Get IP address from request or kwargs
         ip_address = kwargs.pop("ip_address", None)
         if not ip_address and request:

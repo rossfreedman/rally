@@ -202,6 +202,60 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // Show improved error message with context
+    function showImprovedErrorMessage(message, teamStatus) {
+        updateProgress(4, 100, 'No schedule data available');
+        
+        // Update the error message content
+        const errorMessage = document.getElementById('errorMessage');
+        
+        // Determine icon and styling based on team status
+        let iconClass = 'fas fa-exclamation-triangle text-yellow-500';
+        let headerText = 'No upcoming matches scheduled';
+        let bgClass = 'bg-yellow-50 border-yellow-100';
+        let textClass = 'text-yellow-700';
+        
+        if (teamStatus === 'active_no_schedule') {
+            iconClass = 'fas fa-calendar-check text-blue-500';
+            headerText = 'No upcoming matches scheduled';
+            bgClass = 'bg-blue-50 border-blue-100';
+            textClass = 'text-blue-700';
+        } else if (teamStatus === 'inactive') {
+            iconClass = 'fas fa-pause-circle text-gray-500';
+            headerText = 'Team appears inactive';
+            bgClass = 'bg-gray-50 border-gray-100';
+            textClass = 'text-gray-700';
+        }
+        
+        errorMessage.className = `${bgClass} border rounded-xl p-4`;
+        errorMessage.innerHTML = `
+            <div class="flex items-center mb-3">
+                <i class="${iconClass} mr-3"></i>
+                <p class="${textClass} font-medium">${headerText}</p>
+            </div>
+            <div class="mt-4">
+                <p class="text-sm ${textClass.replace('-700', '-600')}">${message}</p>
+                <div class="mt-4">
+                    <p class="text-sm text-gray-600">Your current settings:</p>
+                    <ul class="list-disc list-inside text-sm text-gray-600 ml-4 mt-2">
+                        <li>Club: {{ session_data.user.club if session_data.user.club else 'Not set' }}</li>
+                        <li>Series: <span class="user-series">{{ session_data.user.series if session_data.user.series else 'Not set' }}</span></li>
+                    </ul>
+                    <p class="text-sm text-gray-600 mt-2">
+                        You can update these settings in your <a href="/mobile/settings" class="text-blue-600 underline">profile settings</a>.
+                    </p>
+                </div>
+            </div>
+        `;
+        
+        // Show error after loading screen
+        setTimeout(() => {
+            loadingScreen.style.display = 'none';
+            mainContent.style.display = 'block';
+            errorMessage.style.display = 'block';
+        }, 1000);
+    }
+
     // Load data via AJAX
     async function loadTeamScheduleData() {
         try {
@@ -214,16 +268,29 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
             
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            
             updateProgress(2, 30, 'Processing player information...');
             
             const data = await response.json();
             
+            // Handle improved API responses (not always errors)
+            if (!response.ok) {
+                if (data.message) {
+                    // API returned helpful message instead of generic error
+                    showImprovedErrorMessage(data.message, data.team_status || 'no_schedule');
+                    return;
+                } else {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+            }
+            
             if (data.error) {
                 throw new Error(data.error);
+            }
+            
+            // Handle case where API returns 200 but with empty data and helpful message
+            if (data.message && (!data.players_schedule || Object.keys(data.players_schedule).length === 0)) {
+                showImprovedErrorMessage(data.message, data.team_status || 'no_schedule');
+                return;
             }
             
             updateProgress(3, 60, 'Loading schedule information...');

@@ -1,0 +1,437 @@
+{% extends "mobile/layout.html" %}
+{% set show_back_arrow = True %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    
+    <!-- Header -->
+    <div class="bg-white border-b border-gray-100">
+        <div class="flex items-center px-4 py-6">
+            <div class="w-12 h-12 bg-pink-600 rounded-full flex items-center justify-center shadow-sm" style="background-color: #db2777 !important;">
+                <i class="fas fa-calculator text-white text-lg"></i>
+            </div>
+            <div class="ml-4">
+                <h1 class="text-xl font-bold text-gray-900">PTI Calculator</h1>
+                <p class="text-sm text-gray-500">Calculate PTI movement scenarios for match outcomes</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content -->
+    <div class="px-4 py-6 space-y-6">
+
+        <!-- Input Form Card -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-edit text-blue-500 mr-2"></i>
+                    Match Details
+                </h2>
+                <p class="text-sm text-gray-500 mt-1">Enter PTI values and match score to calculate rating adjustments</p>
+            </div>
+            
+            <div class="p-6">
+                <div class="grid md:grid-cols-2 gap-6">
+                    <!-- Player & Partner Column -->
+                    <div class="space-y-4">
+                        <!-- Player PTI Input -->
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-semibold">Player PTI:</span>
+                            </label>
+                            <div class="flex gap-2">
+                                <input type="number" id="ptiPlayer" class="input input-bordered flex-1" 
+                                       placeholder="50" value="50" min="0" max="100" step="0.1">
+                                <select id="sigmaPlayer" class="select select-bordered">
+                                    <option value="3.2" selected>30+ matches</option>
+                                    <option value="4">10-30 Matches</option>
+                                    <option value="5">1-10 matches</option>
+                                    <option value="7">New Player</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Partner PTI Input -->
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-semibold">Partner PTI:</span>
+                            </label>
+                            <div class="flex gap-2">
+                                <input type="number" id="ptiPartner" class="input input-bordered flex-1" 
+                                       placeholder="40" value="40" min="0" max="100" step="0.1">
+                                <select id="sigmaPartner" class="select select-bordered">
+                                    <option value="3.2">30+ matches</option>
+                                    <option value="4">10-30 Matches</option>
+                                    <option value="5">1-10 matches</option>
+                                    <option value="7" selected>New Player</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Match Score Input -->
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-semibold">Score:</span>
+                            </label>
+                            <input type="text" id="matchScore" class="input input-bordered" 
+                                   placeholder="6-2,2-6,6-3" 
+                                   title="Enter score like: 6-2,2-6,6-3">
+                        </div>
+                    </div>
+
+                    <!-- Opponents Column -->
+                    <div class="space-y-4">
+                        <!-- Opponent 1 PTI Input -->
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-semibold">Opp PTI:</span>
+                            </label>
+                            <div class="flex gap-2">
+                                <input type="number" id="ptiOpp1" class="input input-bordered flex-1" 
+                                       placeholder="30" value="30" min="0" max="100" step="0.1">
+                                <select id="sigmaOpp1" class="select select-bordered">
+                                    <option value="3.2" selected>30+ matches</option>
+                                    <option value="4">10-30 Matches</option>
+                                    <option value="5">1-10 matches</option>
+                                    <option value="7">New Player</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Opponent 2 PTI Input -->
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-semibold">Opp PTI:</span>
+                            </label>
+                            <div class="flex gap-2">
+                                <input type="number" id="ptiOpp2" class="input input-bordered flex-1" 
+                                       placeholder="23" value="23" min="0" max="100" step="0.1">
+                                <select id="sigmaOpp2" class="select select-bordered">
+                                    <option value="3.2">30+ matches</option>
+                                    <option value="4" selected>10-30 Matches</option>
+                                    <option value="5">1-10 matches</option>
+                                    <option value="7">New Player</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Calculate Button -->
+                        <div class="pt-4">
+                            <button id="calculateBtn" class="btn btn-primary w-full">
+                                <i class="fas fa-calculator mr-2"></i>
+                                Calculate PTI Movement
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Card -->
+        <div id="resultsCard" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden" style="display: none;">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-chart-line text-green-500 mr-2"></i>
+                    Calculation Results
+                </h2>
+                <p class="text-sm text-gray-500 mt-1">PTI adjustments and intermediate calculations</p>
+            </div>
+            
+            <div class="p-6">
+                <!-- Summary Stats -->
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div class="bg-blue-50 rounded-lg p-4 border border-blue-100">
+                        <div class="text-sm text-blue-600 font-medium mb-1">Spread</div>
+                        <div class="text-2xl font-bold text-blue-700" id="lblSpread">0.00</div>
+                        <div class="text-xs text-blue-600">Game difficulty measure</div>
+                    </div>
+                    <div class="bg-green-50 rounded-lg p-4 border border-green-100">
+                        <div class="text-sm text-green-600 font-medium mb-1">Adjustment</div>
+                        <div class="text-2xl font-bold text-green-700" id="lblAdjustment">0.00</div>
+                        <div class="text-xs text-green-600">PTI change (negative = good)</div>
+                    </div>
+                </div>
+
+                <!-- Before/After Comparison -->
+                <div class="grid grid-cols-2 gap-4">
+                    <!-- Before Column -->
+                    <div>
+                        <h3 class="text-lg font-bold mb-3 text-center text-gray-700 border-b border-gray-200 pb-2">Before</h3>
+                        <div class="space-y-3">
+                            <!-- Player Before -->
+                            <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                                <div class="text-sm font-semibold mb-1 text-gray-700">Player</div>
+                                <div class="grid grid-cols-3 gap-2 text-xs">
+                                    <div>PTI: <span id="PlayerRating" class="font-medium">0.00</span></div>
+                                    <div>Mu: <span id="PlayerPerf" class="font-medium">0.00</span></div>
+                                    <div>Sigma: <span id="PlayerVol" class="font-medium">0.00</span></div>
+                                </div>
+                            </div>
+                            
+                            <!-- Partner Before -->
+                            <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                                <div class="text-sm font-semibold mb-1 text-gray-700">Partner</div>
+                                <div class="grid grid-cols-3 gap-2 text-xs">
+                                    <div>PTI: <span id="PartnerRating" class="font-medium">0.00</span></div>
+                                    <div>Mu: <span id="PartnerPerf" class="font-medium">0.00</span></div>
+                                    <div>Sigma: <span id="PartnerVol" class="font-medium">0.00</span></div>
+                                </div>
+                            </div>
+                            
+                            <!-- Opponent 1 Before -->
+                            <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                                <div class="text-sm font-semibold mb-1 text-gray-700">Opp 1</div>
+                                <div class="grid grid-cols-3 gap-2 text-xs">
+                                    <div>PTI: <span id="Opp1Rating" class="font-medium">0.00</span></div>
+                                    <div>Mu: <span id="Opp1Perf" class="font-medium">0.00</span></div>
+                                    <div>Sigma: <span id="Opp1Vol" class="font-medium">0.00</span></div>
+                                </div>
+                            </div>
+                            
+                            <!-- Opponent 2 Before -->
+                            <div class="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                                <div class="text-sm font-semibold mb-1 text-gray-700">Opp 2</div>
+                                <div class="grid grid-cols-3 gap-2 text-xs">
+                                    <div>PTI: <span id="Opp2Rating" class="font-medium">0.00</span></div>
+                                    <div>Mu: <span id="Opp2Perf" class="font-medium">0.00</span></div>
+                                    <div>Sigma: <span id="Opp2Vol" class="font-medium">0.00</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- After Column -->
+                    <div>
+                        <h3 class="text-lg font-bold mb-3 text-center text-gray-700 border-b border-gray-200 pb-2">After</h3>
+                        <div class="space-y-3">
+                            <!-- Player After -->
+                            <div class="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                                <div class="text-sm font-semibold mb-1 text-blue-700">Player</div>
+                                <div class="grid grid-cols-3 gap-2 text-xs">
+                                    <div>PTI: <span id="PlayerAdjRating" class="font-medium">0.00</span></div>
+                                    <div>Mu: <span id="PlayerAdjPerf" class="font-medium">0.00</span></div>
+                                    <div>Sigma: <span id="PlayerAdjVol" class="font-medium">0.00</span></div>
+                                </div>
+                            </div>
+                            
+                            <!-- Partner After -->
+                            <div class="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                                <div class="text-sm font-semibold mb-1 text-blue-700">Partner</div>
+                                <div class="grid grid-cols-3 gap-2 text-xs">
+                                    <div>PTI: <span id="PartnerAdjRating" class="font-medium">0.00</span></div>
+                                    <div>Mu: <span id="PartnerAdjPerf" class="font-medium">0.00</span></div>
+                                    <div>Sigma: <span id="PartnerAdjVol" class="font-medium">0.00</span></div>
+                                </div>
+                            </div>
+                            
+                            <!-- Opponent 1 After -->
+                            <div class="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                                <div class="text-sm font-semibold mb-1 text-blue-700">Opp 1</div>
+                                <div class="grid grid-cols-3 gap-2 text-xs">
+                                    <div>PTI: <span id="Opp1AdjRating" class="font-medium">0.00</span></div>
+                                    <div>Mu: <span id="Opp1AdjPerf" class="font-medium">0.00</span></div>
+                                    <div>Sigma: <span id="Opp1AdjVol" class="font-medium">0.00</span></div>
+                                </div>
+                            </div>
+                            
+                            <!-- Opponent 2 After -->
+                            <div class="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                                <div class="text-sm font-semibold mb-1 text-blue-700">Opp 2</div>
+                                <div class="grid grid-cols-3 gap-2 text-xs">
+                                    <div>PTI: <span id="Opp2AdjRating" class="font-medium">0.00</span></div>
+                                    <div>Mu: <span id="Opp2AdjPerf" class="font-medium">0.00</span></div>
+                                    <div>Sigma: <span id="Opp2AdjVol" class="font-medium">0.00</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Error Alert -->
+        <div id="errorAlert" class="bg-red-50 border border-red-200 rounded-xl p-4" style="display: none;">
+            <div class="flex items-center">
+                <i class="fas fa-exclamation-triangle text-red-500 mr-3"></i>
+                <span id="errorMessage" class="text-red-700 text-sm">Error occurred during calculation</span>
+            </div>
+        </div>
+
+        <!-- Loading Indicator -->
+        <div id="loadingIndicator" class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 text-center" style="display: none;">
+            <i class="fas fa-spinner fa-spin text-2xl text-blue-500 mb-2"></i>
+            <p class="text-gray-600">Calculating PTI adjustments...</p>
+        </div>
+
+        <!-- Help Section -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-info-circle text-blue-500 mr-2"></i>
+                    How to Use
+                </h2>
+            </div>
+            
+            <div class="p-6">
+                <div class="space-y-4 text-sm">
+                    <div class="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                        <div class="font-semibold text-blue-800 mb-2">
+                            <i class="fas fa-chart-line mr-2"></i>PTI Values
+                        </div>
+                        <p class="text-blue-700">Enter current Platform Tennis Index ratings (typically 10-100)</p>
+                    </div>
+                    
+                    <div class="bg-green-50 p-4 rounded-lg border border-green-100">
+                        <div class="font-semibold text-green-800 mb-2">
+                            <i class="fas fa-users mr-2"></i>Experience Levels
+                        </div>
+                        <div class="text-green-700 space-y-1">
+                            <div>• <strong>30+ matches:</strong> Established rating</div>
+                            <div>• <strong>10-30 Matches:</strong> Developing rating</div>
+                            <div>• <strong>1-10 matches:</strong> New but some data</div>
+                            <div>• <strong>New Player:</strong> First few matches</div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-yellow-50 p-4 rounded-lg border border-yellow-100">
+                        <div class="font-semibold text-yellow-800 mb-2">
+                            <i class="fas fa-trophy mr-2"></i>Score Format
+                        </div>
+                        <p class="text-yellow-700">Enter as "6-2,2-6,6-3" (sets separated by commas)</p>
+                    </div>
+                    
+                    <div class="bg-purple-50 p-4 rounded-lg border border-purple-100">
+                        <div class="font-semibold text-purple-800 mb-2">
+                            <i class="fas fa-arrow-down mr-2"></i>Rating Movement
+                        </div>
+                        <p class="text-purple-700">Negative adjustments mean rating improvement, positive means decline</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const calculateBtn = document.getElementById('calculateBtn');
+    const resultsCard = document.getElementById('resultsCard');
+    const errorAlert = document.getElementById('errorAlert');
+    const loadingIndicator = document.getElementById('loadingIndicator');
+
+    // Input change handlers to auto-calculate
+    const inputs = ['ptiPlayer', 'ptiPartner', 'ptiOpp1', 'ptiOpp2', 'sigmaPlayer', 'sigmaPartner', 'sigmaOpp1', 'sigmaOpp2', 'matchScore'];
+    inputs.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.addEventListener('change', calculatePTI);
+            element.addEventListener('input', calculatePTI);
+        }
+    });
+
+    calculateBtn.addEventListener('click', calculatePTI);
+
+    function calculatePTI() {
+        // Hide previous results and errors
+        resultsCard.style.display = 'none';
+        errorAlert.style.display = 'none';
+        
+        // Get input values
+        const data = {
+            player_pti: parseFloat(document.getElementById('ptiPlayer').value) || 0,
+            partner_pti: parseFloat(document.getElementById('ptiPartner').value) || 0,
+            opp1_pti: parseFloat(document.getElementById('ptiOpp1').value) || 0,
+            opp2_pti: parseFloat(document.getElementById('ptiOpp2').value) || 0,
+            player_exp: parseFloat(document.getElementById('sigmaPlayer').value) || 3.2,
+            partner_exp: parseFloat(document.getElementById('sigmaPartner').value) || 3.2,
+            opp1_exp: parseFloat(document.getElementById('sigmaOpp1').value) || 3.2,
+            opp2_exp: parseFloat(document.getElementById('sigmaOpp2').value) || 3.2,
+            match_score: document.getElementById('matchScore').value.trim()
+        };
+
+        // Validate inputs
+        if (data.player_pti <= 0 || data.partner_pti <= 0 || data.opp1_pti <= 0 || data.opp2_pti <= 0) {
+            showError('Please enter valid PTI values for all players');
+            return;
+        }
+
+        // Show loading
+        loadingIndicator.style.display = 'block';
+
+        // Make API call
+        fetch('/api/calculate-pti', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(result => {
+            loadingIndicator.style.display = 'none';
+            
+            if (result.success) {
+                displayResults(result.result);
+            } else {
+                showError(result.error || 'Calculation failed');
+            }
+        })
+        .catch(error => {
+            loadingIndicator.style.display = 'none';
+            showError('Network error: ' + error.message);
+        });
+    }
+
+    function displayResults(result) {
+        // Update summary
+        document.getElementById('lblSpread').textContent = result.spread;
+        document.getElementById('lblAdjustment').textContent = result.adjustment;
+
+        // Update before values
+        document.getElementById('PlayerRating').textContent = result.before.player.pti;
+        document.getElementById('PlayerPerf').textContent = result.before.player.mu;
+        document.getElementById('PlayerVol').textContent = result.before.player.sigma;
+        
+        document.getElementById('PartnerRating').textContent = result.before.partner.pti;
+        document.getElementById('PartnerPerf').textContent = result.before.partner.mu;
+        document.getElementById('PartnerVol').textContent = result.before.partner.sigma;
+        
+        document.getElementById('Opp1Rating').textContent = result.before.opp1.pti;
+        document.getElementById('Opp1Perf').textContent = result.before.opp1.mu;
+        document.getElementById('Opp1Vol').textContent = result.before.opp1.sigma;
+        
+        document.getElementById('Opp2Rating').textContent = result.before.opp2.pti;
+        document.getElementById('Opp2Perf').textContent = result.before.opp2.mu;
+        document.getElementById('Opp2Vol').textContent = result.before.opp2.sigma;
+
+        // Update after values
+        document.getElementById('PlayerAdjRating').textContent = result.after.player.pti;
+        document.getElementById('PlayerAdjPerf').textContent = result.after.player.mu;
+        document.getElementById('PlayerAdjVol').textContent = result.after.player.sigma;
+        
+        document.getElementById('PartnerAdjRating').textContent = result.after.partner.pti;
+        document.getElementById('PartnerAdjPerf').textContent = result.after.partner.mu;
+        document.getElementById('PartnerAdjVol').textContent = result.after.partner.sigma;
+        
+        document.getElementById('Opp1AdjRating').textContent = result.after.opp1.pti;
+        document.getElementById('Opp1AdjPerf').textContent = result.after.opp1.mu;
+        document.getElementById('Opp1AdjVol').textContent = result.after.opp1.sigma;
+        
+        document.getElementById('Opp2AdjRating').textContent = result.after.opp2.pti;
+        document.getElementById('Opp2AdjPerf').textContent = result.after.opp2.mu;
+        document.getElementById('Opp2AdjVol').textContent = result.after.opp2.sigma;
+
+        // Show results
+        resultsCard.style.display = 'block';
+    }
+
+    function showError(message) {
+        document.getElementById('errorMessage').textContent = message;
+        errorAlert.style.display = 'block';
+    }
+
+    // Initialize with sample calculation
+    calculatePTI();
+});
+</script>
+{% endblock %} 

@@ -574,6 +574,9 @@ def scrape_all_stats(league_subdomain, max_retries=3, retry_delay=5):
                     elif series_number.startswith("Series "):
                         # Series name already has "Series" prefix, use as-is
                         formatted_series = series_number
+                    elif "SW" in series_number:
+                        # Handle SW series: "23 SW" -> "Chicago 23 SW"
+                        formatted_series = f"Chicago {series_number}"
                     elif any(
                         keyword in series_number.lower()
                         for keyword in [
