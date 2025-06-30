@@ -1604,11 +1604,12 @@ def get_mobile_availability_data(user):
         # Import database utilities at the top
         from database_utils import execute_query, execute_query_one
         
-        # Get user's team information using session service
-        from app.services.session_service import get_session_data_for_user
-        
+        # Use user data directly (preserves team context from route)
         user_email = user.get("email", "")
-        session_data = get_session_data_for_user(user_email)
+        
+        # Use the user data passed in directly instead of calling session service again
+        # This preserves any team-specific context that was set in the route
+        session_data = user
         
         if not session_data:
             return {
@@ -1665,6 +1666,8 @@ def get_mobile_availability_data(user):
         # Use a very simple query to avoid any SQL parsing issues
         print(f"[DEBUG] Getting matches for team_id={team_id}, league_id={league_id}")
         
+        # Get simple schedule query for all matches (including completed seasons)
+        # ENHANCED: Show all matches for team instead of restricting to 30 days to support completed seasons
         simple_query = """
         SELECT 
             match_date as date, 
@@ -1732,9 +1735,19 @@ def get_mobile_availability_data(user):
         for match in user_matches:
             match_date = match.get('date')
             if match_date:
-                # Add type field manually
+                # Add type field manually - be more specific about what constitutes a practice
                 home_team = match.get('home_team', '')
-                match['type'] = 'practice' if 'Practice' in home_team else 'match'
+                away_team = match.get('away_team', '')
+                
+                # Only classify as practice if it's specifically a practice session
+                # (starts with "Practice" or has no away_team indicating it's not a match)
+                is_practice = (
+                    home_team.startswith('Practice') or 
+                    home_team == 'Practice' or
+                    (not away_team or away_team.strip() == '')
+                )
+                
+                match['type'] = 'practice' if is_practice else 'match'
                 filtered_matches.append(match)
         
         user_matches = filtered_matches
