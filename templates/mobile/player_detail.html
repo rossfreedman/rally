@@ -88,17 +88,7 @@
             </div>
             
             <div class="p-6">
-                {% if analyze_data.pti_data_available %}
                 <div id="ptiHistoryChart" style="height:400px;"></div>
-                {% else %}
-                <div class="flex items-center justify-center h-full text-gray-500" style="height:200px;">
-                    <div class="text-center">
-                        <i class="fas fa-chart-line text-4xl mb-2"></i>
-                        <div>No PTI history data available</div>
-                        <div class="text-sm">This player's league may not track PTI ratings</div>
-                    </div>
-                </div>
-                {% endif %}
             </div>
         </div>
 
@@ -681,8 +671,8 @@
 <script src="https://cdn.plot.ly/plotly-2.26.0.min.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', async function() {
-    // Only load PTI chart if PTI data is available
-    {% if analyze_data.pti_data_available %}
+    // Always try to load PTI chart if analyze_data exists and doesn't have an error
+    {% if not analyze_data.error %}
     console.log('Loading PTI history chart for player:', '{{ player_name }}');
     
     try {
@@ -701,14 +691,12 @@ document.addEventListener('DOMContentLoaded', async function() {
         const response = await playerHistoryResponse.json();
         console.log('Received data:', response);
         
-        // Handle both the expected format and the actual format being returned
+        // Handle the API response format
         let matchesData;
-        if (response.data && Array.isArray(response.data)) {
-            // Expected format: {success: true, data: [...], player_name: "...", total_matches: 36}
-            matchesData = response.data;
-        } else if (response.matches && Array.isArray(response.matches)) {
-            // Actual format being returned: {name: "...", matches: [...], ...}
+        if (response.matches && Array.isArray(response.matches)) {
             matchesData = response.matches;
+        } else if (response.data && Array.isArray(response.data)) {
+            matchesData = response.data;
         } else {
             console.error('No valid matches data found');
             console.error('Response object:', response);
