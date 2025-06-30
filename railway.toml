@@ -9,6 +9,16 @@ healthcheckTimeout = 180
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 5
 
+# ETL Cron Job Service
+[deploy.cronJobs.etl_import]
+schedule = "0 2 * * *"  # Daily at 2 AM UTC
+command = "python scripts/railway_cron_etl.py"
+
+# Optional: Weekly full import (more comprehensive)
+[deploy.cronJobs.weekly_etl]
+schedule = "0 3 * * 0"  # Weekly on Sunday at 3 AM UTC
+command = "python scripts/railway_cron_etl.py --full-import"
+
 [env]
 FLASK_ENV = "production"
 DISABLE_SELENIUM = "true"
