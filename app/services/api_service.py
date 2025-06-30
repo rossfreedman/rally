@@ -957,7 +957,7 @@ def remove_practice_times_data():
 
 
 def get_team_schedule_data_data():
-    """Get team schedule data - OPTIMIZED for faster loading"""
+    """Get team schedule data - OPTIMIZED for faster loading with priority-based team detection"""
     try:
         import json
         import os
@@ -966,7 +966,7 @@ def get_team_schedule_data_data():
 
         from flask import jsonify, session
 
-        from database_utils import execute_query
+        from database_utils import execute_query, execute_query_one
 
         # Import the get_matches_for_user_club function
         from routes.act.schedule import get_matches_for_user_club
@@ -978,14 +978,82 @@ def get_team_schedule_data_data():
             print("❌ No user in session")
             return jsonify({"error": "Not authenticated"}), 401
 
-        club_name = user.get("club")
-        series = user.get("series")
-        print(f"User: {user.get('email')}")
-        print(f"Club: {club_name}")
-        print(f"Series: {series}")
+        user_email = user.get("email")
+        print(f"User: {user_email}")
+
+        # PRIORITY-BASED TEAM DETECTION (same as analyze-me, track-byes-courts, and polls pages)
+        user_team_id = None
+        user_team_name = None
+        club_name = None
+        series = None
+        
+        # PRIORITY 1: Use team_id from session if available (most reliable for multi-team players)
+        session_team_id = user.get("team_id")
+        print(f"[DEBUG] Team-schedule: session_team_id from user: {session_team_id}")
+        
+        if session_team_id:
+            try:
+                # Get team info for the specific team_id from session
+                session_team_query = """
+                    SELECT t.id, t.team_name, c.name as club_name, s.name as series_name
+                    FROM teams t
+                    JOIN clubs c ON t.club_id = c.id
+                    JOIN series s ON t.series_id = s.id
+                    WHERE t.id = %s
+                """
+                session_team_result = execute_query_one(session_team_query, [session_team_id])
+                if session_team_result:
+                    user_team_id = session_team_result['id'] 
+                    user_team_name = session_team_result['team_name']
+                    club_name = session_team_result['club_name']
+                    series = session_team_result['series_name']
+                    print(f"[DEBUG] Team-schedule: Using team_id from session: team_id={user_team_id}, team_name={user_team_name}, club={club_name}, series={series}")
+                else:
+                    print(f"[DEBUG] Team-schedule: Session team_id {session_team_id} not found in teams table")
+            except Exception as e:
+                print(f"[DEBUG] Team-schedule: Error getting team from session team_id {session_team_id}: {e}")
+        
+        # PRIORITY 2: Use team_context from user if provided (from composite player URL)
+        if not user_team_id:
+            team_context = user.get("team_context") if user else None
+            if team_context:
+                try:
+                    # Get team info for the specific team_id from team context
+                    team_context_query = """
+                        SELECT t.id, t.team_name, c.name as club_name, s.name as series_name
+                        FROM teams t
+                        JOIN clubs c ON t.club_id = c.id
+                        JOIN series s ON t.series_id = s.id
+                        WHERE t.id = %s
+                    """
+                    team_context_result = execute_query_one(team_context_query, [team_context])
+                    if team_context_result:
+                        user_team_id = team_context_result['id'] 
+                        user_team_name = team_context_result['team_name']
+                        club_name = team_context_result['club_name']
+                        series = team_context_result['series_name']
+                        print(f"[DEBUG] Team-schedule: Using team_context from URL: team_id={user_team_id}, team_name={user_team_name}, club={club_name}, series={series}")
+                    else:
+                        print(f"[DEBUG] Team-schedule: team_context {team_context} not found in teams table")
+                except Exception as e:
+                    print(f"[DEBUG] Team-schedule: Error getting team from team_context {team_context}: {e}")
+        
+        # PRIORITY 3: Fallback to legacy session club/series if no direct team_id
+        if not user_team_id:
+            print(f"[DEBUG] Team-schedule: No direct team_id, using legacy session club/series")
+            club_name = user.get("club")
+            series = user.get("series")
+            
+            if not club_name or not series:
+                print("❌ Missing club or series in session")
+                return jsonify({"error": "Club or series not set in profile"}), 400
+                
+            print(f"[DEBUG] Team-schedule: Legacy fallback: club={club_name}, series={series}")
+
+        print(f"[DEBUG] Team-schedule: Final team selection: team_id={user_team_id}, club={club_name}, series={series}")
 
         if not club_name or not series:
-            print("❌ Missing club or series")
+            print("❌ Missing club or series after team detection")
             return jsonify({"error": "Club or series not set in profile"}), 400
 
         # Get series ID first since we want all players in the series
