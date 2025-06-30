@@ -1033,29 +1033,74 @@ def is_milestone_message(message):
     if not message:
         return False
     
-    # Always show error messages and warnings
-    if any(indicator in message.lower() for indicator in ['error', 'failed', 'warning', '❌', '⚠️']):
-        return True
+    # Exclude verbose internal debug messages
+    exclusion_patterns = [
+        'utils.database_player_lookup',
+        'database lookup for:',
+        'first name variations:',
+        'series variations:',
+        'primary:',
+        'fallback strategies',
+        'name variation search',
+        'exact match found',
+        'no exact match found',
+        'cannot determine correct player',
+        'skipping association',
+        'debug:',
+        'info:',
+        'warning:utils',
+        'info:utils'
+    ]
     
-    # Show completion messages
-    if any(indicator in message.lower() for indicator in ['✅', 'completed', 'success', 'finished']):
-        return True
+    message_lower = message.lower()
+    if any(pattern in message_lower for pattern in exclusion_patterns):
+        return False
     
-    # Show step/phase transitions
-    if any(indicator in message.lower() for indicator in ['step ', 'phase ', 'starting', '🚀', '📋', '💾']):
-        return True
+    # Only show major milestones and critical errors
+    milestone_patterns = [
+        # Critical errors (not internal lookup failures)
+        ('critical error', True),
+        ('failed to connect', True),
+        ('database connection', True),
+        
+        # Major step transitions
+        ('🚀 starting', True),
+        ('📋 step', True),
+        ('💾 step', True),
+        ('step 1:', True),
+        ('step 2:', True),
+        ('step 3:', True),
+        ('step 4:', True),
+        ('step 5:', True),
+        ('step 6:', True),
+        ('step 7:', True),
+        ('step 8:', True),
+        
+        # Major completions with counts
+        ('✅ imported', True),
+        ('✅ consolidation completed', True),
+        ('✅ database import completed', True),
+        ('✅ etl process completed', True),
+        ('imported.*records', True),
+        
+        # Connection and database setup
+        ('connecting to database', True),
+        ('connected to database', True),
+        ('database connected', True),
+        
+        # Summary and totals
+        ('import summary', True),
+        ('total import time', True),
+        ('total.*records', True),
+        ('backup.*restored', True),
+        ('session version', True)
+    ]
     
-    # Show import counts and major data operations
-    if any(indicator in message.lower() for indicator in ['importing', 'imported', 'records', 'consolidating']):
-        return True
-    
-    # Show connection and setup messages
-    if any(indicator in message.lower() for indicator in ['connecting', 'connected', 'database']):
-        return True
-    
-    # Show summary information
-    if any(indicator in message.lower() for indicator in ['summary', 'total', 'backup', 'restore']):
-        return True
+    # Check for milestone patterns
+    import re
+    for pattern, _ in milestone_patterns:
+        if re.search(pattern, message_lower):
+            return True
     
     return False
 
