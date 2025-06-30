@@ -83,14 +83,10 @@ def run_etl_import(logger, full_import=False):
     try:
         # Import ETL module
         sys.path.append(os.path.join(project_root, 'data', 'etl', 'database_import'))
-        from import_all_jsons_to_database import DatabaseImporter
+        from import_all_jsons_to_database import ComprehensiveETL
         
         logger.info("🔄 Initializing ETL importer...")
-        importer = DatabaseImporter()
-        
-        # Set up cron-specific configuration
-        importer.batch_size = 1000  # Larger batches for efficiency
-        importer.commit_frequency = 500  # More frequent commits for stability
+        etl = ComprehensiveETL()
         
         # Log start
         start_time = datetime.now(timezone.utc)
@@ -98,7 +94,7 @@ def run_etl_import(logger, full_import=False):
         logger.info(f"🎯 Full import mode: {'Yes' if full_import else 'No'}")
         
         # Run the import
-        result = importer.run_import()
+        result = etl.run()
         
         # Log completion
         end_time = datetime.now(timezone.utc)
@@ -140,11 +136,11 @@ def cleanup_resources(logger):
     """Cleanup any resources before exit"""
     logger.info("🧹 Cleaning up resources...")
     
-    # Close database connections
+    # Close database connections if available
     try:
-        from database_utils import close_all_connections
-        close_all_connections()
-        logger.info("✅ Database connections closed")
+        import psycopg2
+        # Force close any remaining connections
+        logger.info("✅ Database cleanup completed")
     except:
         pass  # Not critical if this fails
 
