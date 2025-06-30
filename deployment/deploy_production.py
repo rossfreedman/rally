@@ -152,7 +152,7 @@ def provide_production_info():
     print("   □ Monitor performance metrics")
     print()
     print("🔧 If issues arise:")
-    print("   python scripts/rollback.py  # Emergency rollback")
+    print("   python deployment/rollback.py  # Emergency rollback")
     print("   Contact users if needed")
 
 def main():
