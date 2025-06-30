@@ -51,6 +51,39 @@ def fix_schema():
             """)
             results.append("✅ logo_filename column added")
             
+            # Fix 4: Add user_id column to player_availability (CRITICAL for availability page)
+            cursor.execute("""
+                ALTER TABLE player_availability 
+                ADD COLUMN IF NOT EXISTS user_id INTEGER REFERENCES users(id)
+            """)
+            results.append("✅ user_id column added to player_availability")
+            
+            # Fix 5: Create partial unique index for user_id + match_date
+            cursor.execute("""
+                CREATE UNIQUE INDEX IF NOT EXISTS idx_player_availability_user_date 
+                ON player_availability (user_id, match_date)
+                WHERE user_id IS NOT NULL
+            """)
+            results.append("✅ user_id + match_date unique index created")
+            
+            # Fix 6: Populate user_id for existing availability records where possible
+            cursor.execute("""
+                UPDATE player_availability 
+                SET user_id = (
+                    SELECT upa.user_id 
+                    FROM user_player_associations upa 
+                    WHERE upa.tenniscores_player_id = player_availability.tenniscores_player_id
+                    LIMIT 1
+                )
+                WHERE user_id IS NULL 
+                AND tenniscores_player_id IS NOT NULL
+            """)
+            updated_count = cursor.rowcount
+            if updated_count > 0:
+                results.append(f"✅ Populated user_id for {updated_count} existing availability records")
+            else:
+                results.append("✅ No existing availability records needed user_id population")
+            
             conn.commit()
             
             # Verify fixes
@@ -70,6 +103,17 @@ def fix_schema():
                 results.append("✅ logo_filename column exists")
             else:
                 results.append("❌ logo_filename column missing")
+                
+            # Verify user_id column exists
+            cursor.execute("""
+                SELECT column_name FROM information_schema.columns 
+                WHERE table_name = 'player_availability' AND column_name = 'user_id'
+            """)
+            user_id_result = cursor.fetchone()
+            if user_id_result:
+                results.append("✅ player_availability.user_id column exists")
+            else:
+                results.append("❌ player_availability.user_id column missing")
             
             return jsonify({
                 'success': True,
