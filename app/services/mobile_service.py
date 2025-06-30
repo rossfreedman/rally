@@ -415,7 +415,7 @@ def get_mobile_schedule_data(user):
         print(f"[DEBUG] Schedule lookup: team_id={user_team_id}, team_name='{team_name}', league_db_id={league_db_id}")
         
         # Get schedule data from database using TEAM_ID filtering for accuracy
-        # First try to get upcoming matches (future + recent past)
+        # Show all historical schedule data (removed date filter to show completed seasons)
         schedule_query = """
             SELECT 
                 TO_CHAR(match_date, 'YYYY-MM-DD') as match_date,
@@ -442,47 +442,15 @@ def get_mobile_schedule_data(user):
             FROM schedule
             WHERE (home_team_id = %s OR away_team_id = %s)
             AND league_id = %s
-            AND match_date >= CURRENT_DATE - INTERVAL '30 days'
-            ORDER BY match_date ASC, match_time ASC
-            LIMIT 20
+            ORDER BY match_date DESC, match_time DESC
+            LIMIT 50
         """
         
         schedule_matches = execute_query(schedule_query, [
             user_team_id, user_team_id, user_team_id, user_team_id, user_team_id, user_team_id, league_db_id
         ])
         
-        # If no recent/upcoming matches, get the most recent completed matches
-        if not schedule_matches:
-            recent_matches_query = """
-                SELECT 
-                    TO_CHAR(match_date, 'YYYY-MM-DD') as match_date,
-                    TO_CHAR(match_date, 'Day, Mon DD') as formatted_date,
-                    TO_CHAR(match_time, 'HH12:MI AM') as match_time,
-                    home_team,
-                    away_team,
-                    location,
-                    'match' as event_type,
-                    CASE 
-                        WHEN home_team_id = %s THEN 'home'
-                        WHEN away_team_id = %s THEN 'away'
-                        ELSE 'neutral'
-                    END as home_away,
-                    CASE 
-                        WHEN home_team_id = %s THEN away_team
-                        WHEN away_team_id = %s THEN home_team
-                        ELSE 'Unknown'
-                    END as opponent,
-                    'past' as status
-                FROM schedule
-                WHERE (home_team_id = %s OR away_team_id = %s)
-                AND league_id = %s
-                ORDER BY match_date DESC, match_time DESC
-                LIMIT 10
-            """
-            
-            schedule_matches = execute_query(recent_matches_query, [
-                user_team_id, user_team_id, user_team_id, user_team_id, user_team_id, user_team_id, league_db_id
-            ])
+        # No fallback query needed since we're now showing all historical data
         
         # Practice times would go here when practice_times table exists
         practice_times = []
@@ -1807,23 +1775,24 @@ def get_mobile_availability_data(user):
                 """
                 player_record = execute_query_one(player_query, (player_name, series_id, league_id))
         
-        # Get availability data for this player
+        # Get availability data using STABLE USER_ID APPROACH
+        # CRITICAL FIX: Use user_id instead of player_id for stable lookups that survive ETL imports
         availability_data = {}
-        if player_record:
-            player_id = player_record["id"]
-            series_id = player_record["series_id"]
+        user_id = session_data.get("id")  # Get user_id from session data
+        
+        if user_id:
+            print(f"Getting availability using stable user_id={user_id} (ETL-resilient approach)")
             
-            print(f"Getting availability for player_id={player_id}, series_id={series_id}")
-            
+            # STABLE APPROACH: Query by user_id + match_date (same pattern as availability protection)
             availability_query = """
                 SELECT 
                     DATE(match_date AT TIME ZONE 'UTC') as match_date,
                     availability_status, 
                     notes 
                 FROM player_availability 
-                WHERE player_id = %s AND series_id = %s
+                WHERE user_id = %s
             """
-            availability_records = execute_query(availability_query, (player_id, series_id))
+            availability_records = execute_query(availability_query, (user_id,))
             
             # Map numeric status to string status for template
             status_map = {
@@ -1851,9 +1820,60 @@ def get_mobile_availability_data(user):
                         "notes": avail.get("notes", "")
                     }
             
-            print(f"Found availability data for {len(availability_data)} dates")
+            print(f"Found availability data for {len(availability_data)} dates using stable user_id approach")
+            
+            # DEBUG: Log specific dates found
+            for date_key, avail_info in availability_data.items():
+                print(f"  {date_key}: {avail_info['status']} - {avail_info['notes']}")
         else:
-            print(f"No player record found for {player_name} in league {league_id}")
+            print(f"No user_id found in session data - using legacy player_id approach")
+            
+            # FALLBACK: Original logic for backward compatibility
+            if player_record:
+                player_id = player_record["id"]
+                series_id = player_record["series_id"]
+                
+                print(f"Getting availability for player_id={player_id}, series_id={series_id}")
+                
+                availability_query = """
+                    SELECT 
+                        DATE(match_date AT TIME ZONE 'UTC') as match_date,
+                        availability_status, 
+                        notes 
+                    FROM player_availability 
+                    WHERE player_id = %s AND series_id = %s
+                """
+                availability_records = execute_query(availability_query, (player_id, series_id))
+                
+                # Map numeric status to string status for template
+                status_map = {
+                    1: "available",
+                    2: "unavailable", 
+                    3: "not_sure",
+                    None: None  # No selection made
+                }
+                
+                # Build availability lookup by date
+                for avail in availability_records:
+                    match_date = avail["match_date"]
+                    if match_date:
+                        # Convert date object to MM/DD/YYYY format
+                        if hasattr(match_date, 'strftime'):
+                            date_key = match_date.strftime("%m/%d/%Y")
+                        else:
+                            # Handle case where it's a string
+                            date_key = str(match_date)
+                            
+                        numeric_status = avail["availability_status"]
+                        string_status = status_map.get(numeric_status)
+                        availability_data[date_key] = {
+                            "status": string_status,
+                            "notes": avail.get("notes", "")
+                        }
+                
+                print(f"Found availability data for {len(availability_data)} dates")
+            else:
+                print(f"No player record found for {player_name} in league {league_id}")
 
         # Create match-availability pairs with actual availability data
         match_avail_pairs = []
@@ -5829,13 +5849,13 @@ def _get_opponent_stats(opponent, league_id_int):
 def _get_actual_future_matches(team, league_id_int):
     """
     Get actual future matches from the schedule table.
-    Returns empty list if no future matches are scheduled.
+    UPDATED: Now returns all matches (not just future) to support completed seasons.
     """
     try:
-        print("[DEBUG] Checking for actual future matches in schedule table...")
+        print("[DEBUG] Getting all matches from schedule table...")
         
         if league_id_int:
-            future_matches_query = """
+            matches_query = """
                 SELECT 
                     home_team,
                     away_team,
@@ -5845,12 +5865,11 @@ def _get_actual_future_matches(team, league_id_int):
                 FROM schedule
                 WHERE (home_team = %s OR away_team = %s)
                 AND league_id = %s
-                AND match_date > CURRENT_DATE
-                ORDER BY match_date, match_time
+                ORDER BY match_date DESC, match_time DESC
             """
-            future_matches = execute_query(future_matches_query, [team, team, league_id_int])
+            matches = execute_query(matches_query, [team, team, league_id_int])
         else:
-            future_matches_query = """
+            matches_query = """
                 SELECT 
                     home_team,
                     away_team,
@@ -5859,16 +5878,15 @@ def _get_actual_future_matches(team, league_id_int):
                     location
                 FROM schedule
                 WHERE (home_team = %s OR away_team = %s)
-                AND match_date > CURRENT_DATE
-                ORDER BY match_date, match_time
+                ORDER BY match_date DESC, match_time DESC
             """
-            future_matches = execute_query(future_matches_query, [team, team])
+            matches = execute_query(matches_query, [team, team])
 
-        print(f"[DEBUG] Found {len(future_matches)} actual future matches")
-        return future_matches
+        print(f"[DEBUG] Found {len(matches)} total matches (including historical)")
+        return matches
 
     except Exception as e:
-        print(f"[ERROR] Getting actual future matches: {str(e)}")
+        print(f"[ERROR] Getting matches: {str(e)}")
         return []
 
 
