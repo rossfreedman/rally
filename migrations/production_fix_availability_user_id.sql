@@ -93,7 +93,7 @@ BEGIN
     RAISE NOTICE '=== MIGRATION RESULTS ===';
     RAISE NOTICE 'Total availability records: %', total_records;
     RAISE NOTICE 'Records with user_id: %', records_with_user_id;
-    RAISE NOTICE 'Population rate: %% (%)', percentage, '%';
+    RAISE NOTICE 'Population rate: % percent', percentage;
     
     IF records_with_user_id > 0 THEN
         RAISE NOTICE '✅ Migration completed successfully!';
