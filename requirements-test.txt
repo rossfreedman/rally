@@ -18,6 +18,9 @@ bandit==1.7.5
 safety==3.0.1
 pip-audit==2.6.2
 
+# Additional testing dependencies for security tests
+requests==2.31.0
+
 # Load testing (simplified - remove gevent dependency issues)
 # locust==2.20.0  # Commented out due to gevent build issues
 
