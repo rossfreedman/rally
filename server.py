@@ -31,6 +31,7 @@ from app.routes.api_routes import api_bp
 from app.routes.auth_routes import auth_bp
 from app.routes.mobile_routes import mobile_bp
 from app.routes.background_jobs import background_bp
+from app.routes.schema_fix_routes import schema_fix_bp
 
 # Import blueprints
 from app.routes.player_routes import player_bp
@@ -85,6 +86,7 @@ app.register_blueprint(mobile_bp)
 app.register_blueprint(api_bp)
 app.register_blueprint(polls_bp)
 app.register_blueprint(background_bp)
+app.register_blueprint(schema_fix_bp)
 
 # Initialize act routes (includes find-subs, availability, schedule, rally_ai, etc.)
 init_act_routes(app)
