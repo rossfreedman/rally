@@ -133,9 +133,73 @@ def create_poll():
         user_id = session["user"]["id"]
         user = session["user"]
 
-        # Get user's team ID from player association
-        team_id = get_user_team_id(user)
-        if not team_id:
+        # PRIORITY-BASED TEAM DETECTION (same as poll viewing API)
+        user_team_id = None
+        user_team_name = None
+        
+        # PRIORITY 1: Use team_id from session if available (most reliable for multi-team players)
+        session_team_id = user.get("team_id")
+        print(f"🔥 Poll Creation: session_team_id from user: {session_team_id}")
+        
+        if session_team_id:
+            try:
+                # Get team name for the specific team_id from session
+                session_team_query = """
+                    SELECT t.id, t.team_name
+                    FROM teams t
+                    WHERE t.id = %s
+                """
+                session_team_result = execute_query_one(session_team_query, [session_team_id])
+                if session_team_result:
+                    user_team_id = session_team_result['id'] 
+                    user_team_name = session_team_result['team_name']
+                    print(f"🔥 Poll Creation: Using team_id from session: team_id={user_team_id}, team_name={user_team_name}")
+                else:
+                    print(f"🔥 Poll Creation: Session team_id {session_team_id} not found in teams table")
+            except Exception as e:
+                print(f"🔥 Poll Creation: Error getting team from session team_id {session_team_id}: {e}")
+        
+        # PRIORITY 2: Use team_context from user if provided (from composite player URL)
+        if not user_team_id:
+            team_context = user.get("team_context") if user else None
+            if team_context:
+                try:
+                    # Get team name for the specific team_id from team context
+                    team_context_query = """
+                        SELECT t.id, t.team_name
+                        FROM teams t
+                        WHERE t.id = %s
+                    """
+                    team_context_result = execute_query_one(team_context_query, [team_context])
+                    if team_context_result:
+                        user_team_id = team_context_result['id'] 
+                        user_team_name = team_context_result['team_name']
+                        print(f"🔥 Poll Creation: Using team_context from URL: team_id={user_team_id}, team_name={user_team_name}")
+                    else:
+                        print(f"🔥 Poll Creation: team_context {team_context} not found in teams table")
+                except Exception as e:
+                    print(f"🔥 Poll Creation: Error getting team from team_context {team_context}: {e}")
+        
+        # PRIORITY 3: Use legacy get_user_team_id as fallback if no direct team_id
+        if not user_team_id:
+            print(f"🔥 Poll Creation: No direct team_id, using legacy get_user_team_id fallback")
+            user_team_id = get_user_team_id(user)
+            if user_team_id:
+                try:
+                    session_team_query = """
+                        SELECT t.id, t.team_name
+                        FROM teams t
+                        WHERE t.id = %s
+                    """
+                    session_team_result = execute_query_one(session_team_query, [user_team_id])
+                    if session_team_result:
+                        user_team_name = session_team_result['team_name']
+                        print(f"🔥 Poll Creation: Legacy function provided: team_id={user_team_id}, team_name={user_team_name}")
+                except Exception as e:
+                    print(f"🔥 Poll Creation: Error getting team name from legacy team_id: {e}")
+        
+        # If still no team, return error
+        if not user_team_id:
             print(
                 f"🔥 Could not determine team ID for user: {user.get('email')} (user_id: {user_id})"
             )
@@ -146,7 +210,11 @@ def create_poll():
                 400,
             )
 
-        print(f"🔥 User ID: {user_id}, Team ID: {team_id}")
+        print(f"🔥 Poll Creation: Final team selection: team_id={user_team_id}, team_name={user_team_name}")
+        print(f"🔥 User ID: {user_id}, Team ID: {user_team_id}")
+        
+        # Use the determined team_id for poll creation
+        team_id = user_team_id
 
         # Create the poll with team_id
         poll_query = """
@@ -216,14 +284,79 @@ def create_poll():
 @polls_bp.route("/api/polls/my-team")
 @login_required
 def get_my_team_polls():
-    """Get all polls for the current user's team"""
+    """Get all polls for the current user's team using priority-based team detection like analyze-me"""
     try:
         user = session["user"]
         user_id = user["id"]
-
-        # Get user's team ID
-        team_id = get_user_team_id(user)
-        if not team_id:
+        user_email = user.get("email")
+        
+        # PRIORITY-BASED TEAM DETECTION (same as analyze-me and track-byes-courts pages)
+        user_team_id = None
+        user_team_name = None
+        
+        # PRIORITY 1: Use team_id from session if available (most reliable for multi-team players)
+        session_team_id = user.get("team_id")
+        print(f"[DEBUG] Polls: session_team_id from user: {session_team_id}")
+        
+        if session_team_id:
+            try:
+                # Get team name for the specific team_id from session
+                session_team_query = """
+                    SELECT t.id, t.team_name
+                    FROM teams t
+                    WHERE t.id = %s
+                """
+                session_team_result = execute_query_one(session_team_query, [session_team_id])
+                if session_team_result:
+                    user_team_id = session_team_result['id'] 
+                    user_team_name = session_team_result['team_name']
+                    print(f"[DEBUG] Polls: Using team_id from session: team_id={user_team_id}, team_name={user_team_name}")
+                else:
+                    print(f"[DEBUG] Polls: Session team_id {session_team_id} not found in teams table")
+            except Exception as e:
+                print(f"[DEBUG] Polls: Error getting team from session team_id {session_team_id}: {e}")
+        
+        # PRIORITY 2: Use team_context from user if provided (from composite player URL)
+        if not user_team_id:
+            team_context = user.get("team_context") if user else None
+            if team_context:
+                try:
+                    # Get team name for the specific team_id from team context
+                    team_context_query = """
+                        SELECT t.id, t.team_name
+                        FROM teams t
+                        WHERE t.id = %s
+                    """
+                    team_context_result = execute_query_one(team_context_query, [team_context])
+                    if team_context_result:
+                        user_team_id = team_context_result['id'] 
+                        user_team_name = team_context_result['team_name']
+                        print(f"[DEBUG] Polls: Using team_context from URL: team_id={user_team_id}, team_name={user_team_name}")
+                    else:
+                        print(f"[DEBUG] Polls: team_context {team_context} not found in teams table")
+                except Exception as e:
+                    print(f"[DEBUG] Polls: Error getting team from team_context {team_context}: {e}")
+        
+        # PRIORITY 3: Use legacy get_user_team_id as fallback if no direct team_id
+        if not user_team_id:
+            print(f"[DEBUG] Polls: No direct team_id, using legacy get_user_team_id fallback")
+            user_team_id = get_user_team_id(user)
+            if user_team_id:
+                try:
+                    session_team_query = """
+                        SELECT t.id, t.team_name
+                        FROM teams t
+                        WHERE t.id = %s
+                    """
+                    session_team_result = execute_query_one(session_team_query, [user_team_id])
+                    if session_team_result:
+                        user_team_name = session_team_result['team_name']
+                        print(f"[DEBUG] Polls: Legacy function provided: team_id={user_team_id}, team_name={user_team_name}")
+                except Exception as e:
+                    print(f"[DEBUG] Polls: Error getting team name from legacy team_id: {e}")
+        
+        # If still no team, return error
+        if not user_team_id:
             print(
                 f"[DEBUG] Could not determine team ID for user: {user.get('email')} (user_id: {user_id})"
             )
@@ -234,8 +367,12 @@ def get_my_team_polls():
                 400,
             )
 
+        print(f"[DEBUG] Polls: Final team selection: team_id={user_team_id}, team_name={user_team_name}")
         print(f"[DEBUG] Getting polls for user: {user.get('email')}")
-        print(f"[DEBUG] Team ID: {team_id} (integer foreign key)")
+        print(f"[DEBUG] Team ID: {user_team_id} (integer foreign key)")
+        
+        # Use the determined team_id for the rest of the function
+        team_id = user_team_id
 
         # Get polls for this specific team only
         polls_query = """

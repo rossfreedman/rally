@@ -3005,15 +3005,83 @@ def calculate_player_court_stats(team_matches, team_name, members, user_league_i
 
 
 def get_mobile_track_byes_data(user):
-    """Get track byes and court assignment data for mobile interface"""
+    """Get track byes and court assignment data for mobile interface using priority-based team detection like analyze-me"""
     try:
-        # Get user's team information using session service
         from app.services.session_service import get_session_data_for_user
+        from database_utils import execute_query_one
         
         user_email = user.get("email")
-        session_data = get_session_data_for_user(user_email)
+        player_id = user.get("tenniscores_player_id")
         
-        if not session_data:
+        # PRIORITY-BASED TEAM DETECTION (same as analyze-me page)
+        user_team_id = None
+        user_team_name = None
+        
+        # PRIORITY 1: Use team_id from session if available (most reliable for multi-team players)
+        session_team_id = user.get("team_id")
+        print(f"[DEBUG] Track-byes-courts: session_team_id from user: {session_team_id}")
+        
+        if session_team_id:
+            try:
+                # Get team name for the specific team_id from session
+                session_team_query = """
+                    SELECT t.id, t.team_name
+                    FROM teams t
+                    WHERE t.id = %s
+                """
+                session_team_result = execute_query_one(session_team_query, [session_team_id])
+                if session_team_result:
+                    user_team_id = session_team_result['id'] 
+                    user_team_name = session_team_result['team_name']
+                    print(f"[DEBUG] Track-byes-courts: Using team_id from session: team_id={user_team_id}, team_name={user_team_name}")
+                else:
+                    print(f"[DEBUG] Track-byes-courts: Session team_id {session_team_id} not found in teams table")
+            except Exception as e:
+                print(f"[DEBUG] Track-byes-courts: Error getting team from session team_id {session_team_id}: {e}")
+        
+        # PRIORITY 2: Use team_context from user if provided (from composite player URL)
+        if not user_team_id:
+            team_context = user.get("team_context") if user else None
+            if team_context:
+                try:
+                    # Get team name for the specific team_id from team context
+                    team_context_query = """
+                        SELECT t.id, t.team_name
+                        FROM teams t
+                        WHERE t.id = %s
+                    """
+                    team_context_result = execute_query_one(team_context_query, [team_context])
+                    if team_context_result:
+                        user_team_id = team_context_result['id'] 
+                        user_team_name = team_context_result['team_name']
+                        print(f"[DEBUG] Track-byes-courts: Using team_context from URL: team_id={user_team_id}, team_name={user_team_name}")
+                    else:
+                        print(f"[DEBUG] Track-byes-courts: team_context {team_context} not found in teams table")
+                except Exception as e:
+                    print(f"[DEBUG] Track-byes-courts: Error getting team from team_context {team_context}: {e}")
+        
+        # PRIORITY 3: Use session service as fallback if no direct team_id
+        if not user_team_id:
+            print(f"[DEBUG] Track-byes-courts: No direct team_id, using session service fallback")
+            session_data = get_session_data_for_user(user_email)
+            if session_data:
+                user_team_id = session_data.get("team_id")
+                if user_team_id:
+                    try:
+                        session_team_query = """
+                            SELECT t.id, t.team_name
+                            FROM teams t
+                            WHERE t.id = %s
+                        """
+                        session_team_result = execute_query_one(session_team_query, [user_team_id])
+                        if session_team_result:
+                            user_team_name = session_team_result['team_name']
+                            print(f"[DEBUG] Track-byes-courts: Session service provided: team_id={user_team_id}, team_name={user_team_name}")
+                    except Exception as e:
+                        print(f"[DEBUG] Track-byes-courts: Error getting team name from session service team_id: {e}")
+        
+        # If still no team, return error
+        if not user_team_id:
             return {
                 "team_members": [],
                 "current_team_info": None,
@@ -3024,33 +3092,23 @@ def get_mobile_track_byes_data(user):
                     {"key": "court3", "name": "Court 3"},
                     {"key": "court4", "name": "Court 4"},
                 ],
-                "error": "Could not load session data"
+                "error": "No team ID found - please check your profile settings"
             }
         
-        team_id = session_data.get("team_id")
-        if not team_id:
-            return {
-                "team_members": [],
-                "current_team_info": None,
-                "user_teams": [],
-                "available_courts": [
-                    {"key": "court1", "name": "Court 1"},
-                    {"key": "court2", "name": "Court 2"},
-                    {"key": "court3", "name": "Court 3"},
-                    {"key": "court4", "name": "Court 4"},
-                ],
-                "error": "No team ID found in session"
-            }
+        print(f"[DEBUG] Track-byes-courts: Final team selection: team_id={user_team_id}, team_name={user_team_name}")
         
         # Get team members with court stats using existing function
-        team_members = get_team_members_with_court_stats(team_id, user)
+        team_members = get_team_members_with_court_stats(user_team_id, user)
+        
+        # Get additional team info from session or database
+        session_data = get_session_data_for_user(user_email)
         
         # Get current team info
         current_team_info = {
-            "team_id": team_id,
-            "team_name": session_data.get("series", "Unknown Team"),
-            "club_name": session_data.get("club", "Unknown Club"),
-            "series_name": session_data.get("series", "Unknown Series")
+            "team_id": user_team_id,
+            "team_name": user_team_name or session_data.get("series", "Unknown Team"),
+            "club_name": session_data.get("club", "Unknown Club") if session_data else "Unknown Club",
+            "series_name": session_data.get("series", "Unknown Series") if session_data else "Unknown Series"
         }
         
         # For now, just return single team - multi-team support can be added later
@@ -3069,11 +3127,13 @@ def get_mobile_track_byes_data(user):
             "current_team_info": current_team_info,
             "user_teams": user_teams,
             "available_courts": available_courts,
-            "team_id": team_id
+            "team_id": user_team_id
         }
         
     except Exception as e:
         logger.error(f"Error getting mobile track byes data: {str(e)}")
+        import traceback
+        print(f"[DEBUG] Track-byes-courts error traceback: {traceback.format_exc()}")
         return {
             "team_members": [],
             "current_team_info": None,
