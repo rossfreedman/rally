@@ -1739,15 +1739,18 @@ def get_mobile_availability_data(user):
                 home_team = match.get('home_team', '')
                 away_team = match.get('away_team', '')
                 
-                # Only classify as practice if it's specifically a practice session
-                # (starts with "Practice" or has no away_team indicating it's not a match)
+                # Detect practice sessions (contain "Practice" in home_team or no away_team)
                 is_practice = (
-                    home_team.startswith('Practice') or 
-                    home_team == 'Practice' or
+                    'Practice' in home_team or 
                     (not away_team or away_team.strip() == '')
                 )
                 
-                match['type'] = 'practice' if is_practice else 'match'
+                # SKIP practice sessions - only show actual matches on availability page
+                if is_practice:
+                    print(f"  ⏭️  Skipping practice: {home_team} on {match.get('date')}")
+                    continue
+                
+                match['type'] = 'match'
                 filtered_matches.append(match)
         
         user_matches = filtered_matches
