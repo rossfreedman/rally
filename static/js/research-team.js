@@ -542,23 +542,18 @@ function calculatePlayerStats(matches, teamId) {
     return players;
 }
 
-// Get upcoming matches
+// Get recent matches (updated to show all matches instead of just upcoming)
 function getUpcomingMatches(matches, teamId) {
-    // Sort matches by date
+    // Sort matches by date (most recent first)
     const sortedMatches = [...matches].sort((a, b) => {
         const dateA = new Date(a["Date"].split('-').reverse().join('-'));
         const dateB = new Date(b["Date"].split('-').reverse().join('-'));
-        return dateA - dateB;
+        return dateB - dateA; // Changed to descending order (most recent first)
     });
     
-    // Get current date
-    const currentDate = new Date();
-    
-    // Filter for upcoming matches
-    return sortedMatches.filter(match => {
-        const matchDate = new Date(match["Date"].split('-').reverse().join('-'));
-        return matchDate >= currentDate;
-    }).slice(0, 3); // Get next 3 matches
+    // UPDATED: Show recent matches instead of filtering by current date
+    // This supports completed seasons where no upcoming matches exist
+    return sortedMatches.slice(0, 5); // Show last 5 matches instead of next 3
 }
 
 // Generate HTML for court cards
@@ -633,10 +628,10 @@ function generatePlayerRows(playerStats) {
     }).join('');
 }
 
-// Generate HTML for upcoming matches
+// Generate HTML for recent matches (updated to show historical data)
 function generateUpcomingMatchesHTML(upcomingMatches) {
     if (upcomingMatches.length === 0) {
-        return `<p class="text-center">No upcoming matches scheduled</p>`;
+        return `<p class="text-center">No recent matches found</p>`;
     }
     
     return `
