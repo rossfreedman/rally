@@ -472,21 +472,62 @@ def get_team_last_3_matches():
             is_home = home_team == team_name
             opponent_team = away_team if is_home else home_team
             
-            # Calculate team match result from individual matches
-            team_wins = 0
-            total_individual_matches = len(individual_matches)
+            # Calculate team points based on sets won + match bonus
+            our_team_points = 0
+            opponent_team_points = 0
             
-            # Collect all players and scores for display
+            # Collect all players for display
             our_players = set()
             opponent_players = set()
-            all_scores = []
             
             for match in individual_matches:
                 winner = match.get("Winner", "").lower()
+                scores = match.get("Scores", "")
+                
+                # Determine which team won this individual match
                 individual_team_won = (is_home and winner == "home") or (not is_home and winner == "away")
                 
+                # Calculate points from sets
+                match_our_points = 0
+                match_opponent_points = 0
+                
+                if scores:
+                    # Parse set scores (format: "6-4, 4-6, 6-3" or similar)
+                    sets = [s.strip() for s in scores.split(',')]
+                    
+                    for set_score in sets:
+                        if '-' in set_score:
+                            try:
+                                # Remove any extra formatting like tiebreak scores [7-5]
+                                clean_score = set_score.split('[')[0].strip()
+                                home_score, away_score = map(int, clean_score.split('-'))
+                                
+                                # Award point for set win
+                                if home_score > away_score:
+                                    # Home team won this set
+                                    if is_home:
+                                        match_our_points += 1
+                                    else:
+                                        match_opponent_points += 1
+                                elif away_score > home_score:
+                                    # Away team won this set
+                                    if is_home:
+                                        match_opponent_points += 1
+                                    else:
+                                        match_our_points += 1
+                            except (ValueError, IndexError):
+                                # If we can't parse the score, skip it
+                                continue
+                
+                # Add bonus point for winning the match
                 if individual_team_won:
-                    team_wins += 1
+                    match_our_points += 1
+                else:
+                    match_opponent_points += 1
+                
+                # Add to team totals
+                our_team_points += match_our_points
+                opponent_team_points += match_opponent_points
                 
                 # Collect player names
                 if is_home:
@@ -509,13 +550,9 @@ def get_team_last_3_matches():
                     opponent_players.add(get_player_name(opponent_player1_id) or "Unknown")
                 if opponent_player2_id:
                     opponent_players.add(get_player_name(opponent_player2_id) or "Unknown")
-                
-                # Collect scores
-                if match.get("Scores"):
-                    all_scores.append(match.get("Scores"))
             
-            # Determine team match result
-            team_won = team_wins > (total_individual_matches / 2)
+            # Determine team match result based on total points
+            team_won = our_team_points > opponent_team_points
             
             # Format player lists for display
             our_players_list = sorted(list(our_players))
@@ -527,14 +564,14 @@ def get_team_last_3_matches():
             opponent_player1_name = opponent_players_list[0] if opponent_players_list else "Unknown"
             opponent_player2_name = opponent_players_list[1] if len(opponent_players_list) > 1 else "Unknown"
             
-            # Create team match summary
-            match_summary = f"{team_wins}-{total_individual_matches - team_wins}"
+            # Create team match summary with proper paddle tennis scoring
+            team_score_summary = f"{our_team_points}-{opponent_team_points}"
             
             processed_match = {
                 "date": date,
                 "home_team": home_team,
                 "away_team": away_team,
-                "scores": match_summary,  # Show team match score like "4-2"
+                "scores": team_score_summary,  # Show team points like "15-12"
                 "team_was_home": is_home,
                 "team_won": team_won,
                 "our_player1_name": our_player1_name,
@@ -543,8 +580,9 @@ def get_team_last_3_matches():
                 "opponent_player1_name": opponent_player1_name,
                 "opponent_player2_name": opponent_player2_name,
                 "match_result": "Won" if team_won else "Lost",
-                "individual_matches_count": total_individual_matches,
-                "team_wins": team_wins
+                "individual_matches_count": len(individual_matches),
+                "our_team_points": our_team_points,
+                "opponent_team_points": opponent_team_points
             }
             processed_matches.append(processed_match)
 
