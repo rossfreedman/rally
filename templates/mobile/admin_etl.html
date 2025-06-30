@@ -249,10 +249,7 @@
           <i class="fas fa-eraser mr-2"></i>
           Clear Output
         </button>
-        <button id="force-cleanup-scrape" class="btn btn-outline btn-sm flex items-center">
-          <i class="fas fa-broom mr-2"></i>
-          Force Memory Cleanup
-        </button>
+
         <button id="check-scrape-status" class="btn btn-info flex items-center">
           <i class="fas fa-search mr-2"></i>
           Force Check Status
@@ -269,8 +266,8 @@
           <i class="fas fa-terminal mr-2"></i>
           Scraping Status
           <span class="text-xs text-gray-500 ml-2">
-            <i class="fas fa-arrows-alt-v mr-1"></i>
-            (Scrollable Output - Fixed Height)
+            <i class="fas fa-list mr-1"></i>
+            (Milestone Updates Only)
           </span>
         </label>
         <div id="scrape-status" class="status-output" role="log" aria-live="polite" aria-label="ETL Scraping Output">
@@ -350,10 +347,7 @@
           <i class="fas fa-eraser mr-2"></i>
           Clear Output
         </button>
-        <button id="force-cleanup-import" class="btn btn-outline btn-sm flex items-center">
-          <i class="fas fa-broom mr-2"></i>
-          Force Memory Cleanup
-        </button>
+
       </div>
 
       <!-- Status Output -->
@@ -362,8 +356,8 @@
           <i class="fas fa-terminal mr-2"></i>
           Import Status
           <span class="text-xs text-gray-500 ml-2">
-            <i class="fas fa-arrows-alt-v mr-1"></i>
-            (Scrollable Output - Fixed Height)
+            <i class="fas fa-list mr-1"></i>
+            (Milestone Updates Only)
           </span>
         </label>
         <div id="import-status" class="status-output" role="log" aria-live="polite" aria-label="ETL Import Output">
@@ -466,10 +460,6 @@ document.addEventListener('DOMContentLoaded', function() {
   document.getElementById('start-import').addEventListener('click', startImport);
   document.getElementById('stop-import').addEventListener('click', stopImport);
   document.getElementById('clear-import-output').addEventListener('click', clearImportOutput);
-  document.getElementById('force-cleanup-import').addEventListener('click', forceMemoryCleanupImport);
-  
-  // Memory cleanup functionality
-  document.getElementById('force-cleanup-scrape').addEventListener('click', forceMemoryCleanupScrape);
   
   // Process management
   document.getElementById('clear-processes').addEventListener('click', clearStuckProcesses);
@@ -480,10 +470,7 @@ document.addEventListener('DOMContentLoaded', function() {
   let scrapeElapsedTimer = null;
   let importElapsedTimer = null;
   
-  // Memory management settings
-  const MAX_LOG_LINES = 1000;  // Maximum number of log lines to keep in DOM
-  const TRIM_TO_LINES = 750;   // Trim to this many lines when limit is reached
-  const MEMORY_CHECK_INTERVAL = 50;  // Check memory every N messages
+  // Simplified logging - only milestone messages
   let scrapeMessageCount = 0;
   let importMessageCount = 0;
 
@@ -548,8 +535,7 @@ document.addEventListener('DOMContentLoaded', function() {
           checkScrapingCompletion();
         }
         
-        // Update memory status during long operations
-        updateMemoryStatus();
+
       }
     }, 30000); // 30 seconds
     
@@ -673,9 +659,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Log elapsed time every 30 seconds
         appendToImportOutput(`⏰ Elapsed time: ${elapsed}`, 'info');
-        
-        // Update memory status during long operations
-        updateMemoryStatus();
       }
     }, 30000); // 30 seconds
     
@@ -823,33 +806,12 @@ document.addEventListener('DOMContentLoaded', function() {
     
     const newLine = document.createElement('div');
     newLine.style.color = colorClass;
+    newLine.style.marginBottom = '4px';
+    newLine.style.padding = '2px 0';
     newLine.innerHTML = `[${timestamp}] ${message}`;
     output.appendChild(newLine);
     
-    // Memory management: track message count and trim if necessary
     scrapeMessageCount++;
-    
-    // Check if we need to trim old messages to prevent memory bloat
-    if (scrapeMessageCount % MEMORY_CHECK_INTERVAL === 0) {
-      const children = output.children;
-      if (children.length > MAX_LOG_LINES) {
-        // Remove oldest messages, keeping only TRIM_TO_LINES
-        const linesToRemove = children.length - TRIM_TO_LINES;
-        for (let i = 0; i < linesToRemove; i++) {
-          if (children[0] && !children[0].classList.contains('text-gray-400')) {
-            output.removeChild(children[0]);
-          }
-        }
-        
-        // Add memory trim notification
-        const trimNotice = document.createElement('div');
-        trimNotice.style.color = '#666666';
-        trimNotice.style.fontStyle = 'italic';
-        trimNotice.innerHTML = `[${timestamp}] 🧹 Memory management: Trimmed ${linesToRemove} old log lines to prevent browser slowdown`;
-        output.insertBefore(trimNotice, output.firstChild);
-      }
-    }
-    
     output.scrollTop = output.scrollHeight;
   }
 
@@ -865,33 +827,12 @@ document.addEventListener('DOMContentLoaded', function() {
     
     const newLine = document.createElement('div');
     newLine.style.color = colorClass;
+    newLine.style.marginBottom = '4px';
+    newLine.style.padding = '2px 0';
     newLine.innerHTML = `[${timestamp}] ${message}`;
     output.appendChild(newLine);
     
-    // Memory management: track message count and trim if necessary
     importMessageCount++;
-    
-    // Check if we need to trim old messages to prevent memory bloat
-    if (importMessageCount % MEMORY_CHECK_INTERVAL === 0) {
-      const children = output.children;
-      if (children.length > MAX_LOG_LINES) {
-        // Remove oldest messages, keeping only TRIM_TO_LINES
-        const linesToRemove = children.length - TRIM_TO_LINES;
-        for (let i = 0; i < linesToRemove; i++) {
-          if (children[0] && !children[0].classList.contains('text-gray-400')) {
-            output.removeChild(children[0]);
-          }
-        }
-        
-        // Add memory trim notification
-        const trimNotice = document.createElement('div');
-        trimNotice.style.color = '#666666';
-        trimNotice.style.fontStyle = 'italic';
-        trimNotice.innerHTML = `[${timestamp}] 🧹 Memory management: Trimmed ${linesToRemove} old log lines to prevent browser slowdown`;
-        output.insertBefore(trimNotice, output.firstChild);
-      }
-    }
-    
     output.scrollTop = output.scrollHeight;
   }
 
@@ -903,7 +844,6 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('scrape-current-status').classList.add('hidden');
     document.getElementById('scrape-current-step').textContent = 'Initializing...';
     document.getElementById('scrape-elapsed-time').textContent = 'Elapsed: 0s';
-    // Reset memory management counter
     scrapeMessageCount = 0;
   }
 
@@ -915,7 +855,6 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('import-current-status').classList.add('hidden');
     document.getElementById('import-current-step').textContent = 'Initializing...';
     document.getElementById('import-elapsed-time').textContent = 'Elapsed: 0s';
-    // Reset memory management counter
     importMessageCount = 0;
   }
 
@@ -966,115 +905,16 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 5000);
   }
 
-  // Performance monitoring function
-  function getMemoryInfo() {
+  // Status display helper
+  function getStatusSummary() {
     const scrapeLines = document.getElementById('scrape-status').children.length;
     const importLines = document.getElementById('import-status').children.length;
-    
-    // Estimate memory usage (rough calculation)
-    const avgCharsPerLine = 100; // Average characters per log line
-    const bytesPerChar = 2; // UTF-16 encoding
-    const estimatedMemory = (scrapeLines + importLines) * avgCharsPerLine * bytesPerChar;
     
     return {
       scrapeLines,
       importLines,
-      totalLines: scrapeLines + importLines,
-      estimatedMemoryKB: Math.round(estimatedMemory / 1024),
-      memoryStatus: estimatedMemory > 1024 * 1024 ? 'high' : estimatedMemory > 512 * 1024 ? 'medium' : 'low'
+      totalLines: scrapeLines + importLines
     };
-  }
-
-  // Add memory status indicator that updates periodically
-  function updateMemoryStatus() {
-    const info = getMemoryInfo();
-    
-    // Add subtle memory indicator if needed
-    if (info.totalLines > 500) {
-      const memoryIndicator = document.getElementById('memory-indicator') || (() => {
-        const indicator = document.createElement('div');
-        indicator.id = 'memory-indicator';
-        indicator.className = 'text-xs text-gray-500 mt-2 p-2 bg-gray-50 rounded';
-        document.querySelector('.container').appendChild(indicator);
-        return indicator;
-      })();
-      
-      const statusColor = info.memoryStatus === 'high' ? 'text-red-600' : 
-                         info.memoryStatus === 'medium' ? 'text-yellow-600' : 'text-green-600';
-      
-      memoryIndicator.innerHTML = `
-        <i class="fas fa-memory mr-1"></i>
-        <span class="${statusColor}">Memory Status: ${info.memoryStatus.toUpperCase()}</span> 
-        | Total log lines: ${info.totalLines} 
-        | Est. memory: ${info.estimatedMemoryKB}KB
-        ${info.totalLines > MAX_LOG_LINES ? ' | Auto-cleanup active' : ''}
-      `;
-    }
-  }
-
-  // Force memory cleanup functions
-  function forceMemoryCleanupScrape() {
-    const output = document.getElementById('scrape-status');
-    const children = output.children;
-    const initialCount = children.length;
-    
-    if (initialCount <= 1) {
-      showToast('No messages to clean up', 'info');
-      return;
-    }
-    
-    // Keep only the last 250 messages
-    const keepLines = 250;
-    const linesToRemove = Math.max(0, initialCount - keepLines);
-    
-    for (let i = 0; i < linesToRemove; i++) {
-      if (children[0] && !children[0].classList.contains('text-gray-400')) {
-        output.removeChild(children[0]);
-      }
-    }
-    
-    // Add cleanup notification
-    const timestamp = new Date().toLocaleTimeString();
-    const cleanupNotice = document.createElement('div');
-    cleanupNotice.style.color = '#666666';
-    cleanupNotice.style.fontWeight = 'bold';
-    cleanupNotice.innerHTML = `[${timestamp}] 🧹 Manual cleanup: Removed ${linesToRemove} log lines to free memory`;
-    output.insertBefore(cleanupNotice, output.firstChild);
-    
-    showToast(`Cleaned up ${linesToRemove} log lines`, 'success');
-    updateMemoryStatus();
-  }
-
-  function forceMemoryCleanupImport() {
-    const output = document.getElementById('import-status');
-    const children = output.children;
-    const initialCount = children.length;
-    
-    if (initialCount <= 1) {
-      showToast('No messages to clean up', 'info');
-      return;
-    }
-    
-    // Keep only the last 250 messages
-    const keepLines = 250;
-    const linesToRemove = Math.max(0, initialCount - keepLines);
-    
-    for (let i = 0; i < linesToRemove; i++) {
-      if (children[0] && !children[0].classList.contains('text-gray-400')) {
-        output.removeChild(children[0]);
-      }
-    }
-    
-    // Add cleanup notification
-    const timestamp = new Date().toLocaleTimeString();
-    const cleanupNotice = document.createElement('div');
-    cleanupNotice.style.color = '#666666';
-    cleanupNotice.style.fontWeight = 'bold';
-    cleanupNotice.innerHTML = `[${timestamp}] 🧹 Manual cleanup: Removed ${linesToRemove} log lines to free memory`;
-    output.insertBefore(cleanupNotice, output.firstChild);
-    
-    showToast(`Cleaned up ${linesToRemove} log lines`, 'success');
-    updateMemoryStatus();
   }
 
   // Initialize system status and check for stuck processes

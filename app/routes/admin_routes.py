@@ -425,7 +425,7 @@ def start_import():
 
             # Step 1: Consolidate league data
             yield f"data: {json.dumps({'type': 'output', 'message': '📋 Step 1: Consolidating league JSON files...', 'status': 'info'})}\n\n"
-            yield f"data: {json.dumps({'type': 'progress', 'progress': 20})}\n\n"
+            yield f"data: {json.dumps({'type': 'progress', 'progress': 5})}\n\n"
 
             # Run consolidation and yield updates
             consolidation_success = False
@@ -444,11 +444,11 @@ def start_import():
                 return
 
             yield f"data: {json.dumps({'type': 'output', 'message': '✅ League data consolidation completed', 'status': 'success'})}\n\n"
-            yield f"data: {json.dumps({'type': 'progress', 'progress': 50})}\n\n"
+            yield f"data: {json.dumps({'type': 'progress', 'progress': 20})}\n\n"
 
             # Step 2: Import to database
             yield f"data: {json.dumps({'type': 'output', 'message': '💾 Step 2: Importing data to PostgreSQL database...', 'status': 'info'})}\n\n"
-            yield f"data: {json.dumps({'type': 'progress', 'progress': 70})}\n\n"
+            yield f"data: {json.dumps({'type': 'progress', 'progress': 25})}\n\n"
 
             # Run import and yield updates
             import_success = False
@@ -1028,8 +1028,98 @@ def run_individual_scraper_generator(league, scraper, scraper_index, total_scrap
         yield f"data: {json.dumps({'type': 'error', 'message': f'Error running {scraper}: {str(e)}'})}\n\n"
 
 
+def is_milestone_message(message):
+    """Filter function to identify milestone messages worth showing to admin"""
+    if not message:
+        return False
+    
+    # Always show error messages and warnings
+    if any(indicator in message.lower() for indicator in ['error', 'failed', 'warning', '❌', '⚠️']):
+        return True
+    
+    # Show completion messages
+    if any(indicator in message.lower() for indicator in ['✅', 'completed', 'success', 'finished']):
+        return True
+    
+    # Show step/phase transitions
+    if any(indicator in message.lower() for indicator in ['step ', 'phase ', 'starting', '🚀', '📋', '💾']):
+        return True
+    
+    # Show import counts and major data operations
+    if any(indicator in message.lower() for indicator in ['importing', 'imported', 'records', 'consolidating']):
+        return True
+    
+    # Show connection and setup messages
+    if any(indicator in message.lower() for indicator in ['connecting', 'connected', 'database']):
+        return True
+    
+    # Show summary information
+    if any(indicator in message.lower() for indicator in ['summary', 'total', 'backup', 'restore']):
+        return True
+    
+    return False
+
+def calculate_consolidation_progress(message):
+    """Calculate progress percentage for consolidation phase (0-20%)"""
+    if not message:
+        return 5
+    
+    message_lower = message.lower()
+    
+    if 'starting' in message_lower:
+        return 5
+    elif 'loading' in message_lower or 'reading' in message_lower:
+        return 8
+    elif 'consolidating' in message_lower:
+        return 12
+    elif 'writing' in message_lower or 'saving' in message_lower:
+        return 16
+    elif 'completed' in message_lower or '✅' in message:
+        return 20
+    
+    return 10  # Default progress for consolidation phase
+
+def calculate_import_progress(message):
+    """Calculate progress percentage for import phase (20-95%)"""
+    if not message:
+        return 25
+    
+    message_lower = message.lower()
+    
+    # Database connection phase (20-25%)
+    if 'connecting' in message_lower or 'database' in message_lower:
+        return 25
+    
+    # Basic reference data (25-35%)
+    elif 'leagues' in message_lower or 'clubs' in message_lower:
+        return 30
+    elif 'series' in message_lower and 'importing' in message_lower:
+        return 35
+    
+    # Main data import phases (35-85%)
+    elif 'teams' in message_lower and 'importing' in message_lower:
+        return 40
+    elif 'players' in message_lower and 'importing' in message_lower:
+        return 50
+    elif 'match' in message_lower and 'importing' in message_lower:
+        return 65
+    elif 'stats' in message_lower and 'importing' in message_lower:
+        return 75
+    elif 'schedule' in message_lower and 'importing' in message_lower:
+        return 80
+    
+    # Final phases (85-95%)
+    elif 'validation' in message_lower or 'orphan' in message_lower:
+        return 85
+    elif 'session' in message_lower or 'backup' in message_lower or 'restore' in message_lower:
+        return 90
+    elif 'completed' in message_lower or 'success' in message_lower or '✅' in message:
+        return 95
+    
+    return 30  # Default progress for import phase
+
 def run_consolidation_script_generator():
-    """Generator that runs the consolidation script and yields progress updates"""
+    """Generator that runs the consolidation script and yields milestone updates"""
     try:
         current_file = os.path.abspath(__file__)
         project_root = os.path.dirname(os.path.dirname(os.path.dirname(current_file)))
@@ -1094,6 +1184,7 @@ def run_consolidation_script_generator():
         )
 
         consolidation_success = True
+        current_progress = 5
         
         try:
             # Read output line by line in real-time
@@ -1103,10 +1194,16 @@ def run_consolidation_script_generator():
                     break
                 if output:
                     line = output.strip()
-                    if line:
-                        # Format message with proper line breaks after timestamp
+                    if line and is_milestone_message(line):
+                        # Calculate and update progress
+                        new_progress = calculate_consolidation_progress(line)
+                        if new_progress > current_progress:
+                            current_progress = new_progress
+                            yield f"data: {json.dumps({'type': 'progress', 'progress': current_progress})}\n\n"
+                        
+                        # Format milestone message with proper line breaks
                         formatted_message = line.replace('] ', ']<br/>') if '] ' in line else line
-                        yield f"data: {json.dumps({'type': 'output', 'message': formatted_message, 'status': 'info'})}\n\n"
+                        yield f"data: {json.dumps({'type': 'output', 'message': f'📊 {formatted_message}', 'status': 'info'})}\n\n"
             
             # Wait for process to complete and get return code
             return_code = process.wait(timeout=300)  # 5 minute timeout
@@ -1136,7 +1233,7 @@ def run_consolidation_script_generator():
 
 
 def run_import_script_generator():
-    """Generator that runs the import script and yields progress updates"""
+    """Generator that runs the import script and yields milestone updates"""
     try:
         current_file = os.path.abspath(__file__)
         project_root = os.path.dirname(os.path.dirname(os.path.dirname(current_file)))
@@ -1195,6 +1292,7 @@ def run_import_script_generator():
         )
 
         import_success = True
+        current_progress = 20  # Start at 20% after consolidation
         
         try:
             # Read output line by line in real-time
@@ -1204,10 +1302,16 @@ def run_import_script_generator():
                     break
                 if output:
                     line = output.strip()
-                    if line:
-                        # Format message with proper line breaks after timestamp
+                    if line and is_milestone_message(line):
+                        # Calculate and update progress
+                        new_progress = calculate_import_progress(line)
+                        if new_progress > current_progress:
+                            current_progress = new_progress
+                            yield f"data: {json.dumps({'type': 'progress', 'progress': current_progress})}\n\n"
+                        
+                        # Format milestone message with proper line breaks
                         formatted_message = line.replace('] ', ']<br/>') if '] ' in line else line
-                        yield f"data: {json.dumps({'type': 'output', 'message': formatted_message, 'status': 'info'})}\n\n"
+                        yield f"data: {json.dumps({'type': 'output', 'message': f'💾 {formatted_message}', 'status': 'info'})}\n\n"
             
             # Wait for process to complete and get return code
             return_code = process.wait(timeout=1800)  # 30 minute timeout
