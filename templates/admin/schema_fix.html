@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Schema Fix - Rally Admin</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            max-width: 800px; 
+            margin: 0 auto; 
+            padding: 20px; 
+        }
+        .button { 
+            background: #007cba; 
+            color: white; 
+            padding: 10px 20px; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+        }
+        .results { 
+            margin-top: 20px; 
+            padding: 15px; 
+            background: #f5f5f5; 
+            border-radius: 5px; 
+        }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Railway Schema Fix</h1>
+    <p>This will apply the missing schema fixes to resolve application errors.</p>
+    
+    <div>
+        <button class="button" onclick="applyFix()">Apply Schema Fixes</button>
+    </div>
+    
+    <div id="results" class="results" style="display: none;">
+        <h3>Results:</h3>
+        <div id="resultContent"></div>
+    </div>
+
+    <script>
+        async function applyFix() {
+            const resultsDiv = document.getElementById('results');
+            const resultContent = document.getElementById('resultContent');
+            
+            try {
+                const response = await fetch('/admin/fix-schema', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                const data = await response.json();
+                
+                resultsDiv.style.display = 'block';
+                
+                if (data.success) {
+                    resultContent.innerHTML = `
+                        <div class="success">
+                            <strong>✅ ${data.message}</strong><br><br>
+                            ${data.results.map(r => `<div>${r}</div>`).join('')}
+                        </div>
+                    `;
+                } else {
+                    resultContent.innerHTML = `
+                        <div class="error">
+                            <strong>❌ ${data.message}</strong>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultsDiv.style.display = 'block';
+                resultContent.innerHTML = `
+                    <div class="error">
+                        <strong>❌ Error: ${error.message}</strong>
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html> 
