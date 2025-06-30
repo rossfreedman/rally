@@ -15,7 +15,7 @@ Order of operations:
 6. Import players.json -> players table
 7. Import career stats from player_history.json -> update players table career columns
 8. Import player_history.json -> player_history table
-9. Import match_history.json -> match_scores table
+9. Import   match_history.json -> match_scores table
 10. Import series_stats.json -> series_stats table
 11. Import schedules.json -> schedule table
 """
@@ -232,8 +232,8 @@ class ComprehensiveETL:
             raise
 
     def backup_user_associations(self, conn):
-        """Backup user-player associations and league contexts before clearing tables"""
-        self.log("💾 Backing up user-player associations and league contexts...")
+        """Backup user-player associations, league contexts, and availability data before clearing tables"""
+        self.log("💾 Backing up user-player associations, league contexts, and availability data...")
         
         cursor = conn.cursor()
         
@@ -255,6 +255,14 @@ class ComprehensiveETL:
             WHERE u.league_context IS NOT NULL;
         """)
         
+        # CRITICAL: Also backup availability data as additional protection
+        # Even though we don't clear it, backup as safety measure
+        cursor.execute("""
+            DROP TABLE IF EXISTS player_availability_backup;
+            CREATE TABLE player_availability_backup AS 
+            SELECT * FROM player_availability;
+        """)
+        
         # Count backed up data
         cursor.execute("SELECT COUNT(*) FROM user_player_associations_backup")
         associations_backup_count = cursor.fetchone()[0]
@@ -262,10 +270,14 @@ class ComprehensiveETL:
         cursor.execute("SELECT COUNT(*) FROM user_league_contexts_backup")
         contexts_backup_count = cursor.fetchone()[0]
         
+        cursor.execute("SELECT COUNT(*) FROM player_availability_backup")
+        availability_backup_count = cursor.fetchone()[0]
+        
         self.log(f"✅ Backed up {associations_backup_count:,} user-player associations")
         self.log(f"✅ Backed up {contexts_backup_count:,} user league contexts")
+        self.log(f"✅ Backed up {availability_backup_count:,} availability records")
         conn.commit()
-        return associations_backup_count, contexts_backup_count
+        return associations_backup_count, contexts_backup_count, availability_backup_count
 
     def restore_user_associations(self, conn):
         """Restore user-player associations and league contexts after import, with validation"""
@@ -382,17 +394,28 @@ class ComprehensiveETL:
         # Clean up backup tables
         cursor.execute("DROP TABLE IF EXISTS user_player_associations_backup")
         cursor.execute("DROP TABLE IF EXISTS user_league_contexts_backup")
+        cursor.execute("DROP TABLE IF EXISTS player_availability_backup")  # Clean up availability backup too
         
         # Auto-fix any remaining NULL league contexts
         self.log("🔧 Auto-fixing any remaining NULL league contexts...")
         null_contexts_fixed = self._auto_fix_null_league_contexts(conn)
+        
+        # CRITICAL: Verify availability data integrity after restore
+        cursor.execute("SELECT COUNT(*) FROM player_availability")
+        final_availability_count = cursor.fetchone()[0]
+        
+        if final_availability_count > 0:
+            self.log(f"✅ Availability data preserved: {final_availability_count:,} records remain intact")
+        else:
+            self.log("⚠️  No availability data found - this is expected for fresh imports", "WARNING")
         
         conn.commit()
         
         return {
             "associations_restored": restored_associations,
             "contexts_restored": restored_contexts,
-            "null_contexts_fixed": null_contexts_fixed
+            "null_contexts_fixed": null_contexts_fixed,
+            "availability_records_preserved": final_availability_count
         }
 
     def _auto_fix_null_league_contexts(self, conn):
@@ -454,7 +477,7 @@ class ComprehensiveETL:
         return fixed_count
 
     def _check_final_league_context_health(self, conn):
-        """Check the final health of league contexts after ETL"""
+        """Check the final health of league contexts and availability data after ETL"""
         cursor = conn.cursor()
         
         # Total users with associations
@@ -475,26 +498,102 @@ class ComprehensiveETL:
         """)
         valid_context_count = cursor.fetchone()[0]
         
+        # CRITICAL: Verify availability data was preserved
+        cursor.execute("SELECT COUNT(*) FROM player_availability")
+        total_availability_records = cursor.fetchone()[0]
+        
+        cursor.execute("SELECT COUNT(*) FROM player_availability WHERE user_id IS NOT NULL")
+        stable_availability_records = cursor.fetchone()[0]
+        
         if total_users_with_assoc > 0:
             health_score = (valid_context_count / total_users_with_assoc) * 100
             self.log(f"   📊 League context health: {valid_context_count}/{total_users_with_assoc} users have valid contexts")
-            return health_score
         else:
-            return 100.0
+            health_score = 100.0
+            
+        # Availability data verification
+        self.log(f"   🛡️  Availability preservation check:")
+        self.log(f"      Total availability records: {total_availability_records:,}")
+        self.log(f"      Records with stable user_id: {stable_availability_records:,}")
+        
+        if total_availability_records > 0:
+            stable_percentage = (stable_availability_records / total_availability_records) * 100
+            if stable_percentage < 90:
+                self.log(f"      ⚠️  WARNING: Only {stable_percentage:.1f}% of availability records have stable user_id references", "WARNING")
+            else:
+                self.log(f"      ✅ {stable_percentage:.1f}% of availability records have stable user_id references")
+        
+        return health_score
+
+    def increment_session_version(self, conn):
+        """Increment session version to trigger automatic user session refresh"""
+        self.log("🔄 Incrementing session version to trigger user session refresh...")
+        
+        cursor = conn.cursor()
+        
+        try:
+            # First ensure the system_settings table exists
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS system_settings (
+                    id SERIAL PRIMARY KEY,
+                    key VARCHAR(100) UNIQUE NOT NULL,
+                    value TEXT NOT NULL,
+                    description TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+            """)
+            
+            # Get current session version
+            cursor.execute("""
+                SELECT value FROM system_settings WHERE key = 'session_version'
+            """)
+            result = cursor.fetchone()
+            
+            if result:
+                current_version = int(result[0])
+                new_version = current_version + 1
+                
+                # Update existing version
+                cursor.execute("""
+                    UPDATE system_settings 
+                    SET value = %s, updated_at = CURRENT_TIMESTAMP 
+                    WHERE key = 'session_version'
+                """, [str(new_version)])
+                
+                self.log(f"   📈 Session version updated: {current_version} → {new_version}")
+            else:
+                # Insert initial version
+                new_version = 1
+                cursor.execute("""
+                    INSERT INTO system_settings (key, value, description)
+                    VALUES ('session_version', %s, 'Version number incremented after each ETL run to trigger session refresh')
+                """, [str(new_version)])
+                
+                self.log(f"   📈 Session version initialized: {new_version}")
+            
+            conn.commit()
+            self.log("✅ All user sessions will be automatically refreshed on next page load")
+            
+        except Exception as e:
+            self.log(f"⚠️  Warning: Could not increment session version: {e}", "WARNING")
+            # Don't fail ETL if session versioning fails
+            conn.rollback()
 
     def clear_target_tables(self, conn):
         """Clear existing data from target tables in reverse dependency order"""
         self.log("🗑️  Clearing existing data from target tables...")
 
         # ENHANCEMENT: Backup user associations and league contexts before clearing
-        associations_backup_count, contexts_backup_count = self.backup_user_associations(conn)
+        associations_backup_count, contexts_backup_count, availability_backup_count = self.backup_user_associations(conn)
 
+        # CRITICAL: player_availability is NEVER cleared - it uses stable user_id references
+        # that are never orphaned during ETL imports (same pattern as user_player_associations)
         tables_to_clear = [
             "schedule",  # No dependencies
             "series_stats",  # References leagues, teams
             "match_scores",  # References players, leagues, teams
             "player_history",  # References players, leagues
-            "player_availability",  # ADDED: Clear availability to prevent orphaned player_id references
             "user_player_associations",  # ADDED: Clear associations (we have backup)
             "players",  # References leagues, clubs, series, teams
             "teams",  # References leagues, clubs, series
@@ -504,6 +603,13 @@ class ComprehensiveETL:
             "clubs",  # Referenced by others
             "leagues",  # Referenced by others
         ]
+        
+        # CRITICAL VERIFICATION: Ensure player_availability is NEVER in the clear list
+        if "player_availability" in tables_to_clear:
+            raise Exception("CRITICAL ERROR: player_availability should NEVER be cleared - it uses stable user_id references!")
+        
+        self.log(f"🛡️  PROTECTED: player_availability table will be preserved (uses stable user_id references)")
+        self.log(f"🗑️  Clearing {len(tables_to_clear)} tables: {', '.join(tables_to_clear)}")
 
         try:
             cursor = conn.cursor()
@@ -525,6 +631,7 @@ class ComprehensiveETL:
             self.log("✅ All target tables cleared successfully")
             self.log(f"💾 User associations backed up: {associations_backup_count:,} records")
             self.log(f"💾 League contexts backed up: {contexts_backup_count:,} records")
+            self.log(f"💾 Availability records backed up: {availability_backup_count:,} records")
 
         except Exception as e:
             self.log(f"❌ Error clearing tables: {str(e)}", "ERROR")
@@ -2974,7 +3081,7 @@ class ComprehensiveETL:
         total_fixes = 0
         
         # Check for missing club-league relationships
-        missing_club_relationships = cursor.execute("""
+        cursor.execute("""
             SELECT DISTINCT c.id as club_id, c.name as club_name, 
                    l.id as league_id, l.league_name
             FROM teams t
@@ -2982,7 +3089,8 @@ class ComprehensiveETL:
             JOIN leagues l ON t.league_id = l.id
             LEFT JOIN club_leagues cl ON cl.club_id = c.id AND cl.league_id = l.id
             WHERE cl.id IS NULL
-        """).fetchall()
+        """)
+        missing_club_relationships = cursor.fetchall()
         
         if missing_club_relationships:
             self.log(f"   🔧 Found {len(missing_club_relationships)} missing club-league relationships")
@@ -2999,7 +3107,7 @@ class ComprehensiveETL:
                     self.log(f"     Added: {club_name} → {league_name}")
         
         # Check for missing series-league relationships
-        missing_series_relationships = cursor.execute("""
+        cursor.execute("""
             SELECT DISTINCT s.id as series_id, s.name as series_name,
                    l.id as league_id, l.league_name
             FROM teams t
@@ -3007,7 +3115,8 @@ class ComprehensiveETL:
             JOIN leagues l ON t.league_id = l.id
             LEFT JOIN series_leagues sl ON sl.series_id = s.id AND sl.league_id = l.id
             WHERE sl.id IS NULL
-        """).fetchall()
+        """)
+        missing_series_relationships = cursor.fetchall()
         
         if missing_series_relationships:
             self.log(f"   🔧 Found {len(missing_series_relationships)} missing series-league relationships")
@@ -3152,10 +3261,14 @@ class ComprehensiveETL:
                     self.log("\n🔍 Step 8: Post-import validation and orphan prevention...")
                     orphan_fixes = self.validate_and_fix_team_hierarchy_relationships(conn)
 
+                    # CRITICAL: Increment session version to trigger user session refresh
+                    self.increment_session_version(conn)
+
                     # Success!
                     self.log("\n✅ ETL process completed successfully!")
                     self.log(f"🔗 User associations: {restore_results['associations_restored']:,} restored")
                     self.log(f"🎯 League contexts: {restore_results['contexts_restored']:,} restored, {restore_results['null_contexts_fixed']:,} auto-fixed")
+                    self.log(f"🛡️  Availability data: {restore_results['availability_records_preserved']:,} records preserved")
                     if orphan_fixes > 0:
                         self.log(f"🔧 Relationship gaps fixed: {orphan_fixes} missing relationships added")
 
