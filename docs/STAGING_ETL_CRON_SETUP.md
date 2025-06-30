@@ -10,20 +10,20 @@ When JSON files are updated (e.g., fresh schedule data), the staging database ne
 
 ### 1. Regular Staging Import
 - **Schedule**: `*/30 * * * *` (Every 30 minutes)
-- **Command**: `python scripts/railway_cron_etl_staging.py`
+- **Command**: `python chronjobs/railway_cron_etl_staging.py`
 - **Purpose**: Frequent imports for testing and immediate updates
 - **Use Case**: When you've pushed fresh JSON data and want it imported quickly
 
 ### 2. Full Staging Import  
 - **Schedule**: `0 */6 * * *` (Every 6 hours)
-- **Command**: `python scripts/railway_cron_etl_staging.py --full-import`
+- **Command**: `python chronjobs/railway_cron_etl_staging.py --full-import`
 - **Purpose**: Comprehensive refresh with full data validation
 - **Use Case**: Deep data cleanup and integrity checks
 
 ## 🚀 How It Works
 
 ### Environment Isolation
-- **Staging Script**: `scripts/railway_cron_etl_staging.py`
+- **Staging Script**: `chronjobs/railway_cron_etl_staging.py`
 - **Environment**: Sets `RAILWAY_ENVIRONMENT=staging`
 - **Database**: Connects to Railway staging database
 - **JSON Source**: Uses fresh JSON files from `data/leagues/all/`
@@ -34,7 +34,7 @@ When JSON files are updated (e.g., fresh schedule data), the staging database ne
 | Schedule | Daily (2 AM) | Every 30 min |
 | Full Import | Weekly | Every 6 hours |
 | Environment | Production DB | Staging DB |
-| Script | `railway_cron_etl.py` | `railway_cron_etl_staging.py` |
+| Script | `chronjobs/railway_cron_etl.py` | `chronjobs/railway_cron_etl_staging.py` |
 
 ## 📅 Deployment Process
 
@@ -70,7 +70,7 @@ git push origin staging
 railway shell --environment staging
 
 # Test connection only
-python scripts/railway_cron_etl_staging.py --test-only
+python chronjobs/railway_cron_etl_staging.py --test-only
 ```
 
 ### Run Manual ETL Import
@@ -79,10 +79,10 @@ python scripts/railway_cron_etl_staging.py --test-only
 railway shell --environment staging
 
 # Run regular import
-python scripts/railway_cron_etl_staging.py
+python chronjobs/railway_cron_etl_staging.py
 
 # Run full import
-python scripts/railway_cron_etl_staging.py --full-import
+python chronjobs/railway_cron_etl_staging.py --full-import
 ```
 
 ## 📊 Expected Log Output

@@ -12,7 +12,7 @@ Railway supports cron jobs for scheduled background tasks.
 1. In Railway dashboard: Add a new service
 2. Set as "Cron Job" type
 3. Configure schedule (e.g., daily at 2 AM)
-4. Use command: `python scripts/railway_background_etl.py`
+4. Use command: `python chronjobs/railway_background_etl.py`
 
 ### Option B: Manual Background Execution
 Run ETL manually via Railway's shell access.
@@ -23,7 +23,7 @@ Run ETL manually via Railway's shell access.
 railway shell
 
 # Run background ETL
-python scripts/railway_background_etl.py
+python chronjobs/railway_background_etl.py
 ```
 
 ### Option C: API-Triggered Background Jobs
