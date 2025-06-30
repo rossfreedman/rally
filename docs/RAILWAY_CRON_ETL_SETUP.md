@@ -7,12 +7,12 @@ This guide walks you through setting up automated ETL imports using Railway's cr
 
 ### Daily Import (Default)
 - **Schedule**: `0 2 * * *` (Daily at 2:00 AM UTC)
-- **Command**: `python scripts/railway_cron_etl.py`
+- **Command**: `python chronjobs/railway_cron_etl.py`
 - **Purpose**: Regular daily data updates
 
 ### Weekly Full Import (Optional)
 - **Schedule**: `0 3 * * 0` (Sunday at 3:00 AM UTC)  
-- **Command**: `python scripts/railway_cron_etl.py --full-import`
+- **Command**: `python chronjobs/railway_cron_etl.py --full-import`
 - **Purpose**: Comprehensive weekly refresh
 
 ## 📋 Step-by-Step Setup
@@ -46,12 +46,12 @@ Before waiting for the scheduled time, test the cron job:
 
 2. **Test database connection:**
    ```bash
-   python scripts/railway_cron_etl.py --test-only
+   python chronjobs/railway_cron_etl.py --test-only
    ```
 
 3. **Run full ETL test:**
    ```bash
-   python scripts/railway_cron_etl.py
+   python chronjobs/railway_cron_etl.py
    ```
 
 ### Step 4: Monitor Cron Job Execution
@@ -106,17 +106,17 @@ command = "python scripts/railway_cron_etl.py"
 
 ### Basic Usage
 ```bash
-python scripts/railway_cron_etl.py
+python chronjobs/railway_cron_etl.py
 ```
 
 ### Full Import Mode
 ```bash
-python scripts/railway_cron_etl.py --full-import
+python chronjobs/railway_cron_etl.py --full-import
 ```
 
 ### Test Connection Only
 ```bash
-python scripts/railway_cron_etl.py --test-only
+python chronjobs/railway_cron_etl.py --test-only
 ```
 
 ## 🚨 Troubleshooting

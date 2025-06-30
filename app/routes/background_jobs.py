@@ -47,7 +47,7 @@ def start_background_etl():
         # Get project root
         script_dir = os.path.dirname(os.path.abspath(__file__))
         project_root = os.path.dirname(os.path.dirname(os.path.dirname(script_dir)))
-        background_script = os.path.join(project_root, "scripts", "railway_background_etl.py")
+        background_script = os.path.join(project_root, "chronjobs", "railway_background_etl.py")
         
         # Start background process
         process = subprocess.Popen(

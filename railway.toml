@@ -12,21 +12,21 @@ restartPolicyMaxRetries = 5
 # Production ETL Cron Job Services
 [deploy.cronJobs.etl_import]
 schedule = "0 2 * * *"  # Daily at 2 AM UTC
-command = "python scripts/railway_cron_etl.py"
+command = "python chronjobs/railway_cron_etl.py"
 
 # Optional: Weekly full import (more comprehensive)
 [deploy.cronJobs.weekly_etl]
 schedule = "0 3 * * 0"  # Weekly on Sunday at 3 AM UTC
-command = "python scripts/railway_cron_etl.py --full-import"
+command = "python chronjobs/railway_cron_etl.py --full-import"
 
 # Staging ETL Cron Job Services (for testing fresh JSON imports)
 [deploy.cronJobs.staging_etl_import]
 schedule = "*/30 * * * *"  # Every 30 minutes for testing
-command = "python scripts/railway_cron_etl_staging.py"
+command = "python chronjobs/railway_cron_etl_staging.py"
 
 [deploy.cronJobs.staging_etl_full]
 schedule = "0 */6 * * *"  # Every 6 hours for full staging refreshes
-command = "python scripts/railway_cron_etl_staging.py --full-import"
+command = "python chronjobs/railway_cron_etl_staging.py --full-import"
 
 [env]
 FLASK_ENV = "production"
