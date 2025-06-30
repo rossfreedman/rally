@@ -86,15 +86,6 @@
              
              // Check if user has multiple clubs in current league
              checkMultipleClubs();
-             
-             // TEMPORARY: Show club switcher for testing
-             setTimeout(() => {
-               const clubButton = document.getElementById('clubSwitcherTrigger');
-               if (clubButton) {
-                 console.log('🧪 TEMP: Showing club button for testing');
-                 clubButton.classList.remove('hidden');
-               }
-             }, 1000);
            });
            
            async function checkMultipleLeagues() {
@@ -121,27 +112,18 @@
            
            async function checkMultipleClubs() {
              try {
-               console.log('🔍 Checking for multiple clubs...');
                // Check if this specific user has multiple teams in current league
                const response = await fetch('/api/get-user-teams-in-current-league');
-               console.log('📡 API Response status:', response.status);
                const data = await response.json();
-               console.log('📊 API Response data:', data);
                
                if (data.success && data.has_multiple_teams) {
-                 console.log('✅ User has multiple teams, showing club switcher button');
                  const clubButton = document.getElementById('clubSwitcherTrigger');
                  if (clubButton) {
                    clubButton.classList.remove('hidden');
-                   console.log('✅ Club switcher button shown');
-                 } else {
-                   console.error('❌ Club switcher button not found in DOM');
                  }
-               } else {
-                 console.log('⚠️ User does not have multiple teams or API failed:', data);
                }
              } catch (error) {
-               console.error('❌ Error checking multiple clubs:', error);
+               console.error('Error checking multiple clubs:', error);
              }
            }
            

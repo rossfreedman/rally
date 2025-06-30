@@ -1851,14 +1851,61 @@ def serve_mobile_practice_times():
 @mobile_bp.route("/mobile/availability")
 @login_required
 def serve_mobile_availability():
-    """Serve the mobile availability page for viewing/setting user availability"""
+    """Serve the mobile availability page for viewing/setting user availability with team switching support"""
     try:
         user = session.get("user")
         if not user:
             return jsonify({"error": "No user in session"}), 400
 
+        user_email = user.get("email")
+        
+        # Check for team_id parameter for team switching
+        requested_team_id = request.args.get('team_id')
+        if requested_team_id:
+            try:
+                requested_team_id = int(requested_team_id)
+                print(f"[DEBUG] Team switching requested: team_id={requested_team_id}")
+                
+                # Update session with new team context
+                from app.services.session_service import get_session_data_for_user_team
+                fresh_session_data = get_session_data_for_user_team(user_email, requested_team_id)
+                
+                if fresh_session_data:
+                    # Update Flask session with new team context
+                    session["user"] = fresh_session_data
+                    session.modified = True
+                    user = fresh_session_data
+                    print(f"[DEBUG] Updated session to team {requested_team_id}")
+                else:
+                    print(f"[DEBUG] Failed to get session data for team {requested_team_id}")
+            except (ValueError, TypeError):
+                print(f"[DEBUG] Invalid team_id parameter: {requested_team_id}")
+
+        # Get user's available teams for team switching (after team context is set)
+        from app.services.session_service import get_user_teams_in_league
+        current_league_id = user.get("league_id")
+        if current_league_id:
+            user_teams = get_user_teams_in_league(user_email, current_league_id)
+            # Add league_name to each team for template compatibility
+            for team in user_teams:
+                team["league_name"] = user.get("league_name", "")
+        else:
+            user_teams = []
+        
+        # Get current team info
+        current_team_info = None
+        current_team_id = user.get("team_id")
+        if current_team_id:
+            for team in user_teams:
+                if team.get("team_id") == current_team_id:
+                    current_team_info = team
+                    break
+
         # Get availability data using session service for accurate team_id filtering
+        # IMPORTANT: Pass the user data directly to preserve team context
         availability_data = get_mobile_availability_data(user)
+
+        # No auto-redirect - respect user's team selection and show appropriate messaging
 
         session_data = {"user": user, "authenticated": True}
 
@@ -1869,10 +1916,14 @@ def serve_mobile_availability():
         return render_template(
             "mobile/availability.html",
             session_data=session_data,
+            user_teams=user_teams,
+            current_team_info=current_team_info,
             **availability_data
         )
     except Exception as e:
         print(f"Error serving mobile availability: {str(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
         return f"Error loading availability page: {str(e)}", 500
 
 
