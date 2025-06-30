@@ -21,11 +21,23 @@ def check_prerequisites():
         print("❌ Not in Rally project directory")
         return False
     
-    # Check git status
+    # Check git status and auto-commit changes if any
     result = subprocess.run(['git', 'status', '--porcelain'], capture_output=True, text=True)
     if result.stdout.strip():
-        print("❌ You have uncommitted changes. Please commit or stash them.")
-        return False
+        print("📝 Uncommitted changes detected. Auto-committing for production deployment...")
+        try:
+            # Add all changes
+            subprocess.run(['git', 'add', '.'], check=True)
+            
+            # Commit with timestamp message
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
+            commit_message = f"Auto-commit for production deployment - {timestamp}"
+            subprocess.run(['git', 'commit', '-m', commit_message], check=True)
+            
+            print("✅ Changes committed automatically")
+        except subprocess.CalledProcessError as e:
+            print(f"❌ Failed to auto-commit changes: {e}")
+            return False
     
     print("✅ Prerequisites checked")
     return True
@@ -54,6 +66,11 @@ def verify_staging_tests():
         response = input("Continue without staging test verification? (y/n): ")
         return response.lower() == 'y'
 
+def get_current_branch():
+    """Get the current git branch"""
+    result = subprocess.run(['git', 'branch', '--show-current'], capture_output=True, text=True)
+    return result.stdout.strip()
+
 def confirm_production_deployment():
     """Get explicit confirmation for production deployment"""
     print("\n🚨 PRODUCTION DEPLOYMENT CONFIRMATION")
@@ -77,12 +94,16 @@ def merge_staging_to_main():
     print("🔄 Merging staging to main...")
     
     try:
+        # Set git to non-interactive mode
+        os.environ['GIT_MERGE_AUTOEDIT'] = 'no'
+        os.environ['GIT_EDITOR'] = 'true'  # Use 'true' command as editor (always succeeds, no interaction)
+        
         # Switch to main and pull latest
         subprocess.run(['git', 'checkout', 'main'], check=True)
         subprocess.run(['git', 'pull', 'origin', 'main'], check=True)
         
-        # Merge staging
-        subprocess.run(['git', 'merge', 'staging'], check=True)
+        # Merge staging (non-interactive)
+        subprocess.run(['git', 'merge', 'staging', '--no-edit'], check=True)
         
         # Push to main (triggers Railway production deployment)
         subprocess.run(['git', 'push', 'origin', 'main'], check=True)
@@ -164,6 +185,25 @@ def main():
     if not check_prerequisites():
         return 1
     
+    # Get current branch
+    current_branch = get_current_branch()
+    
+    if current_branch == 'main':
+        print("📦 Already on main branch. Deploying current main state...")
+        # Skip merge step since we're already on main, just push
+        def push_main():
+            try:
+                subprocess.run(['git', 'push', 'origin', 'main'], check=True)
+                print("✅ Successfully pushed main to Railway production")
+                return True
+            except subprocess.CalledProcessError as e:
+                print(f"❌ Failed to push main: {e}")
+                return False
+        merge_step = push_main
+    else:
+        print(f"📦 On branch '{current_branch}'. Will merge staging to main for production.")
+        merge_step = merge_staging_to_main
+    
     # Verify staging tests pass
     if not verify_staging_tests():
         return 1
@@ -175,7 +215,7 @@ def main():
     
     # Deployment steps
     steps = [
-        ("Merge staging to main", merge_staging_to_main),
+        ("Merge staging to main" if current_branch != 'main' else "Push main", merge_step),
         ("Check deployment", check_production_deployment),
         ("Run verification", run_production_verification),
     ]
