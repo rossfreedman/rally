@@ -6,7 +6,7 @@
     
     <!-- Team Selector (if user has multiple teams) -->
     {% if user_teams and user_teams|length > 1 %}
-    <div class="px-4 py-1">
+    <div class="px-4 py-1" style="display: none;">
         <div class="text-right">
             <button id="teamSelectorLink" class="inline-flex items-center text-xs text-gray-600 hover:text-blue-600 transition-colors">
                 {% if current_team_info %}

@@ -18,14 +18,21 @@
       <div class="text-center">
         <!-- Club Logo -->
         <div class="flex justify-center mb-4">
-          <div class="w-16 h-16 flex items-center justify-center">
-            <img src="/static/images/tennaqua_logo.jpeg" 
-                 alt="Tennaqua Logo" 
-                 class="w-16 h-16 object-contain"
-                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+          <div class="w-20 h-20 flex items-center justify-center">
+            {% if session_data and session_data.user and session_data.user.club_logo %}
+              <img src="/{{ session_data.user.club_logo }}" 
+                   alt="{{ session_data.user.club }} Logo" 
+                   class="w-20 h-20 object-contain"
+                   onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            {% else %}
+              <img src="/static/images/clubs/default_club_logo.png" 
+                   alt="Club Logo" 
+                   class="w-20 h-20 object-contain"
+                   onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            {% endif %}
             <!-- Fallback placeholder if logo doesn't load -->
-            <div class="w-16 h-16 bg-green-600 rounded-lg flex items-center justify-center shadow-lg text-white text-center hidden">
-              <div class="text-xs font-bold">TENNAQUA</div>
+            <div class="w-20 h-20 bg-green-600 rounded-lg flex items-center justify-center shadow-lg text-white text-center hidden">
+              <div class="text-xs font-bold">{{ session_data.user.club[:8] if session_data and session_data.user and session_data.user.club else 'CLUB' }}</div>
               <div class="flex justify-center items-center mt-1">
                 <i class="fas fa-table-tennis text-xs mr-1"></i>
                 <i class="fas fa-tennis-ball text-xs"></i>
