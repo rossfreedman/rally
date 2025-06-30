@@ -425,14 +425,14 @@ def start_import():
 
             # Step 1: Consolidate league data
             yield f"data: {json.dumps({'type': 'output', 'message': '📋 Step 1: Consolidating league JSON files...', 'status': 'info'})}\n\n"
-            yield f"data: {json.dumps({'type': 'progress', 'progress': 20})}\n\n"
+            yield f"data: {json.dumps({'type': 'progress', 'progress': 5})}\n\n"
 
             # Run consolidation and yield updates
             consolidation_success = False
             try:
                 for update in run_consolidation_script_generator():
                     yield update
-                    if '"success": true' in update:
+                    if '"success": true' in update or "✅ Consolidation completed successfully!" in update:
                         consolidation_success = True
             except Exception as e:
                 yield f"data: {json.dumps({'type': 'error', 'message': f'Critical error in consolidation: {str(e)}'})}\n\n"
@@ -444,18 +444,18 @@ def start_import():
                 return
 
             yield f"data: {json.dumps({'type': 'output', 'message': '✅ League data consolidation completed', 'status': 'success'})}\n\n"
-            yield f"data: {json.dumps({'type': 'progress', 'progress': 50})}\n\n"
+            yield f"data: {json.dumps({'type': 'progress', 'progress': 20})}\n\n"
 
             # Step 2: Import to database
             yield f"data: {json.dumps({'type': 'output', 'message': '💾 Step 2: Importing data to PostgreSQL database...', 'status': 'info'})}\n\n"
-            yield f"data: {json.dumps({'type': 'progress', 'progress': 70})}\n\n"
+            yield f"data: {json.dumps({'type': 'progress', 'progress': 25})}\n\n"
 
             # Run import and yield updates
             import_success = False
             try:
                 for update in run_import_script_generator():
                     yield update
-                    if '"success": true' in update:
+                    if '"success": true' in update or "✅ Database import completed successfully!" in update:
                         import_success = True
             except Exception as e:
                 yield f"data: {json.dumps({'type': 'error', 'message': f'Critical error in import: {str(e)}'})}\n\n"
@@ -1028,8 +1028,143 @@ def run_individual_scraper_generator(league, scraper, scraper_index, total_scrap
         yield f"data: {json.dumps({'type': 'error', 'message': f'Error running {scraper}: {str(e)}'})}\n\n"
 
 
+def is_milestone_message(message):
+    """Filter function to identify milestone messages worth showing to admin"""
+    if not message:
+        return False
+    
+    # Exclude verbose internal debug messages
+    exclusion_patterns = [
+        'utils.database_player_lookup',
+        'database lookup for:',
+        'first name variations:',
+        'series variations:',
+        'primary:',
+        'fallback strategies',
+        'name variation search',
+        'exact match found',
+        'no exact match found',
+        'cannot determine correct player',
+        'skipping association',
+        'debug:',
+        'info:',
+        'warning:utils',
+        'info:utils'
+    ]
+    
+    message_lower = message.lower()
+    if any(pattern in message_lower for pattern in exclusion_patterns):
+        return False
+    
+    # Only show major milestones and critical errors
+    milestone_patterns = [
+        # Critical errors (not internal lookup failures)
+        ('critical error', True),
+        ('failed to connect', True),
+        ('database connection', True),
+        
+        # Major step transitions
+        ('🚀 starting', True),
+        ('📋 step', True),
+        ('💾 step', True),
+        ('step 1:', True),
+        ('step 2:', True),
+        ('step 3:', True),
+        ('step 4:', True),
+        ('step 5:', True),
+        ('step 6:', True),
+        ('step 7:', True),
+        ('step 8:', True),
+        
+        # Major completions with counts
+        ('✅ imported', True),
+        ('✅ consolidation completed', True),
+        ('✅ database import completed', True),
+        ('✅ etl process completed', True),
+        ('imported.*records', True),
+        
+        # Connection and database setup
+        ('connecting to database', True),
+        ('connected to database', True),
+        ('database connected', True),
+        
+        # Summary and totals
+        ('import summary', True),
+        ('total import time', True),
+        ('total.*records', True),
+        ('backup.*restored', True),
+        ('session version', True)
+    ]
+    
+    # Check for milestone patterns
+    import re
+    for pattern, _ in milestone_patterns:
+        if re.search(pattern, message_lower):
+            return True
+    
+    return False
+
+def calculate_consolidation_progress(message):
+    """Calculate progress percentage for consolidation phase (0-20%)"""
+    if not message:
+        return 5
+    
+    message_lower = message.lower()
+    
+    if 'starting' in message_lower:
+        return 5
+    elif 'loading' in message_lower or 'reading' in message_lower:
+        return 8
+    elif 'consolidating' in message_lower:
+        return 12
+    elif 'writing' in message_lower or 'saving' in message_lower:
+        return 16
+    elif 'completed' in message_lower or '✅' in message:
+        return 20
+    
+    return 10  # Default progress for consolidation phase
+
+def calculate_import_progress(message):
+    """Calculate progress percentage for import phase (20-95%)"""
+    if not message:
+        return 25
+    
+    message_lower = message.lower()
+    
+    # Database connection phase (20-25%)
+    if 'connecting' in message_lower or 'database' in message_lower:
+        return 25
+    
+    # Basic reference data (25-35%)
+    elif 'leagues' in message_lower or 'clubs' in message_lower:
+        return 30
+    elif 'series' in message_lower and 'importing' in message_lower:
+        return 35
+    
+    # Main data import phases (35-85%)
+    elif 'teams' in message_lower and 'importing' in message_lower:
+        return 40
+    elif 'players' in message_lower and 'importing' in message_lower:
+        return 50
+    elif 'match' in message_lower and 'importing' in message_lower:
+        return 65
+    elif 'stats' in message_lower and 'importing' in message_lower:
+        return 75
+    elif 'schedule' in message_lower and 'importing' in message_lower:
+        return 80
+    
+    # Final phases (85-95%)
+    elif 'validation' in message_lower or 'orphan' in message_lower:
+        return 85
+    elif 'session' in message_lower or 'backup' in message_lower or 'restore' in message_lower:
+        return 90
+    elif 'completed' in message_lower or 'success' in message_lower or '✅' in message:
+        return 95
+    
+    return 30  # Default progress for import phase
+
 def run_consolidation_script_generator():
-    """Generator that runs the consolidation script and yields progress updates"""
+    """Generator that runs the consolidation script and yields milestone updates"""
     try:
         current_file = os.path.abspath(__file__)
         project_root = os.path.dirname(os.path.dirname(os.path.dirname(current_file)))
@@ -1038,11 +1173,25 @@ def run_consolidation_script_generator():
         possible_consolidation_paths = [
             os.path.join(
                 project_root,
+                "data",
+                "etl",
+                "database_import",
+                "consolidate_league_jsons_to_all.py",
+            ),
+            os.path.join(
+                project_root,
                 "etl",
                 "database_import",
                 "consolidate_league_jsons_to_all.py",
             ),
             os.path.join(project_root, "etl", "consolidate_league_jsons_to_all.py"),
+            os.path.join(
+                os.getcwd(),
+                "data",
+                "etl",
+                "database_import",
+                "consolidate_league_jsons_to_all.py",
+            ),
             os.path.join(
                 os.getcwd(),
                 "etl",
@@ -1065,31 +1214,63 @@ def run_consolidation_script_generator():
 
         env = os.environ.copy()
         env["PYTHONPATH"] = project_root
+        env["PYTHONUNBUFFERED"] = "1"  # Force unbuffered output for real-time display
 
-        result = subprocess.run(
+        # Use Popen for real-time streaming output
+        process = subprocess.Popen(
             [sys.executable, consolidation_script],
             cwd=project_root,
             env=env,
-            capture_output=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,  # Combine stderr with stdout
             text=True,
-            timeout=300,  # 5 minute timeout
+            bufsize=1,  # Line buffered
+            universal_newlines=True
         )
 
-        # Parse output for progress updates
-        if result.stdout:
-            for line in result.stdout.split("\n"):
-                if line.strip():
-                    yield f"data: {json.dumps({'type': 'output', 'message': line.strip(), 'status': 'info'})}\n\n"
-
-        if result.stderr:
-            for line in result.stderr.split("\n"):
-                if line.strip():
-                    yield f"data: {json.dumps({'type': 'output', 'message': line.strip(), 'status': 'warning'})}\n\n"
-
-        if result.returncode == 0:
-            yield f"data: {json.dumps({'type': 'output', 'message': '✅ Consolidation completed successfully!', 'status': 'success', 'success': True})}\n\n"
-        else:
-            yield f"data: {json.dumps({'type': 'output', 'message': '❌ Consolidation failed', 'status': 'error'})}\n\n"
+        consolidation_success = True
+        current_progress = 5
+        
+        try:
+            # Read output line by line in real-time
+            while True:
+                output = process.stdout.readline()
+                if output == '' and process.poll() is not None:
+                    break
+                if output:
+                    line = output.strip()
+                    if line and is_milestone_message(line):
+                        # Calculate and update progress
+                        new_progress = calculate_consolidation_progress(line)
+                        if new_progress > current_progress:
+                            current_progress = new_progress
+                            yield f"data: {json.dumps({'type': 'progress', 'progress': current_progress})}\n\n"
+                        
+                        # Format milestone message with proper line breaks
+                        formatted_message = line.replace('] ', ']<br/>') if '] ' in line else line
+                        yield f"data: {json.dumps({'type': 'output', 'message': f'📊 {formatted_message}', 'status': 'info'})}\n\n"
+            
+            # Wait for process to complete and get return code
+            return_code = process.wait(timeout=300)  # 5 minute timeout
+            
+            if return_code == 0:
+                yield f"data: {json.dumps({'type': 'output', 'message': '✅ Consolidation completed successfully!', 'status': 'success', 'success': True})}\n\n"
+            else:
+                consolidation_success = False
+                yield f"data: {json.dumps({'type': 'output', 'message': '❌ Consolidation failed with exit code: ' + str(return_code), 'status': 'error'})}\n\n"
+                
+        except subprocess.TimeoutExpired:
+            process.kill()
+            consolidation_success = False
+            yield f"data: {json.dumps({'type': 'output', 'message': '❌ Consolidation timed out after 5 minutes', 'status': 'error'})}\n\n"
+        except Exception as e:
+            process.kill()
+            consolidation_success = False
+            yield f"data: {json.dumps({'type': 'output', 'message': f'❌ Consolidation error: {str(e)}', 'status': 'error'})}\n\n"
+        finally:
+            if process.poll() is None:
+                process.terminate()
+                process.wait()
 
     except Exception as e:
         print(f"Error running consolidation script: {traceback.format_exc()}")
@@ -1097,7 +1278,7 @@ def run_consolidation_script_generator():
 
 
 def run_import_script_generator():
-    """Generator that runs the import script and yields progress updates"""
+    """Generator that runs the import script and yields milestone updates"""
     try:
         current_file = os.path.abspath(__file__)
         project_root = os.path.dirname(os.path.dirname(os.path.dirname(current_file)))
@@ -1105,13 +1286,27 @@ def run_import_script_generator():
         # Try multiple possible locations for import script
         possible_import_paths = [
             os.path.join(
-                project_root, "etl", "database_import", "json_import_all_to_database.py"
+                project_root,
+                "data",
+                "etl",
+                "database_import",
+                "import_all_jsons_to_database.py",
             ),
-            os.path.join(project_root, "etl", "json_import_all_to_database.py"),
             os.path.join(
-                os.getcwd(), "etl", "database_import", "json_import_all_to_database.py"
+                project_root, "etl", "database_import", "import_all_jsons_to_database.py"
             ),
-            os.path.join(os.getcwd(), "etl", "json_import_all_to_database.py"),
+            os.path.join(project_root, "etl", "import_all_jsons_to_database.py"),
+            os.path.join(
+                os.getcwd(),
+                "data",
+                "etl",
+                "database_import",
+                "import_all_jsons_to_database.py",
+            ),
+            os.path.join(
+                os.getcwd(), "etl", "database_import", "import_all_jsons_to_database.py"
+            ),
+            os.path.join(os.getcwd(), "etl", "import_all_jsons_to_database.py"),
         ]
 
         import_script = None
@@ -1127,31 +1322,63 @@ def run_import_script_generator():
 
         env = os.environ.copy()
         env["PYTHONPATH"] = project_root
+        env["PYTHONUNBUFFERED"] = "1"  # Force unbuffered output for real-time display
 
-        result = subprocess.run(
+        # Use Popen for real-time streaming output
+        process = subprocess.Popen(
             [sys.executable, import_script],
             cwd=project_root,
             env=env,
-            capture_output=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,  # Combine stderr with stdout
             text=True,
-            timeout=1800,  # 30 minute timeout for database import
+            bufsize=1,  # Line buffered
+            universal_newlines=True
         )
 
-        # Parse output for progress updates
-        if result.stdout:
-            for line in result.stdout.split("\n"):
-                if line.strip():
-                    yield f"data: {json.dumps({'type': 'output', 'message': line.strip(), 'status': 'info'})}\n\n"
-
-        if result.stderr:
-            for line in result.stderr.split("\n"):
-                if line.strip():
-                    yield f"data: {json.dumps({'type': 'output', 'message': line.strip(), 'status': 'warning'})}\n\n"
-
-        if result.returncode == 0:
-            yield f"data: {json.dumps({'type': 'output', 'message': '✅ Database import completed successfully!', 'status': 'success', 'success': True})}\n\n"
-        else:
-            yield f"data: {json.dumps({'type': 'output', 'message': '❌ Database import failed', 'status': 'error'})}\n\n"
+        import_success = True
+        current_progress = 20  # Start at 20% after consolidation
+        
+        try:
+            # Read output line by line in real-time
+            while True:
+                output = process.stdout.readline()
+                if output == '' and process.poll() is not None:
+                    break
+                if output:
+                    line = output.strip()
+                    if line and is_milestone_message(line):
+                        # Calculate and update progress
+                        new_progress = calculate_import_progress(line)
+                        if new_progress > current_progress:
+                            current_progress = new_progress
+                            yield f"data: {json.dumps({'type': 'progress', 'progress': current_progress})}\n\n"
+                        
+                        # Format milestone message with proper line breaks
+                        formatted_message = line.replace('] ', ']<br/>') if '] ' in line else line
+                        yield f"data: {json.dumps({'type': 'output', 'message': f'💾 {formatted_message}', 'status': 'info'})}\n\n"
+            
+            # Wait for process to complete and get return code
+            return_code = process.wait(timeout=1800)  # 30 minute timeout
+            
+            if return_code == 0:
+                yield f"data: {json.dumps({'type': 'output', 'message': '✅ Database import completed successfully!', 'status': 'success', 'success': True})}\n\n"
+            else:
+                import_success = False
+                yield f"data: {json.dumps({'type': 'output', 'message': '❌ Database import failed with exit code: ' + str(return_code), 'status': 'error'})}\n\n"
+                
+        except subprocess.TimeoutExpired:
+            process.kill()
+            import_success = False
+            yield f"data: {json.dumps({'type': 'output', 'message': '❌ Database import timed out after 30 minutes', 'status': 'error'})}\n\n"
+        except Exception as e:
+            process.kill()
+            import_success = False
+            yield f"data: {json.dumps({'type': 'output', 'message': f'❌ Database import error: {str(e)}', 'status': 'error'})}\n\n"
+        finally:
+            if process.poll() is None:
+                process.terminate()
+                process.wait()
 
     except Exception as e:
         print(f"Error running import script: {traceback.format_exc()}")

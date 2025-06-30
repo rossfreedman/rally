@@ -249,6 +249,7 @@
           <i class="fas fa-eraser mr-2"></i>
           Clear Output
         </button>
+
         <button id="check-scrape-status" class="btn btn-info flex items-center">
           <i class="fas fa-search mr-2"></i>
           Force Check Status
@@ -265,8 +266,8 @@
           <i class="fas fa-terminal mr-2"></i>
           Scraping Status
           <span class="text-xs text-gray-500 ml-2">
-            <i class="fas fa-arrows-alt-v mr-1"></i>
-            (Scrollable Output - Fixed Height)
+            <i class="fas fa-list mr-1"></i>
+            (Milestone Updates Only)
           </span>
         </label>
         <div id="scrape-status" class="status-output" role="log" aria-live="polite" aria-label="ETL Scraping Output">
@@ -346,6 +347,7 @@
           <i class="fas fa-eraser mr-2"></i>
           Clear Output
         </button>
+
       </div>
 
       <!-- Status Output -->
@@ -354,8 +356,8 @@
           <i class="fas fa-terminal mr-2"></i>
           Import Status
           <span class="text-xs text-gray-500 ml-2">
-            <i class="fas fa-arrows-alt-v mr-1"></i>
-            (Scrollable Output - Fixed Height)
+            <i class="fas fa-list mr-1"></i>
+            (Milestone Updates Only)
           </span>
         </label>
         <div id="import-status" class="status-output" role="log" aria-live="polite" aria-label="ETL Import Output">
@@ -467,6 +469,10 @@ document.addEventListener('DOMContentLoaded', function() {
   let currentImportProcess = null;
   let scrapeElapsedTimer = null;
   let importElapsedTimer = null;
+  
+  // Simplified logging - only milestone messages
+  let scrapeMessageCount = 0;
+  let importMessageCount = 0;
 
   function startScraping() {
     const league = leagueInput.value.trim();
@@ -528,6 +534,8 @@ document.addEventListener('DOMContentLoaded', function() {
           appendToScrapeOutput('⚠️ Process taking longer than expected. Checking completion status...', 'warning');
           checkScrapingCompletion();
         }
+        
+
       }
     }, 30000); // 30 seconds
     
@@ -798,8 +806,12 @@ document.addEventListener('DOMContentLoaded', function() {
     
     const newLine = document.createElement('div');
     newLine.style.color = colorClass;
+    newLine.style.marginBottom = '4px';
+    newLine.style.padding = '2px 0';
     newLine.innerHTML = `[${timestamp}] ${message}`;
     output.appendChild(newLine);
+    
+    scrapeMessageCount++;
     output.scrollTop = output.scrollHeight;
   }
 
@@ -815,8 +827,12 @@ document.addEventListener('DOMContentLoaded', function() {
     
     const newLine = document.createElement('div');
     newLine.style.color = colorClass;
+    newLine.style.marginBottom = '4px';
+    newLine.style.padding = '2px 0';
     newLine.innerHTML = `[${timestamp}] ${message}`;
     output.appendChild(newLine);
+    
+    importMessageCount++;
     output.scrollTop = output.scrollHeight;
   }
 
@@ -828,6 +844,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('scrape-current-status').classList.add('hidden');
     document.getElementById('scrape-current-step').textContent = 'Initializing...';
     document.getElementById('scrape-elapsed-time').textContent = 'Elapsed: 0s';
+    scrapeMessageCount = 0;
   }
 
   function clearImportOutput() {
@@ -838,6 +855,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('import-current-status').classList.add('hidden');
     document.getElementById('import-current-step').textContent = 'Initializing...';
     document.getElementById('import-elapsed-time').textContent = 'Elapsed: 0s';
+    importMessageCount = 0;
   }
 
   function clearStuckProcesses() {
@@ -885,6 +903,18 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(() => {
       toast.remove();
     }, 5000);
+  }
+
+  // Status display helper
+  function getStatusSummary() {
+    const scrapeLines = document.getElementById('scrape-status').children.length;
+    const importLines = document.getElementById('import-status').children.length;
+    
+    return {
+      scrapeLines,
+      importLines,
+      totalLines: scrapeLines + importLines
+    };
   }
 
   // Initialize system status and check for stuck processes
