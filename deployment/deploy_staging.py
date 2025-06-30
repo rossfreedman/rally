@@ -147,8 +147,19 @@ def main():
     current_branch = get_current_branch()
     
     if current_branch == 'staging':
-        print("❌ You're already on staging branch. Switch to your feature branch first.")
-        return 1
+        print("📦 Already on staging branch. Deploying current staging state...")
+        # Skip merge step since we're already on staging, just push
+        def push_staging():
+            try:
+                subprocess.run(['git', 'push', 'origin', 'staging'], check=True)
+                print("✅ Successfully pushed staging to Railway")
+                return True
+            except subprocess.CalledProcessError as e:
+                print(f"❌ Failed to push staging: {e}")
+                return False
+        merge_step = push_staging
+    else:
+        merge_step = lambda: merge_to_staging(current_branch)
     
     if current_branch == 'main':
         print("⚠️  You're on main branch. Deploying main directly to staging...")
@@ -164,7 +175,7 @@ def main():
     
     # Deployment steps
     steps = [
-        ("Merge to staging", lambda: merge_to_staging(current_branch)),
+        ("Merge to staging" if current_branch != 'staging' else "Push staging", merge_step),
         ("Check deployment", check_staging_deployment),
         ("Run staging tests", run_staging_tests),
     ]
