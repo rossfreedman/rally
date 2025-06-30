@@ -384,25 +384,40 @@ def get_team_last_3_matches():
         team_id = team_record["id"]
         team_name = team_record["team_name"]
 
-        # Query the last 3 matches using team_id (much more efficient!)
-        matches_query = """
+        # Query the last 3 TEAM matches (not individual player matches)
+        # Group by date and teams to get unique team match dates
+        team_matches_query = """
+            WITH team_match_dates AS (
+                SELECT DISTINCT 
+                    match_date,
+                    home_team,
+                    away_team
+                FROM match_scores
+                WHERE (home_team_id = %s OR away_team_id = %s)
+                ORDER BY match_date DESC
+                LIMIT 3
+            )
             SELECT 
-                TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
-                match_date,
-                home_team as "Home Team",
-                away_team as "Away Team",
-                winner as "Winner",
-                scores as "Scores",
-                home_player_1_id as "Home Player 1",
-                home_player_2_id as "Home Player 2",
-                away_player_1_id as "Away Player 1",
-                away_player_2_id as "Away Player 2"
-            FROM match_scores
-            WHERE (home_team_id = %s OR away_team_id = %s)
-            ORDER BY match_date DESC
-            LIMIT 3
+                TO_CHAR(ms.match_date, 'DD-Mon-YY') as "Date",
+                ms.match_date,
+                ms.home_team as "Home Team",
+                ms.away_team as "Away Team",
+                ms.winner as "Winner",
+                ms.scores as "Scores",
+                ms.home_player_1_id as "Home Player 1",
+                ms.home_player_2_id as "Home Player 2",
+                ms.away_player_1_id as "Away Player 1",
+                ms.away_player_2_id as "Away Player 2"
+            FROM match_scores ms
+            INNER JOIN team_match_dates tmd ON (
+                ms.match_date = tmd.match_date 
+                AND ms.home_team = tmd.home_team 
+                AND ms.away_team = tmd.away_team
+            )
+            WHERE (ms.home_team_id = %s OR ms.away_team_id = %s)
+            ORDER BY ms.match_date DESC, ms.id
         """
-        matches = execute_query(matches_query, [team_id, team_id])
+        matches = execute_query(team_matches_query, [team_id, team_id, team_id, team_id])
 
         if not matches:
             return jsonify(
@@ -441,101 +456,85 @@ def get_team_last_3_matches():
             except Exception:
                 return f"Player {player_id[:8]}..."
 
-        # Process matches to add readable information
-        processed_matches = []
+        # Group matches by team match (date + teams) and process
+        from collections import defaultdict
+        team_matches_grouped = defaultdict(list)
+        
+        # Group individual player matches by team match
         for match in matches:
-            is_home = match.get("Home Team") == team_name
-            winner = match.get("Winner", "").lower()
+            match_key = (match.get("Date"), match.get("Home Team"), match.get("Away Team"))
+            team_matches_grouped[match_key].append(match)
 
-            # Determine if team won
-            team_won = (is_home and winner == "home") or (
-                not is_home and winner == "away"
-            )
-
-            # Get our team's players
-            if is_home:
-                our_player1_id = match.get("Home Player 1")
-                our_player2_id = match.get("Home Player 2")
-                opponent_team = match.get("Away Team")
-                opponent_player1_id = match.get("Away Player 1")
-                opponent_player2_id = match.get("Away Player 2")
-            else:
-                our_player1_id = match.get("Away Player 1")
-                our_player2_id = match.get("Away Player 2")
-                opponent_team = match.get("Home Team")
-                opponent_player1_id = match.get("Home Player 1")
-                opponent_player2_id = match.get("Home Player 2")
-
-            # Get readable names
-            our_player1_name = (
-                get_player_name(our_player1_id) if our_player1_id else "Unknown"
-            )
-            our_player2_name = (
-                get_player_name(our_player2_id) if our_player2_id else "Unknown"
-            )
-            opponent_player1_name = (
-                get_player_name(opponent_player1_id)
-                if opponent_player1_id
-                else "Unknown"
-            )
-            opponent_player2_name = (
-                get_player_name(opponent_player2_id)
-                if opponent_player2_id
-                else "Unknown"
-            )
-
-            # Format scores so logged-in team's score comes first
-            def format_scores_for_player_team(raw_scores, team_was_home):
-                """Format scores so the logged-in team's score appears first in each set"""
-                if not raw_scores:
-                    return raw_scores
+        processed_matches = []
+        
+        # Process each team match
+        for (date, home_team, away_team), individual_matches in team_matches_grouped.items():
+            is_home = home_team == team_name
+            opponent_team = away_team if is_home else home_team
+            
+            # Calculate team match result from individual matches
+            team_wins = 0
+            total_individual_matches = len(individual_matches)
+            
+            # Collect all players and scores for display
+            our_players = set()
+            opponent_players = set()
+            all_scores = []
+            
+            for match in individual_matches:
+                winner = match.get("Winner", "").lower()
+                individual_team_won = (is_home and winner == "home") or (not is_home and winner == "away")
                 
-                try:
-                    # Split by sets (comma-separated)
-                    sets = raw_scores.split(", ")
-                    formatted_sets = []
-                    
-                    for set_score in sets:
-                        if "-" not in set_score:
-                            formatted_sets.append(set_score)
-                            continue
-                            
-                        # Split individual set score
-                        scores = set_score.split("-")
-                        if len(scores) != 2:
-                            formatted_sets.append(set_score)
-                            continue
-                            
-                        try:
-                            home_score = int(scores[0])
-                            away_score = int(scores[1])
-                            
-                            # Always show the logged-in team's score first
-                            if team_was_home:
-                                # Team was home - show home score first (already correct)
-                                formatted_sets.append(f"{home_score}-{away_score}")
-                            else:
-                                # Team was away - show away score first
-                                formatted_sets.append(f"{away_score}-{home_score}")
-                        except (ValueError, IndexError):
-                            # If we can't parse scores, keep original
-                            formatted_sets.append(set_score)
-                    
-                    return ", ".join(formatted_sets)
-                    
-                except Exception:
-                    # If anything goes wrong, return original scores
-                    return raw_scores
-
-            formatted_scores = format_scores_for_player_team(
-                match.get("Scores"), is_home
-            )
-
+                if individual_team_won:
+                    team_wins += 1
+                
+                # Collect player names
+                if is_home:
+                    our_player1_id = match.get("Home Player 1")
+                    our_player2_id = match.get("Home Player 2")
+                    opponent_player1_id = match.get("Away Player 1")
+                    opponent_player2_id = match.get("Away Player 2")
+                else:
+                    our_player1_id = match.get("Away Player 1")
+                    our_player2_id = match.get("Away Player 2")
+                    opponent_player1_id = match.get("Home Player 1")
+                    opponent_player2_id = match.get("Home Player 2")
+                
+                # Add player names (avoid duplicates)
+                if our_player1_id:
+                    our_players.add(get_player_name(our_player1_id) or "Unknown")
+                if our_player2_id:
+                    our_players.add(get_player_name(our_player2_id) or "Unknown")
+                if opponent_player1_id:
+                    opponent_players.add(get_player_name(opponent_player1_id) or "Unknown")
+                if opponent_player2_id:
+                    opponent_players.add(get_player_name(opponent_player2_id) or "Unknown")
+                
+                # Collect scores
+                if match.get("Scores"):
+                    all_scores.append(match.get("Scores"))
+            
+            # Determine team match result
+            team_won = team_wins > (total_individual_matches / 2)
+            
+            # Format player lists for display
+            our_players_list = sorted(list(our_players))
+            opponent_players_list = sorted(list(opponent_players))
+            
+            # Use first two players for the main display
+            our_player1_name = our_players_list[0] if our_players_list else "Unknown"
+            our_player2_name = our_players_list[1] if len(our_players_list) > 1 else "Unknown"
+            opponent_player1_name = opponent_players_list[0] if opponent_players_list else "Unknown"
+            opponent_player2_name = opponent_players_list[1] if len(opponent_players_list) > 1 else "Unknown"
+            
+            # Create team match summary
+            match_summary = f"{team_wins}-{total_individual_matches - team_wins}"
+            
             processed_match = {
-                "date": match.get("Date"),
-                "home_team": match.get("Home Team"),
-                "away_team": match.get("Away Team"),
-                "scores": formatted_scores,
+                "date": date,
+                "home_team": home_team,
+                "away_team": away_team,
+                "scores": match_summary,  # Show team match score like "4-2"
                 "team_was_home": is_home,
                 "team_won": team_won,
                 "our_player1_name": our_player1_name,
@@ -544,6 +543,8 @@ def get_team_last_3_matches():
                 "opponent_player1_name": opponent_player1_name,
                 "opponent_player2_name": opponent_player2_name,
                 "match_result": "Won" if team_won else "Lost",
+                "individual_matches_count": total_individual_matches,
+                "team_wins": team_wins
             }
             processed_matches.append(processed_match)
 
