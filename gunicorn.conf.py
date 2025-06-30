@@ -9,7 +9,7 @@ backlog = 2048
 # Worker processes
 workers = 1  # Single worker for WebSocket support
 worker_class = "sync"  # Use sync worker for simplicity during debugging
-timeout = 120
+timeout = 1800  # 30 minutes for long ETL processes
 
 # Logging
 accesslog = "-"
@@ -33,15 +33,15 @@ keepalive = 65
 forwarded_allow_ips = "*"
 
 # Prevent long-running requests from blocking workers
-graceful_timeout = 60
+graceful_timeout = 300  # 5 minutes for ETL cleanup
 
 # Ensure proper startup
 preload_app = True
 reload = False  # Disable auto-reload in production
 
-# Restart workers periodically to prevent memory leaks
-max_requests = 1000
-max_requests_jitter = 50
+# Restart workers periodically to prevent memory leaks  
+max_requests = 100  # Lower for ETL stability - restart more frequently
+max_requests_jitter = 10
 
 # SSL (if needed)
 keyfile = None
