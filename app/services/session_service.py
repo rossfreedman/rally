@@ -97,6 +97,7 @@ def get_session_data_for_user(user_email: str) -> Optional[Dict[str, Any]]:
                 p.club_id,
                 p.series_id,
                 c.name as club,
+                c.logo_filename as club_logo,
                 s.name as series,
                 l.id as league_db_id,
                 l.league_id as league_string_id,
@@ -135,6 +136,7 @@ def get_session_data_for_user(user_email: str) -> Optional[Dict[str, Any]]:
             
             # Player-specific data with ALL IDs
             "club": result["club"] or "",
+            "club_logo": result["club_logo"] or "",
             "series": result["series"] or "",
             "club_id": result["club_id"],
             "series_id": result["series_id"],
@@ -367,6 +369,7 @@ def get_session_data_for_user_team(user_email: str, team_id: int) -> Optional[Di
                 p.club_id,
                 p.series_id,
                 c.name as club,
+                c.logo_filename as club_logo,
                 s.name as series,
                 l.id as league_db_id,
                 l.league_id as league_string_id,
@@ -406,6 +409,7 @@ def get_session_data_for_user_team(user_email: str, team_id: int) -> Optional[Di
             
             # Team-specific player data
             "club": result["club"] or "",
+            "club_logo": result["club_logo"] or "",
             "series": result["series"] or "",
             "club_id": result["club_id"],
             "series_id": result["series_id"],

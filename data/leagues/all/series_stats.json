@@ -15390,7 +15390,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 7 SW",
+    "series": "Chicago 7 SW",
     "team": "Glen Ellyn - 7 SW",
     "league_id": "APTA_CHICAGO",
     "points": 178,
@@ -15420,7 +15420,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 7 SW",
+    "series": "Chicago 7 SW",
     "team": "River Forest PD - 7 SW",
     "league_id": "APTA_CHICAGO",
     "points": 155,
@@ -15450,7 +15450,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 7 SW",
+    "series": "Chicago 7 SW",
     "team": "Edgewood Valley - 7 SW",
     "league_id": "APTA_CHICAGO",
     "points": 128,
@@ -15480,7 +15480,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 7 SW",
+    "series": "Chicago 7 SW",
     "team": "LaGrange CC - 7 SW",
     "league_id": "APTA_CHICAGO",
     "points": 122,
@@ -15510,7 +15510,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 7 SW",
+    "series": "Chicago 7 SW",
     "team": "Salt Creek - 7 SW",
     "league_id": "APTA_CHICAGO",
     "points": 116,
@@ -15540,7 +15540,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 7 SW",
+    "series": "Chicago 7 SW",
     "team": "Hinsdale PC - 7 SW",
     "league_id": "APTA_CHICAGO",
     "points": 111,
@@ -15570,7 +15570,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 7 SW",
+    "series": "Chicago 7 SW",
     "team": "Ruth Lake - 7 SW",
     "league_id": "APTA_CHICAGO",
     "points": 91,
@@ -15600,7 +15600,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 7 SW",
+    "series": "Chicago 7 SW",
     "team": "Butterfield - 7 SW",
     "league_id": "APTA_CHICAGO",
     "points": 44,
@@ -16200,37 +16200,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 9",
-    "team": "BYE - 9",
-    "league_id": "APTA_CHICAGO",
-    "points": 0,
-    "matches": {
-      "won": 0,
-      "lost": 0,
-      "tied": 0,
-      "percentage": "0.0%"
-    },
-    "lines": {
-      "won": 0,
-      "lost": 0,
-      "for": 0,
-      "ret": 0,
-      "percentage": "0.0%"
-    },
-    "sets": {
-      "won": 0,
-      "lost": 0,
-      "percentage": "0.0%"
-    },
-    "games": {
-      "won": 0,
-      "lost": 0,
-      "percentage": "0.0%"
-    },
-    "source_league": "APTA_CHICAGO"
-  },
-  {
-    "series": "Series 9 SW",
+    "series": "Chicago 9 SW",
     "team": "Medinah - 9 SW",
     "league_id": "APTA_CHICAGO",
     "points": 144,
@@ -16260,7 +16230,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 9 SW",
+    "series": "Chicago 9 SW",
     "team": "Glen Ellyn - 9 SW",
     "league_id": "APTA_CHICAGO",
     "points": 136,
@@ -16290,7 +16260,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 9 SW",
+    "series": "Chicago 9 SW",
     "team": "Hinsdale PC II - 9 SW",
     "league_id": "APTA_CHICAGO",
     "points": 121,
@@ -16320,7 +16290,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 9 SW",
+    "series": "Chicago 9 SW",
     "team": "River Forest PD - 9 SW",
     "league_id": "APTA_CHICAGO",
     "points": 120,
@@ -16350,7 +16320,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 9 SW",
+    "series": "Chicago 9 SW",
     "team": "Oak Park CC - 9 SW",
     "league_id": "APTA_CHICAGO",
     "points": 109,
@@ -16380,7 +16350,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 9 SW",
+    "series": "Chicago 9 SW",
     "team": "Hinsdale PC I - 9 SW",
     "league_id": "APTA_CHICAGO",
     "points": 107,
@@ -16980,37 +16950,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 11",
-    "team": "BYE - 11",
-    "league_id": "APTA_CHICAGO",
-    "points": 0,
-    "matches": {
-      "won": 0,
-      "lost": 0,
-      "tied": 0,
-      "percentage": "0.0%"
-    },
-    "lines": {
-      "won": 0,
-      "lost": 0,
-      "for": 0,
-      "ret": 0,
-      "percentage": "0.0%"
-    },
-    "sets": {
-      "won": 0,
-      "lost": 0,
-      "percentage": "0.0%"
-    },
-    "games": {
-      "won": 0,
-      "lost": 0,
-      "percentage": "0.0%"
-    },
-    "source_league": "APTA_CHICAGO"
-  },
-  {
-    "series": "Series 11 SW",
+    "series": "Chicago 11 SW",
     "team": "Chicago Highlands - 11 SW",
     "league_id": "APTA_CHICAGO",
     "points": 145,
@@ -17040,7 +16980,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 11 SW",
+    "series": "Chicago 11 SW",
     "team": "Hinsdale PC - 11 SW",
     "league_id": "APTA_CHICAGO",
     "points": 142,
@@ -17070,7 +17010,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 11 SW",
+    "series": "Chicago 11 SW",
     "team": "Ruth Lake - 11 SW",
     "league_id": "APTA_CHICAGO",
     "points": 129,
@@ -17100,7 +17040,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 11 SW",
+    "series": "Chicago 11 SW",
     "team": "Hinsdale GC - 11 SW",
     "league_id": "APTA_CHICAGO",
     "points": 128,
@@ -17130,7 +17070,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 11 SW",
+    "series": "Chicago 11 SW",
     "team": "Medinah - 11 SW",
     "league_id": "APTA_CHICAGO",
     "points": 114,
@@ -17160,7 +17100,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 11 SW",
+    "series": "Chicago 11 SW",
     "team": "Glen Oak - 11 SW",
     "league_id": "APTA_CHICAGO",
     "points": 108,
@@ -17190,7 +17130,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 11 SW",
+    "series": "Chicago 11 SW",
     "team": "Glen Ellyn - 11 SW",
     "league_id": "APTA_CHICAGO",
     "points": 101,
@@ -17220,7 +17160,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 11 SW",
+    "series": "Chicago 11 SW",
     "team": "LaGrange CC - 11 SW",
     "league_id": "APTA_CHICAGO",
     "points": 93,
@@ -18030,7 +17970,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 13 SW",
+    "series": "Chicago 13 SW",
     "team": "River Forest PD I - 13 SW",
     "league_id": "APTA_CHICAGO",
     "points": 179,
@@ -18060,7 +18000,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 13 SW",
+    "series": "Chicago 13 SW",
     "team": "Glen Ellyn - 13 SW",
     "league_id": "APTA_CHICAGO",
     "points": 158,
@@ -18090,7 +18030,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 13 SW",
+    "series": "Chicago 13 SW",
     "team": "River Forest PD II - 13 SW",
     "league_id": "APTA_CHICAGO",
     "points": 153,
@@ -18120,7 +18060,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 13 SW",
+    "series": "Chicago 13 SW",
     "team": "Edgewood Valley - 13 SW",
     "league_id": "APTA_CHICAGO",
     "points": 129,
@@ -18150,7 +18090,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 13 SW",
+    "series": "Chicago 13 SW",
     "team": "Ruth Lake - 13 SW",
     "league_id": "APTA_CHICAGO",
     "points": 124,
@@ -18180,7 +18120,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 13 SW",
+    "series": "Chicago 13 SW",
     "team": "Hinsdale PC II - 13 SW",
     "league_id": "APTA_CHICAGO",
     "points": 120,
@@ -18210,7 +18150,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 13 SW",
+    "series": "Chicago 13 SW",
     "team": "Hinsdale PC I - 13 SW",
     "league_id": "APTA_CHICAGO",
     "points": 118,
@@ -18240,7 +18180,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 13 SW",
+    "series": "Chicago 13 SW",
     "team": "Salt Creek - 13 SW",
     "league_id": "APTA_CHICAGO",
     "points": 116,
@@ -18270,7 +18210,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 13 SW",
+    "series": "Chicago 13 SW",
     "team": "Hinsdale GC - 13 SW",
     "league_id": "APTA_CHICAGO",
     "points": 115,
@@ -18300,7 +18240,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 13 SW",
+    "series": "Chicago 13 SW",
     "team": "LaGrange CC II - 13 SW",
     "league_id": "APTA_CHICAGO",
     "points": 106,
@@ -18330,7 +18270,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 13 SW",
+    "series": "Chicago 13 SW",
     "team": "Oak Park CC - 13 SW",
     "league_id": "APTA_CHICAGO",
     "points": 60,
@@ -18360,7 +18300,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 13 SW",
+    "series": "Chicago 13 SW",
     "team": "LaGrange CC I - 13 SW",
     "league_id": "APTA_CHICAGO",
     "points": 58,
@@ -18660,36 +18600,6 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 14",
-    "team": "BYE - 14",
-    "league_id": "APTA_CHICAGO",
-    "points": 0,
-    "matches": {
-      "won": 0,
-      "lost": 0,
-      "tied": 0,
-      "percentage": "0.0%"
-    },
-    "lines": {
-      "won": 0,
-      "lost": 0,
-      "for": 0,
-      "ret": 0,
-      "percentage": "0.0%"
-    },
-    "sets": {
-      "won": 0,
-      "lost": 0,
-      "percentage": "0.0%"
-    },
-    "games": {
-      "won": 0,
-      "lost": 0,
-      "percentage": "0.0%"
-    },
-    "source_league": "APTA_CHICAGO"
-  },
-  {
     "series": "Chicago 15",
     "team": "Prairie Club - 15",
     "league_id": "APTA_CHICAGO",
@@ -18960,37 +18870,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 15",
-    "team": "BYE - 15",
-    "league_id": "APTA_CHICAGO",
-    "points": 0,
-    "matches": {
-      "won": 0,
-      "lost": 0,
-      "tied": 3,
-      "percentage": "0.0%"
-    },
-    "lines": {
-      "won": 0,
-      "lost": 0,
-      "for": 0,
-      "ret": 0,
-      "percentage": "0.0%"
-    },
-    "sets": {
-      "won": 0,
-      "lost": 0,
-      "percentage": "0.0%"
-    },
-    "games": {
-      "won": 0,
-      "lost": 0,
-      "percentage": "0.0%"
-    },
-    "source_league": "APTA_CHICAGO"
-  },
-  {
-    "series": "Series 15 SW",
+    "series": "Chicago 15 SW",
     "team": "Hinsdale PC II - 15 SW",
     "league_id": "APTA_CHICAGO",
     "points": 155,
@@ -19020,7 +18900,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 15 SW",
+    "series": "Chicago 15 SW",
     "team": "Hinsdale PC I - 15 SW",
     "league_id": "APTA_CHICAGO",
     "points": 136,
@@ -19050,7 +18930,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 15 SW",
+    "series": "Chicago 15 SW",
     "team": "Medinah - 15 SW",
     "league_id": "APTA_CHICAGO",
     "points": 135,
@@ -19080,7 +18960,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 15 SW",
+    "series": "Chicago 15 SW",
     "team": "Salt Creek - 15 SW",
     "league_id": "APTA_CHICAGO",
     "points": 122,
@@ -19110,7 +18990,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 15 SW",
+    "series": "Chicago 15 SW",
     "team": "Chicago Highlands - 15 SW",
     "league_id": "APTA_CHICAGO",
     "points": 120,
@@ -19140,7 +19020,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 15 SW",
+    "series": "Chicago 15 SW",
     "team": "Hinsdale GC - 15 SW",
     "league_id": "APTA_CHICAGO",
     "points": 112,
@@ -19170,7 +19050,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 15 SW",
+    "series": "Chicago 15 SW",
     "team": "Glen Oak - 15 SW",
     "league_id": "APTA_CHICAGO",
     "points": 109,
@@ -19200,7 +19080,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 15 SW",
+    "series": "Chicago 15 SW",
     "team": "Glen Ellyn - 15 SW",
     "league_id": "APTA_CHICAGO",
     "points": 104,
@@ -19230,7 +19110,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 15 SW",
+    "series": "Chicago 15 SW",
     "team": "Butterfield - 15 SW",
     "league_id": "APTA_CHICAGO",
     "points": 81,
@@ -19260,7 +19140,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 15 SW",
+    "series": "Chicago 15 SW",
     "team": "Ruth Lake - 15 SW",
     "league_id": "APTA_CHICAGO",
     "points": 69,
@@ -19290,7 +19170,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 15 SW",
+    "series": "Chicago 15 SW",
     "team": "River Forest PD - 15 SW",
     "league_id": "APTA_CHICAGO",
     "points": 61,
@@ -19316,36 +19196,6 @@
       "won": 543,
       "lost": 708,
       "percentage": "43.4%"
-    },
-    "source_league": "APTA_CHICAGO"
-  },
-  {
-    "series": "Series 15 SW",
-    "team": "BYE - 15 SW",
-    "league_id": "APTA_CHICAGO",
-    "points": 0,
-    "matches": {
-      "won": 0,
-      "lost": 0,
-      "tied": 0,
-      "percentage": "0.0%"
-    },
-    "lines": {
-      "won": 0,
-      "lost": 0,
-      "for": 0,
-      "ret": 0,
-      "percentage": "0.0%"
-    },
-    "sets": {
-      "won": 0,
-      "lost": 0,
-      "percentage": "0.0%"
-    },
-    "games": {
-      "won": 0,
-      "lost": 0,
-      "percentage": "0.0%"
     },
     "source_league": "APTA_CHICAGO"
   },
@@ -19950,7 +19800,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 17 SW",
+    "series": "Chicago 17 SW",
     "team": "White Eagle - 17 SW",
     "league_id": "APTA_CHICAGO",
     "points": 180,
@@ -19980,7 +19830,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 17 SW",
+    "series": "Chicago 17 SW",
     "team": "Dunham Woods - 17 SW",
     "league_id": "APTA_CHICAGO",
     "points": 159,
@@ -20010,7 +19860,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 17 SW",
+    "series": "Chicago 17 SW",
     "team": "Ruth Lake - 17 SW",
     "league_id": "APTA_CHICAGO",
     "points": 133,
@@ -20040,7 +19890,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 17 SW",
+    "series": "Chicago 17 SW",
     "team": "Edgewood Valley - 17 SW",
     "league_id": "APTA_CHICAGO",
     "points": 132,
@@ -20070,7 +19920,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 17 SW",
+    "series": "Chicago 17 SW",
     "team": "Hinsdale GC - 17 SW",
     "league_id": "APTA_CHICAGO",
     "points": 126,
@@ -20100,7 +19950,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 17 SW",
+    "series": "Chicago 17 SW",
     "team": "Glen Ellyn - 17 SW",
     "league_id": "APTA_CHICAGO",
     "points": 126,
@@ -20130,7 +19980,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 17 SW",
+    "series": "Chicago 17 SW",
     "team": "Hinsdale PC II - 17 SW",
     "league_id": "APTA_CHICAGO",
     "points": 117,
@@ -20160,7 +20010,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 17 SW",
+    "series": "Chicago 17 SW",
     "team": "Hinsdale PC I - 17 SW",
     "league_id": "APTA_CHICAGO",
     "points": 116,
@@ -20190,7 +20040,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 17 SW",
+    "series": "Chicago 17 SW",
     "team": "Chicago Highlands - 17 SW",
     "league_id": "APTA_CHICAGO",
     "points": 103,
@@ -20220,7 +20070,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 17 SW",
+    "series": "Chicago 17 SW",
     "team": "LaGrange CC - 17 SW",
     "league_id": "APTA_CHICAGO",
     "points": 87,
@@ -20250,7 +20100,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 17 SW",
+    "series": "Chicago 17 SW",
     "team": "Salt Creek - 17 SW",
     "league_id": "APTA_CHICAGO",
     "points": 83,
@@ -20280,7 +20130,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 17 SW",
+    "series": "Chicago 17 SW",
     "team": "Medinah - 17 SW",
     "league_id": "APTA_CHICAGO",
     "points": 80,
@@ -20970,7 +20820,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 19 SW",
+    "series": "Chicago 19 SW",
     "team": "Glen Oak - 19 SW",
     "league_id": "APTA_CHICAGO",
     "points": 143,
@@ -21000,7 +20850,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 19 SW",
+    "series": "Chicago 19 SW",
     "team": "Glen Ellyn - 19 SW",
     "league_id": "APTA_CHICAGO",
     "points": 133,
@@ -21030,7 +20880,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 19 SW",
+    "series": "Chicago 19 SW",
     "team": "Hinsdale PC - 19 SW",
     "league_id": "APTA_CHICAGO",
     "points": 120,
@@ -21060,7 +20910,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 19 SW",
+    "series": "Chicago 19 SW",
     "team": "Hinsdale GC - 19 SW",
     "league_id": "APTA_CHICAGO",
     "points": 118,
@@ -21090,7 +20940,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 19 SW",
+    "series": "Chicago 19 SW",
     "team": "Ruth Lake - 19 SW",
     "league_id": "APTA_CHICAGO",
     "points": 114,
@@ -21120,7 +20970,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 19 SW",
+    "series": "Chicago 19 SW",
     "team": "Butterfield - 19 SW",
     "league_id": "APTA_CHICAGO",
     "points": 97,
@@ -21150,7 +21000,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 19 SW",
+    "series": "Chicago 19 SW",
     "team": "Salt Creek - 19 SW",
     "league_id": "APTA_CHICAGO",
     "points": 93,
@@ -21180,7 +21030,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 19 SW",
+    "series": "Chicago 19 SW",
     "team": "Chicago Highlands - 19 SW",
     "league_id": "APTA_CHICAGO",
     "points": 86,
@@ -21210,7 +21060,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 19 SW",
+    "series": "Chicago 19 SW",
     "team": "LaGrange CC - 19 SW",
     "league_id": "APTA_CHICAGO",
     "points": 57,
@@ -21236,36 +21086,6 @@
       "won": 493,
       "lost": 681,
       "percentage": "42.0%"
-    },
-    "source_league": "APTA_CHICAGO"
-  },
-  {
-    "series": "Series 19 SW",
-    "team": "BYE - 19 SW",
-    "league_id": "APTA_CHICAGO",
-    "points": 0,
-    "matches": {
-      "won": 0,
-      "lost": 0,
-      "tied": 0,
-      "percentage": "0.0%"
-    },
-    "lines": {
-      "won": 0,
-      "lost": 0,
-      "for": 0,
-      "ret": 0,
-      "percentage": "0.0%"
-    },
-    "sets": {
-      "won": 0,
-      "lost": 0,
-      "percentage": "0.0%"
-    },
-    "games": {
-      "won": 0,
-      "lost": 0,
-      "percentage": "0.0%"
     },
     "source_league": "APTA_CHICAGO"
   },
@@ -21990,7 +21810,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 21 SW",
+    "series": "Chicago 21 SW",
     "team": "Hinsdale PC II - 21 SW",
     "league_id": "APTA_CHICAGO",
     "points": 179,
@@ -22020,7 +21840,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 21 SW",
+    "series": "Chicago 21 SW",
     "team": "River Forest PD - 21 SW",
     "league_id": "APTA_CHICAGO",
     "points": 160,
@@ -22050,7 +21870,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 21 SW",
+    "series": "Chicago 21 SW",
     "team": "Glen Ellyn - 21 SW",
     "league_id": "APTA_CHICAGO",
     "points": 127,
@@ -22080,7 +21900,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 21 SW",
+    "series": "Chicago 21 SW",
     "team": "Medinah - 21 SW",
     "league_id": "APTA_CHICAGO",
     "points": 126,
@@ -22110,7 +21930,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 21 SW",
+    "series": "Chicago 21 SW",
     "team": "Salt Creek - 21 SW",
     "league_id": "APTA_CHICAGO",
     "points": 124,
@@ -22140,7 +21960,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 21 SW",
+    "series": "Chicago 21 SW",
     "team": "Dunham Woods - 21 SW",
     "league_id": "APTA_CHICAGO",
     "points": 118,
@@ -22170,7 +21990,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 21 SW",
+    "series": "Chicago 21 SW",
     "team": "Oak Park CC - 21 SW",
     "league_id": "APTA_CHICAGO",
     "points": 114,
@@ -22200,7 +22020,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 21 SW",
+    "series": "Chicago 21 SW",
     "team": "Hinsdale PC I - 21 SW",
     "league_id": "APTA_CHICAGO",
     "points": 114,
@@ -22230,7 +22050,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 21 SW",
+    "series": "Chicago 21 SW",
     "team": "Ruth Lake - 21 SW",
     "league_id": "APTA_CHICAGO",
     "points": 84,
@@ -22260,7 +22080,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 21 SW",
+    "series": "Chicago 21 SW",
     "team": "LaGrange CC - 21 SW",
     "league_id": "APTA_CHICAGO",
     "points": 33,
@@ -22620,36 +22440,6 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Chicago 22",
-    "team": "BYE - 22",
-    "league_id": "APTA_CHICAGO",
-    "points": 0,
-    "matches": {
-      "won": 0,
-      "lost": 0,
-      "tied": 0,
-      "percentage": "0.0%"
-    },
-    "lines": {
-      "won": 0,
-      "lost": 0,
-      "for": 0,
-      "ret": 0,
-      "percentage": "0.0%"
-    },
-    "sets": {
-      "won": 0,
-      "lost": 0,
-      "percentage": "0.0%"
-    },
-    "games": {
-      "won": 0,
-      "lost": 0,
-      "percentage": "0.0%"
-    },
-    "source_league": "APTA_CHICAGO"
-  },
-  {
     "series": "Chicago 23",
     "team": "Inverness - 23",
     "league_id": "APTA_CHICAGO",
@@ -22950,7 +22740,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 23 SW",
+    "series": "Chicago 23 SW",
     "team": "Glen Oak - 23 SW",
     "league_id": "APTA_CHICAGO",
     "points": 183,
@@ -22980,7 +22770,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 23 SW",
+    "series": "Chicago 23 SW",
     "team": "Hinsdale GC - 23 SW",
     "league_id": "APTA_CHICAGO",
     "points": 165,
@@ -23010,7 +22800,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 23 SW",
+    "series": "Chicago 23 SW",
     "team": "Medinah II - 23 SW",
     "league_id": "APTA_CHICAGO",
     "points": 151,
@@ -23040,7 +22830,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 23 SW",
+    "series": "Chicago 23 SW",
     "team": "Edgewood Valley - 23 SW",
     "league_id": "APTA_CHICAGO",
     "points": 146,
@@ -23070,7 +22860,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 23 SW",
+    "series": "Chicago 23 SW",
     "team": "Glen Ellyn - 23 SW",
     "league_id": "APTA_CHICAGO",
     "points": 135,
@@ -23100,7 +22890,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 23 SW",
+    "series": "Chicago 23 SW",
     "team": "White Eagle - 23 SW",
     "league_id": "APTA_CHICAGO",
     "points": 122,
@@ -23130,7 +22920,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 23 SW",
+    "series": "Chicago 23 SW",
     "team": "Hinsdale PC - 23 SW",
     "league_id": "APTA_CHICAGO",
     "points": 118,
@@ -23160,7 +22950,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 23 SW",
+    "series": "Chicago 23 SW",
     "team": "Butterfield - 23 SW",
     "league_id": "APTA_CHICAGO",
     "points": 118,
@@ -23190,7 +22980,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 23 SW",
+    "series": "Chicago 23 SW",
     "team": "Salt Creek - 23 SW",
     "league_id": "APTA_CHICAGO",
     "points": 107,
@@ -23220,7 +23010,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 23 SW",
+    "series": "Chicago 23 SW",
     "team": "Medinah I - 23 SW",
     "league_id": "APTA_CHICAGO",
     "points": 83,
@@ -23250,7 +23040,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 23 SW",
+    "series": "Chicago 23 SW",
     "team": "Chicago Highlands - 23 SW",
     "league_id": "APTA_CHICAGO",
     "points": 60,
@@ -23280,7 +23070,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 23 SW",
+    "series": "Chicago 23 SW",
     "team": "LaGrange CC - 23 SW",
     "league_id": "APTA_CHICAGO",
     "points": 35,
@@ -23910,7 +23700,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 25 SW",
+    "series": "Chicago 25 SW",
     "team": "River Forest CC - 25 SW",
     "league_id": "APTA_CHICAGO",
     "points": 163,
@@ -23940,7 +23730,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 25 SW",
+    "series": "Chicago 25 SW",
     "team": "River Forest PD - 25 SW",
     "league_id": "APTA_CHICAGO",
     "points": 152,
@@ -23970,7 +23760,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 25 SW",
+    "series": "Chicago 25 SW",
     "team": "White Eagle - 25 SW",
     "league_id": "APTA_CHICAGO",
     "points": 145,
@@ -24000,7 +23790,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 25 SW",
+    "series": "Chicago 25 SW",
     "team": "Hinsdale PC I - 25 SW",
     "league_id": "APTA_CHICAGO",
     "points": 142,
@@ -24030,7 +23820,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 25 SW",
+    "series": "Chicago 25 SW",
     "team": "Medinah - 25 SW",
     "league_id": "APTA_CHICAGO",
     "points": 137,
@@ -24060,7 +23850,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 25 SW",
+    "series": "Chicago 25 SW",
     "team": "Glen Oak - 25 SW",
     "league_id": "APTA_CHICAGO",
     "points": 123,
@@ -24090,7 +23880,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 25 SW",
+    "series": "Chicago 25 SW",
     "team": "Hinsdale PC II - 25 SW",
     "league_id": "APTA_CHICAGO",
     "points": 108,
@@ -24120,7 +23910,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 25 SW",
+    "series": "Chicago 25 SW",
     "team": "Hinsdale GC - 25 SW",
     "league_id": "APTA_CHICAGO",
     "points": 100,
@@ -24150,7 +23940,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 25 SW",
+    "series": "Chicago 25 SW",
     "team": "Ruth Lake - 25 SW",
     "league_id": "APTA_CHICAGO",
     "points": 61,
@@ -24180,7 +23970,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 25 SW",
+    "series": "Chicago 25 SW",
     "team": "Chicago Highlands - 25 SW",
     "league_id": "APTA_CHICAGO",
     "points": 48,
@@ -24930,7 +24720,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 27 SW",
+    "series": "Chicago 27 SW",
     "team": "Oak Park CC - 27 SW",
     "league_id": "APTA_CHICAGO",
     "points": 181,
@@ -24960,7 +24750,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 27 SW",
+    "series": "Chicago 27 SW",
     "team": "LaGrange CC I - 27 SW",
     "league_id": "APTA_CHICAGO",
     "points": 174,
@@ -24990,7 +24780,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 27 SW",
+    "series": "Chicago 27 SW",
     "team": "Salt Creek I - 27 SW",
     "league_id": "APTA_CHICAGO",
     "points": 171,
@@ -25020,7 +24810,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 27 SW",
+    "series": "Chicago 27 SW",
     "team": "River Forest CC - 27 SW",
     "league_id": "APTA_CHICAGO",
     "points": 166,
@@ -25050,7 +24840,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 27 SW",
+    "series": "Chicago 27 SW",
     "team": "Glen Oak II - 27 SW",
     "league_id": "APTA_CHICAGO",
     "points": 142,
@@ -25080,7 +24870,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 27 SW",
+    "series": "Chicago 27 SW",
     "team": "Salt Creek II - 27 SW",
     "league_id": "APTA_CHICAGO",
     "points": 135,
@@ -25110,7 +24900,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 27 SW",
+    "series": "Chicago 27 SW",
     "team": "Edgewood Valley - 27 SW",
     "league_id": "APTA_CHICAGO",
     "points": 133,
@@ -25140,7 +24930,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 27 SW",
+    "series": "Chicago 27 SW",
     "team": "Glen Ellyn - 27 SW",
     "league_id": "APTA_CHICAGO",
     "points": 126,
@@ -25170,7 +24960,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 27 SW",
+    "series": "Chicago 27 SW",
     "team": "Ruth Lake - 27 SW",
     "league_id": "APTA_CHICAGO",
     "points": 123,
@@ -25200,7 +24990,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 27 SW",
+    "series": "Chicago 27 SW",
     "team": "Hinsdale PC I - 27 SW",
     "league_id": "APTA_CHICAGO",
     "points": 110,
@@ -25230,7 +25020,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 27 SW",
+    "series": "Chicago 27 SW",
     "team": "Glen Oak I - 27 SW",
     "league_id": "APTA_CHICAGO",
     "points": 108,
@@ -25260,7 +25050,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 27 SW",
+    "series": "Chicago 27 SW",
     "team": "Hinsdale PC II - 27 SW",
     "league_id": "APTA_CHICAGO",
     "points": 105,
@@ -25290,7 +25080,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 27 SW",
+    "series": "Chicago 27 SW",
     "team": "Butterfield - 27 SW",
     "league_id": "APTA_CHICAGO",
     "points": 58,
@@ -25320,7 +25110,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 27 SW",
+    "series": "Chicago 27 SW",
     "team": "Hinsdale GC - 27 SW",
     "league_id": "APTA_CHICAGO",
     "points": 55,
@@ -25350,7 +25140,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 27 SW",
+    "series": "Chicago 27 SW",
     "team": "Chicago Highlands - 27 SW",
     "league_id": "APTA_CHICAGO",
     "points": 44,
@@ -25380,7 +25170,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 27 SW",
+    "series": "Chicago 27 SW",
     "team": "LaGrange CC II - 27 SW",
     "league_id": "APTA_CHICAGO",
     "points": 23,
@@ -25950,7 +25740,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 29 SW",
+    "series": "Chicago 29 SW",
     "team": "Hinsdale PC - 29 SW",
     "league_id": "APTA_CHICAGO",
     "points": 157,
@@ -25980,7 +25770,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 29 SW",
+    "series": "Chicago 29 SW",
     "team": "Glen Ellyn - 29 SW",
     "league_id": "APTA_CHICAGO",
     "points": 144,
@@ -26010,7 +25800,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 29 SW",
+    "series": "Chicago 29 SW",
     "team": "Dunham Woods - 29 SW",
     "league_id": "APTA_CHICAGO",
     "points": 138,
@@ -26040,7 +25830,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 29 SW",
+    "series": "Chicago 29 SW",
     "team": "White Eagle - 29 SW",
     "league_id": "APTA_CHICAGO",
     "points": 131,
@@ -26070,7 +25860,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 29 SW",
+    "series": "Chicago 29 SW",
     "team": "Salt Creek - 29 SW",
     "league_id": "APTA_CHICAGO",
     "points": 123,
@@ -26100,7 +25890,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 29 SW",
+    "series": "Chicago 29 SW",
     "team": "Hinsdale GC - 29 SW",
     "league_id": "APTA_CHICAGO",
     "points": 117,
@@ -26130,7 +25920,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 29 SW",
+    "series": "Chicago 29 SW",
     "team": "Ruth Lake - 29 SW",
     "league_id": "APTA_CHICAGO",
     "points": 113,
@@ -26160,7 +25950,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 29 SW",
+    "series": "Chicago 29 SW",
     "team": "River Forest CC - 29 SW",
     "league_id": "APTA_CHICAGO",
     "points": 107,
@@ -26190,7 +25980,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 29 SW",
+    "series": "Chicago 29 SW",
     "team": "Oak Park CC I - 29 SW",
     "league_id": "APTA_CHICAGO",
     "points": 94,
@@ -26220,7 +26010,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 29 SW",
+    "series": "Chicago 29 SW",
     "team": "LaGrange CC - 29 SW",
     "league_id": "APTA_CHICAGO",
     "points": 82,
@@ -26250,7 +26040,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 29 SW",
+    "series": "Chicago 29 SW",
     "team": "Medinah - 29 SW",
     "league_id": "APTA_CHICAGO",
     "points": 71,
@@ -26280,7 +26070,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 29 SW",
+    "series": "Chicago 29 SW",
     "team": "Oak Park CC II - 29 SW",
     "league_id": "APTA_CHICAGO",
     "points": 62,
@@ -26310,7 +26100,7 @@
     "source_league": "APTA_CHICAGO"
   },
   {
-    "series": "Series 29 SW",
+    "series": "Chicago 29 SW",
     "team": "Edgewood Valley - 29 SW",
     "league_id": "APTA_CHICAGO",
     "points": 38,
@@ -26336,36 +26126,6 @@
       "won": 288,
       "lost": 454,
       "percentage": "38.8%"
-    },
-    "source_league": "APTA_CHICAGO"
-  },
-  {
-    "series": "Series 29 SW",
-    "team": "BYE - 29 SW",
-    "league_id": "APTA_CHICAGO",
-    "points": 0,
-    "matches": {
-      "won": 0,
-      "lost": 0,
-      "tied": 0,
-      "percentage": "0.0%"
-    },
-    "lines": {
-      "won": 0,
-      "lost": 0,
-      "for": 0,
-      "ret": 0,
-      "percentage": "0.0%"
-    },
-    "sets": {
-      "won": 0,
-      "lost": 0,
-      "percentage": "0.0%"
-    },
-    "games": {
-      "won": 0,
-      "lost": 0,
-      "percentage": "0.0%"
     },
     "source_league": "APTA_CHICAGO"
   },

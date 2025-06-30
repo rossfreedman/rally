@@ -228,6 +228,7 @@ class Club(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String(255), nullable=False, unique=True)
     club_address = Column(String(500), nullable=True)
+    logo_filename = Column(String(500), nullable=True)
     updated_at = Column(
         DateTime(timezone=True), default=func.now(), onupdate=func.now()
     )
