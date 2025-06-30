@@ -1015,18 +1015,34 @@ def add_practice_times():
         except Exception as e:
             print(f"Could not get league ID for user: {e}")
 
-        # FIXED: Get user's team_id to properly link practice times
+        # FIXED: Use priority-based team detection (same as availability page and other functions)
         user_team_id = None
-        try:
-            # Get user's team information using session service
-            from app.services.session_service import get_session_data_for_user
-            
-            session_data = get_session_data_for_user(user["email"])
-            if session_data:
-                user_team_id = session_data.get("team_id")
-                print(f"Found user team_id: {user_team_id} for practice times")
-        except Exception as e:
-            print(f"Could not get team ID for user: {e}")
+        
+        # PRIORITY 1: Use team_id from session if available (most reliable for multi-team players)
+        session_team_id = user.get("team_id")
+        print(f"[DEBUG] Practice add: session_team_id from user: {session_team_id}")
+        
+        if session_team_id:
+            user_team_id = session_team_id
+            print(f"[DEBUG] Practice add: Using team_id from session: {user_team_id}")
+        
+        # PRIORITY 2: Use team_context from user if provided
+        if not user_team_id:
+            team_context = user.get("team_context")
+            if team_context:
+                user_team_id = team_context
+                print(f"[DEBUG] Practice add: Using team_context: {user_team_id}")
+        
+        # PRIORITY 3: Fallback to session service
+        if not user_team_id:
+            try:
+                from app.services.session_service import get_session_data_for_user
+                session_data = get_session_data_for_user(user["email"])
+                if session_data:
+                    user_team_id = session_data.get("team_id")
+                    print(f"[DEBUG] Practice add: Found team_id via session service: {user_team_id}")
+            except Exception as e:
+                print(f"Could not get team ID via session service: {e}")
 
         # Convert day name to number (0=Monday, 6=Sunday)
         day_map = {
@@ -1052,11 +1068,11 @@ def add_practice_times():
         # Check for existing practices to avoid duplicates
         practice_description = f"{user_club} Practice - {user_series}"
         
-        # FIXED: Use team_id-based duplicate checking for precision
+        # FIXED: Use team_id-based duplicate checking for precision (handle NULL league_id)
         existing_query = """
             SELECT match_date FROM schedule 
             WHERE home_team_id = %(team_id)s
-            AND league_id = %(league_id)s 
+            AND (league_id = %(league_id)s OR (league_id IS NULL AND %(league_id)s IS NOT NULL))
             AND home_team = %(practice_desc)s
             AND match_date BETWEEN %(start_date)s AND %(end_date)s
         """

@@ -840,18 +840,34 @@ def remove_practice_times_data():
         except Exception as e:
             print(f"Could not get league ID for user: {e}")
 
-        # FIXED: Get user's team_id for precise practice time removal
+        # FIXED: Use priority-based team detection (same as availability page and other functions)
         user_team_id = None
-        try:
-            # Get user's team information using session service
-            from app.services.session_service import get_session_data_for_user
-            
-            session_data = get_session_data_for_user(user["email"])
-            if session_data:
-                user_team_id = session_data.get("team_id")
-                print(f"Found user team_id: {user_team_id} for practice time removal")
-        except Exception as e:
-            print(f"Could not get team ID for user: {e}")
+        
+        # PRIORITY 1: Use team_id from session if available (most reliable for multi-team players)
+        session_team_id = user.get("team_id")
+        print(f"[DEBUG] Practice removal: session_team_id from user: {session_team_id}")
+        
+        if session_team_id:
+            user_team_id = session_team_id
+            print(f"[DEBUG] Practice removal: Using team_id from session: {user_team_id}")
+        
+        # PRIORITY 2: Use team_context from user if provided
+        if not user_team_id:
+            team_context = user.get("team_context")
+            if team_context:
+                user_team_id = team_context
+                print(f"[DEBUG] Practice removal: Using team_context: {user_team_id}")
+        
+        # PRIORITY 3: Fallback to session service
+        if not user_team_id:
+            try:
+                from app.services.session_service import get_session_data_for_user
+                session_data = get_session_data_for_user(user["email"])
+                if session_data:
+                    user_team_id = session_data.get("team_id")
+                    print(f"[DEBUG] Practice removal: Found team_id via session service: {user_team_id}")
+            except Exception as e:
+                print(f"Could not get team ID via session service: {e}")
 
         if not user_team_id:
             return jsonify({"success": False, "message": "Could not determine your team. Please check your profile settings."}), 400
@@ -859,12 +875,12 @@ def remove_practice_times_data():
         # Count practice entries before removal using team_id for precision
         practice_description = f"{user_club} Practice - {user_series}"
 
-        # FIXED: Use team_id-based counting for accuracy
+        # FIXED: Use team_id-based counting for accuracy (handle NULL league_id)
         practice_count_query = """
             SELECT COUNT(*) as count
             FROM schedule 
             WHERE home_team_id = %(team_id)s
-            AND league_id = %(league_id)s
+            AND (league_id = %(league_id)s OR (league_id IS NULL AND %(league_id)s IS NOT NULL))
             AND home_team = %(practice_desc)s
         """
 
@@ -898,12 +914,12 @@ def remove_practice_times_data():
                 }
             )
 
-        # FIXED: Remove practice entries using team_id for precision and security
+        # FIXED: Remove practice entries using team_id for precision and security (handle NULL league_id)
         try:
             delete_query = """
                 DELETE FROM schedule 
                 WHERE home_team_id = %(team_id)s
-                AND league_id = %(league_id)s
+                AND (league_id = %(league_id)s OR (league_id IS NULL AND %(league_id)s IS NOT NULL))
                 AND home_team = %(practice_desc)s
             """
 
