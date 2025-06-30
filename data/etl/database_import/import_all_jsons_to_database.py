@@ -165,6 +165,44 @@ class ComprehensiveETL:
         # CRITICAL FIX: Add player matching validator
         self.player_validator = PlayerMatchingValidator()
 
+    
+    def ensure_schema_requirements(self, conn):
+        """Ensure required schema elements exist before import"""
+        cursor = conn.cursor()
+        
+        try:
+            # Create system_settings table
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS system_settings (
+                    id SERIAL PRIMARY KEY,
+                    key VARCHAR(255) UNIQUE NOT NULL,
+                    value TEXT,
+                    description TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            
+            # Initialize session_version
+            cursor.execute("""
+                INSERT INTO system_settings (key, value, description) 
+                VALUES ('session_version', '5', 'Current session version for cache busting')
+                ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value
+            """)
+            
+            # Add logo_filename column to clubs
+            cursor.execute("""
+                ALTER TABLE clubs 
+                ADD COLUMN IF NOT EXISTS logo_filename VARCHAR(255)
+            """)
+            
+            conn.commit()
+            self.log("✅ Schema requirements ensured")
+            
+        except Exception as e:
+            self.log(f"⚠️ Schema fix error (non-critical): {e}", "WARNING")
+
+
     def log(self, message: str, level: str = "INFO"):
         """Enhanced logging with timestamps"""
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -3194,6 +3232,9 @@ class ComprehensiveETL:
             self.log("\n🗄️  Step 3: Connecting to database...")
             with get_db() as conn:
                 try:
+                    # Ensure schema requirements
+                    self.ensure_schema_requirements(conn)
+
                     # Clear existing data
                     self.clear_target_tables(conn)
 
