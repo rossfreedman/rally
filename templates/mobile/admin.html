@@ -49,7 +49,7 @@
         <h3 class="text-lg font-semibold text-gray-800">User Impersonation</h3>
       </div>
       <p class="text-sm text-gray-600 mb-4">
-        Simulate being logged in as another user in a specific team/league context for testing purposes. Select both the user and their specific player ID to see exactly what they see in that context.
+        Simulate being logged in as another user for testing purposes. Users with player associations will show their available team/league contexts, while users without associations can still be impersonated for general testing.
       </p>
       
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -72,10 +72,11 @@
           <div class="text-xs text-amber-700">
             <p class="font-medium mb-1">Important Notes:</p>
             <ul class="list-disc list-inside space-y-1">
-              <li>Select a specific user + player context combination</li>
-              <li>You'll see exactly what they see in that team/league</li>
+              <li>Select any user to impersonate - with or without player contexts</li>
+              <li>Users with player contexts will show their team/league options</li>
+              <li>Users without contexts can still be impersonated for basic testing</li>
               <li>Your original admin session will be safely backed up</li>
-              <li>All actions taken will be logged with player context</li>
+              <li>All actions taken will be logged with impersonation context</li>
               <li>Use "Stop Impersonation" to return to your admin session</li>
             </ul>
           </div>
@@ -162,31 +163,43 @@ async function loadUsersForImpersonation() {
         const users = await response.json();
         
         const select = document.getElementById('impersonation-user-select');
-        select.innerHTML = '<option value="">Select a user and context...</option>';
+        select.innerHTML = '<option value="">Select a user to impersonate...</option>';
         
         users.forEach(user => {
-            // Add user header (disabled option)
-            const userHeader = document.createElement('option');
-            userHeader.value = '';
-            userHeader.textContent = `${user.first_name} ${user.last_name} (${user.email})`;
-            userHeader.disabled = true;
-            userHeader.style.fontWeight = 'bold';
-            userHeader.style.backgroundColor = '#f3f4f6';
-            select.appendChild(userHeader);
-            
-            // Add player contexts for this user
-            user.player_contexts.forEach(context => {
+            if (user.player_contexts && user.player_contexts.length > 0) {
+                // User has player contexts - show hierarchy
+                const userHeader = document.createElement('option');
+                userHeader.value = '';
+                userHeader.textContent = `${user.first_name} ${user.last_name} (${user.email})`;
+                userHeader.disabled = true;
+                userHeader.style.fontWeight = 'bold';
+                userHeader.style.backgroundColor = '#f3f4f6';
+                select.appendChild(userHeader);
+                
+                // Add player contexts for this user
+                user.player_contexts.forEach(context => {
+                    const option = document.createElement('option');
+                    option.value = JSON.stringify({
+                        user_email: user.email,
+                        tenniscores_player_id: context.tenniscores_player_id
+                    });
+                    option.textContent = `  └── ${context.display_name}`;
+                    option.style.paddingLeft = '20px';
+                    select.appendChild(option);
+                });
+            } else {
+                // User has no player contexts - show directly as selectable
                 const option = document.createElement('option');
                 option.value = JSON.stringify({
                     user_email: user.email,
-                    tenniscores_player_id: context.tenniscores_player_id
+                    tenniscores_player_id: null  // No player context
                 });
-                option.textContent = `  └── ${context.display_name}`;
-                option.style.paddingLeft = '20px';
+                option.textContent = `${user.first_name} ${user.last_name} (${user.email}) - No Player Context`;
+                option.style.color = '#6b7280'; // Gray color to indicate no context
                 select.appendChild(option);
-            });
+            }
             
-            // Add separator
+            // Add separator (except for last user)
             if (users.indexOf(user) < users.length - 1) {
                 const separator = document.createElement('option');
                 separator.value = '';
@@ -205,7 +218,7 @@ async function loadUsersForImpersonation() {
 async function startImpersonation() {
     const selectedValue = document.getElementById('impersonation-user-select').value;
     if (!selectedValue) {
-        alert('Please select a user and player context to impersonate');
+        alert('Please select a user to impersonate');
         return;
     }
     
@@ -213,17 +226,18 @@ async function startImpersonation() {
     try {
         const selection = JSON.parse(selectedValue);
         userEmail = selection.user_email;
-        playerId = selection.tenniscores_player_id;
+        playerId = selection.tenniscores_player_id; // Can be null for users without player contexts
         
         // Get display text from the selected option
         const select = document.getElementById('impersonation-user-select');
         displayText = select.options[select.selectedIndex].textContent.trim();
     } catch (error) {
-        alert('Invalid selection. Please choose a player context.');
+        alert('Invalid selection. Please choose a user to impersonate.');
         return;
     }
     
-    if (!confirm(`Are you sure you want to impersonate:\n${userEmail}\nAs player: ${displayText}\n\nThis will temporarily replace your session with theirs.`)) {
+    const contextInfo = playerId ? `\nAs player: ${displayText}` : '\n(No player context)';
+    if (!confirm(`Are you sure you want to impersonate:\n${userEmail}${contextInfo}\n\nThis will temporarily replace your session with theirs.`)) {
         return;
     }
     
@@ -233,7 +247,7 @@ async function startImpersonation() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
                 user_email: userEmail,
-                tenniscores_player_id: playerId
+                tenniscores_player_id: playerId  // Can be null
             })
         });
         
@@ -241,7 +255,8 @@ async function startImpersonation() {
         
         if (result.success) {
             // Show success message and refresh page to update session
-            alert(`Successfully started impersonating ${userEmail} in context: ${displayText}\n\nPage will refresh to show their view.`);
+            const contextMsg = playerId ? ` in context: ${displayText}` : ' (no player context)';
+            alert(`Successfully started impersonating ${userEmail}${contextMsg}\n\nPage will refresh to show their view.`);
             window.location.reload();
         } else {
             alert(`Failed to start impersonation: ${result.error}`);
