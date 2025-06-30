@@ -6,6 +6,7 @@ These routes handle API endpoints for data retrieval, research, analytics, and o
 """
 
 import json
+import logging
 import os
 from datetime import datetime
 from functools import wraps
@@ -2856,4 +2857,153 @@ def get_user_teams():
             "error": str(e),
             "teams": [],
             "current_team": None
+        }), 500
+
+
+@api_bp.route("/api/switch-team-in-league", methods=["POST"])
+@login_required
+def switch_team_in_league():
+    """
+    API endpoint for switching user's team/club within the same league.
+    This is separate from league switching - it only changes team context within current league.
+    """
+    try:
+        from app.services.session_service import (
+            switch_user_team_in_league, 
+            get_session_data_for_user_team
+        )
+        import logging
+
+        logger = logging.getLogger(__name__)
+        data = request.get_json()
+        
+        if not data or not data.get("team_id"):
+            return jsonify({"success": False, "error": "team_id required"}), 400
+        
+        team_id = data.get("team_id")
+        user_email = session["user"]["email"]
+        
+        # Validate team switch using session service
+        if not switch_user_team_in_league(user_email, team_id):
+            return jsonify({"success": False, "error": "Cannot switch to this team"}), 400
+        
+        # Build new session data with team context
+        fresh_session_data = get_session_data_for_user_team(user_email, team_id)
+        if not fresh_session_data:
+            return jsonify({"success": False, "error": "Failed to build session with new team"}), 500
+        
+        # Update session
+        session["user"] = fresh_session_data
+        session.modified = True
+        
+        logger.info(f"User {user_email} switched to team {fresh_session_data['team_name']} (ID: {team_id})")
+        
+        return jsonify({
+            "success": True,
+            "team_id": team_id,
+            "team_name": fresh_session_data.get("team_name"),
+            "club_name": fresh_session_data["club"],
+            "series_name": fresh_session_data["series"],
+            "league_name": fresh_session_data["league_name"],
+            "message": f"Switched to {fresh_session_data['club']} - {fresh_session_data['series']}"
+        })
+        
+    except Exception as e:
+        logger.error(f"Error switching team: {str(e)}")
+        return jsonify({"success": False, "error": f"Team switch failed: {str(e)}"}), 500
+
+
+@api_bp.route("/api/get-user-teams-in-current-league", methods=["GET"])
+@login_required
+def get_user_teams_in_current_league():
+    """
+    API endpoint to get user's teams within their current league only.
+    Used for club/team switching within the same league.
+    """
+    try:
+        logger = logging.getLogger(__name__)
+        user_id = session["user"]["id"]
+        current_league_context = session["user"].get("league_context")
+        
+        logger.info(f"get_user_teams_in_current_league called for user {user_id}, league_context: {current_league_context}")
+        logger.info(f"Full session user data: {session.get('user', {})}")
+        
+        # Fallback to league_id if league_context is not set
+        if not current_league_context:
+            current_league_context = session["user"].get("league_id")
+            logger.info(f"league_context was None, trying league_id fallback: {current_league_context}")
+        
+        # Convert string league_id to numeric league_id if needed
+        if isinstance(current_league_context, str):
+            league_lookup_query = "SELECT id FROM leagues WHERE league_id = %s"
+            league_record = execute_query_one(league_lookup_query, [current_league_context])
+            if league_record:
+                current_league_context = league_record["id"]
+                logger.info(f"Converted string league_id to numeric id: {current_league_context}")
+            else:
+                logger.error(f"Could not find league with league_id: {current_league_context}")
+                return jsonify({
+                    "success": False,
+                    "error": "Invalid league context",
+                    "teams": []
+                }), 400
+        
+        if not current_league_context:
+            logger.error(f"No league context or league_id found for user {user_id}")
+            return jsonify({
+                "success": False,
+                "error": "No league context found",
+                "teams": []
+            }), 400
+        
+        # Get user's teams in current league only
+        teams_query = """
+            SELECT DISTINCT 
+                t.id as team_id,
+                t.team_name,
+                c.name as club_name,
+                s.name as series_name,
+                l.league_name,
+                COUNT(ms.id) as match_count,
+                -- Check if this is the current team context
+                CASE WHEN t.id = %s THEN true ELSE false END as is_current
+            FROM teams t
+            JOIN players p ON t.id = p.team_id
+            JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
+            JOIN clubs c ON t.club_id = c.id
+            JOIN series s ON t.series_id = s.id
+            JOIN leagues l ON t.league_id = l.id
+            LEFT JOIN match_scores ms ON (t.id = ms.home_team_id OR t.id = ms.away_team_id)
+            WHERE upa.user_id = %s 
+                AND t.league_id = %s
+                AND p.is_active = TRUE 
+                AND t.is_active = TRUE
+            GROUP BY t.id, t.team_name, c.name, s.name, l.league_name
+            ORDER BY c.name, s.name
+        """
+        
+        current_team_id = session["user"].get("team_id")
+        logger.info(f"Executing teams query with params: current_team_id={current_team_id}, user_id={user_id}, league_context={current_league_context}")
+        
+        teams_result = execute_query(teams_query, [current_team_id, user_id, current_league_context])
+        teams = [dict(team) for team in teams_result] if teams_result else []
+        
+        logger.info(f"Query returned {len(teams)} teams: {teams}")
+        
+        return jsonify({
+            "success": True,
+            "teams": teams,
+            "has_multiple_teams": len(teams) > 1,
+            "current_league_id": current_league_context
+        })
+        
+    except Exception as e:
+        import traceback
+        logger.error(f"Error getting user teams in current league: {e}")
+        logger.error(f"Full traceback: {traceback.format_exc()}")
+        logger.error(f"Session data: {session.get('user', {})}")
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "teams": []
         }), 500

@@ -705,27 +705,48 @@ def get_player_analysis(user):
         user_team_id = None
         user_team_name = None
         
-        # PRIORITY 1: Use team_context from user if provided (from composite player URL)
-        team_context = user.get("team_context") if user else None
-        if team_context:
+        # PRIORITY 1: Use team_id directly from session data (set by team switching)
+        session_team_id = user.get("team_id") if user else None
+        if session_team_id:
             try:
-                # Get team name for the specific team_id from team context
-                team_context_query = """
+                # Get team name for the specific team_id from session
+                session_team_query = """
                     SELECT t.id, t.team_name
                     FROM teams t
                     WHERE t.id = %s
                 """
-                team_context_result = execute_query_one(team_context_query, [team_context])
-                if team_context_result:
-                    user_team_id = team_context_result['id'] 
-                    user_team_name = team_context_result['team_name']
-                    print(f"[DEBUG] Using team_context from URL: team_id={user_team_id}, team_name={user_team_name}")
+                session_team_result = execute_query_one(session_team_query, [session_team_id])
+                if session_team_result:
+                    user_team_id = session_team_result['id'] 
+                    user_team_name = session_team_result['team_name']
+                    print(f"[DEBUG] Using team_id from session: team_id={user_team_id}, team_name={user_team_name}")
                 else:
-                    print(f"[DEBUG] team_context {team_context} not found in teams table")
+                    print(f"[DEBUG] Session team_id {session_team_id} not found in teams table")
             except Exception as e:
-                print(f"[DEBUG] Error getting team from team_context {team_context}: {e}")
+                print(f"[DEBUG] Error getting team from session team_id {session_team_id}: {e}")
         
-        # PRIORITY 2: Fallback to database lookup if no team_context provided
+        # PRIORITY 2: Use team_context from user if provided (from composite player URL)
+        if not user_team_id:
+            team_context = user.get("team_context") if user else None
+            if team_context:
+                try:
+                    # Get team name for the specific team_id from team context
+                    team_context_query = """
+                        SELECT t.id, t.team_name
+                        FROM teams t
+                        WHERE t.id = %s
+                    """
+                    team_context_result = execute_query_one(team_context_query, [team_context])
+                    if team_context_result:
+                        user_team_id = team_context_result['id'] 
+                        user_team_name = team_context_result['team_name']
+                        print(f"[DEBUG] Using team_context from URL: team_id={user_team_id}, team_name={user_team_name}")
+                    else:
+                        print(f"[DEBUG] team_context {team_context} not found in teams table")
+                except Exception as e:
+                    print(f"[DEBUG] Error getting team from team_context {team_context}: {e}")
+        
+        # PRIORITY 3: Fallback to database lookup if no team_context provided
         if not user_team_id and player_id and league_id_int:
             try:
                 # For multi-team players, prefer team with most recent match activity in this league

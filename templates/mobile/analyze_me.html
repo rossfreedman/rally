@@ -12,7 +12,13 @@
             </div>
             <div class="ml-4">
                 <h1 class="text-xl font-bold text-gray-900">Player Analysis</h1>
-                <p class="text-sm text-gray-500">{{ session_data.user.first_name }} {{ session_data.user.last_name }}</p>
+                <p class="text-base font-semibold text-gray-700">{{ session_data.user.first_name }} {{ session_data.user.last_name }}</p>
+                {% if session_data.user.club %}
+                <p class="text-sm text-gray-600">{{ session_data.user.club }}</p>
+                {% endif %}
+                {% if session_data.user.series %}
+                <p class="text-sm text-gray-500">{{ session_data.user.series }}</p>
+                {% endif %}
             </div>
         </div>
     </div>
