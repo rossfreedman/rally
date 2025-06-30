@@ -21,11 +21,23 @@ def check_prerequisites():
         print("❌ Not in Rally project directory")
         return False
     
-    # Check git status
+    # Check git status and auto-commit changes if any
     result = subprocess.run(['git', 'status', '--porcelain'], capture_output=True, text=True)
     if result.stdout.strip():
-        print("❌ You have uncommitted changes. Please commit or stash them.")
-        return False
+        print("📝 Uncommitted changes detected. Auto-committing for staging deployment...")
+        try:
+            # Add all changes
+            subprocess.run(['git', 'add', '.'], check=True)
+            
+            # Commit with timestamp message
+            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
+            commit_message = f"Auto-commit for staging deployment - {timestamp}"
+            subprocess.run(['git', 'commit', '-m', commit_message], check=True)
+            
+            print("✅ Changes committed automatically")
+        except subprocess.CalledProcessError as e:
+            print(f"❌ Failed to auto-commit changes: {e}")
+            return False
     
     print("✅ Prerequisites checked")
     return True
