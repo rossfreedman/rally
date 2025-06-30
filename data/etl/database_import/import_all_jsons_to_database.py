@@ -494,6 +494,7 @@ class ComprehensiveETL:
             "series_stats",  # References leagues, teams
             "match_scores",  # References players, leagues, teams
             "player_history",  # References players, leagues
+            "player_availability",  # ADDED: Clear availability to prevent orphaned player_id references
             "user_player_associations",  # ADDED: Clear associations (we have backup)
             "players",  # References leagues, clubs, series, teams
             "teams",  # References leagues, clubs, series
@@ -762,11 +763,13 @@ class ComprehensiveETL:
         self.log(f"✅ Found {len(series_records)} unique series (after mapping conversion)")
         return series_records
 
-    def analyze_club_league_relationships(self, players_data: List[Dict]) -> List[Dict]:
-        """Analyze which clubs belong to which leagues"""
-        self.log("🔍 Analyzing club-league relationships...")
+    def analyze_club_league_relationships(self, players_data: List[Dict], teams_data: List[Dict] = None) -> List[Dict]:
+        """Analyze which clubs belong to which leagues from ALL data sources"""
+        self.log("🔍 Analyzing club-league relationships from all data sources...")
 
         club_league_map = {}
+        
+        # Extract from players data (original logic)
         for player in players_data:
             team_name = player.get(
                 "Club", ""
@@ -784,21 +787,34 @@ class ComprehensiveETL:
                         club_league_map[club] = set()
                     club_league_map[club].add(normalized_league)
 
+        # ENHANCEMENT: Extract from teams data to catch any missing relationships
+        if teams_data:
+            for team in teams_data:
+                club_name = team.get("club_name", "").strip()
+                league_id = team.get("league_id", "").strip()
+                
+                if club_name and league_id:
+                    if club_name not in club_league_map:
+                        club_league_map[club_name] = set()
+                    club_league_map[club_name].add(league_id)
+
         relationships = []
         for club, leagues in club_league_map.items():
             for league_id in leagues:
                 relationships.append({"club_name": club, "league_id": league_id})
 
-        self.log(f"✅ Found {len(relationships)} club-league relationships")
+        self.log(f"✅ Found {len(relationships)} club-league relationships (from players + teams data)")
         return relationships
 
     def analyze_series_league_relationships(
-        self, players_data: List[Dict]
+        self, players_data: List[Dict], teams_data: List[Dict] = None
     ) -> List[Dict]:
-        """Analyze which series belong to which leagues, using mapped series names"""
-        self.log("🔍 Analyzing series-league relationships...")
+        """Analyze which series belong to which leagues from ALL data sources, using mapped series names"""
+        self.log("🔍 Analyzing series-league relationships from all data sources...")
 
         series_league_map = {}
+        
+        # Extract from players data (original logic)
         for player in players_data:
             raw_series_name = player.get("Series", "").strip()
             league = player.get("League", "").strip()
@@ -814,6 +830,17 @@ class ComprehensiveETL:
                         series_league_map[mapped_series_name] = set()
                     series_league_map[mapped_series_name].add(normalized_league)
 
+        # ENHANCEMENT: Extract from teams data to catch any missing relationships
+        if teams_data:
+            for team in teams_data:
+                series_name = team.get("series_name", "").strip()
+                league_id = team.get("league_id", "").strip()
+                
+                if series_name and league_id:
+                    if series_name not in series_league_map:
+                        series_league_map[series_name] = set()
+                    series_league_map[series_name].add(league_id)
+
         relationships = []
         for series_name, leagues in series_league_map.items():
             for league_id in leagues:
@@ -821,7 +848,7 @@ class ComprehensiveETL:
                     {"series_name": series_name, "league_id": league_id}
                 )
 
-        self.log(f"✅ Found {len(relationships)} series-league relationships (after mapping)")
+        self.log(f"✅ Found {len(relationships)} series-league relationships (from players + teams data, after mapping)")
         return relationships
 
     def extract_teams(
@@ -1049,13 +1076,20 @@ class ComprehensiveETL:
                     
                     skipped_duplicates += 1
                 else:
-                    # Insert new club
+                    # Insert new club - preserve existing logo if club existed before
                     cursor.execute(
                         """
-                        INSERT INTO clubs (name)
-                        VALUES (%s)
+                        INSERT INTO clubs (name, logo_filename)
+                        SELECT %s, COALESCE(
+                            (SELECT logo_filename FROM clubs WHERE LOWER(name) = LOWER(%s) LIMIT 1),
+                            CASE 
+                                WHEN LOWER(%s) = 'glenbrook rc' THEN 'static/images/clubs/glenbrook_rc_logo.png'
+                                WHEN LOWER(%s) = 'tennaqua' THEN 'static/images/clubs/tennaqua_logo.jpeg'
+                                ELSE NULL
+                            END
+                        )
                     """,
-                        (club_name,),
+                        (club_name, club_name, club_name, club_name),
                     )
                     imported += 1
 
@@ -2927,6 +2961,77 @@ class ComprehensiveETL:
         self.imported_counts["schedule"] = imported
         self.log(f"✅ Imported {imported:,} schedule records ({errors} errors)")
 
+    def validate_and_fix_team_hierarchy_relationships(self, conn) -> int:
+        """
+        Post-import validation to check for and fix any missing team hierarchy relationships.
+        This prevents orphaned records by ensuring all club-league and series-league 
+        relationships exist for teams that were imported.
+        
+        Returns:
+            int: Number of missing relationships that were fixed
+        """
+        cursor = conn.cursor()
+        total_fixes = 0
+        
+        # Check for missing club-league relationships
+        missing_club_relationships = cursor.execute("""
+            SELECT DISTINCT c.id as club_id, c.name as club_name, 
+                   l.id as league_id, l.league_name
+            FROM teams t
+            JOIN clubs c ON t.club_id = c.id
+            JOIN leagues l ON t.league_id = l.id
+            LEFT JOIN club_leagues cl ON cl.club_id = c.id AND cl.league_id = l.id
+            WHERE cl.id IS NULL
+        """).fetchall()
+        
+        if missing_club_relationships:
+            self.log(f"   🔧 Found {len(missing_club_relationships)} missing club-league relationships")
+            for rel in missing_club_relationships:
+                club_id, club_name, league_id, league_name = rel
+                cursor.execute("""
+                    INSERT INTO club_leagues (club_id, league_id, created_at)
+                    VALUES (%s, %s, CURRENT_TIMESTAMP)
+                    ON CONFLICT ON CONSTRAINT unique_club_league DO NOTHING
+                """, [club_id, league_id])
+                
+                if cursor.rowcount > 0:
+                    total_fixes += 1
+                    self.log(f"     Added: {club_name} → {league_name}")
+        
+        # Check for missing series-league relationships
+        missing_series_relationships = cursor.execute("""
+            SELECT DISTINCT s.id as series_id, s.name as series_name,
+                   l.id as league_id, l.league_name
+            FROM teams t
+            JOIN series s ON t.series_id = s.id
+            JOIN leagues l ON t.league_id = l.id
+            LEFT JOIN series_leagues sl ON sl.series_id = s.id AND sl.league_id = l.id
+            WHERE sl.id IS NULL
+        """).fetchall()
+        
+        if missing_series_relationships:
+            self.log(f"   🔧 Found {len(missing_series_relationships)} missing series-league relationships")
+            for rel in missing_series_relationships:
+                series_id, series_name, league_id, league_name = rel
+                cursor.execute("""
+                    INSERT INTO series_leagues (series_id, league_id, created_at)
+                    VALUES (%s, %s, CURRENT_TIMESTAMP)
+                    ON CONFLICT ON CONSTRAINT unique_series_league DO NOTHING
+                """, [series_id, league_id])
+                
+                if cursor.rowcount > 0:
+                    total_fixes += 1
+                    self.log(f"     Added: {series_name} → {league_name}")
+        
+        conn.commit()
+        
+        if total_fixes > 0:
+            self.log(f"   ✅ Fixed {total_fixes} missing team hierarchy relationships")
+        else:
+            self.log("   ✅ No missing team hierarchy relationships found")
+        
+        return total_fixes
+
     def _parse_int(self, value: str) -> int:
         """Parse integer with error handling"""
         if not value or value.strip() == "":
@@ -2995,8 +3100,9 @@ class ComprehensiveETL:
                     )
                     teams_data = self.extract_teams(series_stats_data, schedules_data, conn)
                     
-                    club_league_rels = self.analyze_club_league_relationships(players_data)
-                    series_league_rels = self.analyze_series_league_relationships(players_data)
+                    # ENHANCEMENT: Pass teams_data to relationship analysis for comprehensive coverage
+                    club_league_rels = self.analyze_club_league_relationships(players_data, teams_data)
+                    series_league_rels = self.analyze_series_league_relationships(players_data, teams_data)
 
                     # Import remaining data in dependency order
                     self.log("\n📥 Step 6: Importing remaining data...")
@@ -3042,10 +3148,16 @@ class ComprehensiveETL:
                     # CRITICAL FIX: Print player validation summary
                     self.player_validator.print_validation_summary()
 
+                    # ENHANCEMENT: Post-import validation and orphan prevention
+                    self.log("\n🔍 Step 8: Post-import validation and orphan prevention...")
+                    orphan_fixes = self.validate_and_fix_team_hierarchy_relationships(conn)
+
                     # Success!
                     self.log("\n✅ ETL process completed successfully!")
                     self.log(f"🔗 User associations: {restore_results['associations_restored']:,} restored")
                     self.log(f"🎯 League contexts: {restore_results['contexts_restored']:,} restored, {restore_results['null_contexts_fixed']:,} auto-fixed")
+                    if orphan_fixes > 0:
+                        self.log(f"🔧 Relationship gaps fixed: {orphan_fixes} missing relationships added")
 
                 except Exception as e:
                     self.log(f"\n❌ ETL process failed: {str(e)}", "ERROR")
