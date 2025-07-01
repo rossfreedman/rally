@@ -560,6 +560,17 @@ def serve_mobile_analyze_me():
             session["user"]["email"], "page_visit", page="mobile_analyze_me"
         )
 
+        # STAGING DEBUG: Log the actual analyze_data being passed to template
+        print(f"[STAGING-DEBUG] analyze_data being passed to template:")
+        print(f"[STAGING-DEBUG] - Type: {type(analyze_data)}")
+        if isinstance(analyze_data, dict):
+            for key, value in analyze_data.items():
+                if key == 'current_season' and value:
+                    print(f"[STAGING-DEBUG] - {key}: {value}")
+                    print(f"[STAGING-DEBUG] - current_season.matches: {value.get('matches', 'MISSING')}")
+                else:
+                    print(f"[STAGING-DEBUG] - {key}: {type(value)}")
+
         return render_template(
             "mobile/analyze_me.html",
             session_data=session_data,
