@@ -1,0 +1,43 @@
+{
+  "timestamp": "2025-07-01T13:48:19.248883",
+  "duration_seconds": 27.188764810562134,
+  "target_branch": "staging",
+  "results": {
+    "deployment_status": {
+      "status": "out_of_sync",
+      "message": "Changes detected: 1 uncommitted files, 1 unpushed commits"
+    },
+    "git_changes": {
+      "has_changes": true,
+      "uncommitted_files": [
+        {
+          "file": "milestone_report_20250701_132131.json",
+          "status": "??",
+          "description": "Untracked"
+        }
+      ],
+      "unpushed_commits": [
+        "fbc31b8 Enhanced Create Team feature with dynamic Target Team PTI and UI improvements"
+      ],
+      "current_branch": "main",
+      "summary": "1 uncommitted files, 1 unpushed commits"
+    },
+    "git_deployment": {
+      "status": "success",
+      "branch": "staging",
+      "message": "Deployed to staging",
+      "files_deployed": 1,
+      "commits_pushed": 2
+    },
+    "database_sync": {
+      "status": "differences",
+      "message": "Databases have schema or data differences"
+    },
+    "backup": {
+      "status": "error",
+      "message": "Backup failed: /Users/rossfreedman/dev/rally/.venv/bin/python: can't open file '/Users/rossfreedman/dev/rally/deployment/cb.py': [Errno 2] No such file or directory\n"
+    },
+    "overall_success": true
+  },
+  "success": true
+}
