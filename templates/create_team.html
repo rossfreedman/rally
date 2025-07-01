@@ -1,0 +1,1800 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rally - Create Team</title>
+    <link rel="icon" type="image/png" href="/static/images/rally_favicon.png">
+    
+    <!-- Tailwind CSS & DaisyUI -->
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@3.9.3/dist/full.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.10" integrity="sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC" crossorigin="anonymous"></script>
+    
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <!-- App CSS -->
+    <link href="/static/css/output.css" rel="stylesheet">
+    <link href="/static/mobile/css/style.css" rel="stylesheet">
+    
+    <style>
+        /* Rally theme customizations */
+        [data-theme="light"] {
+            --p: 262 80% 50%;     /* primary - Rally purple */
+            --pc: 0 0% 100%;      /* primary content */
+            --s: 316 70% 50%;     /* secondary */
+            --sc: 0 0% 100%;      /* secondary content */
+            --a: 175 70% 41%;     /* accent */
+            --ac: 0 0% 100%;      /* accent content */
+            --n: 213 18% 20%;     /* neutral */
+            --nc: 0 0% 100%;      /* neutral content */
+            --b1: 0 0% 100%;      /* base-100 */
+            --b2: 0 0% 95%;       /* base-200 */
+            --b3: 0 0% 90%;       /* base-300 */
+            --bc: 215 28% 17%;    /* base content */
+        }
+        
+        /* Rally header styles */
+        .rally-header {
+            background-color: black;
+            color: white;
+            height: 64px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        
+        /* Desktop optimizations */
+        .desktop-container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 1.5rem;
+        }
+        
+        /* Mobile optimizations */
+        @media (max-width: 1023px) {
+            .desktop-container {
+                padding: 1rem;
+            }
+            
+            /* Make buttons more touch-friendly on mobile */
+            .column button {
+                min-height: 44px;
+                padding: 0.75rem 1rem;
+            }
+            
+            /* Adjust header text size for mobile */
+            .column h2 {
+                font-size: 1rem;
+                line-height: 1.5rem;
+            }
+            
+            /* Reduce page header size on mobile */
+            .desktop-container h1 {
+                font-size: 1.875rem;
+                line-height: 2.25rem;
+            }
+            
+            /* Stack page header elements on very small screens */
+            @media (max-width: 640px) {
+                .desktop-container .flex {
+                    flex-direction: column;
+                    gap: 1rem;
+                    text-align: center;
+                }
+            }
+        }
+        
+        /* 3-column layout - responsive */
+        .three-column-layout {
+            display: grid;
+            gap: 1.5rem;
+            /* Mobile: stack vertically */
+            grid-template-columns: 1fr;
+            /* Remove fixed height on mobile for natural stacking */
+        }
+        
+        /* Desktop and tablet: side-by-side columns */
+        @media (min-width: 1024px) {
+            .three-column-layout {
+                grid-template-columns: 1fr 1fr 1fr;
+                height: calc(100vh - 128px);
+            }
+        }
+        
+        .column {
+            overflow-y: auto;
+            padding: 0.5rem;
+        }
+        
+        /* Mobile column adjustments */
+        @media (max-width: 1023px) {
+            .column {
+                padding: 0.25rem;
+            }
+            
+            .column .bg-white {
+                /* Adjust max height for mobile stacked layout */
+                max-height: 500px;
+            }
+            
+            .column .bg-white .overflow-y-auto {
+                max-height: 400px !important;
+            }
+        }
+        
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+        
+        /* Drag and drop enhancements */
+        .player-card {
+            transition: all 0.2s ease;
+            cursor: grab;
+            user-select: none;
+            min-height: 44px; /* Touch-friendly size */
+        }
+        
+        .player-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .player-card.dragging {
+            transform: rotate(1deg);
+            z-index: 1000;
+            opacity: 0.8;
+        }
+        
+        /* Player pool container styling */
+        #available-players-pool {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-start;
+            align-content: flex-start;
+            gap: 0.5rem;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        /* Mobile touch optimizations */
+        @media (max-width: 1023px) {
+            .player-card {
+                padding: 0.75rem !important;
+                margin: 0.5rem !important;
+                min-height: 60px;
+                cursor: pointer; /* Better for touch */
+                width: 130px !important; /* Smaller on mobile */
+            }
+            
+            /* Enhance touch feedback */
+            .player-card:active {
+                transform: scale(0.98);
+                background-color: rgba(59, 130, 246, 0.1);
+            }
+            
+            /* Make drop zones more prominent on mobile */
+            .drop-zone {
+                min-height: 80px;
+                border-width: 3px;
+            }
+            
+            .drop-zone.drop-zone-active {
+                border-width: 4px;
+            }
+        }
+        
+        .drop-zone {
+            transition: all 0.2s ease;
+            min-height: 4rem;
+        }
+        
+        .drop-zone.drop-zone-active {
+            transform: scale(1.02);
+            border-color: #3b82f6 !important;
+            background-color: #eff6ff !important;
+            border-style: solid !important;
+        }
+        
+        /* Slider customizations for desktop */
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            height: 6px;
+            background: #ddd;
+            border-radius: 3px;
+            outline: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #3b82f6;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: #3b82f6;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+    </style>
+
+    <!-- Session data injection -->
+    {% if session_data %}
+    <script>
+        window.sessionData = JSON.parse('{{ session_data|tojson|safe }}');
+    </script>
+    {% endif %}
+</head>
+<body class="min-h-screen bg-gray-50">
+    <!-- Fixed Header -->
+    <header class="rally-header fixed top-0 left-0 right-0 z-50">
+        <div class="container mx-auto px-6 h-full flex items-center">
+            <div class="flex-1">
+                <a href="/mobile" class="flex items-center gap-2 text-white hover:text-gray-200 transition-colors">
+                    <i class="fas fa-chevron-left"></i>
+                    <span>Back to Rally</span>
+                </a>
+            </div>
+            <div class="flex-1 flex justify-center">
+                <a href="/mobile" class="navbar-logo">
+                    <img src="/static/images/rallylogo.png" alt="Rally Logo" class="h-10 w-auto">
+                </a>
+            </div>
+            <div class="flex-1 flex justify-end">
+                <div class="flex items-center gap-4 text-white">
+                    <span class="text-sm">{{ session_data.user.email if session_data and session_data.user }}</span>
+                    <a href="/logout" class="text-white hover:text-gray-200 transition-colors">
+                        <i class="fas fa-sign-out-alt"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="pt-16 min-h-screen">
+        <!-- Desktop Only Alert -->
+        <div class="bg-amber-50 border-b border-amber-200">
+            <div class="desktop-container">
+                <div class="flex items-center gap-3 py-3">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-desktop text-amber-600 text-lg"></i>
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-sm font-medium text-amber-800">
+                            <span class="font-semibold">Desktop Optimized:</span> This page works on mobile but is optimized for desktop viewing. For the best experience with all three columns visible side-by-side, please use a computer or tablet in landscape mode.
+                        </p>
+                    </div>
+                    <div class="flex-shrink-0">
+                        <button onclick="this.parentElement.parentElement.parentElement.style.display='none'" class="text-amber-600 hover:text-amber-800 transition-colors">
+                            <i class="fas fa-times text-sm"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Page Header -->
+        <div class="bg-white border-b border-gray-200">
+            <div class="desktop-container">
+                <div class="flex items-center gap-4 py-6">
+                    <div class="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center shadow-lg">
+                        <i class="fas fa-users-cog text-white text-2xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-3xl font-bold text-gray-900">Create Team</h1>
+                        <p class="text-lg text-gray-600">PTI-based team assignment with expert guidance</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loading-state" class="desktop-container py-12 text-center">
+            <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            <p class="mt-4 text-xl text-gray-600">Loading player data...</p>
+        </div>
+
+        <!-- Main Content Container -->
+        <div id="main-content" class="desktop-container hidden">
+            <div class="three-column-layout">
+                
+                <!-- Column 1: Interactive PTI Range Control -->
+                <div class="column">
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 h-full">
+                        <div class="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                                        <i class="fas fa-sliders-h text-blue-600 mr-2"></i>
+                                        PTI Range Control
+                                    </h2>
+                                    <p class="text-sm text-gray-600 mt-2">Adjust PTI ranges for each series with real-time validation</p>
+                                </div>
+                                <button id="reset-ranges" class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-blue-600 bg-white border border-blue-200 rounded-lg hover:bg-blue-50 hover:text-blue-700 transition-colors">
+                                    <i class="fas fa-undo text-xs"></i>
+                                    Reset Ranges
+                                </button>
+                            </div>
+                        </div>
+                        <div class="p-6 overflow-y-auto" style="max-height: calc(100vh - 300px);">
+                            <div id="series-recommendations" class="space-y-4">
+                                <!-- Series recommendations will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Column 2: Available Players -->
+                <div class="column">
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 h-full">
+                        <div class="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-green-50 to-emerald-50">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                                        <i class="fas fa-users text-green-600 mr-2"></i>
+                                        Available Players
+                                        <span id="player-count" class="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full"></span>
+                                    </h2>
+                                    <p class="text-sm text-gray-600 mt-2">Drag players to series ranges to create teams. Filtered for Tennaqua players only.</p>
+                            <div class="mt-3 p-2 bg-gray-50 rounded-lg">
+                                <p class="text-xs font-medium text-gray-700 mb-2">PTI Color Guide:</p>
+                                <div class="flex flex-wrap gap-1 text-xs">
+                                    <span class="bg-emerald-200 border border-emerald-400 text-emerald-900 px-2 py-1 rounded font-medium">0-9</span>
+                                    <span class="bg-green-200 border border-green-400 text-green-900 px-2 py-1 rounded font-medium">10-19</span>
+                                    <span class="bg-lime-200 border border-lime-400 text-lime-900 px-2 py-1 rounded font-medium">20-29</span>
+                                    <span class="bg-yellow-200 border border-yellow-400 text-yellow-900 px-2 py-1 rounded font-medium">30-39</span>
+                                    <span class="bg-amber-200 border border-amber-400 text-amber-900 px-2 py-1 rounded font-medium">40-49</span>
+                                    <span class="bg-orange-200 border border-orange-400 text-orange-900 px-2 py-1 rounded font-medium">50-59</span>
+                                    <span class="bg-red-200 border border-red-400 text-red-900 px-2 py-1 rounded font-medium">60-69</span>
+                                    <span class="bg-rose-200 border border-rose-400 text-rose-900 px-2 py-1 rounded font-medium">70-79</span>
+                                    <span class="bg-purple-200 border border-purple-400 text-purple-900 px-2 py-1 rounded font-medium">80+</span>
+                                </div>
+                            </div>
+                                </div>
+                                <button id="reset-players" class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-green-600 bg-white border border-green-200 rounded-lg hover:bg-green-50 hover:text-green-700 transition-colors">
+                                    <i class="fas fa-undo text-xs"></i>
+                                    Reset Pool
+                                </button>
+                            </div>
+                        </div>
+                        <div class="p-6 overflow-y-auto" style="max-height: calc(100vh - 300px);">
+                            <div id="available-players-pool" class="min-h-24 bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-4 overflow-y-auto" style="max-height: 400px;">
+                                <div class="text-gray-400 text-center text-sm" id="loading-players">Loading players...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Column 3: Series Teams Display -->
+                <div class="column">
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 h-full">
+                        <div class="px-6 py-4 border-b border-gray-100 bg-gradient-to-r from-purple-50 to-pink-50">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                                        <i class="fas fa-users-cog text-purple-600 mr-2"></i>
+                                        Team Assignments
+                                    </h2>
+                                    <p class="text-sm text-gray-600 mt-2">Drop players into series to create balanced teams</p>
+                                </div>
+                                <button id="reset-assignments" class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-purple-600 bg-white border border-purple-200 rounded-lg hover:bg-purple-50 hover:text-purple-700 transition-colors">
+                                    <i class="fas fa-undo text-xs"></i>
+                                    Reset All
+                                </button>
+                            </div>
+                        </div>
+                        <div class="p-6 overflow-y-auto" style="max-height: calc(100vh - 300px);">
+                            <div id="series-teams" class="space-y-6">
+                                <!-- Series containers will be dynamically created here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Selected Player Indicator (for tap mode) -->
+            <div id="selected-player-indicator" class="bg-yellow-100 border border-yellow-300 rounded-lg p-4 mt-6 hidden">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <span class="text-sm font-medium text-yellow-800">Selected: </span>
+                        <span id="selected-player-name" class="text-sm text-yellow-900 font-semibold"></span>
+                        <span id="selected-player-pti" class="text-xs text-yellow-700 ml-2"></span>
+                    </div>
+                    <button id="clear-selection" class="text-yellow-600 hover:text-yellow-800 text-sm px-3 py-1 rounded">
+                        Clear Selection
+                    </button>
+                </div>
+                <p class="text-xs text-yellow-700 mt-2">Click a series range to assign this player</p>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex gap-4 pt-8 justify-center">
+                <button id="save-teams" class="bg-green-600 text-white px-8 py-3 rounded-lg shadow-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed">
+                    <i class="fas fa-save mr-2"></i>
+                    Save Teams
+                </button>
+                <button id="reset-teams" class="bg-gray-600 text-white px-8 py-3 rounded-lg shadow-lg hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-all font-semibold">
+                    <i class="fas fa-undo mr-2"></i>
+                    Reset
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize session data
+        window.sessionData = {{ session_data | tojson | safe }};
+
+        // Global variables
+        let allPlayers = [];
+        let seriesRanges = [];
+        let teamAssignments = {};
+        let selectedPlayerForTap = null;
+
+        // PTI Color Coding Function - 10-point segments with full decimal coverage
+        function getPTIColorClass(pti) {
+            // Determine which 10-point segment the PTI falls into
+            const segment = Math.floor(pti / 10);
+            
+            // Color classes for each PTI range (0-9, 10-19, 20-29, etc.) - full background colors
+            const colorClasses = [
+                'bg-emerald-200 border-emerald-400 text-emerald-900',      // 0-9.99 - Excellent (Dark Green)
+                'bg-green-200 border-green-400 text-green-900',            // 10-19.99 - Very Good (Green)
+                'bg-lime-200 border-lime-400 text-lime-900',               // 20-29.99 - Good (Light Green)
+                'bg-yellow-200 border-yellow-400 text-yellow-900',         // 30-39.99 - Average (Yellow)
+                'bg-amber-200 border-amber-400 text-amber-900',            // 40-49.99 - Below Average (Amber)
+                'bg-orange-200 border-orange-400 text-orange-900',         // 50-59.99 - Weak (Orange)
+                'bg-red-200 border-red-400 text-red-900',                  // 60-69.99 - Very Weak (Red)
+                'bg-rose-200 border-rose-400 text-rose-900',               // 70-79.99 - Poor (Rose)
+                'bg-purple-200 border-purple-400 text-purple-900'          // 80+ - Needs Development (Purple)
+            ];
+            
+            // Return appropriate color class, defaulting to the last color for very high PTI
+            return colorClasses[segment] || colorClasses[colorClasses.length - 1];
+        }
+
+        // Debug functions
+        window.forceShowContent = function() {
+            console.log('Forcing content display...');
+            const loadingState = document.getElementById('loading-state');
+            const mainContent = document.getElementById('main-content');
+            
+            loadingState.classList.add('hidden');
+            mainContent.classList.remove('hidden');
+            console.log('Content forced to display');
+        };
+
+        window.debugPageState = function() {
+            console.log('=== PAGE DEBUG INFO ===');
+            console.log('Players loaded:', allPlayers.length);
+            console.log('Series loaded:', seriesRanges.length);
+            console.log('Team assignments:', teamAssignments);
+        };
+
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('Create Team page loaded');
+            
+            try {
+                // Load data in parallel
+                console.log('Loading data...');
+                await Promise.all([
+                    loadPlayersData(),
+                    loadSeriesAnalysis()
+                ]);
+                console.log('Data loaded successfully');
+                
+                // Setup UI directly - skip test content
+                console.log('Starting full UI setup...');
+                setupFullUI();
+                console.log('UI setup completed');
+                
+                // Hide loading state and show content
+                console.log('Showing main content...');
+                const loadingState = document.getElementById('loading-state');
+                const mainContent = document.getElementById('main-content');
+                
+                loadingState.classList.add('hidden');
+                mainContent.classList.remove('hidden');
+                console.log('Main content displayed');
+                
+            } catch (error) {
+                console.error('Error initializing page:', error);
+                
+                // Show content anyway with error message
+                document.getElementById('loading-state').classList.add('hidden');
+                document.getElementById('main-content').classList.remove('hidden');
+                
+                // Display error in the page
+                const mainContent = document.getElementById('main-content');
+                mainContent.innerHTML = `
+                    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+                        <strong class="font-bold">Error loading team creation data:</strong>
+                        <span class="block sm:inline">${error.message}</span>
+                    </div>
+                    <button onclick="location.reload()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                        Try Again
+                    </button>
+                `;
+            }
+        });
+
+        async function loadPlayersData() {
+            console.log('Loading players data...');
+            
+            try {
+                const response = await fetch('/api/create-team/players');
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                if (!data.success) {
+                    throw new Error(data.error || 'Failed to load players');
+                }
+                
+                // Filter to only Tennaqua players
+                allPlayers = data.players.filter(player => 
+                    player.club && player.club.toLowerCase().includes('tennaqua')
+                );
+                console.log(`Loaded ${allPlayers.length} Tennaqua players (filtered from ${data.players.length} total)`);
+                
+                // Update player count
+                document.getElementById('player-count').textContent = `${allPlayers.length} players`;
+                
+                return data;
+            } catch (error) {
+                console.error('Error loading players:', error);
+                throw error;
+            }
+        }
+
+        async function loadSeriesAnalysis() {
+            console.log('Loading series analysis...');
+            
+            try {
+                const response = await fetch('/api/create-team/analyze-series');
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                if (!data.success) {
+                    throw new Error(data.error || 'Failed to analyze series');
+                }
+                
+                seriesRanges = data.series_ranges;
+                console.log(`Analyzed ${seriesRanges.length} series`);
+                
+                return data;
+            } catch (error) {
+                console.error('Error loading series analysis:', error);
+                throw error;
+            }
+        }
+
+        function setupFullUI() {
+            console.log('Setting up full UI...');
+            
+            try {
+                // First, restore the original template structure
+                console.log('Restoring original template structure...');
+                restoreOriginalTemplate();
+                
+                // Then render content step by step with error handling
+                console.log('Rendering series recommendations...');
+                renderSeriesRecommendations();
+                
+                console.log('Rendering available players...');
+                renderAvailablePlayers();
+                
+                console.log('Creating series containers...');
+                createSeriesContainers();
+                
+                console.log('Setting up event listeners...');
+                setupEventListeners();
+                
+                console.log('Full UI setup completed successfully');
+            } catch (error) {
+                console.error('Error in setupFullUI:', error);
+                
+                // Show error in the page
+                const mainContent = document.getElementById('main-content');
+                mainContent.innerHTML = `
+                    <div style="padding: 20px; background: white; margin: 20px; border-radius: 10px;">
+                        <h2 style="color: #dc2626;">❌ Error Loading Full Interface</h2>
+                        <p style="color: #666; margin: 10px 0;"><strong>Error:</strong> ${error.message}</p>
+                        <p style="color: #666; margin: 10px 0;"><strong>Stack:</strong> ${error.stack}</p>
+                        <button onclick="location.reload()" style="background: #6b7280; color: white; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer;">
+                            Try Again
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        // Function to restore the original template structure
+        function restoreOriginalTemplate() {
+            // For desktop, we don't need to restore template since it's already in place
+            console.log('Template structure already in place for desktop');
+        }
+
+        // Make setupFullUI available globally
+        window.setupFullUI = setupFullUI;
+
+        // Render series recommendations with interactive sliders
+        function renderSeriesRecommendations() {
+            const container = document.getElementById('series-recommendations');
+            
+            if (seriesRanges.length === 0) {
+                container.innerHTML = '<p class="text-gray-500">No series data available for analysis.</p>';
+                return;
+            }
+            
+            let html = `
+                <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <h4 class="font-semibold text-blue-900 mb-2">📊 Interactive PTI Range Control</h4>
+                    <p class="text-sm text-blue-700">Use the sliders below to adjust PTI ranges for each series. Changes are saved automatically and overlaps are managed.</p>
+                </div>
+                <div class="space-y-4">
+            `;
+            
+            seriesRanges.forEach((series, index) => {
+                html += `
+                    <div class="bg-white rounded-lg p-4 border border-gray-200 shadow-sm" data-series-index="${index}">
+                        <div class="flex items-center justify-between mb-3">
+                            <h4 class="font-semibold text-gray-900">${series.series_name}</h4>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">${series.player_count} players</span>
+                                <span id="range-display-${index}" class="text-sm font-mono bg-gray-100 px-2 py-1 rounded">
+                                    ${series.recommended_range.min} - ${series.recommended_range.max}
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <!-- PTI Range Sliders -->
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block text-xs font-medium text-gray-700 mb-1">
+                                    Minimum PTI: <span id="min-value-${index}" class="font-mono">${series.recommended_range.min}</span>
+                                </label>
+                                <input type="range" 
+                                       id="min-slider-${index}" 
+                                       class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider-min"
+                                       min="10" 
+                                       max="80" 
+                                       step="0.5"
+                                       value="${series.recommended_range.min}"
+                                       data-series-index="${index}"
+                                       data-range-type="min">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-xs font-medium text-gray-700 mb-1">
+                                    Maximum PTI: <span id="max-value-${index}" class="font-mono">${series.recommended_range.max}</span>
+                                </label>
+                                <input type="range" 
+                                       id="max-slider-${index}" 
+                                       class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider-max"
+                                       min="10" 
+                                       max="80" 
+                                       step="0.5"
+                                       value="${series.recommended_range.max}"
+                                       data-series-index="${index}"
+                                       data-range-type="max">
+                            </div>
+                        </div>
+                        
+                        <!-- Range Preview Bar -->
+                        <div class="mt-3">
+                            <div class="relative h-3 bg-gray-200 rounded-full overflow-hidden">
+                                <div id="range-bar-${index}" 
+                                     class="absolute h-full bg-gradient-to-r from-blue-400 to-blue-600 rounded-full transition-all duration-200"
+                                     style="left: ${((series.recommended_range.min - 10) / 70) * 100}%; width: ${((series.recommended_range.max - series.recommended_range.min) / 70) * 100}%">
+                                </div>
+                            </div>
+                            <div class="flex justify-between text-xs text-gray-500 mt-1">
+                                <span>10</span>
+                                <span>Current: ${series.statistics.avg}</span>
+                                <span>80</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Status Indicator -->
+                        <div id="status-${index}" class="mt-2 text-xs">
+                            <span class="text-green-600">✓ Range valid</span>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            container.innerHTML = html;
+            
+            // Setup slider event listeners
+            setupSliderEventListeners();
+        }
+
+        // Render available players
+        function renderAvailablePlayers() {
+            try {
+                const pool = document.getElementById('available-players-pool');
+                if (!pool) {
+                    throw new Error('Available players pool element not found');
+                }
+                
+                // Clear existing content and reset styling
+                pool.innerHTML = '';
+                pool.style.display = 'flex';
+                pool.style.flexWrap = 'wrap';
+                pool.style.justifyContent = 'flex-start';
+                pool.style.alignContent = 'flex-start';
+                
+                if (allPlayers.length === 0) {
+                    pool.innerHTML = '<div class="text-gray-400 text-center text-sm w-full">No players with PTI data found.</div>';
+                    return;
+                }
+                
+                console.log(`Rendering ${allPlayers.length} players...`);
+                
+                allPlayers.forEach((player, index) => {
+                    try {
+                        const playerDiv = document.createElement('div');
+                        // PTI-based color coding in 10-point segments
+                        const pti = parseFloat(player.pti) || 0;
+                        const ptiColorClass = getPTIColorClass(pti);
+                        
+                        playerDiv.className = `player-card rounded-lg p-3 m-2 inline-block cursor-grab shadow-sm hover:shadow-md transition-all text-center ${ptiColorClass}`;
+                        playerDiv.style.width = '140px'; // Fixed width to prevent overflow
+                        playerDiv.style.maxWidth = '140px'; // Prevent expansion
+                        playerDiv.style.wordWrap = 'break-word'; // Handle long names
+                        playerDiv.style.boxSizing = 'border-box'; // Include padding in width
+                        playerDiv.dataset.playerId = player.id || '';
+                        playerDiv.dataset.playerName = player.name || 'Unknown';
+                        playerDiv.dataset.playerPti = player.pti || '0';
+                        playerDiv.dataset.playerSeries = player.series || 'Unknown';
+                        
+                        // Enable dragging
+                        playerDiv.draggable = true;
+                        
+                        playerDiv.innerHTML = `
+                            <div class="font-medium text-sm truncate" title="${player.name || 'Unknown'}">${player.name || 'Unknown'}</div>
+                            <div class="text-xs mt-1">
+                                <strong>PTI: ${player.pti || '0'}</strong>
+                            </div>
+                            <div class="text-xs opacity-80 truncate" title="${player.club || 'Unknown'}">
+                                ${player.club || 'Unknown'}
+                            </div>
+                            <div class="text-xs opacity-70 truncate">
+                                ${player.series || 'Unknown'} | ${player.wins || 0}W-${player.losses || 0}L
+                            </div>
+                        `;
+                        
+                        // Add drag and tap event listeners
+                        setupPlayerEvents(playerDiv);
+                        
+                        pool.appendChild(playerDiv);
+                        
+                        // Log progress for large datasets
+                        if (index % 1000 === 0 && index > 0) {
+                            console.log(`Rendered ${index} players so far...`);
+                        }
+                    } catch (playerError) {
+                        console.error(`Error rendering player ${index}:`, playerError, player);
+                        // Continue with next player
+                    }
+                });
+                
+                console.log(`Successfully rendered ${allPlayers.length} players`);
+            } catch (error) {
+                console.error('Error in renderAvailablePlayers:', error);
+                const pool = document.getElementById('available-players-pool');
+                if (pool) {
+                    pool.innerHTML = '<div class="text-red-500 text-center text-sm">Error loading players. Please refresh the page.</div>';
+                }
+            }
+        }
+
+        // Create series containers
+        function createSeriesContainers() {
+            const container = document.getElementById('series-teams');
+            container.innerHTML = '';
+            
+            if (seriesRanges.length === 0) {
+                container.innerHTML = '<div class="text-center text-gray-500 py-8">No series available for team creation.</div>';
+                return;
+            }
+            
+            seriesRanges.forEach(series => {
+                const seriesDiv = document.createElement('div');
+                seriesDiv.className = 'series-container bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden';
+                seriesDiv.dataset.seriesId = series.series_id;
+                seriesDiv.dataset.seriesName = series.series_name;
+                
+                const rangeText = `${series.recommended_range.min} - ${series.recommended_range.max}`;
+                
+                seriesDiv.innerHTML = `
+                    <div class="px-6 py-4 border-b border-gray-50 bg-gradient-to-r from-gray-50 to-gray-100">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-lg font-semibold text-gray-900">${series.series_name}</h3>
+                            <div class="text-sm text-gray-600">
+                                <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
+                                    Recommended PTI: ${rangeText}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="mt-2 space-y-2">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <div class="flex flex-wrap items-center gap-3 text-sm text-gray-600">
+                                    <span class="whitespace-nowrap">
+                                        Team PTI: <span class="team-pti font-semibold text-gray-900">0.0</span>
+                                    </span>
+                                    <span class="whitespace-nowrap">
+                                        Target PTI: <span class="target-pti font-semibold text-blue-600">${((series.recommended_range.min + series.recommended_range.max) / 2).toFixed(1)}</span>
+                                    </span>
+                                    <span class="whitespace-nowrap">
+                                        Delta: <span class="pti-delta font-semibold">-</span>
+                                    </span>
+                                </div>
+                                <div class="pti-status text-xs px-2 py-1 rounded flex-shrink-0">
+                                    <span class="status-text">Ready for players</span>
+                                </div>
+                            </div>
+                            <div class="flex flex-wrap items-center gap-3 text-xs text-gray-500">
+                                <span class="whitespace-nowrap">
+                                    Players: <span class="player-count font-semibold">0</span>
+                                </span>
+                                <span class="whitespace-nowrap">
+                                    Avg PTI: <span class="avg-pti font-semibold">0.0</span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="p-4">
+                        <div class="team-players min-h-16 bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg p-3 drop-zone" 
+                             data-series-id="${series.series_id}" data-series-name="${series.series_name}">
+                            <div class="text-gray-400 text-center text-sm drop-text">
+                                Drop players here for ${series.series_name}
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                container.appendChild(seriesDiv);
+                
+                // Initialize team assignments
+                teamAssignments[series.series_name] = {
+                    players: [],
+                    total_pti: 0,
+                    avg_pti: 0,
+                    recommended_range: series.recommended_range
+                };
+            });
+            
+            // Setup drop zones
+            setupDropZones();
+            console.log('Drop zones setup completed');
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            // Clear selection button
+            const clearBtn = document.getElementById('clear-selection');
+            if (clearBtn) {
+                clearBtn.addEventListener('click', clearPlayerSelection);
+            }
+            
+            // Action buttons
+            const saveBtn = document.getElementById('save-teams');
+            const resetBtn = document.getElementById('reset-teams');
+            
+            if (saveBtn) {
+                saveBtn.addEventListener('click', saveTeams);
+            }
+            if (resetBtn) {
+                resetBtn.addEventListener('click', resetTeams);
+            }
+            
+            // Column reset buttons
+            const resetRangesBtn = document.getElementById('reset-ranges');
+            const resetPlayersBtn = document.getElementById('reset-players');
+            const resetAssignmentsBtn = document.getElementById('reset-assignments');
+            
+            if (resetRangesBtn) {
+                resetRangesBtn.addEventListener('click', resetPTIRanges);
+            }
+            if (resetPlayersBtn) {
+                resetPlayersBtn.addEventListener('click', resetPlayersPool);
+            }
+            if (resetAssignmentsBtn) {
+                resetAssignmentsBtn.addEventListener('click', resetTeamAssignments);
+            }
+        }
+
+        // Setup player events
+        function setupPlayerEvents(playerDiv) {
+            // Ensure draggable is set
+            playerDiv.draggable = true;
+            
+            // Drag events
+            playerDiv.addEventListener('dragstart', handleDragStart);
+            playerDiv.addEventListener('dragend', handleDragEnd);
+            
+            // Click events for desktop
+            playerDiv.addEventListener('click', handlePlayerTap);
+            
+            // Debug only for first few players
+            if (parseInt(playerDiv.dataset.playerId) <= 601360) {
+                console.log('Events setup for player:', playerDiv.dataset.playerId, 'draggable:', playerDiv.draggable);
+            }
+        }
+
+        // Setup drop zones
+        function setupDropZones() {
+            const dropZones = document.querySelectorAll('.drop-zone');
+            console.log('Setting up', dropZones.length, 'drop zones');
+            
+            dropZones.forEach((zone, index) => {
+                console.log('Setting up drop zone', index, 'for series:', zone.dataset.seriesName);
+                // Drag events
+                zone.addEventListener('dragover', handleDragOver);
+                zone.addEventListener('drop', handleDrop);
+                zone.addEventListener('dragleave', handleDragLeave);
+                
+                // Click events
+                zone.addEventListener('click', handleZoneTap);
+            });
+            
+            // Setup players pool as drop zone too
+            const pool = document.getElementById('available-players-pool');
+            if (pool) {
+                console.log('Setting up players pool as drop zone');
+                pool.addEventListener('dragover', handleDragOver);
+                pool.addEventListener('drop', handleDropToPool);
+                pool.addEventListener('dragleave', handleDragLeave);
+            }
+        }
+
+        // Drag and Drop Handlers
+        function handleDragStart(e) {
+            const playerId = e.target.dataset.playerId;
+            const playerName = e.target.dataset.playerName;
+            console.log('Drag started for player:', playerId, playerName);
+            e.dataTransfer.setData('text/plain', playerId);
+            e.dataTransfer.effectAllowed = 'move';
+            e.target.classList.add('opacity-50', 'dragging');
+            e.target.style.cursor = 'grabbing';
+        }
+
+        function handleDragEnd(e) {
+            console.log('Drag ended');
+            e.target.classList.remove('opacity-50', 'dragging');
+            e.target.style.cursor = 'grab';
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            e.currentTarget.classList.add('drop-zone-active');
+        }
+
+        function handleDragLeave(e) {
+            // Only remove highlighting if we're actually leaving the drop zone
+            if (!e.currentTarget.contains(e.relatedTarget)) {
+                e.currentTarget.classList.remove('drop-zone-active');
+            }
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            console.log('Drop occurred');
+            e.currentTarget.classList.remove('drop-zone-active');
+            
+            const playerId = e.dataTransfer.getData('text/plain');
+            const seriesName = e.currentTarget.dataset.seriesName;
+            
+            console.log('Moving player', playerId, 'to series', seriesName);
+            movePlayerToSeries(playerId, seriesName);
+        }
+
+        function handleDropToPool(e) {
+            e.preventDefault();
+            console.log('Drop to pool occurred');
+            e.currentTarget.classList.remove('drop-zone-active');
+            
+            const playerId = e.dataTransfer.getData('text/plain');
+            console.log('Moving player', playerId, 'back to pool');
+            movePlayerToPool(playerId);
+        }
+
+        // Click handlers for desktop
+        function handlePlayerTap(e) {
+            e.stopPropagation();
+            
+            const playerId = e.currentTarget.dataset.playerId;
+            const playerName = e.currentTarget.dataset.playerName;
+            const playerPti = e.currentTarget.dataset.playerPti;
+            
+            if (selectedPlayerForTap === playerId) {
+                clearPlayerSelection();
+                return;
+            }
+            
+            // Select player for tap mode
+            selectedPlayerForTap = playerId;
+            
+            // Update visual feedback
+            document.querySelectorAll('.player-card').forEach(card => {
+                card.classList.remove('border-blue-400', 'bg-blue-50');
+            });
+            e.currentTarget.classList.add('border-blue-400', 'bg-blue-50');
+            
+            // Show selection indicator
+            const indicator = document.getElementById('selected-player-indicator');
+            if (indicator) {
+                document.getElementById('selected-player-name').textContent = playerName;
+                document.getElementById('selected-player-pti').textContent = `(PTI: ${playerPti})`;
+                indicator.classList.remove('hidden');
+            }
+        }
+
+        function handleZoneTap(e) {
+            if (!selectedPlayerForTap) return;
+            
+            e.stopPropagation();
+            const seriesName = e.currentTarget.dataset.seriesName;
+            movePlayerToSeries(selectedPlayerForTap, seriesName);
+            clearPlayerSelection();
+        }
+
+        function clearPlayerSelection() {
+            selectedPlayerForTap = null;
+            
+            document.querySelectorAll('.player-card').forEach(card => {
+                card.classList.remove('border-blue-400', 'bg-blue-50');
+            });
+            
+            const indicator = document.getElementById('selected-player-indicator');
+            if (indicator) {
+                indicator.classList.add('hidden');
+            }
+        }
+
+        // Team management functions
+        function movePlayerToSeries(playerId, seriesName) {
+            const player = allPlayers.find(p => p.id == playerId);
+            if (!player) return;
+            
+            // Remove from current location
+            removePlayerFromCurrentLocation(playerId);
+            
+            // Add to new series
+            teamAssignments[seriesName].players.push(player);
+            
+            // Update UI
+            updateSeriesDisplay(seriesName);
+            updatePlayersPool();
+        }
+
+        function movePlayerToPool(playerId) {
+            const player = allPlayers.find(p => p.id == playerId);
+            if (!player) return;
+            
+            // Remove from current location
+            removePlayerFromCurrentLocation(playerId);
+            
+            // Update UI
+            updatePlayersPool();
+            updateAllSeriesDisplays();
+        }
+
+        function removePlayerFromCurrentLocation(playerId) {
+            // Remove from all team assignments
+            for (const seriesName in teamAssignments) {
+                teamAssignments[seriesName].players = teamAssignments[seriesName].players.filter(p => p.id != playerId);
+            }
+        }
+
+        function updateSeriesDisplay(seriesName) {
+            const container = document.querySelector(`[data-series-name="${seriesName}"] .team-players`);
+            const assignment = teamAssignments[seriesName];
+            
+            if (!container || !assignment) return;
+            
+            if (assignment.players.length === 0) {
+                container.innerHTML = `<div class="text-gray-400 text-center text-sm drop-text">Drop players here for ${seriesName}</div>`;
+            } else {
+                let html = '<div class="flex flex-wrap gap-2">';
+                let hasOutOfRangePlayers = false;
+                
+                assignment.players.forEach(player => {
+                    const playerPti = parseFloat(player.pti) || 0;
+                    const minPti = assignment.recommended_range.min;
+                    const maxPti = assignment.recommended_range.max;
+                    const isOutOfRange = playerPti < minPti || playerPti > maxPti;
+                    
+                    if (isOutOfRange) {
+                        hasOutOfRangePlayers = true;
+                    }
+                    
+                    // Add orange border and styling for out-of-range players
+                    const outOfRangeClass = isOutOfRange ? 'border-orange-500 border-2 bg-orange-50' : 'border-gray-300';
+                    
+                    html += `
+                        <div class="player-card-small bg-white ${outOfRangeClass} rounded-lg p-2 text-xs cursor-pointer" 
+                             data-player-id="${player.id}">
+                            <div class="font-medium">${player.name}</div>
+                            <div class="text-gray-600">PTI: ${player.pti}</div>
+                            ${isOutOfRange ? '<div class="text-orange-600 text-xs mt-1 font-medium">⚠ Outside range</div>' : ''}
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                
+                // Add warning message if there are out-of-range players
+                if (hasOutOfRangePlayers) {
+                    html += `
+                        <div class="mt-3 p-2 bg-orange-50 border border-orange-200 rounded-lg">
+                            <div class="text-orange-600 text-sm font-medium flex items-center">
+                                <i class="fas fa-exclamation-triangle mr-2"></i>
+                                Player outside of PTI range.
+                            </div>
+                            <div class="text-orange-500 text-xs mt-1">
+                                Recommended range: ${assignment.recommended_range.min} - ${assignment.recommended_range.max}
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                container.innerHTML = html;
+                
+                // Add click handlers to small cards for removal
+                container.querySelectorAll('.player-card-small').forEach(card => {
+                    card.addEventListener('click', (e) => {
+                        const playerId = e.currentTarget.dataset.playerId;
+                        movePlayerToPool(playerId);
+                    });
+                });
+            }
+            
+            // Update stats
+            updateSeriesStats(seriesName);
+        }
+
+        function updateSeriesStats(seriesName) {
+            const assignment = teamAssignments[seriesName];
+            const container = document.querySelector(`[data-series-name="${seriesName}"]`)?.closest('.series-container');
+            
+            if (!assignment || !container) return;
+            
+            // Calculate stats
+            const playerCount = assignment.players.length;
+            const totalPti = assignment.players.reduce((sum, p) => sum + parseFloat(p.pti || 0), 0);
+            const avgPti = playerCount > 0 ? totalPti / playerCount : 0;
+            
+            // Calculate target PTI (midpoint of recommended range)
+            const targetPti = (assignment.recommended_range.min + assignment.recommended_range.max) / 2;
+            
+            // Calculate delta (difference from target)
+            const delta = playerCount > 0 ? avgPti - targetPti : 0;
+            
+            // Update assignment object
+            assignment.total_pti = totalPti;
+            assignment.avg_pti = avgPti;
+            
+            // Update UI
+            const teamPtiEl = container.querySelector('.team-pti');
+            const targetPtiEl = container.querySelector('.target-pti');
+            const ptiDeltaEl = container.querySelector('.pti-delta');
+            const playerCountEl = container.querySelector('.player-count');
+            const avgPtiEl = container.querySelector('.avg-pti');
+            
+            if (teamPtiEl) teamPtiEl.textContent = totalPti.toFixed(1);
+            if (targetPtiEl) targetPtiEl.textContent = targetPti.toFixed(1);
+            if (ptiDeltaEl) {
+                if (playerCount === 0) {
+                    ptiDeltaEl.textContent = '-';
+                    ptiDeltaEl.className = 'pti-delta font-semibold';
+                } else {
+                    const deltaSign = delta >= 0 ? '+' : '';
+                    ptiDeltaEl.textContent = deltaSign + delta.toFixed(1);
+                    // Color code the delta: green for close to target, red for far
+                    if (Math.abs(delta) <= 2) {
+                        ptiDeltaEl.className = 'pti-delta font-semibold text-green-600';
+                    } else if (Math.abs(delta) <= 5) {
+                        ptiDeltaEl.className = 'pti-delta font-semibold text-yellow-600';
+                    } else {
+                        ptiDeltaEl.className = 'pti-delta font-semibold text-orange-600';
+                    }
+                }
+            }
+            if (playerCountEl) playerCountEl.textContent = playerCount;
+            if (avgPtiEl) avgPtiEl.textContent = avgPti.toFixed(1);
+            
+            // Update status - FIXED: Lower PTI = Stronger
+            const statusEl = container.querySelector('.pti-status');
+            const statusText = container.querySelector('.status-text');
+            
+            if (statusEl && statusText) {
+                if (playerCount === 0) {
+                    statusEl.className = 'pti-status text-xs px-2 py-1 rounded bg-gray-100 text-gray-600';
+                    statusText.textContent = 'Ready for players';
+                } else if (avgPti >= assignment.recommended_range.min && avgPti <= assignment.recommended_range.max) {
+                    statusEl.className = 'pti-status text-xs px-2 py-1 rounded bg-green-100 text-green-800';
+                    statusText.textContent = '✓ In range';
+                } else if (avgPti < assignment.recommended_range.min) {
+                    // Lower PTI = Stronger, so below min range = too strong
+                    statusEl.className = 'pti-status text-xs px-2 py-1 rounded bg-blue-100 text-blue-800';
+                    statusText.textContent = '↑ Too strong';
+                } else {
+                    // Higher PTI = Weaker, so above max range = too weak  
+                    statusEl.className = 'pti-status text-xs px-2 py-1 rounded bg-orange-100 text-orange-800';
+                    statusText.textContent = '↓ Too weak';
+                }
+            }
+        }
+
+        function updatePlayersPool() {
+            // Get assigned player IDs
+            const assignedPlayerIds = new Set();
+            for (const seriesName in teamAssignments) {
+                teamAssignments[seriesName].players.forEach(p => assignedPlayerIds.add(parseInt(p.id)));
+            }
+            
+            // Show only unassigned players in pool
+            const pool = document.getElementById('available-players-pool');
+            if (!pool) return;
+            
+            const playerCards = pool.querySelectorAll('.player-card');
+            
+            playerCards.forEach(card => {
+                const playerId = parseInt(card.dataset.playerId);
+                if (assignedPlayerIds.has(playerId)) {
+                    card.style.display = 'none';
+                } else {
+                    card.style.display = 'inline-block';
+                }
+            });
+        }
+
+        function updateAllSeriesDisplays() {
+            for (const seriesName in teamAssignments) {
+                updateSeriesDisplay(seriesName);
+            }
+        }
+        
+        // Update all team assignment displays to reflect PTI range changes
+        function refreshAllTeamDisplaysForRangeChanges() {
+            for (const seriesName in teamAssignments) {
+                updateSeriesDisplay(seriesName);
+            }
+            console.log('Refreshed all team assignment displays for PTI range changes');
+        }
+
+        // Action handlers
+        async function saveTeams() {
+            try {
+                const button = document.getElementById('save-teams');
+                if (button) {
+                    button.disabled = true;
+                    button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Saving...';
+                }
+                
+                const response = await fetch('/api/create-team/save', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        teams: teamAssignments
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('Team assignments saved successfully!');
+                } else {
+                    throw new Error(data.error || 'Failed to save teams');
+                }
+                
+            } catch (error) {
+                console.error('Error saving teams:', error);
+                alert('Failed to save team assignments: ' + error.message);
+            } finally {
+                const button = document.getElementById('save-teams');
+                if (button) {
+                    button.disabled = false;
+                    button.innerHTML = '<i class="fas fa-save mr-2"></i>Save Teams';
+                }
+            }
+        }
+
+        function resetTeams() {
+            if (!confirm('Are you sure you want to reset all team assignments?')) {
+                return;
+            }
+            
+            // Clear all assignments
+            for (const seriesName in teamAssignments) {
+                teamAssignments[seriesName].players = [];
+            }
+            
+            // Update UI
+            updateAllSeriesDisplays();
+            updatePlayersPool();
+            clearPlayerSelection();
+            
+            alert('Team assignments reset successfully!');
+        }
+
+        // Column-specific reset functions
+        function resetPTIRanges() {
+            if (!confirm('Reset all PTI ranges to their original recommended values?')) {
+                return;
+            }
+            
+            // Reset all series ranges to their original recommended values
+            seriesRanges.forEach((series, index) => {
+                const minSlider = document.getElementById(`min-slider-${index}`);
+                const maxSlider = document.getElementById(`max-slider-${index}`);
+                
+                if (minSlider && maxSlider) {
+                    // Reset to original recommended range
+                    const originalMin = series.recommended_range.min;
+                    const originalMax = series.recommended_range.max;
+                    
+                    minSlider.value = originalMin;
+                    maxSlider.value = originalMax;
+                    
+                    // Update displays
+                    updateSliderDisplay(index, 'min', originalMin);
+                    updateSliderDisplay(index, 'max', originalMax);
+                    
+                    // Update range bar and status
+                    const validatedRange = {
+                        min: originalMin,
+                        max: originalMax,
+                        valid: true,
+                        overlaps: []
+                    };
+                    updateRangeBar(index, validatedRange);
+                    updateStatusIndicator(index, validatedRange);
+                    
+                    // Update series data
+                    series.recommended_range.min = originalMin;
+                    series.recommended_range.max = originalMax;
+                    
+                    // Update team assignment display to reflect reset PTI range
+                    if (teamAssignments[series.series_name]) {
+                        updateSeriesDisplay(series.series_name);
+                    }
+                }
+            });
+            
+            // Refresh all team assignment displays to reflect reset ranges
+            refreshAllTeamDisplaysForRangeChanges();
+            
+            console.log('PTI ranges reset to original values');
+        }
+
+        function resetPlayersPool() {
+            if (!confirm('Reset the players pool to show all available players?')) {
+                return;
+            }
+            
+            // Clear any filters or modifications to the players pool
+            const pool = document.getElementById('available-players-pool');
+            if (pool) {
+                // Re-render all players
+                renderAvailablePlayers();
+            }
+            
+            // Clear any selected player
+            clearPlayerSelection();
+            
+            console.log('Players pool reset');
+        }
+
+        function resetTeamAssignments() {
+            if (!confirm('Reset all team assignments and return players to the available pool?')) {
+                return;
+            }
+            
+            // Clear all team assignments (same as resetTeams but without the main reset button alert)
+            for (const seriesName in teamAssignments) {
+                teamAssignments[seriesName].players = [];
+            }
+            
+            // Update UI
+            updateAllSeriesDisplays();
+            updatePlayersPool();
+            clearPlayerSelection();
+            
+            console.log('Team assignments reset');
+        }
+
+        // Setup slider event listeners for PTI range control
+        function setupSliderEventListeners() {
+            const sliders = document.querySelectorAll('input[type="range"]');
+            
+            sliders.forEach(slider => {
+                slider.addEventListener('input', handleSliderChange);
+                slider.addEventListener('change', handleSliderChangeComplete);
+            });
+        }
+
+        // Handle real-time slider changes (while dragging)
+        function handleSliderChange(event) {
+            const slider = event.target;
+            const seriesIndex = parseInt(slider.dataset.seriesIndex);
+            const rangeType = slider.dataset.rangeType;
+            const newValue = parseFloat(slider.value);
+            
+            // Update the display value immediately
+            updateSliderDisplay(seriesIndex, rangeType, newValue);
+            
+            // Validate and manage overlaps with automatic adjustment
+            const validatedRange = validateAndManageOverlaps(seriesIndex, rangeType, newValue);
+            
+            // Update the visual range bar for the current series
+            updateRangeBar(seriesIndex, validatedRange);
+            
+            // Update status indicator with adjustment information
+            updateStatusIndicatorWithAdjustments(seriesIndex, validatedRange);
+            
+            // Update team assignment displays to reflect new PTI ranges
+            const currentSeries = seriesRanges[seriesIndex];
+            if (currentSeries && teamAssignments[currentSeries.series_name]) {
+                updateSeriesDisplay(currentSeries.series_name);
+            }
+            
+            // If other series were automatically adjusted, update their displays too
+            if (validatedRange.adjustedSeries && validatedRange.adjustedSeries.length > 0) {
+                validatedRange.adjustedSeries.forEach(adjusted => {
+                    const adjustedSeries = seriesRanges[adjusted.index];
+                    if (adjustedSeries && teamAssignments[adjustedSeries.series_name]) {
+                        updateSeriesDisplay(adjustedSeries.series_name);
+                    }
+                });
+                
+                // Add a small delay before saving adjusted series to avoid too many API calls
+                clearTimeout(window.autoAdjustSaveTimeout);
+                window.autoAdjustSaveTimeout = setTimeout(() => {
+                    validatedRange.adjustedSeries.forEach(adjusted => {
+                        saveRangeChanges(adjusted.index);
+                    });
+                }, 500);
+            }
+        }
+
+        // Handle slider change completion (when user releases)
+        function handleSliderChangeComplete(event) {
+            const slider = event.target;
+            const seriesIndex = parseInt(slider.dataset.seriesIndex);
+            
+            // Update team assignment display one final time to ensure consistency
+            const series = seriesRanges[seriesIndex];
+            if (series && teamAssignments[series.series_name]) {
+                updateSeriesDisplay(series.series_name);
+            }
+            
+            // Send AJAX request to save the changes
+            saveRangeChanges(seriesIndex);
+        }
+
+        // Update slider display values
+        function updateSliderDisplay(seriesIndex, rangeType, value) {
+            const displaySpan = document.getElementById(`${rangeType}-value-${seriesIndex}`);
+            if (displaySpan) {
+                displaySpan.textContent = value.toFixed(1);
+            }
+            
+            // Update the range display
+            const minSlider = document.getElementById(`min-slider-${seriesIndex}`);
+            const maxSlider = document.getElementById(`max-slider-${seriesIndex}`);
+            const rangeDisplay = document.getElementById(`range-display-${seriesIndex}`);
+            
+            if (minSlider && maxSlider && rangeDisplay) {
+                const currentMin = parseFloat(minSlider.value);
+                const currentMax = parseFloat(maxSlider.value);
+                rangeDisplay.textContent = `${currentMin.toFixed(1)} - ${currentMax.toFixed(1)}`;
+            }
+        }
+
+        // Validate ranges and manage overlaps with automatic adjustment
+        function validateAndManageOverlaps(seriesIndex, rangeType, newValue) {
+            const series = seriesRanges[seriesIndex];
+            const minSlider = document.getElementById(`min-slider-${seriesIndex}`);
+            const maxSlider = document.getElementById(`max-slider-${seriesIndex}`);
+            
+            if (!minSlider || !maxSlider) return { min: newValue, max: newValue, overlaps: [], valid: true };
+            
+            let adjustedMin = parseFloat(minSlider.value);
+            let adjustedMax = parseFloat(maxSlider.value);
+            
+            // Update the value being changed
+            if (rangeType === 'min') {
+                adjustedMin = newValue;
+                // Ensure min doesn't exceed max
+                if (adjustedMin >= adjustedMax) {
+                    adjustedMax = adjustedMin + 1;
+                    maxSlider.value = adjustedMax;
+                    updateSliderDisplay(seriesIndex, 'max', adjustedMax);
+                }
+            } else {
+                adjustedMax = newValue;
+                // Ensure max doesn't go below min
+                if (adjustedMax <= adjustedMin) {
+                    adjustedMin = adjustedMax - 1;
+                    minSlider.value = adjustedMin;
+                    updateSliderDisplay(seriesIndex, 'min', adjustedMin);
+                }
+            }
+            
+            // Automatically adjust overlapping series
+            const adjustedSeries = autoAdjustOverlappingSeries(seriesIndex, adjustedMin, adjustedMax, rangeType);
+            
+            // Update the current series data
+            seriesRanges[seriesIndex].recommended_range.min = adjustedMin;
+            seriesRanges[seriesIndex].recommended_range.max = adjustedMax;
+            
+            // Check for any remaining overlaps after auto-adjustment
+            const remainingOverlaps = checkForOverlaps(seriesIndex, adjustedMin, adjustedMax);
+            
+            return {
+                min: adjustedMin,
+                max: adjustedMax,
+                overlaps: remainingOverlaps,
+                valid: remainingOverlaps.length === 0,
+                adjustedSeries: adjustedSeries
+            };
+        }
+
+        // Automatically adjust overlapping series to accommodate changes
+        function autoAdjustOverlappingSeries(currentSeriesIndex, newMin, newMax, rangeType) {
+            const adjustedSeries = [];
+            const gap = 0.5; // Minimum gap between series ranges
+            
+            // Sort series by their current min values to handle adjustments in order
+            const sortedIndices = seriesRanges
+                .map((series, index) => ({ index, min: series.recommended_range.min }))
+                .filter(item => item.index !== currentSeriesIndex)
+                .sort((a, b) => a.min - b.min);
+            
+            sortedIndices.forEach(({ index }) => {
+                const otherSeries = seriesRanges[index];
+                const otherMin = otherSeries.recommended_range.min;
+                const otherMax = otherSeries.recommended_range.max;
+                
+                // Check if there's an overlap
+                if (newMin < otherMax && newMax > otherMin) {
+                    let adjustedOtherMin = otherMin;
+                    let adjustedOtherMax = otherMax;
+                    let wasAdjusted = false;
+                    
+                    if (rangeType === 'max' && newMax > otherMin) {
+                        // Moving our max slider right and overlapping with another series
+                        // Push the other series to the right
+                        if (newMax >= otherMin) {
+                            adjustedOtherMin = newMax + gap;
+                            adjustedOtherMax = Math.max(adjustedOtherMin + gap, otherMax);
+                            wasAdjusted = true;
+                        }
+                    } else if (rangeType === 'min' && newMin < otherMax) {
+                        // Moving our min slider left and overlapping with another series
+                        // Push the other series to the left
+                        if (newMin <= otherMax) {
+                            adjustedOtherMax = newMin - gap;
+                            adjustedOtherMin = Math.min(adjustedOtherMax - gap, otherMin);
+                            wasAdjusted = true;
+                        }
+                    }
+                    
+                    // Ensure the adjusted range is valid (min < max)
+                    if (adjustedOtherMin >= adjustedOtherMax) {
+                        adjustedOtherMax = adjustedOtherMin + gap;
+                    }
+                    
+                    // Constrain to valid PTI range (10-80)
+                    adjustedOtherMin = Math.max(10, Math.min(79, adjustedOtherMin));
+                    adjustedOtherMax = Math.max(11, Math.min(80, adjustedOtherMax));
+                    
+                    // Ensure min < max after constraining
+                    if (adjustedOtherMin >= adjustedOtherMax) {
+                        if (adjustedOtherMax < 80) {
+                            adjustedOtherMax = adjustedOtherMin + gap;
+                        } else {
+                            adjustedOtherMin = adjustedOtherMax - gap;
+                        }
+                    }
+                    
+                    if (wasAdjusted) {
+                        // Update the series data
+                        otherSeries.recommended_range.min = adjustedOtherMin;
+                        otherSeries.recommended_range.max = adjustedOtherMax;
+                        
+                        // Update the UI for the adjusted series
+                        updateSeriesSliders(index, adjustedOtherMin, adjustedOtherMax);
+                        
+                        adjustedSeries.push({
+                            index: index,
+                            name: otherSeries.series_name,
+                            oldRange: `${otherMin.toFixed(1)} - ${otherMax.toFixed(1)}`,
+                            newRange: `${adjustedOtherMin.toFixed(1)} - ${adjustedOtherMax.toFixed(1)}`
+                        });
+                        
+                        console.log(`Auto-adjusted ${otherSeries.series_name} from ${otherMin.toFixed(1)}-${otherMax.toFixed(1)} to ${adjustedOtherMin.toFixed(1)}-${adjustedOtherMax.toFixed(1)}`);
+                    }
+                }
+            });
+            
+            return adjustedSeries;
+        }
+        
+        // Update sliders and displays for a specific series
+        function updateSeriesSliders(seriesIndex, newMin, newMax) {
+            const minSlider = document.getElementById(`min-slider-${seriesIndex}`);
+            const maxSlider = document.getElementById(`max-slider-${seriesIndex}`);
+            
+            if (minSlider && maxSlider) {
+                minSlider.value = newMin;
+                maxSlider.value = newMax;
+                
+                updateSliderDisplay(seriesIndex, 'min', newMin);
+                updateSliderDisplay(seriesIndex, 'max', newMax);
+                
+                // Update the visual range bar
+                const validatedRange = {
+                    min: newMin,
+                    max: newMax,
+                    valid: true,
+                    overlaps: []
+                };
+                updateRangeBar(seriesIndex, validatedRange);
+                updateStatusIndicator(seriesIndex, validatedRange);
+                
+                // Update team assignment display to reflect new PTI range
+                const series = seriesRanges[seriesIndex];
+                if (series && teamAssignments[series.series_name]) {
+                    updateSeriesDisplay(series.series_name);
+                }
+            }
+        }
+
+        // Check for overlaps with other series
+        function checkForOverlaps(currentSeriesIndex, min, max) {
+            const overlaps = [];
+            
+            seriesRanges.forEach((series, index) => {
+                if (index === currentSeriesIndex) return;
+                
+                const otherMin = series.recommended_range.min;
+                const otherMax = series.recommended_range.max;
+                
+                // Check if ranges overlap
+                if ((min < otherMax && max > otherMin)) {
+                    overlaps.push({
+                        index: index,
+                        name: series.series_name,
+                        range: `${otherMin} - ${otherMax}`
+                    });
+                }
+            });
+            
+            return overlaps;
+        }
+
+        // Update visual range bar
+        function updateRangeBar(seriesIndex, validatedRange) {
+            const rangeBar = document.getElementById(`range-bar-${seriesIndex}`);
+            if (!rangeBar) return;
+            
+            const leftPercentage = ((validatedRange.min - 10) / 70) * 100;
+            const widthPercentage = ((validatedRange.max - validatedRange.min) / 70) * 100;
+            
+            rangeBar.style.left = `${leftPercentage}%`;
+            rangeBar.style.width = `${widthPercentage}%`;
+            
+            // Change color based on validity
+            if (validatedRange.valid) {
+                rangeBar.className = 'absolute h-full bg-gradient-to-r from-blue-400 to-blue-600 rounded-full transition-all duration-200';
+            } else {
+                rangeBar.className = 'absolute h-full bg-gradient-to-r from-orange-400 to-orange-600 rounded-full transition-all duration-200';
+            }
+        }
+
+        // Update status indicator with automatic adjustment information
+        function updateStatusIndicatorWithAdjustments(seriesIndex, validatedRange) {
+            const statusDiv = document.getElementById(`status-${seriesIndex}`);
+            if (!statusDiv) return;
+            
+            let statusHtml = '';
+            
+            if (validatedRange.overlaps.length > 0) {
+                const overlapNames = validatedRange.overlaps.map(o => o.name).join(', ');
+                statusHtml = `<span class="text-orange-600">⚠ Overlaps with: ${overlapNames}</span>`;
+            } else {
+                statusHtml = '<span class="text-green-600">✓ Range valid</span>';
+                
+                // Add information about automatic adjustments
+                if (validatedRange.adjustedSeries && validatedRange.adjustedSeries.length > 0) {
+                    const adjustedNames = validatedRange.adjustedSeries.map(adj => adj.name).join(', ');
+                    statusHtml += `<br><span class="text-blue-600 text-xs">🔄 Auto-adjusted: ${adjustedNames}</span>`;
+                }
+            }
+            
+            statusDiv.innerHTML = statusHtml;
+        }
+
+        // Update status indicator (legacy function for compatibility) 
+        function updateStatusIndicator(seriesIndex, validatedRange) {
+            updateStatusIndicatorWithAdjustments(seriesIndex, validatedRange);
+        }
+
+        // Save range changes via AJAX
+        async function saveRangeChanges(seriesIndex) {
+            const series = seriesRanges[seriesIndex];
+            
+            try {
+                const response = await fetch('/api/create-team/update-range', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        series_id: series.series_id,
+                        series_name: series.series_name,
+                        recommended_range: series.recommended_range
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    console.log(`Range updated for ${series.series_name}: ${series.recommended_range.min} - ${series.recommended_range.max}`);
+                    
+                    // Update team assignments with new range
+                    if (teamAssignments[series.series_name]) {
+                        teamAssignments[series.series_name].recommended_range = series.recommended_range;
+                        updateSeriesStats(series.series_name);
+                    }
+                } else {
+                    console.error('Failed to save range changes:', data.error);
+                }
+            } catch (error) {
+                console.error('Error saving range changes:', error);
+            }
+        }
+    </script>
+
+    <!-- Include the rest of the JavaScript from mobile version -->
+    <script src="/static/js/activity-tracker.js"></script>
+    <script src="/static/js/enhanced-league-team-context-manager.js"></script>
+</body>
+</html> 
