@@ -26,6 +26,7 @@ import re
 import sys
 import time
 import traceback
+from contextlib import contextmanager
 from datetime import date, datetime
 from decimal import Decimal
 from typing import Any, Dict, List, Optional, Set
@@ -236,7 +237,15 @@ class ComprehensiveETL:
             try:
                 self.log(f"🚂 Railway: Database connection attempt {attempt + 1}/{max_retries}")
                 
-                with get_db() as conn:
+                # Import database utilities to create direct connection
+                from database import parse_db_url, get_db_url
+                import psycopg2
+                
+                # Create direct connection for Railway (not context manager)
+                db_params = parse_db_url(get_db_url())
+                conn = psycopg2.connect(**db_params)
+                
+                try:
                     # Test connection
                     cursor = conn.cursor()
                     cursor.execute("SELECT 1")
@@ -249,7 +258,21 @@ class ComprehensiveETL:
                     
                     conn.commit()
                     self.log("✅ Railway: Database connection established with optimizations")
-                    return conn
+                    
+                    # Return a context manager wrapper for the connection
+                    @contextmanager
+                    def railway_connection():
+                        try:
+                            yield conn
+                        finally:
+                            conn.close()
+                    
+                    return railway_connection()
+                    
+                except Exception as setup_error:
+                    # Close the connection if setup fails
+                    conn.close()
+                    raise setup_error
                     
             except Exception as e:
                 self.log(f"⚠️ Railway: Connection attempt {attempt + 1} failed: {str(e)}", "WARNING")
