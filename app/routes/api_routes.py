@@ -2204,6 +2204,11 @@ def get_user_facing_series_by_league():
         for series_item in series_data:
             database_name = series_item["database_series_name"]
             
+            # Skip problematic Chicago series that don't follow standard pattern
+            if league_id and league_id.startswith("APTA") and database_name in ["Chicago", "Chicago Chicago"]:
+                print(f"[API] Skipping problematic series: {database_name}")
+                continue
+            
             # Check if there's a reverse mapping (database_series_name -> user_series_name)
             reverse_mapping_query = """
                 SELECT user_series_name
@@ -2221,10 +2226,16 @@ def get_user_facing_series_by_league():
             else:
                 # No mapping found, use database name as-is
                 user_facing_name = database_name
-            
-            # For APTA league, convert "Chicago" to "Series" in the UI
-            if league_id and league_id.startswith("APTA"):
-                user_facing_name = convert_chicago_to_series_for_ui(user_facing_name)
+                
+                # For APTA league, convert "Chicago" to "Series" in the UI
+                if league_id and league_id.startswith("APTA"):
+                    converted_name = convert_chicago_to_series_for_ui(user_facing_name)
+                    # Only use converted name if it actually changed (avoid edge cases)
+                    if converted_name != user_facing_name:
+                        user_facing_name = converted_name
+                    else:
+                        print(f"[API] Skipping unconvertible series: {user_facing_name}")
+                        continue
             
             user_facing_names.append(user_facing_name)
         
