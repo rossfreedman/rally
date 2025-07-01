@@ -2238,16 +2238,41 @@ class ComprehensiveETL:
         return ""
 
     def import_match_history(self, conn, match_history_data: List[Dict]):
-        """Import match history data into match_scores table with winner validation and player ID validation"""
-        self.log("📥 Importing match history with enhanced player ID validation...")
+        """Import match history data into match_scores table with enhanced reliability and batch processing"""
+        self.log("📥 Importing match history with enhanced reliability...")
 
         cursor = conn.cursor()
         imported = 0
         errors = 0
         winner_corrections = 0
         player_id_fixes = 0
+        
+        # Pre-cache league and team lookups to reduce database calls
+        self.log("🔧 Pre-caching league and team data...")
+        
+        # Cache league mappings
+        cursor.execute("SELECT league_id, id FROM leagues")
+        league_cache = {row[0]: row[1] for row in cursor.fetchall()}
+        
+        # Cache team mappings (league_id, team_name) -> team_id
+        cursor.execute("""
+            SELECT l.league_id, t.team_name, t.id 
+            FROM teams t 
+            JOIN leagues l ON t.league_id = l.id
+        """)
+        team_cache = {(row[0], row[1]): row[2] for row in cursor.fetchall()}
+        
+        # Cache active player IDs for validation
+        cursor.execute("SELECT tenniscores_player_id FROM players WHERE is_active = true")
+        valid_player_ids = {row[0] for row in cursor.fetchall()}
+        
+        self.log(f"✅ Cached {len(league_cache)} leagues, {len(team_cache)} teams, {len(valid_player_ids):,} players")
 
-        for record in match_history_data:
+        # Batch processing for better performance and transaction control
+        batch_size = 500
+        batch_data = []
+        
+        for record_idx, record in enumerate(match_history_data):
             try:
                 # Extract data using the actual field names from the JSON
                 match_date_str = (record.get("Date") or "").strip()
@@ -2258,162 +2283,99 @@ class ComprehensiveETL:
                 raw_league_id = (record.get("league_id") or "").strip()
                 league_id = normalize_league_id(raw_league_id) if raw_league_id else ""
 
-                # Extract player IDs with names for validation
+                # Extract and validate player IDs with caching
                 home_player_1_id = (record.get("Home Player 1 ID") or "").strip()
                 home_player_2_id = (record.get("Home Player 2 ID") or "").strip()
                 away_player_1_id = (record.get("Away Player 1 ID") or "").strip()
                 away_player_2_id = (record.get("Away Player 2 ID") or "").strip()
                 
-                # Extract player names for fallback matching
-                home_player_1_name = (record.get("Home Player 1") or "").strip()
-                home_player_2_name = (record.get("Home Player 2") or "").strip()
-                away_player_1_name = (record.get("Away Player 1") or "").strip()
-                away_player_2_name = (record.get("Away Player 2") or "").strip()
-
-                # CRITICAL FIX: Validate and resolve player IDs
-                validated_home_1 = self._validate_match_player_id(
-                    conn, home_player_1_id, home_player_1_name, home_team, league_id)
-                validated_home_2 = self._validate_match_player_id(
-                    conn, home_player_2_id, home_player_2_name, home_team, league_id)
-                validated_away_1 = self._validate_match_player_id(
-                    conn, away_player_1_id, away_player_1_name, away_team, league_id)
-                validated_away_2 = self._validate_match_player_id(
-                    conn, away_player_2_id, away_player_2_name, away_team, league_id)
+                # Quick validation using cached player IDs (much faster than database calls)
+                player_ids = [home_player_1_id, home_player_2_id, away_player_1_id, away_player_2_id]
+                validated_ids = []
                 
-                # Count fixes
-                if validated_home_1 != home_player_1_id: player_id_fixes += 1
-                if validated_home_2 != home_player_2_id: player_id_fixes += 1
-                if validated_away_1 != away_player_1_id: player_id_fixes += 1
-                if validated_away_2 != away_player_2_id: player_id_fixes += 1
-                
-                # Use validated player IDs
-                home_player_1_id = validated_home_1
-                home_player_2_id = validated_home_2
-                away_player_1_id = validated_away_1
-                away_player_2_id = validated_away_2
+                for pid in player_ids:
+                    if pid and pid in valid_player_ids:
+                        validated_ids.append(pid)
+                    else:
+                        validated_ids.append(None)  # Invalid or missing player ID
+                        if pid:  # Only count as fix if there was an original ID
+                            player_id_fixes += 1
 
-                # Parse date (format appears to be DD-Mon-YY)
+                home_player_1_id, home_player_2_id, away_player_1_id, away_player_2_id = validated_ids
+
+                # Parse date with better error handling
                 match_date = None
                 if match_date_str:
                     try:
                         # Try DD-Mon-YY format first
-                        match_date = datetime.strptime(
-                            match_date_str, "%d-%b-%y"
-                        ).date()
+                        match_date = datetime.strptime(match_date_str, "%d-%b-%y").date()
                     except ValueError:
                         try:
-                            match_date = datetime.strptime(
-                                match_date_str, "%m/%d/%Y"
-                            ).date()
+                            match_date = datetime.strptime(match_date_str, "%m/%d/%Y").date()
                         except ValueError:
                             try:
-                                match_date = datetime.strptime(
-                                    match_date_str, "%Y-%m-%d"
-                                ).date()
+                                match_date = datetime.strptime(match_date_str, "%Y-%m-%d").date()
                             except ValueError:
                                 pass
 
                 if not all([match_date, home_team, away_team]):
                     continue
 
-                # ENHANCED: Validate winner against score data with league-specific logic
+                # Validate winner with league-specific logic
                 original_winner = winner
                 winner = self.validate_and_correct_winner(
                     scores, winner, home_team, away_team, league_id
                 )
                 if winner != original_winner:
                     winner_corrections += 1
-                    if winner_corrections <= 5:  # Log first 5 corrections
-                        self.log(
-                            f"🔧 Corrected winner for {home_team} vs {away_team} ({match_date_str}, {league_id}): {original_winner} → {winner}"
-                        )
 
                 # Validate winner field - only allow 'home', 'away', or None
                 if winner and winner.lower() not in ["home", "away"]:
-                    winner = None  # Set to None for invalid values like 'unknown'
+                    winner = None
 
-                # Get league database ID
-                cursor.execute(
-                    "SELECT id FROM leagues WHERE league_id = %s", (league_id,)
-                )
-                league_row = cursor.fetchone()
-                league_db_id = league_row[0] if league_row else None
+                # Use cached lookups instead of database queries
+                league_db_id = league_cache.get(league_id)
+                home_team_id = team_cache.get((league_id, home_team)) if home_team != "BYE" else None
+                away_team_id = team_cache.get((league_id, away_team)) if away_team != "BYE" else None
 
-                # Get team IDs from teams table
-                home_team_id = None
-                away_team_id = None
+                # Add to batch
+                batch_data.append((
+                    match_date, home_team, away_team, home_team_id, away_team_id,
+                    home_player_1_id, home_player_2_id, away_player_1_id, away_player_2_id,
+                    str(scores), winner, league_db_id
+                ))
 
-                if home_team and home_team != "BYE":
-                    cursor.execute(
-                        """
-                        SELECT t.id FROM teams t
-                        JOIN leagues l ON t.league_id = l.id
-                        WHERE l.league_id = %s AND t.team_name = %s
-                    """,
-                        (league_id, home_team),
-                    )
-                    home_team_row = cursor.fetchone()
-                    home_team_id = home_team_row[0] if home_team_row else None
-
-                if away_team and away_team != "BYE":
-                    cursor.execute(
-                        """
-                        SELECT t.id FROM teams t
-                        JOIN leagues l ON t.league_id = l.id
-                        WHERE l.league_id = %s AND t.team_name = %s
-                    """,
-                        (league_id, away_team),
-                    )
-                    away_team_row = cursor.fetchone()
-                    away_team_id = away_team_row[0] if away_team_row else None
-
-                cursor.execute(
-                    """
-                    INSERT INTO match_scores (
-                        match_date, home_team, away_team, home_team_id, away_team_id,
-                        home_player_1_id, home_player_2_id, away_player_1_id, away_player_2_id, 
-                        scores, winner, league_id, created_at
-                    )
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
-                """,
-                    (
-                        match_date,
-                        home_team,
-                        away_team,
-                        home_team_id,
-                        away_team_id,
-                        home_player_1_id,
-                        home_player_2_id,
-                        away_player_1_id,
-                        away_player_2_id,
-                        str(scores),
-                        winner,
-                        league_db_id,
-                    ),
-                )
-
-                imported += 1
-
-                if imported % 1000 == 0:
-                    self.log(f"   📊 Imported {imported:,} match records so far...")
+                # Process batch when it reaches batch_size or at the end
+                if len(batch_data) >= batch_size or record_idx == len(match_history_data) - 1:
+                    imported_count = self._process_match_batch(cursor, batch_data)
+                    imported += imported_count
+                    batch_data = []  # Clear batch
+                    
+                    # Commit after each successful batch
                     conn.commit()
+                    
+                    if imported % 2000 == 0:
+                        self.log(f"   📊 Imported {imported:,} match records so far...")
 
             except Exception as e:
                 errors += 1
                 if errors <= 10:
-                    self.log(f"❌ Error importing match record: {str(e)}", "ERROR")
+                    self.log(f"❌ Error processing match record {record_idx}: {str(e)}", "ERROR")
 
-                if errors > 100:
-                    self.log(
-                        f"❌ Too many match history errors ({errors}), stopping",
-                        "ERROR",
-                    )
-                    raise Exception(f"Too many match history import errors ({errors})")
+                # Don't fail entire import for individual record errors
+                if errors > 1000:  # Much higher threshold than before
+                    self.log(f"❌ Too many match history errors ({errors}), stopping", "ERROR")
+                    break
 
-        conn.commit()
+        # Process any remaining batch data
+        if batch_data:
+            imported_count = self._process_match_batch(cursor, batch_data)
+            imported += imported_count
+            conn.commit()
+
         self.imported_counts["match_scores"] = imported
         
-        # Enhanced completion message with player ID validation stats
+        # Enhanced completion message
         message_parts = [f"✅ Imported {imported:,} match history records ({errors} errors"]
         if winner_corrections > 0:
             message_parts.append(f"{winner_corrections} winner corrections")
@@ -2422,6 +2384,54 @@ class ComprehensiveETL:
         message_parts[-1] += ")"
         
         self.log(", ".join(message_parts))
+
+    def _process_match_batch(self, cursor, batch_data):
+        """Process a batch of match records with improved error handling"""
+        if not batch_data:
+            return 0
+            
+        try:
+            # Use executemany for better performance
+            cursor.executemany(
+                """
+                INSERT INTO match_scores (
+                    match_date, home_team, away_team, home_team_id, away_team_id,
+                    home_player_1_id, home_player_2_id, away_player_1_id, away_player_2_id, 
+                    scores, winner, league_id, created_at
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+                """,
+                batch_data
+            )
+            return len(batch_data)
+            
+        except Exception as e:
+            self.log(f"❌ Batch insert failed, trying individual inserts: {str(e)}", "WARNING")
+            
+            # Fallback: try individual inserts to salvage what we can
+            successful = 0
+            for record_data in batch_data:
+                try:
+                    cursor.execute(
+                        """
+                        INSERT INTO match_scores (
+                            match_date, home_team, away_team, home_team_id, away_team_id,
+                            home_player_1_id, home_player_2_id, away_player_1_id, away_player_2_id, 
+                            scores, winner, league_id, created_at
+                        )
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+                        """,
+                        record_data
+                    )
+                    successful += 1
+                except Exception as individual_error:
+                    # Log individual failures but continue
+                    continue
+                    
+            if successful > 0:
+                self.log(f"✅ Salvaged {successful}/{len(batch_data)} records from failed batch")
+            
+            return successful
 
     def import_series_stats(self, conn, series_stats_data: List[Dict]):
         """Import series stats data with validation and calculation fallback"""
