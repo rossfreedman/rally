@@ -3472,3 +3472,130 @@ def update_pti_range():
         import traceback
         print(f"Full traceback: {traceback.format_exc()}")
         return jsonify({"success": False, "error": "Failed to update PTI range"}), 500
+
+
+@api_bp.route("/api/debug/database-state")
+@login_required
+def debug_database_state():
+    """Debug endpoint to check database state - helps diagnose staging issues"""
+    try:
+        from database_utils import execute_query_one, execute_query
+        
+        # Only allow this for admin users or in debug mode
+        user = session.get("user", {})
+        if not user.get("is_admin", False):
+            return jsonify({"error": "Admin access required"}), 403
+            
+        debug_info = {}
+        
+        # Check total match scores
+        total_matches = execute_query_one('SELECT COUNT(*) as count FROM match_scores')
+        debug_info['total_match_scores'] = total_matches['count']
+        
+        # Check match scores by league
+        league_breakdown = execute_query('''
+            SELECT league_id, COUNT(*) as count 
+            FROM match_scores 
+            GROUP BY league_id 
+            ORDER BY count DESC
+        ''')
+        debug_info['matches_by_league'] = [
+            {"league_id": row['league_id'], "count": row['count']} 
+            for row in league_breakdown
+        ]
+        
+        # Check recent matches (top 10)
+        recent_matches = execute_query('''
+            SELECT match_date, home_team, away_team, league_id, 
+                   home_team_id, away_team_id,
+                   home_player_1_id, home_player_2_id, away_player_1_id, away_player_2_id
+            FROM match_scores 
+            ORDER BY created_at DESC 
+            LIMIT 10
+        ''')
+        debug_info['recent_matches'] = [
+            {
+                "date": str(row['match_date']),
+                "home_team": row['home_team'], 
+                "away_team": row['away_team'],
+                "league_id": row['league_id'],
+                "home_team_id": row['home_team_id'],
+                "away_team_id": row['away_team_id'],
+                "players": f"{row['home_player_1_id'][:8] if row['home_player_1_id'] else 'None'}..."
+            }
+            for row in recent_matches
+        ]
+        
+        # Check specific user (Ross Freedman)
+        ross_player_id = 'nndz-WkMrK3didjlnUT09'
+        user_matches = execute_query_one('''
+            SELECT COUNT(*) as count
+            FROM match_scores 
+            WHERE home_player_1_id = %s OR home_player_2_id = %s 
+               OR away_player_1_id = %s OR away_player_2_id = %s
+        ''', [ross_player_id] * 4)
+        debug_info['ross_freedman_matches'] = user_matches['count']
+        
+        # Check specific team (15083 - Tennaqua 22)
+        team_matches = execute_query_one('''
+            SELECT COUNT(*) as count
+            FROM match_scores 
+            WHERE home_team_id = %s OR away_team_id = %s
+        ''', [15083, 15083])
+        debug_info['team_15083_matches'] = team_matches['count']
+        
+        # Check APTA Chicago league (4515) specifically
+        apta_matches = execute_query_one('''
+            SELECT COUNT(*) as count
+            FROM match_scores 
+            WHERE league_id = %s
+        ''', [4515])
+        debug_info['apta_chicago_matches'] = apta_matches['count']
+        
+        # Check team name matches (fallback)
+        tennaqua_name_matches = execute_query_one('''
+            SELECT COUNT(*) as count
+            FROM match_scores 
+            WHERE home_team LIKE %s OR away_team LIKE %s
+        ''', ['%Tennaqua%', '%Tennaqua%'])
+        debug_info['tennaqua_name_matches'] = tennaqua_name_matches['count']
+        
+        # Check other key tables for context
+        players_count = execute_query_one('SELECT COUNT(*) as count FROM players')
+        teams_count = execute_query_one('SELECT COUNT(*) as count FROM teams')
+        leagues_count = execute_query_one('SELECT COUNT(*) as count FROM leagues')
+        
+        debug_info['table_counts'] = {
+            'players': players_count['count'],
+            'teams': teams_count['count'],
+            'leagues': leagues_count['count']
+        }
+        
+        # Check specific user details
+        ross_user = execute_query_one('''
+            SELECT id, first_name, last_name, tenniscores_player_id, 
+                   team_id, league_context, club, series
+            FROM users 
+            WHERE email = %s
+        ''', ['rossfreedman@gmail.com'])
+        debug_info['ross_user_details'] = dict(ross_user) if ross_user else None
+        
+        # Check if team 15083 exists
+        team_15083 = execute_query_one('''
+            SELECT id, team_name, league_id 
+            FROM teams 
+            WHERE id = %s
+        ''', [15083])
+        debug_info['team_15083_details'] = dict(team_15083) if team_15083 else None
+        
+        return jsonify({
+            "success": True,
+            "debug_info": debug_info,
+            "timestamp": str(datetime.now())
+        })
+        
+    except Exception as e:
+        return jsonify({
+            "error": f"Debug check failed: {str(e)}",
+            "timestamp": str(datetime.now())
+        }), 500
