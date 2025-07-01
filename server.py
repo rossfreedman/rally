@@ -49,7 +49,7 @@ from utils.logging import log_user_activity
 # Import route validation utilities
 from utils.route_validation import validate_routes_on_startup
 
-# Run database migrations before starting the application
+# Run database migrations before starting the application (non-blocking)
 print("=== Running Database Migrations ===")
 try:
     from scripts.run_migrations import run_all_migrations
@@ -61,16 +61,18 @@ except Exception as e:
     print(f"Migration error: {e}")
     print("⚠️ Continuing with application startup...")
 
-# Simple database connection test
+# Simple database connection test (non-blocking)
 print("=== Testing Database Connection ===")
 try:
     success, error = test_db_connection()
     if success:
-        print("Database connection successful!")
+        print("✅ Database connection successful!")
     else:
-        print(f"Database connection warning: {error}")
+        print(f"⚠️ Database connection warning: {error}")
+        print("⚠️ Application will start anyway - database connectivity will be retried as needed")
 except Exception as e:
-    print(f"Database test error: {e}")
+    print(f"⚠️ Database test error: {e}")
+    print("⚠️ Application will start anyway - database connectivity will be retried as needed")
 
 # Initialize Flask app
 app = Flask(__name__, static_folder="static", static_url_path="/static")
@@ -437,21 +439,38 @@ def serve_static_files(filename):
 
 @app.route("/health")
 def healthcheck():
-    """Health check endpoint"""
-    return jsonify(
-        {
-            "status": "healthy",
-            "message": "Rally server is running",
-            "blueprints_registered": [
-                "player_routes",
-                "auth_routes",
-                "admin_routes",
-                "mobile_routes",
-                "api_routes",
-                "rally_ai_routes",
-            ],
+    """Health check endpoint with database connectivity info"""
+    health_status = {
+        "status": "healthy",
+        "message": "Rally server is running",
+        "blueprints_registered": [
+            "player_routes",
+            "auth_routes", 
+            "admin_routes",
+            "mobile_routes",
+            "api_routes",
+            "rally_ai_routes",
+        ],
+    }
+    
+    # Test database connectivity (non-blocking)
+    try:
+        from database_config import test_db_connection
+        db_success, db_error = test_db_connection()
+        
+        health_status["database"] = {
+            "status": "connected" if db_success else "warning",
+            "message": "Database connection successful" if db_success else f"Database warning: {db_error}",
+            "railway_environment": os.environ.get("RAILWAY_ENVIRONMENT", "not_set")
         }
-    )
+    except Exception as e:
+        health_status["database"] = {
+            "status": "warning", 
+            "message": f"Database test error: {str(e)}",
+            "railway_environment": os.environ.get("RAILWAY_ENVIRONMENT", "not_set")
+        }
+    
+    return jsonify(health_status)
 
 
 @app.route("/health/routes")
