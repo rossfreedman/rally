@@ -211,7 +211,6 @@ def get_db():
                             cursor.execute("SELECT current_setting('timezone')")
                             tz = cursor.fetchone()[0]
                             logger.info(f"✅ Railway public connection successful! Timezone: {tz}")
-                            global _connection_logged
                             _connection_logged = True
                         
                         conn.commit()
