@@ -2171,6 +2171,24 @@ def serve_mobile_reserve_court():
         return jsonify({"error": str(e)}), 500
 
 
+# @mobile_bp.route("/mobile/create-team")
+# @login_required
+# def serve_mobile_create_team():
+#     """Serve the mobile Create Team page - DISABLED: Now redirects to desktop version"""
+#     try:
+#         session_data = {"user": session["user"], "authenticated": True}
+
+#         log_user_activity(
+#             session["user"]["email"], "page_visit", page="mobile_create_team"
+#         )
+
+#         return render_template("mobile/create_team.html", session_data=session_data)
+
+#     except Exception as e:
+#         print(f"Error serving create team page: {str(e)}")
+#         return jsonify({"error": str(e)}), 500
+
+
 @mobile_bp.route("/mobile/matchup-simulator")
 @login_required
 def serve_mobile_matchup_simulator():

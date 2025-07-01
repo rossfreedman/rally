@@ -383,6 +383,15 @@ def serve_schedule_page():
     return render_template("mobile/view_schedule.html", session_data=session_data)
 
 
+@app.route("/create-team")
+@login_required
+def serve_create_team_page():
+    """Serve the desktop Create Team page"""
+    session_data = {"user": session["user"], "authenticated": True}
+    log_user_activity(session["user"]["email"], "page_visit", page="create_team")
+    return render_template("create_team.html", session_data=session_data)
+
+
 @app.route("/<path:path>")
 @login_required
 def serve_static(path):

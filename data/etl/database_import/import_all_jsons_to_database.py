@@ -240,9 +240,22 @@ class ComprehensiveETL:
                 # Import database utilities to create direct connection
                 from database import parse_db_url, get_db_url
                 import psycopg2
+                import os
+                
+                # RAILWAY FIX: Use DATABASE_PUBLIC_URL for external access if available
+                db_url = os.getenv('DATABASE_PUBLIC_URL')
+                if not db_url:
+                    db_url = get_db_url()
+                    self.log(f"🚂 Railway: Using DATABASE_URL: {db_url[:50]}...")
+                else:
+                    self.log(f"🚂 Railway: Using DATABASE_PUBLIC_URL for external access: {db_url[:50]}...")
+                
+                # Handle Railway's postgres:// URLs
+                if db_url.startswith("postgres://"):
+                    db_url = db_url.replace("postgres://", "postgresql://", 1)
                 
                 # Create direct connection for Railway (not context manager)
-                db_params = parse_db_url(get_db_url())
+                db_params = parse_db_url(db_url)
                 conn = psycopg2.connect(**db_params)
                 
                 try:

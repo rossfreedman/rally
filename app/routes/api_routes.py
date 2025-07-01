@@ -3135,3 +3135,340 @@ def get_user_teams_in_current_league():
             "error": str(e),
             "teams": []
         }), 500
+
+
+@api_bp.route("/api/create-team/players")
+@login_required
+def get_create_team_players():
+    """Get all players with PTI data for team creation analysis"""
+    try:
+        user = session["user"]
+        user_league_id = user.get("league_id", "")
+        
+        # Convert league_id to integer foreign key
+        league_id_int = None
+        if user_league_id:
+            try:
+                # Convert league_id to string for database query (league_id column is VARCHAR)
+                league_record = execute_query_one(
+                    "SELECT id FROM leagues WHERE league_id = %s", [str(user_league_id)]
+                )
+                if league_record:
+                    league_id_int = league_record["id"]
+            except Exception as e:
+                print(f"Error converting league_id {user_league_id}: {e}")
+                pass
+        
+        # Get all players with PTI data from user's league
+        players_query = """
+            SELECT 
+                p.id,
+                p.first_name,
+                p.last_name,
+                p.tenniscores_player_id,
+                p.pti,
+                p.wins,
+                p.losses,
+                c.name as club_name,
+                s.name as series_name,
+                s.id as series_id,
+                CASE 
+                    WHEN p.wins + p.losses > 0 
+                    THEN ROUND((p.wins::DECIMAL / (p.wins + p.losses)) * 100, 1)
+                    ELSE 0 
+                END as win_rate
+            FROM players p
+            LEFT JOIN clubs c ON p.club_id = c.id
+            LEFT JOIN series s ON p.series_id = s.id
+            WHERE p.is_active = TRUE
+            AND p.pti IS NOT NULL
+            AND p.pti > 0
+            {}
+            ORDER BY p.pti ASC
+        """.format("AND p.league_id = %s" if league_id_int else "")
+        
+        params = [league_id_int] if league_id_int else []
+        players_data = execute_query(players_query, params)
+        
+        players = []
+        for player in players_data:
+            # Convert Chicago format to Series format for UI display
+            display_series_name = convert_chicago_to_series_for_ui(player["series_name"]) if player["series_name"] else "Unknown"
+            
+            players.append({
+                "id": player["id"],
+                "name": f"{player['first_name']} {player['last_name']}",
+                "first_name": player["first_name"],
+                "last_name": player["last_name"],
+                "tenniscores_player_id": player["tenniscores_player_id"],
+                "pti": float(player["pti"]) if player["pti"] else 0.0,
+                "wins": player["wins"] or 0,
+                "losses": player["losses"] or 0,
+                "win_rate": float(player["win_rate"]) if player["win_rate"] else 0.0,
+                "club": player["club_name"] or "Unknown",
+                "series": display_series_name,
+                "series_id": player["series_id"]
+            })
+        
+        return jsonify({
+            "success": True,
+            "players": players,
+            "total_players": len(players)
+        })
+        
+    except Exception as e:
+        print(f"Error getting create team players: {str(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
+        return jsonify({"error": "Failed to get players data"}), 500
+
+
+@api_bp.route("/api/create-team/analyze-series")
+@login_required
+def analyze_series_pti_ranges():
+    """Analyze PTI ranges for all series to provide expert guidance"""
+    try:
+        user = session["user"]
+        user_league_id = user.get("league_id", "")
+        
+        # Convert league_id to integer foreign key
+        league_id_int = None
+        if user_league_id:
+            try:
+                # Convert league_id to string for database query (league_id column is VARCHAR)
+                league_record = execute_query_one(
+                    "SELECT id FROM leagues WHERE league_id = %s", [str(user_league_id)]
+                )
+                if league_record:
+                    league_id_int = league_record["id"]
+            except Exception as e:
+                print(f"Error converting league_id {user_league_id}: {e}")
+                pass
+        
+        # Get PTI statistics by series (excluding SW series)
+        base_query = """
+            SELECT 
+                s.name as series_name,
+                s.id as series_id,
+                COUNT(p.id) as player_count,
+                MIN(p.pti) as min_pti,
+                MAX(p.pti) as max_pti,
+                AVG(p.pti) as avg_pti,
+                PERCENTILE_CONT(0.25) WITHIN GROUP (ORDER BY p.pti) as pti_25th,
+                PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY p.pti) as pti_75th,
+                STDDEV(p.pti) as pti_stddev
+            FROM series s
+            JOIN players p ON s.id = p.series_id
+            WHERE p.is_active = TRUE
+            AND p.pti IS NOT NULL
+            AND p.pti > 0
+            AND s.name NOT LIKE '%%SW%%'
+        """
+        
+        if league_id_int:
+            series_analysis_query = base_query + """
+                AND p.league_id = %s
+                GROUP BY s.name, s.id
+                HAVING COUNT(p.id) >= 3
+                ORDER BY AVG(p.pti) ASC
+            """
+            series_data = execute_query(series_analysis_query, (league_id_int,))
+        else:
+            series_analysis_query = base_query + """
+                GROUP BY s.name, s.id
+                HAVING COUNT(p.id) >= 3
+                ORDER BY AVG(p.pti) ASC
+            """
+            series_data = execute_query(series_analysis_query)
+        
+        series_ranges = []
+        for series in series_data:
+            # Calculate recommended PTI range using statistical analysis
+            avg_pti = float(series["avg_pti"])
+            std_dev = float(series["pti_stddev"]) if series["pti_stddev"] else 5.0
+            min_pti = float(series["min_pti"])
+            max_pti = float(series["max_pti"])
+            pti_25th = float(series["pti_25th"])
+            pti_75th = float(series["pti_75th"])
+            
+            # Use inter-quartile range for more robust recommendations
+            recommended_min = max(min_pti, pti_25th - (std_dev * 0.5))
+            recommended_max = min(max_pti, pti_75th + (std_dev * 0.5))
+            
+            # Convert Chicago format to Series format for UI display
+            display_series_name = convert_chicago_to_series_for_ui(series["series_name"])
+            
+            series_ranges.append({
+                "series_name": display_series_name,
+                "series_id": series["series_id"],
+                "player_count": series["player_count"],
+                "current_range": {
+                    "min": round(min_pti, 1),
+                    "max": round(max_pti, 1)
+                },
+                "recommended_range": {
+                    "min": round(recommended_min, 1),
+                    "max": round(recommended_max, 1)
+                },
+                "statistics": {
+                    "avg": round(avg_pti, 1),
+                    "std_dev": round(std_dev, 1),
+                    "percentiles": {
+                        "25th": round(pti_25th, 1),
+                        "75th": round(pti_75th, 1)
+                    }
+                }
+            })
+        
+        # Sort series numerically using the same logic as other endpoints
+        def get_series_sort_key_for_analysis(series_name):
+            import re
+            
+            # Handle series with numeric values: "Chicago 1", "Series 2", "Division 3", etc.
+            match = re.match(r'^(?:(Chicago|Series|Division)\s+)?(\d+)([a-zA-Z\s]*)$', series_name)
+            if match:
+                prefix = match.group(1) or ''
+                number = int(match.group(2))
+                suffix = match.group(3).strip() if match.group(3) else ''
+                
+                # Sort by: prefix priority, then number, then suffix
+                prefix_priority = {'Chicago': 0, 'Series': 1, 'Division': 2}.get(prefix, 3)
+                return (0, prefix_priority, number, suffix)  # Numeric series first
+            
+            # Handle letter-only series (Series A, Series B, etc.)
+            match = re.match(r'^(?:(Chicago|Series|Division)\s+)?([A-Z]+)$', series_name)
+            if match:
+                prefix = match.group(1) or ''
+                letter = match.group(2)
+                prefix_priority = {'Chicago': 0, 'Series': 1, 'Division': 2}.get(prefix, 3)
+                return (1, prefix_priority, 0, letter)  # Letters after numbers
+            
+            # Everything else goes last (sorted alphabetically)
+            return (2, 0, 0, series_name)
+
+        series_ranges.sort(key=lambda x: get_series_sort_key_for_analysis(x["series_name"]))
+        
+        return jsonify({
+            "success": True,
+            "series_ranges": series_ranges,
+            "total_series": len(series_ranges)
+        })
+        
+    except Exception as e:
+        print(f"Error analyzing series PTI ranges: {str(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
+        return jsonify({"error": "Failed to analyze series data"}), 500
+
+
+@api_bp.route("/api/create-team/save", methods=["POST"])
+@login_required
+def save_team_assignments():
+    """Save team assignments (for future implementation)"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+        
+        # For now, just validate the data structure
+        teams = data.get("teams", {})
+        if not teams:
+            return jsonify({"error": "No team data provided"}), 400
+        
+        # Validate each team has players and PTI totals
+        validated_teams = {}
+        for series_name, team_data in teams.items():
+            players = team_data.get("players", [])
+            total_pti = team_data.get("total_pti", 0)
+            
+            if len(players) < 2:
+                return jsonify({"error": f"Series {series_name} needs at least 2 players"}), 400
+            
+            validated_teams[series_name] = {
+                "players": players,
+                "total_pti": total_pti,
+                "avg_pti": total_pti / len(players) if players else 0
+            }
+        
+        # Log the team creation activity
+        log_user_activity(
+            session["user"]["email"],
+            "team_creation",
+            page="create_team",
+            details=f"Created {len(validated_teams)} teams"
+        )
+        
+        return jsonify({
+            "success": True,
+            "message": "Team assignments validated successfully",
+            "teams": validated_teams
+        })
+        
+    except Exception as e:
+        print(f"Error saving team assignments: {str(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
+        return jsonify({"error": "Failed to save team assignments"}), 500
+
+
+@api_bp.route("/api/create-team/update-range", methods=["POST"])
+@login_required
+def update_pti_range():
+    """Update PTI range for a series with real-time validation"""
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({"success": False, "error": "No data provided"}), 400
+        
+        series_id = data.get('series_id')
+        series_name = data.get('series_name')
+        recommended_range = data.get('recommended_range')
+        
+        if not all([series_id, series_name, recommended_range]):
+            return jsonify({"success": False, "error": "Missing required fields"}), 400
+        
+        min_pti = recommended_range.get('min')
+        max_pti = recommended_range.get('max')
+        
+        if min_pti is None or max_pti is None:
+            return jsonify({"success": False, "error": "Invalid range values"}), 400
+        
+        # Validate range
+        if min_pti >= max_pti:
+            return jsonify({"success": False, "error": "Minimum PTI must be less than maximum PTI"}), 400
+        
+        if min_pti < 10 or max_pti > 80:
+            return jsonify({"success": False, "error": "PTI values must be between 10 and 80"}), 400
+        
+        user = session["user"]
+        user_email = user.get("email")
+        
+        # Log the range update action
+        log_user_activity(user_email, "pti_range_update", action="update_range", details={
+            "series_id": series_id,
+            "series_name": series_name,
+            "old_range": "unknown",  # Could be tracked if needed
+            "new_range": f"{min_pti}-{max_pti}",
+            "timestamp": datetime.now().isoformat()
+        })
+        
+        # In a full implementation, you would save this to a settings/preferences table
+        # For now, we'll just validate and return success
+        
+        return jsonify({
+            "success": True,
+            "message": f"PTI range updated for {series_name}",
+            "series_name": series_name,
+            "new_range": {
+                "min": min_pti,
+                "max": max_pti
+            },
+            "timestamp": datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        print(f"Error updating PTI range: {str(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
+        return jsonify({"success": False, "error": "Failed to update PTI range"}), 500
