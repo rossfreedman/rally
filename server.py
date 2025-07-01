@@ -384,11 +384,15 @@ def serve_schedule_page():
 
 
 @app.route("/create-team")
-@login_required
 def serve_create_team_page():
     """Serve the desktop Create Team page"""
-    session_data = {"user": session["user"], "authenticated": True}
-    log_user_activity(session["user"]["email"], "page_visit", page="create_team")
+    # Handle both authenticated and unauthenticated users
+    if "user" in session:
+        session_data = {"user": session["user"], "authenticated": True}
+        log_user_activity(session["user"]["email"], "page_visit", page="create_team")
+    else:
+        session_data = {"user": None, "authenticated": False}
+    
     return render_template("create_team.html", session_data=session_data)
 
 
