@@ -24,6 +24,7 @@ import json
 import os
 import re
 import sys
+import time
 import traceback
 from datetime import date, datetime
 from decimal import Decimal
@@ -164,6 +165,20 @@ class ComprehensiveETL:
         self.series_mappings = {}  # Cache for series mappings
         # CRITICAL FIX: Add player matching validator
         self.player_validator = PlayerMatchingValidator()
+        
+        # RAILWAY OPTIMIZATION: Detect if running on Railway and adjust settings
+        self.is_railway = os.getenv('RAILWAY_ENVIRONMENT') is not None
+        if self.is_railway:
+            self.log("🚂 Railway environment detected - applying production optimizations")
+            # Smaller batch sizes for Railway memory constraints
+            self.batch_size = 50  # Reduced from default 1000
+            self.commit_frequency = 25  # Commit every 25 operations instead of 100
+            self.connection_retry_attempts = 10  # More retries for Railway
+        else:
+            self.log("🏠 Local environment detected - using standard settings")
+            self.batch_size = 1000
+            self.commit_frequency = 100
+            self.connection_retry_attempts = 5
 
     
     def ensure_schema_requirements(self, conn):
@@ -207,6 +222,43 @@ class ComprehensiveETL:
         """Enhanced logging with timestamps"""
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         print(f"[{timestamp}] [{level}] {message}")
+    
+    def get_railway_optimized_db_connection(self):
+        """Get database connection with Railway-specific optimizations"""
+        if not self.is_railway:
+            return get_db()
+        
+        # Railway-specific connection with better error handling
+        max_retries = self.connection_retry_attempts
+        retry_delay = 2
+        
+        for attempt in range(max_retries):
+            try:
+                self.log(f"🚂 Railway: Database connection attempt {attempt + 1}/{max_retries}")
+                
+                with get_db() as conn:
+                    # Test connection
+                    cursor = conn.cursor()
+                    cursor.execute("SELECT 1")
+                    cursor.fetchone()
+                    
+                    # Set Railway-specific connection parameters for stability
+                    cursor.execute("SET statement_timeout = '300000'")  # 5 minutes
+                    cursor.execute("SET idle_in_transaction_session_timeout = '600000'")  # 10 minutes
+                    cursor.execute("SET work_mem = '64MB'")  # Limit memory usage
+                    
+                    conn.commit()
+                    self.log("✅ Railway: Database connection established with optimizations")
+                    return conn
+                    
+            except Exception as e:
+                self.log(f"⚠️ Railway: Connection attempt {attempt + 1} failed: {str(e)}", "WARNING")
+                if attempt < max_retries - 1:
+                    time.sleep(retry_delay)
+                    retry_delay *= 1.5  # Exponential backoff
+                else:
+                    self.log("❌ Railway: All connection attempts failed", "ERROR")
+                    raise
     
     def load_series_mappings(self, conn):
         """Load series mappings from the team_format_mappings table"""
@@ -2386,9 +2438,27 @@ class ComprehensiveETL:
         self.log(", ".join(message_parts))
 
     def _process_match_batch(self, cursor, batch_data):
-        """Process a batch of match records with improved error handling"""
+        """Process a batch of match records with improved error handling and Railway optimization"""
         if not batch_data:
             return 0
+        
+        # RAILWAY OPTIMIZATION: Use smaller batch sizes on Railway
+        actual_batch_size = min(len(batch_data), self.batch_size) if self.is_railway else len(batch_data)
+        
+        # Process in smaller chunks if on Railway
+        if self.is_railway and len(batch_data) > self.batch_size:
+            total_successful = 0
+            for i in range(0, len(batch_data), self.batch_size):
+                chunk = batch_data[i:i + self.batch_size]
+                successful = self._process_match_batch(cursor, chunk)
+                total_successful += successful
+                
+                # Force frequent commits on Railway to prevent memory issues
+                if i % (self.batch_size * 2) == 0:
+                    cursor.connection.commit()
+                    self.log(f"🚂 Railway: Committed batch {i//self.batch_size + 1}, {total_successful} records processed so far")
+                    
+            return total_successful
             
         try:
             # Use executemany for better performance
@@ -2403,14 +2473,22 @@ class ComprehensiveETL:
                 """,
                 batch_data
             )
+            
+            # RAILWAY OPTIMIZATION: Force commit after each batch on Railway
+            if self.is_railway:
+                cursor.connection.commit()
+                
             return len(batch_data)
             
         except Exception as e:
             self.log(f"❌ Batch insert failed, trying individual inserts: {str(e)}", "WARNING")
             
+            # RAILWAY OPTIMIZATION: Use smaller retry batches on Railway
+            retry_batch_size = 10 if self.is_railway else len(batch_data)
+            
             # Fallback: try individual inserts to salvage what we can
             successful = 0
-            for record_data in batch_data:
+            for i, record_data in enumerate(batch_data):
                 try:
                     cursor.execute(
                         """
@@ -2424,12 +2502,19 @@ class ComprehensiveETL:
                         record_data
                     )
                     successful += 1
+                    
+                    # RAILWAY OPTIMIZATION: Commit frequently during individual inserts
+                    if self.is_railway and successful % 10 == 0:
+                        cursor.connection.commit()
+                        
                 except Exception as individual_error:
                     # Log individual failures but continue
                     continue
                     
             if successful > 0:
                 self.log(f"✅ Salvaged {successful}/{len(batch_data)} records from failed batch")
+                if self.is_railway:
+                    cursor.connection.commit()  # Final commit for Railway
             
             return successful
 
@@ -2559,9 +2644,12 @@ class ComprehensiveETL:
                 if cursor.rowcount > 0:
                     imported += 1
 
-                # Commit more frequently to prevent transaction rollback issues
-                if imported % 100 == 0:
+                # RAILWAY OPTIMIZATION: Commit more frequently on Railway to prevent memory/transaction issues
+                commit_freq = self.commit_frequency
+                if imported % commit_freq == 0:
                     conn.commit()
+                    if self.is_railway:
+                        self.log(f"🚂 Railway: Committed {imported} series_stats records")
 
             except Exception as e:
                 errors += 1
@@ -3222,6 +3310,24 @@ class ComprehensiveETL:
         try:
             self.log("🚀 Starting Comprehensive JSON ETL Process")
             self.log("=" * 60)
+            
+            # RAILWAY OPTIMIZATION: Log environment and resource information
+            if self.is_railway:
+                self.log("🚂 Railway Production Environment Detected")
+                self.log(f"🚂 Railway: Batch size set to {self.batch_size}")
+                self.log(f"🚂 Railway: Commit frequency set to {self.commit_frequency}")
+                self.log(f"🚂 Railway: Connection retries set to {self.connection_retry_attempts}")
+                # Log memory info if available
+                try:
+                    import psutil
+                    memory_info = psutil.virtual_memory()
+                    self.log(f"🚂 Railway: Available memory: {memory_info.available / (1024**3):.1f} GB")
+                except ImportError:
+                    self.log("🚂 Railway: psutil not available for memory monitoring")
+                except Exception as e:
+                    self.log(f"🚂 Railway: Memory check failed: {e}")
+            
+            self.log("=" * 60)
 
             # Step 1: Load all JSON files
             self.log("📂 Step 1: Loading JSON files...")
@@ -3238,9 +3344,12 @@ class ComprehensiveETL:
             )
             clubs_data = self.extract_clubs(players_data)
 
-            # Step 3: Connect to database for mapping-aware extraction
+            # Step 3: Connect to database for mapping-aware extraction  
             self.log("\n🗄️  Step 3: Connecting to database...")
-            with get_db() as conn:
+            if self.is_railway:
+                self.log("🚂 Railway: Using optimized database connection handling")
+            
+            with (self.get_railway_optimized_db_connection() if self.is_railway else get_db()) as conn:
                 try:
                     # Ensure schema requirements
                     self.ensure_schema_requirements(conn)
