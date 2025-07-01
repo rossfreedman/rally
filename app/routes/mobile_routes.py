@@ -449,11 +449,28 @@ def serve_mobile_view_schedule():
 def serve_mobile_analyze_me():
     """Serve the mobile Analyze Me page"""
     try:
-        print(f"[DEBUG] Session user type: {type(session['user'])}")
-        print(f"[DEBUG] Session user data: {session['user']}")
-
-        # Get the session user
-        session_user = session["user"]
+        # Use session service to get fresh session data (same as main mobile route)
+        from app.services.session_service import get_session_data_for_user
+        
+        user_email = session["user"]["email"]
+        print(f"[DEBUG] Getting fresh session data for analyze-me user: {user_email}")
+        
+        # Get fresh session data based on league_context 
+        fresh_session_data = get_session_data_for_user(user_email)
+        
+        if fresh_session_data:
+            # Update Flask session with fresh data
+            session["user"] = fresh_session_data
+            session.modified = True
+            session_user = fresh_session_data
+            print(f"[DEBUG] Using fresh session data for analyze-me")
+        else:
+            # Fallback to existing session
+            session_user = session["user"]
+            print(f"[DEBUG] Using fallback session data for analyze-me")
+        
+        print(f"[DEBUG] Session user type: {type(session_user)}")
+        print(f"[DEBUG] Session user data: {session_user}")
 
         # Check if session already has a tenniscores_player_id (set by league switching)
         if session_user.get("tenniscores_player_id"):
