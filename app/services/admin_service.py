@@ -235,7 +235,7 @@ def delete_user_by_email(email, admin_email):
             DELETE FROM activity_log WHERE user_id = %(user_id)s;
             DELETE FROM user_activity_logs WHERE user_email = %(email)s;
             DELETE FROM user_instructions WHERE user_email = %(email)s;
-            DELETE FROM player_availability WHERE player_name = %(email)s;
+            DELETE FROM player_availability WHERE user_id = %(user_id)s;
             DELETE FROM user_player_associations WHERE user_id = %(user_id)s;
             DELETE FROM users WHERE email = %(email)s;
         """,
