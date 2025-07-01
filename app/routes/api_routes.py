@@ -35,6 +35,28 @@ def login_required(f):
     return decorated_function
 
 
+def convert_chicago_to_series_for_ui(series_name):
+    """
+    Convert "Chicago X" format to "Series X" format for APTA league UI display.
+    Examples: "Chicago 1" -> "Series 1", "Chicago 21 SW" -> "Series 21 SW"
+    """
+    import re
+    
+    # Handle "Chicago X" format (with optional suffix like "SW")
+    match = re.match(r'^Chicago\s+(\d+)([a-zA-Z\s]*)$', series_name)
+    if match:
+        number = match.group(1)
+        suffix = match.group(2).strip() if match.group(2) else ''
+        
+        if suffix:
+            return f"Series {number} {suffix}"
+        else:
+            return f"Series {number}"
+    
+    # Return unchanged if not in "Chicago X" format
+    return series_name
+
+
 @api_bp.route("/api/series-stats")
 @login_required
 def get_series_stats():
@@ -2018,17 +2040,43 @@ def get_series_by_league():
             series_data = execute_query(query, (league_id,))
 
         # Process the series data to extract numbers and sort properly
-        def extract_series_number(series_name):
+        def get_series_sort_key(series_name):
             import re
+            
+            # Handle series with numeric values: "Chicago 1", "Series 2", "Division 3", etc.
+            match = re.match(r'^(?:(Chicago|Series|Division)\s+)?(\d+)([a-zA-Z\s]*)$', series_name)
+            if match:
+                prefix = match.group(1) or ''
+                number = int(match.group(2))
+                suffix = match.group(3).strip() if match.group(3) else ''
+                
+                # Sort by: prefix priority, then number, then suffix
+                prefix_priority = {'Chicago': 0, 'Series': 1, 'Division': 2}.get(prefix, 3)
+                return (0, prefix_priority, number, suffix)  # Numeric series first
+            
+            # Handle letter-only series (Series A, Series B, etc.)
+            match = re.match(r'^(?:(Chicago|Series|Division)\s+)?([A-Z]+)$', series_name)
+            if match:
+                prefix = match.group(1) or ''
+                letter = match.group(2)
+                prefix_priority = {'Chicago': 0, 'Series': 1, 'Division': 2}.get(prefix, 3)
+                return (1, prefix_priority, 0, letter)  # Letters after numbers
+            
+            # Everything else goes last (sorted alphabetically)
+            return (2, 0, 0, series_name)
 
-            numbers = re.findall(r"\d+", series_name)
-            if numbers:
-                return int(numbers[-1])
-            else:
-                return 999
-
-        series_data.sort(key=lambda x: extract_series_number(x["series_name"]))
-        series_names = [item["series_name"] for item in series_data]
+        series_data.sort(key=lambda x: get_series_sort_key(x["series_name"]))
+        
+        # Convert series names for APTA league UI display
+        series_names = []
+        for item in series_data:
+            series_name = item["series_name"]
+            
+            # For APTA league, convert "Chicago" to "Series" in the UI
+            if league_id and league_id.startswith("APTA"):
+                series_name = convert_chicago_to_series_for_ui(series_name)
+            
+            series_names.append(series_name)
 
         return jsonify({"series": series_names})
 
@@ -2043,77 +2091,86 @@ def get_user_facing_series_by_league():
     try:
         league_id = request.args.get("league_id")
 
+        # If no league_id parameter provided, get it from user session
+        if not league_id and "user" in session:
+            league_id = session["user"].get("league_id", "")
+            print(f"[DEBUG] No league_id parameter, using session league_id: {league_id}")
+
         if not league_id:
-            # Return all series if no league specified
-            query = """
-                SELECT DISTINCT s.name as series_name
-                FROM series s
-                ORDER BY s.name
+            # If still no league_id, return empty series list instead of all series
+            print(f"[WARNING] No league_id found in parameter or session, returning empty series list")
+            return jsonify({"series": []})
+            
+        # First, get all actual series in this league from the database
+        series_query = """
+            SELECT DISTINCT s.name as database_series_name
+            FROM series s
+            JOIN series_leagues sl ON s.id = sl.series_id
+            JOIN leagues l ON sl.league_id = l.id
+            WHERE l.league_id = %s
+            ORDER BY s.name
+        """
+        series_data = execute_query(series_query, (league_id,))
+        
+        # Get user-facing names from series_name_mappings table
+        # This maps database names back to user-facing names
+        user_facing_names = []
+        
+        for series_item in series_data:
+            database_name = series_item["database_series_name"]
+            
+            # Check if there's a reverse mapping (database_series_name -> user_series_name)
+            reverse_mapping_query = """
+                SELECT user_series_name
+                FROM series_name_mappings
+                WHERE league_id = %s AND database_series_name = %s
+                ORDER BY user_series_name
+                LIMIT 1
             """
-            series_data = execute_query(query)
             
-            # For leagues without mappings, return database names as-is
-            series_names = [item["series_name"] for item in series_data]
+            mapping_result = execute_query_one(reverse_mapping_query, (league_id, database_name))
             
-        else:
-            # First, get all actual series in this league from the database
-            series_query = """
-                SELECT DISTINCT s.name as database_series_name
-                FROM series s
-                JOIN series_leagues sl ON s.id = sl.series_id
-                JOIN leagues l ON sl.league_id = l.id
-                WHERE l.league_id = %s
-                ORDER BY s.name
-            """
-            series_data = execute_query(series_query, (league_id,))
+            if mapping_result:
+                # Use the user-facing name from the mapping
+                user_facing_name = mapping_result["user_series_name"]
+            else:
+                # No mapping found, use database name as-is
+                user_facing_name = database_name
             
-            # Get user-facing names from series_name_mappings table
-            # This maps database names back to user-facing names
-            user_facing_names = []
+            # For APTA league, convert "Chicago" to "Series" in the UI
+            if league_id and league_id.startswith("APTA"):
+                user_facing_name = convert_chicago_to_series_for_ui(user_facing_name)
             
-            for series_item in series_data:
-                database_name = series_item["database_series_name"]
-                
-                # Check if there's a reverse mapping (database_series_name -> user_series_name)
-                reverse_mapping_query = """
-                    SELECT user_series_name
-                    FROM series_name_mappings
-                    WHERE league_id = %s AND database_series_name = %s
-                    ORDER BY user_series_name
-                    LIMIT 1
-                """
-                
-                mapping_result = execute_query_one(reverse_mapping_query, (league_id, database_name))
-                
-                if mapping_result:
-                    # Use the user-facing name from the mapping
-                    user_facing_name = mapping_result["user_series_name"]
-                    user_facing_names.append(user_facing_name)
-                else:
-                    # No mapping found, use database name as-is
-                    user_facing_names.append(database_name)
-            
-            series_names = user_facing_names
+            user_facing_names.append(user_facing_name)
+        
+        series_names = user_facing_names
 
         # Sort series properly (numbers before letters)
         def get_sort_key(series_name):
             import re
             
-            # Extract number and suffix for proper sorting
-            match = re.match(r'^(?:Series\s+)?(\d+)([a-zA-Z]*)$', series_name)
+            # Handle series with numeric values: "Chicago 1", "Series 2", "Division 3", etc.
+            # Extract prefix, number, and optional suffix (like "SW" or letters)
+            match = re.match(r'^(?:(Chicago|Series|Division)\s+)?(\d+)([a-zA-Z\s]*)$', series_name)
             if match:
-                number = int(match.group(1))
-                suffix = match.group(2) or ''
-                return (0, number, suffix)  # Numbers first
+                prefix = match.group(1) or ''
+                number = int(match.group(2))
+                suffix = match.group(3).strip() if match.group(3) else ''
+                
+                # Sort by: prefix priority, then number, then suffix
+                prefix_priority = {'Chicago': 0, 'Series': 1, 'Division': 2}.get(prefix, 3)
+                return (0, prefix_priority, number, suffix)  # Numeric series first
             
             # Handle letter-only series (Series A, Series B, etc.)
-            match = re.match(r'^(?:Series\s+)?([A-Z]+)$', series_name)
+            match = re.match(r'^(?:(Chicago|Series|Division)\s+)?([A-Z]+)$', series_name)
             if match:
-                letter = match.group(1)
-                return (1, 0, letter)  # Letters after numbers
+                prefix = match.group(1) or ''
+                letter = match.group(2)
+                prefix_priority = {'Chicago': 0, 'Series': 1, 'Division': 2}.get(prefix, 3)
+                return (1, prefix_priority, 0, letter)  # Letters after numbers
             
-            # Everything else goes last
-            return (2, 0, series_name)
+            # Everything else goes last (sorted alphabetically)
+            return (2, 0, 0, series_name)
 
         series_names.sort(key=get_sort_key)
         

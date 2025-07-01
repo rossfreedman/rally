@@ -1982,7 +1982,7 @@ class ComprehensiveETL:
                         errors += 1
                         if errors <= 10:
                             self.log(
-                                f"❌ Error importing match for player {tenniscores_player_id}: {str(match_error)}",
+                                f"❌ Error importing match for player {player_id}: {str(match_error)}",
                                 "ERROR",
                             )
 
@@ -1996,7 +1996,7 @@ class ComprehensiveETL:
                 errors += 1
                 if errors <= 10:
                     self.log(
-                        f"❌ Error importing player history for {tenniscores_player_id}: {str(e)}",
+                        f"❌ Error importing player history for {player_id}: {str(e)}",
                         "ERROR",
                     )
 
