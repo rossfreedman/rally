@@ -400,6 +400,10 @@
                                         Team Assignments
                                     </h2>
                                     <p class="text-sm text-gray-600 mt-2">Drop players into series to create balanced teams</p>
+                                    <p class="text-xs text-blue-600 mt-1">
+                                        <i class="fas fa-info-circle mr-1"></i>
+                                        <strong>Target Team PTI</strong> shows total team PTI range (individual PTI × team size). Adjust "Team Size" to see how it affects targets.
+                                    </p>
                                 </div>
                                 <button id="reset-assignments" class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-purple-600 bg-white border border-purple-200 rounded-lg hover:bg-purple-50 hover:text-purple-700 transition-colors">
                                     <i class="fas fa-undo text-xs"></i>
@@ -844,7 +848,7 @@
                             <h3 class="text-lg font-semibold text-gray-900">${series.series_name}</h3>
                             <div class="text-sm text-gray-600">
                                 <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
-                                    Recommended PTI: ${rangeText}
+                                    Recommended Player PTI: ${rangeText}
                                 </span>
                             </div>
                         </div>
@@ -855,7 +859,7 @@
                                         Team PTI: <span class="team-pti font-semibold text-gray-900">0.0</span>
                                     </span>
                                     <span class="whitespace-nowrap">
-                                        Target PTI: <span class="target-pti font-semibold text-blue-600">${((series.recommended_range.min + series.recommended_range.max) / 2).toFixed(1)}</span>
+                                        Target Team PTI: <span class="target-pti font-semibold text-blue-600">-</span>
                                     </span>
                                     <span class="whitespace-nowrap">
                                         Delta: <span class="pti-delta font-semibold">-</span>
@@ -871,6 +875,17 @@
                                 </span>
                                 <span class="whitespace-nowrap">
                                     Avg PTI: <span class="avg-pti font-semibold">0.0</span>
+                                </span>
+                                <span class="whitespace-nowrap">
+                                    Team Size: 
+                                    <input type="number" 
+                                           class="team-size-input w-14 px-1 py-0.5 text-center border border-gray-300 rounded text-xs font-semibold bg-white hover:border-blue-400 focus:border-blue-500 focus:outline-none"
+                                           min="1" 
+                                           max="20" 
+                                           value="10"
+                                           title="Number of players on team (affects Target Team PTI calculation)"
+                                           data-series-id="${series.series_id}"
+                                           data-series-name="${series.series_name}">
                                 </span>
                             </div>
                         </div>
@@ -894,10 +909,19 @@
                     avg_pti: 0,
                     recommended_range: series.recommended_range
                 };
+                
+                // Initial update of series display to show target PTI range
+                setTimeout(() => {
+                    updateSeriesDisplay(series.series_name);
+                }, 100);
             });
             
             // Setup drop zones
             setupDropZones();
+            
+            // Setup team size input event listeners for newly created containers
+            setupTeamSizeEventListeners();
+            
             console.log('Drop zones setup completed');
         }
 
@@ -934,6 +958,39 @@
             if (resetAssignmentsBtn) {
                 resetAssignmentsBtn.addEventListener('click', resetTeamAssignments);
             }
+            
+            // Team size input event listeners
+            setupTeamSizeEventListeners();
+        }
+        
+        // Setup team size input event listeners
+        function setupTeamSizeEventListeners() {
+            const teamSizeInputs = document.querySelectorAll('.team-size-input');
+            teamSizeInputs.forEach(input => {
+                input.addEventListener('input', handleTeamSizeChange);
+                input.addEventListener('change', handleTeamSizeChange);
+            });
+        }
+        
+        // Handle team size input changes
+        function handleTeamSizeChange(event) {
+            const input = event.target;
+            const seriesName = input.dataset.seriesName;
+            
+            // Validate team size
+            let teamSize = parseInt(input.value);
+            if (isNaN(teamSize) || teamSize < 1) {
+                teamSize = 1;
+                input.value = teamSize;
+            } else if (teamSize > 20) {
+                teamSize = 20;
+                input.value = teamSize;
+            }
+            
+            // Update series display with new team size
+            updateSeriesDisplay(seriesName);
+            
+            console.log(`Team size updated for ${seriesName}: ${teamSize} players`);
         }
 
         // Setup player events
@@ -1197,11 +1254,30 @@
             const totalPti = assignment.players.reduce((sum, p) => sum + parseFloat(p.pti || 0), 0);
             const avgPti = playerCount > 0 ? totalPti / playerCount : 0;
             
-            // Calculate target PTI (midpoint of recommended range)
-            const targetPti = (assignment.recommended_range.min + assignment.recommended_range.max) / 2;
+            // Get team size from input
+            const teamSizeInput = container.querySelector('.team-size-input');
+            const teamSize = teamSizeInput ? parseInt(teamSizeInput.value) : 10;
             
-            // Calculate delta (difference from target)
-            const delta = playerCount > 0 ? avgPti - targetPti : 0;
+            // Calculate target PTI range based on team size
+            const targetMinPti = assignment.recommended_range.min * teamSize;
+            const targetMaxPti = assignment.recommended_range.max * teamSize;
+            
+            // Calculate delta (how far current team PTI is from target range)
+            let delta = 0;
+            let deltaStatus = 'in-range';
+            
+            if (playerCount > 0) {
+                if (totalPti < targetMinPti) {
+                    delta = totalPti - targetMinPti; // Negative value (below range)
+                    deltaStatus = 'below-range';
+                } else if (totalPti > targetMaxPti) {
+                    delta = totalPti - targetMaxPti; // Positive value (above range)
+                    deltaStatus = 'above-range';
+                } else {
+                    delta = 0; // In range
+                    deltaStatus = 'in-range';
+                }
+            }
             
             // Update assignment object
             assignment.total_pti = totalPti;
@@ -1215,28 +1291,38 @@
             const avgPtiEl = container.querySelector('.avg-pti');
             
             if (teamPtiEl) teamPtiEl.textContent = totalPti.toFixed(1);
-            if (targetPtiEl) targetPtiEl.textContent = targetPti.toFixed(1);
+            if (targetPtiEl) {
+                if (teamSize > 0) {
+                    targetPtiEl.textContent = `${targetMinPti.toFixed(1)} - ${targetMaxPti.toFixed(1)}`;
+                } else {
+                    targetPtiEl.textContent = '-';
+                }
+            }
             if (ptiDeltaEl) {
                 if (playerCount === 0) {
                     ptiDeltaEl.textContent = '-';
                     ptiDeltaEl.className = 'pti-delta font-semibold';
                 } else {
-                    const deltaSign = delta >= 0 ? '+' : '';
-                    ptiDeltaEl.textContent = deltaSign + delta.toFixed(1);
-                    // Color code the delta: green for close to target, red for far
-                    if (Math.abs(delta) <= 2) {
+                    if (deltaStatus === 'in-range') {
+                        ptiDeltaEl.textContent = '✓ In range';
                         ptiDeltaEl.className = 'pti-delta font-semibold text-green-600';
-                    } else if (Math.abs(delta) <= 5) {
-                        ptiDeltaEl.className = 'pti-delta font-semibold text-yellow-600';
                     } else {
-                        ptiDeltaEl.className = 'pti-delta font-semibold text-orange-600';
+                        const deltaSign = delta >= 0 ? '+' : '';
+                        ptiDeltaEl.textContent = deltaSign + delta.toFixed(1);
+                        
+                        // Color code the delta based on how far from range
+                        if (Math.abs(delta) <= 5) {
+                            ptiDeltaEl.className = 'pti-delta font-semibold text-yellow-600';
+                        } else {
+                            ptiDeltaEl.className = 'pti-delta font-semibold text-orange-600';
+                        }
                     }
                 }
             }
             if (playerCountEl) playerCountEl.textContent = playerCount;
             if (avgPtiEl) avgPtiEl.textContent = avgPti.toFixed(1);
             
-            // Update status - FIXED: Lower PTI = Stronger
+            // Update status based on team PTI vs target range
             const statusEl = container.querySelector('.pti-status');
             const statusText = container.querySelector('.status-text');
             
@@ -1244,17 +1330,17 @@
                 if (playerCount === 0) {
                     statusEl.className = 'pti-status text-xs px-2 py-1 rounded bg-gray-100 text-gray-600';
                     statusText.textContent = 'Ready for players';
-                } else if (avgPti >= assignment.recommended_range.min && avgPti <= assignment.recommended_range.max) {
+                } else if (deltaStatus === 'in-range') {
                     statusEl.className = 'pti-status text-xs px-2 py-1 rounded bg-green-100 text-green-800';
-                    statusText.textContent = '✓ In range';
-                } else if (avgPti < assignment.recommended_range.min) {
-                    // Lower PTI = Stronger, so below min range = too strong
+                    statusText.textContent = '✓ Team in range';
+                } else if (deltaStatus === 'below-range') {
+                    // Team PTI below target range = too strong (lower PTI = stronger)
                     statusEl.className = 'pti-status text-xs px-2 py-1 rounded bg-blue-100 text-blue-800';
-                    statusText.textContent = '↑ Too strong';
+                    statusText.textContent = '↑ Team too strong';
                 } else {
-                    // Higher PTI = Weaker, so above max range = too weak  
+                    // Team PTI above target range = too weak (higher PTI = weaker)  
                     statusEl.className = 'pti-status text-xs px-2 py-1 rounded bg-orange-100 text-orange-800';
-                    statusText.textContent = '↓ Too weak';
+                    statusText.textContent = '↓ Team too weak';
                 }
             }
         }
@@ -1297,42 +1383,8 @@
         }
 
         // Action handlers
-        async function saveTeams() {
-            try {
-                const button = document.getElementById('save-teams');
-                if (button) {
-                    button.disabled = true;
-                    button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Saving...';
-                }
-                
-                const response = await fetch('/api/create-team/save', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        teams: teamAssignments
-                    })
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    alert('Team assignments saved successfully!');
-                } else {
-                    throw new Error(data.error || 'Failed to save teams');
-                }
-                
-            } catch (error) {
-                console.error('Error saving teams:', error);
-                alert('Failed to save team assignments: ' + error.message);
-            } finally {
-                const button = document.getElementById('save-teams');
-                if (button) {
-                    button.disabled = false;
-                    button.innerHTML = '<i class="fas fa-save mr-2"></i>Save Teams';
-                }
-            }
+        function saveTeams() {
+            alert('Save not implemented yet');
         }
 
         function resetTeams() {
@@ -1399,6 +1451,9 @@
             
             // Refresh all team assignment displays to reflect reset ranges
             refreshAllTeamDisplaysForRangeChanges();
+            
+            // Re-setup team size event listeners in case containers were updated
+            setupTeamSizeEventListeners();
             
             console.log('PTI ranges reset to original values');
         }
