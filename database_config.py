@@ -24,18 +24,24 @@ def get_db_url():
     is_railway = os.getenv("RAILWAY_ENVIRONMENT") is not None
 
     if is_railway:
-        # When running on Railway, prefer internal connection for better reliability
-        # Use DATABASE_URL (internal) first, fallback to DATABASE_PUBLIC_URL if needed
+        # CRITICAL FIX: When running via 'railway run', we're outside the internal network
+        # so we need to use the public URL instead of internal hostname
         url = os.getenv("DATABASE_URL")
-
-        # If DATABASE_URL uses internal hostname, that's actually preferred on Railway
-        if url and ("railway.internal" in url or "postgres.railway.internal" in url):
+        public_url = os.getenv("DATABASE_PUBLIC_URL")
+        
+        # Check if we have a public URL and if the DATABASE_URL contains internal hostname
+        if (public_url and url and 
+            ("railway.internal" in url or "postgres.railway.internal" in url)):
+            # Use public URL for external connections (like 'railway run')
+            url = public_url
+            logger.info("Using Railway public database connection (external access)")
+        elif url and ("railway.internal" in url or "postgres.railway.internal" in url):
             logger.info(
                 "Using Railway internal database connection (preferred for Railway deployments)"
             )
         else:
             # Fallback to public URL if internal not available
-            url = os.getenv("DATABASE_PUBLIC_URL") or url
+            url = public_url or url
             logger.info("Using Railway public database connection")
     else:
         # For local development, prefer public URL or local connection
@@ -188,15 +194,35 @@ def get_db():
                 f"Database connection error (attempt {attempt + 1}): {error_msg}"
             )
 
-            # Additional Railway-specific troubleshooting
-            if "postgres.railway.internal" in error_msg:
-                logger.error("ERROR: Detected Railway internal hostname issue!")
-                logger.error(
-                    "This suggests the DATABASE_URL environment variable is using Railway's internal hostname."
-                )
-                logger.error(
-                    "The fix should automatically convert this to the public proxy URL."
-                )
+            # CRITICAL FIX: Railway internal hostname fallback
+            if ("postgres.railway.internal" in error_msg or "railway.internal" in error_msg):
+                logger.warning("🚂 Railway internal hostname resolution failed")
+                
+                # Try to fallback to public URL if available
+                public_url = os.getenv("DATABASE_PUBLIC_URL")
+                if public_url and attempt == 0:  # Only try this on first attempt
+                    logger.info("🔄 Retrying with Railway public database URL...")
+                    try:
+                        public_params = parse_db_url(public_url)
+                        conn = psycopg2.connect(**public_params)
+                        
+                        # Test the connection
+                        with conn.cursor() as cursor:
+                            cursor.execute("SELECT current_setting('timezone')")
+                            tz = cursor.fetchone()[0]
+                            logger.info(f"✅ Railway public connection successful! Timezone: {tz}")
+                            global _connection_logged
+                            _connection_logged = True
+                        
+                        conn.commit()
+                        yield conn
+                        return
+                        
+                    except Exception as fallback_error:
+                        logger.warning(f"⚠️  Public URL fallback also failed: {fallback_error}")
+                        # Continue with normal retry logic
+                
+                logger.info("💡 Suggestion: Use DATABASE_PUBLIC_URL for external Railway connections")
 
             if "timeout expired" in error_msg:
                 logger.warning("Connection timeout detected. This could be due to:")
