@@ -1,1442 +1,601 @@
 {% extends "mobile/layout.html" %}
 {% set show_back_arrow = True %}
 
+{% block title %}Rally - Create Team{% endblock %}
+
 {% block content %}
 <div class="min-h-screen bg-gray-50">
-    
-    <!-- Header -->
-    <div class="bg-white border-b border-gray-100">
-        <div class="flex items-center justify-between px-4 py-6">
-            <div class="flex items-center">
-                <div class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center shadow-sm">
-                    <i class="fas fa-users-cog text-white text-lg"></i>
-                </div>
-                <div class="ml-4">
-                    <h1 class="text-xl font-bold text-gray-900">Create Team</h1>
-                    <p class="text-sm text-gray-500">PTI-based team assignment with expert guidance</p>
-                </div>
-            </div>
-            
-            <!-- View Desktop Version Button -->
+    <!-- Desktop Only Alert -->
+    <div class="bg-amber-50 border border-amber-200 rounded-xl mb-4 p-4 shadow-sm">
+        <div class="flex items-center gap-3">
             <div class="flex-shrink-0">
-                <a href="/create-team" class="inline-flex items-center px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 hover:text-blue-700 transition-colors">
-                    <i class="fas fa-desktop mr-2"></i>
-                    Desktop Version
-                </a>
+                <i class="fas fa-desktop text-amber-600 text-lg"></i>
+            </div>
+            <div class="flex-1">
+                <p class="text-sm font-medium text-amber-800">
+                    <span class="font-semibold">Desktop Optimized:</span> This page works on mobile but is optimized for desktop viewing. For the best experience with all three columns visible side-by-side, please use a computer or tablet in landscape mode.
+                </p>
+            </div>
+            <div class="flex-shrink-0">
+                <button onclick="this.parentElement.parentElement.parentElement.style.display='none'" class="text-amber-600 hover:text-amber-800 transition-colors">
+                    <i class="fas fa-times text-sm"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Page Header -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 mb-4">
+        <div class="flex items-center gap-4 p-4">
+            <div class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center shadow-sm">
+                <i class="fas fa-users-cog text-white text-xl"></i>
+            </div>
+            <div>
+                <h1 class="text-xl font-bold text-gray-900">Create Team</h1>
+                <p class="text-sm text-gray-600">PTI-based team assignment with expert guidance</p>
             </div>
         </div>
     </div>
 
     <!-- Loading State -->
-    <div id="loading-state" class="px-4 py-8 text-center">
-        <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-        <p class="mt-2 text-gray-600">Loading player data...</p>
+    <div id="loading-state" class="py-12 text-center">
+        <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <p class="mt-4 text-lg text-gray-600">Loading player data...</p>
     </div>
 
-    <!-- Main Content -->
-    <div id="main-content" class="px-4 space-y-6 hidden" style="padding-top: 1.5rem; padding-bottom: 1.5rem;">
-
-        <!-- Expert Guidance Panel -->
-        <div id="guidance-panel" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="px-6 py-4 border-b border-gray-50 bg-gradient-to-r from-blue-50 to-indigo-50">
-                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-                    <i class="fas fa-lightbulb text-yellow-500 mr-2"></i>
-                    Expert Guidance
-                </h2>
-            </div>
-            <div class="p-4">
-                <div id="series-recommendations" class="space-y-3">
-                    <!-- Series recommendations will be loaded here -->
-                </div>
-            </div>
-        </div>
-
-        <!-- Players Pool -->
-        <div id="players-section" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="px-6 py-4 border-b border-gray-50">
-                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-                    <i class="fas fa-users text-green-500 mr-2"></i>
-                    Available Players
-                    <span id="player-count" class="ml-2 text-sm bg-gray-100 text-gray-600 px-2 py-1 rounded-full"></span>
-                </h2>
-                <p class="text-sm text-gray-600 mt-1">Drag players to series below to create teams. Players are sorted by PTI (lower is better).</p>
-            </div>
+    <!-- Main Content Container -->
+    <div id="main-content" class="hidden">
+        <div class="space-y-4">
             
-            <div class="p-4">
-                <div id="available-players-pool" class="min-h-24 bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg p-3 overflow-y-auto" style="max-height: 300px;">
-                    <div class="text-gray-400 text-center text-sm" id="loading-players">Loading players...</div>
+            <!-- Column 1: Interactive PTI Range Control -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100">
+                <div class="px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                                <i class="fas fa-sliders-h text-blue-600 mr-2"></i>
+                                PTI Range Control
+                            </h2>
+                            <p class="text-sm text-gray-600 mt-1">Adjust PTI ranges for each series with real-time validation</p>
+                        </div>
+                        <button id="reset-ranges" class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-blue-600 bg-white border border-blue-200 rounded-lg hover:bg-blue-50 hover:text-blue-700 transition-colors">
+                            <i class="fas fa-undo text-xs"></i>
+                            Reset
+                        </button>
+                    </div>
+                </div>
+                <div class="p-4 max-h-96 overflow-y-auto">
+                    <div id="series-recommendations" class="space-y-4">
+                        <!-- Series recommendations will be loaded here -->
+                    </div>
                 </div>
             </div>
+
+            <!-- Column 2: Available Players -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100">
+                <div class="px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-green-50 to-emerald-50">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                                <i class="fas fa-users text-green-600 mr-2"></i>
+                                Available Players
+                                <span id="player-count" class="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full"></span>
+                            </h2>
+                            <p class="text-sm text-gray-600 mt-1">Tap players to assign to series ranges. Tennaqua players only.</p>
+                            <div class="mt-2 p-2 bg-gray-50 rounded-lg">
+                                <p class="text-xs font-medium text-gray-700 mb-1">PTI Color Guide:</p>
+                                <div class="flex flex-wrap gap-1 text-xs">
+                                    <span class="bg-emerald-200 border border-emerald-400 text-emerald-900 px-1 py-0.5 rounded font-medium">0-9</span>
+                                    <span class="bg-green-200 border border-green-400 text-green-900 px-1 py-0.5 rounded font-medium">10-19</span>
+                                    <span class="bg-lime-200 border border-lime-400 text-lime-900 px-1 py-0.5 rounded font-medium">20-29</span>
+                                    <span class="bg-yellow-200 border border-yellow-400 text-yellow-900 px-1 py-0.5 rounded font-medium">30-39</span>
+                                    <span class="bg-amber-200 border border-amber-400 text-amber-900 px-1 py-0.5 rounded font-medium">40-49</span>
+                                    <span class="bg-orange-200 border border-orange-400 text-orange-900 px-1 py-0.5 rounded font-medium">50-59</span>
+                                    <span class="bg-red-200 border border-red-400 text-red-900 px-1 py-0.5 rounded font-medium">60-69</span>
+                                    <span class="bg-rose-200 border border-rose-400 text-rose-900 px-1 py-0.5 rounded font-medium">70-79</span>
+                                    <span class="bg-purple-200 border border-purple-400 text-purple-900 px-1 py-0.5 rounded font-medium">80+</span>
+                                </div>
+                            </div>
+                        </div>
+                        <button id="reset-players" class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-green-600 bg-white border border-green-200 rounded-lg hover:bg-green-50 hover:text-green-700 transition-colors">
+                            <i class="fas fa-undo text-xs"></i>
+                            Reset
+                        </button>
+                    </div>
+                </div>
+                <div class="p-4 max-h-96 overflow-y-auto">
+                    <div id="available-players-pool" class="min-h-24 bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-4">
+                        <div class="text-gray-400 text-center text-sm" id="loading-players">Loading players...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Column 3: Series Teams Display -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100">
+                <div class="px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-purple-50 to-pink-50">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                                <i class="fas fa-users-cog text-purple-600 mr-2"></i>
+                                Team Assignments
+                            </h2>
+                            <p class="text-sm text-gray-600 mt-1">Tap series to assign selected players</p>
+                            <p class="text-xs text-blue-600 mt-1">
+                                <i class="fas fa-info-circle mr-1"></i>
+                                <strong>Target Team PTI</strong> shows total team PTI range (individual PTI × team size).
+                            </p>
+                        </div>
+                        <button id="reset-assignments" class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-purple-600 bg-white border border-purple-200 rounded-lg hover:bg-purple-50 hover:text-purple-700 transition-colors">
+                            <i class="fas fa-undo text-xs"></i>
+                            Reset
+                        </button>
+                    </div>
+                </div>
+                <div class="p-4 max-h-96 overflow-y-auto">
+                    <div id="series-teams" class="space-y-4">
+                        <!-- Series containers will be dynamically created here -->
+                    </div>
+                </div>
+            </div>
+
         </div>
 
         <!-- Selected Player Indicator (for tap mode) -->
-        <div id="selected-player-indicator" class="bg-yellow-100 border border-yellow-300 rounded-lg p-3 hidden">
+        <div id="selected-player-indicator" class="bg-yellow-100 border border-yellow-300 rounded-lg p-4 mt-4 hidden">
             <div class="flex items-center justify-between">
                 <div>
                     <span class="text-sm font-medium text-yellow-800">Selected: </span>
-                    <span id="selected-player-name" class="text-sm text-yellow-900"></span>
+                    <span id="selected-player-name" class="text-sm text-yellow-900 font-semibold"></span>
                     <span id="selected-player-pti" class="text-xs text-yellow-700 ml-2"></span>
                 </div>
-                <button id="clear-selection" class="text-yellow-600 hover:text-yellow-800 text-xs">
-                    Clear
+                <button id="clear-selection" class="text-yellow-600 hover:text-yellow-800 text-sm px-3 py-1 rounded">
+                    Clear Selection
                 </button>
             </div>
-            <p class="text-xs text-yellow-700 mt-1">Tap a series below to assign this player</p>
-        </div>
-
-        <!-- Series Teams -->
-        <div id="series-teams" class="space-y-4">
-            <!-- Series containers will be dynamically created here -->
+            <p class="text-xs text-yellow-700 mt-2">Tap a series range to assign this player</p>
         </div>
 
         <!-- Action Buttons -->
-        <div class="flex gap-3 pt-4">
-            <button id="save-teams" class="flex-1 bg-green-600 text-white px-6 py-3 rounded-lg shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed">
+        <div class="flex gap-3 pt-6 justify-center">
+            <button id="save-teams" class="bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed">
                 <i class="fas fa-save mr-2"></i>
                 Save Teams
             </button>
-            <button id="reset-teams" class="bg-gray-600 text-white px-6 py-3 rounded-lg shadow-sm hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors font-semibold">
+            <button id="reset-teams" class="bg-gray-600 text-white px-6 py-3 rounded-lg shadow-lg hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-all font-semibold">
                 <i class="fas fa-undo mr-2"></i>
                 Reset
             </button>
         </div>
-
     </div>
 </div>
 
-<script>
-// Initialize session data
-window.sessionData = {{ session_data | tojson | safe }};
-
-// Global variables
-let allPlayers = [];
-let seriesRanges = [];
-let teamAssignments = {};
-let selectedPlayerForTap = null;
-
-// Touch handling for mobile drag and drop
-let touchedPlayer = null;
-let touchOffset = { x: 0, y: 0 };
-
-// Debug function to force show content (can be called from browser console)
-window.forceShowContent = function() {
-    console.log('Forcing content display...');
-    const loadingState = document.getElementById('loading-state');
-    const mainContent = document.getElementById('main-content');
-    
-    // Force hide loading state
-    loadingState.classList.add('hidden');
-    loadingState.style.display = 'none !important';
-    
-    // Force show main content
-    mainContent.classList.remove('hidden');
-    mainContent.style.display = 'block !important';
-    mainContent.style.visibility = 'visible !important';
-    mainContent.style.opacity = '1 !important';
-    mainContent.style.position = 'relative !important';
-    mainContent.style.zIndex = '1 !important';
-    mainContent.style.backgroundColor = '#ff0000 !important'; // Debug: bright red
-    mainContent.style.minHeight = '500px !important'; // Ensure height
-    mainContent.style.border = '3px solid yellow !important'; // Debug: yellow border
-    
-    console.log('Content forced to display');
-    console.log('Main content computed style:', window.getComputedStyle(mainContent).display);
-};
-
-// Debug function to check current state
-window.debugPageState = function() {
-    console.log('=== PAGE DEBUG INFO ===');
-    console.log('Players loaded:', allPlayers.length);
-    console.log('Series loaded:', seriesRanges.length);
-    
-    const loadingState = document.getElementById('loading-state');
-    const mainContent = document.getElementById('main-content');
-    
-    console.log('Loading state element exists:', !!loadingState);
-    console.log('Loading state hidden:', loadingState ? loadingState.classList.contains('hidden') : 'N/A');
-    console.log('Loading state computed display:', loadingState ? window.getComputedStyle(loadingState).display : 'N/A');
-    
-    console.log('Main content element exists:', !!mainContent);
-    console.log('Main content has hidden class:', mainContent ? mainContent.classList.contains('hidden') : 'N/A');
-    console.log('Main content computed display:', mainContent ? window.getComputedStyle(mainContent).display : 'N/A');
-    console.log('Main content computed visibility:', mainContent ? window.getComputedStyle(mainContent).visibility : 'N/A');
-    console.log('Main content computed opacity:', mainContent ? window.getComputedStyle(mainContent).opacity : 'N/A');
-    
-    console.log('Team assignments:', teamAssignments);
-    
-    // Check element positioning
-    if (mainContent) {
-        const rect = mainContent.getBoundingClientRect();
-        console.log('Main content position:', {
-            top: rect.top,
-            left: rect.left,
-            width: rect.width,
-            height: rect.height,
-            visible: rect.width > 0 && rect.height > 0
-        });
-    }
-};
-
-// Initialize page
-document.addEventListener('DOMContentLoaded', async function() {
-    console.log('Create Team page loaded');
-    
-    try {
-        // Load data in parallel
-        console.log('Loading data...');
-        await Promise.all([
-            loadPlayersData(),
-            loadSeriesAnalysis()
-        ]);
-        console.log('Data loaded successfully');
-        
-        // Setup UI directly - skip test content
-        console.log('Starting full UI setup...');
-        setupFullUI();
-        console.log('UI setup completed');
-        
-        // Hide loading state and show content
-        console.log('Showing main content...');
-        const loadingState = document.getElementById('loading-state');
-        const mainContent = document.getElementById('main-content');
-        
-        // Hide loading state
-        loadingState.classList.add('hidden');
-        loadingState.style.display = 'none';
-        
-        // Show main content with multiple approaches
-        mainContent.classList.remove('hidden');
-        mainContent.style.display = 'block';
-        mainContent.style.visibility = 'visible';
-        mainContent.style.opacity = '1';
-        
-        console.log('Main content displayed');
-        console.log('Loading state classes:', loadingState.className);
-        console.log('Main content classes:', mainContent.className);
-        console.log('Main content computed style:', window.getComputedStyle(mainContent).display);
-        
-    } catch (error) {
-        console.error('Error initializing page:', error);
-        
-        // Show content anyway with error message
-        document.getElementById('loading-state').classList.add('hidden');
-        document.getElementById('main-content').classList.remove('hidden');
-        
-        // Display error in the page
-        const mainContent = document.getElementById('main-content');
-        mainContent.innerHTML = `
-            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-                <strong class="font-bold">Error loading team creation data:</strong>
-                <span class="block sm:inline">${error.message}</span>
-            </div>
-            <button onclick="location.reload()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                Try Again
-            </button>
-        `;
-    }
-});
-
-async function loadPlayersData() {
-    console.log('Loading players data...');
-    
-    try {
-        const response = await fetch('/api/create-team/players');
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        
-        const data = await response.json();
-        if (!data.success) {
-            throw new Error(data.error || 'Failed to load players');
-        }
-        
-        // Filter to only Tennaqua players
-        allPlayers = data.players.filter(player => 
-            player.club && player.club.toLowerCase().includes('tennaqua')
-        );
-        console.log(`Loaded ${allPlayers.length} Tennaqua players (filtered from ${data.players.length} total)`);
-        
-        // Update player count
-        document.getElementById('player-count').textContent = `${allPlayers.length} players`;
-        
-        return data;
-    } catch (error) {
-        console.error('Error loading players:', error);
-        throw error;
-    }
-}
-
-async function loadSeriesAnalysis() {
-    console.log('Loading series analysis...');
-    
-    try {
-        const response = await fetch('/api/create-team/analyze-series');
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        
-        const data = await response.json();
-        if (!data.success) {
-            throw new Error(data.error || 'Failed to analyze series');
-        }
-        
-        seriesRanges = data.series_ranges;
-        console.log(`Analyzed ${seriesRanges.length} series`);
-        
-        return data;
-    } catch (error) {
-        console.error('Error loading series analysis:', error);
-        throw error;
-    }
-}
-
-// Simple test content function
-function setupSimpleTestContent() {
-    console.log('Setting up simple test content...');
-    
-    try {
-        // Clear any existing content and add simple test
-        const mainContent = document.getElementById('main-content');
-        mainContent.innerHTML = `
-            <div style="padding: 20px; background: white; margin: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-                <h2 style="color: #333; margin-bottom: 20px;">✅ Create Team - Test Content</h2>
-                
-                <div style="background: #f0f9ff; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                    <h3 style="color: #0369a1; margin-bottom: 10px;">📊 Data Loaded Successfully</h3>
-                    <p style="margin: 5px 0;"><strong>Players:</strong> ${allPlayers.length} loaded</p>
-                    <p style="margin: 5px 0;"><strong>Series:</strong> ${seriesRanges.length} analyzed</p>
-                </div>
-                
-                <div style="background: #f0f9ff; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                    <h3 style="color: #0369a1; margin-bottom: 10px;">🎯 Series Available</h3>
-                    ${seriesRanges.map(series => `
-                        <div style="background: white; padding: 10px; margin: 8px 0; border-radius: 6px; border-left: 4px solid #3b82f6;">
-                            <strong>${series.series_name}</strong> - ${series.player_count} players<br>
-                            <small>PTI Range: ${series.recommended_range.min} - ${series.recommended_range.max}</small>
-                        </div>
-                    `).join('')}
-                </div>
-                
-                <div style="background: #f0f9ff; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
-                    <h3 style="color: #0369a1; margin-bottom: 10px;">👥 Sample Players</h3>
-                    ${allPlayers.slice(0, 5).map(player => `
-                        <div style="background: white; padding: 8px; margin: 5px 0; border-radius: 4px; border: 1px solid #e5e7eb;">
-                            <strong>${player.name}</strong> - PTI: ${player.pti} (${player.club})
-                        </div>
-                    `).join('')}
-                    <p style="margin-top: 10px; font-style: italic;">...and ${allPlayers.length - 5} more players</p>
-                </div>
-                
-                <div style="text-align: center; margin-top: 30px;">
-                    <button onclick="setupFullUI()" style="background: #3b82f6; color: white; padding: 12px 24px; border: none; border-radius: 8px; font-size: 16px; cursor: pointer;">
-                        🚀 Load Full Create Team Interface
-                    </button>
-                </div>
-            </div>
-        `;
-        
-        console.log('Simple test content loaded successfully');
-    } catch (error) {
-        console.error('Error in setupSimpleTestContent:', error);
-        throw error;
-    }
-}
-
-// Full UI setup function (original complex version)
-function setupFullUI() {
-    console.log('Setting up full UI...');
-    
-    try {
-        // First, restore the original template structure
-        console.log('Restoring original template structure...');
-        restoreOriginalTemplate();
-        
-        // Then render content step by step with error handling
-        console.log('Rendering series recommendations...');
-        renderSeriesRecommendations();
-        
-        console.log('Rendering available players...');
-        renderAvailablePlayers();
-        
-        console.log('Creating series containers...');
-        createSeriesContainers();
-        
-        console.log('Setting up event listeners...');
-        setupEventListeners();
-        
-        console.log('Full UI setup completed successfully');
-    } catch (error) {
-        console.error('Error in setupFullUI:', error);
-        
-        // Show error in the page
-        const mainContent = document.getElementById('main-content');
-        mainContent.innerHTML = `
-            <div style="padding: 20px; background: white; margin: 20px; border-radius: 10px;">
-                <h2 style="color: #dc2626;">❌ Error Loading Full Interface</h2>
-                <p style="color: #666; margin: 10px 0;"><strong>Error:</strong> ${error.message}</p>
-                <p style="color: #666; margin: 10px 0;"><strong>Stack:</strong> ${error.stack}</p>
-                <button onclick="setupSimpleTestContent()" style="background: #6b7280; color: white; padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer;">
-                    ← Back to Test Content
-                </button>
-            </div>
-        `;
-    }
-}
-
-// Function to restore the original template structure
-function restoreOriginalTemplate() {
-    const mainContent = document.getElementById('main-content');
-    mainContent.innerHTML = `
-        <!-- Expert Guidance Panel -->
-        <div id="guidance-panel" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden" style="margin-bottom: 1.5rem;">
-            <div class="px-6 py-4 border-b border-gray-50 bg-gradient-to-r from-blue-50 to-indigo-50">
-                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-                    <i class="fas fa-lightbulb text-yellow-500 mr-2"></i>
-                    Expert Guidance
-                </h2>
-            </div>
-            <div class="p-4">
-                <div id="series-recommendations" class="space-y-3">
-                    <!-- Series recommendations will be loaded here -->
-                </div>
-            </div>
-        </div>
-
-        <!-- Players Pool -->
-        <div id="players-section" class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden" style="margin-bottom: 1.5rem;">
-            <div class="px-6 py-4 border-b border-gray-50">
-                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-                    <i class="fas fa-users text-green-500 mr-2"></i>
-                    Available Players
-                    <span id="player-count" class="ml-2 text-sm bg-gray-100 text-gray-600 px-2 py-1 rounded-full">${allPlayers.length} players</span>
-                </h2>
-                <p class="text-sm text-gray-600 mt-1">Drag players to series below to create teams. Players are sorted by PTI (lower is better).</p>
-            </div>
-            
-            <div class="p-4">
-                <div id="available-players-pool" class="min-h-24 bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg p-3 overflow-y-auto" style="max-height: 300px;">
-                    <div class="text-gray-400 text-center text-sm" id="loading-players">Loading players...</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Selected Player Indicator (for tap mode) -->
-        <div id="selected-player-indicator" class="bg-yellow-100 border border-yellow-300 rounded-lg p-3 hidden" style="margin-bottom: 1.5rem;">
-            <div class="flex items-center justify-between">
-                <div>
-                    <span class="text-sm font-medium text-yellow-800">Selected: </span>
-                    <span id="selected-player-name" class="text-sm text-yellow-900"></span>
-                    <span id="selected-player-pti" class="text-xs text-yellow-700 ml-2"></span>
-                </div>
-                <button id="clear-selection" class="text-yellow-600 hover:text-yellow-800 text-xs">
-                    Clear
-                </button>
-            </div>
-            <p class="text-xs text-yellow-700 mt-1">Tap a series below to assign this player</p>
-        </div>
-
-        <!-- Series Teams -->
-        <div id="series-teams" class="space-y-4" style="margin-bottom: 1.5rem;">
-            <!-- Series containers will be dynamically created here -->
-        </div>
-
-        <!-- Action Buttons -->
-        <div class="flex gap-3 pt-4">
-            <button id="save-teams" class="flex-1 bg-green-600 text-white px-6 py-3 rounded-lg shadow-sm hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed">
-                <i class="fas fa-save mr-2"></i>
-                Save Teams
-            </button>
-            <button id="reset-teams" class="bg-gray-600 text-white px-6 py-3 rounded-lg shadow-sm hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors font-semibold">
-                <i class="fas fa-undo mr-2"></i>
-                Reset
-            </button>
-        </div>
-    `;
-    
-    console.log('Original template structure restored');
-}
-
-// Make setupFullUI available globally
-window.setupFullUI = setupFullUI;
-
-// Setup slider event listeners for PTI range control
-function setupSliderEventListeners() {
-    const sliders = document.querySelectorAll('input[type="range"]');
-    
-    sliders.forEach(slider => {
-        slider.addEventListener('input', handleSliderChange);
-        slider.addEventListener('change', handleSliderChangeComplete);
-    });
-}
-
-// Handle real-time slider changes (while dragging)
-function handleSliderChange(event) {
-    const slider = event.target;
-    const seriesIndex = parseInt(slider.dataset.seriesIndex);
-    const rangeType = slider.dataset.rangeType;
-    const newValue = parseFloat(slider.value);
-    
-    // Update the display value immediately
-    updateSliderDisplay(seriesIndex, rangeType, newValue);
-    
-    // Validate and manage overlaps with automatic adjustment
-    const validatedRange = validateAndManageOverlaps(seriesIndex, rangeType, newValue);
-    
-    // Update the visual range bar for the current series
-    updateRangeBar(seriesIndex, validatedRange);
-    
-    // Update status indicator with adjustment information
-    updateStatusIndicatorWithAdjustments(seriesIndex, validatedRange);
-    
-    // If other series were automatically adjusted, save their changes too
-    if (validatedRange.adjustedSeries && validatedRange.adjustedSeries.length > 0) {
-        // Add a small delay before saving adjusted series to avoid too many API calls
-        clearTimeout(window.autoAdjustSaveTimeout);
-        window.autoAdjustSaveTimeout = setTimeout(() => {
-            validatedRange.adjustedSeries.forEach(adjusted => {
-                saveRangeChanges(adjusted.index);
-            });
-        }, 500);
-    }
-}
-
-// Handle slider change completion (when user releases)
-function handleSliderChangeComplete(event) {
-    const slider = event.target;
-    const seriesIndex = parseInt(slider.dataset.seriesIndex);
-    
-    // Send AJAX request to save the changes
-    saveRangeChanges(seriesIndex);
-}
-
-// Update slider display values
-function updateSliderDisplay(seriesIndex, rangeType, value) {
-    const displaySpan = document.getElementById(`${rangeType}-value-${seriesIndex}`);
-    displaySpan.textContent = value.toFixed(1);
-    
-    // Update the range display
-    const currentMin = parseFloat(document.getElementById(`min-slider-${seriesIndex}`).value);
-    const currentMax = parseFloat(document.getElementById(`max-slider-${seriesIndex}`).value);
-    
-    const rangeDisplay = document.getElementById(`range-display-${seriesIndex}`);
-    rangeDisplay.textContent = `${currentMin.toFixed(1)} - ${currentMax.toFixed(1)}`;
-}
-
-// Validate ranges and manage overlaps with automatic adjustment
-function validateAndManageOverlaps(seriesIndex, rangeType, newValue) {
-    const series = seriesRanges[seriesIndex];
-    const minSlider = document.getElementById(`min-slider-${seriesIndex}`);
-    const maxSlider = document.getElementById(`max-slider-${seriesIndex}`);
-    
-    if (!minSlider || !maxSlider) return { min: newValue, max: newValue, overlaps: [], valid: true };
-    
-    let adjustedMin = parseFloat(minSlider.value);
-    let adjustedMax = parseFloat(maxSlider.value);
-    
-    // Update the value being changed
-    if (rangeType === 'min') {
-        adjustedMin = newValue;
-        // Ensure min doesn't exceed max
-        if (adjustedMin >= adjustedMax) {
-            adjustedMax = adjustedMin + 1;
-            maxSlider.value = adjustedMax;
-            updateSliderDisplay(seriesIndex, 'max', adjustedMax);
-        }
-    } else {
-        adjustedMax = newValue;
-        // Ensure max doesn't go below min
-        if (adjustedMax <= adjustedMin) {
-            adjustedMin = adjustedMax - 1;
-            minSlider.value = adjustedMin;
-            updateSliderDisplay(seriesIndex, 'min', adjustedMin);
-        }
-    }
-    
-    // Automatically adjust overlapping series
-    const adjustedSeries = autoAdjustOverlappingSeries(seriesIndex, adjustedMin, adjustedMax, rangeType);
-    
-    // Update the current series data
-    seriesRanges[seriesIndex].recommended_range.min = adjustedMin;
-    seriesRanges[seriesIndex].recommended_range.max = adjustedMax;
-    
-    // Check for any remaining overlaps after auto-adjustment
-    const remainingOverlaps = checkForOverlaps(seriesIndex, adjustedMin, adjustedMax);
-    
-    return {
-        min: adjustedMin,
-        max: adjustedMax,
-        overlaps: remainingOverlaps,
-        valid: remainingOverlaps.length === 0,
-        adjustedSeries: adjustedSeries
-    };
-}
-
-// Automatically adjust overlapping series to accommodate changes
-function autoAdjustOverlappingSeries(currentSeriesIndex, newMin, newMax, rangeType) {
-    const adjustedSeries = [];
-    const gap = 0.5; // Minimum gap between series ranges
-    
-    // Sort series by their current min values to handle adjustments in order
-    const sortedIndices = seriesRanges
-        .map((series, index) => ({ index, min: series.recommended_range.min }))
-        .filter(item => item.index !== currentSeriesIndex)
-        .sort((a, b) => a.min - b.min);
-    
-    sortedIndices.forEach(({ index }) => {
-        const otherSeries = seriesRanges[index];
-        const otherMin = otherSeries.recommended_range.min;
-        const otherMax = otherSeries.recommended_range.max;
-        
-        // Check if there's an overlap
-        if (newMin < otherMax && newMax > otherMin) {
-            let adjustedOtherMin = otherMin;
-            let adjustedOtherMax = otherMax;
-            let wasAdjusted = false;
-            
-            if (rangeType === 'max' && newMax > otherMin) {
-                // Moving our max slider right and overlapping with another series
-                // Push the other series to the right
-                if (newMax >= otherMin) {
-                    adjustedOtherMin = newMax + gap;
-                    adjustedOtherMax = Math.max(adjustedOtherMin + gap, otherMax);
-                    wasAdjusted = true;
-                }
-            } else if (rangeType === 'min' && newMin < otherMax) {
-                // Moving our min slider left and overlapping with another series
-                // Push the other series to the left
-                if (newMin <= otherMax) {
-                    adjustedOtherMax = newMin - gap;
-                    adjustedOtherMin = Math.min(adjustedOtherMax - gap, otherMin);
-                    wasAdjusted = true;
-                }
-            }
-            
-            // Ensure the adjusted range is valid (min < max)
-            if (adjustedOtherMin >= adjustedOtherMax) {
-                adjustedOtherMax = adjustedOtherMin + gap;
-            }
-            
-            // Constrain to valid PTI range (10-80)
-            adjustedOtherMin = Math.max(10, Math.min(79, adjustedOtherMin));
-            adjustedOtherMax = Math.max(11, Math.min(80, adjustedOtherMax));
-            
-            // Ensure min < max after constraining
-            if (adjustedOtherMin >= adjustedOtherMax) {
-                if (adjustedOtherMax < 80) {
-                    adjustedOtherMax = adjustedOtherMin + gap;
-                } else {
-                    adjustedOtherMin = adjustedOtherMax - gap;
-                }
-            }
-            
-            if (wasAdjusted) {
-                // Update the series data
-                otherSeries.recommended_range.min = adjustedOtherMin;
-                otherSeries.recommended_range.max = adjustedOtherMax;
-                
-                // Update the UI for the adjusted series
-                updateSeriesSliders(index, adjustedOtherMin, adjustedOtherMax);
-                
-                adjustedSeries.push({
-                    index: index,
-                    name: otherSeries.series_name,
-                    oldRange: `${otherMin.toFixed(1)} - ${otherMax.toFixed(1)}`,
-                    newRange: `${adjustedOtherMin.toFixed(1)} - ${adjustedOtherMax.toFixed(1)}`
-                });
-                
-                console.log(`Auto-adjusted ${otherSeries.series_name} from ${otherMin.toFixed(1)}-${otherMax.toFixed(1)} to ${adjustedOtherMin.toFixed(1)}-${adjustedOtherMax.toFixed(1)}`);
-            }
-        }
-    });
-    
-    return adjustedSeries;
-}
-
-// Update sliders and displays for a specific series
-function updateSeriesSliders(seriesIndex, newMin, newMax) {
-    const minSlider = document.getElementById(`min-slider-${seriesIndex}`);
-    const maxSlider = document.getElementById(`max-slider-${seriesIndex}`);
-    
-    if (minSlider && maxSlider) {
-        minSlider.value = newMin;
-        maxSlider.value = newMax;
-        
-        updateSliderDisplay(seriesIndex, 'min', newMin);
-        updateSliderDisplay(seriesIndex, 'max', newMax);
-        
-        // Update the visual range bar
-        const validatedRange = {
-            min: newMin,
-            max: newMax,
-            valid: true,
-            overlaps: []
-        };
-        updateRangeBar(seriesIndex, validatedRange);
-        updateStatusIndicator(seriesIndex, validatedRange);
-    }
-}
-
-// Check for overlaps with other series
-function checkForOverlaps(currentSeriesIndex, min, max) {
-    const overlaps = [];
-    
-    seriesRanges.forEach((series, index) => {
-        if (index === currentSeriesIndex) return;
-        
-        const otherMin = series.recommended_range.min;
-        const otherMax = series.recommended_range.max;
-        
-        // Check if ranges overlap
-        if ((min < otherMax && max > otherMin)) {
-            overlaps.push({
-                index: index,
-                name: series.series_name,
-                range: `${otherMin} - ${otherMax}`
-            });
-        }
-    });
-    
-    return overlaps;
-}
-
-// Update visual range bar
-function updateRangeBar(seriesIndex, validatedRange) {
-    const rangeBar = document.getElementById(`range-bar-${seriesIndex}`);
-    const leftPercentage = ((validatedRange.min - 10) / 70) * 100;
-    const widthPercentage = ((validatedRange.max - validatedRange.min) / 70) * 100;
-    
-    rangeBar.style.left = `${leftPercentage}%`;
-    rangeBar.style.width = `${widthPercentage}%`;
-    
-    // Change color based on validity
-    if (validatedRange.valid) {
-        rangeBar.className = 'absolute h-full bg-gradient-to-r from-blue-400 to-blue-600 rounded-full transition-all duration-200';
-    } else {
-        rangeBar.className = 'absolute h-full bg-gradient-to-r from-orange-400 to-orange-600 rounded-full transition-all duration-200';
-    }
-}
-
-// Update status indicator with automatic adjustment information
-function updateStatusIndicatorWithAdjustments(seriesIndex, validatedRange) {
-    const statusDiv = document.getElementById(`status-${seriesIndex}`);
-    if (!statusDiv) return;
-    
-    let statusHtml = '';
-    
-    if (validatedRange.overlaps.length > 0) {
-        const overlapNames = validatedRange.overlaps.map(o => o.name).join(', ');
-        statusHtml = `<span class="text-orange-600">⚠ Overlaps with: ${overlapNames}</span>`;
-    } else {
-        statusHtml = '<span class="text-green-600">✓ Range valid</span>';
-        
-        // Add information about automatic adjustments
-        if (validatedRange.adjustedSeries && validatedRange.adjustedSeries.length > 0) {
-            const adjustedNames = validatedRange.adjustedSeries.map(adj => adj.name).join(', ');
-            statusHtml += `<br><span class="text-blue-600 text-xs">🔄 Auto-adjusted: ${adjustedNames}</span>`;
-        }
-    }
-    
-    statusDiv.innerHTML = statusHtml;
-}
-
-// Update status indicator (legacy function for compatibility)
-function updateStatusIndicator(seriesIndex, validatedRange) {
-    updateStatusIndicatorWithAdjustments(seriesIndex, validatedRange);
-}
-
-// Save range changes via AJAX
-async function saveRangeChanges(seriesIndex) {
-    const series = seriesRanges[seriesIndex];
-    
-    try {
-        const response = await fetch('/api/create-team/update-range', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                series_id: series.series_id,
-                series_name: series.series_name,
-                recommended_range: series.recommended_range
-            })
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            console.log(`Range updated for ${series.series_name}: ${series.recommended_range.min} - ${series.recommended_range.max}`);
-            
-            // Update team assignments with new range
-            if (teamAssignments[series.series_name]) {
-                teamAssignments[series.series_name].recommended_range = series.recommended_range;
-                updateSeriesStats(series.series_name);
-            }
-        } else {
-            console.error('Failed to save range changes:', data.error);
-        }
-    } catch (error) {
-        console.error('Error saving range changes:', error);
-    }
-}
-
-function renderSeriesRecommendations() {
-    const container = document.getElementById('series-recommendations');
-    
-    if (seriesRanges.length === 0) {
-        container.innerHTML = '<p class="text-gray-500">No series data available for analysis.</p>';
-        return;
-    }
-    
-    let html = `
-        <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-            <h4 class="font-semibold text-blue-900 mb-2">📊 Interactive PTI Range Control</h4>
-            <p class="text-sm text-blue-700">Use the sliders below to adjust PTI ranges for each series. Changes are saved automatically and overlaps are managed.</p>
-        </div>
-        <div class="space-y-4">
-    `;
-    
-    seriesRanges.forEach((series, index) => {
-        html += `
-            <div class="bg-white rounded-lg p-4 border border-gray-200 shadow-sm" data-series-index="${index}">
-                <div class="flex items-center justify-between mb-3">
-                    <h4 class="font-semibold text-gray-900">${series.series_name}</h4>
-                    <div class="flex items-center gap-2">
-                        <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">${series.player_count} players</span>
-                        <span id="range-display-${index}" class="text-sm font-mono bg-gray-100 px-2 py-1 rounded">
-                            ${series.recommended_range.min} - ${series.recommended_range.max}
-                        </span>
-                    </div>
-                </div>
-                
-                <!-- PTI Range Sliders -->
-                <div class="space-y-3">
-                    <div>
-                        <label class="block text-xs font-medium text-gray-700 mb-1">
-                            Minimum PTI: <span id="min-value-${index}" class="font-mono">${series.recommended_range.min}</span>
-                        </label>
-                        <input type="range" 
-                               id="min-slider-${index}" 
-                               class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider-min"
-                               min="10" 
-                               max="80" 
-                               step="0.5"
-                               value="${series.recommended_range.min}"
-                               data-series-index="${index}"
-                               data-range-type="min">
-                    </div>
-                    
-                    <div>
-                        <label class="block text-xs font-medium text-gray-700 mb-1">
-                            Maximum PTI: <span id="max-value-${index}" class="font-mono">${series.recommended_range.max}</span>
-                        </label>
-                        <input type="range" 
-                               id="max-slider-${index}" 
-                               class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider-max"
-                               min="10" 
-                               max="80" 
-                               step="0.5"
-                               value="${series.recommended_range.max}"
-                               data-series-index="${index}"
-                               data-range-type="max">
-                    </div>
-                </div>
-                
-                <!-- Range Preview Bar -->
-                <div class="mt-3">
-                    <div class="relative h-3 bg-gray-200 rounded-full overflow-hidden">
-                        <div id="range-bar-${index}" 
-                             class="absolute h-full bg-gradient-to-r from-blue-400 to-blue-600 rounded-full transition-all duration-200"
-                             style="left: ${((series.recommended_range.min - 10) / 70) * 100}%; width: ${((series.recommended_range.max - series.recommended_range.min) / 70) * 100}%">
-                        </div>
-                    </div>
-                    <div class="flex justify-between text-xs text-gray-500 mt-1">
-                        <span>10</span>
-                        <span>Current: ${series.statistics.avg}</span>
-                        <span>80</span>
-                    </div>
-                </div>
-                
-                <!-- Status Indicator -->
-                <div id="status-${index}" class="mt-2 text-xs">
-                    <span class="text-green-600">✓ Range valid</span>
-                </div>
-            </div>
-        `;
-    });
-    
-    html += '</div>';
-    container.innerHTML = html;
-    
-    // Setup slider event listeners
-    setupSliderEventListeners();
-}
-
-function renderAvailablePlayers() {
-    try {
-        const pool = document.getElementById('available-players-pool');
-        if (!pool) {
-            throw new Error('Available players pool element not found');
-        }
-        
-        pool.innerHTML = '';
-        
-        if (allPlayers.length === 0) {
-            pool.innerHTML = '<div class="text-gray-400 text-center text-sm">No players with PTI data found.</div>';
-            return;
-        }
-        
-        console.log(`Rendering ${allPlayers.length} players...`);
-        
-        allPlayers.forEach((player, index) => {
-            try {
-                const playerDiv = document.createElement('div');
-                playerDiv.className = 'player-card border border-gray-300 rounded-lg p-3 m-2 inline-block cursor-pointer shadow-sm hover:shadow-md transition-all text-center bg-white';
-                playerDiv.dataset.playerId = player.id || '';
-                playerDiv.dataset.playerName = player.name || 'Unknown';
-                playerDiv.dataset.playerPti = player.pti || '0';
-                playerDiv.dataset.playerSeries = player.series || 'Unknown';
-                
-                // PTI-based color coding (green for low/better PTI, yellow for medium, red for high)
-                let ptiColorClass = 'bg-green-100 border-green-300';
-                const pti = parseFloat(player.pti) || 0;
-                if (pti > 50) {
-                    ptiColorClass = 'bg-red-100 border-red-300';
-                } else if (pti > 40) {
-                    ptiColorClass = 'bg-yellow-100 border-yellow-300';
-                }
-                
-                playerDiv.className += ` ${ptiColorClass}`;
-                
-                // Enable dragging
-                playerDiv.draggable = true;
-                playerDiv.style.cursor = 'grab';
-                
-                playerDiv.innerHTML = `
-                    <div class="font-medium text-gray-900 text-sm">${player.name || 'Unknown'}</div>
-                    <div class="text-xs text-gray-600 mt-1">
-                        <strong>PTI: ${player.pti || '0'}</strong> | ${player.club || 'Unknown'}
-                    </div>
-                    <div class="text-xs text-gray-500">
-                        Current: ${player.series || 'Unknown'} | ${player.wins || 0}W-${player.losses || 0}L
-                    </div>
-                `;
-                
-                // Add drag and tap event listeners
-                setupPlayerEvents(playerDiv);
-                
-                pool.appendChild(playerDiv);
-                
-                // Log progress for large datasets
-                if (index % 1000 === 0 && index > 0) {
-                    console.log(`Rendered ${index} players so far...`);
-                }
-            } catch (playerError) {
-                console.error(`Error rendering player ${index}:`, playerError, player);
-                // Continue with next player
-            }
-        });
-        
-        console.log(`Successfully rendered ${allPlayers.length} players`);
-    } catch (error) {
-        console.error('Error in renderAvailablePlayers:', error);
-        const pool = document.getElementById('available-players-pool');
-        if (pool) {
-            pool.innerHTML = '<div class="text-red-500 text-center text-sm">Error loading players. Please refresh the page.</div>';
-        }
-    }
-}
-
-function createSeriesContainers() {
-    const container = document.getElementById('series-teams');
-    container.innerHTML = '';
-    
-    if (seriesRanges.length === 0) {
-        container.innerHTML = '<div class="text-center text-gray-500 py-8">No series available for team creation.</div>';
-        return;
-    }
-    
-    seriesRanges.forEach(series => {
-        const seriesDiv = document.createElement('div');
-        seriesDiv.className = 'series-container bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden';
-        seriesDiv.dataset.seriesId = series.series_id;
-        seriesDiv.dataset.seriesName = series.series_name;
-        
-        const rangeText = `${series.recommended_range.min} - ${series.recommended_range.max}`;
-        
-        seriesDiv.innerHTML = `
-            <div class="px-6 py-4 border-b border-gray-50 bg-gradient-to-r from-gray-50 to-gray-100">
-                <div class="flex items-center justify-between">
-                    <h3 class="text-lg font-semibold text-gray-900">${series.series_name}</h3>
-                    <div class="text-sm text-gray-600">
-                        <span class="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs">
-                                                            Recommended Player PTI: ${rangeText}
-                        </span>
-                    </div>
-                </div>
-                <div class="mt-2 flex items-center justify-between">
-                    <div class="text-sm text-gray-600">
-                        Team PTI: <span class="team-pti font-semibold">0.0</span> | 
-                        Players: <span class="player-count font-semibold">0</span> |
-                        Avg PTI: <span class="avg-pti font-semibold">0.0</span>
-                    </div>
-                    <div class="pti-status text-xs px-2 py-1 rounded">
-                        <span class="status-text">Ready for players</span>
-                    </div>
-                </div>
-            </div>
-            <div class="p-4">
-                <div class="team-players min-h-16 bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg p-3 drop-zone" 
-                     data-series-id="${series.series_id}" data-series-name="${series.series_name}">
-                    <div class="text-gray-400 text-center text-sm drop-text">
-                        Drop players here for ${series.series_name}
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        container.appendChild(seriesDiv);
-        
-        // Initialize team assignments
-        teamAssignments[series.series_name] = {
-            players: [],
-            total_pti: 0,
-            avg_pti: 0,
-            recommended_range: series.recommended_range
-        };
-    });
-    
-    // Setup drop zones
-    setupDropZones();
-}
-
-function setupPlayerEvents(playerDiv) {
-    // Drag events
-    playerDiv.addEventListener('dragstart', handleDragStart);
-    playerDiv.addEventListener('dragend', handleDragEnd);
-    
-    // Touch events for mobile
-    playerDiv.addEventListener('touchstart', handleTouchStart, { passive: false });
-    playerDiv.addEventListener('touchmove', handleTouchMove, { passive: false });
-    playerDiv.addEventListener('touchend', handleTouchEnd, { passive: false });
-    
-    // Tap events
-    playerDiv.addEventListener('click', handlePlayerTap);
-}
-
-function setupDropZones() {
-    document.querySelectorAll('.drop-zone').forEach(zone => {
-        // Drag events
-        zone.addEventListener('dragover', handleDragOver);
-        zone.addEventListener('drop', handleDrop);
-        zone.addEventListener('dragleave', handleDragLeave);
-        
-        // Tap events
-        zone.addEventListener('click', handleZoneTap);
-    });
-    
-    // Setup players pool as drop zone too
-    const pool = document.getElementById('available-players-pool');
-    pool.addEventListener('dragover', handleDragOver);
-    pool.addEventListener('drop', handleDropToPool);
-}
-
-function setupEventListeners() {
-    // Clear selection button
-    document.getElementById('clear-selection').addEventListener('click', clearPlayerSelection);
-    
-    // Action buttons
-    document.getElementById('save-teams').addEventListener('click', saveTeams);
-    document.getElementById('reset-teams').addEventListener('click', resetTeams);
-}
-
-// Drag and Drop Handlers
-function handleDragStart(e) {
-    e.dataTransfer.setData('text/plain', e.target.dataset.playerId);
-    e.target.classList.add('opacity-50');
-}
-
-function handleDragEnd(e) {
-    e.target.classList.remove('opacity-50');
-}
-
-function handleDragOver(e) {
-    e.preventDefault();
-    e.currentTarget.classList.add('border-blue-400', 'bg-blue-50');
-}
-
-function handleDragLeave(e) {
-    e.currentTarget.classList.remove('border-blue-400', 'bg-blue-50');
-}
-
-function handleDrop(e) {
-    e.preventDefault();
-    e.currentTarget.classList.remove('border-blue-400', 'bg-blue-50');
-    
-    const playerId = e.dataTransfer.getData('text/plain');
-    const seriesName = e.currentTarget.dataset.seriesName;
-    
-    movePlayerToSeries(playerId, seriesName);
-}
-
-function handleDropToPool(e) {
-    e.preventDefault();
-    e.currentTarget.classList.remove('border-blue-400', 'bg-blue-50');
-    
-    const playerId = e.dataTransfer.getData('text/plain');
-    movePlayerToPool(playerId);
-}
-
-// Touch Handlers
-function handleTouchStart(e) {
-    e.preventDefault();
-    touchedPlayer = e.target.closest('.player-card');
-    if (touchedPlayer) {
-        const touch = e.touches[0];
-        const rect = touchedPlayer.getBoundingClientRect();
-        touchOffset.x = touch.clientX - rect.left;
-        touchOffset.y = touch.clientY - rect.top;
-        
-        touchedPlayer.classList.add('opacity-50', 'dragging');
-        touchedPlayer.style.position = 'fixed';
-        touchedPlayer.style.zIndex = '1000';
-        touchedPlayer.style.pointerEvents = 'none';
-    }
-}
-
-function handleTouchMove(e) {
-    if (!touchedPlayer) return;
-    e.preventDefault();
-    
-    const touch = e.touches[0];
-    touchedPlayer.style.left = (touch.clientX - touchOffset.x) + 'px';
-    touchedPlayer.style.top = (touch.clientY - touchOffset.y) + 'px';
-    
-    // Highlight drop zones
-    const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
-    const dropZone = elementBelow?.closest('.drop-zone') || elementBelow?.closest('#available-players-pool');
-    
-    document.querySelectorAll('.drop-zone-active').forEach(el => {
-        el.classList.remove('drop-zone-active');
-    });
-    
-    if (dropZone) {
-        dropZone.classList.add('drop-zone-active');
-    }
-}
-
-function handleTouchEnd(e) {
-    if (!touchedPlayer) return;
-    e.preventDefault();
-    
-    const touch = e.changedTouches[0];
-    const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
-    const dropZone = elementBelow?.closest('.drop-zone') || elementBelow?.closest('#available-players-pool');
-    
-    // Reset visual feedback
-    touchedPlayer.classList.remove('opacity-50', 'dragging');
-    touchedPlayer.style.position = '';
-    touchedPlayer.style.left = '';
-    touchedPlayer.style.top = '';
-    touchedPlayer.style.zIndex = '';
-    touchedPlayer.style.pointerEvents = '';
-    
-    document.querySelectorAll('.drop-zone-active').forEach(el => {
-        el.classList.remove('drop-zone-active');
-    });
-    
-    // Handle drop
-    if (dropZone) {
-        const playerId = touchedPlayer.dataset.playerId;
-        
-        if (dropZone.id === 'available-players-pool') {
-            movePlayerToPool(playerId);
-        } else if (dropZone.classList.contains('drop-zone')) {
-            const seriesName = dropZone.dataset.seriesName;
-            movePlayerToSeries(playerId, seriesName);
-        }
-    }
-    
-    touchedPlayer = null;
-}
-
-// Tap Handlers
-function handlePlayerTap(e) {
-    e.stopPropagation();
-    
-    const playerId = e.currentTarget.dataset.playerId;
-    const playerName = e.currentTarget.dataset.playerName;
-    const playerPti = e.currentTarget.dataset.playerPti;
-    
-    if (selectedPlayerForTap === playerId) {
-        clearPlayerSelection();
-        return;
-    }
-    
-    // Select player for tap mode
-    selectedPlayerForTap = playerId;
-    
-    // Update visual feedback
-    document.querySelectorAll('.player-card').forEach(card => {
-        card.classList.remove('border-blue-400', 'bg-blue-50');
-    });
-    e.currentTarget.classList.add('border-blue-400', 'bg-blue-50');
-    
-    // Show selection indicator
-    const indicator = document.getElementById('selected-player-indicator');
-    document.getElementById('selected-player-name').textContent = playerName;
-    document.getElementById('selected-player-pti').textContent = `(PTI: ${playerPti})`;
-    indicator.classList.remove('hidden');
-}
-
-function handleZoneTap(e) {
-    if (!selectedPlayerForTap) return;
-    
-    e.stopPropagation();
-    const seriesName = e.currentTarget.dataset.seriesName;
-    movePlayerToSeries(selectedPlayerForTap, seriesName);
-    clearPlayerSelection();
-}
-
-function clearPlayerSelection() {
-    selectedPlayerForTap = null;
-    
-    document.querySelectorAll('.player-card').forEach(card => {
-        card.classList.remove('border-blue-400', 'bg-blue-50');
-    });
-    
-    document.getElementById('selected-player-indicator').classList.add('hidden');
-}
-
-// Team Management Functions
-function movePlayerToSeries(playerId, seriesName) {
-    const player = allPlayers.find(p => p.id == playerId);
-    if (!player) return;
-    
-    // Remove from current location
-    removePlayerFromCurrentLocation(playerId);
-    
-    // Add to new series
-    teamAssignments[seriesName].players.push(player);
-    
-    // Update UI
-    updateSeriesDisplay(seriesName);
-    updatePlayersPool();
-}
-
-function movePlayerToPool(playerId) {
-    const player = allPlayers.find(p => p.id == playerId);
-    if (!player) return;
-    
-    // Remove from current location
-    removePlayerFromCurrentLocation(playerId);
-    
-    // Update UI
-    updatePlayersPool();
-    updateAllSeriesDisplays();
-}
-
-function removePlayerFromCurrentLocation(playerId) {
-    // Remove from all team assignments
-    for (const seriesName in teamAssignments) {
-        teamAssignments[seriesName].players = teamAssignments[seriesName].players.filter(p => p.id != playerId);
-    }
-}
-
-function updateSeriesDisplay(seriesName) {
-    const container = document.querySelector(`[data-series-name="${seriesName}"] .team-players`);
-    const assignment = teamAssignments[seriesName];
-    
-    if (assignment.players.length === 0) {
-        container.innerHTML = `<div class="text-gray-400 text-center text-sm drop-text">Drop players here for ${seriesName}</div>`;
-    } else {
-        let html = '<div class="flex flex-wrap gap-2">';
-        assignment.players.forEach(player => {
-            html += `
-                <div class="player-card-small bg-white border border-gray-300 rounded-lg p-2 text-xs cursor-pointer" 
-                     data-player-id="${player.id}">
-                    <div class="font-medium">${player.name}</div>
-                    <div class="text-gray-600">PTI: ${player.pti}</div>
-                </div>
-            `;
-        });
-        html += '</div>';
-        container.innerHTML = html;
-        
-        // Add click handlers to small cards for removal
-        container.querySelectorAll('.player-card-small').forEach(card => {
-            card.addEventListener('click', (e) => {
-                const playerId = e.currentTarget.dataset.playerId;
-                movePlayerToPool(playerId);
-            });
-        });
-    }
-    
-    // Update stats
-    updateSeriesStats(seriesName);
-}
-
-function updateSeriesStats(seriesName) {
-    const assignment = teamAssignments[seriesName];
-    const container = document.querySelector(`[data-series-name="${seriesName}"]`).closest('.series-container');
-    
-    // Calculate stats
-    const playerCount = assignment.players.length;
-    const totalPti = assignment.players.reduce((sum, p) => sum + p.pti, 0);
-    const avgPti = playerCount > 0 ? totalPti / playerCount : 0;
-    
-    // Update assignment object
-    assignment.total_pti = totalPti;
-    assignment.avg_pti = avgPti;
-    
-    // Update UI
-    container.querySelector('.team-pti').textContent = totalPti.toFixed(1);
-    container.querySelector('.player-count').textContent = playerCount;
-    container.querySelector('.avg-pti').textContent = avgPti.toFixed(1);
-    
-    // Update status
-    const statusEl = container.querySelector('.pti-status');
-    const statusText = container.querySelector('.status-text');
-    
-    if (playerCount === 0) {
-        statusEl.className = 'pti-status text-xs px-2 py-1 rounded bg-gray-100 text-gray-600';
-        statusText.textContent = 'Ready for players';
-    } else if (avgPti >= assignment.recommended_range.min && avgPti <= assignment.recommended_range.max) {
-        statusEl.className = 'pti-status text-xs px-2 py-1 rounded bg-green-100 text-green-800';
-        statusText.textContent = '✓ In range';
-    } else if (avgPti < assignment.recommended_range.min) {
-        statusEl.className = 'pti-status text-xs px-2 py-1 rounded bg-blue-100 text-blue-800';
-        statusText.textContent = '↑ Too strong';
-    } else {
-        statusEl.className = 'pti-status text-xs px-2 py-1 rounded bg-orange-100 text-orange-800';
-        statusText.textContent = '↓ Too weak';
-    }
-}
-
-function updatePlayersPool() {
-    // Get assigned player IDs
-    const assignedPlayerIds = new Set();
-    for (const seriesName in teamAssignments) {
-        teamAssignments[seriesName].players.forEach(p => assignedPlayerIds.add(p.id));
-    }
-    
-    // Show only unassigned players in pool
-    const pool = document.getElementById('available-players-pool');
-    const playerCards = pool.querySelectorAll('.player-card');
-    
-    playerCards.forEach(card => {
-        const playerId = card.dataset.playerId;
-        if (assignedPlayerIds.has(parseInt(playerId))) {
-            card.style.display = 'none';
-        } else {
-            card.style.display = 'inline-block';
-        }
-    });
-}
-
-function updateAllSeriesDisplays() {
-    for (const seriesName in teamAssignments) {
-        updateSeriesDisplay(seriesName);
-    }
-}
-
-function saveTeams() {
-    alert('Save not implemented yet');
-}
-
-function resetTeams() {
-    if (!confirm('Are you sure you want to reset all team assignments?')) {
-        return;
-    }
-    
-    // Clear all assignments
-    for (const seriesName in teamAssignments) {
-        teamAssignments[seriesName].players = [];
-    }
-    
-    // Update UI
-    updateAllSeriesDisplays();
-    updatePlayersPool();
-    clearPlayerSelection();
-    
-    showSuccess('Team assignments reset successfully!');
-}
-
-function showError(message) {
-    // Simple error display - could be enhanced with a proper modal
-    alert('Error: ' + message);
-}
-
-function showSuccess(message) {
-    // Simple success display - could be enhanced with a proper toast
-    alert('Success: ' + message);
-}
-
-</script>
-
 <style>
-/* Drag and Drop Styles */
+/* Mobile-specific styles for create team */
 .player-card {
     transition: all 0.2s ease;
-    touch-action: manipulation;
+    cursor: pointer;
     user-select: none;
+    min-height: 44px;
+    padding: 0.75rem !important;
+    margin: 0.5rem !important;
+    width: 140px !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    border-radius: 8px !important;
 }
 
-.player-card:hover {
-    transform: translateY(-2px);
+.player-card:hover, .player-card:active {
+    transform: scale(0.98);
+    background-color: rgba(59, 130, 246, 0.1);
 }
 
-.player-card.dragging {
-    transform: rotate(2deg);
-    z-index: 1000;
+.player-card.selected {
+    background-color: rgba(59, 130, 246, 0.2) !important;
+    border: 2px solid #3b82f6 !important;
 }
 
+/* Player pool container styling */
+#available-players-pool {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    align-content: flex-start;
+    gap: 0.5rem;
+}
+
+/* Drop zones for mobile */
 .drop-zone {
     transition: all 0.2s ease;
-    min-height: 4rem;
+    min-height: 60px;
+    border: 2px dashed #d1d5db;
+    border-radius: 8px;
+    padding: 1rem;
+    margin: 0.5rem 0;
+    cursor: pointer;
 }
 
 .drop-zone.drop-zone-active {
-    transform: scale(1.02);
-    border-style: solid !important;
     border-color: #3b82f6 !important;
     background-color: #eff6ff !important;
+    border-style: solid !important;
 }
 
-.player-card-small {
-    transition: all 0.2s ease;
-}
+/* PTI Color Coding */
+.pti-0 { background-color: #dcfce7; border-color: #16a34a; color: #15803d; }
+.pti-10 { background-color: #dcfce7; border-color: #16a34a; color: #15803d; }
+.pti-20 { background-color: #ecfdf5; border-color: #10b981; color: #047857; }
+.pti-30 { background-color: #fef3c7; border-color: #f59e0b; color: #92400e; }
+.pti-40 { background-color: #fde68a; border-color: #f59e0b; color: #92400e; }
+.pti-50 { background-color: #fed7aa; border-color: #ea580c; color: #9a3412; }
+.pti-60 { background-color: #fecaca; border-color: #ef4444; color: #b91c1c; }
+.pti-70 { background-color: #fce7f3; border-color: #ec4899; color: #be185d; }
+.pti-80 { background-color: #e9d5ff; border-color: #a855f7; color: #7c2d12; }
 
-.player-card-small:hover {
-    transform: scale(1.05);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-}
-
-/* Mobile optimizations */
-@media (max-width: 640px) {
-    .player-card {
-        font-size: 0.8rem;
-        padding: 0.5rem;
-        margin: 0.25rem;
+/* Responsive grid for mobile */
+@media (max-width: 768px) {
+    .candy-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 10px !important;
     }
     
-    .series-container {
-        margin-bottom: 1rem;
+    .player-card {
+        width: 120px !important;
+        min-height: 50px !important;
+        padding: 0.5rem !important;
+        margin: 0.25rem !important;
     }
 }
-
-/* PTI color coding */
-.bg-green-100 {
-    background-color: #dcfce7;
-}
-
-.bg-yellow-100 {
-    background-color: #fef3c7;
-}
-
-.bg-red-100 {
-    background-color: #fee2e2;
-}
-
 </style>
 
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize session data
+    window.sessionData = {{ session_data | tojson | safe }};
+
+    // Global variables
+    let allPlayers = [];
+    let seriesRanges = [];
+    let teamAssignments = {};
+    let selectedPlayerForTap = null;
+
+    // PTI Color Coding Function
+    function getPTIColorClass(pti) {
+        const segment = Math.floor(pti / 10);
+        const colorClasses = [
+            'bg-emerald-200 border-emerald-400 text-emerald-900',
+            'bg-green-200 border-green-400 text-green-900',
+            'bg-lime-200 border-lime-400 text-lime-900',
+            'bg-yellow-200 border-yellow-400 text-yellow-900',
+            'bg-amber-200 border-amber-400 text-amber-900',
+            'bg-orange-200 border-orange-400 text-orange-900',
+            'bg-red-200 border-red-400 text-red-900',
+            'bg-rose-200 border-rose-400 text-rose-900',
+            'bg-purple-200 border-purple-400 text-purple-900'
+        ];
+        return colorClasses[segment] || colorClasses[colorClasses.length - 1];
+    }
+
+    // Initialize page with mobile-optimized functionality
+    async function initializePage() {
+        try {
+            console.log('Starting page initialization...');
+            await loadPlayers();
+            await loadSeriesRanges();
+            setupEventListeners();
+            showContent();
+            console.log('Page initialization complete');
+        } catch (error) {
+            console.error('Error initializing page:', error);
+            showError('Failed to load data. Please refresh the page.');
+        }
+    }
+
+    // Load players from API
+    async function loadPlayers() {
+        try {
+            const response = await fetch('/api/create-team/players');
+            if (!response.ok) throw new Error('Failed to fetch players');
+            
+            const data = await response.json();
+            if (!data.success) {
+                throw new Error(data.error || 'Failed to load players');
+            }
+            
+            // Filter to only Tennaqua players
+            allPlayers = data.players.filter(player => 
+                player.club && player.club.toLowerCase().includes('tennaqua')
+            );
+            console.log(`Loaded ${allPlayers.length} Tennaqua players (filtered from ${data.players.length} total)`);
+            
+            displayPlayers();
+            updatePlayerCount();
+        } catch (error) {
+            console.error('Error loading players:', error);
+            throw error;
+        }
+    }
+
+    // Load series ranges from API
+    async function loadSeriesRanges() {
+        try {
+            const response = await fetch('/api/create-team/analyze-series');
+            if (!response.ok) throw new Error('Failed to fetch series');
+            
+            const data = await response.json();
+            if (!data.success) {
+                throw new Error(data.error || 'Failed to analyze series');
+            }
+            
+            seriesRanges = data.series_ranges || [];
+            console.log(`Loaded ${seriesRanges.length} series`);
+            
+            displaySeriesControls();
+            displaySeriesTeams();
+        } catch (error) {
+            console.error('Error loading series:', error);
+            throw error;
+        }
+    }
+
+    // Display players in the pool
+    function displayPlayers() {
+        const container = document.getElementById('available-players-pool');
+        if (!container) return;
+
+        if (allPlayers.length === 0) {
+            container.innerHTML = '<div class="text-gray-400 text-center text-sm">No players available</div>';
+            return;
+        }
+
+        container.innerHTML = allPlayers.map(player => {
+            const ptiColorClass = getPTIColorClass(player.pti || 50);
+            return `
+                <div class="player-card ${ptiColorClass} border rounded-lg cursor-pointer" 
+                     data-player-id="${player.id}"
+                     onclick="selectPlayer('${player.id}')">
+                    <div class="text-sm font-semibold">${player.name || `${player.first_name} ${player.last_name}`}</div>
+                    <div class="text-xs">PTI: ${player.pti ? player.pti.toFixed(1) : 'N/A'}</div>
+                    <div class="text-xs text-gray-600">${player.club || ''}</div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    // Handle player selection for mobile tap interface
+    function selectPlayer(playerId) {
+        const player = allPlayers.find(p => p.id === playerId);
+        if (!player) return;
+
+        // Clear previous selection
+        document.querySelectorAll('.player-card').forEach(card => {
+            card.classList.remove('selected');
+        });
+
+        // Select current player
+        selectedPlayerForTap = player;
+        const playerCard = document.querySelector(`[data-player-id="${playerId}"]`);
+        if (playerCard) {
+            playerCard.classList.add('selected');
+        }
+
+        // Show selected player indicator
+        const indicator = document.getElementById('selected-player-indicator');
+        const nameSpan = document.getElementById('selected-player-name');
+        const ptiSpan = document.getElementById('selected-player-pti');
+        
+        if (indicator && nameSpan && ptiSpan) {
+            nameSpan.textContent = player.name || `${player.first_name} ${player.last_name}`;
+            ptiSpan.textContent = `PTI: ${player.pti ? player.pti.toFixed(1) : 'N/A'}`;
+            indicator.classList.remove('hidden');
+        }
+    }
+
+    // Display series controls
+    function displaySeriesControls() {
+        const container = document.getElementById('series-recommendations');
+        if (!container) return;
+
+        container.innerHTML = seriesRanges.map(series => `
+            <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <h3 class="font-semibold text-gray-900 mb-2">${series.series_name}</h3>
+                <p class="text-sm text-gray-600">Current PTI Range: ${series.current_range.min} - ${series.current_range.max}</p>
+                <p class="text-sm text-gray-600">Recommended: ${series.recommended_range.min} - ${series.recommended_range.max}</p>
+                <p class="text-sm text-gray-600">Players in series: ${series.player_count}</p>
+                <div class="mt-2 text-xs text-blue-600">
+                    Avg PTI: ${series.statistics.avg} | StdDev: ${series.statistics.std_dev}
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // Display series teams
+    function displaySeriesTeams() {
+        const container = document.getElementById('series-teams');
+        if (!container) return;
+
+        container.innerHTML = seriesRanges.map(series => `
+            <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="font-semibold text-gray-900">${series.series_name}</h3>
+                    <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                        ${teamAssignments[series.series_name]?.length || 0}/${Math.ceil(series.player_count / 4)} teams possible
+                    </span>
+                </div>
+                <div class="drop-zone min-h-16 border-2 border-dashed border-gray-300 rounded-lg p-3" 
+                     data-series="${series.series_name}"
+                     onclick="assignPlayerToSeries('${series.series_name}')">
+                    <div id="team-${series.series_name}" class="flex flex-wrap gap-2">
+                        ${teamAssignments[series.series_name] ? teamAssignments[series.series_name].map(player => `
+                            <div class="player-card ${getPTIColorClass(player.pti)} border rounded px-2 py-1 text-xs">
+                                ${player.name || `${player.first_name} ${player.last_name}`}
+                                <div>PTI: ${player.pti ? player.pti.toFixed(1) : 'N/A'}</div>
+                            </div>
+                        `).join('') : '<div class="text-gray-400 text-sm">Tap to assign selected player</div>'}
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // Assign player to series (mobile tap interface)
+    function assignPlayerToSeries(seriesName) {
+        if (!selectedPlayerForTap) {
+            alert('Please select a player first');
+            return;
+        }
+
+        // Initialize team assignments if needed
+        if (!teamAssignments[seriesName]) {
+            teamAssignments[seriesName] = [];
+        }
+
+        // Check if player already assigned
+        const existingIndex = teamAssignments[seriesName].findIndex(p => p.id === selectedPlayerForTap.id);
+        if (existingIndex !== -1) {
+            alert('Player already assigned to this series');
+            return;
+        }
+
+        // Add player to series
+        teamAssignments[seriesName].push(selectedPlayerForTap);
+
+        // Remove player from available pool
+        allPlayers = allPlayers.filter(p => p.id !== selectedPlayerForTap.id);
+
+        // Clear selection
+        clearSelection();
+
+        // Refresh displays
+        displayPlayers();
+        displaySeriesTeams();
+        updatePlayerCount();
+    }
+
+    // Clear player selection
+    function clearSelection() {
+        selectedPlayerForTap = null;
+        document.querySelectorAll('.player-card').forEach(card => {
+            card.classList.remove('selected');
+        });
+        document.getElementById('selected-player-indicator').classList.add('hidden');
+    }
+
+    // Update player count
+    function updatePlayerCount() {
+        const countElement = document.getElementById('player-count');
+        if (countElement) {
+            countElement.textContent = allPlayers.length;
+        }
+    }
+
+    // This function is no longer needed since we're not using team size sliders
+    // Keeping for backwards compatibility
+    function updateTeamSize(seriesName, size) {
+        console.log(`Team size update for ${seriesName}: ${size} (feature not implemented)`);
+    }
+
+    // Setup event listeners
+    function setupEventListeners() {
+        // Clear selection button
+        document.getElementById('clear-selection')?.addEventListener('click', clearSelection);
+
+        // Reset buttons
+        document.getElementById('reset-players')?.addEventListener('click', () => {
+            location.reload();
+        });
+
+        document.getElementById('reset-assignments')?.addEventListener('click', () => {
+            teamAssignments = {};
+            displaySeriesTeams();
+        });
+
+        document.getElementById('reset-teams')?.addEventListener('click', () => {
+            location.reload();
+        });
+
+        // Save teams button
+        document.getElementById('save-teams')?.addEventListener('click', saveTeams);
+    }
+
+    // Save teams functionality
+    async function saveTeams() {
+        try {
+            // Transform team assignments to match API expectations
+            const formattedTeams = {};
+            for (const seriesName in teamAssignments) {
+                const players = teamAssignments[seriesName];
+                const totalPti = players.reduce((sum, player) => sum + (player.pti || 0), 0);
+                
+                formattedTeams[seriesName] = {
+                    players: players,
+                    total_pti: totalPti,
+                    avg_pti: players.length > 0 ? totalPti / players.length : 0
+                };
+            }
+            
+            const response = await fetch('/api/create-team/save', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    teams: formattedTeams,
+                    series_data: seriesRanges
+                })
+            });
+
+            const data = await response.json();
+            
+            if (data.success) {
+                alert('Teams saved successfully!');
+            } else {
+                throw new Error(data.error || 'Failed to save teams');
+            }
+        } catch (error) {
+            console.error('Error saving teams:', error);
+            alert('Failed to save teams. Please try again.');
+        }
+    }
+
+    // Show content and hide loading
+    function showContent() {
+        document.getElementById('loading-state').classList.add('hidden');
+        document.getElementById('main-content').classList.remove('hidden');
+    }
+
+    // Show error message
+    function showError(message) {
+        const loadingState = document.getElementById('loading-state');
+        loadingState.innerHTML = `
+            <div class="text-red-600 text-center">
+                <i class="fas fa-exclamation-triangle text-2xl mb-3"></i>
+                <p class="text-lg">${message}</p>
+            </div>
+        `;
+    }
+
+    // Make functions globally available
+    window.selectPlayer = selectPlayer;
+    window.assignPlayerToSeries = assignPlayerToSeries;
+    window.updateTeamSize = updateTeamSize;
+
+    // Debug functions
+    window.forceShowContent = function() {
+        showContent();
+    };
+
+    window.debugPageState = function() {
+        console.log('=== PAGE DEBUG INFO ===');
+        console.log('Players loaded:', allPlayers.length);
+        console.log('Series loaded:', seriesRanges.length);
+        console.log('Team assignments:', teamAssignments);
+    };
+
+    // Initialize page
+    initializePage();
+});
+</script>
 {% endblock %} 
