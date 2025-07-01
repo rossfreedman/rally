@@ -73,22 +73,17 @@ def serve_mobile():
         print("Admin route detected in mobile, redirecting to serve_admin")
         return redirect(url_for("admin.serve_admin"))
 
-    # Use new session service to get fresh session data, but preserve team context if recently switched
-    from app.services.session_service import get_session_data_for_user, get_session_data_for_user_team
+    # Use new session service to get fresh session data based on user's league_context (not old team_id)
+    from app.services.session_service import get_session_data_for_user
     
     try:
         user_email = session["user"]["email"]
-        current_team_id = session["user"].get("team_id")
         
-        print(f"[DEBUG] Current session team_id: {current_team_id}")
+        print(f"[DEBUG] Getting fresh session data for user: {user_email}")
         
-        # Check if we have a team context that should be preserved
-        if current_team_id:
-            print(f"[DEBUG] Getting fresh session data with team context: {current_team_id}")
-            fresh_session_data = get_session_data_for_user_team(user_email, current_team_id)
-        else:
-            print(f"[DEBUG] Getting fresh session data without team context")
-            fresh_session_data = get_session_data_for_user(user_email)
+        # Always use the base session data function to get correct data from league_context
+        # Don't trust potentially stale team_id from existing session
+        fresh_session_data = get_session_data_for_user(user_email)
             
         print(f"[DEBUG] Fresh session data result: {fresh_session_data}")
         
