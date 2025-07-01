@@ -3571,14 +3571,17 @@ def debug_database_state():
             'leagues': leagues_count['count']
         }
         
-        # Check specific user details
-        ross_user = execute_query_one('''
-            SELECT id, first_name, last_name, tenniscores_player_id, 
-                   team_id, league_context, club, series
-            FROM users 
-            WHERE email = %s
-        ''', ['rossfreedman@gmail.com'])
-        debug_info['ross_user_details'] = dict(ross_user) if ross_user else None
+        # Check specific user details (safely handle missing columns)
+        try:
+            ross_user = execute_query_one('''
+                SELECT id, first_name, last_name, 
+                       tenniscores_player_id, league_context
+                FROM users 
+                WHERE email = %s
+            ''', ['rossfreedman@gmail.com'])
+            debug_info['ross_user_details'] = dict(ross_user) if ross_user else None
+        except Exception as user_query_error:
+            debug_info['ross_user_details'] = {"error": str(user_query_error)}
         
         # Check if team 15083 exists
         team_15083 = execute_query_one('''
