@@ -550,6 +550,9 @@ def authenticate_user(email: str, password: str) -> Dict[str, Any]:
         # Try to build session data using our session service
         session_data = get_session_data_for_user(email)
         
+        print(f"[AUTH_DEBUG] get_session_data_for_user returned: {session_data}")
+        print(f"[AUTH_DEBUG] session_data is falsy: {not session_data}")
+        
         if not session_data:
             logger.warning(f"get_session_data_for_user failed for {email}, building fallback session")
             
