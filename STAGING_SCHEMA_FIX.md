@@ -12,4 +12,9 @@
 - Staging app needs restart to pick up schema changes
 
 ## Date
-2025-07-01 
+2025-07-01
+
+## Force Restart #2
+- Local testing confirms analyze_data.current_season.matches = 12
+- All session service and analysis working perfectly
+- Forcing another restart to ensure staging picks up changes 
