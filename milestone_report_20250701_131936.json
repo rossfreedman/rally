@@ -1,0 +1,37 @@
+{
+  "timestamp": "2025-07-01T13:19:36.303833",
+  "duration_seconds": 37.24766182899475,
+  "target_branch": "staging",
+  "results": {
+    "deployment_status": {
+      "status": "out_of_sync",
+      "message": "Changes detected: 1 unpushed commits"
+    },
+    "git_changes": {
+      "has_changes": true,
+      "uncommitted_files": [],
+      "unpushed_commits": [
+        "544a813 Enhanced Create Team feature with comprehensive improvements"
+      ],
+      "current_branch": "main",
+      "summary": "1 unpushed commits"
+    },
+    "git_deployment": {
+      "status": "success",
+      "branch": "staging",
+      "message": "Deployed to staging",
+      "files_deployed": 0,
+      "commits_pushed": 1
+    },
+    "database_sync": {
+      "status": "differences",
+      "message": "Databases have schema or data differences"
+    },
+    "backup": {
+      "status": "error",
+      "message": "Backup failed: /Users/rossfreedman/dev/rally/.venv/bin/python: can't open file '/Users/rossfreedman/dev/rally/deployment/cb.py': [Errno 2] No such file or directory\n"
+    },
+    "overall_success": true
+  },
+  "success": true
+}
