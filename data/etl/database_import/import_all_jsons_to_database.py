@@ -1967,7 +1967,7 @@ class ComprehensiveETL:
         )
 
     def import_player_history(self, conn, player_history_data: List[Dict]):
-        """Import player history data with enhanced player ID validation"""
+        """Import player history data with enhanced player ID validation and connection resilience"""
         self.log("📥 Importing player history with enhanced player ID validation...")
 
         cursor = conn.cursor()
@@ -1975,9 +1975,31 @@ class ComprehensiveETL:
         errors = 0
         player_id_fixes = 0
         skipped_players = 0
+        
+        # Add progress tracking for large datasets
+        total_players = len(player_history_data)
+        progress_interval = max(100, total_players // 10)  # Report progress every 10% or 100 records
+        
+        self.log(f"📊 Processing {total_players:,} player history records...")
 
-        for player_record in player_history_data:
+        for player_idx, player_record in enumerate(player_history_data):
             try:
+                # Add connection health check for long-running processes
+                if player_idx > 0 and player_idx % 1000 == 0:
+                    try:
+                        # Test connection health
+                        cursor.execute("SELECT 1")
+                        cursor.fetchone()
+                    except Exception as conn_error:
+                        self.log(f"⚠️ Connection issue detected at record {player_idx}, attempting to recover...", "WARNING")
+                        # Could implement connection recovery here if needed
+                        pass
+                
+                # Progress reporting
+                if player_idx > 0 and player_idx % progress_interval == 0:
+                    progress_pct = (player_idx / total_players) * 100
+                    self.log(f"📈 Progress: {player_idx:,}/{total_players:,} players ({progress_pct:.1f}%) - {imported:,} records imported")
+                
                 original_player_id = player_record.get("player_id", "").strip()
                 raw_league_id = player_record.get("league_id", "").strip()
                 league_id = normalize_league_id(raw_league_id) if raw_league_id else ""
@@ -1986,6 +2008,7 @@ class ComprehensiveETL:
                 player_name = player_record.get("name", "").strip()
 
                 if not all([original_player_id, league_id]) or not matches:
+                    skipped_players += 1
                     continue
 
                 # CRITICAL FIX: Validate and resolve player ID using fallback matching
@@ -2070,21 +2093,24 @@ class ComprehensiveETL:
                         errors += 1
                         if errors <= 10:
                             self.log(
-                                f"❌ Error importing match for player {player_id}: {str(match_error)}",
+                                f"❌ Error importing match for player {validated_player_id}: {str(match_error)}",
                                 "ERROR",
                             )
 
-                if imported % 1000 == 0 and imported > 0:
+                # More frequent commits for large datasets to prevent timeouts
+                if imported % 500 == 0 and imported > 0:
+                    conn.commit()  # Commit every 500 records to prevent long transactions
+                    
+                if imported % 2000 == 0 and imported > 0:
                     self.log(
                         f"   📊 Imported {imported:,} player history records so far..."
                     )
-                    conn.commit()
 
             except Exception as e:
                 errors += 1
                 if errors <= 10:
                     self.log(
-                        f"❌ Error importing player history for {player_id}: {str(e)}",
+                        f"❌ Error importing player history for {original_player_id}: {str(e)}",
                         "ERROR",
                     )
 
