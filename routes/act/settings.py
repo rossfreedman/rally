@@ -84,24 +84,58 @@ def init_routes(app):
             all_series_records = execute_query("SELECT name FROM series")
 
             # Extract series names and sort them numerically
-            def extract_series_number(series_name):
-                """Extract the numeric part from series name for sorting"""
-                # Look for the first number in the series name
-                match = re.search(r"(\d+)", series_name)
+            def get_series_sort_key(series_name):
+                """Extract and sort series names properly by prefix, number, and suffix"""
+                # Handle series with numeric values: "Chicago 1", "Series 2", "Division 3", etc.
+                match = re.match(r'^(?:(Chicago|Series|Division)\s+)?(\d+)([a-zA-Z\s]*)$', series_name)
                 if match:
-                    return int(match.group(1))
-                else:
-                    # If no number found, put it at the end
-                    return 9999
+                    prefix = match.group(1) or ''
+                    number = int(match.group(2))
+                    suffix = match.group(3).strip() if match.group(3) else ''
+                    
+                    # Sort by: prefix priority, then number, then suffix
+                    prefix_priority = {'Chicago': 0, 'Series': 1, 'Division': 2}.get(prefix, 3)
+                    return (0, prefix_priority, number, suffix)  # Numeric series first
+                
+                # Handle letter-only series (Series A, Series B, etc.)
+                match = re.match(r'^(?:(Chicago|Series|Division)\s+)?([A-Z]+)$', series_name)
+                if match:
+                    prefix = match.group(1) or ''
+                    letter = match.group(2)
+                    prefix_priority = {'Chicago': 0, 'Series': 1, 'Division': 2}.get(prefix, 3)
+                    return (1, prefix_priority, 0, letter)  # Letters after numbers
+                
+                # Everything else goes last (sorted alphabetically)
+                return (2, 0, 0, series_name)
 
             # Sort series by the extracted number
             all_series_names = [record["name"] for record in all_series_records]
-            all_series_sorted = sorted(all_series_names, key=extract_series_number)
+            all_series_sorted = sorted(all_series_names, key=get_series_sort_key)
+            
+            # Convert series names for APTA league UI display
+            user_league_id = session.get("user", {}).get("league_id", "")
+            if user_league_id and user_league_id.startswith("APTA"):
+                def convert_chicago_to_series_for_ui(series_name):
+                    """Convert "Chicago X" format to "Series X" format for APTA league UI display"""
+                    import re
+                    match = re.match(r'^Chicago\s+(\d+)([a-zA-Z\s]*)$', series_name)
+                    if match:
+                        number = match.group(1)
+                        suffix = match.group(2).strip() if match.group(2) else ''
+                        if suffix:
+                            return f"Series {number} {suffix}"
+                        else:
+                            return f"Series {number}"
+                    return series_name
+                
+                all_series_sorted = [convert_chicago_to_series_for_ui(name) for name in all_series_sorted]
 
-            # Get user's current series
+            # Get user's current series (also convert if APTA)
             current_series = None
             if "user" in session and "series" in session["user"]:
                 current_series = session["user"]["series"]
+                if user_league_id and user_league_id.startswith("APTA"):
+                    current_series = convert_chicago_to_series_for_ui(current_series)
 
             return jsonify({"series": current_series, "all_series": all_series_sorted})
 

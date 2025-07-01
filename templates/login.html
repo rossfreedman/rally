@@ -74,6 +74,17 @@
             box-shadow: 0 0 0 0.2rem rgba(0, 116, 23, 0.15);
         }
 
+        .form-control:disabled {
+            background-color: #f8f9fa;
+            border-color: #e9ecef;
+            color: #6c757d;
+            cursor: not-allowed;
+        }
+
+        .form-control:disabled + label {
+            color: #adb5bd;
+        }
+
         .btn-primary {
             background-color: #000;
             color: #fff;
@@ -420,16 +431,31 @@
                 // Add event listener for league changes
                 leagueSelect.addEventListener('change', function() {
                     const selectedLeague = this.value;
-                    loadClubsByLeague(selectedLeague);
-                    loadSeriesByLeague(selectedLeague);
+                    const seriesSelect = document.getElementById('series');
+                    
+                    if (selectedLeague) {
+                        // Enable series dropdown and load options for selected league
+                        seriesSelect.disabled = false;
+                        loadClubsByLeague(selectedLeague);
+                        loadSeriesByLeague(selectedLeague);
+                    } else {
+                        // Disable series dropdown when no league is selected
+                        seriesSelect.disabled = true;
+                        seriesSelect.innerHTML = '<option value="">Select your series</option>';
+                        loadClubsByLeague();
+                    }
+                    
                     // Clear club and series selections when league changes
                     document.getElementById('club').value = '';
                     document.getElementById('series').value = '';
                 });
                 
-                // Load all clubs and series initially (no league filter)
+                // Load all clubs initially, but leave series empty until league is selected
                 loadClubsByLeague();
-                loadSeriesByLeague();
+                
+                // Initialize series dropdown as disabled
+                const seriesSelect = document.getElementById('series');
+                seriesSelect.disabled = true;
                 
             } catch (error) {
                 console.error('Error loading leagues:', error);
@@ -608,10 +634,21 @@
             document.querySelector(`.auth-tab:nth-child(${formType === 'login' ? 1 : 2})`).classList.add('active');
             document.getElementById(`${formType}Form`).classList.add('active');
             
-            // If switching to register form, ensure dropdowns are populated
+            // If switching to register form, ensure dropdowns are properly initialized
             if (formType === 'register') {
                 setTimeout(() => {
-                    loadLeaguesAndFilters();
+                    // Only reload if leagues haven't been loaded yet
+                    const leagueSelect = document.getElementById('league');
+                    if (leagueSelect.options.length <= 1) {
+                        loadLeaguesAndFilters();
+                    } else {
+                        // Ensure series dropdown is disabled if no league is selected
+                        const seriesSelect = document.getElementById('series');
+                        if (!leagueSelect.value) {
+                            seriesSelect.disabled = true;
+                            seriesSelect.innerHTML = '<option value="">Select your series</option>';
+                        }
+                    }
                 }, 100);
             }
         }

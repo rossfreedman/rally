@@ -123,14 +123,42 @@ def init_find_people_to_play_routes(app):
                         }
                     )
 
+            # Sort series properly (numbers before letters)
+            def get_series_sort_key(series_name):
+                import re
+                
+                # Handle series with numeric values: "Chicago 1", "Series 2", "Division 3", etc.
+                match = re.match(r'^(?:(Chicago|Series|Division)\s+)?(\d+)([a-zA-Z\s]*)$', series_name)
+                if match:
+                    prefix = match.group(1) or ''
+                    number = int(match.group(2))
+                    suffix = match.group(3).strip() if match.group(3) else ''
+                    
+                    # Sort by: prefix priority, then number, then suffix
+                    prefix_priority = {'Chicago': 0, 'Series': 1, 'Division': 2}.get(prefix, 3)
+                    return (0, prefix_priority, number, suffix)  # Numeric series first
+                
+                # Handle letter-only series (Series A, Series B, etc.)
+                match = re.match(r'^(?:(Chicago|Series|Division)\s+)?([A-Z]+)$', series_name)
+                if match:
+                    prefix = match.group(1) or ''
+                    letter = match.group(2)
+                    prefix_priority = {'Chicago': 0, 'Series': 1, 'Division': 2}.get(prefix, 3)
+                    return (1, prefix_priority, 0, letter)  # Letters after numbers
+                
+                # Everything else goes last (sorted alphabetically)
+                return (2, 0, 0, series_name)
+
+            available_series_sorted = sorted(club_series, key=get_series_sort_key)
+
             print(f"Found {len(filtered_players)} players at {user_club}")
-            print(f"Available series: {sorted(club_series)}")
+            print(f"Available series: {available_series_sorted}")
             print("=== END TEST ===\n")
 
             return jsonify(
                 {
                     "total_players_found": len(filtered_players),
-                    "available_series": sorted(club_series),
+                    "available_series": available_series_sorted,
                     "first_10_players": filtered_players[:10],
                     "user_club": user_club,
                     "debug_info": {
