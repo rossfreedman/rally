@@ -2046,13 +2046,30 @@ def serve_mobile_schedule():
 def serve_mobile_availability_calendar():
     """Serve the mobile availability calendar page"""
     try:
-        user = session.get("user")
-        if not user:
-            return jsonify({"error": "No user in session"}), 400
+        # Use session service to get fresh session data (same fix as main mobile route)
+        from app.services.session_service import get_session_data_for_user
+        
+        try:
+            user_email = session["user"]["email"]
+            print(f"[DEBUG] Getting fresh session data for availability calendar: {user_email}")
+            user = get_session_data_for_user(user_email)
+            
+            if not user:
+                print(f"[DEBUG] Session service returned None for {user_email}")
+                return jsonify({"error": "Could not build session data"}), 400
+                
+        except Exception as e:
+            print(f"[DEBUG] Session service error: {e}")
+            # Fallback to existing session if service fails
+            user = session.get("user")
+            if not user:
+                return jsonify({"error": "No user in session"}), 400
 
         user_id = user.get("id")
         player_name = f"{user['first_name']} {user['last_name']}"
         series = user["series"]
+        
+        print(f"[DEBUG] Availability calendar using team_id: {user.get('team_id')}, league_id: {user.get('league_id')}")
 
         # FIXED: Use the optimized team_id-based availability data (same as /mobile/availability)
         availability_data = get_mobile_availability_data(user)
