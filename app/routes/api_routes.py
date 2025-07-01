@@ -1613,10 +1613,38 @@ def get_user_settings():
                 # Extract player data if found
                 if selected_player:
                     club_name = selected_player.club.name if selected_player.club else ""
-                    series_name = selected_player.series.name if selected_player.series else ""
+                    raw_series_name = selected_player.series.name if selected_player.series else ""
                     league_id = selected_player.league.league_id if selected_player.league else ""
                     league_name = selected_player.league.league_name if selected_player.league else ""
                     tenniscores_player_id = selected_player.tenniscores_player_id
+                    
+                    # Convert database series name to user-facing format using series mappings
+                    series_name = raw_series_name
+                    if raw_series_name and league_id:
+                        try:
+                            # Check for forward mapping (database_series_name -> user_series_name)
+                            forward_mapping_query = """
+                                SELECT user_series_name
+                                FROM series_name_mappings
+                                WHERE league_id = %s AND database_series_name = %s
+                                LIMIT 1
+                            """
+                            
+                            mapping_result = execute_query_one(forward_mapping_query, (league_id, raw_series_name))
+                            
+                            if mapping_result:
+                                series_name = mapping_result["user_series_name"]
+                                print(f"[GET_USER_SETTINGS] Applied forward mapping: '{raw_series_name}' -> '{series_name}'")
+                            else:
+                                # For APTA league, try converting Chicago format to Series format
+                                if league_id.startswith("APTA") and raw_series_name.startswith("Chicago"):
+                                    series_name = convert_chicago_to_series_for_ui(raw_series_name)
+                                    print(f"[GET_USER_SETTINGS] Applied Chicago->Series conversion: '{raw_series_name}' -> '{series_name}'")
+                                else:
+                                    print(f"[GET_USER_SETTINGS] No mapping found for '{raw_series_name}', using as-is")
+                        except Exception as mapping_error:
+                            print(f"[GET_USER_SETTINGS] Error applying series mapping: {mapping_error}")
+                            series_name = raw_series_name
             else:
                 club_name = series_name = league_id = league_name = (
                     tenniscores_player_id
@@ -1708,6 +1736,63 @@ def update_settings():
                     "success": False, 
                     "message": f"Could not switch to {new_league_id}. You may not have a player record in that league."
                 }), 400
+
+        # Handle series update with reverse mapping
+        new_series = data.get("series")
+        if new_series:
+            logger.info(f"Series update requested: {new_series}")
+            
+            # Convert user-facing series name back to database series name
+            database_series_name = new_series
+            league_id_for_mapping = new_league_id or current_league_id
+            
+            if league_id_for_mapping:
+                # Check for reverse mapping (user_series_name -> database_series_name)
+                reverse_mapping_query = """
+                    SELECT database_series_name
+                    FROM series_name_mappings
+                    WHERE league_id = %s AND user_series_name = %s
+                    LIMIT 1
+                """
+                
+                mapping_result = execute_query_one(reverse_mapping_query, (league_id_for_mapping, new_series))
+                
+                if mapping_result:
+                    database_series_name = mapping_result["database_series_name"]
+                    logger.info(f"Applied reverse mapping: '{new_series}' -> '{database_series_name}'")
+                else:
+                    logger.info(f"No reverse mapping found for '{new_series}', using as-is")
+            
+            # Find the series_id for the database series name
+            series_lookup_query = """
+                SELECT s.id as series_id
+                FROM series s
+                WHERE s.name = %s
+                LIMIT 1
+            """
+            
+            series_result = execute_query_one(series_lookup_query, (database_series_name,))
+            
+            if series_result:
+                series_id = series_result["series_id"]
+                logger.info(f"Found series_id {series_id} for series '{database_series_name}'")
+                
+                # Update the user's primary player record with the new series
+                # This ensures the session service picks up the new series
+                player_update_query = """
+                    UPDATE players p
+                    SET series_id = %s
+                    FROM user_player_associations upa
+                    JOIN users u ON upa.user_id = u.id
+                    WHERE u.email = %s 
+                    AND p.tenniscores_player_id = upa.tenniscores_player_id
+                    AND (u.league_context IS NULL OR p.league_id = u.league_context)
+                """
+                
+                execute_query(player_update_query, (series_id, user_email))
+                logger.info(f"Updated player series to '{database_series_name}' for user {user_email}")
+            else:
+                logger.warning(f"Series '{database_series_name}' not found in database")
 
         # Rebuild session from database (this gets the updated league_context)
         fresh_session_data = get_session_data_for_user(user_email)
