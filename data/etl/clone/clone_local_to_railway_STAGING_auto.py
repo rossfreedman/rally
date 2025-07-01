@@ -53,7 +53,7 @@ logger = logging.getLogger(__name__)
 
 # Database URLs
 LOCAL_DB_URL = "postgresql://postgres:postgres@localhost:5432/rally"
-RAILWAY_STAGING_URL = "postgresql://postgres:SNDcbFXgqCOkjBRzAzqGbdRvyhftepsY@switchback.proxy.rlwy.net:28473/railway"
+RAILWAY_STAGING_URL = "postgresql://postgres:HKJnPmxKZmKiIglQhQPSmfcAjTgBsSIq@ballast.proxy.rlwy.net:40911/railway"
 
 
 class DatabaseCloner:
