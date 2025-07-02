@@ -528,9 +528,27 @@ def staging_mobile_test():
         from app.services.session_service import get_session_data_for_user
         session_data = get_session_data_for_user(test_email)
         
-        # Test mobile service
-        from app.services.mobile_service import get_mobile_analyze_me_data
-        mobile_data = get_mobile_analyze_me_data(session_data) if session_data else None
+        # Convert session_data to the user format expected by get_player_analysis
+        if session_data:
+            session_user = {
+                "email": session_data.user.email,
+                "first_name": session_data.user.first_name,
+                "last_name": session_data.user.last_name,
+                "tenniscores_player_id": session_data.user.tenniscores_player_id,
+                "club_id": session_data.club_id,
+                "series_id": session_data.series_id,
+                "league_id": session_data.league_id,
+                "team_id": session_data.team_id,
+                "club": session_data.club,
+                "series": session_data.series
+            }
+            
+            # Test mobile service
+            from app.services.mobile_service import get_player_analysis
+            mobile_data = get_player_analysis(session_user)
+        else:
+            session_user = None
+            mobile_data = None
         
         return jsonify({
             "success": True,
@@ -550,9 +568,10 @@ def staging_mobile_test():
                 "series": session_data.series if session_data else None
             },
             "mobile_service": {
-                "matches_found": len(mobile_data.get('matches', [])) if mobile_data else 0,
-                "win_loss_record": mobile_data.get('win_loss_record') if mobile_data else None,
-                "pti_score": mobile_data.get('pti_score') if mobile_data else None
+                "analyze_data_found": bool(mobile_data),
+                "current_season_matches": len(mobile_data.get('current_season', {}).get('matches', [])) if mobile_data and mobile_data.get('current_season') else 0,
+                "current_season_data": mobile_data.get('current_season') if mobile_data else None,
+                "pti_score": mobile_data.get('current_pti') if mobile_data else None
             }
         })
         
