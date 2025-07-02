@@ -510,56 +510,40 @@ def staging_mobile_test():
     This bypasses authentication for staging testing
     """
     # Only allow on staging environment
-    if os.environ.get("RAILWAY_ENVIRONMENT") != "staging":
-        return jsonify({"error": "This endpoint only works on staging"}), 403
+    railway_env = os.environ.get("RAILWAY_ENVIRONMENT", "not_set")
+    
+    if railway_env != "staging":
+        return jsonify({
+            "error": "This endpoint only works on staging",
+            "current_env": railway_env
+        }), 403
     
     try:
-        # Import here to avoid circular imports
-        from app.services.mobile_service import get_mobile_analyze_me_data
-        from app.services.session_service import get_session_data_for_user
-        
-        # Test with Wes Maher email
+        # Test with simple data first
         test_email = "wmaher@gmail.com"
         
-        print(f"🔍 Testing mobile service for: {test_email}")
+        # Test database connection
+        from database_utils import execute_query
+        user_check = execute_query('SELECT id, email, league_context FROM users WHERE email = %s', [test_email])
         
-        # Get session data
-        session_data = get_session_data_for_user(test_email)
-        
-        if not session_data:
+        if not user_check:
             return jsonify({
-                "error": "No session data found",
-                "test_email": test_email
+                "error": "User not found",
+                "test_email": test_email,
+                "railway_env": railway_env
             })
         
-        print(f"Session data: {session_data}")
-        
-        # Get mobile analyze me data
-        mobile_data = get_mobile_analyze_me_data(session_data)
+        user = user_check[0]
         
         return jsonify({
             "success": True,
             "test_email": test_email,
-            "session_user": {
-                "email": session_data.user.email,
-                "player_id": session_data.user.tenniscores_player_id,
-                "league_id": session_data.league_id,
-                "team_id": session_data.team_id,
-                "club": session_data.club,
-                "series": session_data.series
-            },
-            "mobile_data_summary": {
-                "total_matches": len(mobile_data.get('matches', [])),
-                "win_loss_record": mobile_data.get('win_loss_record'),
-                "overall_win_percentage": mobile_data.get('overall_win_percentage'),
-                "pti_score": mobile_data.get('pti_score'),
-                "pti_percentile": mobile_data.get('pti_percentile')
-            },
-            "debug_info": {
-                "matches_found": len(mobile_data.get('matches', [])),
-                "court_performance": mobile_data.get('court_performance', {}),
-                "partners": len(mobile_data.get('partners', [])),
-                "opponents": len(mobile_data.get('opponents', []))
+            "railway_env": railway_env,
+            "user_found": True,
+            "user_data": {
+                "id": user["id"],
+                "email": user["email"],
+                "league_context": user["league_context"]
             }
         })
         
@@ -568,7 +552,8 @@ def staging_mobile_test():
         return jsonify({
             "error": str(e),
             "traceback": traceback.format_exc(),
-            "test_email": test_email
+            "test_email": test_email,
+            "railway_env": railway_env
         }), 500
 
 
