@@ -659,11 +659,11 @@ def test_ross_matches_detailed():
                 TO_CHAR(match_date, 'DD-Mon-YY') as date,
                 home_team, away_team
             FROM match_scores
-            WHERE home_team ILIKE '%tennaqua%' OR away_team ILIKE '%tennaqua%'
+            WHERE home_team ILIKE %s OR away_team ILIKE %s
             ORDER BY match_date DESC
             LIMIT 5
         """
-        tennaqua_matches = execute_query(name_matches_query, [])
+        tennaqua_matches = execute_query(name_matches_query, ['%tennaqua%', '%tennaqua%'])
         
         return jsonify({
             "debug": "ross_matches_detailed",
