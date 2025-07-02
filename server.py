@@ -511,13 +511,58 @@ def staging_mobile_test():
     """
     railway_env = os.environ.get("RAILWAY_ENVIRONMENT", "not_set")
     
-    # Basic environment check
-    return jsonify({
-        "status": "running",
-        "railway_env": railway_env,
-        "message": "Basic debug endpoint working",
-        "allowed_on_staging": railway_env == "staging"
-    })
+    if railway_env != "staging":
+        return jsonify({
+            "error": "This endpoint only works on staging",
+            "railway_env": railway_env
+        }), 403
+    
+    try:
+        test_email = "wmaher@gmail.com"
+        
+        # Test direct database query
+        from database_utils import execute_query
+        user_db = execute_query('SELECT id, email, league_context FROM users WHERE email = %s', [test_email])
+        
+        # Test session service
+        from app.services.session_service import get_session_data_for_user
+        session_data = get_session_data_for_user(test_email)
+        
+        # Test mobile service
+        from app.services.mobile_service import get_mobile_analyze_me_data
+        mobile_data = get_mobile_analyze_me_data(session_data) if session_data else None
+        
+        return jsonify({
+            "success": True,
+            "railway_env": railway_env,
+            "test_email": test_email,
+            "database_direct": {
+                "user_found": bool(user_db),
+                "user_data": user_db[0] if user_db else None
+            },
+            "session_service": {
+                "session_data_found": bool(session_data),
+                "email": session_data.user.email if session_data else None,
+                "player_id": session_data.user.tenniscores_player_id if session_data else None,
+                "league_id": session_data.league_id if session_data else None,
+                "team_id": session_data.team_id if session_data else None,
+                "club": session_data.club if session_data else None,
+                "series": session_data.series if session_data else None
+            },
+            "mobile_service": {
+                "matches_found": len(mobile_data.get('matches', [])) if mobile_data else 0,
+                "win_loss_record": mobile_data.get('win_loss_record') if mobile_data else None,
+                "pti_score": mobile_data.get('pti_score') if mobile_data else None
+            }
+        })
+        
+    except Exception as e:
+        import traceback
+        return jsonify({
+            "error": str(e),
+            "traceback": traceback.format_exc(),
+            "railway_env": railway_env
+        }), 500
 
 
 # ==========================================
