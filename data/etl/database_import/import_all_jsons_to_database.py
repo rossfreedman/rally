@@ -156,7 +156,7 @@ class PlayerMatchingValidator:
 
 
 class ComprehensiveETL:
-    def __init__(self, force_environment=None, disable_validation=None):
+    def __init__(self, force_environment=None):
         # Fix path calculation - script is in data/etl/database_import/, need to go up 3 levels to project root
         script_dir = os.path.dirname(os.path.abspath(__file__))
         project_root = os.path.dirname(os.path.dirname(os.path.dirname(script_dir)))
@@ -171,8 +171,8 @@ class ComprehensiveETL:
         self.environment = self._detect_environment(force_environment)
         self.log(f"🌍 Environment detected: {self.environment}")
         
-        # Apply environment-specific optimizations
-        self._configure_for_environment(disable_validation)
+        # Apply environment-specific optimizations (validation always enabled)
+        self._configure_for_environment()
         
         # CONNECTION MANAGEMENT: Add connection limiting and rotation
         self._init_connection_management()
@@ -257,8 +257,19 @@ class ComprehensiveETL:
                     import psycopg2
                     import os
                     
-                    # Get database URL with preference for internal
-                    db_url = os.getenv('DATABASE_URL', os.getenv('DATABASE_PUBLIC_URL'))
+                    # CRITICAL FIX: Prefer PUBLIC URLs when running locally with Railway env vars
+                    # Check if we're actually running on Railway servers vs local with Railway env
+                    is_local_with_railway_env = not os.path.exists('/app')  # Railway containers have /app
+                    
+                    if is_local_with_railway_env:
+                        # Running locally with 'railway run' - use PUBLIC URL to avoid internal hostname issues
+                        db_url = os.getenv('DATABASE_PUBLIC_URL', os.getenv('DATABASE_URL'))
+                        self.log(f"🚂 Railway (Local): Using DATABASE_PUBLIC_URL for external access: {db_url[:50]}...")
+                    else:
+                        # Actually running on Railway servers - can use internal URL
+                        db_url = os.getenv('DATABASE_URL', os.getenv('DATABASE_PUBLIC_URL'))
+                        self.log(f"🚂 Railway (Server): Using DATABASE_URL for internal access: {db_url[:50]}...")
+                    
                     if db_url.startswith("postgres://"):
                         db_url = db_url.replace("postgres://", "postgresql://", 1)
                     
@@ -347,14 +358,13 @@ class ComprehensiveETL:
         else:
             return 'local'
     
-    def _configure_for_environment(self, disable_validation=None):
+    def _configure_for_environment(self):
         """Configure ETL settings based on environment"""
         if self.environment == 'local':
             self.log("🏠 Local environment - using development settings")
             self.batch_size = 1000
             self.commit_frequency = 100
             self.connection_retry_attempts = 5
-            self.skip_player_validation = disable_validation if disable_validation is not None else False
             self.use_railway_optimizations = False
             
         elif self.environment == 'railway_staging':
@@ -362,26 +372,18 @@ class ComprehensiveETL:
             self.batch_size = 200  # Smaller batches for staging
             self.commit_frequency = 50  # More frequent commits
             self.connection_retry_attempts = 8
-            # Default to fast mode on staging unless explicitly enabled
-            self.skip_player_validation = disable_validation if disable_validation is not None else True
             self.use_railway_optimizations = True
-            if self.skip_player_validation:
-                self.log("🚀 Staging speed mode: Player validation disabled for faster imports")
             
         elif self.environment == 'railway_production':
             self.log("🔴 Railway Production - using production optimizations")
             self.batch_size = 500  # Medium batches for production
             self.commit_frequency = 100  # Standard commits
             self.connection_retry_attempts = 10  # Max retries for production
-            # Default to validation enabled on production unless explicitly disabled
-            self.skip_player_validation = disable_validation if disable_validation is not None else False
             self.use_railway_optimizations = True
-            if self.skip_player_validation:
-                self.log("⚡ Production speed mode: Player validation disabled")
-            else:
-                self.log("🛡️ Production safety mode: Player validation enabled")
         
-        self.log(f"📊 Settings: batch_size={self.batch_size}, skip_validation={self.skip_player_validation}")
+        # Player validation is ALWAYS enabled for data integrity
+        self.log("🛡️ Player validation ALWAYS enabled for data integrity")
+        self.log(f"📊 Settings: batch_size={self.batch_size}, validation=ALWAYS_ENABLED")
 
     @property 
     def is_railway(self):
@@ -448,13 +450,17 @@ class ComprehensiveETL:
                 import psycopg2
                 import os
                 
-                # RAILWAY SPEED FIX: Prefer internal DATABASE_URL over external DATABASE_PUBLIC_URL
-                db_url = os.getenv('DATABASE_URL')  # Use internal connection first
-                if not db_url:
-                    db_url = os.getenv('DATABASE_PUBLIC_URL')  # Fallback to external
-                    self.log(f"🚂 Railway: Using DATABASE_PUBLIC_URL (external - slower): {db_url[:50]}...")
+                # CRITICAL FIX: Use appropriate URL based on execution context
+                is_local_with_railway_env = not os.path.exists('/app')  # Railway containers have /app
+                
+                if is_local_with_railway_env:
+                    # Running locally with 'railway run' - use PUBLIC URL
+                    db_url = os.getenv('DATABASE_PUBLIC_URL', os.getenv('DATABASE_URL'))
+                    self.log(f"🚂 Railway (Local): Using DATABASE_PUBLIC_URL: {db_url[:50]}...")
                 else:
-                    self.log(f"🚂 Railway: Using DATABASE_URL (internal - faster): {db_url[:50]}...")
+                    # Actually running on Railway servers - use internal URL
+                    db_url = os.getenv('DATABASE_URL', os.getenv('DATABASE_PUBLIC_URL'))
+                    self.log(f"🚂 Railway (Server): Using DATABASE_URL: {db_url[:50]}...")
                 
                 # Handle Railway's postgres:// URLs
                 if db_url.startswith("postgres://"):
@@ -3608,7 +3614,11 @@ class ComprehensiveETL:
             
             # RAILWAY OPTIMIZATION: Log environment and resource information
             if self.is_railway:
-                self.log("🚂 Railway Production Environment Detected")
+                env_display = {
+                    'railway_staging': '🟡 Railway Staging Environment Detected',
+                    'railway_production': '🔴 Railway Production Environment Detected'
+                }.get(self.environment, f'🚂 Railway Environment Detected: {self.environment}')
+                self.log(env_display)
                 self.log(f"🚂 Railway: Batch size set to {self.batch_size}")
                 self.log(f"🚂 Railway: Commit frequency set to {self.commit_frequency}")
                 self.log(f"🚂 Railway: Connection retries set to {self.connection_retry_attempts}")

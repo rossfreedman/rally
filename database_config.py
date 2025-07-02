@@ -26,28 +26,19 @@ def get_db_url():
     is_railway = os.getenv("RAILWAY_ENVIRONMENT") is not None
 
     if is_railway:
-        # CRITICAL FIX: When running via 'railway run', we're outside the internal network
-        # so we need to use the public URL instead of internal hostname
-        url = os.getenv("DATABASE_URL")
-        public_url = os.getenv("DATABASE_PUBLIC_URL")
+        # CRITICAL FIX: Detect if running locally with Railway env vs on Railway servers
+        is_local_with_railway_env = not os.path.exists('/app')  # Railway containers have /app
         
-        # Check if we have a public URL and if the DATABASE_URL contains internal hostname
-        if (public_url and url and 
-            ("railway.internal" in url or "postgres.railway.internal" in url)):
-            # Use public URL for external connections (like 'railway run')
-            url = public_url
+        if is_local_with_railway_env:
+            # Running locally with 'railway run' - use PUBLIC URL to avoid internal hostname issues
+            url = os.getenv("DATABASE_PUBLIC_URL", os.getenv("DATABASE_URL"))
             if not _connection_logged:
-                logger.info("Using Railway public database connection (external access)")
-        elif url and ("railway.internal" in url or "postgres.railway.internal" in url):
-            if not _connection_logged:
-                logger.info(
-                    "Using Railway internal database connection (preferred for Railway deployments)"
-                )
+                logger.info("Using Railway public database connection (local execution)")
         else:
-            # Fallback to public URL if internal not available
-            url = public_url or url
+            # Actually running on Railway servers - can use internal URL for better performance
+            url = os.getenv("DATABASE_URL", os.getenv("DATABASE_PUBLIC_URL"))
             if not _connection_logged:
-                logger.info("Using Railway public database connection")
+                logger.info("Using Railway internal database connection (server execution)")
     else:
         # For local development, prefer public URL or local connection
         url = os.getenv("DATABASE_PUBLIC_URL") or os.getenv(
