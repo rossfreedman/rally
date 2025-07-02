@@ -64,13 +64,17 @@ class RailwayETLRunner:
             self.log(f"❌ Railway connection test failed: {e}", "ERROR")
             return False
     
-    def run_etl_via_railway_run(self, full_import=False):
+    def run_etl_via_railway_run(self, environment=None, disable_validation=None):
         """Run ETL using 'railway run' (executes locally with Railway env vars)"""
         self.log("🚀 Starting ETL via 'railway run'...")
         
-        cmd = ["railway", "run", "python", "chronjobs/railway_cron_etl.py"]
-        if full_import:
-            cmd.append("--full-import")
+        cmd = ["railway", "run", "python", "chronjobs/railway_background_etl.py"]
+        if environment:
+            cmd.extend(["--environment", environment])
+        if disable_validation is True:
+            cmd.append("--disable-validation")
+        elif disable_validation is False:
+            cmd.append("--enable-validation")
         
         try:
             # Run with real-time output
@@ -104,13 +108,17 @@ class RailwayETLRunner:
             self.log(f"❌ ETL execution failed: {e}", "ERROR")
             return False
     
-    def run_etl_via_ssh(self, full_import=False):
+    def run_etl_via_ssh(self, environment=None, disable_validation=None):
         """Run ETL via Railway SSH (executes on Railway servers)"""
         self.log("🚀 Starting ETL via Railway SSH...")
         
-        cmd = "python chronjobs/railway_cron_etl.py"
-        if full_import:
-            cmd += " --full-import"
+        cmd = "python chronjobs/railway_background_etl.py"
+        if environment:
+            cmd += f" --environment {environment}"
+        if disable_validation is True:
+            cmd += " --disable-validation"
+        elif disable_validation is False:
+            cmd += " --enable-validation"
         
         try:
             # Create a temporary script for SSH execution
@@ -148,11 +156,14 @@ class RailwayETLRunner:
         self.log("⚠️ Manual cron triggering not supported via CLI", "WARNING")
         return False
     
-    def run_automated_etl(self, method="railway_run", full_import=False):
+    def run_automated_etl(self, method="railway_run", environment=None, disable_validation=None):
         """Main automation method"""
         self.log("🤖 Starting automated ETL process...")
         self.log(f"📊 Method: {method}")
-        self.log(f"🎯 Full import: {full_import}")
+        if environment:
+            self.log(f"🌍 Environment: {environment}")
+        if disable_validation is not None:
+            self.log(f"🔧 Validation: {'disabled' if disable_validation else 'enabled'}")
         
         # Step 1: Check Railway connection
         if not self.check_railway_status():
@@ -168,9 +179,9 @@ class RailwayETLRunner:
         start_time = datetime.now()
         
         if method == "railway_run":
-            success = self.run_etl_via_railway_run(full_import)
+            success = self.run_etl_via_railway_run(environment=environment, disable_validation=disable_validation)
         elif method == "ssh":
-            success = self.run_etl_via_ssh(full_import)
+            success = self.run_etl_via_ssh(environment=environment, disable_validation=disable_validation)
         elif method == "cron":
             success = self.trigger_railway_cron()
         else:
@@ -193,12 +204,24 @@ def main():
     parser.add_argument('--method', choices=['railway_run', 'ssh', 'cron'], 
                        default='railway_run',
                        help='Method to run ETL (default: railway_run)')
-    parser.add_argument('--full-import', action='store_true',
-                       help='Run full import instead of incremental')
+    parser.add_argument('--environment', '-e',
+                       choices=['local', 'railway_staging', 'railway_production'],
+                       help='Force specific environment (overrides auto-detection)')
+    parser.add_argument('--disable-validation', action='store_true',
+                       help='Disable player validation for faster imports')
+    parser.add_argument('--enable-validation', action='store_true',
+                       help='Enable player validation (overrides environment defaults)')
     parser.add_argument('--test-only', action='store_true',
                        help='Only test connection, don\'t run ETL')
     
     args = parser.parse_args()
+    
+    # Handle validation arguments
+    disable_validation = None
+    if args.disable_validation:
+        disable_validation = True
+    elif args.enable_validation:
+        disable_validation = False
     
     runner = RailwayETLRunner()
     
@@ -208,8 +231,9 @@ def main():
         runner.test_railway_connection()
     else:
         success = runner.run_automated_etl(
-            method=args.method, 
-            full_import=args.full_import
+            method=args.method,
+            environment=args.environment,
+            disable_validation=disable_validation
         )
         sys.exit(0 if success else 1)
 
