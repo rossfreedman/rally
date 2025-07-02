@@ -850,6 +850,267 @@ def direct_search_ross():
         }), 500
 
 
+@app.route("/debug/investigate-staging-ids")
+def investigate_staging_ids():
+    """
+    Investigate the staging database ID mismatches for Ross Freedman
+    """
+    railway_env = os.environ.get("RAILWAY_ENVIRONMENT", "not_set")
+    
+    if railway_env != "staging":
+        return jsonify({
+            "error": "This endpoint only works on staging",
+            "railway_env": railway_env
+        }), 403
+    
+    try:
+        from database_utils import execute_query, execute_query_one
+        
+        results = {}
+        
+        # Ross's details
+        ross_player_id = "nndz-WkMrK3didjlnUT09"
+        ross_email = "rossfreedman@gmail.com"
+        
+        # Staging IDs (wrong)
+        staging_league_id = 4693
+        staging_team_id = 42417
+        
+        # Local IDs (correct)  
+        local_league_id = 4683
+        local_team_id = 44279
+        
+        results["ross_info"] = {
+            "player_id": ross_player_id,
+            "email": ross_email,
+            "staging_league_id": staging_league_id,
+            "staging_team_id": staging_team_id,
+            "local_league_id": local_league_id,
+            "local_team_id": local_team_id
+        }
+        
+        # 1. Check what staging league 4693 is
+        staging_league = execute_query_one(
+            "SELECT id, league_id, league_name FROM leagues WHERE id = %s",
+            [staging_league_id]
+        )
+        results["staging_league_4693"] = staging_league
+        
+        # 2. Check what staging team 42417 is
+        staging_team = execute_query_one(
+            "SELECT id, team_name, league_id FROM teams WHERE id = %s",
+            [staging_team_id]
+        )
+        results["staging_team_42417"] = staging_team
+        
+        # 3. Check if local league 4683 exists on staging
+        local_league_on_staging = execute_query_one(
+            "SELECT id, league_id, league_name FROM leagues WHERE id = %s",
+            [local_league_id]
+        )
+        results["local_league_4683_on_staging"] = local_league_on_staging
+        
+        # 4. Check if local team 44279 exists on staging
+        local_team_on_staging = execute_query_one(
+            "SELECT id, team_name, league_id FROM teams WHERE id = %s",
+            [local_team_id]
+        )
+        results["local_team_44279_on_staging"] = local_team_on_staging
+        
+        # 5. Search for Ross's matches by player ID (regardless of league/team)
+        ross_matches = execute_query(
+            """
+            SELECT 
+                league_id,
+                home_team_id,
+                away_team_id,
+                home_team,
+                away_team,
+                COUNT(*) as match_count,
+                MIN(TO_CHAR(match_date, 'YYYY-MM-DD')) as earliest_match,
+                MAX(TO_CHAR(match_date, 'YYYY-MM-DD')) as latest_match
+            FROM match_scores 
+            WHERE home_player_1_id = %s OR home_player_2_id = %s 
+               OR away_player_1_id = %s OR away_player_2_id = %s
+            GROUP BY league_id, home_team_id, away_team_id, home_team, away_team
+            ORDER BY match_count DESC
+            """,
+            [ross_player_id, ross_player_id, ross_player_id, ross_player_id]
+        )
+        results["ross_matches_found"] = ross_matches
+        
+        # 6. Check Ross's user association on staging
+        ross_user = execute_query_one(
+            "SELECT id, email, league_context FROM users WHERE email = %s",
+            [ross_email]
+        )
+        results["ross_user"] = ross_user
+        
+        if ross_user:
+            # Check his player associations
+            associations = execute_query(
+                """
+                SELECT upa.tenniscores_player_id, p.league_id, p.team_id, 
+                       t.team_name, l.league_name, p.first_name, p.last_name
+                FROM user_player_associations upa
+                JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id  
+                JOIN teams t ON p.team_id = t.id
+                JOIN leagues l ON p.league_id = l.id
+                WHERE upa.user_id = %s
+                """,
+                [ross_user['id']]
+            )
+            results["ross_associations"] = associations
+        
+        # Analysis
+        analysis = {
+            "staging_league_exists": staging_league is not None,
+            "staging_team_exists": staging_team is not None, 
+            "local_league_exists_on_staging": local_league_on_staging is not None,
+            "local_team_exists_on_staging": local_team_on_staging is not None,
+            "ross_matches_count": len(ross_matches) if ross_matches else 0,
+            "ross_user_exists": ross_user is not None
+        }
+        
+        if ross_matches:
+            best_match = ross_matches[0]
+            analysis["primary_match_league_id"] = best_match["league_id"]
+            analysis["primary_match_count"] = best_match["match_count"]
+            analysis["league_mismatch"] = best_match["league_id"] != staging_league_id
+            
+            if best_match["league_id"] != staging_league_id:
+                analysis["recommended_fix"] = f"Update Ross's league_context from {staging_league_id} to {best_match['league_id']}"
+        
+        results["analysis"] = analysis
+        
+        return jsonify({
+            "debug": "investigate_staging_ids",
+            "railway_env": railway_env,
+            "results": results
+        })
+        
+    except Exception as e:
+        import traceback
+        return jsonify({
+            "error": str(e),
+            "traceback": traceback.format_exc(),
+            "railway_env": railway_env
+        }), 500
+
+
+@app.route("/debug/fix-ross-league-context")
+def fix_ross_league_context():
+    """
+    Fix Ross's league context to point to the correct league where his matches exist
+    """
+    railway_env = os.environ.get("RAILWAY_ENVIRONMENT", "not_set")
+    
+    if railway_env != "staging":
+        return jsonify({
+            "error": "This endpoint only works on staging",
+            "railway_env": railway_env
+        }), 403
+    
+    try:
+        from database_utils import execute_query, execute_query_one, execute_update
+        
+        ross_email = "rossfreedman@gmail.com"
+        ross_player_id = "nndz-WkMrK3didjlnUT09"
+        
+        # First find where Ross's matches actually exist
+        ross_matches = execute_query(
+            """
+            SELECT 
+                league_id,
+                COUNT(*) as match_count
+            FROM match_scores 
+            WHERE home_player_1_id = %s OR home_player_2_id = %s 
+               OR away_player_1_id = %s OR away_player_2_id = %s
+            GROUP BY league_id
+            ORDER BY match_count DESC
+            """,
+            [ross_player_id, ross_player_id, ross_player_id, ross_player_id]
+        )
+        
+        if not ross_matches:
+            return jsonify({
+                "error": "No matches found for Ross - cannot determine correct league",
+                "railway_env": railway_env
+            }), 400
+        
+        # Use the league with the most matches
+        correct_league_id = ross_matches[0]["league_id"]
+        match_count = ross_matches[0]["match_count"]
+        
+        # Get current user data
+        current_user = execute_query_one(
+            "SELECT id, email, league_context FROM users WHERE email = %s",
+            [ross_email]
+        )
+        
+        if not current_user:
+            return jsonify({
+                "error": "Ross's user account not found",
+                "railway_env": railway_env
+            }), 404
+        
+        old_league_context = current_user["league_context"]
+        
+        # Update the league context
+        rows_updated = execute_update(
+            "UPDATE users SET league_context = %s WHERE email = %s",
+            [correct_league_id, ross_email]
+        )
+        
+        # Verify the update
+        updated_user = execute_query_one(
+            "SELECT id, email, league_context FROM users WHERE email = %s",
+            [ross_email]
+        )
+        
+        # Get league names for display
+        old_league = execute_query_one(
+            "SELECT league_name FROM leagues WHERE id = %s",
+            [old_league_context]
+        ) if old_league_context else None
+        
+        new_league = execute_query_one(
+            "SELECT league_name FROM leagues WHERE id = %s", 
+            [correct_league_id]
+        )
+        
+        return jsonify({
+            "debug": "fix_ross_league_context",
+            "railway_env": railway_env,
+            "fix_applied": True,
+            "user_id": current_user["id"],
+            "email": ross_email,
+            "old_league_context": old_league_context,
+            "old_league_name": old_league["league_name"] if old_league else "Unknown",
+            "new_league_context": correct_league_id,
+            "new_league_name": new_league["league_name"] if new_league else "Unknown", 
+            "match_count_in_correct_league": match_count,
+            "rows_updated": rows_updated,
+            "verification": {
+                "current_league_context": updated_user["league_context"],
+                "update_successful": updated_user["league_context"] == correct_league_id
+            },
+            "next_steps": [
+                "1. Log out and log back in to refresh session data",
+                "2. Visit /mobile/analyze-me to see if data now appears",
+                "3. Check that team switching still works properly"
+            ]
+        })
+        
+    except Exception as e:
+        import traceback
+        return jsonify({
+            "error": str(e),
+            "traceback": traceback.format_exc(),
+            "railway_env": railway_env
+        }), 500
+
+
 @app.route("/debug/search-any-ross-matches")
 def search_any_ross_matches():
     """
