@@ -156,7 +156,7 @@ class PlayerMatchingValidator:
 
 
 class ComprehensiveETL:
-    def __init__(self):
+    def __init__(self, force_environment=None, disable_validation=None):
         # Fix path calculation - script is in data/etl/database_import/, need to go up 3 levels to project root
         script_dir = os.path.dirname(os.path.abspath(__file__))
         project_root = os.path.dirname(os.path.dirname(os.path.dirname(script_dir)))
@@ -167,21 +167,79 @@ class ComprehensiveETL:
         # CRITICAL FIX: Add player matching validator
         self.player_validator = PlayerMatchingValidator()
         
-        # RAILWAY OPTIMIZATION: Detect if running on Railway and adjust settings
-        self.is_railway = os.getenv('RAILWAY_ENVIRONMENT') is not None
-        if self.is_railway:
-            self.log("🚂 Railway environment detected - applying production optimizations")
-            # Smaller batch sizes for Railway memory constraints
-            self.batch_size = 50  # Reduced from default 1000
-            self.commit_frequency = 25  # Commit every 25 operations instead of 100
-            self.connection_retry_attempts = 10  # More retries for Railway
+        # ENHANCED ENVIRONMENT DETECTION
+        self.environment = self._detect_environment(force_environment)
+        self.log(f"🌍 Environment detected: {self.environment}")
+        
+        # Apply environment-specific optimizations
+        self._configure_for_environment(disable_validation)
+
+    def _detect_environment(self, force_environment=None):
+        """Detect current environment: local, railway_staging, or railway_production"""
+        if force_environment:
+            return force_environment
+            
+        # Check if running on Railway
+        if os.getenv('RAILWAY_ENVIRONMENT'):
+            # Check Railway environment name
+            railway_env = os.getenv('RAILWAY_ENVIRONMENT_NAME', '').lower()
+            if 'staging' in railway_env or 'stage' in railway_env:
+                return 'railway_staging'
+            elif 'production' in railway_env or 'prod' in railway_env:
+                return 'railway_production'
+            else:
+                # Fallback: check database URL for clues
+                db_url = os.getenv('DATABASE_URL', '')
+                if 'staging' in db_url.lower():
+                    return 'railway_staging'
+                elif 'prod' in db_url.lower():
+                    return 'railway_production'
+                else:
+                    return 'railway_staging'  # Default to staging for safety
         else:
-            self.log("🏠 Local environment detected - using standard settings")
+            return 'local'
+    
+    def _configure_for_environment(self, disable_validation=None):
+        """Configure ETL settings based on environment"""
+        if self.environment == 'local':
+            self.log("🏠 Local environment - using development settings")
             self.batch_size = 1000
             self.commit_frequency = 100
             self.connection_retry_attempts = 5
+            self.skip_player_validation = disable_validation if disable_validation is not None else False
+            self.use_railway_optimizations = False
+            
+        elif self.environment == 'railway_staging':
+            self.log("🟡 Railway Staging - using staging optimizations")
+            self.batch_size = 200  # Smaller batches for staging
+            self.commit_frequency = 50  # More frequent commits
+            self.connection_retry_attempts = 8
+            # Default to fast mode on staging unless explicitly enabled
+            self.skip_player_validation = disable_validation if disable_validation is not None else True
+            self.use_railway_optimizations = True
+            if self.skip_player_validation:
+                self.log("🚀 Staging speed mode: Player validation disabled for faster imports")
+            
+        elif self.environment == 'railway_production':
+            self.log("🔴 Railway Production - using production optimizations")
+            self.batch_size = 500  # Medium batches for production
+            self.commit_frequency = 100  # Standard commits
+            self.connection_retry_attempts = 10  # Max retries for production
+            # Default to validation enabled on production unless explicitly disabled
+            self.skip_player_validation = disable_validation if disable_validation is not None else False
+            self.use_railway_optimizations = True
+            if self.skip_player_validation:
+                self.log("⚡ Production speed mode: Player validation disabled")
+            else:
+                self.log("🛡️ Production safety mode: Player validation enabled")
+        
+        self.log(f"📊 Settings: batch_size={self.batch_size}, skip_validation={self.skip_player_validation}")
 
-    
+    @property 
+    def is_railway(self):
+        """Check if running on any Railway environment"""
+        return self.environment.startswith('railway_')
+
     def ensure_schema_requirements(self, conn):
         """Ensure required schema elements exist before import"""
         cursor = conn.cursor()
@@ -242,13 +300,13 @@ class ComprehensiveETL:
                 import psycopg2
                 import os
                 
-                # RAILWAY FIX: Use DATABASE_PUBLIC_URL for external access if available
-                db_url = os.getenv('DATABASE_PUBLIC_URL')
+                # RAILWAY SPEED FIX: Prefer internal DATABASE_URL over external DATABASE_PUBLIC_URL
+                db_url = os.getenv('DATABASE_URL')  # Use internal connection first
                 if not db_url:
-                    db_url = get_db_url()
-                    self.log(f"🚂 Railway: Using DATABASE_URL: {db_url[:50]}...")
+                    db_url = os.getenv('DATABASE_PUBLIC_URL')  # Fallback to external
+                    self.log(f"🚂 Railway: Using DATABASE_PUBLIC_URL (external - slower): {db_url[:50]}...")
                 else:
-                    self.log(f"🚂 Railway: Using DATABASE_PUBLIC_URL for external access: {db_url[:50]}...")
+                    self.log(f"🚂 Railway: Using DATABASE_URL (internal - faster): {db_url[:50]}...")
                 
                 # Handle Railway's postgres:// URLs
                 if db_url.startswith("postgres://"):
@@ -264,13 +322,15 @@ class ComprehensiveETL:
                     cursor.execute("SELECT 1")
                     cursor.fetchone()
                     
-                    # Set Railway-specific connection parameters for stability
-                    cursor.execute("SET statement_timeout = '300000'")  # 5 minutes
-                    cursor.execute("SET idle_in_transaction_session_timeout = '600000'")  # 10 minutes
-                    cursor.execute("SET work_mem = '64MB'")  # Limit memory usage
+                    # Set Railway-specific connection parameters for stability and speed
+                    cursor.execute("SET statement_timeout = '600000'")  # 10 minutes
+                    cursor.execute("SET idle_in_transaction_session_timeout = '1200000'")  # 20 minutes
+                    cursor.execute("SET work_mem = '128MB'")  # More memory for faster queries
+                    cursor.execute("SET maintenance_work_mem = '256MB'")  # More memory for maintenance
+                    cursor.execute("SET effective_cache_size = '512MB'")  # Better query planning
                     
                     conn.commit()
-                    self.log("✅ Railway: Database connection established with optimizations")
+                    self.log("✅ Railway: Database connection established with performance optimizations")
                     
                     # Return a context manager wrapper for the connection
                     @contextmanager

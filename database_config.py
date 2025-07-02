@@ -20,6 +20,8 @@ _connection_logged = False
 
 def get_db_url():
     """Get database URL from environment or use default"""
+    global _connection_logged
+    
     # Check if we're running on Railway
     is_railway = os.getenv("RAILWAY_ENVIRONMENT") is not None
 
@@ -34,15 +36,18 @@ def get_db_url():
             ("railway.internal" in url or "postgres.railway.internal" in url)):
             # Use public URL for external connections (like 'railway run')
             url = public_url
-            logger.info("Using Railway public database connection (external access)")
+            if not _connection_logged:
+                logger.info("Using Railway public database connection (external access)")
         elif url and ("railway.internal" in url or "postgres.railway.internal" in url):
-            logger.info(
-                "Using Railway internal database connection (preferred for Railway deployments)"
-            )
+            if not _connection_logged:
+                logger.info(
+                    "Using Railway internal database connection (preferred for Railway deployments)"
+                )
         else:
             # Fallback to public URL if internal not available
             url = public_url or url
-            logger.info("Using Railway public database connection")
+            if not _connection_logged:
+                logger.info("Using Railway public database connection")
     else:
         # For local development, prefer public URL or local connection
         url = os.getenv("DATABASE_PUBLIC_URL") or os.getenv(
@@ -57,7 +62,6 @@ def get_db_url():
         url = url.replace("postgres://", "postgresql://", 1)
 
     # Only log database URL selection once to avoid spam
-    global _connection_logged
     if not _connection_logged:
         logger.info(
             f"Using database URL with host: {url.split('@')[1].split('/')[0] if '@' in url else 'unknown'}"

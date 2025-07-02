@@ -4,8 +4,14 @@ Railway Background ETL Script
 
 This script runs ETL imports as a background process, bypassing HTTP timeout limits.
 Can be triggered via Railway's cron jobs or run manually.
+
+Usage:
+    python chronjobs/railway_background_etl.py
+    python chronjobs/railway_background_etl.py --environment staging --disable-validation
+    python chronjobs/railway_background_etl.py --environment production --enable-validation
 """
 
+import argparse
 import os
 import sys
 import signal
@@ -26,12 +32,17 @@ def setup_signal_handlers():
     signal.signal(signal.SIGTERM, signal_handler)
     signal.signal(signal.SIGINT, signal_handler)
 
-def run_etl_background():
+def run_etl_background(force_environment=None, disable_validation=None):
     """Run ETL import as a background process"""
     print("=" * 60, flush=True)
     print("🚀 RAILWAY BACKGROUND ETL PROCESS", flush=True)
     print("=" * 60, flush=True)
     print(f"Started at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", flush=True)
+    
+    if force_environment:
+        print(f"🎯 Forced environment: {force_environment}", flush=True)
+    if disable_validation is not None:
+        print(f"🔧 Validation override: {'disabled' if disable_validation else 'enabled'}", flush=True)
     
     # Setup signal handlers
     setup_signal_handlers()
@@ -40,8 +51,11 @@ def run_etl_background():
         # Import the ETL class
         from data.etl.database_import.import_all_jsons_to_database import ComprehensiveETL
         
-        # Create and run ETL
-        etl = ComprehensiveETL()
+        # Create and run ETL with environment and validation settings
+        etl = ComprehensiveETL(
+            force_environment=force_environment,
+            disable_validation=disable_validation
+        )
         
         print("📋 Starting comprehensive ETL process...", flush=True)
         success = etl.run()
@@ -68,5 +82,26 @@ def run_etl_background():
         print(f"Completed at: {end_time.strftime('%Y-%m-%d %H:%M:%S')}", flush=True)
 
 if __name__ == "__main__":
-    success = run_etl_background()
+    parser = argparse.ArgumentParser(description='Railway Background ETL Process')
+    parser.add_argument('--environment', '-e', 
+                       choices=['local', 'railway_staging', 'railway_production'],
+                       help='Force specific environment (overrides auto-detection)')
+    parser.add_argument('--disable-validation', action='store_true',
+                       help='Disable player validation for faster imports')
+    parser.add_argument('--enable-validation', action='store_true',
+                       help='Enable player validation (overrides environment defaults)')
+    
+    args = parser.parse_args()
+    
+    # Handle validation arguments
+    disable_validation = None
+    if args.disable_validation:
+        disable_validation = True
+    elif args.enable_validation:
+        disable_validation = False
+    
+    success = run_etl_background(
+        force_environment=args.environment,
+        disable_validation=disable_validation
+    )
     sys.exit(0 if success else 1) 
