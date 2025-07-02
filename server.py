@@ -509,52 +509,15 @@ def staging_mobile_test():
     Public debug endpoint for testing mobile service on staging only
     This bypasses authentication for staging testing
     """
-    # Only allow on staging environment
     railway_env = os.environ.get("RAILWAY_ENVIRONMENT", "not_set")
     
-    if railway_env != "staging":
-        return jsonify({
-            "error": "This endpoint only works on staging",
-            "current_env": railway_env
-        }), 403
-    
-    try:
-        # Test with simple data first
-        test_email = "wmaher@gmail.com"
-        
-        # Test database connection
-        from database_utils import execute_query
-        user_check = execute_query('SELECT id, email, league_context FROM users WHERE email = %s', [test_email])
-        
-        if not user_check:
-            return jsonify({
-                "error": "User not found",
-                "test_email": test_email,
-                "railway_env": railway_env
-            })
-        
-        user = user_check[0]
-        
-        return jsonify({
-            "success": True,
-            "test_email": test_email,
-            "railway_env": railway_env,
-            "user_found": True,
-            "user_data": {
-                "id": user["id"],
-                "email": user["email"],
-                "league_context": user["league_context"]
-            }
-        })
-        
-    except Exception as e:
-        import traceback
-        return jsonify({
-            "error": str(e),
-            "traceback": traceback.format_exc(),
-            "test_email": test_email,
-            "railway_env": railway_env
-        }), 500
+    # Basic environment check
+    return jsonify({
+        "status": "running",
+        "railway_env": railway_env,
+        "message": "Basic debug endpoint working",
+        "allowed_on_staging": railway_env == "staging"
+    })
 
 
 # ==========================================
