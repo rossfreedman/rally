@@ -44,19 +44,21 @@ def start_background_etl():
         }), 409
     
     try:
-        # Get project root
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        project_root = os.path.dirname(os.path.dirname(os.path.dirname(script_dir)))
+        # Get project root - FIXED: Only go up 2 levels, not 3
+        script_dir = os.path.dirname(os.path.abspath(__file__))  # app/routes/
+        app_dir = os.path.dirname(script_dir)  # app/
+        project_root = os.path.dirname(app_dir)  # rally/ (project root)
         background_script = os.path.join(project_root, "chronjobs", "railway_background_etl.py")
         
         # Start background process
         process = subprocess.Popen(
-            [sys.executable, background_script],
+            [sys.executable, "-u", background_script],  # -u for unbuffered output
             cwd=project_root,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             text=True,
-            bufsize=1
+            bufsize=0,  # Unbuffered
+            env=dict(os.environ, PYTHONUNBUFFERED="1")  # Ensure Python output is unbuffered
         )
         
         # Update status
