@@ -503,11 +503,10 @@ def routes_info():
     )
 
 
-@app.route("/debug/staging-mobile-test")
-def staging_mobile_test():
+@app.route("/debug/test-wes-v2")
+def test_wes_v2():
     """
-    Public debug endpoint for testing mobile service on staging only
-    This bypasses authentication for staging testing
+    New debug endpoint to test Wes Maher's analyze-me issue on staging
     """
     railway_env = os.environ.get("RAILWAY_ENVIRONMENT", "not_set")
     
@@ -528,7 +527,7 @@ def staging_mobile_test():
         from app.services.session_service import get_session_data_for_user
         session_data = get_session_data_for_user(test_email)
         
-        # Convert session_data to the user format expected by get_player_analysis
+        # Convert session_data to user format for mobile service
         if session_data:
             session_user = {
                 "email": session_data.get("email"),
@@ -551,7 +550,7 @@ def staging_mobile_test():
             mobile_data = None
         
         return jsonify({
-            "success": True,
+            "test": "wes_maher_v2",
             "railway_env": railway_env,
             "test_email": test_email,
             "database_direct": {
