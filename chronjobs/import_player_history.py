@@ -10,8 +10,18 @@ import sys
 import time
 from datetime import datetime
 
-# Add project root to Python path for Railway
-sys.path.append('/opt/render/project/src')
+# Fix Python path for Railway environment
+script_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(script_dir)
+sys.path.insert(0, project_root)
+
+# Add additional paths for Railway
+if 'RAILWAY_ENVIRONMENT' in os.environ:
+    sys.path.insert(0, '/opt/render/project/src')
+    sys.path.insert(0, '/railway/app')
+    sys.path.insert(0, '.')
+
+print(f"Python path: {sys.path[:3]}")  # Debug: show first 3 paths
 
 from data.etl.database_import.import_all_jsons_to_database import ComprehensiveETL
 from database_utils import execute_query_one
