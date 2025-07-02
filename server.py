@@ -1516,6 +1516,158 @@ def fix_ross_associations_staging():
         }), 500
 
 
+@app.route("/debug/staging-database-health")
+def staging_database_health():
+    """
+    Check overall health of staging database match data
+    """
+    railway_env = os.environ.get("RAILWAY_ENVIRONMENT", "not_set")
+    
+    if railway_env != "staging":
+        return jsonify({
+            "error": "This endpoint only works on staging",
+            "railway_env": railway_env
+        }), 403
+    
+    try:
+        from database_utils import execute_query, execute_query_one
+        
+        results = {}
+        
+        # 1. Check total match count
+        total_matches = execute_query_one("SELECT COUNT(*) as total FROM match_scores", [])
+        results["total_matches"] = total_matches["total"] if total_matches else 0
+        
+        # 2. Check date range of matches
+        date_range = execute_query_one(
+            """
+            SELECT 
+                MIN(TO_CHAR(match_date, 'YYYY-MM-DD')) as earliest_match,
+                MAX(TO_CHAR(match_date, 'YYYY-MM-DD')) as latest_match,
+                COUNT(DISTINCT match_date) as unique_dates
+            FROM match_scores
+            """, []
+        )
+        results["date_range"] = date_range
+        
+        # 3. Check league distribution of matches
+        league_distribution = execute_query(
+            """
+            SELECT 
+                l.league_name,
+                l.id as league_id,
+                COUNT(ms.id) as match_count
+            FROM leagues l
+            LEFT JOIN match_scores ms ON l.id = ms.league_id
+            GROUP BY l.id, l.league_name
+            ORDER BY match_count DESC
+            """, []
+        )
+        results["league_distribution"] = league_distribution
+        
+        # 4. Check for Tennaqua matches specifically
+        tennaqua_matches = execute_query_one(
+            """
+            SELECT COUNT(*) as tennaqua_matches
+            FROM match_scores
+            WHERE home_team ILIKE '%tennaqua%' OR away_team ILIKE '%tennaqua%'
+            """, []
+        )
+        results["tennaqua_matches"] = tennaqua_matches["tennaqua_matches"] if tennaqua_matches else 0
+        
+        # 5. Sample of recent matches
+        recent_matches = execute_query(
+            """
+            SELECT 
+                TO_CHAR(match_date, 'YYYY-MM-DD') as date,
+                home_team,
+                away_team,
+                league_id,
+                CASE 
+                    WHEN home_player_1_id IS NOT NULL THEN 'has_players'
+                    ELSE 'no_players'
+                END as player_data_status
+            FROM match_scores
+            ORDER BY match_date DESC
+            LIMIT 10
+            """, []
+        )
+        results["recent_matches"] = recent_matches
+        
+        # 6. Player ID patterns - check what formats exist
+        player_id_patterns = execute_query(
+            """
+            SELECT 
+                SUBSTRING(home_player_1_id, 1, 10) as id_pattern,
+                COUNT(*) as occurrence_count
+            FROM match_scores
+            WHERE home_player_1_id IS NOT NULL
+            GROUP BY SUBSTRING(home_player_1_id, 1, 10)
+            ORDER BY occurrence_count DESC
+            LIMIT 10
+            """, []
+        )
+        results["player_id_patterns"] = player_id_patterns
+        
+        # 7. Check for any "nndz-" pattern player IDs
+        nndz_players = execute_query(
+            """
+            SELECT DISTINCT
+                CASE 
+                    WHEN home_player_1_id LIKE 'nndz-%' THEN home_player_1_id
+                    WHEN home_player_2_id LIKE 'nndz-%' THEN home_player_2_id
+                    WHEN away_player_1_id LIKE 'nndz-%' THEN away_player_1_id
+                    WHEN away_player_2_id LIKE 'nndz-%' THEN away_player_2_id
+                END as nndz_player_id,
+                COUNT(*) as match_count
+            FROM match_scores
+            WHERE home_player_1_id LIKE 'nndz-%' OR home_player_2_id LIKE 'nndz-%'
+               OR away_player_1_id LIKE 'nndz-%' OR away_player_2_id LIKE 'nndz-%'
+            GROUP BY 1
+            ORDER BY match_count DESC
+            """, []
+        )
+        results["nndz_pattern_players"] = nndz_players
+        
+        # Analysis
+        analysis = {
+            "database_has_matches": results["total_matches"] > 0,
+            "tennaqua_data_exists": results["tennaqua_matches"] > 0,
+            "nndz_players_exist": len(nndz_players) > 0 if nndz_players else False,
+            "leagues_with_data": len([l for l in league_distribution if l["match_count"] > 0]),
+            "data_freshness": "recent" if date_range and date_range["latest_match"] and date_range["latest_match"] >= "2024-01-01" else "old_or_missing"
+        }
+        
+        if results["total_matches"] == 0:
+            analysis["diagnosis"] = "CRITICAL: No match data in staging database at all"
+            analysis["recommendation"] = "Full ETL import required"
+        elif results["tennaqua_matches"] == 0:
+            analysis["diagnosis"] = "Tennaqua-specific data missing"
+            analysis["recommendation"] = "Check Tennaqua ETL import specifically"
+        elif len(nndz_players) == 0:
+            analysis["diagnosis"] = "No 'nndz-' pattern player IDs found - player ID format issue"
+            analysis["recommendation"] = "Check player ID generation/import process"
+        else:
+            analysis["diagnosis"] = "Database has data but Ross's specific records missing"
+            analysis["recommendation"] = "Ross-specific ETL import issue"
+        
+        results["analysis"] = analysis
+        
+        return jsonify({
+            "debug": "staging_database_health",
+            "railway_env": railway_env,
+            "results": results
+        })
+        
+    except Exception as e:
+        import traceback
+        return jsonify({
+            "error": str(e),
+            "traceback": traceback.format_exc(),
+            "railway_env": railway_env
+        }), 500
+
+
 # ==========================================
 # ERROR HANDLERS
 # ==========================================
