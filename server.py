@@ -584,6 +584,129 @@ def test_wes_v2():
         }), 500
 
 
+@app.route("/debug/test-ross-analyze-me")
+def test_ross_analyze_me():
+    """
+    Debug endpoint to test Ross Freedman's analyze-me issue on staging
+    """
+    railway_env = os.environ.get("RAILWAY_ENVIRONMENT", "not_set")
+    
+    if railway_env != "staging":
+        return jsonify({
+            "error": "This endpoint only works on staging",
+            "railway_env": railway_env
+        }), 403
+    
+    try:
+        from database_utils import execute_query, execute_query_one
+        from app.services.session_service import get_session_data_for_user
+        from app.services.mobile_service import get_player_analysis
+        
+        # Find Ross in users table
+        user_query = """
+            SELECT id, email, first_name, last_name, league_context
+            FROM users 
+            WHERE email LIKE '%ross%' OR first_name ILIKE 'ross'
+        """
+        users = execute_query(user_query, [])
+        
+        # Find Ross in players table
+        player_query = """
+            SELECT id, first_name, last_name, tenniscores_player_id, league_id, team_id, club_id, series_id
+            FROM players 
+            WHERE first_name ILIKE 'ross' AND last_name ILIKE '%freed%'
+        """
+        players = execute_query(player_query, [])
+        
+        ross_email = None
+        for user in users:
+            if 'ross' in user['first_name'].lower() and ('freed' in user.get('last_name', '').lower() or 'freed' in user.get('email', '').lower()):
+                ross_email = user['email']
+                break
+        
+        # Test session service
+        session_result = None
+        mobile_result = None
+        
+        if ross_email:
+            session_result = get_session_data_for_user(ross_email)
+            if session_result:
+                try:
+                    mobile_result = get_player_analysis(session_result)
+                except Exception as e:
+                    mobile_result = {"error": str(e)}
+        
+        # Test matches if we found a player
+        matches_test = None
+        if players:
+            player_id = players[0]['tenniscores_player_id']
+            league_id = players[0]['league_id']
+            
+            all_matches_query = """
+                SELECT 
+                    id,
+                    TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
+                    home_team,
+                    away_team,
+                    league_id
+                FROM match_scores
+                WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
+                ORDER BY match_date DESC
+                LIMIT 5
+            """
+            all_matches = execute_query(all_matches_query, [player_id, player_id, player_id, player_id])
+            
+            league_matches = []
+            if league_id:
+                league_matches_query = """
+                    SELECT COUNT(*) as count
+                    FROM match_scores
+                    WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
+                    AND league_id = %s
+                """
+                league_count = execute_query_one(league_matches_query, [player_id, player_id, player_id, player_id, league_id])
+                
+            matches_test = {
+                "total_matches": len(all_matches),
+                "league_matches": league_count.get('count', 0) if 'league_count' in locals() and league_count else 0,
+                "sample_matches": [{"date": m["Date"], "teams": f"{m['home_team']} vs {m['away_team']}", "league": m["league_id"]} for m in all_matches[:3]]
+            }
+        
+        return jsonify({
+            "debug": "ross_analyze_me",
+            "railway_env": railway_env,
+            "users_found": len(users),
+            "players_found": len(players),
+            "ross_email": ross_email,
+            "users": [{"name": f"{u['first_name']} {u['last_name']}", "email": u['email'], "league_context": u['league_context']} for u in users],
+            "players": [{"name": f"{p['first_name']} {p['last_name']}", "player_id": p['tenniscores_player_id'][:20] + "...", "league": p['league_id'], "team": p['team_id']} for p in players],
+            "session_service": {
+                "success": session_result is not None,
+                "player_id": session_result.get('tenniscores_player_id')[:20] + "..." if session_result and session_result.get('tenniscores_player_id') else None,
+                "league_id": session_result.get('league_id') if session_result else None,
+                "team_id": session_result.get('team_id') if session_result else None,
+                "club": session_result.get('club') if session_result else None,
+                "series": session_result.get('series') if session_result else None
+            },
+            "mobile_service": {
+                "success": mobile_result is not None and not mobile_result.get('error'),
+                "error": mobile_result.get('error') if mobile_result else None,
+                "current_season_matches": mobile_result.get('current_season', {}).get('matches', 0) if mobile_result else 0,
+                "current_season_wins": mobile_result.get('current_season', {}).get('wins', 0) if mobile_result else 0,
+                "pti_available": mobile_result.get('pti_data_available', False) if mobile_result else False
+            },
+            "matches_test": matches_test
+        })
+        
+    except Exception as e:
+        import traceback
+        return jsonify({
+            "error": str(e),
+            "traceback": traceback.format_exc(),
+            "railway_env": railway_env
+        }), 500
+
+
 # ==========================================
 # ERROR HANDLERS
 # ==========================================
