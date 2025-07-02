@@ -375,6 +375,20 @@
         </div>
         {% endif %}
 
+        <!-- Debug Information -->
+        {% if analyze_data.debug_info %}
+        <div class="bg-yellow-50 rounded-xl border border-yellow-200 p-4 mt-6">
+            <div class="flex items-center mb-3">
+                <i class="fas fa-bug text-yellow-600 mr-2"></i>
+                <h3 class="text-lg font-semibold text-yellow-800">Debug Information</h3>
+            </div>
+            <div class="bg-white rounded-lg p-4 max-h-96 overflow-y-auto">
+                <pre class="text-xs text-gray-700 whitespace-pre-wrap font-mono">{% for line in analyze_data.debug_info %}{{ line }}
+{% endfor %}</pre>
+            </div>
+        </div>
+        {% endif %}
+
     </div>
 </div>
 
