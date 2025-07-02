@@ -503,7 +503,74 @@ def routes_info():
     )
 
 
-# Removed duplicate route - this is now handled by player_routes.py blueprint
+@app.route("/debug/staging-mobile-test")
+def staging_mobile_test():
+    """
+    Public debug endpoint for testing mobile service on staging only
+    This bypasses authentication for staging testing
+    """
+    # Only allow on staging environment
+    if os.environ.get("RAILWAY_ENVIRONMENT") != "staging":
+        return jsonify({"error": "This endpoint only works on staging"}), 403
+    
+    try:
+        # Import here to avoid circular imports
+        from app.services.mobile_service import get_mobile_analyze_me_data
+        from app.services.session_service import get_session_data_for_user
+        
+        # Test with Wes Maher email
+        test_email = "wmaher@gmail.com"
+        
+        print(f"🔍 Testing mobile service for: {test_email}")
+        
+        # Get session data
+        session_data = get_session_data_for_user(test_email)
+        
+        if not session_data:
+            return jsonify({
+                "error": "No session data found",
+                "test_email": test_email
+            })
+        
+        print(f"Session data: {session_data}")
+        
+        # Get mobile analyze me data
+        mobile_data = get_mobile_analyze_me_data(session_data)
+        
+        return jsonify({
+            "success": True,
+            "test_email": test_email,
+            "session_user": {
+                "email": session_data.user.email,
+                "player_id": session_data.user.tenniscores_player_id,
+                "league_id": session_data.league_id,
+                "team_id": session_data.team_id,
+                "club": session_data.club,
+                "series": session_data.series
+            },
+            "mobile_data_summary": {
+                "total_matches": len(mobile_data.get('matches', [])),
+                "win_loss_record": mobile_data.get('win_loss_record'),
+                "overall_win_percentage": mobile_data.get('overall_win_percentage'),
+                "pti_score": mobile_data.get('pti_score'),
+                "pti_percentile": mobile_data.get('pti_percentile')
+            },
+            "debug_info": {
+                "matches_found": len(mobile_data.get('matches', [])),
+                "court_performance": mobile_data.get('court_performance', {}),
+                "partners": len(mobile_data.get('partners', [])),
+                "opponents": len(mobile_data.get('opponents', []))
+            }
+        })
+        
+    except Exception as e:
+        import traceback
+        return jsonify({
+            "error": str(e),
+            "traceback": traceback.format_exc(),
+            "test_email": test_email
+        }), 500
+
 
 # ==========================================
 # ERROR HANDLERS
