@@ -73,30 +73,45 @@ def serve_mobile():
         print("Admin route detected in mobile, redirecting to serve_admin")
         return redirect(url_for("admin.serve_admin"))
 
-    # Use new session service to get fresh session data based on user's league_context (not old team_id)
+    # Use new session service to get fresh session data, BUT preserve team switches
     from app.services.session_service import get_session_data_for_user
     
     try:
         user_email = session["user"]["email"]
         
-        print(f"[DEBUG] Getting fresh session data for user: {user_email}")
+        print(f"[DEBUG] Checking session for user: {user_email}")
         
-        # Always use the base session data function to get correct data from league_context
-        # Don't trust potentially stale team_id from existing session
-        fresh_session_data = get_session_data_for_user(user_email)
-            
-        print(f"[DEBUG] Fresh session data result: {fresh_session_data}")
+        # Check if current session has valid team context - if so, preserve it
+        current_session = session.get("user", {})
+        has_valid_team_context = (
+            current_session.get("team_id") is not None and
+            current_session.get("league_id") is not None and
+            current_session.get("club") and
+            current_session.get("series")
+        )
         
-        if fresh_session_data:
-            # Update the Flask session with fresh data
-            session["user"] = fresh_session_data
-            session.modified = True
-            session_data = {"user": fresh_session_data, "authenticated": True}
-            print(f"[DEBUG] Using fresh session data and updated Flask session")
+        if has_valid_team_context:
+            # Current session already has valid team context (likely from team switch)
+            # Don't override it with database refresh
+            print(f"[DEBUG] Preserving existing team context: {current_session.get('club')} - {current_session.get('series')}")
+            session_data = {"user": current_session, "authenticated": True}
         else:
-            # Fallback to old session if session service fails
-            session_data = {"user": session["user"], "authenticated": True}
-            print(f"[DEBUG] Using fallback session data: {session['user']}")
+            # Session is incomplete or invalid, refresh from database
+            print(f"[DEBUG] Getting fresh session data for user: {user_email}")
+            fresh_session_data = get_session_data_for_user(user_email)
+                
+            print(f"[DEBUG] Fresh session data result: {fresh_session_data}")
+            
+            if fresh_session_data:
+                # Update the Flask session with fresh data
+                session["user"] = fresh_session_data
+                session.modified = True
+                session_data = {"user": fresh_session_data, "authenticated": True}
+                print(f"[DEBUG] Using fresh session data and updated Flask session")
+            else:
+                # Fallback to old session if session service fails
+                session_data = {"user": session["user"], "authenticated": True}
+                print(f"[DEBUG] Using fallback session data: {session['user']}")
         
         # Log mobile access
         log_user_activity(user_email, "page_visit", page="mobile_home")
@@ -449,25 +464,41 @@ def serve_mobile_view_schedule():
 def serve_mobile_analyze_me():
     """Serve the mobile Analyze Me page"""
     try:
-        # Use session service to get fresh session data (same as main mobile route)
+        # Use session service to get fresh session data, BUT preserve team switches (same as main mobile route)
         from app.services.session_service import get_session_data_for_user
         
         user_email = session["user"]["email"]
-        print(f"[DEBUG] Getting fresh session data for analyze-me user: {user_email}")
+        print(f"[DEBUG] Checking session for analyze-me user: {user_email}")
         
-        # Get fresh session data based on league_context 
-        fresh_session_data = get_session_data_for_user(user_email)
+        # Check if current session has valid team context - if so, preserve it
+        current_session = session.get("user", {})
+        has_valid_team_context = (
+            current_session.get("team_id") is not None and
+            current_session.get("league_id") is not None and
+            current_session.get("club") and
+            current_session.get("series")
+        )
         
-        if fresh_session_data:
-            # Update Flask session with fresh data
-            session["user"] = fresh_session_data
-            session.modified = True
-            session_user = fresh_session_data
-            print(f"[DEBUG] Using fresh session data for analyze-me")
+        if has_valid_team_context:
+            # Current session already has valid team context (likely from team switch)
+            # Don't override it with database refresh
+            print(f"[DEBUG] Preserving existing team context for analyze-me: {current_session.get('club')} - {current_session.get('series')}")
+            session_user = current_session
         else:
-            # Fallback to existing session
-            session_user = session["user"]
-            print(f"[DEBUG] Using fallback session data for analyze-me")
+            # Session is incomplete or invalid, refresh from database
+            print(f"[DEBUG] Getting fresh session data for analyze-me user: {user_email}")
+            fresh_session_data = get_session_data_for_user(user_email)
+            
+            if fresh_session_data:
+                # Update Flask session with fresh data
+                session["user"] = fresh_session_data
+                session.modified = True
+                session_user = fresh_session_data
+                print(f"[DEBUG] Using fresh session data for analyze-me")
+            else:
+                # Fallback to existing session
+                session_user = session["user"]
+                print(f"[DEBUG] Using fallback session data for analyze-me")
         
         print(f"[DEBUG] Session user type: {type(session_user)}")
         print(f"[DEBUG] Session user data: {session_user}")
