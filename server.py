@@ -850,6 +850,152 @@ def direct_search_ross():
         }), 500
 
 
+@app.route("/debug/search-any-ross-matches")
+def search_any_ross_matches():
+    """
+    Broad search for any Ross-related matches in staging database
+    """
+    railway_env = os.environ.get("RAILWAY_ENVIRONMENT", "not_set")
+    
+    if railway_env != "staging":
+        return jsonify({
+            "error": "This endpoint only works on staging",
+            "railway_env": railway_env
+        }), 403
+    
+    try:
+        from database_utils import execute_query, execute_query_one
+        
+        results = {}
+        
+        # 1. Search for any player IDs that contain "nndz-Wk" (Ross's pattern)
+        pattern_search_query = """
+            SELECT DISTINCT 
+                home_player_1_id, home_player_2_id, away_player_1_id, away_player_2_id,
+                TO_CHAR(match_date, 'YYYY-MM-DD') as date,
+                home_team, away_team, league_id
+            FROM match_scores
+            WHERE home_player_1_id LIKE %s OR home_player_2_id LIKE %s 
+            OR away_player_1_id LIKE %s OR away_player_2_id LIKE %s
+            ORDER BY match_date DESC
+            LIMIT 10
+        """
+        pattern_matches = execute_query(pattern_search_query, ['nndz-Wk%', 'nndz-Wk%', 'nndz-Wk%', 'nndz-Wk%'])
+        
+        # Extract unique player IDs
+        unique_player_ids = set()
+        for match in pattern_matches:
+            for col in ["home_player_1_id", "home_player_2_id", "away_player_1_id", "away_player_2_id"]:
+                if match[col] and match[col].startswith('nndz-Wk'):
+                    unique_player_ids.add(match[col])
+        
+        results["pattern_matches"] = {
+            "player_ids_found": list(unique_player_ids),
+            "total_matches": len(pattern_matches),
+            "sample_matches": [
+                {
+                    "date": m["date"],
+                    "teams": f"{m['home_team']} vs {m['away_team']}",
+                    "league": m["league_id"],
+                    "players": {
+                        "home": [m["home_player_1_id"], m["home_player_2_id"]],
+                        "away": [m["away_player_1_id"], m["away_player_2_id"]]
+                    }
+                } for m in pattern_matches[:5]
+            ]
+        }
+        
+        # 2. Search players table for any Ross entries and get their exact player IDs
+        ross_players_query = """
+            SELECT DISTINCT tenniscores_player_id, first_name, last_name, league_id, team_id
+            FROM players
+            WHERE first_name ILIKE %s OR last_name ILIKE %s
+            OR tenniscores_player_id LIKE %s
+        """
+        ross_players = execute_query(ross_players_query, ['%ross%', '%freed%', 'nndz-Wk%'])
+        
+        results["ross_players"] = [
+            {
+                "name": f"{p['first_name']} {p['last_name']}",
+                "player_id": p["tenniscores_player_id"],
+                "league": p["league_id"],
+                "team": p["team_id"]
+            } for p in ross_players
+        ]
+        
+        # 3. For each Ross player ID found, check match counts
+        results["match_counts_per_ross_id"] = {}
+        for player in ross_players:
+            pid = player["tenniscores_player_id"]
+            count_query = """
+                SELECT COUNT(*) as count
+                FROM match_scores
+                WHERE home_player_1_id = %s OR home_player_2_id = %s 
+                OR away_player_1_id = %s OR away_player_2_id = %s
+            """
+            count_result = execute_query_one(count_query, [pid, pid, pid, pid])
+            results["match_counts_per_ross_id"][pid] = count_result["count"] if count_result else 0
+        
+        # 4. Search for ANY matches with Tennaqua in team names
+        tennaqua_query = """
+            SELECT COUNT(*) as total_tennaqua_matches
+            FROM match_scores
+            WHERE home_team ILIKE %s OR away_team ILIKE %s
+        """
+        tennaqua_count = execute_query_one(tennaqua_query, ['%tennaqua%', '%tennaqua%'])
+        results["tennaqua_total_matches"] = tennaqua_count["count"] if tennaqua_count else 0
+        
+        # 5. Sample of recent matches to see what player ID formats exist
+        recent_matches_query = """
+            SELECT 
+                home_player_1_id, home_player_2_id, away_player_1_id, away_player_2_id,
+                TO_CHAR(match_date, 'YYYY-MM-DD') as date,
+                home_team, away_team
+            FROM match_scores
+            ORDER BY match_date DESC
+            LIMIT 5
+        """
+        recent_matches = execute_query(recent_matches_query, [])
+        
+        results["recent_matches_sample"] = [
+            {
+                "date": m["date"],
+                "teams": f"{m['home_team']} vs {m['away_team']}",
+                "player_ids": {
+                    "home": [m["home_player_1_id"][:20] + "..." if m["home_player_1_id"] else None,
+                             m["home_player_2_id"][:20] + "..." if m["home_player_2_id"] else None],
+                    "away": [m["away_player_1_id"][:20] + "..." if m["away_player_1_id"] else None,
+                             m["away_player_2_id"][:20] + "..." if m["away_player_2_id"] else None]
+                }
+            } for m in recent_matches
+        ]
+        
+        # 6. Check total match_scores count
+        total_query = "SELECT COUNT(*) as total FROM match_scores"
+        total_result = execute_query_one(total_query, [])
+        results["total_matches_in_db"] = total_result["count"] if total_result else 0
+        
+        return jsonify({
+            "debug": "search_any_ross_matches",
+            "railway_env": railway_env,
+            "results": results,
+            "summary": {
+                "ross_player_ids_found": len(ross_players),
+                "total_db_matches": results["total_matches_in_db"],
+                "tennaqua_matches": results["tennaqua_total_matches"],
+                "pattern_match_ids": len(unique_player_ids)
+            }
+        })
+        
+    except Exception as e:
+        import traceback
+        return jsonify({
+            "error": str(e),
+            "traceback": traceback.format_exc(),
+            "railway_env": railway_env
+        }), 500
+
+
 # ==========================================
 # ERROR HANDLERS
 # ==========================================
