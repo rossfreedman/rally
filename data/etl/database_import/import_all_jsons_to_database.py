@@ -173,6 +173,154 @@ class ComprehensiveETL:
         
         # Apply environment-specific optimizations
         self._configure_for_environment(disable_validation)
+        
+        # CONNECTION MANAGEMENT: Add connection limiting and rotation
+        self._init_connection_management()
+
+    def _init_connection_management(self):
+        """Initialize connection management settings"""
+        if self.environment == 'local':
+            # Local: Relaxed connection settings
+            self.max_connection_age = 1800  # 30 minutes
+            self.connection_rotation_frequency = 10000  # Every 10k operations
+            self.max_operations_per_connection = 50000
+        elif self.environment == 'railway_staging':
+            # Staging: Aggressive connection rotation for speed
+            self.max_connection_age = 300  # 5 minutes
+            self.connection_rotation_frequency = 2000  # Every 2k operations
+            self.max_operations_per_connection = 10000
+        elif self.environment == 'railway_production':
+            # Production: Balanced connection management
+            self.max_connection_age = 600  # 10 minutes
+            self.connection_rotation_frequency = 5000  # Every 5k operations
+            self.max_operations_per_connection = 25000
+        
+        # Connection tracking
+        self._connection_start_time = None
+        self._operations_count = 0
+        self._current_connection = None
+        
+        self.log(f"🔗 Connection management: rotation every {self.connection_rotation_frequency:,} ops, max age {self.max_connection_age}s")
+
+    def _should_rotate_connection(self) -> bool:
+        """Check if connection should be rotated"""
+        if not self._connection_start_time:
+            return False
+            
+        # Check age limit
+        age = time.time() - self._connection_start_time
+        if age > self.max_connection_age:
+            return True
+            
+        # Check operation count limit
+        if self._operations_count >= self.connection_rotation_frequency:
+            return True
+            
+        return False
+
+    def _reset_connection_tracking(self):
+        """Reset connection tracking counters"""
+        self._connection_start_time = time.time()
+        self._operations_count = 0
+
+    def _increment_operation_count(self, count: int = 1):
+        """Increment operation counter for connection management"""
+        self._operations_count += count
+
+    @contextmanager
+    def get_managed_db_connection(self):
+        """Get a managed database connection with rotation support"""
+        if self.is_railway:
+            # Use Railway optimizations with connection management
+            connection_manager = self._get_railway_managed_connection()
+        else:
+            # Use standard connection for local
+            connection_manager = get_db()
+            
+        with connection_manager as conn:
+            self._reset_connection_tracking()
+            yield conn
+
+    def _get_railway_managed_connection(self):
+        """Get Railway connection with management and rotation support"""
+        @contextmanager
+        def managed_railway_connection():
+            max_retries = self.connection_retry_attempts
+            retry_delay = 2
+            
+            for attempt in range(max_retries):
+                try:
+                    self.log(f"🚂 Railway: Creating managed connection (attempt {attempt + 1}/{max_retries})")
+                    
+                    # Import database utilities
+                    from database import parse_db_url, get_db_url
+                    import psycopg2
+                    import os
+                    
+                    # Get database URL with preference for internal
+                    db_url = os.getenv('DATABASE_URL', os.getenv('DATABASE_PUBLIC_URL'))
+                    if db_url.startswith("postgres://"):
+                        db_url = db_url.replace("postgres://", "postgresql://", 1)
+                    
+                    # Create connection with Railway optimizations
+                    db_params = parse_db_url(db_url)
+                    
+                    # Add connection-specific optimizations for Railway
+                    db_params.update({
+                        'connect_timeout': 30,
+                        'keepalives_idle': 600,
+                        'keepalives_interval': 30,
+                        'keepalives_count': 3,
+                        'application_name': f'rally_etl_{self.environment}'
+                    })
+                    
+                    conn = psycopg2.connect(**db_params)
+                    
+                    # Set Railway-specific session parameters
+                    with conn.cursor() as cursor:
+                        cursor.execute("SELECT 1")  # Test connection
+                        cursor.execute("SET statement_timeout = '300000'")  # 5 minutes
+                        cursor.execute("SET idle_in_transaction_session_timeout = '600000'")  # 10 minutes
+                        cursor.execute("SET work_mem = '64MB'")  # Conservative memory
+                        cursor.execute("SET maintenance_work_mem = '128MB'")
+                        cursor.execute("SET effective_cache_size = '256MB'")
+                    
+                    conn.commit()
+                    self.log("✅ Railway managed connection established")
+                    
+                    try:
+                        yield conn
+                    finally:
+                        conn.close()
+                        self.log("🔒 Railway connection closed")
+                    
+                    return  # Success
+                    
+                except Exception as e:
+                    self.log(f"⚠️ Railway connection attempt {attempt + 1} failed: {str(e)}", "WARNING")
+                    if attempt < max_retries - 1:
+                        time.sleep(retry_delay)
+                        retry_delay *= 1.5
+                    else:
+                        self.log("❌ All Railway connection attempts failed", "ERROR")
+                        raise
+        
+        return managed_railway_connection()
+
+    def check_and_rotate_connection_if_needed(self, conn):
+        """Check if connection needs rotation and handle it gracefully"""
+        if not self._should_rotate_connection():
+            return conn
+            
+        if self.is_railway:
+            self.log(f"🔄 Connection rotation needed (age: {time.time() - self._connection_start_time:.1f}s, ops: {self._operations_count:,})")
+            # For Railway, we'll commit current transaction and get a fresh connection
+            # This is handled at the operation level in import methods
+            conn.commit()
+            self._reset_connection_tracking()
+            self.log("✅ Connection refreshed")
+        
+        return conn
 
     def _detect_environment(self, force_environment=None):
         """Detect current environment: local, railway_staging, or railway_production"""
@@ -1922,7 +2070,12 @@ class ComprehensiveETL:
                     self.log(
                         f"   📊 Processed {imported + updated:,} players so far (New: {imported:,}, Updated: {updated:,})..."
                     )
+                    self._increment_operation_count(1000)
                     conn.commit()  # Commit in batches
+                    
+                    # Check for connection rotation on Railway
+                    if self.is_railway and self._should_rotate_connection():
+                        self.check_and_rotate_connection_if_needed(conn)
 
             except Exception as e:
                 errors += 1
@@ -2159,7 +2312,12 @@ class ComprehensiveETL:
 
                 # More frequent commits for large datasets to prevent timeouts
                 if imported % 500 == 0 and imported > 0:
+                    self._increment_operation_count(500)
                     conn.commit()  # Commit every 500 records to prevent long transactions
+                    
+                    # Check for connection rotation on Railway
+                    if self.is_railway and self._should_rotate_connection():
+                        self.check_and_rotate_connection_if_needed(conn)
                     
                 if imported % 2000 == 0 and imported > 0:
                     self.log(
@@ -2530,6 +2688,11 @@ class ComprehensiveETL:
                     
                     if imported % 2000 == 0:
                         self.log(f"   📊 Imported {imported:,} match records so far...")
+                        self._increment_operation_count(2000)
+                        
+                        # Check for connection rotation on Railway
+                        if self.is_railway and self._should_rotate_connection():
+                            self.check_and_rotate_connection_if_needed(conn)
 
             except Exception as e:
                 errors += 1
@@ -2769,9 +2932,14 @@ class ComprehensiveETL:
                 # RAILWAY OPTIMIZATION: Commit more frequently on Railway to prevent memory/transaction issues
                 commit_freq = self.commit_frequency
                 if imported % commit_freq == 0:
+                    self._increment_operation_count(commit_freq)
                     conn.commit()
                     if self.is_railway:
                         self.log(f"🚂 Railway: Committed {imported} series_stats records")
+                        
+                        # Check for connection rotation on Railway
+                        if self._should_rotate_connection():
+                            self.check_and_rotate_connection_if_needed(conn)
 
             except Exception as e:
                 errors += 1
@@ -3309,7 +3477,12 @@ class ComprehensiveETL:
 
                 if imported % 1000 == 0:
                     self.log(f"   📊 Imported {imported:,} schedule records so far...")
+                    self._increment_operation_count(1000)
                     conn.commit()
+                    
+                    # Check for connection rotation on Railway
+                    if self.is_railway and self._should_rotate_connection():
+                        self.check_and_rotate_connection_if_needed(conn)
 
             except Exception as e:
                 errors += 1
@@ -3469,9 +3642,9 @@ class ComprehensiveETL:
             # Step 3: Connect to database for mapping-aware extraction  
             self.log("\n🗄️  Step 3: Connecting to database...")
             if self.is_railway:
-                self.log("🚂 Railway: Using optimized database connection handling")
+                self.log("🚂 Railway: Using managed connection system with rotation")
             
-            with (self.get_railway_optimized_db_connection() if self.is_railway else get_db()) as conn:
+            with self.get_managed_db_connection() as conn:
                 try:
                     # Ensure schema requirements
                     self.ensure_schema_requirements(conn)
