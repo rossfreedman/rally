@@ -696,6 +696,160 @@ def test_ross_matches_detailed():
         }), 500
 
 
+@app.route("/debug/direct-search-ross")
+def direct_search_ross():
+    """
+    Direct database search for Ross's player ID: nndz-WkMrK3didjlnUT09
+    """
+    railway_env = os.environ.get("RAILWAY_ENVIRONMENT", "not_set")
+    
+    if railway_env != "staging":
+        return jsonify({
+            "error": "This endpoint only works on staging",
+            "railway_env": railway_env
+        }), 403
+    
+    try:
+        from database_utils import execute_query, execute_query_one
+        
+        player_id = "nndz-WkMrK3didjlnUT09"
+        
+        # Direct search - check each player position individually
+        results = {}
+        
+        # Search home_player_1_id
+        home1_query = """
+            SELECT COUNT(*) as count, MIN(match_date) as earliest, MAX(match_date) as latest
+            FROM match_scores
+            WHERE home_player_1_id = %s
+        """
+        home1_result = execute_query_one(home1_query, [player_id])
+        results["home_player_1"] = {
+            "count": home1_result["count"] if home1_result else 0,
+            "date_range": f"{home1_result['earliest']} to {home1_result['latest']}" if home1_result and home1_result["count"] > 0 else "No matches"
+        }
+        
+        # Search home_player_2_id  
+        home2_query = """
+            SELECT COUNT(*) as count, MIN(match_date) as earliest, MAX(match_date) as latest
+            FROM match_scores
+            WHERE home_player_2_id = %s
+        """
+        home2_result = execute_query_one(home2_query, [player_id])
+        results["home_player_2"] = {
+            "count": home2_result["count"] if home2_result else 0,
+            "date_range": f"{home2_result['earliest']} to {home2_result['latest']}" if home2_result and home2_result["count"] > 0 else "No matches"
+        }
+        
+        # Search away_player_1_id
+        away1_query = """
+            SELECT COUNT(*) as count, MIN(match_date) as earliest, MAX(match_date) as latest
+            FROM match_scores
+            WHERE away_player_1_id = %s
+        """
+        away1_result = execute_query_one(away1_query, [player_id])
+        results["away_player_1"] = {
+            "count": away1_result["count"] if away1_result else 0,
+            "date_range": f"{away1_result['earliest']} to {away1_result['latest']}" if away1_result and away1_result["count"] > 0 else "No matches"
+        }
+        
+        # Search away_player_2_id
+        away2_query = """
+            SELECT COUNT(*) as count, MIN(match_date) as earliest, MAX(match_date) as latest
+            FROM match_scores
+            WHERE away_player_2_id = %s
+        """
+        away2_result = execute_query_one(away2_query, [player_id])
+        results["away_player_2"] = {
+            "count": away2_result["count"] if away2_result else 0,
+            "date_range": f"{away2_result['earliest']} to {away2_result['latest']}" if away2_result and away2_result["count"] > 0 else "No matches"
+        }
+        
+        # Get total count
+        total_count = sum([results[pos]["count"] for pos in results.keys()])
+        
+        # Get sample matches if any exist
+        sample_matches = []
+        if total_count > 0:
+            sample_query = """
+                SELECT 
+                    id,
+                    TO_CHAR(match_date, 'DD-Mon-YY') as date,
+                    home_team,
+                    away_team,
+                    league_id,
+                    home_team_id,
+                    away_team_id,
+                    home_player_1_id,
+                    home_player_2_id,
+                    away_player_1_id,
+                    away_player_2_id,
+                    scores,
+                    winner
+                FROM match_scores
+                WHERE home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s
+                ORDER BY match_date DESC
+                LIMIT 5
+            """
+            matches = execute_query(sample_query, [player_id, player_id, player_id, player_id])
+            
+            for match in matches:
+                # Determine position
+                position = "unknown"
+                if match["home_player_1_id"] == player_id:
+                    position = "home_player_1"
+                elif match["home_player_2_id"] == player_id:
+                    position = "home_player_2"
+                elif match["away_player_1_id"] == player_id:
+                    position = "away_player_1"
+                elif match["away_player_2_id"] == player_id:
+                    position = "away_player_2"
+                
+                sample_matches.append({
+                    "id": match["id"],
+                    "date": match["date"],
+                    "teams": f"{match['home_team']} vs {match['away_team']}",
+                    "league_id": match["league_id"],
+                    "position": position,
+                    "scores": match["scores"],
+                    "winner": match["winner"]
+                })
+        
+        # Also check what other player IDs are similar
+        similar_query = """
+            SELECT DISTINCT home_player_1_id, home_player_2_id, away_player_1_id, away_player_2_id
+            FROM match_scores
+            WHERE home_player_1_id LIKE %s OR home_player_2_id LIKE %s OR away_player_1_id LIKE %s OR away_player_2_id LIKE %s
+            LIMIT 10
+        """
+        similar_ids = execute_query(similar_query, [f"{player_id[:10]}%", f"{player_id[:10]}%", f"{player_id[:10]}%", f"{player_id[:10]}%"])
+        
+        unique_similar_ids = set()
+        for row in similar_ids:
+            for col in ["home_player_1_id", "home_player_2_id", "away_player_1_id", "away_player_2_id"]:
+                if row[col] and row[col].startswith(player_id[:10]):
+                    unique_similar_ids.add(row[col])
+        
+        return jsonify({
+            "debug": "direct_search_ross",
+            "player_id": player_id,
+            "railway_env": railway_env,
+            "position_breakdown": results,
+            "total_matches": total_count,
+            "sample_matches": sample_matches,
+            "similar_player_ids": list(unique_similar_ids),
+            "summary": f"Found {total_count} total matches for Ross's player ID {player_id}"
+        })
+        
+    except Exception as e:
+        import traceback
+        return jsonify({
+            "error": str(e),
+            "traceback": traceback.format_exc(),
+            "railway_env": railway_env
+        }), 500
+
+
 # ==========================================
 # ERROR HANDLERS
 # ==========================================
