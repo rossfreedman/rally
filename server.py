@@ -606,17 +606,17 @@ def test_ross_analyze_me():
         user_query = """
             SELECT id, email, first_name, last_name, league_context
             FROM users 
-            WHERE email LIKE '%ross%' OR first_name ILIKE 'ross'
+            WHERE email ILIKE %s OR first_name ILIKE %s
         """
-        users = execute_query(user_query, [])
+        users = execute_query(user_query, ['%ross%', 'ross'])
         
         # Find Ross in players table
         player_query = """
             SELECT id, first_name, last_name, tenniscores_player_id, league_id, team_id, club_id, series_id
             FROM players 
-            WHERE first_name ILIKE 'ross' AND last_name ILIKE '%freed%'
+            WHERE first_name ILIKE %s AND last_name ILIKE %s
         """
-        players = execute_query(player_query, [])
+        players = execute_query(player_query, ['ross', '%freed%'])
         
         ross_email = None
         for user in users:
