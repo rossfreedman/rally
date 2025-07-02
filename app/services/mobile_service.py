@@ -523,13 +523,26 @@ def get_mobile_schedule_data(user):
 def get_player_analysis(user):
     """Get player analysis data for mobile interface"""
     try:
+        # STAGING DEBUG: Comprehensive debug logging for mobile service
+        print(f"\n{'*'*80}")
+        print(f"[MOBILE-SERVICE-DEBUG] get_player_analysis ENTRY")
+        print(f"{'*'*80}")
+        
         # Debug print to see what we're getting
-        print(f"[DEBUG] get_player_analysis: User type: {type(user)}, Data: {user}")
+        print(f"[MOBILE-SERVICE-DEBUG] Input user data:")
+        print(f"  - Type: {type(user)}")
+        print(f"  - Is Dict: {isinstance(user, dict)}")
+        if isinstance(user, dict):
+            print(f"  - Keys: {list(user.keys())}")
+            for key, value in user.items():
+                print(f"    {key}: {value} (type: {type(value)})")
+        else:
+            print(f"  - Raw Data: {user}")
 
         # Ensure user data is a dictionary
         if not isinstance(user, dict):
             print(
-                f"[ERROR] get_player_analysis: User data is not a dictionary: {type(user)}"
+                f"[MOBILE-SERVICE-DEBUG] ERROR: User data is not a dictionary: {type(user)}"
             )
             return {
                 "current_season": None,
@@ -547,9 +560,11 @@ def get_player_analysis(user):
 
         # Get player ID from user data
         player_id = user.get("tenniscores_player_id")
+        print(f"[MOBILE-SERVICE-DEBUG] Extracted player_id: '{player_id}' (type: {type(player_id)})")
+        
         if not player_id:
             print(
-                "[ERROR] get_player_analysis: No tenniscores_player_id found in user data"
+                "[MOBILE-SERVICE-DEBUG] ERROR: No tenniscores_player_id found in user data"
             )
             return {
                 "current_season": {
@@ -753,6 +768,13 @@ def get_player_analysis(user):
             except Exception as e:
                 print(f"[DEBUG] Error getting team for player_id {player_id}: {e}")
 
+        # STAGING DEBUG: Database query section
+        print(f"\n[MOBILE-SERVICE-DEBUG] DATABASE QUERY SECTION:")
+        print(f"  - player_id: '{player_id}'")
+        print(f"  - league_id_int: {league_id_int}")
+        print(f"  - user_team_id: {user_team_id}")
+        print(f"  - user_team_name: '{user_team_name}'")
+        
         # Get player history - filter by league AND team to fix multi-team issue
         if league_id_int and user_team_id:
             # Use team_id filtering like track-byes-courts for most reliable results
@@ -774,11 +796,18 @@ def get_player_analysis(user):
                 AND (home_team_id = %s OR away_team_id = %s)
                 ORDER BY match_date DESC
             """
-            player_matches = execute_query(
-                history_query,
-                [player_id, player_id, player_id, player_id, league_id_int, user_team_id, user_team_id],
-            )
-            print(f"[DEBUG] Filtered matches by team_id {user_team_id} ('{user_team_name}'): {len(player_matches) if player_matches else 0} matches")
+            query_params = [player_id, player_id, player_id, player_id, league_id_int, user_team_id, user_team_id]
+            print(f"[MOBILE-SERVICE-DEBUG] Executing TEAM+LEAGUE filter query:")
+            print(f"  Query params: {query_params}")
+            
+            player_matches = execute_query(history_query, query_params)
+            
+            print(f"[MOBILE-SERVICE-DEBUG] Query result: {len(player_matches) if player_matches else 0} matches")
+            if player_matches:
+                print(f"[MOBILE-SERVICE-DEBUG] Sample matches:")
+                for i, match in enumerate(player_matches[:3]):
+                    print(f"    {i+1}. {match.get('Date')} | {match.get('Home Team')} vs {match.get('Away Team')} | Winner: {match.get('Winner')}")
+            
         elif league_id_int:
             # Fallback: filter by league only (original behavior for single-team players)
             history_query = """
@@ -798,10 +827,18 @@ def get_player_analysis(user):
                 AND league_id = %s
                 ORDER BY match_date DESC
             """
-            player_matches = execute_query(
-                history_query,
-                [player_id, player_id, player_id, player_id, league_id_int],
-            )
+            query_params = [player_id, player_id, player_id, player_id, league_id_int]
+            print(f"[MOBILE-SERVICE-DEBUG] Executing LEAGUE-ONLY filter query:")
+            print(f"  Query params: {query_params}")
+            
+            player_matches = execute_query(history_query, query_params)
+            
+            print(f"[MOBILE-SERVICE-DEBUG] Query result: {len(player_matches) if player_matches else 0} matches")
+            if player_matches:
+                print(f"[MOBILE-SERVICE-DEBUG] Sample matches:")
+                for i, match in enumerate(player_matches[:3]):
+                    print(f"    {i+1}. {match.get('Date')} | {match.get('Home Team')} vs {match.get('Away Team')} | Winner: {match.get('Winner')}")
+            
         else:
             # No league filtering if we don't have a valid league_id
             history_query = """
@@ -820,9 +857,24 @@ def get_player_analysis(user):
                 WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
                 ORDER BY match_date DESC
             """
-            player_matches = execute_query(
-                history_query, [player_id, player_id, player_id, player_id]
-            )
+            query_params = [player_id, player_id, player_id, player_id]
+            print(f"[MOBILE-SERVICE-DEBUG] Executing NO FILTER query:")
+            print(f"  Query params: {query_params}")
+            
+            player_matches = execute_query(history_query, query_params)
+            
+            print(f"[MOBILE-SERVICE-DEBUG] Query result: {len(player_matches) if player_matches else 0} matches")
+            if player_matches:
+                print(f"[MOBILE-SERVICE-DEBUG] Sample matches:")
+                for i, match in enumerate(player_matches[:3]):
+                    print(f"    {i+1}. {match.get('Date')} | {match.get('Home Team')} vs {match.get('Away Team')} | Winner: {match.get('Winner')}")
+        
+        print(f"[MOBILE-SERVICE-DEBUG] FINAL QUERY RESULTS:")
+        print(f"  - player_matches type: {type(player_matches)}")
+        print(f"  - player_matches length: {len(player_matches) if player_matches else 0}")
+        print(f"  - player_matches is None: {player_matches is None}")
+        print(f"  - player_matches is empty list: {player_matches == []}")
+        print(f"{'*'*80}\n")
 
         # FIX: Calculate accurate wins/losses from match results
         print(
@@ -1542,6 +1594,16 @@ def get_player_analysis(user):
         # Player history (empty for now since we don't have PTI data)
         player_history = {"progression": "", "seasons": []}
 
+        # STAGING DEBUG: Final result being returned
+        print(f"\n[MOBILE-SERVICE-DEBUG] BUILDING FINAL RESULT:")
+        print(f"  - total_matches: {total_matches}")
+        print(f"  - wins: {wins}")
+        print(f"  - losses: {losses}")
+        print(f"  - win_rate: {win_rate}")
+        print(f"  - current_pti: {pti_data.get('current_pti', 0.0)}")
+        print(f"  - court_analysis type: {type(court_analysis)}")
+        print(f"  - court_analysis keys: {list(court_analysis.keys()) if isinstance(court_analysis, dict) else 'NOT_DICT'}")
+        
         # Return the complete data structure expected by the template
         result = {
             "current_season": current_season,
@@ -1556,6 +1618,15 @@ def get_player_analysis(user):
             "pti_data_available": pti_data.get("pti_data_available", False),
             "error": None,
         }
+
+        print(f"\n[MOBILE-SERVICE-DEBUG] FINAL RESULT DATA:")
+        print(f"  - result type: {type(result)}")
+        print(f"  - current_season: {result['current_season']}")
+        print(f"  - career_stats: {result['career_stats']}")
+        print(f"  - court_analysis: {result['court_analysis']}")
+        print(f"  - current_pti: {result['current_pti']}")
+        print(f"  - error: {result['error']}")
+        print(f"{'*'*80}")
 
         return result
 

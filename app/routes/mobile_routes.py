@@ -591,16 +591,63 @@ def serve_mobile_analyze_me():
             session["user"]["email"], "page_visit", page="mobile_analyze_me"
         )
 
-        # STAGING DEBUG: Log the actual analyze_data being passed to template
-        print(f"[STAGING-DEBUG] analyze_data being passed to template:")
-        print(f"[STAGING-DEBUG] - Type: {type(analyze_data)}")
+        # STAGING DEBUG: Comprehensive logging for staging diagnosis
+        print(f"\n{'='*80}")
+        print(f"[STAGING-DEBUG] COMPREHENSIVE ANALYZE-ME DEBUG")
+        print(f"{'='*80}")
+        print(f"[STAGING-DEBUG] REQUEST INFO:")
+        print(f"  - URL: {request.url}")
+        print(f"  - Method: {request.method}")
+        print(f"  - User Email: {user_email}")
+        
+        print(f"\n[STAGING-DEBUG] SESSION USER DATA:")
+        print(f"  - Type: {type(session_user)}")
+        print(f"  - Email: {session_user.get('email', 'MISSING')}")
+        print(f"  - First Name: {session_user.get('first_name', 'MISSING')}")
+        print(f"  - Last Name: {session_user.get('last_name', 'MISSING')}")
+        print(f"  - Player ID: {session_user.get('tenniscores_player_id', 'MISSING')}")
+        print(f"  - League ID: {session_user.get('league_id', 'MISSING')} (type: {type(session_user.get('league_id'))})")
+        print(f"  - Team ID: {session_user.get('team_id', 'MISSING')}")
+        print(f"  - Club: {session_user.get('club', 'MISSING')}")
+        print(f"  - Series: {session_user.get('series', 'MISSING')}")
+        
+        print(f"\n[STAGING-DEBUG] ANALYZE DATA RESULT:")
+        print(f"  - Type: {type(analyze_data)}")
         if isinstance(analyze_data, dict):
-            for key, value in analyze_data.items():
-                if key == 'current_season' and value:
-                    print(f"[STAGING-DEBUG] - {key}: {value}")
-                    print(f"[STAGING-DEBUG] - current_season.matches: {value.get('matches', 'MISSING')}")
-                else:
-                    print(f"[STAGING-DEBUG] - {key}: {type(value)}")
+            print(f"  - Error: {analyze_data.get('error', 'None')}")
+            
+            current_season = analyze_data.get('current_season')
+            print(f"  - Current Season Type: {type(current_season)}")
+            if current_season:
+                print(f"    - Matches: {current_season.get('matches', 'MISSING')}")
+                print(f"    - Wins: {current_season.get('wins', 'MISSING')}")
+                print(f"    - Losses: {current_season.get('losses', 'MISSING')}")
+                print(f"    - Win Rate: {current_season.get('winRate', 'MISSING')}")
+            else:
+                print(f"    - Current Season is: {current_season}")
+            
+            career_stats = analyze_data.get('career_stats')
+            print(f"  - Career Stats Type: {type(career_stats)}")
+            if career_stats:
+                print(f"    - Matches: {career_stats.get('matches', 'MISSING')}")
+                print(f"    - Wins: {career_stats.get('wins', 'MISSING')}")
+                print(f"    - Losses: {career_stats.get('losses', 'MISSING')}")
+            else:
+                print(f"    - Career Stats is: {career_stats}")
+            
+            court_analysis = analyze_data.get('court_analysis', {})
+            print(f"  - Court Analysis Type: {type(court_analysis)}")
+            if court_analysis:
+                for court_name, court_data in court_analysis.items():
+                    if isinstance(court_data, dict):
+                        record = court_data.get('record', 'N/A')
+                        win_rate = court_data.get('winRate', 'N/A')
+                        print(f"    - {court_name}: {record} ({win_rate}%)")
+            
+            print(f"  - Current PTI: {analyze_data.get('current_pti', 'MISSING')}")
+            print(f"  - PTI Data Available: {analyze_data.get('pti_data_available', 'MISSING')}")
+            
+        print(f"{'='*80}\n")
 
         return render_template(
             "mobile/analyze_me.html",
