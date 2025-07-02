@@ -3692,3 +3692,66 @@ def debug_database_state():
             "error": f"Debug check failed: {str(e)}",
             "timestamp": str(datetime.now())
         }), 500
+
+
+@api_bp.route("/api/debug/test-mobile-service")
+@login_required
+def debug_test_mobile_service():
+    """Debug endpoint to test mobile service directly on staging"""
+    try:
+        from app.services.mobile_service import get_player_analysis
+        from app.services.session_service import get_session_data_for_user
+        import json
+        from datetime import datetime
+        
+        # Get current user from session
+        user_email = session.get("user", {}).get("email")
+        if not user_email:
+            return jsonify({"error": "No user email in session"}), 400
+            
+        # Test 1: Check session service
+        session_data = get_session_data_for_user(user_email)
+        
+        # Test 2: Check mobile service
+        mobile_result = None
+        if session_data:
+            mobile_result = get_player_analysis(session_data)
+        
+        # Return debug info
+        debug_info = {
+            "timestamp": datetime.now().isoformat(),
+            "user_email": user_email,
+            "session_data": {
+                "exists": session_data is not None,
+                "player_id": session_data.get("tenniscores_player_id") if session_data else None,
+                "first_name": session_data.get("first_name") if session_data else None,
+                "last_name": session_data.get("last_name") if session_data else None,
+                "league_id": session_data.get("league_id") if session_data else None,
+                "team_id": session_data.get("team_id") if session_data else None,
+                "club": session_data.get("club") if session_data else None,
+                "series": session_data.get("series") if session_data else None,
+            },
+            "mobile_service": {
+                "success": mobile_result is not None,
+                "current_season": mobile_result.get("current_season") if mobile_result else None,
+                "career_stats": mobile_result.get("career_stats") if mobile_result else None,
+                "error": mobile_result.get("error") if mobile_result else None,
+                "pti_data_available": mobile_result.get("pti_data_available") if mobile_result else None,
+            },
+            "expected_vs_actual": {
+                "expected_matches": 18,  # We know Wes should have 18
+                "actual_matches": mobile_result.get("current_season", {}).get("matches", 0) if mobile_result else 0,
+                "expected_player": "Wes Maher",
+                "actual_player": f"{session_data.get('first_name', '')} {session_data.get('last_name', '')}" if session_data else "Unknown"
+            }
+        }
+        
+        return jsonify(debug_info)
+        
+    except Exception as e:
+        import traceback
+        return jsonify({
+            "error": str(e),
+            "traceback": traceback.format_exc(),
+            "timestamp": datetime.now().isoformat()
+        }), 500
