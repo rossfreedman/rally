@@ -2172,7 +2172,7 @@ def get_series_by_league():
 
 @api_bp.route("/api/get-user-facing-series-by-league")
 def get_user_facing_series_by_league():
-    """Get user-facing series names using database mappings instead of hard-coded transformations"""
+    """Get user-facing series names using database mappings instead of hard-coded transformations - OPTIMIZED"""
     try:
         league_id = request.args.get("league_id")
 
@@ -2186,43 +2186,39 @@ def get_user_facing_series_by_league():
             print(f"[WARNING] No league_id found in parameter or session, returning empty series list")
             return jsonify({"series": []})
             
-        # First, get all actual series in this league from the database
-        series_query = """
-            SELECT DISTINCT s.name as database_series_name
+        # OPTIMIZED: Get all series WITH their mappings in a single query using LEFT JOIN
+        # This eliminates the N+1 query problem that was causing 5+ second delays on staging
+        optimized_query = """
+            SELECT DISTINCT 
+                s.name as database_series_name,
+                sm.user_series_name as mapped_name
             FROM series s
             JOIN series_leagues sl ON s.id = sl.series_id
             JOIN leagues l ON sl.league_id = l.id
+            LEFT JOIN series_name_mappings sm ON (
+                sm.league_id = l.league_id 
+                AND sm.database_series_name = s.name
+            )
             WHERE l.league_id = %s
             ORDER BY s.name
         """
-        series_data = execute_query(series_query, (league_id,))
+        series_data = execute_query(optimized_query, (league_id,))
         
-        # Get user-facing names from series_name_mappings table
-        # This maps database names back to user-facing names
+        # Process all series in one pass (no individual queries needed!)
         user_facing_names = []
         
         for series_item in series_data:
             database_name = series_item["database_series_name"]
+            mapped_name = series_item["mapped_name"]
             
             # Skip problematic Chicago series that don't follow standard pattern
             if league_id and league_id.startswith("APTA") and database_name in ["Chicago", "Chicago Chicago"]:
                 print(f"[API] Skipping problematic series: {database_name}")
                 continue
             
-            # Check if there's a reverse mapping (database_series_name -> user_series_name)
-            reverse_mapping_query = """
-                SELECT user_series_name
-                FROM series_name_mappings
-                WHERE league_id = %s AND database_series_name = %s
-                ORDER BY user_series_name
-                LIMIT 1
-            """
-            
-            mapping_result = execute_query_one(reverse_mapping_query, (league_id, database_name))
-            
-            if mapping_result:
+            if mapped_name:
                 # Use the user-facing name from the mapping
-                user_facing_name = mapping_result["user_series_name"]
+                user_facing_name = mapped_name
             else:
                 # No mapping found, use database name as-is
                 user_facing_name = database_name
