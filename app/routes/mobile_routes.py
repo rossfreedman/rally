@@ -591,63 +591,75 @@ def serve_mobile_analyze_me():
             session["user"]["email"], "page_visit", page="mobile_analyze_me"
         )
 
-        # STAGING DEBUG: Comprehensive logging for staging diagnosis
-        print(f"\n{'='*80}")
-        print(f"[STAGING-DEBUG] COMPREHENSIVE ANALYZE-ME DEBUG")
-        print(f"{'='*80}")
-        print(f"[STAGING-DEBUG] REQUEST INFO:")
-        print(f"  - URL: {request.url}")
-        print(f"  - Method: {request.method}")
-        print(f"  - User Email: {user_email}")
+        # STAGING DEBUG: Capture debug information for webpage display
+        debug_info = []
+        debug_info.append("=== ANALYZE-ME DEBUG INFO ===")
+        debug_info.append(f"URL: {request.url}")
+        debug_info.append(f"Method: {request.method}")
+        debug_info.append(f"User Email: {user_email}")
+        debug_info.append("")
         
-        print(f"\n[STAGING-DEBUG] SESSION USER DATA:")
-        print(f"  - Type: {type(session_user)}")
-        print(f"  - Email: {session_user.get('email', 'MISSING')}")
-        print(f"  - First Name: {session_user.get('first_name', 'MISSING')}")
-        print(f"  - Last Name: {session_user.get('last_name', 'MISSING')}")
-        print(f"  - Player ID: {session_user.get('tenniscores_player_id', 'MISSING')}")
-        print(f"  - League ID: {session_user.get('league_id', 'MISSING')} (type: {type(session_user.get('league_id'))})")
-        print(f"  - Team ID: {session_user.get('team_id', 'MISSING')}")
-        print(f"  - Club: {session_user.get('club', 'MISSING')}")
-        print(f"  - Series: {session_user.get('series', 'MISSING')}")
+        debug_info.append("SESSION USER DATA:")
+        debug_info.append(f"  Type: {type(session_user)}")
+        debug_info.append(f"  Email: {session_user.get('email', 'MISSING')}")
+        debug_info.append(f"  First Name: {session_user.get('first_name', 'MISSING')}")
+        debug_info.append(f"  Last Name: {session_user.get('last_name', 'MISSING')}")
+        debug_info.append(f"  Player ID: {session_user.get('tenniscores_player_id', 'MISSING')}")
+        debug_info.append(f"  League ID: {session_user.get('league_id', 'MISSING')} (type: {type(session_user.get('league_id'))})")
+        debug_info.append(f"  Team ID: {session_user.get('team_id', 'MISSING')}")
+        debug_info.append(f"  Club: {session_user.get('club', 'MISSING')}")
+        debug_info.append(f"  Series: {session_user.get('series', 'MISSING')}")
+        debug_info.append("")
+
+        # Get analyze data and capture any debug info from mobile service
+        analyze_data = get_player_analysis(session_user)
         
-        print(f"\n[STAGING-DEBUG] ANALYZE DATA RESULT:")
-        print(f"  - Type: {type(analyze_data)}")
+        debug_info.append("ANALYZE DATA RESULT:")
+        debug_info.append(f"  Type: {type(analyze_data)}")
         if isinstance(analyze_data, dict):
-            print(f"  - Error: {analyze_data.get('error', 'None')}")
+            debug_info.append(f"  Error: {analyze_data.get('error', 'None')}")
             
             current_season = analyze_data.get('current_season')
-            print(f"  - Current Season Type: {type(current_season)}")
+            debug_info.append(f"  Current Season Type: {type(current_season)}")
             if current_season:
-                print(f"    - Matches: {current_season.get('matches', 'MISSING')}")
-                print(f"    - Wins: {current_season.get('wins', 'MISSING')}")
-                print(f"    - Losses: {current_season.get('losses', 'MISSING')}")
-                print(f"    - Win Rate: {current_season.get('winRate', 'MISSING')}")
+                debug_info.append(f"    Matches: {current_season.get('matches', 'MISSING')}")
+                debug_info.append(f"    Wins: {current_season.get('wins', 'MISSING')}")
+                debug_info.append(f"    Losses: {current_season.get('losses', 'MISSING')}")
+                debug_info.append(f"    Win Rate: {current_season.get('winRate', 'MISSING')}")
             else:
-                print(f"    - Current Season is: {current_season}")
+                debug_info.append(f"    Current Season is: {current_season}")
             
             career_stats = analyze_data.get('career_stats')
-            print(f"  - Career Stats Type: {type(career_stats)}")
+            debug_info.append(f"  Career Stats Type: {type(career_stats)}")
             if career_stats:
-                print(f"    - Matches: {career_stats.get('matches', 'MISSING')}")
-                print(f"    - Wins: {career_stats.get('wins', 'MISSING')}")
-                print(f"    - Losses: {career_stats.get('losses', 'MISSING')}")
+                debug_info.append(f"    Matches: {career_stats.get('matches', 'MISSING')}")
+                debug_info.append(f"    Wins: {career_stats.get('wins', 'MISSING')}")
+                debug_info.append(f"    Losses: {career_stats.get('losses', 'MISSING')}")
             else:
-                print(f"    - Career Stats is: {career_stats}")
+                debug_info.append(f"    Career Stats is: {career_stats}")
             
             court_analysis = analyze_data.get('court_analysis', {})
-            print(f"  - Court Analysis Type: {type(court_analysis)}")
-            if court_analysis:
+            debug_info.append(f"  Court Analysis Type: {type(court_analysis)}")
+            if court_analysis and isinstance(court_analysis, dict):
                 for court_name, court_data in court_analysis.items():
                     if isinstance(court_data, dict):
                         record = court_data.get('record', 'N/A')
                         win_rate = court_data.get('winRate', 'N/A')
-                        print(f"    - {court_name}: {record} ({win_rate}%)")
+                        debug_info.append(f"    {court_name}: {record} ({win_rate}%)")
             
-            print(f"  - Current PTI: {analyze_data.get('current_pti', 'MISSING')}")
-            print(f"  - PTI Data Available: {analyze_data.get('pti_data_available', 'MISSING')}")
-            
-        print(f"{'='*80}\n")
+            debug_info.append(f"  Current PTI: {analyze_data.get('current_pti', 'MISSING')}")
+            debug_info.append(f"  PTI Data Available: {analyze_data.get('pti_data_available', 'MISSING')}")
+        
+        # Get any debug info from mobile service if it was captured
+        mobile_debug = analyze_data.get('_debug_info', []) if isinstance(analyze_data, dict) else []
+        if mobile_debug:
+            debug_info.append("")
+            debug_info.append("MOBILE SERVICE DEBUG:")
+            debug_info.extend(mobile_debug)
+        
+        # Add debug info to analyze_data for display on page
+        if isinstance(analyze_data, dict):
+            analyze_data['debug_info'] = debug_info
 
         return render_template(
             "mobile/analyze_me.html",
