@@ -1111,6 +1111,110 @@ def fix_ross_league_context():
         }), 500
 
 
+@app.route("/debug/check-ross-second-player-id")
+def check_ross_second_player_id():
+    """
+    Check if matches exist for Ross's second player ID on staging
+    """
+    railway_env = os.environ.get("RAILWAY_ENVIRONMENT", "not_set")
+    
+    if railway_env != "staging":
+        return jsonify({
+            "error": "This endpoint only works on staging",
+            "railway_env": railway_env
+        }), 403
+    
+    try:
+        from database_utils import execute_query, execute_query_one
+        
+        # Ross's second player ID from the investigation
+        second_player_id = "nndz-WlNhd3hMYi9nQT09"
+        
+        # Check matches for this player ID
+        matches_query = """
+            SELECT 
+                COUNT(*) as total_matches,
+                MIN(TO_CHAR(match_date, 'YYYY-MM-DD')) as earliest_match,
+                MAX(TO_CHAR(match_date, 'YYYY-MM-DD')) as latest_match,
+                league_id,
+                home_team_id,
+                away_team_id
+            FROM match_scores
+            WHERE home_player_1_id = %s OR home_player_2_id = %s 
+               OR away_player_1_id = %s OR away_player_2_id = %s
+            GROUP BY league_id, home_team_id, away_team_id
+            ORDER BY COUNT(*) DESC
+        """
+        
+        matches = execute_query(matches_query, [second_player_id, second_player_id, second_player_id, second_player_id])
+        
+        # Get sample matches
+        sample_query = """
+            SELECT 
+                TO_CHAR(match_date, 'DD-Mon-YY') as date,
+                home_team,
+                away_team,
+                winner,
+                scores,
+                league_id
+            FROM match_scores
+            WHERE home_player_1_id = %s OR home_player_2_id = %s 
+               OR away_player_1_id = %s OR away_player_2_id = %s
+            ORDER BY match_date DESC
+            LIMIT 5
+        """
+        
+        sample_matches = execute_query(sample_query, [second_player_id, second_player_id, second_player_id, second_player_id])
+        
+        # Check all player IDs that start with "nndz-W" to see the pattern
+        pattern_query = """
+            SELECT DISTINCT 
+                CASE 
+                    WHEN home_player_1_id LIKE 'nndz-W%' THEN home_player_1_id
+                    WHEN home_player_2_id LIKE 'nndz-W%' THEN home_player_2_id  
+                    WHEN away_player_1_id LIKE 'nndz-W%' THEN away_player_1_id
+                    WHEN away_player_2_id LIKE 'nndz-W%' THEN away_player_2_id
+                END as player_id,
+                COUNT(*) as match_count
+            FROM match_scores
+            WHERE home_player_1_id LIKE 'nndz-W%' OR home_player_2_id LIKE 'nndz-W%' 
+               OR away_player_1_id LIKE 'nndz-W%' OR away_player_2_id LIKE 'nndz-W%'
+            GROUP BY 1
+            ORDER BY match_count DESC
+        """
+        
+        similar_players = execute_query(pattern_query, [])
+        
+        # Check total matches in database for context
+        total_query = "SELECT COUNT(*) as total FROM match_scores"
+        total_result = execute_query_one(total_query, [])
+        
+        return jsonify({
+            "debug": "check_ross_second_player_id",
+            "railway_env": railway_env,
+            "second_player_id": second_player_id,
+            "matches_found": matches,
+            "total_match_groups": len(matches) if matches else 0,
+            "total_matches": sum([m["total_matches"] for m in matches]) if matches else 0,
+            "sample_matches": sample_matches,
+            "similar_ross_players": similar_players,
+            "database_total_matches": total_result["total"] if total_result else 0,
+            "analysis": {
+                "second_id_has_matches": len(matches) > 0 if matches else False,
+                "database_has_data": total_result["total"] > 0 if total_result else False,
+                "similar_players_count": len(similar_players) if similar_players else 0
+            }
+        })
+        
+    except Exception as e:
+        import traceback
+        return jsonify({
+            "error": str(e),
+            "traceback": traceback.format_exc(),
+            "railway_env": railway_env
+        }), 500
+
+
 @app.route("/debug/search-any-ross-matches")
 def search_any_ross_matches():
     """
@@ -1129,7 +1233,7 @@ def search_any_ross_matches():
         
         results = {}
         
-        # 1. Search for any player IDs that contain "nndz-Wk" (Ross's pattern)
+        # 1. Search for any player IDs that contain "nndz-W" (Ross's pattern)
         pattern_search_query = """
             SELECT COUNT(*) as total_pattern_matches
             FROM match_scores
@@ -1230,6 +1334,185 @@ def search_any_ross_matches():
             "error": str(e),
             "traceback": traceback.format_exc(),
             "railway_env": railway_env
+        }), 500
+
+
+@app.route("/debug/fix-ross-associations-staging")
+def fix_ross_associations_staging():
+    """
+    Find Ross's actual match data on staging and correctly associate his user account
+    """
+    railway_env = os.environ.get("RAILWAY_ENVIRONMENT", "not_set")
+    
+    if railway_env != "staging":
+        return jsonify({
+            "error": "This endpoint only works on staging",
+            "railway_env": railway_env
+        }), 403
+    
+    try:
+        from database_utils import execute_query, execute_query_one, execute_update
+        
+        ross_email = "rossfreedman@gmail.com"
+        
+        # Ross's known player IDs from the investigation
+        player_ids = [
+            "nndz-WkMrK3didjlnUT09",  # Primary from local
+            "nndz-WlNhd3hMYi9nQT09"   # Secondary from staging associations
+        ]
+        
+        results = {
+            "ross_email": ross_email,
+            "player_ids_checked": player_ids,
+            "match_analysis": {},
+            "current_associations": [],
+            "fix_applied": False
+        }
+        
+        # Step 1: Check matches for each player ID
+        total_matches_found = 0
+        best_player_id = None
+        best_league_id = None
+        best_match_count = 0
+        
+        for player_id in player_ids:
+            matches_query = """
+                SELECT 
+                    league_id,
+                    COUNT(*) as match_count,
+                    MIN(TO_CHAR(match_date, 'YYYY-MM-DD')) as earliest_match,
+                    MAX(TO_CHAR(match_date, 'YYYY-MM-DD')) as latest_match
+                FROM match_scores
+                WHERE home_player_1_id = %s OR home_player_2_id = %s 
+                   OR away_player_1_id = %s OR away_player_2_id = %s
+                GROUP BY league_id
+                ORDER BY COUNT(*) DESC
+            """
+            
+            matches = execute_query(matches_query, [player_id, player_id, player_id, player_id])
+            
+            player_total = sum([m["match_count"] for m in matches]) if matches else 0
+            total_matches_found += player_total
+            
+            results["match_analysis"][player_id] = {
+                "total_matches": player_total,
+                "leagues": matches if matches else []
+            }
+            
+            # Track the player ID with the most matches
+            if player_total > best_match_count:
+                best_match_count = player_total
+                best_player_id = player_id
+                if matches:
+                    best_league_id = matches[0]["league_id"]  # League with most matches
+        
+        # Step 2: Get current user data and associations
+        ross_user = execute_query_one(
+            "SELECT id, email, league_context FROM users WHERE email = %s",
+            [ross_email]
+        )
+        
+        if not ross_user:
+            return jsonify({
+                "error": "Ross's user account not found",
+                "results": results
+            }), 404
+        
+        # Get current associations
+        current_associations = execute_query(
+            """
+            SELECT upa.tenniscores_player_id, p.league_id, p.team_id, 
+                   t.team_name, l.league_name, p.first_name, p.last_name
+            FROM user_player_associations upa
+            JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id  
+            JOIN teams t ON p.team_id = t.id
+            JOIN leagues l ON p.league_id = l.id
+            WHERE upa.user_id = %s
+            """,
+            [ross_user['id']]
+        )
+        
+        results["current_user"] = ross_user
+        results["current_associations"] = current_associations
+        results["total_matches_found"] = total_matches_found
+        results["best_player_id"] = best_player_id
+        results["best_league_id"] = best_league_id
+        results["best_match_count"] = best_match_count
+        
+        # Step 3: Apply fix if we found matches
+        if best_player_id and best_league_id and best_match_count > 0:
+            # Update user's league_context to the league with the most matches
+            old_league_context = ross_user["league_context"]
+            
+            if old_league_context != best_league_id:
+                rows_updated = execute_update(
+                    "UPDATE users SET league_context = %s WHERE email = %s",
+                    [best_league_id, ross_email]
+                )
+                
+                # Verify the update
+                updated_user = execute_query_one(
+                    "SELECT league_context FROM users WHERE email = %s",
+                    [ross_email]
+                )
+                
+                # Get league names for display
+                old_league = execute_query_one(
+                    "SELECT league_name FROM leagues WHERE id = %s",
+                    [old_league_context]
+                ) if old_league_context else None
+                
+                new_league = execute_query_one(
+                    "SELECT league_name FROM leagues WHERE id = %s", 
+                    [best_league_id]
+                )
+                
+                results["fix_applied"] = True
+                results["fix_details"] = {
+                    "old_league_context": old_league_context,
+                    "old_league_name": old_league["league_name"] if old_league else "Unknown",
+                    "new_league_context": best_league_id,
+                    "new_league_name": new_league["league_name"] if new_league else "Unknown",
+                    "rows_updated": rows_updated,
+                    "verification_successful": updated_user["league_context"] == best_league_id,
+                    "match_count_in_new_league": best_match_count
+                }
+            else:
+                results["fix_applied"] = False
+                results["fix_details"] = {
+                    "reason": "User already associated with correct league",
+                    "current_league": best_league_id,
+                    "match_count": best_match_count
+                }
+        else:
+            results["fix_applied"] = False
+            results["fix_details"] = {
+                "reason": "No matches found for any of Ross's player IDs on staging",
+                "recommendation": "Check if match data was imported for Ross, or if ETL import needs to be re-run"
+            }
+        
+        return jsonify({
+            "debug": "fix_ross_associations_staging",
+            "railway_env": railway_env,
+            "results": results,
+            "next_steps": [
+                "1. If fix was applied: Log out and log back in to refresh session",
+                "2. Visit /mobile/analyze-me to verify data appears",
+                "3. If no matches found: Check ETL import logs for Ross's data"
+            ] if results["fix_applied"] else [
+                "1. Investigate why no match data exists for Ross on staging",
+                "2. Check ETL import process",
+                "3. Verify player IDs are correct"
+            ]
+        })
+        
+    except Exception as e:
+        import traceback
+        return jsonify({
+            "error": str(e),
+            "traceback": traceback.format_exc(),
+            "railway_env": railway_env,
+            "results": results
         }), 500
 
 
