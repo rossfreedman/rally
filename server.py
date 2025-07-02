@@ -870,39 +870,15 @@ def search_any_ross_matches():
         
         # 1. Search for any player IDs that contain "nndz-Wk" (Ross's pattern)
         pattern_search_query = """
-            SELECT DISTINCT 
-                home_player_1_id, home_player_2_id, away_player_1_id, away_player_2_id,
-                TO_CHAR(match_date, 'YYYY-MM-DD') as date,
-                home_team, away_team, league_id
+            SELECT COUNT(*) as total_pattern_matches
             FROM match_scores
             WHERE home_player_1_id LIKE %s OR home_player_2_id LIKE %s 
             OR away_player_1_id LIKE %s OR away_player_2_id LIKE %s
-            ORDER BY match_date DESC
-            LIMIT 10
         """
-        pattern_matches = execute_query(pattern_search_query, ['nndz-Wk%', 'nndz-Wk%', 'nndz-Wk%', 'nndz-Wk%'])
-        
-        # Extract unique player IDs
-        unique_player_ids = set()
-        for match in pattern_matches:
-            for col in ["home_player_1_id", "home_player_2_id", "away_player_1_id", "away_player_2_id"]:
-                if match[col] and match[col].startswith('nndz-Wk'):
-                    unique_player_ids.add(match[col])
+        pattern_count = execute_query_one(pattern_search_query, ['nndz-Wk%', 'nndz-Wk%', 'nndz-Wk%', 'nndz-Wk%'])
         
         results["pattern_matches"] = {
-            "player_ids_found": list(unique_player_ids),
-            "total_matches": len(pattern_matches),
-            "sample_matches": [
-                {
-                    "date": m["date"],
-                    "teams": f"{m['home_team']} vs {m['away_team']}",
-                    "league": m["league_id"],
-                    "players": {
-                        "home": [m["home_player_1_id"], m["home_player_2_id"]],
-                        "away": [m["away_player_1_id"], m["away_player_2_id"]]
-                    }
-                } for m in pattern_matches[:5]
-            ]
+            "total_matches": pattern_count["total_pattern_matches"] if pattern_count else 0
         }
         
         # 2. Search players table for any Ross entries and get their exact player IDs
@@ -983,7 +959,7 @@ def search_any_ross_matches():
                 "ross_player_ids_found": len(ross_players),
                 "total_db_matches": results["total_matches_in_db"],
                 "tennaqua_matches": results["tennaqua_total_matches"],
-                "pattern_match_ids": len(unique_player_ids)
+                "pattern_matches": results["pattern_matches"]["total_matches"]
             }
         })
         
