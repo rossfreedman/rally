@@ -1535,7 +1535,7 @@ def staging_database_health():
         results = {}
         
         # 1. Check total match count
-        total_matches = execute_query_one("SELECT COUNT(*) as total FROM match_scores", [])
+        total_matches = execute_query_one("SELECT COUNT(*) as total FROM match_scores")
         results["total_matches"] = total_matches["total"] if total_matches else 0
         
         # 2. Check date range of matches
@@ -1546,7 +1546,7 @@ def staging_database_health():
                 MAX(TO_CHAR(match_date, 'YYYY-MM-DD')) as latest_match,
                 COUNT(DISTINCT match_date) as unique_dates
             FROM match_scores
-            """, []
+            """
         )
         results["date_range"] = date_range
         
@@ -1561,7 +1561,7 @@ def staging_database_health():
             LEFT JOIN match_scores ms ON l.id = ms.league_id
             GROUP BY l.id, l.league_name
             ORDER BY match_count DESC
-            """, []
+            """
         )
         results["league_distribution"] = league_distribution
         
@@ -1571,7 +1571,7 @@ def staging_database_health():
             SELECT COUNT(*) as tennaqua_matches
             FROM match_scores
             WHERE home_team ILIKE '%tennaqua%' OR away_team ILIKE '%tennaqua%'
-            """, []
+            """
         )
         results["tennaqua_matches"] = tennaqua_matches["tennaqua_matches"] if tennaqua_matches else 0
         
@@ -1590,7 +1590,7 @@ def staging_database_health():
             FROM match_scores
             ORDER BY match_date DESC
             LIMIT 10
-            """, []
+            """
         )
         results["recent_matches"] = recent_matches
         
@@ -1605,7 +1605,7 @@ def staging_database_health():
             GROUP BY SUBSTRING(home_player_1_id, 1, 10)
             ORDER BY occurrence_count DESC
             LIMIT 10
-            """, []
+            """
         )
         results["player_id_patterns"] = player_id_patterns
         
@@ -1625,7 +1625,7 @@ def staging_database_health():
                OR away_player_1_id LIKE 'nndz-%' OR away_player_2_id LIKE 'nndz-%'
             GROUP BY 1
             ORDER BY match_count DESC
-            """, []
+            """
         )
         results["nndz_pattern_players"] = nndz_players
         
