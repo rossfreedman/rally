@@ -584,10 +584,10 @@ def test_wes_v2():
         }), 500
 
 
-@app.route("/debug/test-ross-analyze-me")
-def test_ross_analyze_me():
+@app.route("/debug/test-ross-matches-detailed")
+def test_ross_matches_detailed():
     """
-    Debug endpoint to test Ross Freedman's analyze-me issue on staging
+    Detailed debug for Ross Freedman's match data - test both player IDs
     """
     railway_env = os.environ.get("RAILWAY_ENVIRONMENT", "not_set")
     
@@ -599,103 +599,92 @@ def test_ross_analyze_me():
     
     try:
         from database_utils import execute_query, execute_query_one
-        from app.services.session_service import get_session_data_for_user
-        from app.services.mobile_service import get_player_analysis
         
-        # Find Ross in users table
-        user_query = """
-            SELECT id, email, first_name, last_name, league_context
-            FROM users 
-            WHERE email ILIKE %s OR first_name ILIKE %s
-        """
-        users = execute_query(user_query, ['%ross%', 'ross'])
+        # Ross's two player IDs from previous debug
+        player_ids = ["nndz-WkMrK3didjlnUT09", "nndz-WlNhd3hMYi9nQT09"]
         
-        # Find Ross in players table
-        player_query = """
-            SELECT id, first_name, last_name, tenniscores_player_id, league_id, team_id, club_id, series_id
-            FROM players 
-            WHERE first_name ILIKE %s AND last_name ILIKE %s
-        """
-        players = execute_query(player_query, ['ross', '%freed%'])
+        results = {}
         
-        ross_email = None
-        for user in users:
-            if 'ross' in user['first_name'].lower() and ('freed' in user.get('last_name', '').lower() or 'freed' in user.get('email', '').lower()):
-                ross_email = user['email']
-                break
-        
-        # Test session service
-        session_result = None
-        mobile_result = None
-        
-        if ross_email:
-            session_result = get_session_data_for_user(ross_email)
-            if session_result:
-                try:
-                    mobile_result = get_player_analysis(session_result)
-                except Exception as e:
-                    mobile_result = {"error": str(e)}
-        
-        # Test matches if we found a player
-        matches_test = None
-        if players:
-            player_id = players[0]['tenniscores_player_id']
-            league_id = players[0]['league_id']
+        for i, player_id in enumerate(player_ids):
+            print(f"Testing player ID {i+1}: {player_id}")
             
-            all_matches_query = """
+            # Check matches for this player ID
+            matches_query = """
                 SELECT 
-                    id,
-                    TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
+                    COUNT(*) as total_matches,
+                    MIN(match_date) as earliest_match,
+                    MAX(match_date) as latest_match
+                FROM match_scores
+                WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
+            """
+            match_stats = execute_query_one(matches_query, [player_id, player_id, player_id, player_id])
+            
+            # Get sample matches
+            sample_query = """
+                SELECT 
+                    TO_CHAR(match_date, 'DD-Mon-YY') as date,
                     home_team,
                     away_team,
-                    league_id
+                    league_id,
+                    home_team_id,
+                    away_team_id
                 FROM match_scores
                 WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
                 ORDER BY match_date DESC
-                LIMIT 5
+                LIMIT 3
             """
-            all_matches = execute_query(all_matches_query, [player_id, player_id, player_id, player_id])
+            sample_matches = execute_query(sample_query, [player_id, player_id, player_id, player_id])
             
-            league_matches = []
-            if league_id:
-                league_matches_query = """
-                    SELECT COUNT(*) as count
-                    FROM match_scores
-                    WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
-                    AND league_id = %s
-                """
-                league_count = execute_query_one(league_matches_query, [player_id, player_id, player_id, player_id, league_id])
-                
-            matches_test = {
-                "total_matches": len(all_matches),
-                "league_matches": league_count.get('count', 0) if 'league_count' in locals() and league_count else 0,
-                "sample_matches": [{"date": m["Date"], "teams": f"{m['home_team']} vs {m['away_team']}", "league": m["league_id"]} for m in all_matches[:3]]
+            # Get player info
+            player_info_query = """
+                SELECT first_name, last_name, league_id, team_id, club_id, series_id
+                FROM players
+                WHERE tenniscores_player_id = %s
+            """
+            player_info = execute_query(player_info_query, [player_id])
+            
+            results[f"player_{i+1}"] = {
+                "player_id": player_id,
+                "player_records": len(player_info),
+                "player_details": [{"league": p["league_id"], "team": p["team_id"], "club": p["club_id"], "series": p["series_id"]} for p in player_info],
+                "total_matches": match_stats["total_matches"] if match_stats else 0,
+                "date_range": f"{match_stats['earliest_match']} to {match_stats['latest_match']}" if match_stats and match_stats["total_matches"] > 0 else "No matches",
+                "sample_matches": [{"date": m["date"], "teams": f"{m['home_team']} vs {m['away_team']}", "league": m["league_id"]} for m in sample_matches]
             }
         
+        # Also check if there are any matches with similar player names
+        name_matches_query = """
+            SELECT DISTINCT
+                home_player_1_id, home_player_2_id, away_player_1_id, away_player_2_id,
+                TO_CHAR(match_date, 'DD-Mon-YY') as date,
+                home_team, away_team
+            FROM match_scores
+            WHERE home_team ILIKE '%tennaqua%' OR away_team ILIKE '%tennaqua%'
+            ORDER BY match_date DESC
+            LIMIT 5
+        """
+        tennaqua_matches = execute_query(name_matches_query, [])
+        
         return jsonify({
-            "debug": "ross_analyze_me",
+            "debug": "ross_matches_detailed",
             "railway_env": railway_env,
-            "users_found": len(users),
-            "players_found": len(players),
-            "ross_email": ross_email,
-            "users": [{"name": f"{u['first_name']} {u['last_name']}", "email": u['email'], "league_context": u['league_context']} for u in users],
-            "players": [{"name": f"{p['first_name']} {p['last_name']}", "player_id": p['tenniscores_player_id'][:20] + "...", "league": p['league_id'], "team": p['team_id']} for p in players],
-            "session_service": {
-                "success": session_result is not None,
-                "player_id": session_result.get('tenniscores_player_id')[:20] + "..." if session_result and session_result.get('tenniscores_player_id') else None,
-                "league_id": session_result.get('league_id') if session_result else None,
-                "team_id": session_result.get('team_id') if session_result else None,
-                "club": session_result.get('club') if session_result else None,
-                "series": session_result.get('series') if session_result else None
-            },
-            "mobile_service": {
-                "success": mobile_result is not None and not mobile_result.get('error'),
-                "error": mobile_result.get('error') if mobile_result else None,
-                "current_season_matches": mobile_result.get('current_season', {}).get('matches', 0) if mobile_result else 0,
-                "current_season_wins": mobile_result.get('current_season', {}).get('wins', 0) if mobile_result else 0,
-                "pti_available": mobile_result.get('pti_data_available', False) if mobile_result else False
-            },
-            "matches_test": matches_test
+            "player_analysis": results,
+            "tennaqua_sample_matches": [
+                {
+                    "date": m["date"],
+                    "teams": f"{m['home_team']} vs {m['away_team']}",
+                    "player_ids": {
+                        "home": [m["home_player_1_id"][:15] + "..." if m["home_player_1_id"] else None, 
+                                m["home_player_2_id"][:15] + "..." if m["home_player_2_id"] else None],
+                        "away": [m["away_player_1_id"][:15] + "..." if m["away_player_1_id"] else None,
+                                m["away_player_2_id"][:15] + "..." if m["away_player_2_id"] else None]
+                    }
+                } for m in tennaqua_matches
+            ],
+            "summary": {
+                "total_ross_matches_found": sum([results[f"player_{i+1}"]["total_matches"] for i in range(2)]),
+                "tennaqua_matches_exist": len(tennaqua_matches) > 0
+            }
         })
         
     except Exception as e:
