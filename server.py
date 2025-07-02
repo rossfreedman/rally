@@ -657,7 +657,7 @@ def test_ross_matches_detailed():
             SELECT DISTINCT
                 home_player_1_id, home_player_2_id, away_player_1_id, away_player_2_id,
                 TO_CHAR(match_date, 'DD-Mon-YY') as date,
-                home_team, away_team
+                home_team, away_team, match_date
             FROM match_scores
             WHERE home_team ILIKE %s OR away_team ILIKE %s
             ORDER BY match_date DESC
