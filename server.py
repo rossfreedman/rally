@@ -568,9 +568,10 @@ def test_wes_v2():
             },
             "mobile_service": {
                 "analyze_data_found": bool(mobile_data),
-                "current_season_matches": len(mobile_data.get('current_season', {}).get('matches', [])) if mobile_data and mobile_data.get('current_season') else 0,
+                "current_season_matches": mobile_data.get('current_season', {}).get('matches', 0) if mobile_data and mobile_data.get('current_season') else 0,
                 "current_season_data": mobile_data.get('current_season') if mobile_data else None,
-                "pti_score": mobile_data.get('current_pti') if mobile_data else None
+                "pti_score": mobile_data.get('current_pti') if mobile_data else None,
+                "error": mobile_data.get('error') if mobile_data else None
             }
         })
         
