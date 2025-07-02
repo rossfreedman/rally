@@ -21,107 +21,77 @@ logger = logging.getLogger(__name__)
 
 def get_session_data_for_user(user_email: str) -> Optional[Dict[str, Any]]:
     """
-    Get complete session data for a user based on their league_context.
-    This is the single source of truth for all session data.
-    
-    Args:
-        user_email: User's email address
-        
-    Returns:
-        Complete session dict or None if user not found
+    Build complete session data for a user from database.
+    This is the centralized session builder used by login, registration, and league switching.
     """
-    print(f"[SESSION_SERVICE] Getting session data for: {user_email}")
     try:
-        # FIRST: Check user's league_context and auto-fix if NULL
-        user_check_query = """
-            SELECT u.id, u.email, u.league_context
-            FROM users u
-            WHERE u.email = %s
-        """
-        user_info = execute_query_one(user_check_query, [user_email])
-        
-        if not user_info:
-            logger.warning(f"No user found for email: {user_email}")
-            print(f"[SESSION_SERVICE] No user found for: {user_email}")
-            return None
-        
-        # ROOT CAUSE FIX: If league_context is NULL, set it to user's primary league
-        if user_info["league_context"] is None:
-            print(f"[SESSION_SERVICE] User {user_email} has NULL league_context, finding primary league...")
-            
-            # Find user's primary league (most recent or first active association)
-            primary_league_query = """
-                SELECT l.id as league_db_id, l.league_name,
-                       COUNT(*) as player_count,
-                       MAX(p.created_at) as most_recent
-                FROM users u
-                JOIN user_player_associations upa ON u.id = upa.user_id
-                JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
-                JOIN leagues l ON p.league_id = l.id
-                WHERE u.email = %s AND p.is_active = TRUE
-                GROUP BY l.id, l.league_name
-                ORDER BY most_recent DESC, player_count DESC
-                LIMIT 1
-            """
-            primary_league = execute_query_one(primary_league_query, [user_email])
-            
-            if primary_league:
-                primary_league_id = primary_league["league_db_id"]
-                print(f"[SESSION_SERVICE] Setting league_context to {primary_league['league_name']} (ID: {primary_league_id})")
+        # Get comprehensive user data with player associations via league_context prioritization
+        query = """
+            SELECT DISTINCT ON (u.id)
+                u.id, u.email, u.first_name, u.last_name, u.is_admin,
+                u.ad_deuce_preference, u.dominant_hand, u.league_context,
                 
-                # Update user's league_context
-                from database_utils import execute_update
-                execute_update(
-                    "UPDATE users SET league_context = %s WHERE email = %s",
-                    [primary_league_id, user_email]
-                )
-                print(f"[SESSION_SERVICE] Updated league_context for {user_email}")
-            else:
-                print(f"[SESSION_SERVICE] No active player associations found for {user_email}")
-                return None
-        
-        # NOW: Get user and their active player based on league_context (which is now guaranteed to be set)
-        session_query = """
-            SELECT 
-                u.id,
-                u.email, 
-                u.first_name, 
-                u.last_name,
-                u.is_admin,
-                u.ad_deuce_preference,
-                u.dominant_hand,
-                u.league_context,
-                -- Player data from league_context with ALL required IDs
-                p.tenniscores_player_id,
-                p.team_id,
-                p.club_id,
-                p.series_id,
-                c.name as club,
-                c.logo_filename as club_logo,
-                s.name as series,
-                l.id as league_db_id,
-                l.league_id as league_string_id,
-                l.league_name
+                -- Player data (prioritize league_context team)
+                c.name as club, c.logo_filename as club_logo,
+                s.name as series, p.tenniscores_player_id,
+                c.id as club_id, s.id as series_id, t.id as team_id,
+                
+                -- League data
+                l.id as league_db_id, l.league_id as league_string_id, l.league_name
             FROM users u
             LEFT JOIN user_player_associations upa ON u.id = upa.user_id
-            LEFT JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id 
-                AND p.league_id = u.league_context 
-                AND p.is_active = TRUE
+            LEFT JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
             LEFT JOIN clubs c ON p.club_id = c.id
             LEFT JOIN series s ON p.series_id = s.id
+            LEFT JOIN teams t ON p.team_id = t.id
             LEFT JOIN leagues l ON p.league_id = l.id
-            WHERE u.email = %s
-            ORDER BY (CASE WHEN p.tenniscores_player_id IS NOT NULL THEN 1 ELSE 2 END)
+            WHERE u.email = %s AND p.is_active = true
+            ORDER BY u.id, 
+                     (CASE WHEN p.league_id = u.league_context THEN 1 ELSE 2 END),
+                     p.id DESC
             LIMIT 1
         """
         
-        result = execute_query_one(session_query, [user_email])
-        print(f"[SESSION_SERVICE] Database query result: {result}")
+        result = execute_query_one(query, [user_email])
         
         if not result:
-            logger.warning(f"No user found for email: {user_email}")
-            print(f"[SESSION_SERVICE] No user found for: {user_email}")
+            logger.warning(f"No session data found for user: {user_email}")
+            print(f"[SESSION_SERVICE] No user found or no active players for: {user_email}")
             return None
+            
+        # Get raw series name from database
+        raw_series_name = result["series"] or ""
+        display_series_name = raw_series_name
+        
+        # Apply series name conversion for UI display (same logic as get-user-settings API)
+        if raw_series_name and result["league_string_id"]:
+            league_id = result["league_string_id"]
+            
+            try:
+                # Check for forward mapping (database_series_name -> user_series_name)
+                forward_mapping_query = """
+                    SELECT user_series_name
+                    FROM series_name_mappings
+                    WHERE league_id = %s AND database_series_name = %s
+                    LIMIT 1
+                """
+                
+                mapping_result = execute_query_one(forward_mapping_query, (league_id, raw_series_name))
+                
+                if mapping_result:
+                    display_series_name = mapping_result["user_series_name"]
+                    print(f"[SESSION_SERVICE] Applied forward mapping: '{raw_series_name}' -> '{display_series_name}'")
+                else:
+                    # For APTA league, try converting Chicago format to Series format
+                    if league_id.startswith("APTA") and raw_series_name.startswith("Chicago"):
+                        from app.routes.api_routes import convert_chicago_to_series_for_ui
+                        display_series_name = convert_chicago_to_series_for_ui(raw_series_name)
+                        print(f"[SESSION_SERVICE] Applied Chicago->Series conversion: '{raw_series_name}' -> '{display_series_name}'")
+                    else:
+                        print(f"[SESSION_SERVICE] No mapping found for '{raw_series_name}', using as-is")
+            except Exception as mapping_error:
+                print(f"[SESSION_SERVICE] Error applying series mapping: {mapping_error}")
+                display_series_name = raw_series_name
             
         # Build standard session structure with ALL required IDs
         session_data = {
@@ -137,7 +107,7 @@ def get_session_data_for_user(user_email: str) -> Optional[Dict[str, Any]]:
             # Player-specific data with ALL IDs
             "club": result["club"] or "",
             "club_logo": result["club_logo"] or "",
-            "series": result["series"] or "",
+            "series": display_series_name,  # 👈 Use converted series name for UI
             "club_id": result["club_id"],
             "series_id": result["series_id"],
             "team_id": result["team_id"],
