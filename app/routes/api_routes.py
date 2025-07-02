@@ -2227,15 +2227,13 @@ def get_user_facing_series_by_league():
                 # No mapping found, use database name as-is
                 user_facing_name = database_name
                 
-                # For APTA league, convert "Chicago" to "Series" in the UI
+                # For APTA league, try to convert "Chicago" to "Series" in the UI
                 if league_id and league_id.startswith("APTA"):
                     converted_name = convert_chicago_to_series_for_ui(user_facing_name)
-                    # Only use converted name if it actually changed (avoid edge cases)
+                    # Use converted name if it actually changed
                     if converted_name != user_facing_name:
                         user_facing_name = converted_name
-                    else:
-                        print(f"[API] Skipping unconvertible series: {user_facing_name}")
-                        continue
+                    # Note: Don't skip if conversion failed - let Division series, etc. pass through
             
             user_facing_names.append(user_facing_name)
         
