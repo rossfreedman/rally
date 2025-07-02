@@ -21,11 +21,11 @@ command = "python chronjobs/railway_cron_etl.py --full-import"
 
 # Staging ETL Cron Job Services (for testing fresh JSON imports)
 [deploy.cronJobs.staging_etl_import]
-schedule = "*/30 * * * *"  # Every 30 minutes for testing
+schedule = "0 */4 * * *"  # Every 4 hours instead of every 30 minutes
 command = "python chronjobs/railway_cron_etl_staging.py"
 
 [deploy.cronJobs.staging_etl_full]
-schedule = "0 */6 * * *"  # Every 6 hours for full staging refreshes
+schedule = "0 8 * * *"  # Daily at 8 AM UTC instead of every 6 hours
 command = "python chronjobs/railway_cron_etl_staging.py --full-import"
 
 [env]
