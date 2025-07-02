@@ -74,6 +74,7 @@ Options:
 - **Commit Frequency**: Every 50 operations (frequent commits)
 - **Retries**: 8 attempts
 - **Validation**: **Disabled by default** (speed priority)
+- **Connection Management**: Rotation every 2k ops, max 5 min age
 - **Performance**: Optimized for speed testing
 
 ### **Railway Production**
@@ -81,6 +82,7 @@ Options:
 - **Commit Frequency**: Every 100 operations
 - **Retries**: 10 attempts (maximum reliability)
 - **Validation**: **Enabled by default** (safety priority)
+- **Connection Management**: Rotation every 5k ops, max 10 min age
 - **Performance**: Balanced speed and safety
 
 ## 🎯 **Best Practices by Use Case**
@@ -157,6 +159,29 @@ railway ssh python chronjobs/railway_background_etl.py --enable-validation
 | Railway SSH + production | Railway servers | ⚡⚡ Medium | ✅ Yes | Production |
 | Railway run | Local with remote DB | ⚡ Slow | Varies | Debugging |
 
+## 🔗 **Connection Management**
+
+The ETL system now includes intelligent **database connection management** to prevent timeouts and optimize performance on Railway:
+
+### **Connection Limits by Environment**
+| Environment | Max Connection Age | Rotation Frequency | Max Operations |
+|-------------|-------------------|--------------------|----------------|
+| **Local** | 30 minutes | Every 10k operations | 50k operations |
+| **Railway Staging** | 5 minutes | Every 2k operations | 10k operations |
+| **Railway Production** | 10 minutes | Every 5k operations | 25k operations |
+
+### **How It Works**
+1. **Automatic Rotation**: Connections are automatically rotated before hitting Railway's timeout limits
+2. **Operation Tracking**: System counts database operations and rotates proactively
+3. **Age Monitoring**: Connections are refreshed based on time limits
+4. **Graceful Handling**: Rotation happens at safe commit points to prevent data loss
+
+### **Benefits**
+- ✅ **Prevents connection timeouts** on Railway
+- ✅ **Reduces memory accumulation** during long imports
+- ✅ **Maintains consistent performance** throughout the ETL process
+- ✅ **Automatic optimization** for each environment
+
 ## 🚨 **Safety Notes**
 
 1. **Always test in staging first** before running in production
@@ -164,6 +189,7 @@ railway ssh python chronjobs/railway_background_etl.py --enable-validation
 3. **Monitor Railway quotas** when running frequent imports
 4. **Use SSH method** for best performance on Railway
 5. **Commit changes** before running ETL to ensure latest code
+6. **Connection management is automatic** - no manual intervention needed
 
 ## 🔄 **Automated Workflows**
 
