@@ -28,10 +28,10 @@ def setup_signal_handlers():
 
 def run_etl_background():
     """Run ETL import as a background process"""
-    print("=" * 60)
-    print("🚀 RAILWAY BACKGROUND ETL PROCESS")
-    print("=" * 60)
-    print(f"Started at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print("=" * 60, flush=True)
+    print("🚀 RAILWAY BACKGROUND ETL PROCESS", flush=True)
+    print("=" * 60, flush=True)
+    print(f"Started at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", flush=True)
     
     # Setup signal handlers
     setup_signal_handlers()
@@ -43,29 +43,29 @@ def run_etl_background():
         # Create and run ETL
         etl = ComprehensiveETL()
         
-        print("📋 Starting comprehensive ETL process...")
+        print("📋 Starting comprehensive ETL process...", flush=True)
         success = etl.run()
         
         if success:
-            print("\n" + "=" * 60)
-            print("✅ ETL PROCESS COMPLETED SUCCESSFULLY")
-            print("=" * 60)
+            print("\n" + "=" * 60, flush=True)
+            print("✅ ETL PROCESS COMPLETED SUCCESSFULLY", flush=True)
+            print("=" * 60, flush=True)
             return True
         else:
-            print("\n" + "=" * 60)
-            print("❌ ETL PROCESS FAILED")
-            print("=" * 60)
+            print("\n" + "=" * 60, flush=True)
+            print("❌ ETL PROCESS FAILED", flush=True)
+            print("=" * 60, flush=True)
             return False
             
     except Exception as e:
-        print(f"\n❌ Critical error in background ETL: {str(e)}")
+        print(f"\n❌ Critical error in background ETL: {str(e)}", flush=True)
         import traceback
-        print(f"Traceback: {traceback.format_exc()}")
+        print(f"Traceback: {traceback.format_exc()}", flush=True)
         return False
     
     finally:
         end_time = datetime.now()
-        print(f"Completed at: {end_time.strftime('%Y-%m-%d %H:%M:%S')}")
+        print(f"Completed at: {end_time.strftime('%Y-%m-%d %H:%M:%S')}", flush=True)
 
 if __name__ == "__main__":
     success = run_etl_background()
