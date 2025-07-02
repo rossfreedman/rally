@@ -204,6 +204,22 @@ function loadClubsByLeague(leagueId, selectedClub = null) {
 
 // Load series filtered by league
 function loadSeriesByLeague(leagueId, selectedSeries = null) {
+  // PERFORMANCE FIX: If we already have the selectedSeries, populate it immediately
+  // This eliminates the 5-second delay on staging by using session data directly
+  if (selectedSeries) {
+    const seriesSel = document.getElementById('series');
+    seriesSel.innerHTML = '<option value="">Select a series...</option>';
+    
+    // Add the user's current series immediately to prevent blank field
+    const option = document.createElement('option');
+    option.value = selectedSeries;
+    option.textContent = selectedSeries;
+    option.selected = true;
+    seriesSel.appendChild(option);
+    
+    console.log('🚀 Series populated immediately from session data:', selectedSeries);
+  }
+  
   // Use the new API endpoint that returns user-facing series names from database mappings
   const url = leagueId ? `/api/get-user-facing-series-by-league?league_id=${leagueId}` : '/api/get-user-facing-series-by-league';
   
@@ -225,6 +241,8 @@ function loadSeriesByLeague(leagueId, selectedSeries = null) {
         if (selectedSeries) {
             seriesSel.value = selectedSeries;
         }
+        
+        console.log('✅ Series dropdown fully populated from API with', data.series.length, 'options');
     }
   }).catch(error => {
     console.error('Error loading series:', error);
