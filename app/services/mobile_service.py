@@ -63,6 +63,16 @@ def get_career_stats_from_db(player_id):
     Returns None if no historical data is found or if data is insufficient.
     """
     try:
+        # Helper function to convert Decimal to float for template compatibility
+        def decimal_to_float(value):
+            """Convert Decimal to float, handle None values"""
+            from decimal import Decimal
+            if value is None:
+                return None
+            if isinstance(value, Decimal):
+                return float(value)
+            return value
+
         # First get the player's database ID
         player_query = """
             SELECT id FROM players WHERE tenniscores_player_id = %s
@@ -133,13 +143,13 @@ def get_career_stats_from_db(player_id):
         total_matches = career_matches
         wins = career_wins
         losses = career_losses
-        win_rate = round(career_data["career_win_percentage"] or 0, 1)
+        win_rate = decimal_to_float(career_data["career_win_percentage"]) or 0.0
 
         # Get current PTI as career PTI
-        latest_pti = career_data["current_pti"] or "N/A"
+        latest_pti = decimal_to_float(career_data["current_pti"]) or "N/A"
 
         career_stats = {
-            "winRate": win_rate,
+            "winRate": round(win_rate, 1),  # Convert to float and round
             "matches": total_matches,
             "wins": wins,
             "losses": losses,
@@ -1039,9 +1049,19 @@ def get_player_analysis(user):
                             f"[DEBUG] No series history found for PTI change calculation"
                         )
 
+                # Convert Decimal types to float for template compatibility
+                def decimal_to_float(value):
+                    """Convert Decimal to float, handle None values"""
+                    from decimal import Decimal
+                    if value is None:
+                        return None
+                    if isinstance(value, Decimal):
+                        return float(value)
+                    return value
+
                 pti_data = {
-                    "current_pti": current_pti,
-                    "pti_change": pti_change,
+                    "current_pti": decimal_to_float(current_pti),
+                    "pti_change": decimal_to_float(pti_change),
                     "pti_data_available": True,
                 }
                 print(
@@ -1495,12 +1515,22 @@ def get_player_analysis(user):
                 )
                 season_pti_change = "N/A"
 
+        # Helper function to convert Decimal to float for template compatibility
+        def decimal_to_float_season(value):
+            """Convert Decimal to float, handle None values"""
+            from decimal import Decimal
+            if value is None:
+                return None
+            if isinstance(value, Decimal):
+                return float(value)
+            return value
+
         current_season = {
-            "winRate": win_rate,
+            "winRate": decimal_to_float_season(win_rate),
             "matches": total_matches,
             "wins": wins,
             "losses": losses,
-            "ptiChange": season_pti_change,
+            "ptiChange": decimal_to_float_season(season_pti_change) if season_pti_change != "N/A" else "N/A",
         }
 
         # Build career stats from player_history table
@@ -1521,8 +1551,8 @@ def get_player_analysis(user):
             "videos": {"match": [], "practice": []},
             "trends": {},
             "career_pti_change": "N/A",
-            "current_pti": pti_data.get("current_pti", 0.0),
-            "weekly_pti_change": pti_data.get("pti_change", 0.0),
+            "current_pti": decimal_to_float_season(pti_data.get("current_pti", 0.0)),
+            "weekly_pti_change": decimal_to_float_season(pti_data.get("pti_change", 0.0)),
             "pti_data_available": pti_data.get("pti_data_available", False),
             "error": None,
         }
