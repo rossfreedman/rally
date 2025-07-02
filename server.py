@@ -531,16 +531,16 @@ def staging_mobile_test():
         # Convert session_data to the user format expected by get_player_analysis
         if session_data:
             session_user = {
-                "email": session_data.user.email,
-                "first_name": session_data.user.first_name,
-                "last_name": session_data.user.last_name,
-                "tenniscores_player_id": session_data.user.tenniscores_player_id,
-                "club_id": session_data.club_id,
-                "series_id": session_data.series_id,
-                "league_id": session_data.league_id,
-                "team_id": session_data.team_id,
-                "club": session_data.club,
-                "series": session_data.series
+                "email": session_data.get("email"),
+                "first_name": session_data.get("first_name"),
+                "last_name": session_data.get("last_name"),
+                "tenniscores_player_id": session_data.get("tenniscores_player_id"),
+                "club_id": session_data.get("club_id"),
+                "series_id": session_data.get("series_id"),
+                "league_id": session_data.get("league_id"),
+                "team_id": session_data.get("team_id"),
+                "club": session_data.get("club"),
+                "series": session_data.get("series")
             }
             
             # Test mobile service
@@ -560,12 +560,12 @@ def staging_mobile_test():
             },
             "session_service": {
                 "session_data_found": bool(session_data),
-                "email": session_data.user.email if session_data else None,
-                "player_id": session_data.user.tenniscores_player_id if session_data else None,
-                "league_id": session_data.league_id if session_data else None,
-                "team_id": session_data.team_id if session_data else None,
-                "club": session_data.club if session_data else None,
-                "series": session_data.series if session_data else None
+                "email": session_data.get("email") if session_data else None,
+                "player_id": session_data.get("tenniscores_player_id") if session_data else None,
+                "league_id": session_data.get("league_id") if session_data else None,
+                "team_id": session_data.get("team_id") if session_data else None,
+                "club": session_data.get("club") if session_data else None,
+                "series": session_data.get("series") if session_data else None
             },
             "mobile_service": {
                 "analyze_data_found": bool(mobile_data),
