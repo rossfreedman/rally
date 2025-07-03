@@ -905,24 +905,7 @@ def get_teams_for_selection(
                 f"[DEBUG] get_teams_for_selection: League_id already integer: {league_id_int}"
             )
 
-        # Debug: Check what series actually exist for this league
-        if league_id_int:
-            try:
-                debug_series_query = """
-                    SELECT DISTINCT s.name as series_name, COUNT(t.id) as team_count
-                    FROM series s
-                    JOIN teams t ON s.id = t.series_id
-                    WHERE t.league_id = %s AND t.is_active = TRUE
-                    GROUP BY s.name
-                    ORDER BY s.name
-                    LIMIT 10
-                """
-                debug_series = execute_query(debug_series_query, [league_id_int])
-                print(f"[DEBUG] Available series in league {league_id_int}:")
-                for series_row in debug_series or []:
-                    print(f"  - '{series_row['series_name']}' ({series_row['team_count']} teams)")
-            except Exception as e:
-                print(f"[DEBUG] Error checking available series: {e}")
+
 
         # Get teams from the new teams table with club and series info
         query = """
@@ -975,7 +958,7 @@ def get_teams_for_selection(
             })
 
         print(
-            f"[DEBUG] get_teams_for_selection: Found {len(teams)} teams for league_id {league_id_int}, series '{user_series}' (all clubs in series)"
+            f"[DEBUG] get_teams_for_selection: Found {len(teams)} teams for league_id {league_id_int} (all series in league)"
         )
 
         return teams
