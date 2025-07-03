@@ -2324,12 +2324,12 @@ def serve_mobile_matchup_simulator():
             f"[DEBUG] serve_mobile_matchup_simulator: User league_id: '{user_league_id}', series: '{user_series}', club: '{user_club}'"
         )
 
-        # Get available teams for selection (filtered by user's series)
+        # Get available teams for selection (filtered by user's league and club)
         available_teams = get_teams_for_selection(
             user_league_id, user_series, user_club
         )
         print(
-            f"[DEBUG] serve_mobile_matchup_simulator: Found {len(available_teams)} teams in series '{user_series}' (all teams in this series)"
+            f"[DEBUG] serve_mobile_matchup_simulator: Found {len(available_teams)} teams in user's league/club"
         )
 
         session_data = {"user": session["user"], "authenticated": True}
@@ -2459,12 +2459,15 @@ def get_team_players(team_id):
 
         # Get team info first
         team_query = """
-            SELECT id, team_name, display_name
-            FROM teams
-            WHERE id = %s
+            SELECT t.id, t.team_name, COALESCE(t.team_alias, t.team_name) as display_name,
+                   c.name as club_name, s.name as series_name
+            FROM teams t
+            JOIN clubs c ON t.club_id = c.id
+            JOIN series s ON t.series_id = s.id
+            WHERE t.id = %s
         """
         if league_id_int:
-            team_query += " AND league_id = %s"
+            team_query += " AND t.league_id = %s"
             team_info = execute_query_one(team_query, [team_id, league_id_int])
         else:
             team_info = execute_query_one(team_query, [team_id])
@@ -2478,6 +2481,7 @@ def get_team_players(team_id):
             }), 404
 
         team_name = team_info["team_name"]
+        display_name = team_info["display_name"]
 
         # Get players for the team using team_id
         if league_id_int:
@@ -2516,23 +2520,23 @@ def get_team_players(team_id):
         ]
 
         print(
-            f"[DEBUG] get_team_players: Found {len(players)} players for team_id '{team_id}' ({team_name}) in league '{user_league_id}'"
+            f"[DEBUG] get_team_players: Found {len(players)} players for team_id '{team_id}' ({display_name}) in league '{user_league_id}'"
         )
 
         if not players:
             return jsonify({
                 "success": False,
-                "error": f"No players found for team {team_name}",
+                "error": f"No players found for team {display_name}",
                 "players": [],
                 "team_id": team_id,
-                "team_name": team_name,
+                "team_name": display_name,
             }), 404
 
         return jsonify({
             "success": True, 
             "players": players, 
             "team_id": team_id,
-            "team_name": team_name
+            "team_name": display_name
         })
 
     except Exception as e:

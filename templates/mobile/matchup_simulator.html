@@ -144,7 +144,7 @@
                             <select id="teamA_team" class="w-full py-3 px-4 text-base border border-gray-300 text-gray-900 bg-white rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition appearance-none">
                                 <option value="">Choose Team A...</option>
                                 {% for team in available_teams %}
-                                <option value="{{ team.name }}">{{ team.display_name }}</option>
+                                <option value="{{ team.id }}">{{ team.display_name }}</option>
                                 {% endfor %}
                             </select>
                             <i class="fas fa-chevron-down absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none"></i>
@@ -198,7 +198,7 @@
                             <select id="teamB_team" class="w-full py-3 px-4 text-base border border-gray-300 text-gray-900 bg-white rounded-lg shadow-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 transition appearance-none">
                                 <option value="">Choose Team B...</option>
                                 {% for team in available_teams %}
-                                <option value="{{ team.name }}">{{ team.display_name }}</option>
+                                <option value="{{ team.id }}">{{ team.display_name }}</option>
                                 {% endfor %}
                             </select>
                             <i class="fas fa-chevron-down absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none"></i>
@@ -341,8 +341,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const teamB_player2 = document.getElementById('teamB_player2');
     
     // Load players when team is selected
-    async function loadTeamPlayers(teamName, playerSection, player1Select, player2Select) {
-        if (!teamName) {
+    async function loadTeamPlayers(teamId, playerSection, player1Select, player2Select) {
+        if (!teamId) {
             playerSection.classList.add('hidden');
             player1Select.disabled = true;
             player2Select.disabled = true;
@@ -352,7 +352,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         try {
-            const response = await fetch(`/api/get-team-players/${encodeURIComponent(teamName)}`);
+            const response = await fetch(`/api/get-team-players/${teamId}`);
             const result = await response.json();
             
             if (!response.ok) {
