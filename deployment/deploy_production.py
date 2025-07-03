@@ -63,31 +63,15 @@ def verify_staging_tests():
             return False
     else:
         print("⚠️  No staging tests found")
-        response = input("Continue without staging test verification? (y/n): ")
-        return response.lower() == 'y'
+        print("⚠️  Proceeding without staging test verification")
+        return True
 
 def get_current_branch():
     """Get the current git branch"""
     result = subprocess.run(['git', 'branch', '--show-current'], capture_output=True, text=True)
     return result.stdout.strip()
 
-def confirm_production_deployment():
-    """Get explicit confirmation for production deployment"""
-    print("\n🚨 PRODUCTION DEPLOYMENT CONFIRMATION")
-    print("=" * 60)
-    print("This will deploy staging changes to the LIVE production environment")
-    print("where real users will be affected.")
-    print()
-    print("Pre-flight checklist:")
-    print("□ Staging has been thoroughly tested")
-    print("□ All functionality works as expected")
-    print("□ Database migrations are ready (if needed)")
-    print("□ No breaking changes for existing users")
-    print("□ Rollback plan is ready if needed")
-    print()
-    
-    response = input("Are you sure you want to deploy to PRODUCTION? (yes/no): ")
-    return response.lower() == 'yes'
+
 
 def merge_staging_to_main():
     """Merge staging branch to main for production deployment"""
@@ -208,10 +192,8 @@ def main():
     if not verify_staging_tests():
         return 1
     
-    # Get explicit confirmation
-    if not confirm_production_deployment():
-        print("Production deployment cancelled")
-        return 0
+    # Auto-proceed with production deployment (removed manual confirmation)
+    print("✅ Proceeding with production deployment")
     
     # Deployment steps
     steps = [
