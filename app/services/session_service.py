@@ -26,6 +26,7 @@ def get_session_data_for_user(user_email: str) -> Optional[Dict[str, Any]]:
     """
     try:
         # Get comprehensive user data with player associations via league_context prioritization
+        # FIXED: Make player associations optional to handle users without active players
         query = """
             SELECT DISTINCT ON (u.id)
                 u.id, u.email, u.first_name, u.last_name, u.is_admin,
@@ -35,17 +36,18 @@ def get_session_data_for_user(user_email: str) -> Optional[Dict[str, Any]]:
                 c.name as club, c.logo_filename as club_logo,
                 s.name as series, p.tenniscores_player_id,
                 c.id as club_id, s.id as series_id, t.id as team_id,
+                t.team_name, t.display_name,
                 
                 -- League data
                 l.id as league_db_id, l.league_id as league_string_id, l.league_name
             FROM users u
             LEFT JOIN user_player_associations upa ON u.id = upa.user_id
-            LEFT JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+            LEFT JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id AND p.is_active = true
             LEFT JOIN clubs c ON p.club_id = c.id
             LEFT JOIN series s ON p.series_id = s.id
             LEFT JOIN teams t ON p.team_id = t.id
             LEFT JOIN leagues l ON p.league_id = l.id
-            WHERE u.email = %s AND p.is_active = true
+            WHERE u.email = %s
             ORDER BY u.id, 
                      (CASE WHEN p.league_id = u.league_context THEN 1 ELSE 2 END),
                      p.id DESC
@@ -55,44 +57,14 @@ def get_session_data_for_user(user_email: str) -> Optional[Dict[str, Any]]:
         result = execute_query_one(query, [user_email])
         
         if not result:
-            logger.warning(f"No session data found for user: {user_email}")
-            print(f"[SESSION_SERVICE] No user found or no active players for: {user_email}")
+            logger.warning(f"No user found for email: {user_email}")
+            print(f"[SESSION_SERVICE] User not found in database: {user_email}")
             return None
             
         # Get raw series name from database
         raw_series_name = result["series"] or ""
         display_series_name = raw_series_name
         
-        # Apply series name conversion for UI display (same logic as get-user-settings API)
-        if raw_series_name and result["league_string_id"]:
-            league_id = result["league_string_id"]
-            
-            try:
-                # Check for forward mapping (database_series_name -> user_series_name)
-                forward_mapping_query = """
-                    SELECT user_series_name
-                    FROM series_name_mappings
-                    WHERE league_id = %s AND database_series_name = %s
-                    LIMIT 1
-                """
-                
-                mapping_result = execute_query_one(forward_mapping_query, (league_id, raw_series_name))
-                
-                if mapping_result:
-                    display_series_name = mapping_result["user_series_name"]
-                    print(f"[SESSION_SERVICE] Applied forward mapping: '{raw_series_name}' -> '{display_series_name}'")
-                else:
-                    # For APTA league, try converting Chicago format to Series format
-                    if league_id.startswith("APTA") and raw_series_name.startswith("Chicago"):
-                        from app.routes.api_routes import convert_chicago_to_series_for_ui
-                        display_series_name = convert_chicago_to_series_for_ui(raw_series_name)
-                        print(f"[SESSION_SERVICE] Applied Chicago->Series conversion: '{raw_series_name}' -> '{display_series_name}'")
-                    else:
-                        print(f"[SESSION_SERVICE] No mapping found for '{raw_series_name}', using as-is")
-            except Exception as mapping_error:
-                print(f"[SESSION_SERVICE] Error applying series mapping: {mapping_error}")
-                display_series_name = raw_series_name
-            
         # Build standard session structure with ALL required IDs
         session_data = {
             "id": result["id"],
@@ -107,10 +79,12 @@ def get_session_data_for_user(user_email: str) -> Optional[Dict[str, Any]]:
             # Player-specific data with ALL IDs
             "club": result["club"] or "",
             "club_logo": result["club_logo"] or "",
-            "series": display_series_name,  # 👈 Use converted series name for UI
+            "series": raw_series_name,  # 👈 Keep database format (e.g., "Chicago 22")
             "club_id": result["club_id"],
             "series_id": result["series_id"],
             "team_id": result["team_id"],
+            "team_name": result["team_name"] or "",
+            "display_name": result["display_name"] or result["team_name"] or "",  # Use display_name if available
             "tenniscores_player_id": result["tenniscores_player_id"] or "",
             
             # League data - provide both formats for compatibility
