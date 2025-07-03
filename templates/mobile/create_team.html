@@ -44,7 +44,7 @@
     </div>
 
     <!-- Main Content Container -->
-    <div id="main-content" class="hidden">
+    <div id="main-content" style="display: none;">
         <div class="space-y-4">
             
             <!-- Column 1: Interactive PTI Range Control -->
@@ -141,7 +141,7 @@
         </div>
 
         <!-- Selected Player Indicator (for tap mode) -->
-        <div id="selected-player-indicator" class="bg-yellow-100 border border-yellow-300 rounded-lg p-4 mt-4 hidden">
+        <div id="selected-player-indicator" class="bg-yellow-100 border border-yellow-300 rounded-lg p-4 mt-4" style="display: none;">
             <div class="flex items-center justify-between">
                 <div>
                     <span class="text-sm font-medium text-yellow-800">Selected: </span>
@@ -349,6 +349,10 @@ document.addEventListener('DOMContentLoaded', function() {
         } catch (error) {
             console.error('Error initializing page:', error);
             showError('Failed to load data. Please refresh the page.');
+            // Show content anyway so page is usable
+            setTimeout(() => {
+                showContent();
+            }, 2000);
         }
     }
 
@@ -448,7 +452,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (indicator && nameSpan && ptiSpan) {
             nameSpan.textContent = player.name || `${player.first_name} ${player.last_name}`;
             ptiSpan.textContent = `PTI: ${player.pti ? player.pti.toFixed(1) : 'N/A'}`;
-            indicator.classList.remove('hidden');
+            indicator.style.display = 'block';
         }
     }
 
@@ -760,7 +764,10 @@ document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('.player-card').forEach(card => {
             card.classList.remove('selected');
         });
-        document.getElementById('selected-player-indicator').classList.add('hidden');
+        const indicator = document.getElementById('selected-player-indicator');
+        if (indicator) {
+            indicator.style.display = 'none';
+        }
     }
 
     // Update player count
@@ -836,8 +843,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Show content and hide loading
     function showContent() {
-        document.getElementById('loading-state').classList.add('hidden');
-        document.getElementById('main-content').classList.remove('hidden');
+        const loadingState = document.getElementById('loading-state');
+        const mainContent = document.getElementById('main-content');
+        
+        if (loadingState) {
+            loadingState.style.display = 'none';
+        }
+        
+        if (mainContent) {
+            mainContent.style.display = 'block';
+        }
+        
+        console.log('Content should now be visible');
     }
 
     // Show error message
@@ -872,6 +889,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initialize page
     initializePage();
+    
+    // Fallback: show content after 5 seconds no matter what
+    setTimeout(() => {
+        console.log('Fallback: Forcing content to show after 5 seconds');
+        showContent();
+    }, 5000);
 });
 </script>
 {% endblock %} 
