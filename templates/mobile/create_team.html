@@ -37,14 +37,8 @@
         </div>
     </div>
 
-    <!-- Loading State -->
-    <div id="loading-state" class="py-12 text-center">
-        <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-        <p class="mt-4 text-lg text-gray-600">Loading player data...</p>
-    </div>
-
     <!-- Main Content Container -->
-    <div id="main-content" style="display: none;">
+    <div id="main-content">
         <div class="space-y-4">
             
             <!-- Column 1: Interactive PTI Range Control -->
@@ -105,7 +99,7 @@
                 </div>
                 <div class="p-4 max-h-96 overflow-y-auto">
                     <div id="available-players-pool" class="min-h-24 bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-4">
-                        <div class="text-gray-400 text-center text-sm" id="loading-players">Loading players...</div>
+                        <div class="text-gray-400 text-center text-sm">Players will appear here when loaded</div>
                     </div>
                 </div>
             </div>
@@ -344,15 +338,10 @@ document.addEventListener('DOMContentLoaded', function() {
             await loadPlayers();
             await loadSeriesRanges();
             setupEventListeners();
-            showContent();
             console.log('Page initialization complete');
         } catch (error) {
             console.error('Error initializing page:', error);
-            showError('Failed to load data. Please refresh the page.');
-            // Show content anyway so page is usable
-            setTimeout(() => {
-                showContent();
-            }, 2000);
+            console.log('Page will remain usable despite API errors');
         }
     }
 
@@ -409,7 +398,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!container) return;
 
         if (allPlayers.length === 0) {
-            container.innerHTML = '<div class="text-gray-400 text-center text-sm">No players available</div>';
+            container.innerHTML = '<div class="text-gray-400 text-center text-sm">No Tennaqua players found</div>';
             return;
         }
 
@@ -841,32 +830,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Show content and hide loading
-    function showContent() {
-        const loadingState = document.getElementById('loading-state');
-        const mainContent = document.getElementById('main-content');
-        
-        if (loadingState) {
-            loadingState.style.display = 'none';
-        }
-        
-        if (mainContent) {
-            mainContent.style.display = 'block';
-        }
-        
-        console.log('Content should now be visible');
-    }
 
-    // Show error message
-    function showError(message) {
-        const loadingState = document.getElementById('loading-state');
-        loadingState.innerHTML = `
-            <div class="text-red-600 text-center">
-                <i class="fas fa-exclamation-triangle text-2xl mb-3"></i>
-                <p class="text-lg">${message}</p>
-            </div>
-        `;
-    }
 
     // Make functions globally available
     window.selectPlayer = selectPlayer;
@@ -876,10 +840,6 @@ document.addEventListener('DOMContentLoaded', function() {
     window.resetPTIRange = resetPTIRange;
 
     // Debug functions
-    window.forceShowContent = function() {
-        showContent();
-    };
-
     window.debugPageState = function() {
         console.log('=== PAGE DEBUG INFO ===');
         console.log('Players loaded:', allPlayers.length);
@@ -889,12 +849,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Initialize page
     initializePage();
-    
-    // Fallback: show content after 5 seconds no matter what
-    setTimeout(() => {
-        console.log('Fallback: Forcing content to show after 5 seconds');
-        showContent();
-    }, 5000);
 });
 </script>
 {% endblock %} 
