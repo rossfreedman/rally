@@ -5,6 +5,20 @@
 
 {% block content %}
 <div class="min-h-screen bg-gray-50">
+    <!-- Emergency Fix Button (Always Visible) -->
+    <div id="emergency-button" style="position: fixed; top: 10px; right: 10px; z-index: 99999;">
+        <div class="space-y-2">
+            <button onclick="window.emergencyFix()" class="bg-red-600 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-red-700 transition-colors font-bold border-2 border-white block w-full">
+                <i class="fas fa-exclamation-triangle mr-2"></i>
+                🚨 EMERGENCY FIX
+            </button>
+            <button onclick="window.detectInterference()" class="bg-orange-600 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-orange-700 transition-colors font-bold border-2 border-white block w-full text-sm">
+                <i class="fas fa-search mr-2"></i>
+                🔍 DETECT ISSUE
+            </button>
+        </div>
+    </div>
+
     <!-- Desktop Only Alert -->
     <div class="bg-amber-50 border border-amber-200 rounded-xl mb-4 p-4 shadow-sm">
         <div class="flex items-center gap-3">
@@ -289,6 +303,83 @@ document.addEventListener('DOMContentLoaded', function() {
     let seriesRanges = [];
     let teamAssignments = {};
     let selectedPlayerForTap = null;
+
+    // Prevent content from being hidden after it's shown
+    let contentProtectionActive = false;
+    
+    function protectContent() {
+        if (contentProtectionActive) return;
+        contentProtectionActive = true;
+        
+        console.log('🔍 🛡️ Activating content protection...');
+        
+        const mainContent = document.getElementById('main-content');
+        if (!mainContent) return;
+        
+        // Create a MutationObserver to watch for changes
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                    const target = mutation.target;
+                    if (target.id === 'main-content' && target.classList.contains('hidden')) {
+                        console.log('🔍 ⚠️ DETECTED: Something tried to hide main-content! Preventing...');
+                        target.classList.remove('hidden');
+                        target.style.display = 'block';
+                        target.style.visibility = 'visible';
+                    }
+                }
+                
+                // Also check if loading state gets shown again
+                if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                    const target = mutation.target;
+                    if (target.id === 'loading-state' && !target.classList.contains('hidden')) {
+                        console.log('🔍 ⚠️ DETECTED: Something tried to show loading state again! Preventing...');
+                        target.classList.add('hidden');
+                        target.style.display = 'none';
+                    }
+                }
+            });
+        });
+        
+        // Start observing
+        observer.observe(mainContent, { 
+            attributes: true, 
+            attributeFilter: ['class', 'style'] 
+        });
+        
+        const loadingState = document.getElementById('loading-state');
+        if (loadingState) {
+            observer.observe(loadingState, { 
+                attributes: true, 
+                attributeFilter: ['class', 'style'] 
+            });
+        }
+        
+        // Also set up a periodic check
+        const protectionInterval = setInterval(() => {
+            if (mainContent.classList.contains('hidden')) {
+                console.log('🔍 🛡️ Periodic check: Main content was hidden, restoring...');
+                mainContent.classList.remove('hidden');
+                mainContent.style.display = 'block';
+                mainContent.style.visibility = 'visible';
+            }
+            
+            if (loadingState && !loadingState.classList.contains('hidden')) {
+                console.log('🔍 🛡️ Periodic check: Loading state was shown, hiding...');
+                loadingState.classList.add('hidden');
+                loadingState.style.display = 'none';
+            }
+        }, 500);
+        
+        console.log('🔍 🛡️ Content protection active with MutationObserver and periodic checks');
+        
+        // Stop protection after 30 seconds (should be enough for page to stabilize)
+        setTimeout(() => {
+            observer.disconnect();
+            clearInterval(protectionInterval);
+            console.log('🔍 🛡️ Content protection deactivated after 30 seconds');
+        }, 30000);
+    }
 
     // PTI Color Coding Function
     function getPTIColorClass(pti) {
@@ -660,6 +751,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (loadingState) {
             loadingState.classList.add('hidden');
+            loadingState.style.display = 'none';
             console.log('🔍 ✅ Loading state hidden');
         } else {
             console.log('🔍 ❌ Loading state element not found');
@@ -667,7 +759,13 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (mainContent) {
             mainContent.classList.remove('hidden');
+            mainContent.style.display = 'block';
+            mainContent.style.visibility = 'visible';
+            mainContent.style.opacity = '1';
             console.log('🔍 ✅ Main content shown');
+            
+            // Activate content protection immediately
+            protectContent();
             
             // Ensure content is visible by scrolling to it
             setTimeout(() => {
@@ -684,6 +782,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else {
                     console.log('🔍 Content is already visible in viewport');
                 }
+                
+                // Final check after a moment to see if content is still visible
+                setTimeout(() => {
+                    if (mainContent.classList.contains('hidden') || mainContent.style.display === 'none') {
+                        console.log('🔍 ⚠️ CRITICAL: Content disappeared after showing! Auto-fixing...');
+                        window.emergencyFix();
+                    } else {
+                        console.log('🔍 ✅ Content remains visible - success!');
+                    }
+                }, 1000);
+                
             }, 100);
             
         } else {
@@ -974,10 +1083,13 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('🔍 ✅ Loading state hidden');
         }
         
-        // 3. Scroll to top of page
+        // 3. Activate content protection
+        protectContent();
+        
+        // 4. Scroll to top of page
         window.scrollTo({ top: 0, behavior: 'smooth' });
         
-        // 4. Re-populate content if needed
+        // 5. Re-populate content if needed
         if (allPlayers.length > 0) {
             displayPlayers();
             console.log('🔍 ✅ Players re-displayed');
@@ -989,7 +1101,7 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('🔍 ✅ Series re-displayed');
         }
         
-        // 5. Highlight content after a moment
+        // 6. Highlight content after a moment
         setTimeout(() => {
             if (mainContent) {
                 mainContent.style.border = '2px solid #10b981';
@@ -1003,7 +1115,161 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }, 200);
         
+        // 7. Start interference detection
+        window.detectInterference();
+        
         console.log('🔍 === FIX ATTEMPT COMPLETE ===');
+    };
+
+    // Detect interfering scripts
+    window.detectInterference = function() {
+        console.log('🔍 === INTERFERENCE DETECTION ===');
+        
+        // Check for common interfering patterns
+        const mainContent = document.getElementById('main-content');
+        const loadingState = document.getElementById('loading-state');
+        
+        console.log('🔍 Current state:');
+        console.log('  Main content hidden:', mainContent?.classList.contains('hidden'));
+        console.log('  Loading state hidden:', loadingState?.classList.contains('hidden'));
+        
+        // Check for active intervals and timeouts
+        console.log('🔍 Checking for active timers...');
+        
+        // Override setTimeout and setInterval to track them
+        const originalSetTimeout = window.setTimeout;
+        const originalSetInterval = window.setInterval;
+        const activeTasks = new Set();
+        
+        window.setTimeout = function(...args) {
+            const id = originalSetTimeout.apply(this, args);
+            activeTasks.add('timeout:' + id);
+            console.log('🔍 New setTimeout created:', id);
+            return id;
+        };
+        
+        window.setInterval = function(...args) {
+            const id = originalSetInterval.apply(this, args);
+            activeTasks.add('interval:' + id);
+            console.log('🔍 New setInterval created:', id);
+            return id;
+        };
+        
+        // Check loaded scripts
+        const scripts = Array.from(document.querySelectorAll('script'));
+        console.log('🔍 Loaded scripts:', scripts.map(s => s.src || 'inline').filter(s => s !== 'inline'));
+        
+        // Monitor DOM mutations for 5 seconds
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.target.id === 'main-content' || mutation.target.id === 'loading-state') {
+                    console.log('🔍 ⚠️ DOM MUTATION DETECTED:', {
+                        target: mutation.target.id,
+                        type: mutation.type,
+                        attributeName: mutation.attributeName,
+                        oldValue: mutation.oldValue,
+                        newValue: mutation.target.getAttribute(mutation.attributeName)
+                    });
+                }
+            });
+        });
+        
+        observer.observe(document.body, {
+            attributes: true,
+            childList: true,
+            subtree: true,
+            attributeOldValue: true
+        });
+        
+        setTimeout(() => {
+            observer.disconnect();
+            console.log('🔍 Interference detection complete');
+        }, 5000);
+        
+        console.log('🔍 === MONITORING FOR 5 SECONDS ===');
+    };
+
+    // Emergency fix for disappearing content
+    window.emergencyFix = function() {
+        console.log('🔍 🚨 EMERGENCY FIX ACTIVATED');
+        
+        // Force show content with maximum authority
+        const mainContent = document.getElementById('main-content');
+        const loadingState = document.getElementById('loading-state');
+        
+        if (mainContent) {
+            // Remove all potentially interfering classes
+            mainContent.className = 'container mx-auto px-2 py-6';
+            
+            // Set all possible visibility styles
+            mainContent.style.cssText = `
+                display: block !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+                position: relative !important;
+                z-index: 999 !important;
+                padding-top: 72px !important;
+                padding-bottom: 84px !important;
+                background: white !important;
+            `;
+            
+            console.log('🔍 🚨 Main content emergency visibility applied');
+        }
+        
+        if (loadingState) {
+            loadingState.style.cssText = 'display: none !important;';
+            console.log('🔍 🚨 Loading state emergency hidden');
+        }
+        
+        // Stop all timeouts and intervals that might interfere
+        const highestTimeoutId = setTimeout(() => {}, 0);
+        for (let i = 0; i <= highestTimeoutId; i++) {
+            clearTimeout(i);
+        }
+        
+        const highestIntervalId = setInterval(() => {}, 1000);
+        for (let i = 0; i <= highestIntervalId; i++) {
+            clearInterval(i);
+        }
+        
+        console.log('🔍 🚨 Cleared all potential interfering timers');
+        
+        // Activate super-aggressive protection
+        const superProtection = setInterval(() => {
+            if (mainContent && mainContent.style.display === 'none') {
+                mainContent.style.cssText = `
+                    display: block !important;
+                    visibility: visible !important;
+                    opacity: 1 !important;
+                    position: relative !important;
+                    z-index: 999 !important;
+                `;
+                console.log('🔍 🚨 Emergency protection: restored visibility');
+            }
+        }, 100);
+        
+        // Show emergency success message
+        const emergencyMsg = document.createElement('div');
+        emergencyMsg.style.cssText = `
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #10b981;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            z-index: 9999;
+            font-weight: bold;
+        `;
+        emergencyMsg.textContent = '🚨 Emergency Fix Applied - Content Protected';
+        document.body.appendChild(emergencyMsg);
+        
+        setTimeout(() => {
+            emergencyMsg.remove();
+        }, 5000);
+        
+        console.log('🔍 🚨 EMERGENCY FIX COMPLETE');
     };
 
     // Initialize page
