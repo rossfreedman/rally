@@ -436,7 +436,7 @@ def get_players_by_league_and_series(league_id, series_name, club_name=None, tea
         list: List of player dictionaries with stats and position preference
     """
     try:
-        from utils.series_mapping_service import get_database_series_name
+        from utils.series_mapping_service import get_database_name
         
         base_query = """
             SELECT DISTINCT p.tenniscores_player_id, p.first_name, p.last_name,
@@ -457,8 +457,15 @@ def get_players_by_league_and_series(league_id, series_name, club_name=None, tea
 
         # FIXED: Convert series_name to series_id for reliable matching
         if series_name:
-            # First, get the correct database series name using our mapping service
-            database_series_name = get_database_series_name(series_name, league_id)
+            # First, try to get the correct database series name using our mapping service
+            database_series_name = get_database_name(series_name)
+            
+            # If mapping fails, try using the series_name as-is (might already be database format)
+            if not database_series_name:
+                database_series_name = series_name
+                print(f"[DEBUG] No mapping found for '{series_name}', using as-is")
+            else:
+                print(f"[DEBUG] Mapped '{series_name}' -> '{database_series_name}'")
             
             # Get the series_id from the database
             series_query = """
@@ -475,10 +482,10 @@ def get_players_by_league_and_series(league_id, series_name, club_name=None, tea
                 params["series_id"] = series_result["series_id"]
                 print(f"[DEBUG] Using series_id {series_result['series_id']} for series '{series_name}' -> '{database_series_name}'")
             else:
-                # Fallback to name matching if series_id lookup fails
+                # Final fallback: try direct name matching with original series_name
                 base_query += " AND s.name = %(series_name)s"
-                params["series_name"] = database_series_name
-                print(f"[DEBUG] Fallback to name matching for series '{series_name}' -> '{database_series_name}'")
+                params["series_name"] = series_name
+                print(f"[DEBUG] No series_id found, fallback to direct name matching for '{series_name}'")
 
         # FIXED: Prioritize team_id filtering over club_name filtering
         if team_id:
