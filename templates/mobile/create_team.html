@@ -39,10 +39,11 @@
 
     <!-- Main Content Container -->
     <div id="main-content">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 min-h-screen">
+        <!-- Desktop 3-Column Layout -->
+        <div class="hidden md:grid md:grid-cols-3 md:gap-6">
             
-            <!-- Column 1: Interactive PTI Range Control -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100">
+            <!-- Column 1: PTI Range Control -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col h-fit">
                 <div class="px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50">
                     <div class="flex items-center justify-between">
                         <div>
@@ -50,15 +51,15 @@
                                 <i class="fas fa-sliders-h text-blue-600 mr-2"></i>
                                 PTI Range Control
                             </h2>
-                            <p class="text-sm text-gray-600 mt-1">Adjust PTI ranges for each series with real-time validation</p>
+                            <p class="text-sm text-gray-600 mt-1">Adjust PTI ranges for each series</p>
                         </div>
-                        <button id="reset-ranges" class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-blue-600 bg-white border border-blue-200 rounded-lg hover:bg-blue-50 hover:text-blue-700 transition-colors">
+                        <button id="reset-ranges" class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-blue-600 bg-white border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors">
                             <i class="fas fa-undo text-xs"></i>
                             Reset
                         </button>
                     </div>
                 </div>
-                <div class="p-4 flex-1 overflow-y-auto">
+                <div class="p-4 max-h-96 overflow-y-auto">
                     <div id="series-recommendations" class="space-y-4">
                         <!-- Series recommendations will be loaded here -->
                     </div>
@@ -66,7 +67,7 @@
             </div>
 
             <!-- Column 2: Available Players -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col h-fit">
                 <div class="px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-green-50 to-emerald-50">
                     <div class="flex items-center justify-between">
                         <div>
@@ -75,36 +76,100 @@
                                 Available Players
                                 <span id="player-count" class="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full"></span>
                             </h2>
-                            <p class="text-sm text-gray-600 mt-1">Tap players to assign to series ranges. Tennaqua players only.</p>
-                            <div class="mt-2 p-2 bg-gray-50 rounded-lg">
-                                <p class="text-xs font-medium text-gray-700 mb-1">PTI Color Guide:</p>
-                                <div class="flex flex-wrap gap-1 text-xs">
-                                    <span class="bg-emerald-200 border border-emerald-400 text-emerald-900 px-1 py-0.5 rounded font-medium">0-9</span>
-                                    <span class="bg-green-200 border border-green-400 text-green-900 px-1 py-0.5 rounded font-medium">10-19</span>
-                                    <span class="bg-lime-200 border border-lime-400 text-lime-900 px-1 py-0.5 rounded font-medium">20-29</span>
-                                    <span class="bg-yellow-200 border border-yellow-400 text-yellow-900 px-1 py-0.5 rounded font-medium">30-39</span>
-                                    <span class="bg-amber-200 border border-amber-400 text-amber-900 px-1 py-0.5 rounded font-medium">40-49</span>
-                                    <span class="bg-orange-200 border border-orange-400 text-orange-900 px-1 py-0.5 rounded font-medium">50-59</span>
-                                    <span class="bg-red-200 border border-red-400 text-red-900 px-1 py-0.5 rounded font-medium">60-69</span>
-                                    <span class="bg-rose-200 border border-rose-400 text-rose-900 px-1 py-0.5 rounded font-medium">70-79</span>
-                                    <span class="bg-purple-200 border border-purple-400 text-purple-900 px-1 py-0.5 rounded font-medium">80+</span>
-                                </div>
-                            </div>
+                            <p class="text-sm text-gray-600 mt-1">Tap players to select</p>
                         </div>
-                        <button id="reset-players" class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-green-600 bg-white border border-green-200 rounded-lg hover:bg-green-50 hover:text-green-700 transition-colors">
+                        <button id="reset-players" class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-green-600 bg-white border border-green-200 rounded-lg hover:bg-green-50 transition-colors">
                             <i class="fas fa-undo text-xs"></i>
                             Reset
                         </button>
                     </div>
                 </div>
-                <div class="p-4 flex-1 overflow-y-auto">
+                <div class="p-4 max-h-96 overflow-y-auto">
                     <div id="available-players-pool" class="min-h-24 bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-4">
                         <div class="text-gray-400 text-center text-sm">Players will appear here when loaded</div>
                     </div>
                 </div>
             </div>
 
-            <!-- Column 3: Series Teams Display -->
+            <!-- Column 3: Team Assignments -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col h-fit">
+                <div class="px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-purple-50 to-pink-50">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                                <i class="fas fa-users-cog text-purple-600 mr-2"></i>
+                                Team Assignments
+                            </h2>
+                            <p class="text-sm text-gray-600 mt-1">Tap series to assign</p>
+                        </div>
+                        <button id="reset-assignments" class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-purple-600 bg-white border border-purple-200 rounded-lg hover:bg-purple-50 transition-colors">
+                            <i class="fas fa-undo text-xs"></i>
+                            Reset
+                        </button>
+                    </div>
+                </div>
+                <div class="p-4 max-h-96 overflow-y-auto">
+                    <div id="series-teams" class="space-y-4">
+                        <!-- Series containers will be dynamically created here -->
+                    </div>
+                </div>
+            </div>
+            
+        </div>
+        
+        <!-- Mobile Single Column Layout -->
+        <div class="md:hidden space-y-4">
+            
+            <!-- PTI Range Control -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100">
+                <div class="px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                                <i class="fas fa-sliders-h text-blue-600 mr-2"></i>
+                                PTI Range Control
+                            </h2>
+                            <p class="text-sm text-gray-600 mt-1">Adjust PTI ranges for each series</p>
+                        </div>
+                        <button id="reset-ranges-mobile" class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-blue-600 bg-white border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors">
+                            <i class="fas fa-undo text-xs"></i>
+                            Reset
+                        </button>
+                    </div>
+                </div>
+                <div class="p-4">
+                    <div id="series-recommendations-mobile" class="space-y-4">
+                        <!-- Series recommendations will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Available Players -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100">
+                <div class="px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-green-50 to-emerald-50">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                                <i class="fas fa-users text-green-600 mr-2"></i>
+                                Available Players
+                                <span id="player-count-mobile" class="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full"></span>
+                            </h2>
+                            <p class="text-sm text-gray-600 mt-1">Tap players to select</p>
+                        </div>
+                        <button id="reset-players-mobile" class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-green-600 bg-white border border-green-200 rounded-lg hover:bg-green-50 transition-colors">
+                            <i class="fas fa-undo text-xs"></i>
+                            Reset
+                        </button>
+                    </div>
+                </div>
+                <div class="p-4">
+                    <div id="available-players-pool-mobile" class="min-h-24 bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-4">
+                        <div class="text-gray-400 text-center text-sm">Players will appear here when loaded</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Team Assignments -->
             <div class="bg-white rounded-xl shadow-sm border border-gray-100">
                 <div class="px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-purple-50 to-pink-50">
                     <div class="flex items-center justify-between">
@@ -113,25 +178,21 @@
                                 <i class="fas fa-users-cog text-purple-600 mr-2"></i>
                                 Team Assignments
                             </h2>
-                            <p class="text-sm text-gray-600 mt-1">Tap series to assign selected players</p>
-                            <p class="text-xs text-blue-600 mt-1">
-                                <i class="fas fa-info-circle mr-1"></i>
-                                <strong>Target Team PTI</strong> shows total team PTI range (individual PTI × team size).
-                            </p>
+                            <p class="text-sm text-gray-600 mt-1">Tap series to assign</p>
                         </div>
-                        <button id="reset-assignments" class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-purple-600 bg-white border border-purple-200 rounded-lg hover:bg-purple-50 hover:text-purple-700 transition-colors">
+                        <button id="reset-assignments-mobile" class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-purple-600 bg-white border border-purple-200 rounded-lg hover:bg-purple-50 transition-colors">
                             <i class="fas fa-undo text-xs"></i>
                             Reset
                         </button>
                     </div>
                 </div>
-                <div class="p-4 flex-1 overflow-y-auto">
-                    <div id="series-teams" class="space-y-4">
+                <div class="p-4">
+                    <div id="series-teams-mobile" class="space-y-4">
                         <!-- Series containers will be dynamically created here -->
                     </div>
                 </div>
             </div>
-
+            
         </div>
 
         <!-- Selected Player Indicator (for tap mode) -->
@@ -287,29 +348,8 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-/* 3-Column Layout Styling */
+/* Desktop 3-Column Layout */
 @media (min-width: 768px) {
-    #main-content .grid {
-        display: grid !important;
-        grid-template-columns: 1fr 1fr 1fr !important;
-        gap: 1.5rem !important;
-        min-height: 600px;
-        align-items: start;
-        width: 100%;
-    }
-    
-    #main-content .grid > div {
-        width: 100% !important;
-        max-width: none !important;
-        min-height: 500px;
-        display: flex !important;
-        flex-direction: column !important;
-        background: white;
-        border-radius: 0.75rem;
-        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-        border: 1px solid #f3f4f6;
-    }
-    
     .player-card {
         width: 90px !important;
         font-size: 0.7rem !important;
@@ -318,7 +358,7 @@
     }
 }
 
-/* Responsive adjustments for mobile */
+/* Mobile Single Column Layout */
 @media (max-width: 767px) {
     .player-card {
         width: 120px !important;
@@ -420,26 +460,31 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Display players in the pool
     function displayPlayers() {
-        const container = document.getElementById('available-players-pool');
-        if (!container) return;
+        const containers = [
+            document.getElementById('available-players-pool'),
+            document.getElementById('available-players-pool-mobile')
+        ];
 
-        if (allPlayers.length === 0) {
-            container.innerHTML = '<div class="text-gray-400 text-center text-sm">No Tennaqua players found</div>';
-            return;
-        }
+        const playersHtml = allPlayers.length === 0 
+            ? '<div class="text-gray-400 text-center text-sm">No Tennaqua players found</div>'
+            : allPlayers.map(player => {
+                const ptiColorClass = getPTIColorClass(player.pti || 50);
+                return `
+                    <div class="player-card ${ptiColorClass} border rounded-lg cursor-pointer" 
+                         data-player-id="${player.id}"
+                         onclick="selectPlayer('${player.id}')">
+                        <div class="text-sm font-semibold">${player.name || `${player.first_name} ${player.last_name}`}</div>
+                        <div class="text-xs">PTI: ${player.pti ? player.pti.toFixed(1) : 'N/A'}</div>
+                        <div class="text-xs text-gray-600">${player.club || ''}</div>
+                    </div>
+                `;
+            }).join('');
 
-        container.innerHTML = allPlayers.map(player => {
-            const ptiColorClass = getPTIColorClass(player.pti || 50);
-            return `
-                <div class="player-card ${ptiColorClass} border rounded-lg cursor-pointer" 
-                     data-player-id="${player.id}"
-                     onclick="selectPlayer('${player.id}')">
-                    <div class="text-sm font-semibold">${player.name || `${player.first_name} ${player.last_name}`}</div>
-                    <div class="text-xs">PTI: ${player.pti ? player.pti.toFixed(1) : 'N/A'}</div>
-                    <div class="text-xs text-gray-600">${player.club || ''}</div>
-                </div>
-            `;
-        }).join('');
+        containers.forEach(container => {
+            if (container) {
+                container.innerHTML = playersHtml;
+            }
+        });
     }
 
     // Handle player selection for mobile tap interface
@@ -473,8 +518,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Display series controls with interactive PTI sliders
     function displaySeriesControls() {
-        const container = document.getElementById('series-recommendations');
-        if (!container) return;
+        const containers = [
+            document.getElementById('series-recommendations'),
+            document.getElementById('series-recommendations-mobile')
+        ];
 
         const seriesHtml = seriesRanges.map((series, index) => `
             <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 series-control" data-series-id="${series.series_id}">
@@ -561,7 +608,11 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
         `).join('');
         
-        container.innerHTML = seriesHtml;
+        containers.forEach(container => {
+            if (container) {
+                container.innerHTML = seriesHtml;
+            }
+        });
     }
 
     // Update PTI range value and validate
@@ -712,10 +763,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Display series teams
     function displaySeriesTeams() {
-        const container = document.getElementById('series-teams');
-        if (!container) return;
+        const containers = [
+            document.getElementById('series-teams'),
+            document.getElementById('series-teams-mobile')
+        ];
 
-        container.innerHTML = seriesRanges.map(series => `
+        const teamsHtml = seriesRanges.map(series => `
             <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
                 <div class="flex items-center justify-between mb-3">
                     <h3 class="font-semibold text-gray-900">${series.series_name}</h3>
@@ -737,6 +790,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             </div>
         `).join('');
+
+        containers.forEach(container => {
+            if (container) {
+                container.innerHTML = teamsHtml;
+            }
+        });
     }
 
     // Assign player to series (mobile tap interface)
@@ -787,10 +846,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Update player count
     function updatePlayerCount() {
-        const countElement = document.getElementById('player-count');
-        if (countElement) {
-            countElement.textContent = allPlayers.length;
-        }
+        const countElements = [
+            document.getElementById('player-count'),
+            document.getElementById('player-count-mobile')
+        ];
+        
+        countElements.forEach(element => {
+            if (element) {
+                element.textContent = allPlayers.length;
+            }
+        });
     }
 
     // Setup event listeners
