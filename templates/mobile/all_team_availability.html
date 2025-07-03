@@ -4,127 +4,300 @@
 {% block title %}Team Availability - {{ selected_date | pretty_date }}{% endblock %}
 
 {% block content %}
-<div class="max-w-lg mx-auto">
-    <!-- Consistent Header -->
-    <div class="flex items-center gap-3 mt-4 mb-2 px-4">
-        <div class="bg-white rounded-md flex items-center justify-center h-12 w-12">
-            <i class="fas fa-calendar text-black text-3xl"></i>
-        </div>
-        <div>
-            <div class="text-2xl font-bold leading-tight">Team Availability</div>
-            <div class="text-base text-gray-500 mt-1">Full team availability for {{ selected_date | pretty_date }}</div>
+<div class="min-h-screen bg-gray-50">
+    
+    <!-- Header -->
+    <div class="bg-white border-b border-gray-100">
+        <div class="flex items-center px-4 py-6">
+            <div class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center shadow-sm">
+                <i class="fas fa-calendar text-white text-lg"></i>
+            </div>
+            <div class="ml-4">
+                <h1 class="text-xl font-bold text-gray-900">Team Availability</h1>
+                <p class="text-sm text-gray-500">{{ selected_date | pretty_date }} - Full team status</p>
+            </div>
         </div>
     </div>
 
-    {% if players_schedule %}
-        {% set available_count = namespace(value=0) %}
-        {% set unavailable_count = namespace(value=0) %}
-        {% set not_sure_count = namespace(value=0) %}
-        {% set not_set_count = namespace(value=0) %}
+    <!-- Content -->
+    <div class="px-4 py-6 space-y-6">
 
-        <div class="px-4">
-            <div class="bg-white rounded-lg shadow-md p-4">
-                <div class="overflow-x-auto">
-                    <table class="min-w-full table-auto">
-                        <thead>
-                            <tr class="bg-gray-100">
-                                <th class="px-4 py-2 text-left font-semibold">Player</th>
-                                <th class="px-4 py-2 text-left font-semibold">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for player, dates in players_schedule.items() %}
-                                {% for date in dates %}
-                                    {% if date.date == selected_date %}
-                                        <tr class="border-t hover:bg-gray-50">
-                                            <td class="px-4 py-3">{{ player.split('(')[0].strip() }}</td>
-                                            <td class="px-4 py-3">
-                                                {% if date.availability_status == 1 %}
-                                                    {% set available_count.value = available_count.value + 1 %}
-                                                    <div>
-                                                        <span class="text-green-600 font-medium flex items-center">
-                                                            <i class="fas fa-check-circle mr-1"></i>Available
-                                                        </span>
-                                                        {% if date.notes %}
-                                                            <div class="text-xs text-gray-600 mt-1 italic">{{ date.notes }}</div>
-                                                        {% endif %}
-                                                    </div>
-                                                {% elif date.availability_status == 2 %}
-                                                    {% set unavailable_count.value = unavailable_count.value + 1 %}
-                                                    <div>
-                                                        <span class="text-red-600 font-medium flex items-center">
-                                                            <i class="fas fa-times-circle mr-1"></i>Not Available
-                                                        </span>
-                                                        {% if date.notes %}
-                                                            <div class="text-xs text-gray-600 mt-1 italic">{{ date.notes }}</div>
-                                                        {% endif %}
-                                                    </div>
-                                                {% elif date.availability_status == 3 %}
-                                                    {% set not_sure_count.value = not_sure_count.value + 1 %}
-                                                    <div>
-                                                        <span class="text-yellow-500 font-medium flex items-center">
-                                                            <i class="fas fa-question-circle mr-1"></i>Not Sure
-                                                        </span>
-                                                        {% if date.notes %}
-                                                            <div class="text-xs text-gray-600 mt-1 italic">{{ date.notes }}</div>
-                                                        {% endif %}
-                                                    </div>
-                                                {% else %}
-                                                    {% set not_set_count.value = not_set_count.value + 1 %}
-                                                    <span class="text-gray-400 flex items-center">
-                                                        <i class="fas fa-minus-circle mr-1"></i>Not Set
-                                                    </span>
-                                                {% endif %}
-                                            </td>
-                                        </tr>
-                                    {% endif %}
-                                {% endfor %}
-                            {% endfor %}
-                        </tbody>
-                        <tfoot class="bg-gray-50">
-                            <tr class="border-t">
-                                <td colspan="2" class="px-4 py-3">
-                                    <div class="text-sm font-medium">Summary:</div>
-                                    <div class="grid grid-cols-2 gap-2 mt-1">
-                                        <div class="text-sm">
-                                            <span class="text-green-600"><i class="fas fa-check-circle mr-1"></i>Available:</span> {{ available_count.value }}
-                                        </div>
-                                        <div class="text-sm">
-                                            <span class="text-red-600"><i class="fas fa-times-circle mr-1"></i>Not Available:</span> {{ unavailable_count.value }}
-                                        </div>
-                                        <div class="text-sm">
-                                            <span class="text-yellow-500"><i class="fas fa-question-circle mr-1"></i>Not Sure:</span> {{ not_sure_count.value }}
-                                        </div>
-                                        <div class="text-sm">
-                                            <span class="text-gray-400"><i class="fas fa-minus-circle mr-1"></i>Not Set:</span> {{ not_set_count.value }}
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
-                        </tfoot>
-                    </table>
+        {% if players_schedule %}
+            {% set available_count = namespace(value=0) %}
+            {% set unavailable_count = namespace(value=0) %}
+            {% set not_sure_count = namespace(value=0) %}
+            {% set not_set_count = namespace(value=0) %}
+
+            <!-- Summary Card -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-50">
+                    <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                        <i class="fas fa-chart-pie text-blue-500 mr-2"></i>
+                        Availability Summary
+                    </h2>
+                </div>
+                
+                <div class="p-6">
+                    <!-- Count the statuses first -->
+                    {% for player, dates in players_schedule.items() %}
+                        {% for date in dates %}
+                            {% if date.date == selected_date %}
+                                {% if date.availability_status == 1 %}
+                                    {% set available_count.value = available_count.value + 1 %}
+                                {% elif date.availability_status == 2 %}
+                                    {% set unavailable_count.value = unavailable_count.value + 1 %}
+                                {% elif date.availability_status == 3 %}
+                                    {% set not_sure_count.value = not_sure_count.value + 1 %}
+                                {% else %}
+                                    {% set not_set_count.value = not_set_count.value + 1 %}
+                                {% endif %}
+                            {% endif %}
+                        {% endfor %}
+                    {% endfor %}
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="text-center">
+                            <div class="text-3xl font-bold text-green-600 mb-1">{{ available_count.value }}</div>
+                            <div class="text-sm text-gray-500 uppercase tracking-wide">
+                                Available
+                            </div>
+                        </div>
+                        
+                        <div class="text-center">
+                            <div class="text-3xl font-bold text-red-600 mb-1">{{ unavailable_count.value }}</div>
+                            <div class="text-sm text-gray-500 uppercase tracking-wide">
+                                Not Available
+                            </div>
+                        </div>
+                        
+                        <div class="text-center">
+                            <div class="text-3xl font-bold text-yellow-500 mb-1">{{ not_sure_count.value }}</div>
+                            <div class="text-sm text-gray-500 uppercase tracking-wide">
+                                Not Sure
+                            </div>
+                        </div>
+                        
+                        <div class="text-center">
+                            <div class="text-3xl font-bold text-gray-400 mb-1">{{ not_set_count.value }}</div>
+                            <div class="text-sm text-gray-500 uppercase tracking-wide">
+                                Not Set
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
-    {% else %}
-        <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4 mx-4">
-            <p class="text-yellow-700">No availability data found for this team.</p>
-            {% if error %}
-                <p class="text-sm text-gray-600 mt-2">{{ error }}</p>
-            {% elif error_details %}
-                <p class="text-sm text-gray-600 mt-2">{{ error_details }}</p>
-            {% endif %}
-            <div class="mt-4">
-                <p class="text-sm text-gray-600">Please verify:</p>
-                <ul class="list-disc list-inside text-sm text-gray-600 ml-4 mt-2">
-                    <li>Your club ({{ session_data.user.club if session_data.user.club else 'Not set' }}) is correct</li>
-                    <li>Your series ({{ session_data.user.series if session_data.user.series else 'Not set' }}) is correct</li>
-                </ul>
-                <p class="text-sm text-gray-600 mt-2">
-                    You can update these settings in your <a href="/mobile/settings" class="text-blue-600 underline">profile settings</a>.
-                </p>
+
+            <!-- Player Details Card -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-50">
+                    <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                        <i class="fas fa-users text-indigo-500 mr-2"></i>
+                        Player Details
+                    </h2>
+                </div>
+                
+                <div class="p-6">
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full table-auto">
+                            <thead>
+                                <tr class="bg-gray-50 rounded-lg">
+                                    <th class="px-4 py-3 text-left font-semibold text-gray-700">Player</th>
+                                    <th class="px-4 py-3 text-left font-semibold text-gray-700">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-100">
+                                {% for player, dates in players_schedule.items() %}
+                                    {% for date in dates %}
+                                        {% if date.date == selected_date %}
+                                            <tr class="hover:bg-gray-50 transition-colors">
+                                                <td class="px-4 py-4">
+                                                    <div class="font-semibold text-gray-900">{{ player.split('(')[0].strip() }}</div>
+                                                </td>
+                                                <td class="px-4 py-4">
+                                                    {% if date.availability_status == 1 %}
+                                                        <div class="flex items-start gap-3">
+                                                            <div class="flex items-center">
+                                                                <div class="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
+                                                                <span class="text-green-700 font-medium">Available</span>
+                                                            </div>
+                                                            {% if date.notes %}
+                                                                <div class="flex-1">
+                                                                    <div class="text-xs text-gray-600 italic bg-gray-50 px-2 py-1 rounded">{{ date.notes }}</div>
+                                                                </div>
+                                                            {% endif %}
+                                                        </div>
+                                                    {% elif date.availability_status == 2 %}
+                                                        <div class="flex items-start gap-3">
+                                                            <div class="flex items-center">
+                                                                <div class="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
+                                                                <span class="text-red-700 font-medium">Not Available</span>
+                                                            </div>
+                                                            {% if date.notes %}
+                                                                <div class="flex-1">
+                                                                    <div class="text-xs text-gray-600 italic bg-gray-50 px-2 py-1 rounded">{{ date.notes }}</div>
+                                                                </div>
+                                                            {% endif %}
+                                                        </div>
+                                                    {% elif date.availability_status == 3 %}
+                                                        <div class="flex items-start gap-3">
+                                                            <div class="flex items-center">
+                                                                <div class="w-3 h-3 bg-yellow-500 rounded-full mr-2"></div>
+                                                                <span class="text-yellow-700 font-medium">Not Sure</span>
+                                                            </div>
+                                                            {% if date.notes %}
+                                                                <div class="flex-1">
+                                                                    <div class="text-xs text-gray-600 italic bg-gray-50 px-2 py-1 rounded">{{ date.notes }}</div>
+                                                                </div>
+                                                            {% endif %}
+                                                        </div>
+                                                    {% else %}
+                                                        <div class="flex items-center">
+                                                            <div class="w-3 h-3 bg-gray-400 rounded-full mr-2"></div>
+                                                            <span class="text-gray-500 font-medium">Not Set</span>
+                                                        </div>
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                        {% endif %}
+                                    {% endfor %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
-        </div>
-    {% endif %}
+
+        {% else %}
+            <!-- Empty State -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="px-6 py-8 text-center">
+                    <div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <i class="fas fa-exclamation-triangle text-yellow-500 text-2xl"></i>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">No Availability Data</h3>
+                    <p class="text-gray-600 mb-4">No availability data found for this team on {{ selected_date | pretty_date }}.</p>
+                    
+                    {% if error %}
+                        <div class="text-left bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                            <div class="text-sm text-gray-700">{{ error }}</div>
+                        </div>
+                    {% elif error_details %}
+                        <div class="text-left bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                            <div class="text-sm text-gray-700">{{ error_details }}</div>
+                        </div>
+                    {% endif %}
+                    
+                    <div class="text-left bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <div class="text-sm text-gray-700">
+                            <p class="font-medium mb-2">Please verify your settings:</p>
+                            <ul class="list-disc list-inside space-y-1 ml-2">
+                                <li>Club: {{ session_data.user.club if session_data.user.club else 'Not set' }}</li>
+                                <li>Series: {{ session_data.user.series if session_data.user.series else 'Not set' }}</li>
+                            </ul>
+                            <p class="mt-3">
+                                <a href="/mobile/settings" class="inline-flex items-center text-blue-600 hover:text-blue-700 font-medium">
+                                    <i class="fas fa-cog mr-1"></i>Update Profile Settings
+                                </a>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
+    </div>
 </div>
+
+<style>
+/* Additional styles for modern mobile design */
+.min-h-screen {
+    min-height: 100vh;
+}
+
+/* Grid responsive */
+@media (max-width: 640px) {
+    .grid-cols-2 {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+/* Shadow utilities */
+.shadow-sm {
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+/* Border utilities */
+.border-gray-50 { border-color: #f9fafb; }
+.border-gray-100 { border-color: #f3f4f6; }
+.border-yellow-200 { border-color: #fde047; }
+.border-blue-200 { border-color: #bfdbfe; }
+
+/* Background utilities */
+.bg-gray-50 { background-color: #f9fafb; }
+.bg-white { background-color: #ffffff; }
+.bg-yellow-50 { background-color: #fefce8; }
+.bg-yellow-100 { background-color: #fef3c7; }
+.bg-blue-50 { background-color: #eff6ff; }
+
+/* Text colors */
+.text-gray-900 { color: #111827; }
+.text-gray-700 { color: #374151; }
+.text-gray-600 { color: #4b5563; }
+.text-gray-500 { color: #6b7280; }
+.text-gray-400 { color: #9ca3af; }
+.text-green-600 { color: #16a34a; }
+.text-green-700 { color: #15803d; }
+.text-red-600 { color: #dc2626; }
+.text-red-700 { color: #b91c1c; }
+.text-yellow-500 { color: #eab308; }
+.text-yellow-700 { color: #a16207; }
+.text-blue-500 { color: #3b82f6; }
+.text-blue-600 { color: #2563eb; }
+.text-blue-700 { color: #1d4ed8; }
+.text-indigo-500 { color: #6366f1; }
+.text-white { color: #ffffff; }
+
+/* Spacing utilities */
+.space-y-6 > * + * { margin-top: 1.5rem; }
+.space-y-4 > * + * { margin-top: 1rem; }
+.space-y-1 > * + * { margin-top: 0.25rem; }
+
+/* Border radius utilities */
+.rounded-xl { border-radius: 0.75rem; }
+.rounded-lg { border-radius: 0.5rem; }
+.rounded-full { border-radius: 9999px; }
+.rounded { border-radius: 0.25rem; }
+
+/* Text utilities */
+.uppercase { text-transform: uppercase; }
+.tracking-wide { letter-spacing: 0.025em; }
+.font-medium { font-weight: 500; }
+.font-semibold { font-weight: 600; }
+.font-bold { font-weight: 700; }
+.italic { font-style: italic; }
+
+/* Overflow utilities */
+.overflow-hidden { overflow: hidden; }
+.overflow-x-auto { overflow-x: auto; }
+
+/* Divide utilities */
+.divide-y > * + * { border-top-width: 1px; }
+.divide-gray-100 > * + * { border-color: #f3f4f6; }
+
+/* Transition utilities */
+.transition-colors { transition-property: color, background-color, border-color; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); transition-duration: 150ms; }
+
+/* List utilities */
+.list-disc { list-style-type: disc; }
+.list-inside { list-style-position: inside; }
+
+/* Responsive design */
+@media (max-width: 640px) {
+    .px-6 { padding-left: 1rem; padding-right: 1rem; }
+    .py-4 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+    .text-3xl { font-size: 1.875rem; line-height: 2.25rem; }
+    .text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+    .text-lg { font-size: 1.125rem; line-height: 1.75rem; }
+}
+</style>
 {% endblock %} 
