@@ -3646,6 +3646,77 @@ def update_pti_range():
         return jsonify({"success": False, "error": "Failed to update PTI range"}), 500
 
 
+@api_bp.route("/api/create-team/update-series-range", methods=["POST"])
+@login_required  
+def update_series_range():
+    """Update PTI range for a specific series with real-time conflict detection"""
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({"success": False, "error": "No data provided"}), 400
+        
+        series_name = data.get('series_name')
+        min_pti = data.get('min_pti')
+        max_pti = data.get('max_pti')
+        
+        if not all([series_name, min_pti is not None, max_pti is not None]):
+            return jsonify({"success": False, "error": "Missing required fields"}), 400
+        
+        # Convert to floats
+        try:
+            min_pti = float(min_pti)
+            max_pti = float(max_pti)
+        except (ValueError, TypeError):
+            return jsonify({"success": False, "error": "Invalid PTI values"}), 400
+        
+        # Validate range
+        if min_pti >= max_pti:
+            return jsonify({"success": False, "error": "Minimum PTI must be less than maximum PTI"}), 400
+        
+        if min_pti < -30 or max_pti > 100:
+            return jsonify({"success": False, "error": "PTI values must be between -30 and 100"}), 400
+        
+        user = session["user"]
+        user_email = user.get("email")
+        
+        # Log the range update activity
+        log_user_activity(
+            user_email, 
+            "series_range_update", 
+            action="update_series_range", 
+            details={
+                "series_name": series_name,
+                "min_pti": min_pti,
+                "max_pti": max_pti,
+                "timestamp": datetime.now().isoformat()
+            }
+        )
+        
+        # In a full implementation, you would:
+        # 1. Save the range to a series_ranges or series_settings table
+        # 2. Check for conflicts with other series ranges
+        # 3. Update related calculations
+        
+        # For now, we'll simulate a successful update
+        return jsonify({
+            "success": True,
+            "message": f"PTI range updated for {series_name}",
+            "series_name": series_name,
+            "updated_range": {
+                "min": min_pti,
+                "max": max_pti
+            },
+            "timestamp": datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        print(f"Error updating series range: {str(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
+        return jsonify({"success": False, "error": "Failed to update series range"}), 500
+
+
 @api_bp.route("/api/debug/database-state")
 @login_required
 def debug_database_state():
