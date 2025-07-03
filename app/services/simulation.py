@@ -935,10 +935,13 @@ def get_teams_for_selection(
 
         teams = []
         for row in results:
+            # Use team_alias as display name if available, otherwise fall back to team_name
+            display_name = row["display_name"] if row["display_name"] else row["team_name"]
+            
             teams.append({
                 "id": row["team_id"],
                 "name": row["team_name"], 
-                "display_name": f"{row['club_name']} - {row['series_name']}",
+                "display_name": display_name,
                 "club_name": row["club_name"],
                 "series_name": row["series_name"]
             })
