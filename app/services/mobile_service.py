@@ -3800,83 +3800,44 @@ def get_mobile_improve_data(user):
 
 def get_mobile_team_data(user):
     """Get team data for mobile my team page"""
-    print(f"🚨 FUNCTION CALLED: get_mobile_team_data with user: {user}")
     try:
-        # DEBUG: Start database debug FIRST
-        print(f"[DEBUG DATABASE QUERY] Starting database debug at function start...")
-
-        # Extract team name from user club and series (same logic as backup)
+        # Get user's club and series
         club = user.get("club")
         series = user.get("series")
-
-        # If club/series not in session, try to get from database using email
-        if not club or not series:
-            print(
-                f"[DEBUG] Missing club/series in session, attempting database lookup..."
-            )
-            user_email = user.get("email")
-            if user_email:
-                user_lookup_query = """
-                    SELECT u.email, u.first_name, u.last_name, u.league_context,
-                           c.name as club_name, s.name as series_name, l.league_name, l.id as league_db_id
-                    FROM users u 
-                    JOIN user_player_associations upa ON u.id = upa.user_id
-                    JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
-                    LEFT JOIN clubs c ON p.club_id = c.id
-                    LEFT JOIN series s ON p.series_id = s.id  
-                    LEFT JOIN leagues l ON p.league_id = l.id
-                    WHERE u.email = %s 
-                    AND (u.league_context IS NULL OR p.league_id = u.league_context)
-                    ORDER BY (CASE WHEN p.league_id = u.league_context THEN 1 ELSE 2 END)
-                    LIMIT 1
-                """
-                user_data = execute_query_one(user_lookup_query, [user_email])
-                if user_data:
-                    club = user_data["club_name"]
-                    series = user_data["series_name"]
-                    print(f"[DEBUG] Found club/series from database: {club}/{series}")
-                else:
-                    print(f"[DEBUG] No user data found in database for {user_email}")
+        league_id = user.get("league_id")
+        
+        # Add debugging to see what data we have
+        print(f"[DEBUG] get_mobile_team_data called with user data:")
+        print(f"  club: '{club}' (type: {type(club)})")
+        print(f"  series: '{series}' (type: {type(series)})")
+        print(f"  league_id: '{league_id}' (type: {type(league_id)})")
+        print(f"  email: '{user.get('email')}'")
+        print(f"  first_name: '{user.get('first_name')}'")
+        print(f"  last_name: '{user.get('last_name')}'")
 
         if not club or not series:
-            print(
-                f"[DEBUG ERROR] User club or series not found: club={club}, series={series}"
-            )
-            print(f"[DEBUG ERROR] Session keys available: {list(user.keys())}")
+            # Try to get more detailed info about what's missing
+            user_email = user.get("email", "Unknown")
+            tenniscores_id = user.get("tenniscores_player_id", "Missing")
+            
+            error_msg = f"Profile setup incomplete for {user_email}. Missing: "
+            missing_parts = []
+            if not club:
+                missing_parts.append("club information")
+            if not series:
+                missing_parts.append("series information")
+            error_msg += ", ".join(missing_parts)
+            error_msg += f". Player ID: {tenniscores_id}. Please update your profile or contact support."
+            
+            print(f"[DEBUG] {error_msg}")
             return {
                 "team_data": None,
                 "court_analysis": {},
                 "top_players": [],
-                "error": f"User club or series not found. Club: {club}, Series: {series}. Please check your profile settings.",
+                "error": error_msg,
             }
 
-        # Get team_id using proper database relationships instead of string construction
-        league_id = user.get("league_id", "")
-
-        # If league_id not in session, try to get from database using email
-        if not league_id:
-            print(
-                f"[DEBUG] Missing league_id in session, attempting database lookup..."
-            )
-            user_email = user.get("email")
-            if user_email:
-                league_lookup_query = """
-                    SELECT l.league_id, l.id as league_db_id, u.league_context
-                    FROM users u 
-                    JOIN user_player_associations upa ON u.id = upa.user_id
-                    JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
-                    JOIN leagues l ON p.league_id = l.id
-                    WHERE u.email = %s 
-                    AND (u.league_context IS NULL OR p.league_id = u.league_context)
-                    ORDER BY (CASE WHEN p.league_id = u.league_context THEN 1 ELSE 2 END)
-                    LIMIT 1
-                """
-                league_data = execute_query_one(league_lookup_query, [user_email])
-                if league_data:
-                    league_id = league_data["league_id"]
-                    print(f"[DEBUG] Found league_id from database: {league_id}")
-
-        # Convert league_id to integer foreign key for database queries
+        # Convert league_id to integer foreign key if needed
         league_id_int = None
         if isinstance(league_id, str) and league_id != "":
             try:
@@ -3886,43 +3847,21 @@ def get_mobile_team_data(user):
                 if league_record:
                     league_id_int = league_record["id"]
                     print(
-                        f"[DEBUG] get_mobile_team_data: Converted league_id '{league_id}' to integer: {league_id_int}"
+                        f"[DEBUG] Converted league_id '{league_id}' to integer: {league_id_int}"
                     )
                 else:
                     print(
-                        f"[WARNING] get_mobile_team_data: League '{league_id}' not found in leagues table"
+                        f"[WARNING] League '{league_id}' not found in leagues table"
                     )
-                    return {
-                        "team_data": None,
-                        "court_analysis": {},
-                        "top_players": [],
-                        "error": f"League not found: {league_id}",
-                    }
             except Exception as e:
-                print(f"[DEBUG] get_mobile_team_data: Could not convert league ID: {e}")
-                return {
-                    "team_data": None,
-                    "court_analysis": {},
-                    "top_players": [],
-                    "error": f"Failed to resolve league: {str(e)}",
-                }
+                print(f"[DEBUG] Could not convert league ID: {e}")
         elif isinstance(league_id, int):
             league_id_int = league_id
-            print(
-                f"[DEBUG] get_mobile_team_data: League_id already integer: {league_id_int}"
-            )
-        else:
-            print(f"[DEBUG ERROR] No valid league_id found: {league_id}")
-            return {
-                "team_data": None,
-                "court_analysis": {},
-                "top_players": [],
-                "error": f"No valid league found. Please check your profile settings.",
-            }
+            print(f"[DEBUG] League_id already integer: {league_id_int}")
 
-        # Get the user's team using proper joins (much more reliable!)
+        # Get the user's team using proper joins
         team_query = """
-            SELECT t.id, t.team_name
+            SELECT t.id, t.team_name, t.display_name
             FROM teams t
             JOIN clubs c ON t.club_id = c.id
             JOIN series s ON t.series_id = s.id
@@ -3930,69 +3869,80 @@ def get_mobile_team_data(user):
             WHERE c.name = %s 
             AND s.name = %s 
             AND l.id = %s
+            LIMIT 1
         """
-
-        # SCALABLE: Use database-driven series name mapping service
-        from utils.series_mapping_service import find_team_with_series_mapping
-
-        # Try to find team using the series mapping service
-        # This handles all league-specific naming conventions via database table
-        team_record = find_team_with_series_mapping(
-            club, series, league_id, league_id_int
-        )
+        
+        print(f"[DEBUG] Team lookup query parameters: club='{club}', series='{series}', league_id_int={league_id_int}")
+        team_record = execute_query_one(team_query, [club, series, league_id_int])
+        print(f"[DEBUG] Team lookup result: {team_record}")
 
         if not team_record:
-            print(
-                f"[DEBUG] get_mobile_team_data: Team not found - club: {club}, series: {series}, league_id: {league_id_int}"
-            )
+            # Try fallback: lookup using user's player associations
+            print(f"[DEBUG] No team found with direct lookup, trying player association fallback...")
+            user_email = user.get("email")
+            if user_email:
+                fallback_query = """
+                    SELECT DISTINCT t.id, t.team_name, t.display_name,
+                           c.name as club_name, s.name as series_name, l.league_name
+                    FROM users u
+                    JOIN user_player_associations upa ON u.id = upa.user_id
+                    JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+                    JOIN teams t ON p.team_id = t.id
+                    JOIN clubs c ON p.club_id = c.id
+                    JOIN series s ON p.series_id = s.id
+                    JOIN leagues l ON p.league_id = l.id
+                    WHERE u.email = %s 
+                    AND p.is_active = TRUE
+                    ORDER BY (CASE WHEN p.league_id = u.league_context THEN 1 ELSE 2 END)
+                    LIMIT 1
+                """
+                team_record = execute_query_one(fallback_query, [user_email])
+                print(f"[DEBUG] Fallback team lookup result: {team_record}")
+                
+                if team_record:
+                    # Update league_id_int from fallback result
+                    league_lookup = execute_query_one("SELECT id FROM leagues WHERE league_name = %s", [team_record["league_name"]])
+                    if league_lookup:
+                        league_id_int = league_lookup["id"]
+                        print(f"[DEBUG] Updated league_id_int from fallback: {league_id_int}")
 
-            # Check if this is a league with no teams (data issue)
-            league_teams_count_query = """
-                SELECT 
-                    (SELECT COUNT(*) FROM teams WHERE league_id = %s) as team_count,
-                    l.league_name
-                FROM leagues l
-                WHERE l.id = %s
-            """
-            league_info = execute_query_one(
-                league_teams_count_query, [league_id_int, league_id_int]
-            )
-
-            if league_info and league_info["team_count"] == 0:
-                # League has no teams - this is a data issue
-                error_msg = f'No team data available for {league_info["league_name"]} league.\n\n'
-                error_msg += f"Your player profile is set up correctly, but team/match data has not been imported for this league yet.\n\n"
-                error_msg += f'Team analysis will be available once match data is imported for {league_info["league_name"]}.'
-
-                return {
-                    "team_data": None,
-                    "court_analysis": {},
-                    "top_players": [],
-                    "error": error_msg,
-                }
-
-            # Try to find similar teams to provide helpful error message
+        if not team_record:
+            # Try to find similar teams to help with debugging
+            search_pattern = f"%{club}%"
+            series_pattern = f"%{series}%"
+            team_pattern = f"%{club}%{series}%"
             similar_teams_query = """
-                SELECT t.team_name, c.name as club, s.name as series, l.league_name
+                SELECT DISTINCT 
+                    t.display_name,
+                    c.name as club,
+                    s.name as series,
+                    l.league_name
                 FROM teams t
                 JOIN clubs c ON t.club_id = c.id
                 JOIN series s ON t.series_id = s.id
                 JOIN leagues l ON t.league_id = l.id
-                WHERE (c.name ILIKE %s OR s.name ILIKE %s OR t.team_name ILIKE %s)
+                WHERE 
+                    c.name LIKE %s OR
+                    s.name LIKE %s OR
+                    t.team_name LIKE %s
                 LIMIT 5
             """
-            search_pattern = f"%{club}%"
-            series_pattern = f"%{series}%"
-            team_pattern = f"%{club}%{series}%"
+
             similar_teams = execute_query(
                 similar_teams_query, [search_pattern, series_pattern, team_pattern]
             )
 
-            error_msg = f"Team not found: {club} / {series}"
+            user_email = user.get("email", "Unknown")
+            error_msg = f"Team not found for {user_email}: {club} / {series}"
+            error_msg += f"\nLeague ID: {league_id} (converted to: {league_id_int})"
+            
             if similar_teams:
                 error_msg += f"\n\nSimilar teams found:"
                 for team in similar_teams:
-                    error_msg += f'\n- {team["team_name"]} ({team["club"]} / {team["series"]}, {team["league_name"]})'
+                    error_msg += f'\n- {team["display_name"]} ({team["club"]} / {team["series"]}, {team["league_name"]})'
+                error_msg += f"\n\nYour profile may need to be updated to match one of these teams."
+            else:
+                error_msg += f"\n\nNo similar teams found. Please contact support to verify your team registration."
 
             return {
                 "team_data": None,
@@ -4002,19 +3952,14 @@ def get_mobile_team_data(user):
             }
 
         team_id = team_record["id"]
-        team = team_record["team_name"]  # Use the actual team name from database
+        team = team_record["team_name"]  # Use the database team name for queries
+        display_name = team_record["display_name"]  # Use display name for UI
 
         print(
-            f"[DEBUG] get_mobile_team_data: Found team_id={team_id}, team_name='{team}' for user {user.get('first_name')} {user.get('last_name')}"
+            f"[DEBUG] get_mobile_team_data: Found team_id={team_id}, team_name='{team}', display_name='{display_name}' for user {user.get('first_name')} {user.get('last_name')}"
         )
 
-        # MORE DEBUG: Show that we reached this point
-        print(f"[DEBUG DATABASE QUERY] About to query database for team: {team}")
-
-        # Query team stats and matches from database
-        # Note: execute_query and execute_query_one are already imported at module level
-
-        # Get team stats
+        # Get team stats from series_stats table first
         team_stats_query = """
             SELECT 
                 team,
@@ -4028,634 +3973,140 @@ def get_mobile_team_data(user):
                 games_won,
                 games_lost
             FROM series_stats
-            WHERE team = %s
+            WHERE team = %s AND league_id = %s
         """
-        team_stats = execute_query_one(team_stats_query, [team])
+        team_stats = execute_query_one(team_stats_query, [team, league_id_int])
 
-        # Get team matches using team_id (faster and more accurate!)
-        matches_query = """
-            SELECT 
-                TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
-                home_team as "Home Team",
-                away_team as "Away Team",
-                winner as "Winner",
-                scores as "Scores",
-                home_player_1_id as "Home Player 1",
-                home_player_2_id as "Home Player 2",
-                away_player_1_id as "Away Player 1",
-                away_player_2_id as "Away Player 2",
-                id
-            FROM match_scores
-            WHERE (home_team_id = %s OR away_team_id = %s)
-            ORDER BY match_date DESC
-        """
-        team_matches = execute_query(matches_query, [team_id, team_id])
-
-        # DEBUG: Raw database query to understand the data structure
-        print(f"[DEBUG DATABASE QUERY] Starting database debug...")
-        try:
-            print(f"[DEBUG] Team: {team}, League ID Int: {league_id_int}")
-
-            # Simple debug query first using team_id
-            simple_query = "SELECT COUNT(*) as total FROM match_scores WHERE (home_team_id = %s OR away_team_id = %s)"
-            if league_id_int:
-                simple_query += " AND league_id = %s"
-                total_count = execute_query_one(
-                    simple_query, [team_id, team_id, league_id_int]
-                )
-            else:
-                total_count = execute_query_one(simple_query, [team_id, team_id])
-
-            print(f"[DEBUG] Total matches for {team}: {total_count['total']}")
-
-            # Now try the detailed query using team_id
-            if league_id_int:
-                debug_query = """
+        # If no stats found in series_stats, calculate them from match_scores
+        if not team_stats:
+            print(f"[DEBUG] No stats found in series_stats for {team}, calculating from match_scores...")
+            
+            matches_query = """
+                WITH team_matches AS (
                     SELECT 
-                        TO_CHAR(match_date, 'DD-Mon-YY') as formatted_date,
-                        id,
+                        match_date,
                         home_team,
                         away_team,
                         winner,
-                        scores
+                        scores,
+                        CASE 
+                            WHEN home_team = %s THEN 'home'
+                            WHEN away_team = %s THEN 'away'
+                        END as team_side
                     FROM match_scores
-                    WHERE (home_team_id = %s OR away_team_id = %s)
+                    WHERE (home_team = %s OR away_team = %s)
                     AND league_id = %s
-                    ORDER BY match_date DESC, id ASC
-                    LIMIT 20
-                """
-                debug_matches = execute_query(debug_query, [team_id, team_id, league_id_int])
-            else:
-                debug_query = """
-                    SELECT 
-                        TO_CHAR(match_date, 'DD-Mon-YY') as formatted_date,
-                        id,
-                        home_team,
-                        away_team,
-                        winner,
-                        scores
-                    FROM match_scores
-                    WHERE (home_team_id = %s OR away_team_id = %s)
-                    ORDER BY match_date DESC, id ASC
-                    LIMIT 20
-                """
-                debug_matches = execute_query(debug_query, [team_id, team_id])
-
-            print(f"[DEBUG] Raw matches from database (first 20):")
-            for i, match in enumerate(debug_matches):
-                print(
-                    f"  {i+1}. ID={match['id']}, Date={match['formatted_date']}, {match['home_team']} vs {match['away_team']}"
                 )
-                print(f"      Winner={match['winner']}, Scores={match['scores']}")
-
-            # Check for court columns
-            print(f"[DEBUG] Checking match_scores table structure...")
-            court_check_query = """
-                SELECT column_name, data_type
-                FROM information_schema.columns 
-                WHERE table_name = 'match_scores' 
-                AND column_name ILIKE '%court%'
-                ORDER BY column_name
+                SELECT
+                    COUNT(*) as total_matches,
+                    SUM(CASE 
+                        WHEN (team_side = 'home' AND winner = 'home') OR 
+                             (team_side = 'away' AND winner = 'away') 
+                        THEN 1 ELSE 0 
+                    END) as matches_won,
+                    SUM(CASE 
+                        WHEN (team_side = 'home' AND winner = 'away') OR 
+                             (team_side = 'away' AND winner = 'home') 
+                        THEN 1 ELSE 0 
+                    END) as matches_lost,
+                    COUNT(*) as lines_won,  -- Each match is one line
+                    0 as lines_lost,        -- We'll calculate this after
+                    0 as sets_won,          -- We'll calculate these from scores
+                    0 as sets_lost,
+                    0 as games_won,
+                    0 as games_lost
+                FROM team_matches
             """
-            court_columns = execute_query(court_check_query)
-
-            if court_columns:
-                print(
-                    f"[DEBUG] Found court columns: {[(col['column_name'], col['data_type']) for col in court_columns]}"
-                )
-
-                # Sample actual court data
-                court_cols = [col["column_name"] for col in court_columns]
-                sample_query = f"""
-                    SELECT id, TO_CHAR(match_date, 'DD-Mon-YY') as date, {', '.join(court_cols)}
-                    FROM match_scores
-                    WHERE (home_team_id = %s OR away_team_id = %s)
-                    ORDER BY match_date DESC
-                    LIMIT 5
-                """
-                if league_id_int:
-                    sample_query = f"""
-                        SELECT id, TO_CHAR(match_date, 'DD-Mon-YY') as date, {', '.join(court_cols)}
-                        FROM match_scores
-                        WHERE (home_team_id = %s OR away_team_id = %s) AND league_id = %s
-                        ORDER BY match_date DESC
-                        LIMIT 5
-                    """
-                    sample_data = execute_query(
-                        sample_query, [team_id, team_id, league_id_int]
-                    )
-                else:
-                    sample_data = execute_query(sample_query, [team_id, team_id])
-
-                print(f"[DEBUG] Sample court data:")
-                for row in sample_data:
-                    court_vals = ", ".join(
-                        [f"{col}={row.get(col)}" for col in court_cols]
-                    )
-                    print(f"  ID={row['id']}, Date={row['date']}: {court_vals}")
+            
+            match_stats = execute_query_one(matches_query, [team, team, team, team, league_id_int])
+            
+            if match_stats and match_stats["total_matches"] > 0:
+                # Create stats object
+                team_stats = {
+                    "team": team,
+                    "points": match_stats["matches_won"] * 2,  # 2 points per win
+                    "matches_won": match_stats["matches_won"],
+                    "matches_lost": match_stats["matches_lost"],
+                    "lines_won": match_stats["matches_won"],
+                    "lines_lost": match_stats["matches_lost"],
+                    "sets_won": 0,
+                    "sets_lost": 0,
+                    "games_won": 0,
+                    "games_lost": 0
+                }
             else:
-                print(f"[DEBUG] No court columns found in match_scores table")
-
-        except Exception as e:
-            print(f"[DEBUG ERROR] Database debug failed: {str(e)}")
-            import traceback
-
-            print(f"[DEBUG ERROR] Traceback: {traceback.format_exc()}")
-
-        # Get user's player_id for partnership analysis
-        player_id = user.get("tenniscores_player_id")
-        if not player_id:
-            print(f"[DEBUG] No tenniscores_player_id found for user: {user.get('email')}")
-
-        # Calculate court analysis and top players
-        court_analysis = {}
-        top_players = []
-        max_courts = 4  # Default number of courts
-
-        # Import defaultdict at function level for use in court analysis
-        from collections import defaultdict
-
-        # Initialize variables that are used outside the conditional blocks
-        player_stats = defaultdict(
-            lambda: {"matches": 0, "wins": 0, "courts": {}, "partners": {}}
-        )
-        wins = 0  # Initialize wins counter
-
-        if team_matches:
-
-            # Group by date to understand court patterns
-            matches_by_date = defaultdict(list)
-            for match in team_matches:
-                date = match.get("Date")
-                matches_by_date[date].append(match)
-
-            court_stats = {
-                f"court{i}": {
-                    "matches": 0,
-                    "wins": 0,
-                    "losses": 0,
-                    "players": defaultdict(
-                        lambda: {"matches": 0, "wins": 0, "losses": 0}
-                    ),
+                # No matches found - return empty stats
+                team_stats = {
+                    "team": team,
+                    "points": 0,
+                    "matches_won": 0,
+                    "matches_lost": 0,
+                    "lines_won": 0,
+                    "lines_lost": 0,
+                    "sets_won": 0,
+                    "sets_lost": 0,
+                    "games_won": 0,
+                    "games_lost": 0
                 }
-                for i in range(1, 5)
-            }
-            player_stats = defaultdict(
-                lambda: {"matches": 0, "wins": 0, "courts": {}, "partners": {}}
-            )
 
-            # FIXED: Instead of artificial court assignments, show actual partnerships
-            # Group partnerships by frequency and show real match data
-            
-            # Track actual partnerships from real matches
-            actual_partnerships = defaultdict(lambda: {"matches": 0, "wins": 0, "losses": 0})
-            
-            # Process each match to get actual partnerships and calculate wins
-            for match in team_matches:
-                is_home = match.get("Home Team") == team
-                winner = match.get("Winner") or ""
-                won = (is_home and winner.lower() == "home") or (
-                    not is_home and winner.lower() == "away"
-                )
-                team_won = (is_home and won) or (
-                    not is_home and not won
-                )
-                
-                # Count wins for overall team statistics
-                if team_won:
-                    wins += 1
-
-                # Get all players from this match for roster stats
-                if is_home:
-                    team_player_1_id = match.get("Home Player 1")
-                    team_player_2_id = match.get("Home Player 2")
-                else:
-                    team_player_1_id = match.get("Away Player 1")
-                    team_player_2_id = match.get("Away Player 2")
-
-                # Process each player's individual stats for the roster
-                for player_id_current in [team_player_1_id, team_player_2_id]:
-                    if player_id_current:
-                        player_name = get_player_name_from_id(player_id_current)
-                        if player_name:
-                            # Initialize player stats if not exists
-                            if player_name not in player_stats:
-                                player_stats[player_name] = {
-                                    "matches": 0,
-                                    "wins": 0,
-                                    "courts": {},
-                                    "partners": {}
-                                }
-                            
-                            # Update match count and wins
-                            player_stats[player_name]["matches"] += 1
-                            if team_won:
-                                player_stats[player_name]["wins"] += 1
-                            
-                            # Assign court for this match (simplified court assignment)
-                            # In a real system, this would use proper court assignment logic
-                            # For now, we'll distribute players across courts based on match frequency
-                            court_num = ((player_stats[player_name]["matches"] - 1) % 4) + 1
-                            court_name = f"Court {court_num}"
-                            
-                            if court_name not in player_stats[player_name]["courts"]:
-                                player_stats[player_name]["courts"][court_name] = {
-                                    "matches": 0,
-                                    "wins": 0
-                                }
-                            player_stats[player_name]["courts"][court_name]["matches"] += 1
-                            if team_won:
-                                player_stats[player_name]["courts"][court_name]["wins"] += 1
-                            
-                            # Track partner for this player
-                            partner_id_current = team_player_2_id if player_id_current == team_player_1_id else team_player_1_id
-                            if partner_id_current:
-                                partner_name = get_player_name_from_id(partner_id_current)
-                                if partner_name:
-                                    if partner_name not in player_stats[player_name]["partners"]:
-                                        player_stats[player_name]["partners"][partner_name] = {
-                                            "matches": 0,
-                                            "wins": 0
-                                        }
-                                    player_stats[player_name]["partners"][partner_name]["matches"] += 1
-                                    if won:
-                                        player_stats[player_name]["partners"][partner_name]["wins"] += 1
-
-                # Get actual partner from this specific match (only if player_id is available)
-                if player_id:
-                    if is_home:
-                        partner_id = (
-                            match.get("Home Player 2")
-                            if match.get("Home Player 1") == player_id
-                            else match.get("Home Player 1")
-                        )
-                    else:
-                        partner_id = (
-                            match.get("Away Player 2")
-                            if match.get("Away Player 1") == player_id
-                            else match.get("Away Player 1")
-                        )
-
-                    if partner_id:
-                        partner_name = get_player_name_from_id(partner_id)
-                        if partner_name:
-                            actual_partnerships[partner_name]["matches"] += 1
-                            if won:
-                                actual_partnerships[partner_name]["wins"] += 1
-                            else:
-                                actual_partnerships[partner_name]["losses"] += 1
-
-            # Convert actual partnerships to sorted list by frequency
-            partnership_list = []
-            for partner_name, stats in actual_partnerships.items():
-                if stats["matches"] > 0:
-                    partner_win_rate = (
-                        round((stats["wins"] / stats["matches"]) * 100, 1)
-                        if stats["matches"] > 0
-                        else 0
-                    )
-                    partnership_list.append({
-                        "name": partner_name,
-                        "matches": stats["matches"],
-                        "wins": stats["wins"],
-                        "losses": stats["losses"],
-                        "winRate": partner_win_rate,
-                    })
-
-            # Sort by number of matches together (descending)
-            partnership_list.sort(key=lambda p: p["matches"], reverse=True)
-
-            # Build court_analysis using REAL court assignments (like analyze-me page)
-            court_analysis = {}
-            max_courts = 4  # Standard number of courts to display
-
-            if team_matches:
-                # FIXED: Use REAL court assignments based on match position within team matchup
-                # Court Number = ROW_NUMBER() of match within same team matchup on same date
-                
-                # Initialize court stats for tracking real court performance
-                court_stats = {
-                    f"court{i}": {
-                        "matches": 0,
-                        "wins": 0,
-                        "losses": 0,
-                        "partners": defaultdict(lambda: {"matches": 0, "wins": 0, "losses": 0}),
-                    }
-                    for i in range(1, max_courts + 1)
-                }
-                
-                # Process each match to determine ACTUAL court assignment
-                # First, get ALL team matchups and their match counts for context
-                all_team_matchups = {}
-                for match in team_matches:
-                    match_date = match.get("Date")
-                    home_team = match.get("Home Team", "")
-                    away_team = match.get("Away Team", "")
-                    matchup_key = f"{match_date}|{home_team}|{away_team}"
-                    
-                    if matchup_key not in all_team_matchups:
-                        # Get ALL matches for this team matchup on this date, filtered by team
-                        if team_id:
-                            # Filter by team_id for accurate court assignment
-                            team_matchup_query = """
-                                SELECT id
-                                FROM match_scores 
-                                WHERE TO_CHAR(match_date, 'DD-Mon-YY') = %s
-                                AND home_team = %s 
-                                AND away_team = %s
-                                AND (home_team_id = %s OR away_team_id = %s)
-                                ORDER BY id ASC
-                            """
-                            all_matches = execute_query(team_matchup_query, [match_date, home_team, away_team, team_id, team_id])
-                        else:
-                            # Fallback: no team filtering
-                            team_matchup_query = """
-                                SELECT id
-                                FROM match_scores 
-                                WHERE TO_CHAR(match_date, 'DD-Mon-YY') = %s
-                                AND home_team = %s 
-                                AND away_team = %s
-                                ORDER BY id ASC
-                            """
-                            all_matches = execute_query(team_matchup_query, [match_date, home_team, away_team])
-                        
-                        all_team_matchups[matchup_key] = [m["id"] for m in all_matches]
-                
-                # Process each match to assign to correct court using analyze-me logic
-                # First organize all matches by team matchup for proper court assignment
-                matches_by_matchup = defaultdict(list)
-                for match in team_matches:
-                    match_date = match.get("Date")
-                    home_team = match.get("Home Team", "")
-                    away_team = match.get("Away Team", "")
-                    matchup_key = f"{match_date}|{home_team}|{away_team}"
-                    matches_by_matchup[matchup_key].append(match)
-
-                # For each team matchup, sort matches and assign courts
-                for matchup_key, matchup_matches in matches_by_matchup.items():
-                    # Sort by match ID to ensure consistent court assignment
-                    matchup_matches.sort(key=lambda m: m.get("id", 0))
-                    
-                    # Assign each match in this matchup to a court
-                    for court_position, match in enumerate(matchup_matches, 1):
-                        if court_position > max_courts:
-                            court_position = ((court_position - 1) % max_courts) + 1
-                        
-                        court_key = f"court{court_position}"
-
-                        # Determine if team won this match
-                        is_home = match.get("Home Team") == team
-                        winner = match.get("Winner") or ""
-                        winner_is_home = winner.lower() == "home"
-                        team_won = (is_home and winner_is_home) or (
-                            not is_home and not winner_is_home
-                        )
-
-                        # Update court performance stats
-                        court_stats[court_key]["matches"] += 1
-                        if team_won:
-                            court_stats[court_key]["wins"] += 1
-                        else:
-                            court_stats[court_key]["losses"] += 1
-
-                        # Track REAL partnerships on REAL courts
-                        if is_home:
-                            player1_id = match.get("Home Player 1")
-                            player2_id = match.get("Home Player 2")
-                        else:
-                            player1_id = match.get("Away Player 1")
-                            player2_id = match.get("Away Player 2")
-
-                        # Add both players to this specific court (not all courts)
-                        for current_player_id in [player1_id, player2_id]:
-                            if current_player_id:
-                                player_name = get_player_name_from_id(current_player_id)
-                                if player_name:
-                                    # Track this player's performance on this specific court only
-                                    court_stats[court_key]["partners"][player_name]["matches"] += 1
-                                    if team_won:
-                                        court_stats[court_key]["partners"][player_name]["wins"] += 1
-                                    else:
-                                        court_stats[court_key]["partners"][player_name]["losses"] += 1
-
-                # Build court_analysis using REAL court performance data
-                for i in range(1, max_courts + 1):
-                    court_key = f"court{i}"
-                    stat = court_stats[court_key]
-                    
-                    court_matches = stat["matches"]
-                    court_wins = stat["wins"]
-                    court_losses = stat["losses"]
-                    court_win_rate = (
-                        round((court_wins / court_matches) * 100, 1) if court_matches > 0 else 0
-                    )
-
-                    # Get ALL players with their REAL performance on this REAL court
-                    all_court_players = []
-                    for player_name, court_player_stats in stat["partners"].items():
-                        if player_name and court_player_stats["matches"] > 0:
-                            player_wins = court_player_stats["wins"]
-                            player_losses = court_player_stats["losses"]
-                            match_count = court_player_stats["matches"]
-                            player_win_rate = (
-                                round((player_wins / match_count) * 100, 1)
-                                if match_count > 0
-                                else 0
-                            )
-
-                            all_court_players.append(
-                                {
-                                    "name": player_name,
-                                    "matches": match_count,
-                                    "wins": player_wins,
-                                    "losses": player_losses,
-                                    "winRate": player_win_rate,
-                                }
-                            )
-
-                    # Sort by number of matches on this court (descending), then by win rate
-                    all_court_players.sort(key=lambda p: (p["matches"], p["winRate"]), reverse=True)
-
-                    court_analysis[court_key] = {
-                        "winRate": court_win_rate,
-                        "record": f"{court_wins}-{court_losses}",
-                        "topPartners": all_court_players,  # ALL players on this court
-                    }
-            else:
-                # If no matches, show empty courts
-                for i in range(1, max_courts + 1):
-                    court_key = f"court{i}"
-                    court_analysis[court_key] = {
-                        "winRate": 0,
-                        "record": "0-0",
-                        "topPartners": [],
-                    }
-
-        # Build top_players list
-        top_players = []
-        for name, stats in player_stats.items():
-            # Show all players regardless of match count
-            win_rate = (
-                round((stats["wins"] / stats["matches"]) * 100, 1)
-                if stats["matches"] > 0
-                else 0
-            )
-
-            # Check if this player is a substitute (different team_id than session team)
-            is_substitute = False
-            try:
-                # Look up player's actual team_id in database
-                player_team_query = """
-                    SELECT team_id, first_name, last_name 
-                    FROM players 
-                    WHERE CONCAT(first_name, ' ', last_name) = %s 
-                    AND league_id = %s
-                    LIMIT 1
-                """
-                player_team_data = execute_query_one(player_team_query, [name, league_id_int])
-                
-                if player_team_data and player_team_data["team_id"] != team_id:
-                    is_substitute = True
-                    print(f"[DEBUG SUB] Player {name} is a substitute - their team_id: {player_team_data['team_id']}, session team_id: {team_id}")
-                elif player_team_data:
-                    print(f"[DEBUG] Player {name} is regular team member - team_ids match: {player_team_data['team_id']}")
-                else:
-                    print(f"[DEBUG] Could not find team_id for player {name}")
-            except Exception as e:
-                print(f"[DEBUG] Error checking substitute status for {name}: {e}")
-                is_substitute = False
-
-            # Best court - Fixed logic: >3 matches (>=4) AND >=70% win rate
-            best_court = None
-            best_court_rate = 0
-            for court, cstats in stats["courts"].items():
-                if cstats["matches"] > 3:  # More than 3 matches (>=4)
-                    rate = (
-                        round((cstats["wins"] / cstats["matches"]) * 100, 1)
-                        if cstats["matches"] > 0
-                        else 0
-                    )
-                    if rate >= 70.0:  # Must have 70% or greater win rate
-                        if rate > best_court_rate or (
-                            rate == best_court_rate and cstats["matches"] > 0
-                        ):
-                            best_court_rate = rate
-                            best_court = court
-
-            # Best partner
-            best_partner = None
-            best_partner_rate = 0
-            for partner, pstats in stats["partners"].items():
-                if (
-                    pstats["matches"] >= 2
-                ):  # Require at least 2 matches for meaningful partnership
-                    rate = (
-                        round((pstats["wins"] / pstats["matches"]) * 100, 1)
-                        if pstats["matches"] > 0
-                        else 0
-                    )
-                    if rate >= 60.0:  # Must have 60% or greater win rate for best partner
-                        if rate > best_partner_rate or (
-                            rate == best_partner_rate and pstats["matches"] > 0
-                        ):
-                            best_partner_rate = rate
-                            best_partner = partner
-
-            # Add Sub designation to player name if they're a substitute
-            display_name = f"{name} (Sub)" if is_substitute else name
-            
-            top_players.append(
-                {
-                    "name": display_name,
-                    "matches": stats["matches"],
-                    "win_rate": win_rate,
-                    "best_court": best_court or "N/A",
-                    "best_partner": best_partner if best_partner else "N/A",
-                    "is_substitute": is_substitute,
-                }
-            )
-
-        top_players = sorted(top_players, key=lambda x: -x["matches"])
-
-        # Build team stats
-        if team_stats:
-            # Calculate percentages safely
-            matches_won = team_stats.get("matches_won", 0)
-            matches_lost = team_stats.get("matches_lost", 0)
-            matches_total = matches_won + matches_lost
-            matches_pct = (
-                f"{round((matches_won / matches_total) * 100, 1)}%"
-                if matches_total > 0
-                else "0%"
-            )
-
-            lines_won = team_stats.get("lines_won", 0)
-            lines_lost = team_stats.get("lines_lost", 0)
-            lines_total = lines_won + lines_lost
-            lines_pct = (
-                f"{round((lines_won / lines_total) * 100, 1)}%"
-                if lines_total > 0
-                else "0%"
-            )
-
-            sets_won = team_stats.get("sets_won", 0)
-            sets_lost = team_stats.get("sets_lost", 0)
-            sets_total = sets_won + sets_lost
-            sets_pct = (
-                f"{round((sets_won / sets_total) * 100, 1)}%"
-                if sets_total > 0
-                else "0%"
-            )
-
-            games_won = team_stats.get("games_won", 0)
-            games_lost = team_stats.get("games_lost", 0)
-            games_total = games_won + games_lost
-            games_pct = (
-                f"{round((games_won / games_total) * 100, 1)}%"
-                if games_total > 0
-                else "0%"
-            )
-
-            team_data = {
-                "team": team,
-                "points": team_stats.get("points", 0),
-                "matches": {
-                    "won": matches_won,
-                    "lost": matches_lost,
-                    "percentage": matches_pct,
-                },
-                "lines": {
-                    "won": lines_won,
-                    "lost": lines_lost,
-                    "percentage": lines_pct,
-                },
-                "sets": {"won": sets_won, "lost": sets_lost, "percentage": sets_pct},
-                "games": {
-                    "won": games_won,
-                    "lost": games_lost,
-                    "percentage": games_pct,
-                },
-            }
+        # Get team matches for match history
+        if league_id_int:
+            matches_query = """
+                SELECT 
+                    TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
+                    home_team as "Home Team",
+                    away_team as "Away Team",
+                    winner as "Winner",
+                    scores as "Scores",
+                    home_player_1_id as "Home Player 1",
+                    home_player_2_id as "Home Player 2",
+                    away_player_1_id as "Away Player 1",
+                    away_player_2_id as "Away Player 2"
+                FROM match_scores
+                WHERE (home_team = %s OR away_team = %s)
+                AND league_id = %s
+                ORDER BY match_date DESC
+            """
+            team_matches = execute_query(matches_query, [team, team, league_id_int])
         else:
-            team_data = {
-                "team": team,
-                "points": 0,
-                "matches": {"won": 0, "lost": 0, "percentage": "0%"},
-                "lines": {"won": 0, "lost": 0, "percentage": "0%"},
-                "sets": {"won": 0, "lost": 0, "percentage": "0%"},
-                "games": {"won": 0, "lost": 0, "percentage": "0%"},
-            }
+            matches_query = """
+                SELECT 
+                    TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
+                    home_team as "Home Team",
+                    away_team as "Away Team",
+                    winner as "Winner",
+                    scores as "Scores",
+                    home_player_1_id as "Home Player 1",
+                    home_player_2_id as "Home Player 2",
+                    away_player_1_id as "Away Player 1",
+                    away_player_2_id as "Away Player 2"
+                FROM match_scores
+                WHERE (home_team = %s OR away_team = %s)
+                ORDER BY match_date DESC
+            """
+            team_matches = execute_query(matches_query, [team, team])
 
+        # Calculate team analysis
+        team_analysis = calculate_team_analysis_mobile(team_stats, team_matches, team)
+
+        # Add display name to team analysis
+        team_analysis["display_name"] = display_name
+        
+        # Add team name for template compatibility
+        team_analysis["team"] = team
+
+        # Return in the expected structure for the route
         return {
-            "team_data": team_data,
-            "court_analysis": court_analysis,
-            "top_players": top_players,
+            "team_data": team_analysis,
+            "court_analysis": team_analysis.get("court_analysis", {}),
+            "top_players": team_analysis.get("top_players", []),
+            "strength_of_schedule": {},  # This would come from a separate function if needed
+            "error": None,
         }
 
     except Exception as e:
         print(f"Error getting mobile team data: {str(e)}")
         import traceback
-
         print(f"Full traceback: {traceback.format_exc()}")
         return {
             "team_data": None,
