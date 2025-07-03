@@ -81,6 +81,30 @@
                     </div>
                 </div>
                 <div class="p-4 max-h-96 overflow-y-auto">
+                    <!-- PTI Range Sliders -->
+                    <div class="space-y-4 mb-4">
+                        <div>
+                            <label for="ptiMinSlider" class="block text-sm font-medium text-gray-700 mb-2">Minimum PTI</label>
+                            <input type="range" id="ptiMinSlider" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" 
+                                   min="-30" max="100" value="-30" step="0.1">
+                            <div class="text-xs text-gray-500 mt-1">Min: <span id="ptiMinValue">-30.0</span></div>
+                        </div>
+                        <div>
+                            <label for="ptiMaxSlider" class="block text-sm font-medium text-gray-700 mb-2">Maximum PTI</label>
+                            <input type="range" id="ptiMaxSlider" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" 
+                                   min="-30" max="100" value="100" step="0.1">
+                            <div class="text-xs text-gray-500 mt-1">Max: <span id="ptiMaxValue">100.0</span></div>
+                        </div>
+                        <div class="text-sm text-center text-blue-600 font-medium bg-blue-50 px-3 py-2 rounded-lg">
+                            PTI Range: <span id="ptiRangeDisplay">-30.0 - 100.0</span>
+                        </div>
+                        <button id="applyPTIFilter" class="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium">
+                            <i class="fas fa-filter mr-2"></i>
+                            Apply PTI Filter
+                        </button>
+                    </div>
+                    
+                    <!-- Series Recommendations -->
                     <div id="series-recommendations" class="space-y-4">
                         <!-- Series recommendations will be loaded here -->
                     </div>
@@ -311,6 +335,56 @@
     min-width: 0; /* Allow content to shrink */
     max-width: 100%; /* Prevent overflow */
 }
+
+/* PTI Slider Styling */
+input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 6px;
+    border-radius: 3px;
+    background: #e5e7eb;
+    outline: none;
+    transition: background 0.3s;
+}
+
+input[type="range"]:hover {
+    background: #d1d5db;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #3b82f6;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+    background: #2563eb;
+    transform: scale(1.1);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+input[type="range"]::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #3b82f6;
+    cursor: pointer;
+    border: none;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+input[type="range"]::-moz-range-thumb:hover {
+    background: #2563eb;
+    transform: scale(1.1);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
 </style>
 
 <script>
@@ -345,9 +419,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Global variables
     let allPlayers = [];
+    let originalPlayers = []; // Store original unfiltered players
     let seriesRanges = [];
     let teamAssignments = {};
     let selectedPlayerForTap = null;
+    let ptiRange = { min: -30, max: 100 }; // Current PTI filter range
 
     // PTI Color Coding Function
     function getPTIColorClass(pti) {
@@ -366,12 +442,116 @@ document.addEventListener('DOMContentLoaded', function() {
         return colorClasses[segment] || colorClasses[colorClasses.length - 1];
     }
 
+    // PTI Slider Functions
+    function initializePTISliders() {
+        const ptiMinSlider = document.getElementById('ptiMinSlider');
+        const ptiMaxSlider = document.getElementById('ptiMaxSlider');
+        const ptiMinValue = document.getElementById('ptiMinValue');
+        const ptiMaxValue = document.getElementById('ptiMaxValue');
+        const ptiRangeDisplay = document.getElementById('ptiRangeDisplay');
+        const applyPTIFilter = document.getElementById('applyPTIFilter');
+
+        if (!ptiMinSlider || !ptiMaxSlider) return;
+
+        // Set initial values
+        ptiRange.min = -30;
+        ptiRange.max = 100;
+        ptiMinSlider.value = ptiRange.min;
+        ptiMaxSlider.value = ptiRange.max;
+        updatePTIDisplay();
+
+        // Add event listeners
+        ptiMinSlider.addEventListener('input', function() {
+            let minVal = parseFloat(this.value);
+            let maxVal = parseFloat(ptiMaxSlider.value);
+            
+            // Ensure min doesn't exceed max
+            if (minVal > maxVal) {
+                minVal = maxVal - 0.1;
+                this.value = minVal;
+            }
+            
+            ptiRange.min = minVal;
+            updatePTIDisplay();
+        });
+        
+        ptiMaxSlider.addEventListener('input', function() {
+            let maxVal = parseFloat(this.value);
+            let minVal = parseFloat(ptiMinSlider.value);
+            
+            // Ensure max doesn't go below min
+            if (maxVal < minVal) {
+                maxVal = minVal + 0.1;
+                this.value = maxVal;
+            }
+            
+            ptiRange.max = maxVal;
+            updatePTIDisplay();
+        });
+
+        // Apply filter button
+        applyPTIFilter.addEventListener('click', applyPTIFiltering);
+
+        console.log('PTI sliders initialized');
+    }
+
+    function updatePTIDisplay() {
+        const ptiMinValue = document.getElementById('ptiMinValue');
+        const ptiMaxValue = document.getElementById('ptiMaxValue');
+        const ptiRangeDisplay = document.getElementById('ptiRangeDisplay');
+        
+        if (ptiMinValue) ptiMinValue.textContent = ptiRange.min.toFixed(1);
+        if (ptiMaxValue) ptiMaxValue.textContent = ptiRange.max.toFixed(1);
+        if (ptiRangeDisplay) ptiRangeDisplay.textContent = `${ptiRange.min.toFixed(1)} - ${ptiRange.max.toFixed(1)}`;
+    }
+
+    function applyPTIFiltering() {
+        console.log(`Applying PTI filter: ${ptiRange.min} - ${ptiRange.max}`);
+        
+        // Filter players based on PTI range
+        allPlayers = originalPlayers.filter(player => {
+            const pti = player.pti || 0;
+            return pti >= ptiRange.min && pti <= ptiRange.max;
+        });
+        
+        console.log(`Filtered ${allPlayers.length} players from ${originalPlayers.length} total (PTI range: ${ptiRange.min}-${ptiRange.max})`);
+        
+        // Refresh player display
+        displayPlayers();
+        updatePlayerCount();
+    }
+
+    function resetPTIFilter() {
+        console.log('Resetting PTI filter');
+        
+        // Reset range to full range
+        ptiRange.min = -30;
+        ptiRange.max = 100;
+        
+        // Update sliders
+        const ptiMinSlider = document.getElementById('ptiMinSlider');
+        const ptiMaxSlider = document.getElementById('ptiMaxSlider');
+        if (ptiMinSlider) ptiMinSlider.value = ptiRange.min;
+        if (ptiMaxSlider) ptiMaxSlider.value = ptiRange.max;
+        
+        // Update display
+        updatePTIDisplay();
+        
+        // Reset players to original list
+        allPlayers = [...originalPlayers];
+        
+        // Refresh display
+        displayPlayers();
+        updatePlayerCount();
+    }
+
     // Initialize page with mobile-optimized functionality
     async function initializePage() {
         try {
             console.log('Starting page initialization...');
             await loadPlayers();
             await loadSeriesRanges();
+            initializePTISliders();
             setupEventListeners();
             showContent();
             console.log('Page initialization complete');
@@ -393,9 +573,14 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             // Filter to only Tennaqua players
-            allPlayers = data.players.filter(player => 
+            const tennaquaPlayers = data.players.filter(player => 
                 player.club && player.club.toLowerCase().includes('tennaqua')
             );
+            
+            // Store original and current players
+            originalPlayers = [...tennaquaPlayers];
+            allPlayers = [...tennaquaPlayers];
+            
             console.log(`Loaded ${allPlayers.length} Tennaqua players (filtered from ${data.players.length} total)`);
             
             displayPlayers();
@@ -644,6 +829,10 @@ document.addEventListener('DOMContentLoaded', function() {
         // Reset buttons
         document.getElementById('reset-players')?.addEventListener('click', () => {
             location.reload();
+        });
+
+        document.getElementById('reset-ranges')?.addEventListener('click', () => {
+            resetPTIFilter();
         });
 
         document.getElementById('reset-assignments')?.addEventListener('click', () => {
