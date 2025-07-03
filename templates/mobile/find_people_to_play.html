@@ -787,8 +787,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="flex items-start justify-between mb-3">
                         <div class="min-w-0 flex-1">
                             <h3 class="font-bold text-lg text-gray-900 truncate">${player.name}</h3>
-                            <p class="text-xs text-gray-600 font-medium">${player.club || 'Unknown Club'}</p>
-                            <p class="text-xs text-gray-500">${player.series ? player.series.replace(/^Chicago\s+(\d+.*)$/i, 'Series $1') : player.series}</p>
+                            <p class="text-xxs text-gray-600 font-medium">${player.club || 'Unknown Club'}</p>
+                            <p class="text-xxs text-gray-500">${player.series ? player.series.replace(/^Chicago\s+(\d+.*)$/i, 'Series $1') : player.series}</p>
                         </div>
                         <div class="ml-3 flex flex-col gap-2">
                             <button class="contact-btn" 
@@ -829,7 +829,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                     
                     <!-- Stats Grid -->
-                    <div class="grid grid-cols-2 gap-4 text-xs">
+                    <div class="grid grid-cols-2 gap-4 text-xxs">
                         <div class="space-y-1">
                             ${(player.pti !== null && player.pti !== undefined && player.pti !== 'N/A' && player.pti !== '' && !isNaN(parseFloat(player.pti))) ? `
                                 <div>
