@@ -167,11 +167,8 @@ def main():
     
     print(f"📦 Deploying feature branch: {current_branch}")
     
-    # Ask for confirmation
-    response = input(f"Deploy '{current_branch}' to staging? (y/n): ")
-    if response.lower() != 'y':
-        print("Deployment cancelled")
-        return 0
+    # Auto-proceed with deployment (removed manual confirmation)
+    print(f"✅ Proceeding with deployment of '{current_branch}' to staging")
     
     # Deployment steps
     steps = [
