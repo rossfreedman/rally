@@ -2,6 +2,9 @@
 {% set show_back_arrow = True %}
 
 {% block content %}
+<!-- Include the series display utility -->
+<script src="{{ url_for('static', filename='js/series-display-utility.js') }}"></script>
+
 <div class="min-h-screen bg-gray-50">
     
     <!-- Header -->
@@ -12,7 +15,9 @@
             </div>
             <div class="ml-4">
                 <h1 class="text-xl font-bold text-gray-900">My Series Analysis</h1>
-                <p class="text-sm text-gray-500">{{ user_series if user_series else 'Series Statistics' }}</p>
+                <p class="text-sm text-gray-500" data-series="{{ user_series or '' }}" data-display-name="{{ series_display_name or user_series or '' }}">
+                    {{ series_display_name if series_display_name else user_series if user_series else 'Series Statistics' }}
+                </p>
             </div>
         </div>
     </div>

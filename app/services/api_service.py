@@ -157,9 +157,11 @@ def get_series_stats_data():
                     s.sets_lost,
                     s.games_won,
                     s.games_lost,
-                    l.league_id
+                    l.league_id,
+                    t.display_name
                 FROM series_stats s
                 LEFT JOIN leagues l ON s.league_id = l.id
+                LEFT JOIN teams t ON s.team = t.team_name AND s.league_id = t.league_id
                 WHERE s.team = %s
             """
             team_stats = execute_query_one(team_stats_query, [requested_team])
@@ -214,8 +216,10 @@ def get_series_stats_data():
                 }
             }
 
-            # TODO: Add court analysis from match_scores table if needed
-            # For now, return basic team stats
+            # Add display name if available
+            if team_stats.get("display_name"):
+                response["team_analysis"]["display_name"] = team_stats["display_name"]
+
             return jsonify(response)
 
         # If no team requested, get series standings for the user's series
@@ -230,69 +234,8 @@ def get_series_stats_data():
             f"[DEBUG] Getting series stats for user series: {user_series}, league: {user_league_id}"
         )
 
-        # CRITICAL FIX: Apply reverse series mapping
-        # The user session contains database format (e.g., "S2B") but series_stats table 
-        # uses user-facing format (e.g., "Series 2B"). Need to convert database format to user format.
-        mapped_series = user_series
-        
+        # Query series stats from database using the unmapped series name
         if user_league_id:
-            # Convert league_id to string format needed by team_format_mappings table
-            league_id_str = None
-            if isinstance(user_league_id, int):
-                # Convert integer league_id to string league_id (e.g., 4554 -> "NSTF")
-                try:
-                    league_lookup = execute_query_one(
-                        "SELECT league_id FROM leagues WHERE id = %s", [user_league_id]
-                    )
-                    if league_lookup:
-                        league_id_str = league_lookup["league_id"]
-                    else:
-                        print(f"[DEBUG] Could not find string league_id for integer {user_league_id}")
-                except Exception as e:
-                    print(f"[DEBUG] Error looking up league_id: {e}")
-            else:
-                league_id_str = str(user_league_id)
-            
-            if league_id_str:
-                print(f"[DEBUG] Using league_id_str: {league_id_str} for mapping lookup")
-                
-                # FIXED: Simple, direct mapping for APTA Chicago
-                if league_id_str == "APTA_CHICAGO" and user_series.startswith("Series "):
-                    # APTA session format: "Series 22" -> "Chicago 22"
-                    series_number = user_series.replace("Series ", "")
-                    mapped_series = f"Chicago {series_number}"
-                    print(f"[DEBUG] Applied APTA Chicago mapping: '{user_series}' -> '{mapped_series}'")
-                elif league_id_str == "NSTF" and user_series.startswith("S"):
-                    # NSTF database format: S2B -> Series 2B
-                    series_suffix = user_series[1:]  # Remove "S" prefix
-                    mapped_series = f"Series {series_suffix}"
-                    print(f"[DEBUG] Applied NSTF fallback mapping: '{user_series}' -> '{mapped_series}'")
-                else:
-                    # Try database query for other leagues (but skip the problematic query for now)
-                    print(f"[DEBUG] No mapping applied for league {league_id_str}, series '{user_series}'")
-            else:
-                print(f"[DEBUG] Could not determine string league_id from {user_league_id}")
-
-        # Convert league_id string to integer foreign key if needed
-        league_id_int = None
-        if user_league_id:
-            try:
-                if isinstance(user_league_id, int):
-                    league_id_int = user_league_id
-                else:
-                    league_record = execute_query_one(
-                        "SELECT id FROM leagues WHERE league_id = %s", [user_league_id]
-                    )
-                    if league_record:
-                        league_id_int = league_record["id"]
-                        print(
-                            f"[DEBUG] Converted league_id '{user_league_id}' to integer: {league_id_int}"
-                        )
-            except Exception as e:
-                print(f"[DEBUG] Could not convert league ID: {e}")
-
-        # Query series stats from database, filtering by user's mapped series and league
-        if league_id_int:
             series_stats_query = """
                 SELECT 
                     s.series,
@@ -309,13 +252,15 @@ def get_series_stats_data():
                     s.sets_lost,
                     s.games_won,
                     s.games_lost,
-                    l.league_id
+                    l.league_id,
+                    t.display_name
                 FROM series_stats s
                 LEFT JOIN leagues l ON s.league_id = l.id
+                LEFT JOIN teams t ON s.team = t.team_name AND s.league_id = t.league_id
                 WHERE s.series = %s AND s.league_id = %s
                 ORDER BY s.points DESC, s.team ASC
             """
-            db_results = execute_query(series_stats_query, [mapped_series, league_id_int])
+            db_results = execute_query(series_stats_query, [user_series, user_league_id])
         else:
             # Fallback without league filtering
             series_stats_query = """
@@ -333,14 +278,16 @@ def get_series_stats_data():
                     s.sets_won,
                     s.sets_lost,
                     s.games_won,
-                    s.games_lost
+                    s.games_lost,
+                    t.display_name
                 FROM series_stats s
+                LEFT JOIN teams t ON s.team = t.team_name
                 WHERE s.series = %s
                 ORDER BY s.points DESC, s.team ASC
             """
-            db_results = execute_query(series_stats_query, [mapped_series])
+            db_results = execute_query(series_stats_query, [user_series])
 
-        print(f"[DEBUG] Found {len(db_results)} teams in mapped series '{mapped_series}' (original: '{user_series}')")
+        print(f"[DEBUG] Found {len(db_results)} teams in series '{user_series}'")
 
         # Transform database results to match the expected frontend format
         teams = []
@@ -379,6 +326,7 @@ def get_series_stats_data():
             team_data = {
                 "series": row["series"],
                 "team": row["team"],
+                "display_name": row.get("display_name", row["team"]),  # Use display_name if available
                 "league_id": row.get("league_id", user_league_id),
                 "points": row["points"],
                 "matches": {
