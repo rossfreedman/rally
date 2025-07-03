@@ -86,129 +86,127 @@
         <p class="mt-2 text-xs text-gray-500">If loading takes too long, use debug tools above</p>
     </div>
 
-    <!-- Main Content Container -->
-    <div id="main-content" class="hidden">
-        <div class="space-y-4">
-            
-            <!-- Column 1: Interactive PTI Range Control -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100">
-                <div class="px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-                                <i class="fas fa-sliders-h text-blue-600 mr-2"></i>
-                                PTI Range Control
-                            </h2>
-                            <p class="text-sm text-gray-600 mt-1">Adjust PTI ranges for each series with real-time validation</p>
-                        </div>
-                        <button id="reset-ranges" class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-blue-600 bg-white border border-blue-200 rounded-lg hover:bg-blue-50 hover:text-blue-700 transition-colors">
-                            <i class="fas fa-undo text-xs"></i>
-                            Reset
-                        </button>
+    <!-- Main Content Container (Always Visible) -->
+    <div id="main-content" class="space-y-4">
+        
+        <!-- Column 1: Interactive PTI Range Control -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100">
+            <div class="px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                            <i class="fas fa-sliders-h text-blue-600 mr-2"></i>
+                            PTI Range Control
+                        </h2>
+                        <p class="text-sm text-gray-600 mt-1">Adjust PTI ranges for each series with real-time validation</p>
                     </div>
-                </div>
-                <div class="p-4 max-h-96 overflow-y-auto">
-                    <div id="series-recommendations" class="space-y-4">
-                        <!-- Series recommendations will be loaded here -->
-                    </div>
+                    <button id="reset-ranges" class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-blue-600 bg-white border border-blue-200 rounded-lg hover:bg-blue-50 hover:text-blue-700 transition-colors">
+                        <i class="fas fa-undo text-xs"></i>
+                        Reset
+                    </button>
                 </div>
             </div>
+            <div class="p-4 max-h-96 overflow-y-auto">
+                <div id="series-recommendations" class="space-y-4">
+                    <!-- Series recommendations will be loaded here -->
+                </div>
+            </div>
+        </div>
 
-            <!-- Column 2: Available Players -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100">
-                <div class="px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-green-50 to-emerald-50">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-                                <i class="fas fa-users text-green-600 mr-2"></i>
-                                Available Players
-                                <span id="player-count" class="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full"></span>
-                            </h2>
-                            <p class="text-sm text-gray-600 mt-1">Tap players to assign to series ranges. Tennaqua players only.</p>
-                            <div class="mt-2 p-2 bg-gray-50 rounded-lg">
-                                <p class="text-xs font-medium text-gray-700 mb-1">PTI Color Guide:</p>
-                                <div class="flex flex-wrap gap-1 text-xs">
-                                    <span class="bg-emerald-200 border border-emerald-400 text-emerald-900 px-1 py-0.5 rounded font-medium">0-9</span>
-                                    <span class="bg-green-200 border border-green-400 text-green-900 px-1 py-0.5 rounded font-medium">10-19</span>
-                                    <span class="bg-lime-200 border border-lime-400 text-lime-900 px-1 py-0.5 rounded font-medium">20-29</span>
-                                    <span class="bg-yellow-200 border border-yellow-400 text-yellow-900 px-1 py-0.5 rounded font-medium">30-39</span>
-                                    <span class="bg-amber-200 border border-amber-400 text-amber-900 px-1 py-0.5 rounded font-medium">40-49</span>
-                                    <span class="bg-orange-200 border border-orange-400 text-orange-900 px-1 py-0.5 rounded font-medium">50-59</span>
-                                    <span class="bg-red-200 border border-red-400 text-red-900 px-1 py-0.5 rounded font-medium">60-69</span>
-                                    <span class="bg-rose-200 border border-rose-400 text-rose-900 px-1 py-0.5 rounded font-medium">70-79</span>
-                                    <span class="bg-purple-200 border border-purple-400 text-purple-900 px-1 py-0.5 rounded font-medium">80+</span>
-                                </div>
+        <!-- Column 2: Available Players -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100">
+            <div class="px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-green-50 to-emerald-50">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                            <i class="fas fa-users text-green-600 mr-2"></i>
+                            Available Players
+                            <span id="player-count" class="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full"></span>
+                        </h2>
+                        <p class="text-sm text-gray-600 mt-1">Tap players to assign to series ranges. Tennaqua players only.</p>
+                        <div class="mt-2 p-2 bg-gray-50 rounded-lg">
+                            <p class="text-xs font-medium text-gray-700 mb-1">PTI Color Guide:</p>
+                            <div class="flex flex-wrap gap-1 text-xs">
+                                <span class="bg-emerald-200 border border-emerald-400 text-emerald-900 px-1 py-0.5 rounded font-medium">0-9</span>
+                                <span class="bg-green-200 border border-green-400 text-green-900 px-1 py-0.5 rounded font-medium">10-19</span>
+                                <span class="bg-lime-200 border border-lime-400 text-lime-900 px-1 py-0.5 rounded font-medium">20-29</span>
+                                <span class="bg-yellow-200 border border-yellow-400 text-yellow-900 px-1 py-0.5 rounded font-medium">30-39</span>
+                                <span class="bg-amber-200 border border-amber-400 text-amber-900 px-1 py-0.5 rounded font-medium">40-49</span>
+                                <span class="bg-orange-200 border border-orange-400 text-orange-900 px-1 py-0.5 rounded font-medium">50-59</span>
+                                <span class="bg-red-200 border border-red-400 text-red-900 px-1 py-0.5 rounded font-medium">60-69</span>
+                                <span class="bg-rose-200 border border-rose-400 text-rose-900 px-1 py-0.5 rounded font-medium">70-79</span>
+                                <span class="bg-purple-200 border border-purple-400 text-purple-900 px-1 py-0.5 rounded font-medium">80+</span>
                             </div>
                         </div>
-                        <button id="reset-players" class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-green-600 bg-white border border-green-200 rounded-lg hover:bg-green-50 hover:text-green-700 transition-colors">
-                            <i class="fas fa-undo text-xs"></i>
-                            Reset
-                        </button>
                     </div>
-                </div>
-                <div class="p-4 max-h-96 overflow-y-auto">
-                    <div id="available-players-pool" class="min-h-24 bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-4">
-                        <div class="text-gray-400 text-center text-sm" id="loading-players">Loading players...</div>
-                    </div>
+                    <button id="reset-players" class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-green-600 bg-white border border-green-200 rounded-lg hover:bg-green-50 hover:text-green-700 transition-colors">
+                        <i class="fas fa-undo text-xs"></i>
+                        Reset
+                    </button>
                 </div>
             </div>
-
-            <!-- Column 3: Series Teams Display -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100">
-                <div class="px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-purple-50 to-pink-50">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-                                <i class="fas fa-users-cog text-purple-600 mr-2"></i>
-                                Team Assignments
-                            </h2>
-                            <p class="text-sm text-gray-600 mt-1">Tap series to assign selected players</p>
-                            <p class="text-xs text-blue-600 mt-1">
-                                <i class="fas fa-info-circle mr-1"></i>
-                                <strong>Target Team PTI</strong> shows total team PTI range (individual PTI × team size).
-                            </p>
-                        </div>
-                        <button id="reset-assignments" class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-purple-600 bg-white border border-purple-200 rounded-lg hover:bg-purple-50 hover:text-purple-700 transition-colors">
-                            <i class="fas fa-undo text-xs"></i>
-                            Reset
-                        </button>
-                    </div>
-                </div>
-                <div class="p-4 max-h-96 overflow-y-auto">
-                    <div id="series-teams" class="space-y-4">
-                        <!-- Series containers will be dynamically created here -->
-                    </div>
+            <div class="p-4 max-h-96 overflow-y-auto">
+                <div id="available-players-pool" class="min-h-24 bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-4">
+                    <div class="text-gray-400 text-center text-sm" id="loading-players">Loading players...</div>
                 </div>
             </div>
-
         </div>
 
-        <!-- Selected Player Indicator (for tap mode) -->
-        <div id="selected-player-indicator" class="bg-yellow-100 border border-yellow-300 rounded-lg p-4 mt-4 hidden">
-            <div class="flex items-center justify-between">
-                <div>
-                    <span class="text-sm font-medium text-yellow-800">Selected: </span>
-                    <span id="selected-player-name" class="text-sm text-yellow-900 font-semibold"></span>
-                    <span id="selected-player-pti" class="text-xs text-yellow-700 ml-2"></span>
+        <!-- Column 3: Series Teams Display -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100">
+            <div class="px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-purple-50 to-pink-50">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                            <i class="fas fa-users-cog text-purple-600 mr-2"></i>
+                            Team Assignments
+                        </h2>
+                        <p class="text-sm text-gray-600 mt-1">Tap series to assign selected players</p>
+                        <p class="text-xs text-blue-600 mt-1">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            <strong>Target Team PTI</strong> shows total team PTI range (individual PTI × team size).
+                        </p>
+                    </div>
+                    <button id="reset-assignments" class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-purple-600 bg-white border border-purple-200 rounded-lg hover:bg-purple-50 hover:text-purple-700 transition-colors">
+                        <i class="fas fa-undo text-xs"></i>
+                        Reset
+                    </button>
                 </div>
-                <button id="clear-selection" class="text-yellow-600 hover:text-yellow-800 text-sm px-3 py-1 rounded">
-                    Clear Selection
-                </button>
             </div>
-            <p class="text-xs text-yellow-700 mt-2">Tap a series range to assign this player</p>
+            <div class="p-4 max-h-96 overflow-y-auto">
+                <div id="series-teams" class="space-y-4">
+                    <!-- Series containers will be dynamically created here -->
+                </div>
+            </div>
         </div>
 
-        <!-- Action Buttons -->
-        <div class="flex gap-3 pt-6 justify-center">
-            <button id="save-teams" class="bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed">
-                <i class="fas fa-save mr-2"></i>
-                Save Teams
-            </button>
-            <button id="reset-teams" class="bg-gray-600 text-white px-6 py-3 rounded-lg shadow-lg hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-all font-semibold">
-                <i class="fas fa-undo mr-2"></i>
-                Reset
+    </div>
+
+    <!-- Selected Player Indicator (for tap mode) -->
+    <div id="selected-player-indicator" class="bg-yellow-100 border border-yellow-300 rounded-lg p-4 mt-4 hidden">
+        <div class="flex items-center justify-between">
+            <div>
+                <span class="text-sm font-medium text-yellow-800">Selected: </span>
+                <span id="selected-player-name" class="text-sm text-yellow-900 font-semibold"></span>
+                <span id="selected-player-pti" class="text-xs text-yellow-700 ml-2"></span>
+            </div>
+            <button id="clear-selection" class="text-yellow-600 hover:text-yellow-800 text-sm px-3 py-1 rounded">
+                Clear Selection
             </button>
         </div>
+        <p class="text-xs text-yellow-700 mt-2">Tap a series range to assign this player</p>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="flex gap-3 pt-6 justify-center">
+        <button id="save-teams" class="bg-green-600 text-white px-6 py-3 rounded-lg shadow-lg hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed">
+            <i class="fas fa-save mr-2"></i>
+            Save Teams
+        </button>
+        <button id="reset-teams" class="bg-gray-600 text-white px-6 py-3 rounded-lg shadow-lg hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-all font-semibold">
+            <i class="fas fa-undo mr-2"></i>
+            Reset
+        </button>
     </div>
 </div>
 
@@ -304,83 +302,6 @@ document.addEventListener('DOMContentLoaded', function() {
     let teamAssignments = {};
     let selectedPlayerForTap = null;
 
-    // Prevent content from being hidden after it's shown
-    let contentProtectionActive = false;
-    
-    function protectContent() {
-        if (contentProtectionActive) return;
-        contentProtectionActive = true;
-        
-        console.log('🔍 🛡️ Activating content protection...');
-        
-        const mainContent = document.getElementById('main-content');
-        if (!mainContent) return;
-        
-        // Create a MutationObserver to watch for changes
-        const observer = new MutationObserver(function(mutations) {
-            mutations.forEach(function(mutation) {
-                if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-                    const target = mutation.target;
-                    if (target.id === 'main-content' && target.classList.contains('hidden')) {
-                        console.log('🔍 ⚠️ DETECTED: Something tried to hide main-content! Preventing...');
-                        target.classList.remove('hidden');
-                        target.style.display = 'block';
-                        target.style.visibility = 'visible';
-                    }
-                }
-                
-                // Also check if loading state gets shown again
-                if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-                    const target = mutation.target;
-                    if (target.id === 'loading-state' && !target.classList.contains('hidden')) {
-                        console.log('🔍 ⚠️ DETECTED: Something tried to show loading state again! Preventing...');
-                        target.classList.add('hidden');
-                        target.style.display = 'none';
-                    }
-                }
-            });
-        });
-        
-        // Start observing
-        observer.observe(mainContent, { 
-            attributes: true, 
-            attributeFilter: ['class', 'style'] 
-        });
-        
-        const loadingState = document.getElementById('loading-state');
-        if (loadingState) {
-            observer.observe(loadingState, { 
-                attributes: true, 
-                attributeFilter: ['class', 'style'] 
-            });
-        }
-        
-        // Also set up a periodic check
-        const protectionInterval = setInterval(() => {
-            if (mainContent.classList.contains('hidden')) {
-                console.log('🔍 🛡️ Periodic check: Main content was hidden, restoring...');
-                mainContent.classList.remove('hidden');
-                mainContent.style.display = 'block';
-                mainContent.style.visibility = 'visible';
-            }
-            
-            if (loadingState && !loadingState.classList.contains('hidden')) {
-                console.log('🔍 🛡️ Periodic check: Loading state was shown, hiding...');
-                loadingState.classList.add('hidden');
-                loadingState.style.display = 'none';
-            }
-        }, 500);
-        
-        console.log('🔍 🛡️ Content protection active with MutationObserver and periodic checks');
-        
-        // Stop protection after 30 seconds (should be enough for page to stabilize)
-        setTimeout(() => {
-            observer.disconnect();
-            clearInterval(protectionInterval);
-            console.log('🔍 🛡️ Content protection deactivated after 30 seconds');
-        }, 30000);
-    }
-
     // PTI Color Coding Function
     function getPTIColorClass(pti) {
         const segment = Math.floor(pti / 10);
@@ -416,7 +337,7 @@ document.addEventListener('DOMContentLoaded', function() {
             setupEventListeners();
             console.log('🔍 ✅ Event listeners set up');
             
-            console.log('🔍 Step 4: Showing content...');
+            console.log('🔍 Step 4: Hiding loading state...');
             showContent();
             console.log('🔍 ✅ Page initialization complete');
         } catch (error) {
@@ -740,66 +661,17 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Show content and hide loading
+    // Show content and hide loading (simplified)
     function showContent() {
-        console.log('🔍 showContent() called');
+        console.log('🔍 showContent() called - hiding loading state');
         const loadingState = document.getElementById('loading-state');
-        const mainContent = document.getElementById('main-content');
-        
-        console.log('🔍 Loading state element:', loadingState);
-        console.log('🔍 Main content element:', mainContent);
         
         if (loadingState) {
-            loadingState.classList.add('hidden');
             loadingState.style.display = 'none';
             console.log('🔍 ✅ Loading state hidden');
-        } else {
-            console.log('🔍 ❌ Loading state element not found');
         }
         
-        if (mainContent) {
-            mainContent.classList.remove('hidden');
-            mainContent.style.display = 'block';
-            mainContent.style.visibility = 'visible';
-            mainContent.style.opacity = '1';
-            console.log('🔍 ✅ Main content shown');
-            
-            // Activate content protection immediately
-            protectContent();
-            
-            // Ensure content is visible by scrolling to it
-            setTimeout(() => {
-                const rect = mainContent.getBoundingClientRect();
-                console.log('🔍 Main content position after show:', {
-                    top: rect.top,
-                    height: rect.height,
-                    isVisible: rect.top < window.innerHeight && rect.bottom > 0
-                });
-                
-                if (rect.top < 0 || rect.top > window.innerHeight) {
-                    console.log('🔍 Content not in viewport, scrolling to it...');
-                    mainContent.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                } else {
-                    console.log('🔍 Content is already visible in viewport');
-                }
-                
-                // Final check after a moment to see if content is still visible
-                setTimeout(() => {
-                    if (mainContent.classList.contains('hidden') || mainContent.style.display === 'none') {
-                        console.log('🔍 ⚠️ CRITICAL: Content disappeared after showing! Auto-fixing...');
-                        window.emergencyFix();
-                    } else {
-                        console.log('🔍 ✅ Content remains visible - success!');
-                    }
-                }, 1000);
-                
-            }, 100);
-            
-        } else {
-            console.log('🔍 ❌ Main content element not found');
-        }
-        
-        console.log('🔍 showContent() complete');
+        console.log('🔍 showContent() complete - main content should now be visible');
     }
 
     // Show error message
@@ -1059,37 +931,21 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('🔍 Check the Network tab for any failed resource loads.');
     };
 
-    // Simple fix function - tries multiple approaches
+    // Simple fix function - makes content visible
     window.fixCreateTeamPage = function() {
-        console.log('🔍 === ATTEMPTING TO FIX PAGE ===');
+        console.log('🔍 === MAKING CONTENT VISIBLE ===');
         
-        // 1. Force show main content with multiple CSS properties
-        const mainContent = document.getElementById('main-content');
-        if (mainContent) {
-            mainContent.classList.remove('hidden');
-            mainContent.style.display = 'block';
-            mainContent.style.visibility = 'visible';
-            mainContent.style.opacity = '1';
-            mainContent.style.position = 'relative';
-            mainContent.style.zIndex = '1';
-            console.log('🔍 ✅ Main content visibility forced');
-        }
-        
-        // 2. Force hide loading state
+        // Hide loading state
         const loadingState = document.getElementById('loading-state');
         if (loadingState) {
-            loadingState.classList.add('hidden');
             loadingState.style.display = 'none';
             console.log('🔍 ✅ Loading state hidden');
         }
         
-        // 3. Activate content protection
-        protectContent();
-        
-        // 4. Scroll to top of page
+        // Scroll to top
         window.scrollTo({ top: 0, behavior: 'smooth' });
         
-        // 5. Re-populate content if needed
+        // Re-populate content if needed
         if (allPlayers.length > 0) {
             displayPlayers();
             console.log('🔍 ✅ Players re-displayed');
@@ -1101,24 +957,7 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('🔍 ✅ Series re-displayed');
         }
         
-        // 6. Highlight content after a moment
-        setTimeout(() => {
-            if (mainContent) {
-                mainContent.style.border = '2px solid #10b981';
-                mainContent.style.backgroundColor = '#f0fdf4';
-                console.log('🔍 ✅ Content highlighted');
-                
-                setTimeout(() => {
-                    mainContent.style.border = '';
-                    mainContent.style.backgroundColor = '';
-                }, 3000);
-            }
-        }, 200);
-        
-        // 7. Start interference detection
-        window.detectInterference();
-        
-        console.log('🔍 === FIX ATTEMPT COMPLETE ===');
+        console.log('🔍 === CONTENT SHOULD NOW BE VISIBLE ===');
     };
 
     // Detect interfering scripts
@@ -1189,87 +1028,37 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('🔍 === MONITORING FOR 5 SECONDS ===');
     };
 
-    // Emergency fix for disappearing content
+    // Emergency fix for visibility issues
     window.emergencyFix = function() {
-        console.log('🔍 🚨 EMERGENCY FIX ACTIVATED');
+        console.log('🔍 🚨 Emergency fix: ensuring content is visible');
         
-        // Force show content with maximum authority
-        const mainContent = document.getElementById('main-content');
+        // Hide loading state
         const loadingState = document.getElementById('loading-state');
-        
-        if (mainContent) {
-            // Remove all potentially interfering classes
-            mainContent.className = 'container mx-auto px-2 py-6';
-            
-            // Set all possible visibility styles
-            mainContent.style.cssText = `
-                display: block !important;
-                visibility: visible !important;
-                opacity: 1 !important;
-                position: relative !important;
-                z-index: 999 !important;
-                padding-top: 72px !important;
-                padding-bottom: 84px !important;
-                background: white !important;
-            `;
-            
-            console.log('🔍 🚨 Main content emergency visibility applied');
-        }
-        
         if (loadingState) {
-            loadingState.style.cssText = 'display: none !important;';
-            console.log('🔍 🚨 Loading state emergency hidden');
+            loadingState.style.display = 'none';
         }
         
-        // Stop all timeouts and intervals that might interfere
-        const highestTimeoutId = setTimeout(() => {}, 0);
-        for (let i = 0; i <= highestTimeoutId; i++) {
-            clearTimeout(i);
+        // Ensure main content container is visible
+        const mainContent = document.getElementById('main-content');
+        if (mainContent) {
+            mainContent.style.display = 'block';
+            mainContent.style.visibility = 'visible';
         }
         
-        const highestIntervalId = setInterval(() => {}, 1000);
-        for (let i = 0; i <= highestIntervalId; i++) {
-            clearInterval(i);
+        // Re-populate content
+        if (allPlayers.length > 0) {
+            displayPlayers();
         }
         
-        console.log('🔍 🚨 Cleared all potential interfering timers');
+        if (seriesRanges.length > 0) {
+            displaySeriesControls();
+            displaySeriesTeams();
+        }
         
-        // Activate super-aggressive protection
-        const superProtection = setInterval(() => {
-            if (mainContent && mainContent.style.display === 'none') {
-                mainContent.style.cssText = `
-                    display: block !important;
-                    visibility: visible !important;
-                    opacity: 1 !important;
-                    position: relative !important;
-                    z-index: 999 !important;
-                `;
-                console.log('🔍 🚨 Emergency protection: restored visibility');
-            }
-        }, 100);
+        // Show success message
+        alert('✅ Emergency fix applied! Content should now be visible.');
         
-        // Show emergency success message
-        const emergencyMsg = document.createElement('div');
-        emergencyMsg.style.cssText = `
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #10b981;
-            color: white;
-            padding: 10px 20px;
-            border-radius: 8px;
-            z-index: 9999;
-            font-weight: bold;
-        `;
-        emergencyMsg.textContent = '🚨 Emergency Fix Applied - Content Protected';
-        document.body.appendChild(emergencyMsg);
-        
-        setTimeout(() => {
-            emergencyMsg.remove();
-        }, 5000);
-        
-        console.log('🔍 🚨 EMERGENCY FIX COMPLETE');
+        console.log('🔍 🚨 Emergency fix complete');
     };
 
     // Initialize page
