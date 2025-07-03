@@ -233,7 +233,7 @@ def get_series_stats_data():
         # CRITICAL FIX: Apply reverse series mapping
         # The user session contains database format (e.g., "S2B") but series_stats table 
         # uses user-facing format (e.g., "Series 2B"). Need to convert database format to user format.
-        mapped_series = user_series  # Default to original
+        mapped_series = user_series
         
         if user_league_id:
             # Convert league_id to string format needed by team_format_mappings table
@@ -256,39 +256,20 @@ def get_series_stats_data():
             if league_id_str:
                 print(f"[DEBUG] Using league_id_str: {league_id_str} for mapping lookup")
                 
-                # Simplified fallback for NSTF series mapping (known working patterns)
-                if league_id_str == "NSTF" and user_series.startswith("S"):
+                # FIXED: Simple, direct mapping for APTA Chicago
+                if league_id_str == "APTA_CHICAGO" and user_series.startswith("Series "):
+                    # APTA session format: "Series 22" -> "Chicago 22"
+                    series_number = user_series.replace("Series ", "")
+                    mapped_series = f"Chicago {series_number}"
+                    print(f"[DEBUG] Applied APTA Chicago mapping: '{user_series}' -> '{mapped_series}'")
+                elif league_id_str == "NSTF" and user_series.startswith("S"):
                     # NSTF database format: S2B -> Series 2B
                     series_suffix = user_series[1:]  # Remove "S" prefix
                     mapped_series = f"Series {series_suffix}"
                     print(f"[DEBUG] Applied NSTF fallback mapping: '{user_series}' -> '{mapped_series}'")
                 else:
-                    # Try database query for other leagues
-                    try:
-                        reverse_mapping_query = """
-                            SELECT user_input_format
-                            FROM team_format_mappings
-                            WHERE league_id = %s 
-                            AND database_series_format = %s 
-                            AND is_active = true
-                            ORDER BY 
-                                CASE WHEN user_input_format LIKE 'Series%' THEN 1 
-                                     WHEN user_input_format LIKE 'Division%' THEN 2 
-                                     ELSE 3 END,
-                                LENGTH(user_input_format) DESC
-                            LIMIT 1
-                        """
-                        
-                        reverse_mapping = execute_query_one(reverse_mapping_query, [league_id_str, user_series])
-                        
-                        if reverse_mapping:
-                            mapped_series = reverse_mapping["user_input_format"]
-                            print(f"[DEBUG] Applied database reverse mapping: '{user_series}' -> '{mapped_series}' for league {league_id_str}")
-                        else:
-                            print(f"[DEBUG] No reverse mapping found for '{user_series}' in league {league_id_str}")
-                            
-                    except Exception as e:
-                        print(f"[DEBUG] Reverse mapping query failed: {e}")
+                    # Try database query for other leagues (but skip the problematic query for now)
+                    print(f"[DEBUG] No mapping applied for league {league_id_str}, series '{user_series}'")
             else:
                 print(f"[DEBUG] Could not determine string league_id from {user_league_id}")
 
