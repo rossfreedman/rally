@@ -39,11 +39,12 @@ def init_find_sub_routes(app):
 
             # Load club directory data
             try:
-                # Get user's league for dynamic path
-                user_league_id = session.get("user", {}).get("league_id", "")
+                # Get user's league for dynamic path  
+                # FIXED: Use league_string_id instead of league_id (which is now an integer)
+                user_league_string_id = session.get("user", {}).get("league_string_id", "")
 
                 # Use dynamic path based on league
-                if user_league_id and not user_league_id.startswith("APTA"):
+                if user_league_string_id and not user_league_string_id.startswith("APTA"):
                     # For non-APTA leagues, use league-specific path
                     csv_path = os.path.join(
                         os.path.dirname(
@@ -51,7 +52,7 @@ def init_find_sub_routes(app):
                         ),
                         "data",
                         "leagues",
-                        user_league_id,
+                        user_league_string_id,
                         "club_directories",
                         "directory_tennaqua.csv",
                     )

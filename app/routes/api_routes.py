@@ -2282,8 +2282,9 @@ def get_teams():
         if not user:
             return jsonify({"error": "Not authenticated"}), 401
 
-        user_league_id = user.get("league_id", "")
-        print(f"[DEBUG] /api/teams: User league_id: '{user_league_id}'")
+        # FIXED: Use league_string_id instead of league_id (which is now an integer)
+        user_league_string_id = user.get("league_string_id", "")
+        print(f"[DEBUG] /api/teams: User league_string_id: '{user_league_string_id}'")
 
         # Load stats data to get team names
         import os
@@ -2301,12 +2302,12 @@ def get_teams():
         # Filter stats data by user's league
         def is_user_league_team(team_data):
             team_league_id = team_data.get("league_id")
-            if user_league_id.startswith("APTA"):
+            if user_league_string_id.startswith("APTA"):
                 # For APTA users, only include teams without league_id field (APTA teams)
                 return team_league_id is None
             else:
                 # For other leagues, match the league_id
-                return team_league_id == user_league_id
+                return team_league_id == user_league_string_id
 
         league_filtered_stats = [
             team for team in all_stats if is_user_league_team(team)
