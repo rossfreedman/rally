@@ -23,7 +23,7 @@ Requirements:
                     class="inline-flex items-center text-sm text-gray-600 hover:text-blue-600 transition-colors duration-200 bg-white border border-gray-200 rounded-lg px-3 py-2 shadow-sm hover:shadow-md">
                 <i class="fas fa-users text-xs mr-2"></i>
                 {% if current_team_info %}
-                    <span>{{ current_team_info.team_name }}</span>
+                    <span>{{ current_team_info.display_name }}</span>
                 {% else %}
                     <span>Select Team</span>
                 {% endif %}
@@ -49,14 +49,14 @@ Requirements:
             <!-- Team Options -->
             <div class="p-4 space-y-2 max-h-80 overflow-y-auto">
                 {% for team in user_teams %}
-                <button onclick="switchToTeam({{ team.id }}, '{{ team.team_name }}')"
+                <button onclick="switchToTeam({{ team.id }}, '{{ team.display_name }}')"
                         class="team-option w-full flex items-center justify-between p-4 rounded-lg hover:bg-gray-50 transition-colors group text-left
                                {% if team.id == (current_team_info.id if current_team_info else None) %}bg-blue-50 border-2 border-blue-200 ring-2 ring-blue-100{% else %}border border-gray-200 hover:border-gray-300{% endif %}"
                         data-team-id="{{ team.id }}"
-                        data-team-name="{{ team.team_name }}">
+                        data-team-name="{{ team.display_name }}">
                     <div class="flex-1">
                         <div class="font-medium {% if team.id == (current_team_info.id if current_team_info else None) %}text-blue-700{% else %}text-gray-900{% endif %}">
-                            {{ team.team_name }}
+                            {{ team.display_name }}
                         </div>
                         <div class="text-sm text-gray-500 mt-1">
                             {{ team.club_name }} • {{ team.series_name }}
@@ -104,7 +104,7 @@ Requirements:
         <div class="flex items-center text-sm text-blue-700">
             <i class="fas fa-layer-group mr-2"></i>
             <span class="font-medium">Current Context:</span>
-            <span class="ml-2">{{ current_team_info.team_name }}</span>
+            <span class="ml-2">{{ current_team_info.display_name }}</span>
             <span class="mx-2 text-blue-400">•</span>
             <span>{{ current_team_info.league_name }}</span>
         </div>
@@ -309,20 +309,20 @@ Requirements:
     // Update context UI after successful switch
     function updateContextUI(contextInfo) {
         const trigger = document.getElementById('teamSelectorTrigger');
-        if (trigger && contextInfo.team_name) {
+        if (trigger && contextInfo.display_name) {
             trigger.innerHTML = `
                 <i class="fas fa-users text-xs mr-2"></i>
-                <span>${contextInfo.team_name}</span>
+                <span>${contextInfo.display_name}</span>
                 <i class="fas fa-chevron-down text-xs ml-2"></i>
             `;
         }
 
         // Update context info bar if present
         const contextBar = document.querySelector('.context-info-bar');
-        if (contextBar && contextInfo.team_name) {
+        if (contextBar && contextInfo.display_name) {
             const contextText = contextBar.querySelector('span:nth-of-type(2)');
             const leagueText = contextBar.querySelector('span:nth-of-type(4)');
-            if (contextText) contextText.textContent = contextInfo.team_name;
+            if (contextText) contextText.textContent = contextInfo.display_name;
             if (leagueText) leagueText.textContent = contextInfo.league_name;
         }
     }

@@ -50,12 +50,12 @@
         <!-- Header -->
         <div class="bg-white border-b border-gray-100">
             <div class="flex items-center px-4 py-6">
-                <div class="w-12 h-12 bg-sky-600 rounded-full flex items-center justify-center shadow-sm" style="background-color: #0284c7 !important;">
-                    <i class="fas fa-calendar text-white text-lg"></i>
+                <div class="w-12 h-12 bg-indigo-600 rounded-full flex items-center justify-center shadow-sm" style="background-color: #4f46e5 !important;">
+                    <i class="fas fa-calendar-alt text-white text-lg"></i>
                 </div>
                 <div class="ml-4">
-                    <h1 class="text-xl font-bold text-gray-900">Team Availability</h1>
-                    <p class="text-sm text-gray-500">{{ team }}</p>
+                    <h1 class="text-xl font-bold text-gray-900">Team Schedule</h1>
+                    <p class="text-sm text-gray-500">{{ current_team_info.display_name if current_team_info else 'Schedule Analysis' }}</p>
                 </div>
             </div>
         </div>
@@ -304,6 +304,12 @@ document.addEventListener('DOMContentLoaded', function() {
             eventDetails = data.event_details || {};
             
             updateProgress(4, 80, 'Building interface...');
+            
+            // Update page header with team display name
+            const teamNameElement = document.querySelector('.text-sm.text-gray-500');
+            if (teamNameElement && data.team_info && data.team_info.display_name) {
+                teamNameElement.textContent = data.team_info.display_name;
+            }
             
             // Populate the UI
             populateFilters();
