@@ -432,7 +432,6 @@ document.addEventListener('DOMContentLoaded', function() {
     let seriesRanges = [];
     let teamAssignments = {};
     let selectedPlayerForTap = null;
-    let ptiRange = { min: -30, max: 100 }; // Current PTI filter range
 
     // PTI Color Coding Function
     function getPTIColorClass(pti) {
@@ -451,107 +450,19 @@ document.addEventListener('DOMContentLoaded', function() {
         return colorClasses[segment] || colorClasses[colorClasses.length - 1];
     }
 
-    // PTI Slider Functions
-    function initializePTISliders() {
-        const ptiMinSlider = document.getElementById('ptiMinSlider');
-        const ptiMaxSlider = document.getElementById('ptiMaxSlider');
-        const ptiMinValue = document.getElementById('ptiMinValue');
-        const ptiMaxValue = document.getElementById('ptiMaxValue');
-        const ptiRangeDisplay = document.getElementById('ptiRangeDisplay');
-        const applyPTIFilter = document.getElementById('applyPTIFilter');
-
-        if (!ptiMinSlider || !ptiMaxSlider) return;
-
-        // Set initial values
-        ptiRange.min = -30;
-        ptiRange.max = 100;
-        ptiMinSlider.value = ptiRange.min;
-        ptiMaxSlider.value = ptiRange.max;
-        updatePTIDisplay();
-
-        // Add event listeners
-        ptiMinSlider.addEventListener('input', function() {
-            let minVal = parseFloat(this.value);
-            let maxVal = parseFloat(ptiMaxSlider.value);
-            
-            // Ensure min doesn't exceed max
-            if (minVal > maxVal) {
-                minVal = maxVal - 0.1;
-                this.value = minVal;
-            }
-            
-            ptiRange.min = minVal;
-            updatePTIDisplay();
+    // Reset individual series ranges to original values
+    function resetSeriesRanges() {
+        console.log('Resetting all series ranges to original values');
+        
+        // Reset each series to its original range
+        seriesRanges.forEach(series => {
+            // For now, we'll reload the page to get original data
+            // In a full implementation, you'd store original ranges
+            console.log(`Resetting ${series.series_name} to original range`);
         });
         
-        ptiMaxSlider.addEventListener('input', function() {
-            let maxVal = parseFloat(this.value);
-            let minVal = parseFloat(ptiMinSlider.value);
-            
-            // Ensure max doesn't go below min
-            if (maxVal < minVal) {
-                maxVal = minVal + 0.1;
-                this.value = maxVal;
-            }
-            
-            ptiRange.max = maxVal;
-            updatePTIDisplay();
-        });
-
-        // Apply filter button
-        applyPTIFilter.addEventListener('click', applyPTIFiltering);
-
-        console.log('PTI sliders initialized');
-    }
-
-    function updatePTIDisplay() {
-        const ptiMinValue = document.getElementById('ptiMinValue');
-        const ptiMaxValue = document.getElementById('ptiMaxValue');
-        const ptiRangeDisplay = document.getElementById('ptiRangeDisplay');
-        
-        if (ptiMinValue) ptiMinValue.textContent = ptiRange.min.toFixed(1);
-        if (ptiMaxValue) ptiMaxValue.textContent = ptiRange.max.toFixed(1);
-        if (ptiRangeDisplay) ptiRangeDisplay.textContent = `${ptiRange.min.toFixed(1)} - ${ptiRange.max.toFixed(1)}`;
-    }
-
-    function applyPTIFiltering() {
-        console.log(`Applying PTI filter: ${ptiRange.min} - ${ptiRange.max}`);
-        
-        // Filter players based on PTI range
-        allPlayers = originalPlayers.filter(player => {
-            const pti = player.pti || 0;
-            return pti >= ptiRange.min && pti <= ptiRange.max;
-        });
-        
-        console.log(`Filtered ${allPlayers.length} players from ${originalPlayers.length} total (PTI range: ${ptiRange.min}-${ptiRange.max})`);
-        
-        // Refresh player display
-        displayPlayers();
-        updatePlayerCount();
-    }
-
-    function resetPTIFilter() {
-        console.log('Resetting PTI filter');
-        
-        // Reset range to full range
-        ptiRange.min = -30;
-        ptiRange.max = 100;
-        
-        // Update sliders
-        const ptiMinSlider = document.getElementById('ptiMinSlider');
-        const ptiMaxSlider = document.getElementById('ptiMaxSlider');
-        if (ptiMinSlider) ptiMinSlider.value = ptiRange.min;
-        if (ptiMaxSlider) ptiMaxSlider.value = ptiRange.max;
-        
-        // Update display
-        updatePTIDisplay();
-        
-        // Reset players to original list
-        allPlayers = [...originalPlayers];
-        
-        // Refresh display
-        displayPlayers();
-        updatePlayerCount();
+        // Simple reset - reload the series data
+        location.reload();
     }
 
     // Series PTI Range Management Functions
@@ -758,7 +669,6 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('Starting page initialization...');
             await loadPlayers();
             await loadSeriesRanges();
-            initializePTISliders();
             setupEventListeners();
             showContent();
             console.log('Page initialization complete');
@@ -1090,7 +1000,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         document.getElementById('reset-ranges')?.addEventListener('click', () => {
-            resetPTIFilter();
+            resetSeriesRanges();
         });
 
         document.getElementById('reset-assignments')?.addEventListener('click', () => {
