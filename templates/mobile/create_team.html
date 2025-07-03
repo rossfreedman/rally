@@ -70,9 +70,9 @@
                         <div>
                             <h2 class="text-lg font-semibold text-gray-900 flex items-center">
                                 <i class="fas fa-sliders-h text-blue-600 mr-2"></i>
-                                PTI Range Control
+                                Series PTI Ranges
                             </h2>
-                            <p class="text-sm text-gray-600 mt-1">Adjust PTI ranges for each series with real-time validation</p>
+                            <p class="text-sm text-gray-600 mt-1">Adjust PTI ranges for each series with automatic conflict resolution</p>
                         </div>
                         <button id="reset-ranges" class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-blue-600 bg-white border border-blue-200 rounded-lg hover:bg-blue-50 hover:text-blue-700 transition-colors">
                             <i class="fas fa-undo text-xs"></i>
@@ -81,32 +81,9 @@
                     </div>
                 </div>
                 <div class="p-4 max-h-96 overflow-y-auto">
-                    <!-- PTI Range Sliders -->
-                    <div class="space-y-4 mb-4">
-                        <div>
-                            <label for="ptiMinSlider" class="block text-sm font-medium text-gray-700 mb-2">Minimum PTI</label>
-                            <input type="range" id="ptiMinSlider" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" 
-                                   min="-30" max="100" value="-30" step="0.1">
-                            <div class="text-xs text-gray-500 mt-1">Min: <span id="ptiMinValue">-30.0</span></div>
-                        </div>
-                        <div>
-                            <label for="ptiMaxSlider" class="block text-sm font-medium text-gray-700 mb-2">Maximum PTI</label>
-                            <input type="range" id="ptiMaxSlider" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" 
-                                   min="-30" max="100" value="100" step="0.1">
-                            <div class="text-xs text-gray-500 mt-1">Max: <span id="ptiMaxValue">100.0</span></div>
-                        </div>
-                        <div class="text-sm text-center text-blue-600 font-medium bg-blue-50 px-3 py-2 rounded-lg">
-                            PTI Range: <span id="ptiRangeDisplay">-30.0 - 100.0</span>
-                        </div>
-                        <button id="applyPTIFilter" class="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium">
-                            <i class="fas fa-filter mr-2"></i>
-                            Apply PTI Filter
-                        </button>
-                    </div>
-                    
-                    <!-- Series Recommendations -->
+                    <!-- Individual Series PTI Controls -->
                     <div id="series-recommendations" class="space-y-4">
-                        <!-- Series recommendations will be loaded here -->
+                        <!-- Series with individual PTI sliders will be loaded here -->
                     </div>
                 </div>
             </div>
