@@ -39,7 +39,7 @@
 
     <!-- Main Content Container -->
     <div id="main-content">
-        <div class="space-y-4">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
             
             <!-- Column 1: Interactive PTI Range Control -->
             <div class="bg-white rounded-xl shadow-sm border border-gray-100">
@@ -287,13 +287,29 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-/* Responsive grid for mobile */
-@media (max-width: 768px) {
-    .candy-grid {
-        grid-template-columns: repeat(2, 1fr) !important;
-        gap: 10px !important;
+/* 3-Column Layout Styling */
+@media (min-width: 1024px) {
+    #main-content .grid {
+        min-height: 600px;
+        align-items: start;
     }
     
+    #main-content .grid > div {
+        min-height: 500px;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .player-card {
+        width: 100px !important;
+        font-size: 0.75rem !important;
+        padding: 0.5rem !important;
+        margin: 0.25rem !important;
+    }
+}
+
+/* Responsive adjustments for mobile */
+@media (max-width: 1023px) {
     .player-card {
         width: 120px !important;
         min-height: 50px !important;
