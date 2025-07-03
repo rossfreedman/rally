@@ -3856,12 +3856,34 @@ def get_mobile_team_data(user):
             FROM series_stats
             WHERE team = %s AND league_id = %s
         """
+        print(f"[DEBUG] Querying series_stats with team='{team_name}' and league_id={league_id_int}")
         team_stats = execute_query_one(team_stats_query, [team_name, league_id_int])
         print(f"[DEBUG] Team stats query result: {team_stats}")
+        
+        # Let's also check what teams exist in series_stats for this league
+        check_teams_query = """
+            SELECT DISTINCT team, league_id 
+            FROM series_stats 
+            WHERE league_id = %s
+            ORDER BY team
+        """
+        existing_teams = execute_query(check_teams_query, [league_id_int])
+        print(f"[DEBUG] Teams in series_stats for league {league_id_int}: {[t['team'] for t in existing_teams]}")
 
         # If no stats found in series_stats, calculate them from match_scores
         if not team_stats:
             print(f"[DEBUG] No stats found in series_stats for {team_name}, calculating from match_scores...")
+            
+            # Let's check what teams exist in match_scores for this league
+            check_match_teams_query = """
+                SELECT DISTINCT home_team, away_team
+                FROM match_scores 
+                WHERE league_id = %s 
+                AND (home_team ILIKE %s OR away_team ILIKE %s)
+                LIMIT 10
+            """
+            similar_match_teams = execute_query(check_match_teams_query, [league_id_int, f"%{team_name.split()[0]}%", f"%{team_name.split()[0]}%"])
+            print(f"[DEBUG] Similar teams in match_scores: {similar_match_teams}")
             
             matches_query = """
                 WITH team_matches AS (
@@ -3900,7 +3922,9 @@ def get_mobile_team_data(user):
                 FROM team_matches
             """
             
+            print(f"[DEBUG] Running match stats query with team='{team_name}' (4 times) and league_id={league_id_int}")
             match_stats = execute_query_one(matches_query, [team_name, team_name, team_name, team_name, league_id_int])
+            print(f"[DEBUG] Match stats query result: {match_stats}")
             
             if match_stats and match_stats["total_matches"] > 0:
                 # Create stats object
@@ -4455,7 +4479,7 @@ def calculate_team_analysis_mobile(team_stats, team_matches, team):
                 if key_players:
                     contributors = " and ".join(
                         [
-                            f"{kp['name']} ({kp['win_rate']}% in {kp['matches']} matches)"
+                            f"{kp['name']} ({kp['winRate']}% in {kp['matches']} matches)"
                             for kp in key_players
                         ]
                     )
@@ -4626,7 +4650,7 @@ def calculate_team_analysis_mobile(team_stats, team_matches, team):
                 {
                     "name": player_name,
                     "matches": stats["matches"],
-                    "win_rate": win_rate,
+                    "winRate": win_rate,  # Changed to camelCase for consistency
                     "best_court": best_court or "N/A",
                     "best_partner": best_partner if best_partner else "N/A",
                 }
