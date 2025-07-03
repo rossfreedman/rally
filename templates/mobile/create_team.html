@@ -39,7 +39,7 @@
 
     <!-- Main Content Container -->
     <div id="main-content">
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 min-h-screen">
             
             <!-- Column 1: Interactive PTI Range Control -->
             <div class="bg-white rounded-xl shadow-sm border border-gray-100">
@@ -58,7 +58,7 @@
                         </button>
                     </div>
                 </div>
-                <div class="p-4 max-h-96 overflow-y-auto">
+                <div class="p-4 flex-1 overflow-y-auto">
                     <div id="series-recommendations" class="space-y-4">
                         <!-- Series recommendations will be loaded here -->
                     </div>
@@ -97,7 +97,7 @@
                         </button>
                     </div>
                 </div>
-                <div class="p-4 max-h-96 overflow-y-auto">
+                <div class="p-4 flex-1 overflow-y-auto">
                     <div id="available-players-pool" class="min-h-24 bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-4">
                         <div class="text-gray-400 text-center text-sm">Players will appear here when loaded</div>
                     </div>
@@ -125,7 +125,7 @@
                         </button>
                     </div>
                 </div>
-                <div class="p-4 max-h-96 overflow-y-auto">
+                <div class="p-4 flex-1 overflow-y-auto">
                     <div id="series-teams" class="space-y-4">
                         <!-- Series containers will be dynamically created here -->
                     </div>
@@ -288,28 +288,38 @@
 }
 
 /* 3-Column Layout Styling */
-@media (min-width: 1024px) {
+@media (min-width: 768px) {
     #main-content .grid {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr 1fr !important;
+        gap: 1.5rem !important;
         min-height: 600px;
         align-items: start;
+        width: 100%;
     }
     
     #main-content .grid > div {
+        width: 100% !important;
+        max-width: none !important;
         min-height: 500px;
-        display: flex;
-        flex-direction: column;
+        display: flex !important;
+        flex-direction: column !important;
+        background: white;
+        border-radius: 0.75rem;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        border: 1px solid #f3f4f6;
     }
     
     .player-card {
-        width: 100px !important;
-        font-size: 0.75rem !important;
-        padding: 0.5rem !important;
-        margin: 0.25rem !important;
+        width: 90px !important;
+        font-size: 0.7rem !important;
+        padding: 0.4rem !important;
+        margin: 0.2rem !important;
     }
 }
 
 /* Responsive adjustments for mobile */
-@media (max-width: 1023px) {
+@media (max-width: 767px) {
     .player-card {
         width: 120px !important;
         min-height: 50px !important;
