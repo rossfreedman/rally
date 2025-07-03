@@ -844,12 +844,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     <!-- Min PTI Slider -->
                     <div>
                         <label class="block text-xs font-medium text-gray-700 mb-1">
-                            Min PTI: <span id="min-pti-value-${series.series_name.replace(/\s+/g, '-')}" class="font-semibold text-blue-600">${series.current_range.min}</span>
+                            Min PTI: <span id="min-pti-value-${series.series_name.replace(/\s+/g, '-')}" class="font-semibold text-blue-600">${series.current_range.min.toFixed(2)}</span>
                         </label>
                         <input type="range" 
                                id="min-pti-slider-${series.series_name.replace(/\s+/g, '-')}"
                                class="series-slider w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" 
-                               min="-30" max="100" value="${series.current_range.min}" step="0.1"
+                               min="-30" max="100" value="${series.current_range.min}" step="0.01"
                                data-series="${series.series_name}"
                                data-type="min"
                                onchange="updateSeriesPTIRange('${series.series_name}', 'min', this.value)">
@@ -858,12 +858,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     <!-- Max PTI Slider -->
                     <div>
                         <label class="block text-xs font-medium text-gray-700 mb-1">
-                            Max PTI: <span id="max-pti-value-${series.series_name.replace(/\s+/g, '-')}" class="font-semibold text-blue-600">${series.current_range.max}</span>
+                            Max PTI: <span id="max-pti-value-${series.series_name.replace(/\s+/g, '-')}" class="font-semibold text-blue-600">${series.current_range.max.toFixed(2)}</span>
                         </label>
                         <input type="range" 
                                id="max-pti-slider-${series.series_name.replace(/\s+/g, '-')}"
                                class="series-slider w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" 
-                               min="-30" max="100" value="${series.current_range.max}" step="0.1"
+                               min="-30" max="100" value="${series.current_range.max}" step="0.01"
                                data-series="${series.series_name}"
                                data-type="max"
                                onchange="updateSeriesPTIRange('${series.series_name}', 'max', this.value)">
@@ -880,7 +880,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     <!-- Recommended Range Info -->
                     <div class="text-xs text-gray-600 bg-gray-100 p-2 rounded">
-                        <strong>Recommended:</strong> ${series.recommended_range.min} - ${series.recommended_range.max}
+                        <strong>Recommended:</strong> ${series.recommended_range.min.toFixed(2)} - ${series.recommended_range.max.toFixed(2)}
                     </div>
                 </div>
             </div>
