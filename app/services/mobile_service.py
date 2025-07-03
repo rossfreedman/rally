@@ -4361,7 +4361,7 @@ def calculate_team_analysis_mobile(team_stats, team_matches, team):
 
             # Initialize court stats for 4 courts
             for i in range(1, 5):
-                court_name = f"Court {i}"
+                court_name = f"court{i}"  # Template expects "court1", "court2", etc.
                 court_matches = []
 
                 # Find matches for this court using correct logic
@@ -4434,12 +4434,14 @@ def calculate_team_analysis_mobile(team_stats, team_matches, team):
                     [
                         {
                             "name": get_player_name_from_id(p),
-                            "win_rate": round((d["wins"] / d["matches"]) * 100, 1),
+                            "winRate": round((d["wins"] / d["matches"]) * 100, 1),  # Template expects camelCase
                             "matches": d["matches"],
+                            "wins": d["wins"],  # Template expects wins
+                            "losses": d["matches"] - d["wins"],  # Template expects losses
                         }
                         for p, d in player_win_counts.items()
                     ],
-                    key=lambda x: -x["win_rate"],
+                    key=lambda x: -x["winRate"],  # Updated to use camelCase
                 )[:3]
 
                 # Summary sentence
@@ -4465,8 +4467,8 @@ def calculate_team_analysis_mobile(team_stats, team_matches, team):
 
                 court_analysis[court_name] = {
                     "record": record,
-                    "win_rate": win_rate,
-                    "key_players": key_players,
+                    "winRate": win_rate,  # Template expects camelCase
+                    "topPartners": key_players,  # Template expects topPartners
                     "summary": summary,
                 }
 
@@ -4535,7 +4537,7 @@ def calculate_team_analysis_mobile(team_stats, team_matches, team):
                         player_stats[player]["wins"] += 1
 
                     # Court - Use correct court assignment
-                    court = f"Court {court_num}"
+                    court = f"Court {court_num}"  # Keep readable format for best_court field
                     if court not in player_stats[player]["courts"]:
                         player_stats[player]["courts"][court] = {
                             "matches": 0,
