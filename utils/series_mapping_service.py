@@ -28,15 +28,19 @@ def _check_display_name_column_exists() -> bool:
         return _HAS_DISPLAY_NAME_COLUMN
         
     try:
+        # Use case-insensitive check for table and column names
         query = """
             SELECT column_name 
             FROM information_schema.columns 
-            WHERE table_name = 'series' 
-            AND column_name = 'display_name'
+            WHERE LOWER(table_name) = LOWER('series')
+            AND LOWER(column_name) = LOWER('display_name')
         """
         
         result = execute_query_one(query, [])
         _HAS_DISPLAY_NAME_COLUMN = bool(result)
+        
+        if not _HAS_DISPLAY_NAME_COLUMN:
+            print("[SERIES_MAPPING] display_name column not found in series table")
         
     except Exception as e:
         print(f"[SERIES_MAPPING] Error checking display_name column: {e}")
