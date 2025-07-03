@@ -3838,6 +3838,7 @@ def get_mobile_team_data(user):
         league_id_int = team_record["league_id"]
 
         print(f"[DEBUG] Found team: {display_name} (ID: {team_id}) for player {player_id}")
+        print(f"[DEBUG] Using league_id: {league_id_int}")
 
         # Get team stats from series_stats table first
         team_stats_query = """
@@ -3856,6 +3857,7 @@ def get_mobile_team_data(user):
             WHERE team = %s AND league_id = %s
         """
         team_stats = execute_query_one(team_stats_query, [team_name, league_id_int])
+        print(f"[DEBUG] Team stats query result: {team_stats}")
 
         # If no stats found in series_stats, calculate them from match_scores
         if not team_stats:
@@ -3947,19 +3949,38 @@ def get_mobile_team_data(user):
             ORDER BY match_date DESC
         """
         team_matches = execute_query(matches_query, [team_name, team_name, league_id_int])
+        print(f"[DEBUG] Found {len(team_matches)} team matches")
 
         # Calculate team analysis
         team_analysis = calculate_team_analysis_mobile(team_stats, team_matches, team_name)
 
-        # Add display name to team analysis
-        team_analysis["display_name"] = display_name
+        # Transform to match template expectations
+        overview = team_analysis.get("overview", {})
         
-        # Add team name for template compatibility
-        team_analysis["team"] = team_name
+        # Convert to template format
+        team_data_formatted = {
+            "matches": {
+                "won": overview.get("match_record", "0-0").split("-")[0],
+                "lost": overview.get("match_record", "0-0").split("-")[1], 
+                "percentage": f"{overview.get('match_win_rate', 0)}%"
+            },
+            "lines": {
+                "percentage": f"{overview.get('line_win_rate', 0)}%"
+            },
+            "sets": {
+                "percentage": f"{overview.get('set_win_rate', 0)}%"
+            },
+            "games": {
+                "percentage": f"{overview.get('game_win_rate', 0)}%"
+            },
+            "points": overview.get("points", 0),
+            "display_name": display_name,
+            "team": team_name
+        }
 
         # Return in the expected structure for the route
         return {
-            "team_data": team_analysis,
+            "team_data": team_data_formatted,
             "court_analysis": team_analysis.get("court_analysis", {}),
             "top_players": team_analysis.get("top_players", []),
             "strength_of_schedule": {},  # This would come from a separate function if needed
