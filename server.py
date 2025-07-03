@@ -1668,6 +1668,348 @@ def staging_database_health():
         }), 500
 
 
+@app.route("/debug/check-etl-environment-status")
+def check_etl_environment_status():
+    """
+    EMERGENCY: Check which environment ETL is running on and provide stop mechanism
+    """
+    try:
+        import os
+        import subprocess
+        from database_utils import execute_query, execute_query_one
+        
+        # Get current environment details
+        railway_env = os.environ.get("RAILWAY_ENVIRONMENT", "not_set")
+        database_url = os.environ.get("DATABASE_URL", "not_set")
+        
+        # Check if this is production or staging based on environment variables
+        is_production = "production" in railway_env.lower() if railway_env != "not_set" else False
+        is_staging = "staging" in railway_env.lower() if railway_env != "not_set" else False
+        
+        results = {
+            "current_environment": railway_env,
+            "database_url_preview": database_url[:50] + "..." if database_url != "not_set" else "not_set",
+            "is_production": is_production,
+            "is_staging": is_staging,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        # Check recent database activity (ETL typically creates lots of inserts)
+        try:
+            recent_activity = execute_query_one(
+                """
+                SELECT 
+                    COUNT(*) as total_matches,
+                    MAX(created_at) as latest_created,
+                    COUNT(*) FILTER (WHERE created_at > NOW() - INTERVAL '1 hour') as recent_inserts
+                FROM match_scores
+                WHERE created_at IS NOT NULL
+                """
+            )
+            
+            if recent_activity:
+                results["database_activity"] = {
+                    "total_matches": recent_activity["total_matches"],
+                    "latest_created": str(recent_activity["latest_created"]) if recent_activity["latest_created"] else None,
+                    "recent_inserts": recent_activity["recent_inserts"],
+                    "high_activity": recent_activity["recent_inserts"] > 100
+                }
+            else:
+                # Fallback if created_at column doesn't exist
+                basic_count = execute_query_one("SELECT COUNT(*) as total FROM match_scores")
+                results["database_activity"] = {
+                    "total_matches": basic_count["total"] if basic_count else 0,
+                    "recent_inserts": "unknown - no created_at column",
+                    "high_activity": False
+                }
+        except Exception as e:
+            results["database_activity"] = {
+                "error": str(e),
+                "total_matches": "unknown"
+            }
+        
+        # Check for running processes (this might not work in Railway environment)
+        try:
+            # Look for python processes that might be ETL
+            proc_result = subprocess.run(['ps', 'aux'], capture_output=True, text=True, timeout=5)
+            if proc_result.returncode == 0:
+                python_processes = [line for line in proc_result.stdout.split('\n') if 'python' in line.lower() and ('etl' in line.lower() or 'import' in line.lower())]
+                results["running_processes"] = {
+                    "found_etl_processes": len(python_processes),
+                    "processes": python_processes[:5]  # Limit to first 5
+                }
+            else:
+                results["running_processes"] = {"error": "Could not check processes"}
+        except Exception as e:
+            results["running_processes"] = {"error": f"Process check failed: {str(e)}"}
+        
+        # Environment-specific warnings
+        warnings = []
+        if is_production:
+            warnings.append("🚨 CRITICAL: You are on PRODUCTION environment!")
+            warnings.append("🚨 If ETL is running here, it will overwrite production data!")
+            warnings.append("🚨 STOP immediately if this was not intended!")
+        elif is_staging:
+            warnings.append("✅ You are on STAGING environment - safe to run ETL")
+        else:
+            warnings.append("⚠️ Environment unclear - verify before proceeding")
+        
+        results["warnings"] = warnings
+        
+        # Emergency actions available
+        emergency_actions = []
+        if is_production:
+            emergency_actions.append({
+                "action": "EMERGENCY_STOP_ETL",
+                "description": "Kill any running ETL processes immediately",
+                "endpoint": "/debug/emergency-stop-etl",
+                "risk": "HIGH - Only use if ETL is running on wrong environment"
+            })
+        
+        emergency_actions.append({
+            "action": "CHECK_DATABASE_CHANGES",
+            "description": "Check for recent database modifications",
+            "endpoint": "/debug/check-recent-database-changes",
+            "risk": "LOW - Read-only check"
+        })
+        
+        results["emergency_actions"] = emergency_actions
+        
+        return jsonify({
+            "debug": "check_etl_environment_status",
+            "results": results,
+            "immediate_action_needed": is_production and results["database_activity"].get("high_activity", False)
+        })
+        
+    except Exception as e:
+        import traceback
+        return jsonify({
+            "error": str(e),
+            "traceback": traceback.format_exc(),
+            "emergency_note": "If you cannot determine environment, assume PRODUCTION and proceed with caution"
+        }), 500
+
+
+@app.route("/debug/emergency-stop-etl")
+def emergency_stop_etl():
+    """
+    EMERGENCY: Attempt to stop any running ETL processes
+    """
+    try:
+        import subprocess
+        import signal
+        import os
+        
+        railway_env = os.environ.get("RAILWAY_ENVIRONMENT", "not_set")
+        
+        results = {
+            "environment": railway_env,
+            "timestamp": datetime.now().isoformat(),
+            "actions_taken": []
+        }
+        
+        # Only allow this on production (where it would be an emergency)
+        if "production" not in railway_env.lower():
+            return jsonify({
+                "error": "Emergency stop only available on production environment",
+                "current_env": railway_env,
+                "note": "Use normal process termination on other environments"
+            }), 403
+        
+        # Try to find and kill ETL processes
+        try:
+            # Find processes with ETL-related keywords
+            proc_result = subprocess.run(['ps', 'aux'], capture_output=True, text=True, timeout=5)
+            if proc_result.returncode == 0:
+                lines = proc_result.stdout.split('\n')
+                etl_processes = []
+                
+                for line in lines:
+                    if any(keyword in line.lower() for keyword in ['etl', 'import_all', 'scraper', 'import.py']):
+                        parts = line.split()
+                        if len(parts) > 1:
+                            try:
+                                pid = int(parts[1])
+                                etl_processes.append({"pid": pid, "command": line})
+                            except ValueError:
+                                continue
+                
+                results["found_processes"] = len(etl_processes)
+                
+                # Kill the processes
+                killed_processes = []
+                for proc in etl_processes:
+                    try:
+                        os.kill(proc["pid"], signal.SIGTERM)  # Graceful termination first
+                        killed_processes.append(f"SIGTERM sent to PID {proc['pid']}")
+                        
+                        # Wait a moment then force kill if needed
+                        import time
+                        time.sleep(2)
+                        try:
+                            os.kill(proc["pid"], signal.SIGKILL)  # Force kill
+                            killed_processes.append(f"SIGKILL sent to PID {proc['pid']}")
+                        except ProcessLookupError:
+                            killed_processes.append(f"PID {proc['pid']} already terminated")
+                            
+                    except ProcessLookupError:
+                        killed_processes.append(f"PID {proc['pid']} not found")
+                    except PermissionError:
+                        killed_processes.append(f"Permission denied for PID {proc['pid']}")
+                
+                results["actions_taken"] = killed_processes
+                
+            else:
+                results["error"] = "Could not list processes"
+                
+        except Exception as e:
+            results["error"] = f"Process termination failed: {str(e)}"
+        
+        # Additional safety measure - check if database is still being modified
+        try:
+            from database_utils import execute_query_one
+            
+            # Check if inserts are still happening
+            count_before = execute_query_one("SELECT COUNT(*) as count FROM match_scores")
+            import time
+            time.sleep(3)
+            count_after = execute_query_one("SELECT COUNT(*) as count FROM match_scores")
+            
+            if count_before and count_after:
+                if count_after["count"] > count_before["count"]:
+                    results["database_still_active"] = True
+                    results["new_records"] = count_after["count"] - count_before["count"]
+                else:
+                    results["database_still_active"] = False
+                    
+        except Exception as e:
+            results["database_check_error"] = str(e)
+        
+        return jsonify({
+            "debug": "emergency_stop_etl",
+            "results": results,
+            "next_steps": [
+                "1. Check if database modifications have stopped",
+                "2. Verify no new records are being inserted",
+                "3. If ETL was running on production, assess data integrity",
+                "4. Re-run ETL on correct staging environment"
+            ]
+        })
+        
+    except Exception as e:
+        import traceback
+        return jsonify({
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }), 500
+
+
+@app.route("/debug/check-recent-database-changes")
+def check_recent_database_changes():
+    """
+    Check for recent database modifications to detect active ETL
+    """
+    try:
+        from database_utils import execute_query, execute_query_one
+        
+        railway_env = os.environ.get("RAILWAY_ENVIRONMENT", "not_set")
+        
+        results = {
+            "environment": railway_env,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        # Check match_scores table size over time
+        current_count = execute_query_one("SELECT COUNT(*) as count FROM match_scores")
+        results["current_match_count"] = current_count["count"] if current_count else 0
+        
+        # If there's a created_at or updated_at column, check recent activity
+        try:
+            recent_records = execute_query_one(
+                """
+                SELECT 
+                    COUNT(*) FILTER (WHERE created_at > NOW() - INTERVAL '5 minutes') as last_5_min,
+                    COUNT(*) FILTER (WHERE created_at > NOW() - INTERVAL '30 minutes') as last_30_min,
+                    COUNT(*) FILTER (WHERE created_at > NOW() - INTERVAL '1 hour') as last_hour,
+                    MAX(created_at) as latest_record
+                FROM match_scores
+                WHERE created_at IS NOT NULL
+                """
+            )
+            
+            if recent_records:
+                results["recent_activity"] = {
+                    "last_5_minutes": recent_records["last_5_min"],
+                    "last_30_minutes": recent_records["last_30_min"], 
+                    "last_hour": recent_records["last_hour"],
+                    "latest_record": str(recent_records["latest_record"]) if recent_records["latest_record"] else None
+                }
+                
+                # Determine if ETL is likely running
+                if recent_records["last_5_min"] > 10:
+                    results["etl_status"] = "LIKELY_RUNNING - High recent activity"
+                elif recent_records["last_30_min"] > 50:
+                    results["etl_status"] = "POSSIBLY_RUNNING - Moderate recent activity"
+                else:
+                    results["etl_status"] = "LIKELY_STOPPED - Low recent activity"
+            
+        except Exception as e:
+            # Fallback - just monitor count changes
+            results["created_at_check"] = f"Failed: {str(e)}"
+            results["etl_status"] = "UNKNOWN - Cannot check timestamps"
+        
+        # Check other tables that ETL typically modifies
+        table_counts = {}
+        for table in ["players", "teams", "leagues", "clubs", "series"]:
+            try:
+                count = execute_query_one(f"SELECT COUNT(*) as count FROM {table}")
+                table_counts[table] = count["count"] if count else 0
+            except Exception as e:
+                table_counts[table] = f"Error: {str(e)}"
+        
+        results["table_counts"] = table_counts
+        
+        # Real-time monitoring test
+        print("Starting 10-second database monitoring test...")
+        count_start = execute_query_one("SELECT COUNT(*) as count FROM match_scores")
+        start_count = count_start["count"] if count_start else 0
+        
+        import time
+        time.sleep(10)
+        
+        count_end = execute_query_one("SELECT COUNT(*) as count FROM match_scores")
+        end_count = count_end["count"] if count_end else 0
+        
+        records_added = end_count - start_count
+        results["realtime_test"] = {
+            "duration_seconds": 10,
+            "records_at_start": start_count,
+            "records_at_end": end_count,
+            "records_added": records_added,
+            "active_insertion": records_added > 0
+        }
+        
+        # Final assessment
+        if records_added > 0:
+            results["final_assessment"] = "🚨 ACTIVE ETL DETECTED - Database is being modified RIGHT NOW"
+        elif results.get("recent_activity", {}).get("last_5_minutes", 0) > 5:
+            results["final_assessment"] = "⚠️ RECENT ETL ACTIVITY - ETL was active in last 5 minutes"
+        else:
+            results["final_assessment"] = "✅ NO ACTIVE ETL - Database appears stable"
+        
+        return jsonify({
+            "debug": "check_recent_database_changes",
+            "results": results
+        })
+        
+    except Exception as e:
+        import traceback
+        return jsonify({
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }), 500
+
+
 # ==========================================
 # ERROR HANDLERS
 # ==========================================
