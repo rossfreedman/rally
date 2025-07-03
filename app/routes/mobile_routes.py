@@ -468,7 +468,6 @@ def serve_mobile_analyze_me():
         from app.services.session_service import get_session_data_for_user
         
         user_email = session["user"]["email"]
-        print(f"[DEBUG] Checking session for analyze-me user: {user_email}")
         
         # Check if current session has valid team context - if so, preserve it
         current_session = session.get("user", {})
@@ -482,11 +481,9 @@ def serve_mobile_analyze_me():
         if has_valid_team_context:
             # Current session already has valid team context (likely from team switch)
             # Don't override it with database refresh
-            print(f"[DEBUG] Preserving existing team context for analyze-me: {current_session.get('club')} - {current_session.get('series')}")
             session_user = current_session
         else:
             # Session is incomplete or invalid, refresh from database
-            print(f"[DEBUG] Getting fresh session data for analyze-me user: {user_email}")
             fresh_session_data = get_session_data_for_user(user_email)
             
             if fresh_session_data:
@@ -494,28 +491,14 @@ def serve_mobile_analyze_me():
                 session["user"] = fresh_session_data
                 session.modified = True
                 session_user = fresh_session_data
-                print(f"[DEBUG] Using fresh session data for analyze-me")
             else:
                 # Fallback to existing session
                 session_user = session["user"]
-                print(f"[DEBUG] Using fallback session data for analyze-me")
-        
-        print(f"[DEBUG] Session user type: {type(session_user)}")
-        print(f"[DEBUG] Session user data: {session_user}")
 
         # Check if session already has a tenniscores_player_id (set by league switching)
         if session_user.get("tenniscores_player_id"):
-            print(
-                f"[DEBUG] Using session player ID: {session_user.get('tenniscores_player_id')}"
-            )
-
             # Fix session data if league_id is None but league_name exists
-            if session_user.get("league_id") is None and session_user.get(
-                "league_name"
-            ):
-                print(
-                    f"[DEBUG] Session has league_name '{session_user.get('league_name')}' but league_id is None, attempting to resolve"
-                )
+            if session_user.get("league_id") is None and session_user.get("league_name"):
                 try:
                     league_record = execute_query_one(
                         "SELECT id, league_id FROM leagues WHERE league_name = %s",
@@ -523,24 +506,15 @@ def serve_mobile_analyze_me():
                     )
                     if league_record:
                         session_user["league_id"] = league_record["id"]
-                        print(
-                            f"[DEBUG] Resolved league_name to league_id: {league_record['id']} ('{league_record['league_id']}')"
-                        )
                         # Update session for future requests
                         session["user"]["league_id"] = league_record["id"]
-                    else:
-                        print(
-                            f"[WARNING] Could not resolve league_name '{session_user.get('league_name')}' to league_id"
-                        )
                 except Exception as e:
-                    print(f"[DEBUG] Error resolving league_name to league_id: {e}")
+                    pass
 
             # Use the session data (now with resolved league_id if applicable)
             analyze_data = get_player_analysis(session_user)
         else:
             # Fallback: Look up player data from database using name matching
-            print(f"[DEBUG] No player ID in session, looking up from database")
-
             player_query = """
                 SELECT 
                     first_name,
@@ -572,12 +546,8 @@ def serve_mobile_analyze_me():
                     "series_id": player_data["series_id"],
                     "league_id": player_data["league_id"],
                 }
-                print(f"[DEBUG] Complete user data from DB lookup: {complete_user}")
                 analyze_data = get_player_analysis(complete_user)
             else:
-                print(
-                    f"[DEBUG] No player data found for {session_user.get('first_name')} {session_user.get('last_name')}"
-                )
                 analyze_data = {
                     "error": "Player data not found in database",
                     "current_season": None,
@@ -590,76 +560,6 @@ def serve_mobile_analyze_me():
         log_user_activity(
             session["user"]["email"], "page_visit", page="mobile_analyze_me"
         )
-
-        # STAGING DEBUG: Capture debug information for webpage display
-        debug_info = []
-        debug_info.append("=== ANALYZE-ME DEBUG INFO ===")
-        debug_info.append(f"URL: {request.url}")
-        debug_info.append(f"Method: {request.method}")
-        debug_info.append(f"User Email: {user_email}")
-        debug_info.append("")
-        
-        debug_info.append("SESSION USER DATA:")
-        debug_info.append(f"  Type: {type(session_user)}")
-        debug_info.append(f"  Email: {session_user.get('email', 'MISSING')}")
-        debug_info.append(f"  First Name: {session_user.get('first_name', 'MISSING')}")
-        debug_info.append(f"  Last Name: {session_user.get('last_name', 'MISSING')}")
-        debug_info.append(f"  Player ID: {session_user.get('tenniscores_player_id', 'MISSING')}")
-        debug_info.append(f"  League ID: {session_user.get('league_id', 'MISSING')} (type: {type(session_user.get('league_id'))})")
-        debug_info.append(f"  Team ID: {session_user.get('team_id', 'MISSING')}")
-        debug_info.append(f"  Club: {session_user.get('club', 'MISSING')}")
-        debug_info.append(f"  Series: {session_user.get('series', 'MISSING')}")
-        debug_info.append("")
-
-        # Get analyze data and capture any debug info from mobile service
-        analyze_data = get_player_analysis(session_user)
-        
-        debug_info.append("ANALYZE DATA RESULT:")
-        debug_info.append(f"  Type: {type(analyze_data)}")
-        if isinstance(analyze_data, dict):
-            debug_info.append(f"  Error: {analyze_data.get('error', 'None')}")
-            
-            current_season = analyze_data.get('current_season')
-            debug_info.append(f"  Current Season Type: {type(current_season)}")
-            if current_season:
-                debug_info.append(f"    Matches: {current_season.get('matches', 'MISSING')}")
-                debug_info.append(f"    Wins: {current_season.get('wins', 'MISSING')}")
-                debug_info.append(f"    Losses: {current_season.get('losses', 'MISSING')}")
-                debug_info.append(f"    Win Rate: {current_season.get('winRate', 'MISSING')}")
-            else:
-                debug_info.append(f"    Current Season is: {current_season}")
-            
-            career_stats = analyze_data.get('career_stats')
-            debug_info.append(f"  Career Stats Type: {type(career_stats)}")
-            if career_stats:
-                debug_info.append(f"    Matches: {career_stats.get('matches', 'MISSING')}")
-                debug_info.append(f"    Wins: {career_stats.get('wins', 'MISSING')}")
-                debug_info.append(f"    Losses: {career_stats.get('losses', 'MISSING')}")
-            else:
-                debug_info.append(f"    Career Stats is: {career_stats}")
-            
-            court_analysis = analyze_data.get('court_analysis', {})
-            debug_info.append(f"  Court Analysis Type: {type(court_analysis)}")
-            if court_analysis and isinstance(court_analysis, dict):
-                for court_name, court_data in court_analysis.items():
-                    if isinstance(court_data, dict):
-                        record = court_data.get('record', 'N/A')
-                        win_rate = court_data.get('winRate', 'N/A')
-                        debug_info.append(f"    {court_name}: {record} ({win_rate}%)")
-            
-            debug_info.append(f"  Current PTI: {analyze_data.get('current_pti', 'MISSING')}")
-            debug_info.append(f"  PTI Data Available: {analyze_data.get('pti_data_available', 'MISSING')}")
-        
-        # Get any debug info from mobile service if it was captured
-        mobile_debug = analyze_data.get('_debug_info', []) if isinstance(analyze_data, dict) else []
-        if mobile_debug:
-            debug_info.append("")
-            debug_info.append("MOBILE SERVICE DEBUG:")
-            debug_info.extend(mobile_debug)
-        
-        # Add debug info to analyze_data for display on page
-        if isinstance(analyze_data, dict):
-            analyze_data['debug_info'] = debug_info
 
         return render_template(
             "mobile/analyze_me.html",
@@ -1490,10 +1390,56 @@ def serve_mobile_myteam():
 @login_required
 def serve_mobile_settings():
     """Serve the mobile settings page"""
-    session_data = {"user": session["user"], "authenticated": True}
+    try:
+        # Use session service to get fresh session data, BUT preserve team switches (same as main mobile route)
+        from app.services.session_service import get_session_data_for_user
+        
+        user_email = session["user"]["email"]
+        
+        # Check if current session has valid team context - if so, preserve it
+        current_session = session.get("user", {})
+        has_valid_team_context = (
+            current_session.get("team_id") is not None and
+            current_session.get("league_id") is not None and
+            current_session.get("club") and
+            current_session.get("series")
+        )
+        
+        if has_valid_team_context:
+            # Current session already has valid team context (likely from team switch)
+            # Don't override it with database refresh
+            session_user = current_session
+            print(f"[DEBUG] Settings: Preserving existing team context: {current_session.get('club')} - {current_session.get('series')}")
+        else:
+            # Session is incomplete or invalid, refresh from database
+            print(f"[DEBUG] Settings: Getting fresh session data for user: {user_email}")
+            fresh_session_data = get_session_data_for_user(user_email)
+            
+            if fresh_session_data:
+                # Update Flask session with fresh data
+                session["user"] = fresh_session_data
+                session.modified = True
+                session_user = fresh_session_data
+                print(f"[DEBUG] Settings: Using fresh session data and updated Flask session")
+            else:
+                # Fallback to existing session
+                session_user = session["user"]
+                print(f"[DEBUG] Settings: Using fallback session data: {session['user']}")
 
-    log_user_activity(session["user"]["email"], "page_visit", page="mobile_settings")
-    return render_template("mobile/user_settings.html", session_data=session_data)
+        session_data = {"user": session_user, "authenticated": True}
+
+        log_user_activity(user_email, "page_visit", page="mobile_settings")
+        return render_template("mobile/user_settings.html", session_data=session_data)
+        
+    except Exception as e:
+        print(f"Error serving mobile settings: {str(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
+        
+        # Fallback to basic session data
+        session_data = {"user": session["user"], "authenticated": True}
+        log_user_activity(session["user"]["email"], "page_visit", page="mobile_settings")
+        return render_template("mobile/user_settings.html", session_data=session_data)
 
 
 @mobile_bp.route("/mobile/my-series")

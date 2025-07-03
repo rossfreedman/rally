@@ -25,7 +25,8 @@ def get_session_data_for_user(user_email: str) -> Optional[Dict[str, Any]]:
     This is the centralized session builder used by login, registration, and league switching.
     """
     try:
-        # First try to get user data with league context prioritization
+        # Get comprehensive user data with player associations via league_context prioritization
+        # FIXED: Make player associations optional to handle users without active players
         query = """
             SELECT DISTINCT ON (u.id)
                 u.id, u.email, u.first_name, u.last_name, u.is_admin,
@@ -41,9 +42,7 @@ def get_session_data_for_user(user_email: str) -> Optional[Dict[str, Any]]:
                 l.id as league_db_id, l.league_id as league_string_id, l.league_name
             FROM users u
             LEFT JOIN user_player_associations upa ON u.id = upa.user_id
-            LEFT JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id 
-                AND p.is_active = true 
-                AND (CASE WHEN u.league_context IS NOT NULL THEN p.league_id = u.league_context ELSE true END)
+            LEFT JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id AND p.is_active = true
             LEFT JOIN clubs c ON p.club_id = c.id
             LEFT JOIN series s ON p.series_id = s.id
             LEFT JOIN teams t ON p.team_id = t.id
@@ -61,50 +60,6 @@ def get_session_data_for_user(user_email: str) -> Optional[Dict[str, Any]]:
             logger.warning(f"No user found for email: {user_email}")
             print(f"[SESSION_SERVICE] User not found in database: {user_email}")
             return None
-            
-        # If no player found in league context, try any active player
-        if not result.get("tenniscores_player_id"):
-            print(f"[SESSION_SERVICE] No player found in league context {result.get('league_context')}, trying any active player")
-            
-            fallback_query = """
-                SELECT DISTINCT ON (u.id)
-                    u.id, u.email, u.first_name, u.last_name, u.is_admin,
-                    u.ad_deuce_preference, u.dominant_hand,
-                    
-                    -- Player data from any active player
-                    c.name as club, c.logo_filename as club_logo,
-                    s.name as series, p.tenniscores_player_id,
-                    c.id as club_id, s.id as series_id, t.id as team_id,
-                    t.team_name, t.display_name,
-                    
-                    -- League data
-                    l.id as league_db_id, l.league_id as league_string_id, l.league_name
-                FROM users u
-                JOIN user_player_associations upa ON u.id = upa.user_id
-                JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id AND p.is_active = true
-                JOIN clubs c ON p.club_id = c.id
-                JOIN series s ON p.series_id = s.id
-                JOIN teams t ON p.team_id = t.id
-                JOIN leagues l ON p.league_id = l.id
-                WHERE u.email = %s
-                ORDER BY u.id, p.id DESC
-                LIMIT 1
-            """
-            
-            fallback_result = execute_query_one(fallback_query, [user_email])
-            if fallback_result:
-                print(f"[SESSION_SERVICE] Found active player in {fallback_result['league_name']}")
-                result = fallback_result
-                
-                # Update user's league context to match found player
-                execute_query(
-                    "UPDATE users SET league_context = %s WHERE email = %s",
-                    [fallback_result["league_db_id"], user_email]
-                )
-                result["league_context"] = fallback_result["league_db_id"]
-            else:
-                print(f"[SESSION_SERVICE] No active players found for user")
-                return None
             
         # Get raw series name from database
         raw_series_name = result["series"] or ""
