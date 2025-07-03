@@ -523,24 +523,8 @@ def get_mobile_schedule_data(user):
 def get_player_analysis(user):
     """Get player analysis data for mobile interface"""
     try:
-        # STAGING DEBUG: Capture debug information for webpage display
-        debug_info = []
-        debug_info.append("=== MOBILE SERVICE DEBUG ===")
-        
-        # Debug user input
-        debug_info.append("INPUT USER DATA:")
-        debug_info.append(f"  Type: {type(user)}")
-        debug_info.append(f"  Is Dict: {isinstance(user, dict)}")
-        if isinstance(user, dict):
-            debug_info.append(f"  Keys: {list(user.keys())}")
-            for key, value in user.items():
-                debug_info.append(f"    {key}: {value} (type: {type(value)})")
-        else:
-            debug_info.append(f"  Raw Data: {user}")
-
         # Ensure user data is a dictionary
         if not isinstance(user, dict):
-            debug_info.append("ERROR: User data is not a dictionary")
             return {
                 "current_season": None,
                 "court_analysis": {},
@@ -552,97 +536,15 @@ def get_player_analysis(user):
                 "current_pti": None,
                 "weekly_pti_change": None,
                 "pti_data_available": False,
-                "error": "Invalid user data format",
-                "_debug_info": debug_info,
+                "error": "Invalid user data format"
             }
 
         # Get player ID from user data
         player_id = user.get("tenniscores_player_id")
-        debug_info.append(f"Extracted player_id: '{player_id}' (type: {type(player_id)})")
-        
-        if not player_id:
-            debug_info.append("ERROR: No tenniscores_player_id found in user data")
-            return {
-                "current_season": {
-                    "winRate": 0,
-                    "matches": 0,
-                    "wins": 0,
-                    "losses": 0,
-                    "ptiChange": "N/A",
-                },
-                "court_analysis": {
-                    "court1": {"winRate": 0, "record": "0-0", "topPartners": []},
-                    "court2": {"winRate": 0, "record": "0-0", "topPartners": []},
-                    "court3": {"winRate": 0, "record": "0-0", "topPartners": []},
-                    "court4": {"winRate": 0, "record": "0-0", "topPartners": []},
-                },
-                "career_stats": {
-                    "winRate": 0,
-                    "matches": 0,
-                    "wins": 0,
-                    "losses": 0,
-                    "pti": "N/A",
-                },
-                "player_history": {"progression": "", "seasons": []},
-                "videos": {"match": [], "practice": []},
-                "trends": {},
-                "career_pti_change": "N/A",
-                "current_pti": None,
-                "weekly_pti_change": None,
-                "pti_data_available": False,
-                "error": "Player ID not found",
-                "_debug_info": debug_info,
-            }
 
         # Get user's league for filtering
         user_league_id = user.get("league_id", "")
         user_league_name = user.get("league_name", "")
-        print(
-            f"[DEBUG] get_player_analysis: User league_id string: '{user_league_id}', league_name: '{user_league_name}'"
-        )
-
-        # DEBUGGING: Track league ID conversion issues and force fresh data
-        print(f"[SESSION-DEBUG] Raw user data from session:")
-        print(
-            f"  league_id: {user.get('league_id')} (type: {type(user.get('league_id'))})"
-        )
-        print(f"  league_name: {user.get('league_name')}")
-        print(f"  tenniscores_player_id: {user.get('tenniscores_player_id')}")
-
-        # Force refresh league data from database respecting user's league_context
-        if hasattr(user, "get") and user.get("email"):
-            try:
-                fresh_user_data = execute_query_one(
-                    """
-                    SELECT u.id, u.email, u.first_name, u.last_name, u.league_context,
-                           p.tenniscores_player_id, l.id as league_db_id, l.league_id, l.league_name
-                    FROM users u
-                    JOIN user_player_associations upa ON u.id = upa.user_id
-                    JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
-                    JOIN leagues l ON p.league_id = l.id
-                    WHERE u.email = %s 
-                    AND (u.league_context IS NULL OR p.league_id = u.league_context)
-                    ORDER BY (CASE WHEN p.league_id = u.league_context THEN 1 ELSE 2 END)
-                    LIMIT 1
-                """,
-                    [user["email"]],
-                )
-
-                if fresh_user_data:
-                    print(f"[SESSION-DEBUG] Fresh database lookup:")
-                    print(f"  league_db_id: {fresh_user_data['league_db_id']}")
-                    print(f"  league_id: {fresh_user_data['league_id']}")
-                    print(f"  league_name: {fresh_user_data['league_name']}")
-
-                    # Use fresh data instead of potentially stale session data
-                    user_league_id = fresh_user_data["league_id"]
-                    user_league_name = fresh_user_data["league_name"]
-                    print(f"[SESSION-DEBUG] Using fresh league data: {user_league_id}")
-                else:
-                    print(f"[SESSION-DEBUG] No fresh data found, using session data")
-            except Exception as e:
-                print(f"[SESSION-DEBUG] Error getting fresh data: {e}")
-                # Continue with session data if refresh fails
 
         # Convert string league_id to integer foreign key if needed
         league_id_int = None
@@ -653,23 +555,11 @@ def get_player_analysis(user):
                 )
                 if league_record:
                     league_id_int = league_record["id"]
-                    print(
-                        f"[DEBUG] Converted league_id '{user_league_id}' to integer: {league_id_int}"
-                    )
-                else:
-                    print(
-                        f"[WARNING] League '{user_league_id}' not found in leagues table"
-                    )
             except Exception as e:
-                print(f"[DEBUG] Could not convert league ID: {e}")
+                pass
         elif isinstance(user_league_id, int):
             league_id_int = user_league_id
-            print(f"[DEBUG] League_id already integer: {league_id_int}")
         elif user_league_id is None and user_league_name:
-            # Handle case where league_id is None but league_name exists
-            print(
-                f"[DEBUG] league_id is None, attempting to resolve from league_name: '{user_league_name}'"
-            )
             try:
                 league_record = execute_query_one(
                     "SELECT id, league_id FROM leagues WHERE league_name = %s",
@@ -677,137 +567,11 @@ def get_player_analysis(user):
                 )
                 if league_record:
                     league_id_int = league_record["id"]
-                    resolved_league_id = league_record["league_id"]
-                    print(
-                        f"[DEBUG] Resolved league_name '{user_league_name}' to league_id '{resolved_league_id}' (db_id: {league_id_int})"
-                    )
-                else:
-                    print(
-                        f"[WARNING] League name '{user_league_name}' not found in leagues table"
-                    )
             except Exception as e:
-                print(f"[DEBUG] Could not resolve league from league_name: {e}")
+                pass
 
-        # Query player history and match data from database
-        # Note: execute_query and execute_query_one are already imported at module level
-
-        # Use player_id to get the correct team for this league (fixes multi-team issue)
-        user_team_id = None
-        user_team_name = None
-        
-        # PRIORITY 1: Use team_id directly from session data (set by team switching)
-        session_team_id = user.get("team_id") if user else None
-        if session_team_id:
-            try:
-                # Get team name for the specific team_id from session
-                session_team_query = """
-                    SELECT t.id, t.team_name
-                    FROM teams t
-                    WHERE t.id = %s
-                """
-                session_team_result = execute_query_one(session_team_query, [session_team_id])
-                if session_team_result:
-                    user_team_id = session_team_result['id'] 
-                    user_team_name = session_team_result['team_name']
-                    print(f"[DEBUG] Using team_id from session: team_id={user_team_id}, team_name={user_team_name}")
-                else:
-                    print(f"[DEBUG] Session team_id {session_team_id} not found in teams table")
-            except Exception as e:
-                print(f"[DEBUG] Error getting team from session team_id {session_team_id}: {e}")
-        
-        # PRIORITY 2: Use team_context from user if provided (from composite player URL)
-        if not user_team_id:
-            team_context = user.get("team_context") if user else None
-            if team_context:
-                try:
-                    # Get team name for the specific team_id from team context
-                    team_context_query = """
-                        SELECT t.id, t.team_name
-                        FROM teams t
-                        WHERE t.id = %s
-                    """
-                    team_context_result = execute_query_one(team_context_query, [team_context])
-                    if team_context_result:
-                        user_team_id = team_context_result['id'] 
-                        user_team_name = team_context_result['team_name']
-                        print(f"[DEBUG] Using team_context from URL: team_id={user_team_id}, team_name={user_team_name}")
-                    else:
-                        print(f"[DEBUG] team_context {team_context} not found in teams table")
-                except Exception as e:
-                    print(f"[DEBUG] Error getting team from team_context {team_context}: {e}")
-        
-        # PRIORITY 3: Fallback to database lookup if no team_context provided
-        if not user_team_id and player_id and league_id_int:
-            try:
-                # For multi-team players, prefer team with most recent match activity in this league
-                team_selection_query = """
-                    SELECT p.team_id, t.team_name,
-                           (SELECT MAX(match_date) 
-                            FROM match_scores ms 
-                            WHERE (ms.home_player_1_id = p.tenniscores_player_id 
-                                   OR ms.home_player_2_id = p.tenniscores_player_id
-                                   OR ms.away_player_1_id = p.tenniscores_player_id 
-                                   OR ms.away_player_2_id = p.tenniscores_player_id)
-                            AND (ms.home_team_id = p.team_id OR ms.away_team_id = p.team_id)
-                            AND ms.league_id = p.league_id
-                           ) as last_match_date
-                    FROM players p
-                    JOIN teams t ON p.team_id = t.id
-                    WHERE p.tenniscores_player_id = %s AND p.league_id = %s AND p.is_active = TRUE
-                    ORDER BY last_match_date DESC NULLS LAST, p.team_id DESC
-                    LIMIT 1
-                """
-                team_result = execute_query_one(team_selection_query, [player_id, league_id_int])
-                if team_result:
-                    user_team_id = team_result['team_id']
-                    user_team_name = team_result['team_name']
-                    print(f"[DEBUG] Selected team using player_id fallback: team_id={user_team_id}, team_name={user_team_name}")
-            except Exception as e:
-                print(f"[DEBUG] Error getting team for player_id {player_id}: {e}")
-
-        # STAGING DEBUG: Database query section
-        debug_info.append("")
-        debug_info.append("DATABASE QUERY SECTION:")
-        debug_info.append(f"  player_id: '{player_id}'")
-        debug_info.append(f"  league_id_int: {league_id_int}")
-        debug_info.append(f"  user_team_id: {user_team_id}")
-        debug_info.append(f"  user_team_name: '{user_team_name}'")
-        
         # Get player history - filter by league AND team to fix multi-team issue
-        if league_id_int and user_team_id:
-            # Use team_id filtering like track-byes-courts for most reliable results
-            history_query = """
-                SELECT 
-                    id,
-                    TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
-                    home_team as "Home Team",
-                    away_team as "Away Team",
-                    winner as "Winner",
-                    scores as "Scores",
-                    home_player_1_id as "Home Player 1",
-                    home_player_2_id as "Home Player 2",
-                    away_player_1_id as "Away Player 1",
-                    away_player_2_id as "Away Player 2"
-                FROM match_scores
-                WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
-                AND league_id = %s
-                AND (home_team_id = %s OR away_team_id = %s)
-                ORDER BY match_date DESC
-            """
-            query_params = [player_id, player_id, player_id, player_id, league_id_int, user_team_id, user_team_id]
-            debug_info.append("Executing TEAM+LEAGUE filter query")
-            debug_info.append(f"  Query params: {query_params}")
-            
-            player_matches = execute_query(history_query, query_params)
-            
-            debug_info.append(f"Query result: {len(player_matches) if player_matches else 0} matches")
-            if player_matches:
-                debug_info.append("Sample matches:")
-                for i, match in enumerate(player_matches[:3]):
-                    debug_info.append(f"  {i+1}. {match.get('Date')} | {match.get('Home Team')} vs {match.get('Away Team')} | Winner: {match.get('Winner')}")
-            
-        elif league_id_int:
-            # Fallback: filter by league only (original behavior for single-team players)
+        if league_id_int:
             history_query = """
                 SELECT 
                     id,
@@ -826,19 +590,8 @@ def get_player_analysis(user):
                 ORDER BY match_date DESC
             """
             query_params = [player_id, player_id, player_id, player_id, league_id_int]
-            debug_info.append("Executing LEAGUE-ONLY filter query")
-            debug_info.append(f"  Query params: {query_params}")
-            
             player_matches = execute_query(history_query, query_params)
-            
-            debug_info.append(f"Query result: {len(player_matches) if player_matches else 0} matches")
-            if player_matches:
-                debug_info.append("Sample matches:")
-                for i, match in enumerate(player_matches[:3]):
-                    debug_info.append(f"  {i+1}. {match.get('Date')} | {match.get('Home Team')} vs {match.get('Away Team')} | Winner: {match.get('Winner')}")
-            
         else:
-            # No league filtering if we don't have a valid league_id
             history_query = """
                 SELECT 
                     id,
@@ -856,28 +609,7 @@ def get_player_analysis(user):
                 ORDER BY match_date DESC
             """
             query_params = [player_id, player_id, player_id, player_id]
-            debug_info.append("Executing NO FILTER query")
-            debug_info.append(f"  Query params: {query_params}")
-            
             player_matches = execute_query(history_query, query_params)
-            
-            debug_info.append(f"Query result: {len(player_matches) if player_matches else 0} matches")
-            if player_matches:
-                debug_info.append("Sample matches:")
-                for i, match in enumerate(player_matches[:3]):
-                    debug_info.append(f"  {i+1}. {match.get('Date')} | {match.get('Home Team')} vs {match.get('Away Team')} | Winner: {match.get('Winner')}")
-        
-        debug_info.append("")
-        debug_info.append("FINAL QUERY RESULTS:")
-        debug_info.append(f"  player_matches type: {type(player_matches)}")
-        debug_info.append(f"  player_matches length: {len(player_matches) if player_matches else 0}")
-        debug_info.append(f"  player_matches is None: {player_matches is None}")
-        debug_info.append(f"  player_matches is empty list: {player_matches == []}")
-
-        # FIX: Calculate accurate wins/losses from match results
-        print(
-            f"[DEBUG] Found {len(player_matches) if player_matches else 0} matches for analysis"
-        )
 
         # Calculate accurate match statistics
         total_matches = len(player_matches) if player_matches else 0
@@ -897,85 +629,13 @@ def get_player_analysis(user):
                 )
 
                 # Calculate win/loss based on team position and winner
-                if is_home and won:
-                    wins += 1
-                elif not is_home and won:
+                if won:
                     wins += 1
                 else:
                     losses += 1
 
-            print(
-                f"[DEBUG] Calculated match stats: {wins} wins, {losses} losses from {total_matches} matches"
-            )
-
-        if not player_matches:
-            print(
-                f"[DEBUG] get_player_analysis: No detailed matches found for player {player_id} in league {league_id_int}"
-            )
-            print(
-                f"[DEBUG] Falling back to aggregate player stats from players table..."
-            )
-
-            # Fall back to aggregate stats from players table when detailed match data isn't available
-            try:
-                if league_id_int:
-                    aggregate_query = """
-                        SELECT wins, losses, pti, first_name, last_name
-                        FROM players 
-                        WHERE tenniscores_player_id = %s AND league_id = %s
-                    """
-                    aggregate_stats = execute_query_one(
-                        aggregate_query, [player_id, league_id_int]
-                    )
-                else:
-                    aggregate_query = """
-                        SELECT wins, losses, pti, first_name, last_name
-                        FROM players 
-                        WHERE tenniscores_player_id = %s
-                    """
-                    aggregate_stats = execute_query_one(aggregate_query, [player_id])
-
-                if aggregate_stats:
-                    print(
-                        f"[DEBUG] Found aggregate stats: will be used as fallback if detailed analysis fails"
-                    )
-                    # Don't return early - continue to detailed court analysis
-                else:
-                    print(f"[DEBUG] No aggregate stats found in players table either")
-            except Exception as e:
-                print(f"[DEBUG] Error getting aggregate stats: {e}")
-
-            # Final fallback - return zeros with corrected match stats
-            return {
-                "current_season": {
-                    "winRate": 0,
-                    "matches": 0,
-                    "wins": 0,
-                    "losses": 0,
-                    "ptiChange": "N/A",
-                },
-                "court_analysis": {
-                    "court1": {"winRate": 0, "record": "0-0", "topPartners": []},
-                    "court2": {"winRate": 0, "record": "0-0", "topPartners": []},
-                    "court3": {"winRate": 0, "record": "0-0", "topPartners": []},
-                    "court4": {"winRate": 0, "record": "0-0", "topPartners": []},
-                },
-                "career_stats": {
-                    "winRate": 0,
-                    "matches": 0,
-                    "wins": 0,
-                    "losses": 0,
-                    "pti": "N/A",
-                },
-                "player_history": {"progression": "", "seasons": []},
-                "videos": {"match": [], "practice": []},
-                "trends": {},
-                "career_pti_change": "N/A",
-                "current_pti": None,
-                "weekly_pti_change": None,
-                "pti_data_available": False,
-                "error": None,
-            }
+        # Calculate win rate
+        win_rate = round((wins / total_matches) * 100, 1) if total_matches > 0 else 0
 
         # Get PTI data from players table and player_history table
         pti_data = {
@@ -983,6 +643,7 @@ def get_player_analysis(user):
             "pti_change": None,
             "pti_data_available": False,
         }
+        season_pti_change = "N/A"
 
         try:
             # Get current PTI and series info from players table - prioritize player with PTI history
@@ -1005,13 +666,8 @@ def get_player_analysis(user):
                 series_name = player_pti_data["series_name"]
                 history_count = player_pti_data["history_count"]
 
-                print(
-                    f"[DEBUG] Mobile Service - Using player_id {player_pti_data['id']} with {history_count} history records"
-                )
-                
                 # If current_pti is NULL but we have history, get the most recent PTI from history
                 if current_pti is None and history_count > 0:
-                    print(f"[DEBUG] Current PTI is NULL, getting most recent from {history_count} history records")
                     player_db_id = player_pti_data["id"]
                     recent_pti_query = """
                         SELECT end_pti
@@ -1023,11 +679,6 @@ def get_player_analysis(user):
                     recent_pti_result = execute_query_one(recent_pti_query, [player_db_id])
                     if recent_pti_result:
                         current_pti = recent_pti_result["end_pti"]
-                        print(f"[DEBUG] Using most recent PTI from history: {current_pti}")
-                
-                print(
-                    f"[DEBUG] Final PTI value: {current_pti} for series: {series_name}"
-                )
 
                 # Get PTI history for this specific player using proper foreign key relationship
                 pti_change = 0.0
@@ -1048,56 +699,50 @@ def get_player_analysis(user):
                     LIMIT 10
                 """
 
-                player_pti_records = execute_query(
-                    player_pti_history_query, [player_db_id]
-                )
+                player_pti_records = execute_query(player_pti_history_query, [player_db_id])
 
                 if player_pti_records and len(player_pti_records) >= 2:
                     # Get the most recent and previous week's PTI values for this specific player
                     most_recent_pti = player_pti_records[0]["end_pti"]
                     previous_week_pti = player_pti_records[1]["end_pti"]
                     pti_change = most_recent_pti - previous_week_pti
-                    print(
-                        f"[DEBUG] Weekly PTI change via player FK: {pti_change:+.1f} (from {player_pti_records[1]['formatted_date']} to {player_pti_records[0]['formatted_date']})"
-                    )
 
-                elif series_name:
-                    # Fallback: Try series matching with flexible name patterns
-                    series_patterns = [
-                        series_name,  # Exact: "Chicago 22"
-                        series_name.replace(" ", ": "),  # With colon: "Chicago: 22"
-                        f"%{series_name}%",  # Fuzzy: "%Chicago 22%"
-                        f"%{series_name.replace(' ', ': ')}%",  # Fuzzy with colon: "%Chicago: 22%"
-                    ]
+                # Calculate season PTI change
+                from datetime import datetime
+                current_date = datetime.now()
+                current_year = current_date.year
+                current_month = current_date.month
 
-                    for pattern in series_patterns:
-                        history_query = """
-                            SELECT 
-                                date,
-                                end_pti,
-                                series,
-                                TO_CHAR(date, 'YYYY-MM-DD') as formatted_date
-                            FROM player_history
-                            WHERE series ILIKE %s
-                            ORDER BY date DESC
-                            LIMIT 10
-                        """
+                # Determine season year based on current date
+                if current_month >= 8:  # Aug-Dec: current season
+                    season_start_year = current_year
+                else:  # Jan-Jul: previous season
+                    season_start_year = current_year - 1
 
-                        history_records = execute_query(history_query, [pattern])
+                season_start_date = f"{season_start_year}-08-01"
+                season_end_date = f"{season_start_year + 1}-07-31"
 
-                        if history_records and len(history_records) >= 2:
-                            # Find the most recent and previous PTI values for this series
-                            recent_pti = history_records[0]["end_pti"]
-                            previous_pti = history_records[1]["end_pti"]
-                            pti_change = recent_pti - previous_pti
-                            print(
-                                f"[DEBUG] PTI change via series pattern '{pattern}': {pti_change:+.1f}"
-                            )
-                            break
-                    else:
-                        print(
-                            f"[DEBUG] No series history found for PTI change calculation"
-                        )
+                # Get PTI values at season start and most recent
+                season_pti_query = """
+                    SELECT 
+                        date,
+                        end_pti,
+                        ROW_NUMBER() OVER (ORDER BY date ASC) as rn_start,
+                        ROW_NUMBER() OVER (ORDER BY date DESC) as rn_end
+                    FROM player_history
+                    WHERE player_id = %s 
+                    AND date >= %s 
+                    AND date <= %s
+                    ORDER BY date
+                """
+
+                season_pti_records = execute_query(season_pti_query, [player_db_id, season_start_date, season_end_date])
+
+                if season_pti_records and len(season_pti_records) >= 2:
+                    # Get first and last PTI values of the season
+                    start_pti = season_pti_records[0]["end_pti"]
+                    end_pti = season_pti_records[-1]["end_pti"]
+                    season_pti_change = round(end_pti - start_pti, 1)
 
                 # Convert Decimal types to float for template compatibility
                 def decimal_to_float(value):
@@ -1114,456 +759,9 @@ def get_player_analysis(user):
                     "pti_change": decimal_to_float(pti_change),
                     "pti_data_available": True,
                 }
-                print(
-                    f"[DEBUG] PTI data available: Current={current_pti}, Change={pti_change:+.1f}"
-                )
-            else:
-                print(f"[DEBUG] No current PTI found in players table for {player_id}")
-                print(
-                    f"[DEBUG] This is expected for leagues like CNSWPL that don't track PTI ratings"
-                )
 
         except Exception as pti_error:
-            print(f"[DEBUG] Error fetching PTI data: {pti_error}")
-            # Don't create sample data - only show PTI card if real data exists
-
-        # Helper function to get player name from ID
-        def get_player_name(player_id):
-            if not player_id:
-                return None
-            try:
-                # Try to get player name from database
-                if league_id_int:
-                    name_query = """
-                        SELECT first_name, last_name FROM players 
-                        WHERE tenniscores_player_id = %s AND league_id = %s
-                    """
-                    player_record = execute_query_one(
-                        name_query, [player_id, league_id_int]
-                    )
-                else:
-                    name_query = """
-                        SELECT first_name, last_name FROM players 
-                        WHERE tenniscores_player_id = %s
-                    """
-                    player_record = execute_query_one(name_query, [player_id])
-
-                if player_record:
-                    return f"{player_record['first_name']} {player_record['last_name']}"
-                else:
-                    # FIXED: For substitute players from other leagues/teams
-                    # Try to find the player across ALL leagues if not found in current league
-                    if league_id_int:  # Only do cross-league search if we were filtering by league initially
-                        cross_league_query = """
-                            SELECT first_name, last_name FROM players 
-                            WHERE tenniscores_player_id = %s
-                            ORDER BY league_id LIMIT 1
-                        """
-                        cross_league_record = execute_query_one(cross_league_query, [player_id])
-                        if cross_league_record:
-                            partner_name = f"{cross_league_record['first_name']} {cross_league_record['last_name']}"
-                            print(f"[DEBUG] Found substitute player from different league: {partner_name} (ID: {player_id})")
-                            return partner_name
-                    
-                    # Fallback: return truncated player ID if no name found anywhere
-                    return f"Player {player_id[:8]}..."
-            except Exception as e:
-                print(f"[DEBUG] Error getting player name for {player_id}: {e}")
-                return f"Player {player_id[:8]}..."
-
-        # Calculate court analysis using CORRECT logic based on match position within team's matches on each date
-        court_analysis = {}
-
-        # Always show 4 courts
-        max_courts = 4
-
-        # Get all matches on the dates this player played to determine correct court assignments
-        from collections import defaultdict
-        from datetime import datetime
-
-        # Initialize court analysis dictionary
-        court_analysis = {}
-        player_stats = defaultdict(
-            lambda: {"matches": 0, "wins": 0, "courts": {}, "partners": {}}
-        )
-
-        def parse_date(date_str):
-            if not date_str:
-                return datetime.min
-            # Handle the specific format from our database: "DD-Mon-YY"
-            for fmt in ("%d-%b-%y", "%d-%B-%y", "%Y-%m-%d", "%m/%d/%Y"):
-                try:
-                    return datetime.strptime(date_str, fmt)
-                except ValueError:
-                    continue
-            return datetime.min
-
-        # Get player match dates
-        player_dates = []
-        for match in player_matches:
-            date_str = match.get("Date", "")
-            parsed_date = parse_date(date_str)
-            if parsed_date != datetime.min:
-                player_dates.append(parsed_date.date())
-
-        # FIXED: Use REAL court assignments based on match position within team matchup
-        # Court Number = ROW_NUMBER() of match within same team matchup on same date
-        
-        # Initialize court stats for tracking real court performance
-        court_stats = {
-            f"court{i}": {
-                "matches": 0,
-                "wins": 0,
-                "losses": 0,
-                "partners": defaultdict(lambda: {"matches": 0, "wins": 0, "losses": 0}),
-            }
-            for i in range(1, max_courts + 1)
-        }
-        
-        # Process each match to determine ACTUAL court assignment
-        # First, get ALL team matchups and their match counts for context
-        all_team_matchups = {}
-        for match in player_matches:
-            match_date = match.get("Date")
-            home_team = match.get("Home Team", "")
-            away_team = match.get("Away Team", "")
-            matchup_key = f"{match_date}|{home_team}|{away_team}"
-            
-            if matchup_key not in all_team_matchups:
-                # Get ALL matches for this team matchup on this date, filtered by league and team context
-                if league_id_int and user_team_id:
-                    # Filter by league_id and team_id for accurate court assignment for this specific team
-                    team_matchup_query = """
-                        SELECT id
-                        FROM match_scores 
-                        WHERE TO_CHAR(match_date, 'DD-Mon-YY') = %s
-                        AND home_team = %s 
-                        AND away_team = %s
-                        AND league_id = %s
-                        AND (home_team_id = %s OR away_team_id = %s)
-                        ORDER BY id ASC
-                    """
-                    all_matches = execute_query(team_matchup_query, [match_date, home_team, away_team, league_id_int, user_team_id, user_team_id])
-                    print(f"[DEBUG] Found {len(all_matches)} matches for team matchup with team filtering")
-                elif league_id_int:
-                    # Fallback: filter by league only
-                    team_matchup_query = """
-                        SELECT id
-                        FROM match_scores 
-                        WHERE TO_CHAR(match_date, 'DD-Mon-YY') = %s
-                        AND home_team = %s 
-                        AND away_team = %s
-                        AND league_id = %s
-                        ORDER BY id ASC
-                    """
-                    all_matches = execute_query(team_matchup_query, [match_date, home_team, away_team, league_id_int])
-                    print(f"[DEBUG] Found {len(all_matches)} matches for team matchup with league filtering")
-                else:
-                    # No filtering (original behavior)
-                    team_matchup_query = """
-                        SELECT id
-                        FROM match_scores 
-                        WHERE TO_CHAR(match_date, 'DD-Mon-YY') = %s
-                        AND home_team = %s 
-                        AND away_team = %s
-                        ORDER BY id ASC
-                    """
-                    all_matches = execute_query(team_matchup_query, [match_date, home_team, away_team])
-                    print(f"[DEBUG] Found {len(all_matches)} matches for team matchup with no filtering")
-                
-                all_team_matchups[matchup_key] = [m["id"] for m in all_matches]
-        
-        # Now process each match with correct court assignment
-        for match in player_matches:
-            match_date = match.get("Date")
-            home_team = match.get("Home Team", "")
-            away_team = match.get("Away Team", "")
-            match_id = match.get("id")
-
-            # FIXED: Use REAL court assignment based on position in team matchup
-            matchup_key = f"{match_date}|{home_team}|{away_team}"
-            team_match_ids = all_team_matchups.get(matchup_key, [])
-            
-            # Find this match's position in the ordered team matchup
-            court_num = None
-            for i, team_match_id in enumerate(team_match_ids, 1):
-                if team_match_id == match_id:
-                    court_num = i  # Position in team matchup = Court number
-                    break
-
-            # FIXED: Instead of skipping matches, assign them to a court
-            if court_num is None or court_num > max_courts:
-                # Fallback: Distribute unassignable matches evenly across courts 1-4
-                # Use match_id modulo to ensure consistent assignment
-                fallback_court = (match_id % max_courts) + 1
-                court_num = fallback_court
-                print(f"[DEBUG] Match {match_id} assigned to fallback court {court_num}")
-
-            court_key = f"court{court_num}"
-
-            # Determine if player won
-            is_home = player_id in [
-                match.get("Home Player 1"),
-                match.get("Home Player 2"),
-            ]
-            winner = match.get("Winner") or ""
-            won = (is_home and winner.lower() == "home") or (
-                not is_home and winner.lower() == "away"
-            )
-
-            # Update court performance stats
-            court_stats[court_key]["matches"] += 1
-            if won:
-                court_stats[court_key]["wins"] += 1
-            else:
-                court_stats[court_key]["losses"] += 1
-
-            # Track REAL partnerships on REAL courts
-            if is_home:
-                partner_id = (
-                    match.get("Home Player 2")
-                    if match.get("Home Player 1") == player_id
-                    else match.get("Home Player 1")
-                )
-                partner_name_from_json = (
-                    match.get("Home Player 2")
-                    if match.get("Home Player 1") == player_id
-                    else match.get("Home Player 1")
-                )
-            else:
-                partner_id = (
-                    match.get("Away Player 2")
-                    if match.get("Away Player 1") == player_id
-                    else match.get("Away Player 1")
-                )
-                partner_name_from_json = (
-                    match.get("Away Player 2")
-                    if match.get("Away Player 1") == player_id
-                    else match.get("Away Player 1")
-                )
-
-            print(f"[DEBUG PARTNER] Match {match_id} on {court_key}: player_id={player_id}, partner_id={partner_id}, partner_name_from_json={partner_name_from_json}")
-
-            partner_name = None
-            if partner_id:
-                # Standard case: we have a partner ID, look up the name
-                partner_name = get_player_name(partner_id)
-                print(f"[DEBUG PARTNER]   Partner name resolved via ID: {partner_name}")
-                if partner_name and partner_name.startswith("Player "):
-                    print(f"[DEBUG PARTNER]   Fallback logic triggered for partner_id={partner_id}")
-            elif partner_name_from_json and isinstance(partner_name_from_json, str) and not partner_name_from_json.startswith("nndz-"):
-                # FIXED: Handle substitute players where we have name but no ID
-                print(f"[DEBUG PARTNER]   No partner_id but found partner name in JSON: '{partner_name_from_json}'")
-                
-                # Try to look up the player ID by name across all leagues
-                try:
-                    name_parts = partner_name_from_json.strip().split()
-                    if len(name_parts) >= 2:
-                        first_name = name_parts[0]
-                        last_name = " ".join(name_parts[1:])
-                        
-                        # Search across all leagues for this player name
-                        name_lookup_query = """
-                            SELECT tenniscores_player_id, first_name, last_name, league_id
-                            FROM players 
-                            WHERE LOWER(first_name) = LOWER(%s) AND LOWER(last_name) = LOWER(%s)
-                            ORDER BY league_id
-                            LIMIT 1
-                        """
-                        name_lookup_result = execute_query_one(name_lookup_query, [first_name, last_name])
-                        
-                        if name_lookup_result:
-                            partner_id = name_lookup_result['tenniscores_player_id']
-                            partner_name = f"{name_lookup_result['first_name']} {name_lookup_result['last_name']}"
-                            print(f"[DEBUG PARTNER]   Found partner by name lookup: {partner_name} (ID: {partner_id}, League: {name_lookup_result['league_id']})")
-                        else:
-                            # Fallback: use the name directly from JSON if no ID found
-                            partner_name = partner_name_from_json
-                            print(f"[DEBUG PARTNER]   Using partner name directly from JSON: {partner_name}")
-                    else:
-                        partner_name = partner_name_from_json
-                        print(f"[DEBUG PARTNER]   Using partner name directly (insufficient name parts): {partner_name}")
-                        
-                except Exception as e:
-                    print(f"[DEBUG PARTNER]   Error looking up partner by name: {e}")
-                    partner_name = partner_name_from_json
-                    print(f"[DEBUG PARTNER]   Using partner name directly from JSON after error: {partner_name}")
-            else:
-                print(f"[DEBUG PARTNER]   No partner_id or valid partner name found for this match.")
-
-            if partner_name:
-                court_stats[court_key]["partners"][partner_name]["matches"] += 1
-                if won:
-                    court_stats[court_key]["partners"][partner_name]["wins"] += 1
-                else:
-                    court_stats[court_key]["partners"][partner_name]["losses"] += 1
-
-        # Build court_analysis using REAL court performance data
-        total_court_matches = 0
-        for i in range(1, max_courts + 1):
-            court_key = f"court{i}"
-            stat = court_stats[court_key]
-            
-            court_matches = stat["matches"]
-            court_wins = stat["wins"]
-            court_losses = stat["losses"]
-            court_win_rate = (
-                round((court_wins / court_matches) * 100, 1) if court_matches > 0 else 0
-            )
-            
-            total_court_matches += court_matches
-            print(f"[DEBUG] {court_key}: {court_matches} matches ({court_wins}-{court_losses})")
-
-            # Get REAL partners with their REAL performance on this REAL court
-            top_partners = []
-            for partner_name, partner_stats in stat["partners"].items():
-                if partner_name and partner_stats["matches"] > 0:
-                    partner_wins = partner_stats["wins"]
-                    partner_losses = partner_stats["losses"]
-                    match_count = partner_stats["matches"]
-                    partner_win_rate = (
-                        round((partner_wins / match_count) * 100, 1)
-                        if match_count > 0
-                        else 0
-                    )
-
-                    top_partners.append(
-                        {
-                            "name": partner_name,
-                            "matches": match_count,
-                            "wins": partner_wins,
-                            "losses": partner_losses,
-                            "winRate": partner_win_rate,
-                        }
-                    )
-
-            # Sort by number of matches together (descending)
-            top_partners.sort(key=lambda p: p["matches"], reverse=True)
-
-            court_analysis[court_key] = {
-                "winRate": court_win_rate,
-                "record": f"{court_wins}-{court_losses}",
-                "topPartners": top_partners,  # All partners on this court
-            }
-
-        # Use the corrected win/loss calculations from earlier in the function
-        # (total_matches, wins, losses are already calculated correctly above)
-        win_rate = round((wins / total_matches) * 100, 1) if total_matches > 0 else 0
-        print(
-            f"[DEBUG] Using corrected stats: {wins}-{losses} = {win_rate}% win rate from {total_matches} matches"
-        )
-        print(f"[DEBUG] Total matches: {total_matches}, Court matches total: {total_court_matches}")
-        
-        if total_matches != total_court_matches:
-            print(f"[WARNING] Match count mismatch! Total: {total_matches}, Courts: {total_court_matches}")
-
-
-        
-        if total_matches == total_court_matches:
-            print(f"[SUCCESS] Match counts match perfectly: {total_matches} = {total_court_matches}")
-        else:
-            print(f"[WARNING] Match count mismatch detected")
-
-        # Build current season stats
-        # Calculate PTI change for current season (start to end of season)
-        season_pti_change = "N/A"
-        if pti_data.get("pti_data_available", False):
-            try:
-                # Get season start and end PTI values from player_history
-                current_pti = pti_data.get("current_pti")
-
-                # Get player's database ID for history lookup - prioritize player with PTI history
-                player_pti_query = """
-                    SELECT 
-                        p.id,
-                        p.series_id,
-                        s.name as series_name,
-                        (SELECT COUNT(*) FROM player_history ph WHERE ph.player_id = p.id) as history_count
-                    FROM players p
-                    LEFT JOIN series s ON p.series_id = s.id
-                    WHERE p.tenniscores_player_id = %s
-                    ORDER BY history_count DESC, p.id DESC
-                """
-                player_pti_data = execute_query_one(player_pti_query, [player_id])
-
-                if player_pti_data:
-                    player_db_id = player_pti_data["id"]
-                    series_name = player_pti_data["series_name"]
-
-                    # Calculate current tennis season dates (Aug 1 - July 31)
-                    from datetime import datetime
-
-                    current_date = datetime.now()
-                    current_year = current_date.year
-                    current_month = current_date.month
-
-                    # Determine season year based on current date
-                    if current_month >= 8:  # Aug-Dec: current season
-                        season_start_year = current_year
-                    else:  # Jan-Jul: previous season
-                        season_start_year = current_year - 1
-
-                    season_start_date = f"{season_start_year}-08-01"
-                    season_end_date = f"{season_start_year + 1}-07-31"
-
-                    # Get PTI values at season start and most recent
-                    season_pti_query = """
-                        SELECT 
-                            date,
-                            end_pti,
-                            ROW_NUMBER() OVER (ORDER BY date ASC) as rn_start,
-                            ROW_NUMBER() OVER (ORDER BY date DESC) as rn_end
-                        FROM player_history
-                        WHERE player_id = %s 
-                        AND date >= %s 
-                        AND date <= %s
-                        ORDER BY date
-                    """
-
-                    season_pti_records = execute_query(
-                        season_pti_query,
-                        [player_db_id, season_start_date, season_end_date],
-                    )
-
-                    if season_pti_records and len(season_pti_records) >= 2:
-                        # Get first and last PTI values of the season
-                        start_pti = season_pti_records[0]["end_pti"]
-                        end_pti = season_pti_records[-1]["end_pti"]
-                        season_pti_change = round(end_pti - start_pti, 1)
-                        print(
-                            f"[DEBUG] Season PTI change: {start_pti} -> {end_pti} = {season_pti_change:+.1f}"
-                        )
-                    elif series_name:
-                        # Fallback: Use series matching for season PTI calculation
-                        series_season_query = """
-                            SELECT 
-                                date,
-                                end_pti
-                            FROM player_history
-                            WHERE series ILIKE %s 
-                            AND date >= %s 
-                            AND date <= %s
-                            ORDER BY date
-                        """
-
-                        series_pti_records = execute_query(
-                            series_season_query,
-                            [f"%{series_name}%", season_start_date, season_end_date],
-                        )
-
-                        if series_pti_records and len(series_pti_records) >= 2:
-                            start_pti = series_pti_records[0]["end_pti"]
-                            end_pti = series_pti_records[-1]["end_pti"]
-                            season_pti_change = round(end_pti - start_pti, 1)
-                            print(
-                                f"[DEBUG] Season PTI change via series fallback: {start_pti} -> {end_pti} = {season_pti_change:+.1f}"
-                            )
-
-            except Exception as pti_season_error:
-                print(
-                    f"[DEBUG] Error calculating season PTI change: {pti_season_error}"
-                )
-                season_pti_change = "N/A"
+            print(f"Error fetching PTI data: {pti_error}")
 
         # Helper function to convert Decimal to float for template compatibility
         def decimal_to_float_season(value):
@@ -1586,23 +784,12 @@ def get_player_analysis(user):
         # Build career stats from player_history table
         career_stats = get_career_stats_from_db(player_id)
 
-        # Show career stats if they exist in the database
-        # (Remove the logic that hides career stats when they match current season)
+        # Initialize empty court analysis
+        court_analysis = {}
 
-        # Player history (empty for now since we don't have PTI data)
+        # Initialize empty player history
         player_history = {"progression": "", "seasons": []}
 
-        # STAGING DEBUG: Final result being returned
-        debug_info.append("")
-        debug_info.append("BUILDING FINAL RESULT:")
-        debug_info.append(f"  total_matches: {total_matches}")
-        debug_info.append(f"  wins: {wins}")
-        debug_info.append(f"  losses: {losses}")
-        debug_info.append(f"  win_rate: {win_rate}")
-        debug_info.append(f"  current_pti: {pti_data.get('current_pti', 0.0)}")
-        debug_info.append(f"  court_analysis type: {type(court_analysis)}")
-        debug_info.append(f"  court_analysis keys: {list(court_analysis.keys()) if isinstance(court_analysis, dict) else 'NOT_DICT'}")
-        
         # Return the complete data structure expected by the template
         result = {
             "current_season": current_season,
@@ -1615,59 +802,27 @@ def get_player_analysis(user):
             "current_pti": decimal_to_float_season(pti_data.get("current_pti", 0.0)),
             "weekly_pti_change": decimal_to_float_season(pti_data.get("pti_change", 0.0)),
             "pti_data_available": pti_data.get("pti_data_available", False),
-            "error": None,
-            "_debug_info": debug_info,
+            "error": None
         }
-
-        debug_info.append("")
-        debug_info.append("FINAL RESULT DATA:")
-        debug_info.append(f"  result type: {type(result)}")
-        debug_info.append(f"  current_season: {result['current_season']}")
-        debug_info.append(f"  career_stats: {result['career_stats']}")
-        debug_info.append(f"  court_analysis: {result['court_analysis']}")
-        debug_info.append(f"  current_pti: {result['current_pti']}")
-        debug_info.append(f"  error: {result['error']}")
 
         return result
 
     except Exception as e:
+        print(f"Error getting player analysis: {str(e)}")
         import traceback
-        error_debug = [
-            "=== MOBILE SERVICE ERROR ===",
-            f"Error: {str(e)}",
-            f"Traceback: {traceback.format_exc()}"
-        ]
-        
+        print(f"Full traceback: {traceback.format_exc()}")
         return {
-            "current_season": {
-                "winRate": 0,
-                "matches": 0,
-                "wins": 0,
-                "losses": 0,
-                "ptiChange": "N/A",
-            },
-            "court_analysis": {
-                "court1": {"winRate": 0, "record": "0-0", "topPartners": []},
-                "court2": {"winRate": 0, "record": "0-0", "topPartners": []},
-                "court3": {"winRate": 0, "record": "0-0", "topPartners": []},
-                "court4": {"winRate": 0, "record": "0-0", "topPartners": []},
-            },
-            "career_stats": {
-                "winRate": 0,
-                "matches": 0,
-                "wins": 0,
-                "losses": 0,
-                "pti": "N/A",
-            },
-            "player_history": {"progression": "", "seasons": []},
+            "current_season": None,
+            "court_analysis": {},
+            "career_stats": None,
+            "player_history": None,
             "videos": {"match": [], "practice": []},
             "trends": {},
             "career_pti_change": "N/A",
             "current_pti": None,
             "weekly_pti_change": None,
             "pti_data_available": False,
-            "error": str(e),
-            "_debug_info": error_debug,
+            "error": str(e)
         }
 
 

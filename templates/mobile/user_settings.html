@@ -204,6 +204,8 @@ function loadClubsByLeague(leagueId, selectedClub = null) {
 
 // Load series filtered by league
 function loadSeriesByLeague(leagueId, selectedSeries = null) {
+  console.log('🔍 loadSeriesByLeague called with:', { leagueId, selectedSeries });
+  
   // PERFORMANCE FIX: If we already have the selectedSeries, populate it immediately
   // This eliminates the 5-second delay on staging by using session data directly
   if (selectedSeries) {
@@ -222,52 +224,80 @@ function loadSeriesByLeague(leagueId, selectedSeries = null) {
   
   // Use the new API endpoint that returns user-facing series names from database mappings
   const url = leagueId ? `/api/get-user-facing-series-by-league?league_id=${leagueId}` : '/api/get-user-facing-series-by-league';
+  console.log('🔍 Fetching series from URL:', url);
   
-  fetch(url).then(r=>r.json()).then(data => {
-    const seriesSel = document.getElementById('series');
-    seriesSel.innerHTML = '<option value="">Select a series...</option>';
-    
-    if (data.series && Array.isArray(data.series)) {
+  fetch(url)
+    .then(r => r.json())
+    .then(data => {
+      console.log('🔍 Series API response:', data);
+      
+      const seriesSel = document.getElementById('series');
+      seriesSel.innerHTML = '<option value="">Select a series...</option>';
+      
+      if (data.series && Array.isArray(data.series)) {
+        console.log('🔍 Processing', data.series.length, 'series options:', data.series);
+        
         // Series names are already properly formatted by the database mapping system
         // No need for client-side transformations - just use them directly
         data.series.forEach(series => {
-            const option = document.createElement('option');
-            option.value = series;  // Use the user-facing name as the value
-            option.textContent = series;  // Display the user-facing name
-            seriesSel.appendChild(option);
+          const option = document.createElement('option');
+          option.value = series;  // Use the user-facing name as the value
+          option.textContent = series;  // Display the user-facing name
+          seriesSel.appendChild(option);
         });
         
         // Set selected series if provided
         if (selectedSeries) {
-            seriesSel.value = selectedSeries;
+          seriesSel.value = selectedSeries;
+          console.log('✅ Set selected series to:', selectedSeries);
         }
         
         console.log('✅ Series dropdown fully populated from API with', data.series.length, 'options');
-    }
-  }).catch(error => {
-    console.error('Error loading series:', error);
-    // Fallback to original API if new one fails
-    const fallbackUrl = leagueId ? `/api/get-series-by-league?league_id=${leagueId}` : '/api/get-series-by-league';
-    fetch(fallbackUrl).then(r=>r.json()).then(data => {
-      const seriesSel = document.getElementById('series');
-      seriesSel.innerHTML = '<option value="">Select a series...</option>';
-      if (data.series && Array.isArray(data.series)) {
-        data.series.forEach(series => {
-          const option = document.createElement('option');
-          option.value = series;
-          option.textContent = series;
-          seriesSel.appendChild(option);
-        });
-        if (selectedSeries) seriesSel.value = selectedSeries;
+      } else {
+        console.log('❌ No series data or invalid format:', data);
       }
+    })
+    .catch(error => {
+      console.error('❌ Error loading series:', error);
+      // Fallback to original API if new one fails
+      const fallbackUrl = leagueId ? `/api/get-series-by-league?league_id=${leagueId}` : '/api/get-series-by-league';
+      console.log('🔄 Trying fallback URL:', fallbackUrl);
+      
+      fetch(fallbackUrl)
+        .then(r => r.json())
+        .then(data => {
+          console.log('🔍 Fallback series API response:', data);
+          
+          const seriesSel = document.getElementById('series');
+          seriesSel.innerHTML = '<option value="">Select a series...</option>';
+          if (data.series && Array.isArray(data.series)) {
+            data.series.forEach(series => {
+              const option = document.createElement('option');
+              option.value = series;
+              option.textContent = series;
+              seriesSel.appendChild(option);
+            });
+            if (selectedSeries) seriesSel.value = selectedSeries;
+          }
+        })
+        .catch(fallbackError => {
+          console.error('❌ Error loading series from fallback:', fallbackError);
+        });
     });
-  });
 }
 
 
 
 // On page load, fetch user settings
 fetch('/api/get-user-settings').then(r=>r.json()).then(user => {
+  console.log('🔍 User settings API response:', user);
+  console.log('  - First Name:', user.first_name);
+  console.log('  - Last Name:', user.last_name);
+  console.log('  - League ID:', user.league_id);
+  console.log('  - Club:', user.club);
+  console.log('  - Series:', user.series);
+  console.log('  - League Context:', user.league_context);
+  
   fillUserSettingsForm(user);
   loadLeaguesClubsAndSeries(user);
   

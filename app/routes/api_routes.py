@@ -1618,32 +1618,32 @@ def get_user_settings():
                     league_name = selected_player.league.league_name if selected_player.league else ""
                     tenniscores_player_id = selected_player.tenniscores_player_id
                     
-                    # Convert database series name to user-facing format using series mappings
+                    # Get display name from series table if available
                     series_name = raw_series_name
-                    if raw_series_name and league_id:
+                    if raw_series_name:
                         try:
-                            # Check for forward mapping (database_series_name -> user_series_name)
-                            forward_mapping_query = """
-                                SELECT user_series_name
-                                FROM series_name_mappings
-                                WHERE league_id = %s AND database_series_name = %s
+                            # Check for display_name in series table
+                            display_name_query = """
+                                SELECT display_name
+                                FROM series
+                                WHERE name = %s
                                 LIMIT 1
                             """
                             
-                            mapping_result = execute_query_one(forward_mapping_query, (league_id, raw_series_name))
+                            display_result = execute_query_one(display_name_query, (raw_series_name,))
                             
-                            if mapping_result:
-                                series_name = mapping_result["user_series_name"]
-                                print(f"[GET_USER_SETTINGS] Applied forward mapping: '{raw_series_name}' -> '{series_name}'")
+                            if display_result and display_result["display_name"]:
+                                series_name = display_result["display_name"]
+                                print(f"[GET_USER_SETTINGS] Using display_name: '{raw_series_name}' -> '{series_name}'")
                             else:
-                                # For APTA league, try converting Chicago format to Series format
-                                if league_id.startswith("APTA") and raw_series_name.startswith("Chicago"):
+                                # For APTA league, try converting Chicago format to Series format as fallback
+                                if league_id and league_id.startswith("APTA") and raw_series_name.startswith("Chicago"):
                                     series_name = convert_chicago_to_series_for_ui(raw_series_name)
                                     print(f"[GET_USER_SETTINGS] Applied Chicago->Series conversion: '{raw_series_name}' -> '{series_name}'")
                                 else:
-                                    print(f"[GET_USER_SETTINGS] No mapping found for '{raw_series_name}', using as-is")
-                        except Exception as mapping_error:
-                            print(f"[GET_USER_SETTINGS] Error applying series mapping: {mapping_error}")
+                                    print(f"[GET_USER_SETTINGS] No display_name found for '{raw_series_name}', using as-is")
+                        except Exception as display_error:
+                            print(f"[GET_USER_SETTINGS] Error getting display name: {display_error}")
                             series_name = raw_series_name
             else:
                 club_name = series_name = league_id = league_name = (
@@ -1659,7 +1659,7 @@ def get_user_settings():
             "email": user_data["email"] or "",
             "club": club_name,
             "series": series_name,
-            "league_id": league_id,
+            "league_id": league_id,  # This should be the string ID for JavaScript compatibility
             "league_name": league_name,
             "league_context": user_data["league_context"],  # Add league context to response
             "tenniscores_player_id": tenniscores_player_id,
@@ -1744,24 +1744,25 @@ def update_settings():
             
             # Convert user-facing series name back to database series name
             database_series_name = new_series
-            league_id_for_mapping = new_league_id or current_league_id
             
-            if league_id_for_mapping:
-                # Check for reverse mapping (user_series_name -> database_series_name)
+            try:
+                # Check for reverse mapping using display_name column
                 reverse_mapping_query = """
-                    SELECT database_series_name
-                    FROM series_name_mappings
-                    WHERE league_id = %s AND user_series_name = %s
+                    SELECT name as database_series_name
+                    FROM series
+                    WHERE display_name = %s OR name = %s
                     LIMIT 1
                 """
                 
-                mapping_result = execute_query_one(reverse_mapping_query, (league_id_for_mapping, new_series))
+                mapping_result = execute_query_one(reverse_mapping_query, (new_series, new_series))
                 
                 if mapping_result:
                     database_series_name = mapping_result["database_series_name"]
-                    logger.info(f"Applied reverse mapping: '{new_series}' -> '{database_series_name}'")
+                    logger.info(f"Found series mapping: '{new_series}' -> '{database_series_name}'")
                 else:
-                    logger.info(f"No reverse mapping found for '{new_series}', using as-is")
+                    logger.info(f"No series mapping found for '{new_series}', using as-is")
+            except Exception as e:
+                logger.warning(f"Error looking up series mapping: {e}")
             
             # Find the series_id for the database series name
             series_lookup_query = """
@@ -2172,13 +2173,14 @@ def get_series_by_league():
 
 @api_bp.route("/api/get-user-facing-series-by-league")
 def get_user_facing_series_by_league():
-    """Get user-facing series names using database mappings instead of hard-coded transformations - OPTIMIZED"""
+    """Get user-facing series names using the series.display_name column - SIMPLIFIED VERSION"""
     try:
         league_id = request.args.get("league_id")
 
         # If no league_id parameter provided, get it from user session
         if not league_id and "user" in session:
-            league_id = session["user"].get("league_id", "")
+            # Try both league_string_id and league_id from session
+            league_id = session["user"].get("league_string_id") or session["user"].get("league_id", "")
             print(f"[DEBUG] No league_id parameter, using session league_id: {league_id}")
 
         if not league_id:
@@ -2186,41 +2188,47 @@ def get_user_facing_series_by_league():
             print(f"[WARNING] No league_id found in parameter or session, returning empty series list")
             return jsonify({"series": []})
             
-        # OPTIMIZED: Get all series WITH their mappings in a single query using LEFT JOIN
-        # This eliminates the N+1 query problem that was causing 5+ second delays on staging
-        optimized_query = """
+        # Convert integer league_id to string format if needed
+        if isinstance(league_id, int):
+            try:
+                league_record = execute_query_one("SELECT league_id FROM leagues WHERE id = %s", [league_id])
+                if league_record:
+                    league_id = league_record["league_id"]
+                    print(f"[DEBUG] Converted integer league_id {league_id} to string format")
+            except Exception as e:
+                print(f"[WARNING] Could not convert integer league_id: {e}")
+            
+        # SIMPLIFIED: Get series with display names using the new display_name column
+        simplified_query = """
             SELECT DISTINCT 
                 s.name as database_series_name,
-                sm.user_series_name as mapped_name
+                COALESCE(s.display_name, s.name) as display_name
             FROM series s
             JOIN series_leagues sl ON s.id = sl.series_id
             JOIN leagues l ON sl.league_id = l.id
-            LEFT JOIN series_name_mappings sm ON (
-                sm.league_id = l.league_id 
-                AND sm.database_series_name = s.name
-            )
             WHERE l.league_id = %s
             ORDER BY s.name
         """
-        series_data = execute_query(optimized_query, (league_id,))
+        series_data = execute_query(simplified_query, (league_id,))
         
-        # Process all series in one pass (no individual queries needed!)
+        # Process all series and use display_name if available, fallback to transformations
         user_facing_names = []
         
         for series_item in series_data:
             database_name = series_item["database_series_name"]
-            mapped_name = series_item["mapped_name"]
+            display_name = series_item["display_name"]
             
             # Skip problematic Chicago series that don't follow standard pattern
             if league_id and league_id.startswith("APTA") and database_name in ["Chicago", "Chicago Chicago"]:
                 print(f"[API] Skipping problematic series: {database_name}")
                 continue
             
-            if mapped_name:
-                # Use the user-facing name from the mapping
-                user_facing_name = mapped_name
+            # Use display_name if it exists and is different from database name
+            if display_name and display_name != database_name:
+                user_facing_name = display_name
+                print(f"[API] Using display_name: '{database_name}' -> '{display_name}'")
             else:
-                # No mapping found, use database name as-is
+                # No display name set, use database name as-is or apply fallback transformations
                 user_facing_name = database_name
                 
                 # For APTA league, try to convert "Chicago" to "Series" in the UI
@@ -2229,7 +2237,7 @@ def get_user_facing_series_by_league():
                     # Use converted name if it actually changed
                     if converted_name != user_facing_name:
                         user_facing_name = converted_name
-                    # Note: Don't skip if conversion failed - let Division series, etc. pass through
+                        print(f"[API] Applied fallback transformation: '{database_name}' -> '{user_facing_name}'")
             
             user_facing_names.append(user_facing_name)
         

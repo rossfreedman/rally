@@ -179,8 +179,6 @@
         </div>
         {% endif %}
 
-
-
         <!-- Court Performance -->
         {% if analyze_data.court_analysis %}
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
@@ -364,28 +362,14 @@
         </div>
         {% endif %}
 
-        <!-- Empty State -->
-        {% if not analyze_data.current_season and not analyze_data.career_stats and not analyze_data.error %}
+        <!-- No Data State -->
+        {% if not analyze_data.current_season and not analyze_data.error %}
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
             <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <i class="fas fa-chart-bar text-gray-400 text-2xl"></i>
             </div>
             <h3 class="text-lg font-semibold text-gray-900 mb-2">No Match Data</h3>
             <p class="text-gray-500">Start playing matches to see your analysis here!</p>
-        </div>
-        {% endif %}
-
-        <!-- Debug Information -->
-        {% if analyze_data.debug_info %}
-        <div class="bg-yellow-50 rounded-xl border border-yellow-200 p-4 mt-6">
-            <div class="flex items-center mb-3">
-                <i class="fas fa-bug text-yellow-600 mr-2"></i>
-                <h3 class="text-lg font-semibold text-yellow-800">Debug Information</h3>
-            </div>
-            <div class="bg-white rounded-lg p-4 max-h-96 overflow-y-auto">
-                <pre class="text-xs text-gray-700 whitespace-pre-wrap font-mono">{% for line in analyze_data.debug_info %}{{ line }}
-{% endfor %}</pre>
-            </div>
         </div>
         {% endif %}
 
