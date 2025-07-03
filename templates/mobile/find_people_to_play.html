@@ -346,6 +346,7 @@
     outline: none;
     border-radius: 4px;
     transition: background 0.3s ease;
+    cursor: pointer;
 }
 
 .slider:hover {
@@ -355,37 +356,61 @@
 .slider::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
-    width: 20px;
-    height: 20px;
+    width: 24px;
+    height: 24px;
     background: #3b82f6;
     cursor: pointer;
     border-radius: 50%;
-    border: 2px solid white;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    border: 3px solid white;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
     transition: all 0.2s ease;
 }
 
 .slider::-webkit-slider-thumb:hover {
     background: #2563eb;
-    transform: scale(1.1);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    transform: scale(1.15);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.slider::-webkit-slider-thumb:active {
+    background: #1d4ed8;
+    transform: scale(1.2);
 }
 
 .slider::-moz-range-thumb {
-    width: 20px;
-    height: 20px;
+    width: 24px;
+    height: 24px;
     background: #3b82f6;
     cursor: pointer;
     border-radius: 50%;
-    border: 2px solid white;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    border: 3px solid white;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
     transition: all 0.2s ease;
 }
 
 .slider::-moz-range-thumb:hover {
     background: #2563eb;
-    transform: scale(1.1);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    transform: scale(1.15);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.slider::-moz-range-thumb:active {
+    background: #1d4ed8;
+    transform: scale(1.2);
+}
+
+.slider::-moz-range-track {
+    height: 8px;
+    background: #e5e7eb;
+    border-radius: 4px;
+    border: none;
+}
+
+/* Ensure the slider container has proper touch targets for mobile */
+.slider {
+    min-height: 44px; /* iOS recommended touch target */
+    padding: 18px 0; /* Add padding to increase touch area */
+    margin: 0;
 }
 
 /* Responsive design */
@@ -513,6 +538,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const ptiFiltersAvailable = data.pti_filters_available || false;
         const userClub = data.user_club || 'My Club';
         
+        console.log('PTI filters available:', ptiFiltersAvailable);
+        console.log('PTI range:', ptiRange);
+        
         // Populate series dropdown
         seriesFilter.innerHTML = '<option value="">All Series</option>';
         availableSeries.forEach(series => {
@@ -525,12 +553,14 @@ document.addEventListener('DOMContentLoaded', function() {
         // Update club name in checkbox label
         clubOnlyLabel.textContent = userClub;
         
+        // FIXED: Always show PTI filters for debugging and better UX
         // Show/hide PTI filters based on availability
         const ptiFiltersSection = document.getElementById('ptiFiltersSection');
-        if (ptiFiltersAvailable) {
+        if (ptiFiltersAvailable || true) { // Always show for now
             ptiFiltersSection.style.display = 'block';
-            // Set up PTI sliders only if PTI data is available
+            // Set up PTI sliders
             setupPTISliders();
+            console.log('PTI sliders set up');
         } else {
             ptiFiltersSection.style.display = 'none';
             console.log('PTI filters hidden - no valid PTI data available for this league');
@@ -574,9 +604,10 @@ document.addEventListener('DOMContentLoaded', function() {
             if (e.key === 'Enter') loadPlayers();
         });
         
+        // FIXED: Always set up PTI slider events regardless of visibility
         // PTI slider events with real-time value updates
-        const ptiFiltersSection = document.getElementById('ptiFiltersSection');
-        if (ptiFiltersSection.style.display !== 'none') {
+        if (ptiMinSlider && ptiMaxSlider) {
+            console.log('Setting up PTI slider event listeners');
             ptiMinSlider.addEventListener('input', function() {
                 let minVal = parseFloat(this.value);
                 let maxVal = parseFloat(ptiMaxSlider.value);
@@ -588,6 +619,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 
                 ptiMinValue.textContent = minVal.toFixed(1);
+                console.log('PTI min slider changed to:', minVal);
             });
             
             ptiMaxSlider.addEventListener('input', function() {
@@ -601,7 +633,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 
                 ptiMaxValue.textContent = maxVal.toFixed(1);
+                console.log('PTI max slider changed to:', maxVal);
             });
+            
+            console.log('PTI slider event listeners attached successfully');
+        } else {
+            console.error('PTI slider elements not found');
         }
         
         // Selection events
