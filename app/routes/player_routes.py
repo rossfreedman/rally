@@ -51,9 +51,12 @@ def get_players_by_series():
         user_league_id = session["user"].get("league_id", "")  # Keep for team filtering
         user_club = session["user"].get("club")
 
-        # Get players from database using new multi-league schema
+        # FIXED: Use team_id filtering instead of club_name when team_id provided
         all_players = get_players_by_league_and_series(
-            league_id=user_league_string_id, series_name=series, club_name=user_club
+            league_id=user_league_string_id, 
+            series_name=series, 
+            club_name=user_club if not team_id else None,
+            team_id=team_id
         )
 
         # Handle team filtering if requested

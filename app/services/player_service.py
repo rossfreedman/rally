@@ -421,19 +421,23 @@ def find_player_in_history(user, player_history=None):
         return None
 
 
-def get_players_by_league_and_series(league_id, series_name, club_name=None):
+def get_players_by_league_and_series(league_id, series_name, club_name=None, team_id=None):
     """
-    Get players for a specific league and series, optionally filtered by club
+    Get players for a specific league and series, optionally filtered by club or team
+    FIXED: Uses series_id and team_id lookups instead of unreliable string name matching
 
     Args:
         league_id (str): League identifier (e.g., 'APTA_CHICAGO', 'NSTF')
-        series_name (str): Series name for filtering
+        series_name (str): Series name for filtering (will be converted to series_id)
         club_name (str, optional): Club name for additional filtering
+        team_id (int/str, optional): Team ID for team-specific filtering (preferred over club_name)
 
     Returns:
         list: List of player dictionaries with stats and position preference
     """
     try:
+        from utils.series_mapping_service import get_database_series_name
+        
         base_query = """
             SELECT DISTINCT p.tenniscores_player_id, p.first_name, p.last_name,
                    p.club_id, p.series_id, c.name as club_name, s.name as series_name,
@@ -451,15 +455,50 @@ def get_players_by_league_and_series(league_id, series_name, club_name=None):
 
         params = {"league_id": league_id}
 
-        # Add series filter if provided
+        # FIXED: Convert series_name to series_id for reliable matching
         if series_name:
-            base_query += " AND s.name = %(series_name)s"
-            params["series_name"] = series_name
+            # First, get the correct database series name using our mapping service
+            database_series_name = get_database_series_name(series_name, league_id)
+            
+            # Get the series_id from the database
+            series_query = """
+                SELECT s.id as series_id
+                FROM series s
+                WHERE s.name = %(database_series_name)s
+                LIMIT 1
+            """
+            series_result = execute_query_one(series_query, {"database_series_name": database_series_name})
+            
+            if series_result:
+                # Use series_id for exact matching instead of string name matching
+                base_query += " AND p.series_id = %(series_id)s"
+                params["series_id"] = series_result["series_id"]
+                print(f"[DEBUG] Using series_id {series_result['series_id']} for series '{series_name}' -> '{database_series_name}'")
+            else:
+                # Fallback to name matching if series_id lookup fails
+                base_query += " AND s.name = %(series_name)s"
+                params["series_name"] = database_series_name
+                print(f"[DEBUG] Fallback to name matching for series '{series_name}' -> '{database_series_name}'")
 
-        # Add club filter if provided
-        if club_name:
+        # FIXED: Prioritize team_id filtering over club_name filtering
+        if team_id:
+            # Use team_id for precise team filtering (preferred method)
+            try:
+                team_id_int = int(team_id)
+                base_query += " AND p.team_id = %(team_id)s"
+                params["team_id"] = team_id_int
+                print(f"[DEBUG] Using team_id {team_id_int} for team filtering")
+            except (ValueError, TypeError):
+                print(f"[WARNING] Invalid team_id '{team_id}', falling back to club filtering")
+                # Fallback to club filtering if team_id is invalid
+                if club_name:
+                    base_query += " AND c.name = %(club_name)s"
+                    params["club_name"] = club_name
+        elif club_name:
+            # Use club filtering only if no team_id provided
             base_query += " AND c.name = %(club_name)s"
             params["club_name"] = club_name
+            print(f"[DEBUG] Using club_name '{club_name}' for filtering")
 
         base_query += " ORDER BY p.last_name, p.first_name"
 
