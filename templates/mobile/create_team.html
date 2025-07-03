@@ -545,6 +545,204 @@ document.addEventListener('DOMContentLoaded', function() {
         updatePlayerCount();
     }
 
+    // Series PTI Range Management Functions
+    window.updateSeriesPTIRange = async function(seriesName, type, value) {
+        console.log(`Updating ${seriesName} ${type} PTI to ${value}`);
+        
+        const numValue = parseFloat(value);
+        const seriesIndex = seriesRanges.findIndex(s => s.series_name === seriesName);
+        
+        if (seriesIndex === -1) {
+            console.error('Series not found:', seriesName);
+            return;
+        }
+        
+        const series = seriesRanges[seriesIndex];
+        const seriesId = series.series_name.replace(/\s+/g, '-');
+        
+        // Update the series range
+        if (type === 'min') {
+            // Ensure min doesn't exceed max
+            if (numValue > series.current_range.max) {
+                series.current_range.max = numValue + 0.1;
+                updateSliderValue(seriesId, 'max', series.current_range.max);
+            }
+            series.current_range.min = numValue;
+        } else {
+            // Ensure max doesn't go below min
+            if (numValue < series.current_range.min) {
+                series.current_range.min = numValue - 0.1;
+                updateSliderValue(seriesId, 'min', series.current_range.min);
+            }
+            series.current_range.max = numValue;
+        }
+        
+        // Update display
+        updateSeriesDisplay(seriesId, series);
+        
+        // Check for conflicts and adjust other series
+        await resolveRangeConflicts(seriesName, series);
+        
+        // Send AJAX update to backend
+        await updateSeriesRangeBackend(seriesName, series.current_range);
+    };
+
+    function updateSliderValue(seriesId, type, value) {
+        const slider = document.getElementById(`${type}-pti-slider-${seriesId}`);
+        const valueSpan = document.getElementById(`${type}-pti-value-${seriesId}`);
+        
+        if (slider) slider.value = value;
+        if (valueSpan) valueSpan.textContent = value.toFixed(1);
+    }
+
+    function updateSeriesDisplay(seriesId, series) {
+        const rangeSpan = document.getElementById(`current-range-${seriesId}`);
+        const minValueSpan = document.getElementById(`min-pti-value-${seriesId}`);
+        const maxValueSpan = document.getElementById(`max-pti-value-${seriesId}`);
+        
+        if (rangeSpan) {
+            rangeSpan.textContent = `${series.current_range.min} - ${series.current_range.max}`;
+        }
+        if (minValueSpan) {
+            minValueSpan.textContent = series.current_range.min.toFixed(1);
+        }
+        if (maxValueSpan) {
+            maxValueSpan.textContent = series.current_range.max.toFixed(1);
+        }
+    }
+
+    async function resolveRangeConflicts(changedSeriesName, changedSeries) {
+        console.log('Checking for range conflicts...');
+        
+        const conflictMargin = 2.0; // Minimum gap between series ranges
+        let conflictsFound = false;
+        
+        // Check each other series for conflicts
+        for (let i = 0; i < seriesRanges.length; i++) {
+            const otherSeries = seriesRanges[i];
+            if (otherSeries.series_name === changedSeriesName) continue;
+            
+            const otherSeriesId = otherSeries.series_name.replace(/\s+/g, '-');
+            const conflict = detectRangeConflict(changedSeries, otherSeries, conflictMargin);
+            
+            if (conflict) {
+                conflictsFound = true;
+                console.log(`Conflict detected between ${changedSeriesName} and ${otherSeries.series_name}`);
+                
+                // Show conflict warning
+                showConflictWarning(changedSeriesName.replace(/\s+/g, '-'));
+                
+                // Adjust the other series to resolve conflict
+                const adjustment = calculateRangeAdjustment(changedSeries, otherSeries, conflictMargin);
+                
+                if (adjustment) {
+                    // Apply adjustment
+                    otherSeries.current_range.min = adjustment.min;
+                    otherSeries.current_range.max = adjustment.max;
+                    
+                    // Update sliders and display
+                    updateSliderValue(otherSeriesId, 'min', adjustment.min);
+                    updateSliderValue(otherSeriesId, 'max', adjustment.max);
+                    updateSeriesDisplay(otherSeriesId, otherSeries);
+                    
+                    // Update backend
+                    await updateSeriesRangeBackend(otherSeries.series_name, otherSeries.current_range);
+                    
+                    console.log(`Adjusted ${otherSeries.series_name} to ${adjustment.min} - ${adjustment.max}`);
+                }
+            }
+        }
+        
+        // Hide conflict warning after adjustments
+        if (conflictsFound) {
+            setTimeout(() => {
+                hideConflictWarning(changedSeriesName.replace(/\s+/g, '-'));
+            }, 3000);
+        }
+    }
+
+    function detectRangeConflict(series1, series2, margin) {
+        // Check if ranges overlap or are too close
+        const s1Min = series1.current_range.min;
+        const s1Max = series1.current_range.max;
+        const s2Min = series2.current_range.min;
+        const s2Max = series2.current_range.max;
+        
+        // Overlap detection with margin
+        return (s1Min <= s2Max + margin && s1Max >= s2Min - margin);
+    }
+
+    function calculateRangeAdjustment(changedSeries, conflictSeries, margin) {
+        const changedMin = changedSeries.current_range.min;
+        const changedMax = changedSeries.current_range.max;
+        const conflictMin = conflictSeries.current_range.min;
+        const conflictMax = conflictSeries.current_range.max;
+        
+        // Determine if we should push the conflict series up or down
+        const changedMidpoint = (changedMin + changedMax) / 2;
+        const conflictMidpoint = (conflictMin + conflictMax) / 2;
+        
+        if (changedMidpoint < conflictMidpoint) {
+            // Push conflict series up
+            const newMin = changedMax + margin;
+            const rangeSize = conflictMax - conflictMin;
+            return {
+                min: newMin,
+                max: newMin + rangeSize
+            };
+        } else {
+            // Push conflict series down
+            const newMax = changedMin - margin;
+            const rangeSize = conflictMax - conflictMin;
+            return {
+                min: newMax - rangeSize,
+                max: newMax
+            };
+        }
+    }
+
+    function showConflictWarning(seriesId) {
+        const warningDiv = document.getElementById(`conflict-warning-${seriesId}`);
+        if (warningDiv) {
+            warningDiv.classList.remove('hidden');
+        }
+    }
+
+    function hideConflictWarning(seriesId) {
+        const warningDiv = document.getElementById(`conflict-warning-${seriesId}`);
+        if (warningDiv) {
+            warningDiv.classList.add('hidden');
+        }
+    }
+
+    async function updateSeriesRangeBackend(seriesName, newRange) {
+        try {
+            console.log(`Updating ${seriesName} range in backend:`, newRange);
+            
+            const response = await fetch('/api/create-team/update-series-range', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    series_name: seriesName,
+                    min_pti: newRange.min,
+                    max_pti: newRange.max
+                })
+            });
+
+            const data = await response.json();
+            
+            if (!data.success) {
+                console.error('Failed to update series range:', data.error);
+            } else {
+                console.log(`Successfully updated ${seriesName} range in backend`);
+            }
+        } catch (error) {
+            console.error('Error updating series range:', error);
+        }
+    }
+
     // Initialize page with mobile-optimized functionality
     async function initializePage() {
         try {
