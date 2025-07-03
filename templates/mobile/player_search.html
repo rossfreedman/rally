@@ -94,7 +94,7 @@
                                 <div class="flex items-center justify-between">
                                     <div class="flex-1">
                                         <div class="font-semibold text-lg text-gray-900 mb-2">{{ player.name }}</div>
-                                        <div class="grid grid-cols-2 lg:grid-cols-3 gap-3 text-sm text-gray-600">
+                                        <div class="grid grid-cols-2 lg:grid-cols-3 gap-3 text-xxs text-gray-600">
                                             <div class="flex items-center gap-2">
                                                 <i class="fas fa-building text-purple-500 w-4"></i>
                                                 <span>{{ player.club }}</span>
@@ -305,6 +305,12 @@
 
 /* Transition utilities */
 .transition-colors { transition: color 0.15s ease-in-out, background-color 0.15s ease-in-out, border-color 0.15s ease-in-out; }
+
+/* Custom extra small text for player stats */
+.text-xxs {
+    font-size: 8px;
+    line-height: 1.2;
+}
 
 /* Responsive design */
 @media (max-width: 640px) {
