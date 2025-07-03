@@ -445,7 +445,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const playersHtml = allPlayers.map(player => {
             const ptiColorClass = getPTIColorClass(player.pti || 50);
-            return `
+            const playerHtml = `
                 <div class="player-card ${ptiColorClass} border rounded-lg cursor-grab" 
                      data-player-id="${player.id}"
                      draggable="true"
@@ -457,15 +457,36 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="text-xs text-gray-600">${player.club || ''}</div>
                 </div>
             `;
+            // Debug first player HTML
+            if (player === allPlayers[0]) {
+                console.log('Sample player HTML:', playerHtml);
+                console.log('Player ID:', player.id);
+                console.log('Player data:', player);
+            }
+            return playerHtml;
         }).join('');
         
         container.innerHTML = playersHtml;
         console.log('Available players HTML updated');
+        
+        // Check if drag events are properly attached
+        setTimeout(() => {
+            const playerCards = container.querySelectorAll('.player-card');
+            console.log(`Found ${playerCards.length} player cards in DOM`);
+            if (playerCards.length > 0) {
+                const firstCard = playerCards[0];
+                console.log('First player card:', firstCard);
+                console.log('First card draggable:', firstCard.draggable);
+                console.log('First card data-player-id:', firstCard.getAttribute('data-player-id'));
+                console.log('First card ondragstart:', firstCard.getAttribute('ondragstart'));
+            }
+        }, 50);
     }
 
     // Handle player selection for mobile tap interface
     function selectPlayer(playerId) {
-        const player = allPlayers.find(p => p.id === playerId);
+        const playerIdNum = parseInt(playerId, 10);
+        const player = allPlayers.find(p => p.id === playerIdNum);
         if (!player) return;
 
         // Clear previous selection
@@ -716,12 +737,26 @@ document.addEventListener('DOMContentLoaded', function() {
     let draggedPlayer = null;
 
     window.handleDragStart = function(event, playerId) {
-        const player = allPlayers.find(p => p.id === playerId);
+        console.log('=== DRAG START EVENT ===');
+        console.log('Player ID:', playerId, typeof playerId);
+        console.log('All players count:', allPlayers.length);
+        
+        // Convert playerId to number to match player object id
+        const playerIdNum = parseInt(playerId, 10);
+        console.log('Player ID as number:', playerIdNum);
+        
+        const player = allPlayers.find(p => p.id === playerIdNum);
+        console.log('Found player:', player);
+        
         if (player) {
             draggedPlayer = player;
             event.dataTransfer.setData('text/plain', playerId);
             event.target.style.opacity = '0.5';
-            console.log('Drag started for player:', player.name || `${player.first_name} ${player.last_name}`);
+            console.log('Drag started successfully for player:', player.name || `${player.first_name} ${player.last_name}`);
+            console.log('draggedPlayer variable set:', draggedPlayer);
+        } else {
+            console.log('ERROR: Player not found in allPlayers array');
+            console.log('Available player IDs:', allPlayers.map(p => p.id));
         }
     };
 
@@ -871,7 +906,8 @@ document.addEventListener('DOMContentLoaded', function() {
     // Handle dragging assigned players (for moving between series or back to pool)
     window.handleAssignedPlayerDragStart = function(event, playerId, fromSeries) {
         // Find player in the assigned teams
-        const player = teamAssignments[fromSeries].find(p => p.id === playerId);
+        const playerIdNum = parseInt(playerId, 10);
+        const player = teamAssignments[fromSeries].find(p => p.id === playerIdNum);
         if (player) {
             draggedPlayer = player;
             draggedPlayer.fromSeries = fromSeries; // Track where it came from
@@ -883,7 +919,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Return player to available pool
     window.returnPlayerToPool = function(playerId, fromSeries) {
-        const playerIndex = teamAssignments[fromSeries].findIndex(p => p.id === playerId);
+        const playerIdNum = parseInt(playerId, 10);
+        const playerIndex = teamAssignments[fromSeries].findIndex(p => p.id === playerIdNum);
         if (playerIndex !== -1) {
             const player = teamAssignments[fromSeries][playerIndex];
             
@@ -949,6 +986,22 @@ document.addEventListener('DOMContentLoaded', function() {
         displayPlayers();
         displaySeriesTeams();
         updatePlayerCount();
+    };
+
+    // Test drag start function for debugging
+    window.testDragStart = function() {
+        console.log('Testing drag start with first player...');
+        if (allPlayers.length > 0) {
+            const firstPlayer = allPlayers[0];
+            console.log('First player:', firstPlayer);
+            console.log('Player ID:', firstPlayer.id);
+            
+            // Simulate drag start
+            draggedPlayer = firstPlayer;
+            console.log('Manually set draggedPlayer:', draggedPlayer);
+        } else {
+            console.log('No players available to test');
+        }
     };
 
     // Initialize page

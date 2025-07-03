@@ -1170,6 +1170,30 @@ document.addEventListener('DOMContentLoaded', function() {
         messageButtonContainer.style.zIndex = '9999';
         console.log('Button forced to show with z-index 9999');
     };
+    
+    // Debug function for testing PTI sliders (can be called from console)
+    window.testPTISliders = function() {
+        console.log('Testing PTI sliders...');
+        console.log('PTI min slider element:', ptiMinSlider);
+        console.log('PTI max slider element:', ptiMaxSlider);
+        console.log('PTI min value element:', ptiMinValue);
+        console.log('PTI max value element:', ptiMaxValue);
+        console.log('Current min value:', ptiMinSlider?.value);
+        console.log('Current max value:', ptiMaxSlider?.value);
+        console.log('PTI range:', ptiRange);
+        
+        // Test setting values
+        if (ptiMinSlider && ptiMaxSlider) {
+            console.log('Testing slider value changes...');
+            ptiMinSlider.value = 20;
+            ptiMaxSlider.value = 80;
+            ptiMinSlider.dispatchEvent(new Event('input'));
+            ptiMaxSlider.dispatchEvent(new Event('input'));
+            console.log('Slider values changed to min: 20, max: 80');
+        } else {
+            console.error('Slider elements not found!');
+        }
+    };
 });
 </script>
 {% endblock %} 

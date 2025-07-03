@@ -924,12 +924,7 @@ def get_teams_for_selection(
             query += " AND t.league_id = %s"
             params.append(league_id_int)
 
-        # Filter by user's club if provided
-        if user_club:
-            query += " AND c.name = %s"
-            params.append(user_club)
-
-        # Filter by user's series if provided
+        # Filter by user's series if provided (show all teams in series, not just user's club)
         if user_series:
             query += " AND s.name = %s"
             params.append(user_series)
@@ -949,7 +944,7 @@ def get_teams_for_selection(
             })
 
         print(
-            f"[DEBUG] get_teams_for_selection: Found {len(teams)} teams for league_id {league_id_int}, series '{user_series}', club '{user_club}'"
+            f"[DEBUG] get_teams_for_selection: Found {len(teams)} teams for league_id {league_id_int}, series '{user_series}' (all clubs in series)"
         )
 
         return teams
