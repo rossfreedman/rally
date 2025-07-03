@@ -27,7 +27,7 @@
             </div>
             <div class="flex-1">
                 <p class="text-sm font-medium text-amber-800">
-                    <span class="font-semibold">Desktop Optimized:</span> This page works on mobile but is optimized for desktop viewing. For the best experience with all three columns visible side-by-side, please use a computer or tablet in landscape mode.
+                    <span class="font-semibold">3-Column Layout:</span> This page displays three columns side-by-side on desktop and tablet screens (medium and larger). On mobile, columns will stack vertically for better usability.
                 </p>
             </div>
             <div class="flex-shrink-0">
@@ -87,11 +87,11 @@
     </div>
 
     <!-- Main Content Container (Always Visible) -->
-    <div id="main-content" class="space-y-4">
+    <div id="main-content" class="grid grid-cols-1 md:grid-cols-3 gap-4 min-h-screen">
         
         <!-- Column 1: Interactive PTI Range Control -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100">
-            <div class="px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col">
+            <div class="px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50 flex-shrink-0">
                 <div class="flex items-center justify-between">
                     <div>
                         <h2 class="text-lg font-semibold text-gray-900 flex items-center">
@@ -106,7 +106,7 @@
                     </button>
                 </div>
             </div>
-            <div class="p-4 max-h-96 overflow-y-auto">
+            <div class="p-4 flex-1 overflow-y-auto">
                 <div id="series-recommendations" class="space-y-4">
                     <!-- Series recommendations will be loaded here -->
                 </div>
@@ -114,8 +114,8 @@
         </div>
 
         <!-- Column 2: Available Players -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100">
-            <div class="px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-green-50 to-emerald-50">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col">
+            <div class="px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-green-50 to-emerald-50 flex-shrink-0">
                 <div class="flex items-center justify-between">
                     <div>
                         <h2 class="text-lg font-semibold text-gray-900 flex items-center">
@@ -145,7 +145,7 @@
                     </button>
                 </div>
             </div>
-            <div class="p-4 max-h-96 overflow-y-auto">
+            <div class="p-4 flex-1 overflow-y-auto">
                 <div id="available-players-pool" class="min-h-24 bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-4">
                     <div class="text-gray-400 text-center text-sm" id="loading-players">Loading players...</div>
                 </div>
@@ -153,8 +153,8 @@
         </div>
 
         <!-- Column 3: Series Teams Display -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100">
-            <div class="px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-purple-50 to-pink-50">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col">
+            <div class="px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-purple-50 to-pink-50 flex-shrink-0">
                 <div class="flex items-center justify-between">
                     <div>
                         <h2 class="text-lg font-semibold text-gray-900 flex items-center">
@@ -173,7 +173,7 @@
                     </button>
                 </div>
             </div>
-            <div class="p-4 max-h-96 overflow-y-auto">
+            <div class="p-4 flex-1 overflow-y-auto">
                 <div id="series-teams" class="space-y-4">
                     <!-- Series containers will be dynamically created here -->
                 </div>
@@ -275,6 +275,23 @@
 .pti-70 { background-color: #fce7f3; border-color: #ec4899; color: #be185d; }
 .pti-80 { background-color: #e9d5ff; border-color: #a855f7; color: #7c2d12; }
 
+/* 3-Column Layout Styling */
+#main-content {
+    height: calc(100vh - 200px); /* Account for header and footer space */
+}
+
+/* Ensure equal column heights */
+@media (min-width: 768px) {
+    #main-content > div {
+        min-height: 600px;
+    }
+    
+    .player-card {
+        width: 100px !important;
+        font-size: 0.75rem !important;
+    }
+}
+
 /* Responsive grid for mobile */
 @media (max-width: 768px) {
     .candy-grid {
@@ -287,6 +304,10 @@
         min-height: 50px !important;
         padding: 0.5rem !important;
         margin: 0.25rem !important;
+    }
+    
+    #main-content {
+        height: auto;
     }
 }
 </style>
