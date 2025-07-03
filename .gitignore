@@ -81,3 +81,6 @@ railway_backup_*.sql
 data/backups/
 data/backups/**/*
 
+# Reference directories
+rally_reference/
+
