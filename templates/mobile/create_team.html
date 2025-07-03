@@ -480,21 +480,21 @@ document.addEventListener('DOMContentLoaded', function() {
         const series = seriesRanges[seriesIndex];
         const seriesId = series.series_name.replace(/\s+/g, '-');
         
-        // Update the series range
+        // Update the series range with 2 decimal precision
         if (type === 'min') {
             // Ensure min doesn't exceed max
             if (numValue > series.current_range.max) {
-                series.current_range.max = numValue + 0.1;
+                series.current_range.max = parseFloat((numValue + 0.01).toFixed(2));
                 updateSliderValue(seriesId, 'max', series.current_range.max);
             }
-            series.current_range.min = numValue;
+            series.current_range.min = parseFloat(numValue.toFixed(2));
         } else {
             // Ensure max doesn't go below min
             if (numValue < series.current_range.min) {
-                series.current_range.min = numValue - 0.1;
+                series.current_range.min = parseFloat((numValue - 0.01).toFixed(2));
                 updateSliderValue(seriesId, 'min', series.current_range.min);
             }
-            series.current_range.max = numValue;
+            series.current_range.max = parseFloat(numValue.toFixed(2));
         }
         
         // Update display
@@ -512,7 +512,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const valueSpan = document.getElementById(`${type}-pti-value-${seriesId}`);
         
         if (slider) slider.value = value;
-        if (valueSpan) valueSpan.textContent = value.toFixed(1);
+        if (valueSpan) valueSpan.textContent = value.toFixed(2);
     }
 
     function updateSeriesDisplay(seriesId, series) {
@@ -521,60 +521,90 @@ document.addEventListener('DOMContentLoaded', function() {
         const maxValueSpan = document.getElementById(`max-pti-value-${seriesId}`);
         
         if (rangeSpan) {
-            rangeSpan.textContent = `${series.current_range.min} - ${series.current_range.max}`;
+            rangeSpan.textContent = `${series.current_range.min.toFixed(2)} - ${series.current_range.max.toFixed(2)}`;
         }
         if (minValueSpan) {
-            minValueSpan.textContent = series.current_range.min.toFixed(1);
+            minValueSpan.textContent = series.current_range.min.toFixed(2);
         }
         if (maxValueSpan) {
-            maxValueSpan.textContent = series.current_range.max.toFixed(1);
+            maxValueSpan.textContent = series.current_range.max.toFixed(2);
         }
     }
 
     async function resolveRangeConflicts(changedSeriesName, changedSeries) {
-        console.log('Checking for range conflicts...');
+        console.log('Checking for range conflicts and adjusting ALL other series...');
         
         const conflictMargin = 2.0; // Minimum gap between series ranges
-        let conflictsFound = false;
+        let conflictingSeries = [];
         
-        // Check each other series for conflicts
+        // Find ALL series that conflict with the changed series
         for (let i = 0; i < seriesRanges.length; i++) {
             const otherSeries = seriesRanges[i];
             if (otherSeries.series_name === changedSeriesName) continue;
             
-            const otherSeriesId = otherSeries.series_name.replace(/\s+/g, '-');
             const conflict = detectRangeConflict(changedSeries, otherSeries, conflictMargin);
-            
             if (conflict) {
-                conflictsFound = true;
-                console.log(`Conflict detected between ${changedSeriesName} and ${otherSeries.series_name}`);
-                
-                // Show conflict warning
-                showConflictWarning(changedSeriesName.replace(/\s+/g, '-'));
-                
-                // Adjust the other series to resolve conflict
-                const adjustment = calculateRangeAdjustment(changedSeries, otherSeries, conflictMargin);
-                
-                if (adjustment) {
-                    // Apply adjustment
-                    otherSeries.current_range.min = adjustment.min;
-                    otherSeries.current_range.max = adjustment.max;
-                    
-                    // Update sliders and display
-                    updateSliderValue(otherSeriesId, 'min', adjustment.min);
-                    updateSliderValue(otherSeriesId, 'max', adjustment.max);
-                    updateSeriesDisplay(otherSeriesId, otherSeries);
-                    
-                    // Update backend
-                    await updateSeriesRangeBackend(otherSeries.series_name, otherSeries.current_range);
-                    
-                    console.log(`Adjusted ${otherSeries.series_name} to ${adjustment.min} - ${adjustment.max}`);
-                }
+                conflictingSeries.push(otherSeries);
             }
         }
         
-        // Hide conflict warning after adjustments
-        if (conflictsFound) {
+        if (conflictingSeries.length > 0) {
+            console.log(`Found ${conflictingSeries.length} conflicting series. Adjusting ALL simultaneously...`);
+            
+            // Show conflict warning
+            showConflictWarning(changedSeriesName.replace(/\s+/g, '-'));
+            
+            // Sort conflicting series by their current midpoint to determine adjustment order
+            conflictingSeries.sort((a, b) => {
+                const aMid = (a.current_range.min + a.current_range.max) / 2;
+                const bMid = (b.current_range.min + b.current_range.max) / 2;
+                return aMid - bMid;
+            });
+            
+            // Calculate the changed series boundaries
+            const changedMin = changedSeries.current_range.min;
+            const changedMax = changedSeries.current_range.max;
+            const changedMidpoint = (changedMin + changedMax) / 2;
+            
+            // Adjust ALL conflicting series at once
+            for (let otherSeries of conflictingSeries) {
+                const otherSeriesId = otherSeries.series_name.replace(/\s+/g, '-');
+                const otherMidpoint = (otherSeries.current_range.min + otherSeries.current_range.max) / 2;
+                const rangeSize = otherSeries.current_range.max - otherSeries.current_range.min;
+                
+                let adjustment;
+                if (changedMidpoint < otherMidpoint) {
+                    // Push this series UP (away from changed series)
+                    const newMin = changedMax + conflictMargin;
+                    adjustment = {
+                        min: parseFloat(newMin.toFixed(2)),
+                        max: parseFloat((newMin + rangeSize).toFixed(2))
+                    };
+                } else {
+                    // Push this series DOWN (away from changed series)
+                    const newMax = changedMin - conflictMargin;
+                    adjustment = {
+                        min: parseFloat((newMax - rangeSize).toFixed(2)),
+                        max: parseFloat(newMax.toFixed(2))
+                    };
+                }
+                
+                // Apply adjustment
+                otherSeries.current_range.min = adjustment.min;
+                otherSeries.current_range.max = adjustment.max;
+                
+                // Update sliders and display
+                updateSliderValue(otherSeriesId, 'min', adjustment.min);
+                updateSliderValue(otherSeriesId, 'max', adjustment.max);
+                updateSeriesDisplay(otherSeriesId, otherSeries);
+                
+                // Update backend
+                await updateSeriesRangeBackend(otherSeries.series_name, otherSeries.current_range);
+                
+                console.log(`Adjusted ${otherSeries.series_name} to ${adjustment.min} - ${adjustment.max}`);
+            }
+            
+            // Hide conflict warning after adjustments
             setTimeout(() => {
                 hideConflictWarning(changedSeriesName.replace(/\s+/g, '-'));
             }, 3000);
@@ -592,34 +622,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return (s1Min <= s2Max + margin && s1Max >= s2Min - margin);
     }
 
-    function calculateRangeAdjustment(changedSeries, conflictSeries, margin) {
-        const changedMin = changedSeries.current_range.min;
-        const changedMax = changedSeries.current_range.max;
-        const conflictMin = conflictSeries.current_range.min;
-        const conflictMax = conflictSeries.current_range.max;
-        
-        // Determine if we should push the conflict series up or down
-        const changedMidpoint = (changedMin + changedMax) / 2;
-        const conflictMidpoint = (conflictMin + conflictMax) / 2;
-        
-        if (changedMidpoint < conflictMidpoint) {
-            // Push conflict series up
-            const newMin = changedMax + margin;
-            const rangeSize = conflictMax - conflictMin;
-            return {
-                min: newMin,
-                max: newMin + rangeSize
-            };
-        } else {
-            // Push conflict series down
-            const newMax = changedMin - margin;
-            const rangeSize = conflictMax - conflictMin;
-            return {
-                min: newMax - rangeSize,
-                max: newMax
-            };
-        }
-    }
+
 
     function showConflictWarning(seriesId) {
         const warningDiv = document.getElementById(`conflict-warning-${seriesId}`);
@@ -828,11 +831,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="mb-3 p-2 bg-blue-50 rounded-lg">
                     <div class="text-sm font-medium text-blue-900">Current PTI Range: 
                         <span id="current-range-${series.series_name.replace(/\s+/g, '-')}" class="font-bold">
-                            ${series.current_range.min} - ${series.current_range.max}
+                            ${series.current_range.min.toFixed(2)} - ${series.current_range.max.toFixed(2)}
                         </span>
                     </div>
                     <div class="text-xs text-blue-700 mt-1">
-                        Players: ${series.player_count} | Avg PTI: ${series.statistics.avg} | StdDev: ${series.statistics.std_dev}
+                        Players: ${series.player_count} | Avg PTI: ${series.statistics.avg.toFixed(2)} | StdDev: ${series.statistics.std_dev.toFixed(2)}
                     </div>
                 </div>
 
