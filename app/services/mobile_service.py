@@ -3494,15 +3494,16 @@ def get_club_players_data(
         contact_info = {}
         try:
             # Get user's league for dynamic path
-            user_league_id = user.get("league_id", "")
+            # FIXED: Use league_string_id instead of league_id (which is now an integer)
+            user_league_string_id = user.get("league_string_id", "")
 
             # Use dynamic path based on league
-            if user_league_id and not user_league_id.startswith("APTA"):
+            if user_league_string_id and not user_league_string_id.startswith("APTA"):
                 # For non-APTA leagues, use league-specific path
                 csv_path = os.path.join(
                     "data",
                     "leagues",
-                    user_league_id,
+                    user_league_string_id,
                     "club_directories",
                     "directory_tennaqua.csv",
                 )

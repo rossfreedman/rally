@@ -113,8 +113,9 @@ def init_routes(app):
             all_series_sorted = sorted(all_series_names, key=get_series_sort_key)
             
             # Convert series names for APTA league UI display
-            user_league_id = session.get("user", {}).get("league_id", "")
-            if user_league_id and user_league_id.startswith("APTA"):
+            # FIXED: Use league_string_id instead of league_id (which is now an integer)
+            user_league_string_id = session.get("user", {}).get("league_string_id", "")
+            if user_league_string_id and user_league_string_id.startswith("APTA"):
                 def convert_chicago_to_series_for_ui(series_name):
                     """Convert "Chicago X" format to "Series X" format for APTA league UI display"""
                     import re
@@ -134,7 +135,7 @@ def init_routes(app):
             current_series = None
             if "user" in session and "series" in session["user"]:
                 current_series = session["user"]["series"]
-                if user_league_id and user_league_id.startswith("APTA"):
+                if user_league_string_id and user_league_string_id.startswith("APTA"):
                     current_series = convert_chicago_to_series_for_ui(current_series)
 
             return jsonify({"series": current_series, "all_series": all_series_sorted})
