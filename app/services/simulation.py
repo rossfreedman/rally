@@ -910,9 +910,18 @@ def get_teams_for_selection(
             SELECT DISTINCT 
                 t.id as team_id,
                 t.team_name,
-                COALESCE(t.team_alias, t.team_name) as display_name,
+                t.team_alias,
                 c.name as club_name,
-                s.name as series_name
+                s.name as series_name,
+                -- Generate display name: use alias if exists, otherwise create from series
+                COALESCE(
+                    t.team_alias,
+                    CASE 
+                        WHEN s.name LIKE 'Chicago %' THEN 'Series ' || REPLACE(s.name, 'Chicago ', '')
+                        WHEN s.name LIKE 'Division %' THEN 'Series ' || REPLACE(s.name, 'Division ', '')
+                        ELSE s.name
+                    END
+                ) as display_name
             FROM teams t
             JOIN clubs c ON t.club_id = c.id
             JOIN series s ON t.series_id = s.id
@@ -935,8 +944,8 @@ def get_teams_for_selection(
 
         teams = []
         for row in results:
-            # Use team_alias as display name if available, otherwise fall back to team_name
-            display_name = row["display_name"] if row["display_name"] else row["team_name"]
+            # The SQL query already handles display_name generation
+            display_name = row["display_name"]
             
             teams.append({
                 "id": row["team_id"],
