@@ -346,7 +346,6 @@
     outline: none;
     border-radius: 4px;
     transition: background 0.3s ease;
-    cursor: pointer;
 }
 
 .slider:hover {
@@ -356,61 +355,37 @@
 .slider::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
-    width: 24px;
-    height: 24px;
+    width: 20px;
+    height: 20px;
     background: #3b82f6;
     cursor: pointer;
     border-radius: 50%;
-    border: 3px solid white;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     transition: all 0.2s ease;
 }
 
 .slider::-webkit-slider-thumb:hover {
     background: #2563eb;
-    transform: scale(1.15);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-}
-
-.slider::-webkit-slider-thumb:active {
-    background: #1d4ed8;
-    transform: scale(1.2);
+    transform: scale(1.1);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
 .slider::-moz-range-thumb {
-    width: 24px;
-    height: 24px;
+    width: 20px;
+    height: 20px;
     background: #3b82f6;
     cursor: pointer;
     border-radius: 50%;
-    border: 3px solid white;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     transition: all 0.2s ease;
 }
 
 .slider::-moz-range-thumb:hover {
     background: #2563eb;
-    transform: scale(1.15);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-}
-
-.slider::-moz-range-thumb:active {
-    background: #1d4ed8;
-    transform: scale(1.2);
-}
-
-.slider::-moz-range-track {
-    height: 8px;
-    background: #e5e7eb;
-    border-radius: 4px;
-    border: none;
-}
-
-/* Ensure the slider container has proper touch targets for mobile */
-.slider {
-    min-height: 44px; /* iOS recommended touch target */
-    padding: 18px 0; /* Add padding to increase touch area */
-    margin: 0;
+    transform: scale(1.1);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
 /* Responsive design */
@@ -553,10 +528,9 @@ document.addEventListener('DOMContentLoaded', function() {
         // Update club name in checkbox label
         clubOnlyLabel.textContent = userClub;
         
-        // FIXED: Always show PTI filters for debugging and better UX
         // Show/hide PTI filters based on availability
         const ptiFiltersSection = document.getElementById('ptiFiltersSection');
-        if (ptiFiltersAvailable || true) { // Always show for now
+        if (ptiFiltersAvailable) {
             ptiFiltersSection.style.display = 'block';
             // Set up PTI sliders
             setupPTISliders();
@@ -619,6 +593,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 
                 ptiMinValue.textContent = minVal.toFixed(1);
+                // FIXED: Update the range display
+                ptiRangeDisplay.textContent = `${minVal.toFixed(1)} - ${maxVal.toFixed(1)}`;
                 console.log('PTI min slider changed to:', minVal);
             });
             
@@ -633,6 +609,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 
                 ptiMaxValue.textContent = maxVal.toFixed(1);
+                // FIXED: Update the range display
+                ptiRangeDisplay.textContent = `${minVal.toFixed(1)} - ${maxVal.toFixed(1)}`;
                 console.log('PTI max slider changed to:', maxVal);
             });
             
@@ -803,8 +781,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="flex items-start justify-between mb-3">
                         <div class="min-w-0 flex-1">
                             <h3 class="font-bold text-lg text-gray-900 truncate">${player.name}</h3>
-                            <p class="text-sm text-gray-600 font-medium">${player.club || 'Unknown Club'}</p>
-                            <p class="text-sm text-gray-500">${player.series ? player.series.replace(/^Chicago\s+(\d+.*)$/i, 'Series $1') : player.series}</p>
+                            <p class="text-xs text-gray-600 font-medium">${player.club || 'Unknown Club'}</p>
+                            <p class="text-xs text-gray-500">${player.series ? player.series.replace(/^Chicago\s+(\d+.*)$/i, 'Series $1') : player.series}</p>
                         </div>
                         <div class="ml-3 flex flex-col gap-2">
                             <button class="contact-btn" 
@@ -845,7 +823,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                     
                     <!-- Stats Grid -->
-                    <div class="grid grid-cols-2 gap-4 text-sm">
+                    <div class="grid grid-cols-2 gap-4 text-xs">
                         <div class="space-y-1">
                             ${(player.pti !== null && player.pti !== undefined && player.pti !== 'N/A' && player.pti !== '' && !isNaN(parseFloat(player.pti))) ? `
                                 <div>
@@ -1178,8 +1156,10 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('PTI max slider element:', ptiMaxSlider);
         console.log('PTI min value element:', ptiMinValue);
         console.log('PTI max value element:', ptiMaxValue);
+        console.log('PTI range display element:', ptiRangeDisplay);
         console.log('Current min value:', ptiMinSlider?.value);
         console.log('Current max value:', ptiMaxSlider?.value);
+        console.log('Current range display:', ptiRangeDisplay?.textContent);
         console.log('PTI range:', ptiRange);
         
         // Test setting values
@@ -1190,6 +1170,8 @@ document.addEventListener('DOMContentLoaded', function() {
             ptiMinSlider.dispatchEvent(new Event('input'));
             ptiMaxSlider.dispatchEvent(new Event('input'));
             console.log('Slider values changed to min: 20, max: 80');
+            console.log('Range display should now show: 20.0 - 80.0');
+            console.log('Actual range display:', ptiRangeDisplay?.textContent);
         } else {
             console.error('Slider elements not found!');
         }
