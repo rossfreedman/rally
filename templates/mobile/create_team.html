@@ -72,7 +72,7 @@
                                 <i class="fas fa-sliders-h text-blue-600 mr-2"></i>
                                 Series PTI Ranges
                             </h2>
-                            <p class="text-sm text-gray-600 mt-1">Adjust PTI ranges for each series with automatic conflict resolution</p>
+                            <p class="text-sm text-gray-600 mt-1">Adjust PTI ranges - all series automatically maintain sequential order with no overlaps</p>
                         </div>
                         <button id="reset-ranges" class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-blue-600 bg-white border border-blue-200 rounded-lg hover:bg-blue-50 hover:text-blue-700 transition-colors">
                             <i class="fas fa-undo text-xs"></i>
@@ -500,7 +500,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Update display
         updateSeriesDisplay(seriesId, series);
         
-        // Check for conflicts and adjust other series
+        // Always reposition all series to maintain sequential order
         await resolveRangeConflicts(seriesName, series);
         
         // Send AJAX update to backend
@@ -532,94 +532,100 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     async function resolveRangeConflicts(changedSeriesName, changedSeries) {
-        console.log('Checking for range conflicts and adjusting ALL other series...');
+        console.log('Repositioning ALL series to maintain sequential order with no overlaps...');
         
-        const conflictMargin = 2.0; // Minimum gap between series ranges
-        let conflictingSeries = [];
+        // Show repositioning warning
+        showConflictWarning(changedSeriesName.replace(/\s+/g, '-'));
         
-        // Find ALL series that conflict with the changed series
-        for (let i = 0; i < seriesRanges.length; i++) {
-            const otherSeries = seriesRanges[i];
-            if (otherSeries.series_name === changedSeriesName) continue;
+        // Sort all series by their average PTI to determine natural order
+        const sortedSeries = [...seriesRanges].sort((a, b) => {
+            const aAvg = (a.current_range.min + a.current_range.max) / 2;
+            const bAvg = (b.current_range.min + b.current_range.max) / 2;
+            return aAvg - bAvg;
+        });
+        
+        console.log('Series natural order (by average PTI):', sortedSeries.map(s => s.series_name));
+        
+        // Find the index of the changed series in the sorted array
+        const changedIndex = sortedSeries.findIndex(s => s.series_name === changedSeriesName);
+        
+        // The gap between series (0.01 PTI)
+        const seriesGap = 0.01;
+        
+        // Reposition all series to maintain sequential order
+        for (let i = 0; i < sortedSeries.length; i++) {
+            const series = sortedSeries[i];
+            const seriesId = series.series_name.replace(/\s+/g, '-');
             
-            const conflict = detectRangeConflict(changedSeries, otherSeries, conflictMargin);
-            if (conflict) {
-                conflictingSeries.push(otherSeries);
+            // Skip the changed series - it keeps its new range
+            if (i === changedIndex) {
+                console.log(`Keeping ${series.series_name} at user-set range: ${series.current_range.min.toFixed(2)} - ${series.current_range.max.toFixed(2)}`);
+                continue;
             }
-        }
-        
-        if (conflictingSeries.length > 0) {
-            console.log(`Found ${conflictingSeries.length} conflicting series. Adjusting ALL simultaneously...`);
             
-            // Show conflict warning
-            showConflictWarning(changedSeriesName.replace(/\s+/g, '-'));
+            // Calculate the range size for this series
+            const rangeSize = series.current_range.max - series.current_range.min;
             
-            // Sort conflicting series by their current midpoint to determine adjustment order
-            conflictingSeries.sort((a, b) => {
-                const aMid = (a.current_range.min + a.current_range.max) / 2;
-                const bMid = (b.current_range.min + b.current_range.max) / 2;
-                return aMid - bMid;
-            });
+            let newMin, newMax;
             
-            // Calculate the changed series boundaries
-            const changedMin = changedSeries.current_range.min;
-            const changedMax = changedSeries.current_range.max;
-            const changedMidpoint = (changedMin + changedMax) / 2;
-            
-            // Adjust ALL conflicting series at once
-            for (let otherSeries of conflictingSeries) {
-                const otherSeriesId = otherSeries.series_name.replace(/\s+/g, '-');
-                const otherMidpoint = (otherSeries.current_range.min + otherSeries.current_range.max) / 2;
-                const rangeSize = otherSeries.current_range.max - otherSeries.current_range.min;
-                
-                let adjustment;
-                if (changedMidpoint < otherMidpoint) {
-                    // Push this series UP (away from changed series)
-                    const newMin = changedMax + conflictMargin;
-                    adjustment = {
-                        min: parseFloat(newMin.toFixed(2)),
-                        max: parseFloat((newMin + rangeSize).toFixed(2))
-                    };
+            if (i < changedIndex) {
+                // Series BEFORE the changed series - position them sequentially ending just before changed series
+                if (i === 0) {
+                    // First series can start wherever it wants, but must end before the next
+                    newMax = changedSeries.current_range.min - seriesGap;
+                    newMin = newMax - rangeSize;
                 } else {
-                    // Push this series DOWN (away from changed series)
-                    const newMax = changedMin - conflictMargin;
-                    adjustment = {
-                        min: parseFloat((newMax - rangeSize).toFixed(2)),
-                        max: parseFloat(newMax.toFixed(2))
-                    };
+                    // Position after the previous series
+                    const previousSeries = sortedSeries[i - 1];
+                    newMin = previousSeries.current_range.max + seriesGap;
+                    newMax = newMin + rangeSize;
+                    
+                    // If this would overlap with changed series, compress it to fit
+                    if (newMax > changedSeries.current_range.min - seriesGap) {
+                        newMax = changedSeries.current_range.min - seriesGap;
+                        newMin = newMax - rangeSize;
+                    }
                 }
-                
-                // Apply adjustment
-                otherSeries.current_range.min = adjustment.min;
-                otherSeries.current_range.max = adjustment.max;
-                
-                // Update sliders and display
-                updateSliderValue(otherSeriesId, 'min', adjustment.min);
-                updateSliderValue(otherSeriesId, 'max', adjustment.max);
-                updateSeriesDisplay(otherSeriesId, otherSeries);
-                
-                // Update backend
-                await updateSeriesRangeBackend(otherSeries.series_name, otherSeries.current_range);
-                
-                console.log(`Adjusted ${otherSeries.series_name} to ${adjustment.min} - ${adjustment.max}`);
+            } else {
+                // Series AFTER the changed series - position them sequentially starting after changed series
+                if (i === changedIndex + 1) {
+                    // First series after changed series
+                    newMin = changedSeries.current_range.max + seriesGap;
+                    newMax = newMin + rangeSize;
+                } else {
+                    // Position after the previous series
+                    const previousSeries = sortedSeries[i - 1];
+                    newMin = previousSeries.current_range.max + seriesGap;
+                    newMax = newMin + rangeSize;
+                }
             }
             
-            // Hide conflict warning after adjustments
-            setTimeout(() => {
-                hideConflictWarning(changedSeriesName.replace(/\s+/g, '-'));
-            }, 3000);
+            // Apply the new range with 2-decimal precision
+            const adjustment = {
+                min: parseFloat(newMin.toFixed(2)),
+                max: parseFloat(newMax.toFixed(2))
+            };
+            
+            series.current_range.min = adjustment.min;
+            series.current_range.max = adjustment.max;
+            
+            // Update sliders and display
+            updateSliderValue(seriesId, 'min', adjustment.min);
+            updateSliderValue(seriesId, 'max', adjustment.max);
+            updateSeriesDisplay(seriesId, series);
+            
+            // Update backend
+            await updateSeriesRangeBackend(series.series_name, series.current_range);
+            
+            console.log(`Repositioned ${series.series_name} to sequential range: ${adjustment.min} - ${adjustment.max}`);
         }
-    }
-
-    function detectRangeConflict(series1, series2, margin) {
-        // Check if ranges overlap or are too close
-        const s1Min = series1.current_range.min;
-        const s1Max = series1.current_range.max;
-        const s2Min = series2.current_range.min;
-        const s2Max = series2.current_range.max;
         
-        // Overlap detection with margin
-        return (s1Min <= s2Max + margin && s1Max >= s2Min - margin);
+        // Hide repositioning warning after adjustments
+        setTimeout(() => {
+            hideConflictWarning(changedSeriesName.replace(/\s+/g, '-'));
+        }, 3000);
+        
+        console.log('Sequential repositioning complete - no overlaps or gaps between series');
     }
 
 
@@ -869,14 +875,14 @@ document.addEventListener('DOMContentLoaded', function() {
                                onchange="updateSeriesPTIRange('${series.series_name}', 'max', this.value)">
                     </div>
                     
-                    <!-- Conflict Warning -->
-                    <div id="conflict-warning-${series.series_name.replace(/\s+/g, '-')}" 
-                         class="hidden bg-yellow-50 border border-yellow-200 rounded-lg p-2">
-                        <div class="flex items-center text-yellow-800">
-                            <i class="fas fa-exclamation-triangle mr-2"></i>
-                            <span class="text-xs font-medium">Range conflict detected - adjusting other series...</span>
-                        </div>
-                    </div>
+                                         <!-- Sequential Repositioning Warning -->
+                     <div id="conflict-warning-${series.series_name.replace(/\s+/g, '-')}" 
+                          class="hidden bg-blue-50 border border-blue-200 rounded-lg p-2">
+                         <div class="flex items-center text-blue-800">
+                             <i class="fas fa-arrows-alt-h mr-2"></i>
+                             <span class="text-xs font-medium">Repositioning all series to maintain sequential order...</span>
+                         </div>
+                     </div>
                     
                     <!-- Recommended Range Info -->
                     <div class="text-xs text-gray-600 bg-gray-100 p-2 rounded">
