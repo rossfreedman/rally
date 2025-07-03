@@ -192,17 +192,17 @@
             <div class="p-6">
                 <!-- Courts Stack - Show all courts vertically full width -->
                 <div class="space-y-4">
-                    {% for court_name, court_stats in analyze_data.court_analysis.items()|sort(attribute='1.matches', reverse=true) %}
+                    {% for court_name, court_stats in analyze_data.court_analysis.items()|sort %}
                     <div class="bg-gray-50 rounded-lg p-4">
                         <!-- Court Header -->
                         <div class="flex items-center justify-between mb-4">
                             <h3 class="text-lg font-semibold text-gray-900">{{ court_name.replace('court', 'Court ').title() }}</h3>
                             <div class="flex items-center gap-3">
                                 <!-- Record -->
-                                <span class="text-sm font-medium text-gray-700">{{ court_stats.record }}</span>
+                                <span class="text-lg font-bold text-gray-900">{{ court_stats.record }}</span>
                                 <!-- Win Rate Badge -->
                                 {% if court_stats.record != '0-0' %}
-                                <div class="px-3 py-1 rounded-full text-sm font-medium
+                                <div class="px-4 py-2 rounded-full text-lg font-bold
                                     {% if court_stats.winRate >= 60 %}bg-green-100 text-green-700
                                     {% elif court_stats.winRate >= 45 %}bg-yellow-100 text-yellow-700
                                     {% else %}bg-red-100 text-red-700
@@ -210,7 +210,7 @@
                                     {{ court_stats.winRate|round(0)|int }}%
                                 </div>
                                 {% else %}
-                                <div class="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-500">
+                                <div class="px-4 py-2 rounded-full text-lg font-bold bg-gray-100 text-gray-500">
                                     0%
                                 </div>
                                 {% endif %}
