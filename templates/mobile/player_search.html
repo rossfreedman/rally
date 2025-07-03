@@ -96,18 +96,6 @@
                                         <div class="font-semibold text-lg text-gray-900 mb-2">{{ player.name }}</div>
                                         <div class="grid grid-cols-2 lg:grid-cols-3 gap-3 text-sm text-gray-600">
                                             <div class="flex items-center gap-2">
-                                                <i class="fas fa-chart-line text-blue-500 w-4"></i>
-                                                <span>PTI: {{ player.current_pti }}</span>
-                                            </div>
-                                            <div class="flex items-center gap-2">
-                                                <i class="fas fa-calendar text-green-500 w-4"></i>
-                                                <span>{{ player.total_matches }} matches</span>
-                                            </div>
-                                            <div class="flex items-center gap-2">
-                                                <i class="fas fa-list-ol text-orange-500 w-4"></i>
-                                                <span>{{ player.wins|default(0) }}-{{ player.losses|default(0) }} record</span>
-                                            </div>
-                                            <div class="flex items-center gap-2">
                                                 <i class="fas fa-building text-purple-500 w-4"></i>
                                                 <span>{{ player.club }}</span>
                                             </div>
@@ -115,12 +103,18 @@
                                                 <i class="fas fa-trophy text-yellow-500 w-4"></i>
                                                 <span class="player-series">{{ player.series }}</span>
                                             </div>
-                                            {% if player.team_name %}
                                             <div class="flex items-center gap-2">
-                                                <i class="fas fa-users text-indigo-500 w-4"></i>
-                                                <span>{{ player.team_name }}</span>
+                                                <i class="fas fa-calendar text-green-500 w-4"></i>
+                                                <span>{{ player.total_matches }} matches</span>
                                             </div>
-                                            {% endif %}
+                                            <div class="flex items-center gap-2">
+                                                <i class="fas fa-chart-line text-blue-500 w-4"></i>
+                                                <span>PTI: {{ player.current_pti }}</span>
+                                            </div>
+                                            <div class="flex items-center gap-2">
+                                                <i class="fas fa-list-ol text-orange-500 w-4"></i>
+                                                <span>{{ player.wins|default(0) }}-{{ player.losses|default(0) }} record</span>
+                                            </div>
                                         </div>
                                     </div>
                                     <div class="ml-4">

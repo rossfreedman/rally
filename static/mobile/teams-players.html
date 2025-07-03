@@ -300,31 +300,38 @@
         const courtBreakdownDiv = document.getElementById('courtBreakdown');
 
         // Load teams on page load
-        fetch('/api/teams')
+        fetch('/api/teams-with-ids')
             .then(r => r.json())
             .then(data => {
                 teamSelect.innerHTML = '<option value="">Choose a team...</option>';
-                data.teams.forEach(team => {
-                    // Filter out teams that contain "BYE" (case insensitive)
-                    if (!team.toUpperCase().includes('BYE')) {
-                        const opt = document.createElement('option');
-                        opt.value = team;
-                        opt.textContent = team;
-                        teamSelect.appendChild(opt);
-                    }
-                });
+                if (data.teams) {
+                    data.teams.forEach(team => {
+                        // Filter out teams that contain "BYE" (case insensitive)
+                        const teamName = team.display_name || team.team_name;
+                        if (!teamName.toUpperCase().includes('BYE')) {
+                            const opt = document.createElement('option');
+                            opt.value = team.team_id;  // Use team_id as value
+                            opt.textContent = teamName;
+                            opt.dataset.teamName = team.team_name;  // Store team name for API calls
+                            teamSelect.appendChild(opt);
+                        }
+                    });
+                }
             });
 
         // When a team is selected, load players and team stats
         teamSelect.addEventListener('change', function() {
-            const team = this.value;
+            const teamId = this.value;
+            const selectedOption = this.options[this.selectedIndex];
+            const teamName = selectedOption ? selectedOption.dataset.teamName : '';
+            
             // Reset player picklist and stats
             playerSelect.innerHTML = '<option value="">Choose a player...</option>';
             playerSelect.disabled = true;
             playerStatsCard.classList.add('d-none');
             courtBreakdownDiv.innerHTML = '';
             // Hide team stats if no team
-            if (!team) {
+            if (!teamId) {
                 teamStatsCard.classList.add('d-none');
                 return;
             }
@@ -332,17 +339,17 @@
             teamStatsCard.classList.remove('d-none');
             teamStatsDiv.innerHTML = '<div class="text-center">Loading team stats...</div>';
             Promise.all([
-                fetch(`/api/research-team?team=${encodeURIComponent(team)}`).then(r => r.json()),
-                fetch(`/api/team-matches?team=${encodeURIComponent(team)}`).then(r => r.json())
+                fetch(`/api/research-team?team=${encodeURIComponent(teamName)}`).then(r => r.json()),
+                fetch(`/api/team-matches?team=${encodeURIComponent(teamName)}`).then(r => r.json())
             ]).then(([stats, matches]) => {
                 // Use desktop logic to calculate analysis
-                const courtStats = calculateCourtStats(matches, team);
-                const playerStats = calculatePlayerStats(matches, team);
+                const courtStats = calculateCourtStats(matches, teamName);
+                const playerStats = calculatePlayerStats(matches, teamName);
                 // --- Match Patterns ---
                 let totalMatches = matches.length;
                 let straightSetWins = 0, comebackWins = 0, threeSetWins = 0, threeSetLosses = 0;
                 matches.forEach(match => {
-                    const isHome = match["Home Team"] === team;
+                    const isHome = match["Home Team"] === teamName;
                     const winnerIsHome = match["Winner"] === "home";
                     const teamWon = (isHome && winnerIsHome) || (!isHome && !winnerIsHome);
                     const sets = match["Sets"] || [];
@@ -397,8 +404,8 @@
                 html += `</tbody></table></div></div>`;
                 teamStatsDiv.innerHTML = html;
             });
-            // Load players for this team
-            fetch(`/api/team-players/${encodeURIComponent(team)}`)
+            // Load players for this team using team_id
+            fetch(`/api/get-team-players/${teamId}`)
                 .then(r => r.json())
                 .then(data => {
                     playerSelect.innerHTML = '<option value="">Choose a player...</option>';
@@ -436,7 +443,7 @@
                     const wins = player.wins ?? 0;
                     const losses = player.losses ?? 0;
                     const winRate = totalMatches > 0 ? ((wins / totalMatches) * 100).toFixed(1) : '0.0';
-                    const pti = player.pti ?? player.rating ?? 'N/A';
+                    const pti = player.pti ?? player.rating ?? '<span class="text-muted small">Threshold not met</span>';
                     playerStatsDiv.innerHTML = `
                         <div><span class='stat-label'>Name:</span><span class='stat-value'>${player.name}</span></div>
                         <div><span class='stat-label'>Total Matches:</span><span class='stat-value'>${totalMatches}</span></div>

@@ -37,13 +37,34 @@
         </div>
     </div>
 
-    <!-- Main Content Container -->
-    <div id="main-content">
-        <!-- Desktop 3-Column Layout -->
-        <div class="hidden md:grid md:grid-cols-3 md:gap-6">
+    <!-- Loading State -->
+    <div id="loading-state" class="py-12 text-center">
+        <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <p class="mt-4 text-lg text-gray-600">Loading player data...</p>
+        <button onclick="forceShowContent()" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+            Force Show Content (Debug)
+        </button>
+    </div>
+
+    <!-- Mobile Detection Message -->
+    <div id="mobile-only-message" class="hidden p-8 text-center">
+        <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-6 max-w-md mx-auto">
+            <div class="flex items-center justify-center mb-4">
+                <i class="fas fa-desktop text-yellow-600 text-3xl"></i>
+            </div>
+            <h2 class="text-xl font-bold text-gray-900 mb-2">Desktop Required</h2>
+            <p class="text-gray-700 mb-4">This page is only viewable on a desktop computer.</p>
+            <p class="text-sm text-gray-600">Please access this page from a computer or tablet in landscape mode for the full team creation experience.</p>
+        </div>
+    </div>
+
+    <!-- Main Content Container - Desktop Only -->
+    <div id="create-team-content" class="hidden" style="display: none !important;">
+        <!-- Force 3-Column Layout Always -->
+        <div class="grid grid-cols-3 gap-6 min-h-screen">
             
-            <!-- Column 1: PTI Range Control -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col h-fit">
+            <!-- Column 1: Interactive PTI Range Control -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 h-fit">
                 <div class="px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50">
                     <div class="flex items-center justify-between">
                         <div>
@@ -51,9 +72,9 @@
                                 <i class="fas fa-sliders-h text-blue-600 mr-2"></i>
                                 PTI Range Control
                             </h2>
-                            <p class="text-sm text-gray-600 mt-1">Adjust PTI ranges for each series</p>
+                            <p class="text-sm text-gray-600 mt-1">Adjust PTI ranges for each series with real-time validation</p>
                         </div>
-                        <button id="reset-ranges" class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-blue-600 bg-white border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors">
+                        <button id="reset-ranges" class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-blue-600 bg-white border border-blue-200 rounded-lg hover:bg-blue-50 hover:text-blue-700 transition-colors">
                             <i class="fas fa-undo text-xs"></i>
                             Reset
                         </button>
@@ -67,7 +88,7 @@
             </div>
 
             <!-- Column 2: Available Players -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col h-fit">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 h-fit">
                 <div class="px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-green-50 to-emerald-50">
                     <div class="flex items-center justify-between">
                         <div>
@@ -76,9 +97,23 @@
                                 Available Players
                                 <span id="player-count" class="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full"></span>
                             </h2>
-                            <p class="text-sm text-gray-600 mt-1">Tap players to select</p>
+                            <p class="text-sm text-gray-600 mt-1">Tap players to assign to series ranges. Tennaqua players only.</p>
+                            <div class="mt-2 p-2 bg-gray-50 rounded-lg">
+                                <p class="text-xs font-medium text-gray-700 mb-1">PTI Color Guide:</p>
+                                <div class="flex flex-wrap gap-1 text-xs">
+                                    <span class="bg-emerald-200 border border-emerald-400 text-emerald-900 px-1 py-0.5 rounded font-medium">0-9</span>
+                                    <span class="bg-green-200 border border-green-400 text-green-900 px-1 py-0.5 rounded font-medium">10-19</span>
+                                    <span class="bg-lime-200 border border-lime-400 text-lime-900 px-1 py-0.5 rounded font-medium">20-29</span>
+                                    <span class="bg-yellow-200 border border-yellow-400 text-yellow-900 px-1 py-0.5 rounded font-medium">30-39</span>
+                                    <span class="bg-amber-200 border border-amber-400 text-amber-900 px-1 py-0.5 rounded font-medium">40-49</span>
+                                    <span class="bg-orange-200 border border-orange-400 text-orange-900 px-1 py-0.5 rounded font-medium">50-59</span>
+                                    <span class="bg-red-200 border border-red-400 text-red-900 px-1 py-0.5 rounded font-medium">60-69</span>
+                                    <span class="bg-rose-200 border border-rose-400 text-rose-900 px-1 py-0.5 rounded font-medium">70-79</span>
+                                    <span class="bg-purple-200 border border-purple-400 text-purple-900 px-1 py-0.5 rounded font-medium">80+</span>
+                                </div>
+                            </div>
                         </div>
-                        <button id="reset-players" class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-green-600 bg-white border border-green-200 rounded-lg hover:bg-green-50 transition-colors">
+                        <button id="reset-players" class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-green-600 bg-white border border-green-200 rounded-lg hover:bg-green-50 hover:text-green-700 transition-colors">
                             <i class="fas fa-undo text-xs"></i>
                             Reset
                         </button>
@@ -86,13 +121,13 @@
                 </div>
                 <div class="p-4 max-h-96 overflow-y-auto">
                     <div id="available-players-pool" class="min-h-24 bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-4">
-                        <div class="text-gray-400 text-center text-sm">Players will appear here when loaded</div>
+                        <div class="text-gray-400 text-center text-sm" id="loading-players">Loading players...</div>
                     </div>
                 </div>
             </div>
 
-            <!-- Column 3: Team Assignments -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col h-fit">
+            <!-- Column 3: Series Teams Display -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 h-fit">
                 <div class="px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-purple-50 to-pink-50">
                     <div class="flex items-center justify-between">
                         <div>
@@ -100,9 +135,13 @@
                                 <i class="fas fa-users-cog text-purple-600 mr-2"></i>
                                 Team Assignments
                             </h2>
-                            <p class="text-sm text-gray-600 mt-1">Tap series to assign</p>
+                            <p class="text-sm text-gray-600 mt-1">Tap series to assign selected players</p>
+                            <p class="text-xs text-blue-600 mt-1">
+                                <i class="fas fa-info-circle mr-1"></i>
+                                <strong>Target Team PTI</strong> shows total team PTI range (individual PTI × team size).
+                            </p>
                         </div>
-                        <button id="reset-assignments" class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-purple-600 bg-white border border-purple-200 rounded-lg hover:bg-purple-50 transition-colors">
+                        <button id="reset-assignments" class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-purple-600 bg-white border border-purple-200 rounded-lg hover:bg-purple-50 hover:text-purple-700 transition-colors">
                             <i class="fas fa-undo text-xs"></i>
                             Reset
                         </button>
@@ -114,89 +153,11 @@
                     </div>
                 </div>
             </div>
-            
-        </div>
-        
-        <!-- Mobile Single Column Layout -->
-        <div class="md:hidden space-y-4">
-            
-            <!-- PTI Range Control -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100">
-                <div class="px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-                                <i class="fas fa-sliders-h text-blue-600 mr-2"></i>
-                                PTI Range Control
-                            </h2>
-                            <p class="text-sm text-gray-600 mt-1">Adjust PTI ranges for each series</p>
-                        </div>
-                        <button id="reset-ranges-mobile" class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-blue-600 bg-white border border-blue-200 rounded-lg hover:bg-blue-50 transition-colors">
-                            <i class="fas fa-undo text-xs"></i>
-                            Reset
-                        </button>
-                    </div>
-                </div>
-                <div class="p-4">
-                    <div id="series-recommendations-mobile" class="space-y-4">
-                        <!-- Series recommendations will be loaded here -->
-                    </div>
-                </div>
-            </div>
 
-            <!-- Available Players -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100">
-                <div class="px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-green-50 to-emerald-50">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-                                <i class="fas fa-users text-green-600 mr-2"></i>
-                                Available Players
-                                <span id="player-count-mobile" class="ml-2 text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full"></span>
-                            </h2>
-                            <p class="text-sm text-gray-600 mt-1">Tap players to select</p>
-                        </div>
-                        <button id="reset-players-mobile" class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-green-600 bg-white border border-green-200 rounded-lg hover:bg-green-50 transition-colors">
-                            <i class="fas fa-undo text-xs"></i>
-                            Reset
-                        </button>
-                    </div>
-                </div>
-                <div class="p-4">
-                    <div id="available-players-pool-mobile" class="min-h-24 bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-4">
-                        <div class="text-gray-400 text-center text-sm">Players will appear here when loaded</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Team Assignments -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-100">
-                <div class="px-4 py-3 border-b border-gray-100 bg-gradient-to-r from-purple-50 to-pink-50">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-                                <i class="fas fa-users-cog text-purple-600 mr-2"></i>
-                                Team Assignments
-                            </h2>
-                            <p class="text-sm text-gray-600 mt-1">Tap series to assign</p>
-                        </div>
-                        <button id="reset-assignments-mobile" class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-purple-600 bg-white border border-purple-200 rounded-lg hover:bg-purple-50 transition-colors">
-                            <i class="fas fa-undo text-xs"></i>
-                            Reset
-                        </button>
-                    </div>
-                </div>
-                <div class="p-4">
-                    <div id="series-teams-mobile" class="space-y-4">
-                        <!-- Series containers will be dynamically created here -->
-                    </div>
-                </div>
-            </div>
-            
         </div>
 
         <!-- Selected Player Indicator (for tap mode) -->
-        <div id="selected-player-indicator" class="bg-yellow-100 border border-yellow-300 rounded-lg p-4 mt-4" style="display: none;">
+        <div id="selected-player-indicator" class="bg-yellow-100 border border-yellow-300 rounded-lg p-4 mt-4 hidden">
             <div class="flex items-center justify-between">
                 <div>
                     <span class="text-sm font-medium text-yellow-800">Selected: </span>
@@ -289,83 +250,21 @@
 .pti-70 { background-color: #fce7f3; border-color: #ec4899; color: #be185d; }
 .pti-80 { background-color: #e9d5ff; border-color: #a855f7; color: #7c2d12; }
 
-/* PTI Range Sliders Styling */
-.slider {
-    -webkit-appearance: none;
-    appearance: none;
-    height: 6px;
-    border-radius: 3px;
-    background: #e5e7eb;
-    outline: none;
-    opacity: 0.7;
-    transition: opacity 0.2s;
+/* Force 3-column desktop layout */
+.grid-cols-3 {
+    grid-template-columns: repeat(3, 1fr);
 }
 
-.slider:hover {
-    opacity: 1;
+/* Ensure columns have equal width and proper spacing */
+#create-team-content .grid {
+    width: 100%;
+    max-width: none;
 }
 
-.slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: #3b82f6;
-    cursor: pointer;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    transition: all 0.2s ease;
-}
-
-.slider::-webkit-slider-thumb:hover {
-    background: #2563eb;
-    transform: scale(1.1);
-}
-
-.slider::-moz-range-thumb {
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: #3b82f6;
-    cursor: pointer;
-    border: none;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    transition: all 0.2s ease;
-}
-
-.slider::-moz-range-thumb:hover {
-    background: #2563eb;
-    transform: scale(1.1);
-}
-
-/* Series Control Animations */
-.series-control {
-    transition: all 0.3s ease;
-}
-
-.series-control:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-/* Desktop 3-Column Layout */
-@media (min-width: 768px) {
-    .player-card {
-        width: 90px !important;
-        font-size: 0.7rem !important;
-        padding: 0.4rem !important;
-        margin: 0.2rem !important;
-    }
-}
-
-/* Mobile Single Column Layout */
-@media (max-width: 767px) {
-    .player-card {
-        width: 120px !important;
-        min-height: 50px !important;
-        padding: 0.5rem !important;
-        margin: 0.25rem !important;
-    }
+/* Column specific styling */
+#create-team-content .grid > div {
+    min-width: 0; /* Allow content to shrink */
+    max-width: 100%; /* Prevent overflow */
 }
 </style>
 
@@ -373,6 +272,31 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize session data
     window.sessionData = {{ session_data | tojson | safe }};
+
+    // Mobile Detection - Show message if on mobile
+    function isMobileDevice() {
+        return window.innerWidth < 1024 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    }
+
+    if (isMobileDevice()) {
+        console.log('Mobile device detected - showing mobile message');
+        document.getElementById('loading-state').style.display = 'none';
+        document.getElementById('mobile-only-message').classList.remove('hidden');
+        document.getElementById('mobile-only-message').style.display = 'block';
+        return; // Don't initialize the rest of the page
+    }
+
+    // Desktop detected - proceed with normal initialization
+    console.log('Desktop device detected - initializing team creation page');
+
+    // Immediate element check
+    console.log('DOM loaded, checking elements...');
+    const loadingState = document.getElementById('loading-state');
+    const mainContent = document.getElementById('create-team-content');
+    console.log('Loading state found:', !!loadingState);
+    console.log('Create team content found:', !!mainContent);
+    if (loadingState) console.log('Loading state classes:', loadingState.className);
+    if (mainContent) console.log('Create team content classes:', mainContent.className);
 
     // Global variables
     let allPlayers = [];
@@ -404,10 +328,11 @@ document.addEventListener('DOMContentLoaded', function() {
             await loadPlayers();
             await loadSeriesRanges();
             setupEventListeners();
+            showContent();
             console.log('Page initialization complete');
         } catch (error) {
             console.error('Error initializing page:', error);
-            console.log('Page will remain usable despite API errors');
+            showError('Failed to load data. Please refresh the page.');
         }
     }
 
@@ -460,31 +385,26 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Display players in the pool
     function displayPlayers() {
-        const containers = [
-            document.getElementById('available-players-pool'),
-            document.getElementById('available-players-pool-mobile')
-        ];
+        const container = document.getElementById('available-players-pool');
+        if (!container) return;
 
-        const playersHtml = allPlayers.length === 0 
-            ? '<div class="text-gray-400 text-center text-sm">No Tennaqua players found</div>'
-            : allPlayers.map(player => {
-                const ptiColorClass = getPTIColorClass(player.pti || 50);
-                return `
-                    <div class="player-card ${ptiColorClass} border rounded-lg cursor-pointer" 
-                         data-player-id="${player.id}"
-                         onclick="selectPlayer('${player.id}')">
-                        <div class="text-sm font-semibold">${player.name || `${player.first_name} ${player.last_name}`}</div>
-                        <div class="text-xs">PTI: ${player.pti ? player.pti.toFixed(1) : 'N/A'}</div>
-                        <div class="text-xs text-gray-600">${player.club || ''}</div>
-                    </div>
-                `;
-            }).join('');
+        if (allPlayers.length === 0) {
+            container.innerHTML = '<div class="text-gray-400 text-center text-sm">No players available</div>';
+            return;
+        }
 
-        containers.forEach(container => {
-            if (container) {
-                container.innerHTML = playersHtml;
-            }
-        });
+        container.innerHTML = allPlayers.map(player => {
+            const ptiColorClass = getPTIColorClass(player.pti || 50);
+            return `
+                <div class="player-card ${ptiColorClass} border rounded-lg cursor-pointer" 
+                     data-player-id="${player.id}"
+                     onclick="selectPlayer('${player.id}')">
+                    <div class="text-sm font-semibold">${player.name || `${player.first_name} ${player.last_name}`}</div>
+                    <div class="text-xs">PTI: ${player.pti ? player.pti.toFixed(1) : 'N/A'}</div>
+                    <div class="text-xs text-gray-600">${player.club || ''}</div>
+                </div>
+            `;
+        }).join('');
     }
 
     // Handle player selection for mobile tap interface
@@ -512,263 +432,34 @@ document.addEventListener('DOMContentLoaded', function() {
         if (indicator && nameSpan && ptiSpan) {
             nameSpan.textContent = player.name || `${player.first_name} ${player.last_name}`;
             ptiSpan.textContent = `PTI: ${player.pti ? player.pti.toFixed(1) : 'N/A'}`;
-            indicator.style.display = 'block';
+            indicator.classList.remove('hidden');
         }
     }
 
-    // Display series controls with interactive PTI sliders
+    // Display series controls
     function displaySeriesControls() {
-        const containers = [
-            document.getElementById('series-recommendations'),
-            document.getElementById('series-recommendations-mobile')
-        ];
+        const container = document.getElementById('series-recommendations');
+        if (!container) return;
 
-        const seriesHtml = seriesRanges.map((series, index) => `
-            <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 series-control" data-series-id="${series.series_id}">
-                <h3 class="font-semibold text-gray-900 mb-3">${series.series_name}</h3>
-                
-                <!-- Current PTI Information -->
-                <div class="grid grid-cols-2 gap-4 mb-4 text-sm">
-                    <div class="bg-white p-2 rounded border">
-                        <div class="text-xs text-gray-500 mb-1">Current Range</div>
-                        <div class="font-medium text-gray-900">${series.current_range.min} - ${series.current_range.max}</div>
-                    </div>
-                    <div class="bg-blue-50 p-2 rounded border border-blue-200">
-                        <div class="text-xs text-blue-600 mb-1">Recommended</div>
-                        <div class="font-medium text-blue-900">${series.recommended_range.min} - ${series.recommended_range.max}</div>
-                    </div>
-                </div>
-
-                <!-- Interactive PTI Range Sliders -->
-                <div class="bg-white p-3 rounded border">
-                    <div class="text-sm font-medium text-gray-700 mb-3">Adjust PTI Range</div>
-                    
-                    <!-- Min PTI Slider -->
-                    <div class="mb-4">
-                        <label class="text-xs text-gray-600 block mb-1">Minimum PTI: <span id="min-pti-value-${index}" class="font-medium text-blue-600">${series.recommended_range.min}</span></label>
-                        <input type="range" 
-                               id="min-pti-slider-${index}"
-                               class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
-                               min="10" 
-                               max="80" 
-                               step="0.5"
-                               value="${series.recommended_range.min}"
-                               data-series-index="${index}"
-                               data-type="min"
-                               oninput="updatePTIRange(${index}, 'min', this.value)">
-                    </div>
-
-                    <!-- Max PTI Slider -->
-                    <div class="mb-3">
-                        <label class="text-xs text-gray-600 block mb-1">Maximum PTI: <span id="max-pti-value-${index}" class="font-medium text-blue-600">${series.recommended_range.max}</span></label>
-                        <input type="range" 
-                               id="max-pti-slider-${index}"
-                               class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer slider"
-                               min="10" 
-                               max="80" 
-                               step="0.5"
-                               value="${series.recommended_range.max}"
-                               data-series-index="${index}"
-                               data-type="max"
-                               oninput="updatePTIRange(${index}, 'max', this.value)">
-                    </div>
-
-                    <!-- Apply/Reset Buttons -->
-                    <div class="flex gap-2 mt-3">
-                        <button onclick="applyPTIRange(${index})" 
-                                class="flex-1 bg-blue-600 text-white text-xs px-3 py-2 rounded hover:bg-blue-700 transition-colors">
-                            <i class="fas fa-check mr-1"></i>
-                            Apply Range
-                        </button>
-                        <button onclick="resetPTIRange(${index})" 
-                                class="bg-gray-500 text-white text-xs px-3 py-2 rounded hover:bg-gray-600 transition-colors">
-                            <i class="fas fa-undo mr-1"></i>
-                            Reset
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Series Statistics -->
-                <div class="mt-3 p-2 bg-gray-100 rounded text-xs">
-                    <div class="grid grid-cols-3 gap-2 text-center">
-                        <div>
-                            <div class="text-gray-500">Players</div>
-                            <div class="font-medium">${series.player_count}</div>
-                        </div>
-                        <div>
-                            <div class="text-gray-500">Avg PTI</div>
-                            <div class="font-medium">${series.statistics.avg}</div>
-                        </div>
-                        <div>
-                            <div class="text-gray-500">Std Dev</div>
-                            <div class="font-medium">${series.statistics.std_dev}</div>
-                        </div>
-                    </div>
+        container.innerHTML = seriesRanges.map(series => `
+            <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <h3 class="font-semibold text-gray-900 mb-2">${series.series_name}</h3>
+                <p class="text-sm text-gray-600">Current PTI Range: ${series.current_range.min} - ${series.current_range.max}</p>
+                <p class="text-sm text-gray-600">Recommended: ${series.recommended_range.min} - ${series.recommended_range.max}</p>
+                <p class="text-sm text-gray-600">Players in series: ${series.player_count}</p>
+                <div class="mt-2 text-xs text-blue-600">
+                    Avg PTI: ${series.statistics.avg} | StdDev: ${series.statistics.std_dev}
                 </div>
             </div>
         `).join('');
-        
-        containers.forEach(container => {
-            if (container) {
-                container.innerHTML = seriesHtml;
-            }
-        });
-    }
-
-    // Update PTI range value and validate
-    function updatePTIRange(seriesIndex, type, value) {
-        const series = seriesRanges[seriesIndex];
-        if (!series) return;
-
-        const numValue = parseFloat(value);
-        const valueDisplay = document.getElementById(`${type}-pti-value-${seriesIndex}`);
-        
-        if (valueDisplay) {
-            valueDisplay.textContent = numValue.toFixed(1);
-        }
-
-        // Validate range logic
-        const minSlider = document.getElementById(`min-pti-slider-${seriesIndex}`);
-        const maxSlider = document.getElementById(`max-pti-slider-${seriesIndex}`);
-        
-        if (minSlider && maxSlider) {
-            const minValue = parseFloat(minSlider.value);
-            const maxValue = parseFloat(maxSlider.value);
-            
-            // Ensure min doesn't exceed max
-            if (type === 'min' && numValue >= maxValue) {
-                maxSlider.value = numValue + 0.5;
-                document.getElementById(`max-pti-value-${seriesIndex}`).textContent = (numValue + 0.5).toFixed(1);
-            }
-            
-            // Ensure max doesn't go below min
-            if (type === 'max' && numValue <= minValue) {
-                minSlider.value = numValue - 0.5;
-                document.getElementById(`min-pti-value-${seriesIndex}`).textContent = (numValue - 0.5).toFixed(1);
-            }
-        }
-
-        // Visual feedback for changes
-        const seriesControl = document.querySelector(`[data-series-id="${series.series_id}"]`);
-        if (seriesControl) {
-            seriesControl.style.borderColor = '#3b82f6';
-            seriesControl.style.borderWidth = '2px';
-        }
-    }
-
-    // Apply PTI range changes
-    async function applyPTIRange(seriesIndex) {
-        const series = seriesRanges[seriesIndex];
-        if (!series) return;
-
-        const minSlider = document.getElementById(`min-pti-slider-${seriesIndex}`);
-        const maxSlider = document.getElementById(`max-pti-slider-${seriesIndex}`);
-        
-        if (!minSlider || !maxSlider) return;
-
-        const newMin = parseFloat(minSlider.value);
-        const newMax = parseFloat(maxSlider.value);
-
-        // Validate range
-        if (newMin >= newMax) {
-            alert('Minimum PTI must be less than maximum PTI');
-            return;
-        }
-
-        if (newMin < 10 || newMax > 80) {
-            alert('PTI values must be between 10 and 80');
-            return;
-        }
-
-        try {
-            // Call API to update range
-            const response = await fetch('/api/create-team/update-range', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    series_id: series.series_id,
-                    series_name: series.series_name,
-                    recommended_range: {
-                        min: newMin,
-                        max: newMax
-                    }
-                })
-            });
-
-            const result = await response.json();
-            
-            if (result.success) {
-                // Update local data
-                seriesRanges[seriesIndex].recommended_range = {
-                    min: newMin,
-                    max: newMax
-                };
-
-                // Visual feedback for success
-                const seriesControl = document.querySelector(`[data-series-id="${series.series_id}"]`);
-                if (seriesControl) {
-                    seriesControl.style.borderColor = '#10b981';
-                    seriesControl.style.borderWidth = '2px';
-                    
-                    // Show success message
-                    const successMsg = document.createElement('div');
-                    successMsg.className = 'bg-green-100 border border-green-300 text-green-700 px-3 py-2 rounded text-sm mt-2';
-                    successMsg.innerHTML = '<i class="fas fa-check mr-1"></i>Range updated successfully!';
-                    seriesControl.appendChild(successMsg);
-                    
-                    // Remove success message after 3 seconds
-                    setTimeout(() => {
-                        if (successMsg.parentNode) {
-                            successMsg.parentNode.removeChild(successMsg);
-                        }
-                        seriesControl.style.borderColor = '';
-                        seriesControl.style.borderWidth = '';
-                    }, 3000);
-                }
-            } else {
-                alert('Failed to update PTI range: ' + (result.error || 'Unknown error'));
-            }
-        } catch (error) {
-            console.error('Error updating PTI range:', error);
-            alert('Failed to update PTI range. Please try again.');
-        }
-    }
-
-    // Reset PTI range to recommended values
-    function resetPTIRange(seriesIndex) {
-        const series = seriesRanges[seriesIndex];
-        if (!series) return;
-
-        const minSlider = document.getElementById(`min-pti-slider-${seriesIndex}`);
-        const maxSlider = document.getElementById(`max-pti-slider-${seriesIndex}`);
-        const minValue = document.getElementById(`min-pti-value-${seriesIndex}`);
-        const maxValue = document.getElementById(`max-pti-value-${seriesIndex}`);
-        
-        if (minSlider && maxSlider && minValue && maxValue) {
-            minSlider.value = series.recommended_range.min;
-            maxSlider.value = series.recommended_range.max;
-            minValue.textContent = series.recommended_range.min;
-            maxValue.textContent = series.recommended_range.max;
-            
-            // Reset visual styling
-            const seriesControl = document.querySelector(`[data-series-id="${series.series_id}"]`);
-            if (seriesControl) {
-                seriesControl.style.borderColor = '';
-                seriesControl.style.borderWidth = '';
-            }
-        }
     }
 
     // Display series teams
     function displaySeriesTeams() {
-        const containers = [
-            document.getElementById('series-teams'),
-            document.getElementById('series-teams-mobile')
-        ];
+        const container = document.getElementById('series-teams');
+        if (!container) return;
 
-        const teamsHtml = seriesRanges.map(series => `
+        container.innerHTML = seriesRanges.map(series => `
             <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
                 <div class="flex items-center justify-between mb-3">
                     <h3 class="font-semibold text-gray-900">${series.series_name}</h3>
@@ -790,12 +481,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             </div>
         `).join('');
-
-        containers.forEach(container => {
-            if (container) {
-                container.innerHTML = teamsHtml;
-            }
-        });
     }
 
     // Assign player to series (mobile tap interface)
@@ -838,24 +523,21 @@ document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('.player-card').forEach(card => {
             card.classList.remove('selected');
         });
-        const indicator = document.getElementById('selected-player-indicator');
-        if (indicator) {
-            indicator.style.display = 'none';
-        }
+        document.getElementById('selected-player-indicator').classList.add('hidden');
     }
 
     // Update player count
     function updatePlayerCount() {
-        const countElements = [
-            document.getElementById('player-count'),
-            document.getElementById('player-count-mobile')
-        ];
-        
-        countElements.forEach(element => {
-            if (element) {
-                element.textContent = allPlayers.length;
-            }
-        });
+        const countElement = document.getElementById('player-count');
+        if (countElement) {
+            countElement.textContent = allPlayers.length;
+        }
+    }
+
+    // This function is no longer needed since we're not using team size sliders
+    // Keeping for backwards compatibility
+    function updateTeamSize(seriesName, size) {
+        console.log(`Team size update for ${seriesName}: ${size} (feature not implemented)`);
     }
 
     // Setup event listeners
@@ -921,25 +603,92 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // Show content and hide loading
+    function showContent() {
+        console.log('showContent() called');
+        const loadingState = document.getElementById('loading-state');
+        const mainContent = document.getElementById('create-team-content');
+        
+        if (loadingState) {
+            loadingState.classList.add('hidden');
+            loadingState.style.setProperty('display', 'none', 'important');
+            console.log('Loading state hidden');
+        } else {
+            console.log('Loading state element not found');
+        }
+        
+        if (mainContent) {
+            mainContent.classList.remove('hidden');
+            mainContent.style.setProperty('display', 'block', 'important');
+            console.log('Create team content shown');
+        } else {
+            console.log('Create team content element not found');
+        }
+    }
 
+    // Show error message
+    function showError(message) {
+        const loadingState = document.getElementById('loading-state');
+        loadingState.innerHTML = `
+            <div class="text-red-600 text-center">
+                <i class="fas fa-exclamation-triangle text-2xl mb-3"></i>
+                <p class="text-lg">${message}</p>
+            </div>
+        `;
+    }
 
     // Make functions globally available
     window.selectPlayer = selectPlayer;
     window.assignPlayerToSeries = assignPlayerToSeries;
-    window.updatePTIRange = updatePTIRange;
-    window.applyPTIRange = applyPTIRange;
-    window.resetPTIRange = resetPTIRange;
+    window.updateTeamSize = updateTeamSize;
 
     // Debug functions
+    window.forceShowContent = function() {
+        console.log('Forcing content to show...');
+        const loadingState = document.getElementById('loading-state');
+        const mainContent = document.getElementById('create-team-content');
+        
+        if (loadingState) {
+            loadingState.classList.add('hidden');
+            loadingState.style.setProperty('display', 'none', 'important');
+            console.log('Loading state hidden');
+        }
+        
+        if (mainContent) {
+            mainContent.classList.remove('hidden');
+            mainContent.style.setProperty('display', 'block', 'important');
+            console.log('Create team content shown');
+        }
+        
+        console.log('Content force-show complete');
+    };
+
     window.debugPageState = function() {
         console.log('=== PAGE DEBUG INFO ===');
         console.log('Players loaded:', allPlayers.length);
         console.log('Series loaded:', seriesRanges.length);
         console.log('Team assignments:', teamAssignments);
+        
+        const loadingState = document.getElementById('loading-state');
+        const mainContent = document.getElementById('create-team-content');
+        
+        console.log('Loading state classes:', loadingState ? loadingState.className : 'not found');
+        console.log('Create team content classes:', mainContent ? mainContent.className : 'not found');
+        console.log('Loading state display:', loadingState ? loadingState.style.display : 'not found');
+        console.log('Create team content display:', mainContent ? mainContent.style.display : 'not found');
     };
 
     // Initialize page
     initializePage();
+    
+    // Failsafe: Force show content after 5 seconds if still hidden
+    setTimeout(function() {
+        const mainContent = document.getElementById('create-team-content');
+        if (mainContent && mainContent.classList.contains('hidden')) {
+            console.log('Failsafe: Forcing content to show after timeout');
+            showContent();
+        }
+    }, 5000);
 });
 </script>
 {% endblock %} 

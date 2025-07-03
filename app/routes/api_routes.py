@@ -2336,6 +2336,79 @@ def get_teams():
         return jsonify({"error": str(e)}), 500
 
 
+@api_bp.route("/api/teams-with-ids")
+@login_required
+def get_teams_with_ids():
+    """Get teams with IDs filtered by user's league"""
+    try:
+        print(f"[DEBUG] teams-with-ids API called")
+        user = session.get("user")
+        if not user:
+            return jsonify({"error": "Not authenticated"}), 401
+
+        # Get user's league for filtering
+        user_league_id = user.get("league_id", "")
+        print(f"[DEBUG] teams-with-ids: User league_id: {user_league_id}")
+
+        # Convert string league_id to integer foreign key if needed
+        league_id_int = None
+        if isinstance(user_league_id, str) and user_league_id != "":
+            try:
+                league_record = execute_query_one(
+                    "SELECT id FROM leagues WHERE league_id = %s", [user_league_id]
+                )
+                if league_record:
+                    league_id_int = league_record["id"]
+                    print(f"[DEBUG] Converted league_id '{user_league_id}' to integer: {league_id_int}")
+                else:
+                    print(f"[WARNING] League '{user_league_id}' not found in leagues table")
+            except Exception as e:
+                print(f"[DEBUG] Could not convert league ID: {e}")
+        elif isinstance(user_league_id, int):
+            league_id_int = user_league_id
+            print(f"[DEBUG] League_id already integer: {league_id_int}")
+
+        # Get teams from database with IDs
+        if league_id_int:
+            teams_query = """
+                SELECT DISTINCT t.id as team_id, t.team_name, t.display_name
+                FROM teams t
+                WHERE t.league_id = %s AND t.is_active = TRUE
+                AND t.team_name NOT ILIKE '%BYE%'
+                ORDER BY t.team_name
+            """
+            teams_data = execute_query(teams_query, [league_id_int])
+        else:
+            teams_query = """
+                SELECT DISTINCT t.id as team_id, t.team_name, t.display_name
+                FROM teams t
+                WHERE t.is_active = TRUE
+                AND t.team_name NOT ILIKE '%BYE%'
+                ORDER BY t.team_name
+            """
+            teams_data = execute_query(teams_query)
+
+        # Format teams data
+        teams = []
+        for team in teams_data:
+            teams.append({
+                "team_id": team["team_id"],
+                "team_name": team["team_name"],
+                "display_name": team["display_name"] or team["team_name"]
+            })
+
+        print(f"[DEBUG] teams-with-ids: Found {len(teams)} teams with IDs for league {league_id_int}")
+        print(f"[DEBUG] teams-with-ids: Sample teams: {teams[:3] if teams else 'None'}")
+
+        return jsonify({"teams": teams})
+
+    except Exception as e:
+        print(f"Error getting teams with IDs: {str(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
+        return jsonify({"error": str(e)}), 500
+
+
 @api_bp.route("/api/club-players-metadata")
 @login_required
 def get_club_players_metadata():

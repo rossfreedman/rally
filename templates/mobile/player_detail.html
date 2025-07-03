@@ -282,10 +282,10 @@
                     <div class="bg-gray-50 rounded-lg p-4">
                         <!-- Court Header -->
                         <div class="flex items-center justify-between mb-4">
-                            <h3 class="text-lg font-semibold text-gray-900">{{ court|capitalize }}</h3>
+                            <h3 class="text-lg font-semibold text-gray-900">{{ court.replace('court', 'Court ').title() }}</h3>
                             <div class="flex items-center gap-3">
                                 <!-- Record -->
-                                <span class="text-sm font-medium text-gray-700">
+                                <span class="text-lg font-bold text-gray-900">
                                     {% if stats and stats.record %}
                                         {{ stats.record }}
                                     {% else %}
@@ -294,7 +294,7 @@
                                 </span>
                                 <!-- Win Rate Badge -->
                                 {% if stats and stats.winRate is defined and stats.winRate is not none and stats.record != '0-0' %}
-                                <div class="px-3 py-1 rounded-full text-sm font-medium
+                                <div class="px-4 py-2 rounded-full text-lg font-bold
                                     {% if stats.winRate|float >= 60 %}bg-green-100 text-green-700
                                     {% elif stats.winRate|float >= 45 %}bg-yellow-100 text-yellow-700
                                     {% else %}bg-red-100 text-red-700
@@ -302,7 +302,7 @@
                                     {{ stats.winRate|round(0)|int }}%
                                 </div>
                                 {% else %}
-                                <div class="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-500">
+                                <div class="px-4 py-2 rounded-full text-lg font-bold bg-gray-100 text-gray-500">
                                     0%
                                 </div>
                                 {% endif %}
@@ -312,9 +312,9 @@
                         <!-- Partners Section -->
                         {% if stats and stats.topPartners %}
                         <div>
-                            <p class="text-sm font-medium text-gray-700 mb-3">Top Partners</p>
+                            <p class="text-sm font-medium text-gray-700 mb-3">Partners</p>
                             <div class="space-y-2">
-                                {% for p in stats.topPartners[:3] %}
+                                {% for p in stats.topPartners %}
                                 <div class="flex items-center justify-between py-2 px-3 bg-white rounded-lg">
                                     <div class="flex-1">
                                         <a href="/mobile/player-detail/{{ p.name | urlencode }}" class="font-medium text-gray-900 hover:underline">{{ p.name }}</a>

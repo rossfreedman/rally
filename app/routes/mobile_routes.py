@@ -221,8 +221,6 @@ def serve_mobile_player_detail(player_id):
     
     if is_player_id:
         # Look up player by tenniscores_player_id with proper team and league filtering
-        from database_utils import execute_query_one, execute_query
-        
         if team_id:
             # Use team-specific lookup for better context
             player_query = """
@@ -1484,19 +1482,73 @@ def redirect_myseries():
 @mobile_bp.route("/mobile/teams-players", methods=["GET"])
 @login_required
 def mobile_teams_players():
-    """Get teams and players for mobile interface"""
+    """Get teams and players for mobile interface - now supports team_id parameter"""
     try:
-        data = get_teams_players_data(session["user"])
+        # Handle legacy team name parameter and redirect to team_id
+        legacy_team_name = request.args.get("team")
+        if legacy_team_name:
+            print(f"[DEBUG] teams-players: Legacy team name parameter detected: {legacy_team_name}")
+            # Try to find team_id for this team name
+            user = session["user"]
+            user_league_id = user.get("league_id", "")
+            
+            # Convert league_id to integer if needed
+            league_id_int = None
+            if isinstance(user_league_id, str) and user_league_id != "":
+                try:
+                    league_record = execute_query_one(
+                        "SELECT id FROM leagues WHERE league_id = %s", [user_league_id]
+                    )
+                    if league_record:
+                        league_id_int = league_record["id"]
+                except Exception as e:
+                    pass
+            elif isinstance(user_league_id, int):
+                league_id_int = user_league_id
+            
+            # Find team by name and redirect to team_id URL
+            if league_id_int:
+                team_lookup_query = """
+                    SELECT id FROM teams 
+                    WHERE team_name = %s AND league_id = %s AND is_active = TRUE
+                """
+                team_record = execute_query_one(team_lookup_query, [legacy_team_name, league_id_int])
+                if team_record:
+                    return redirect(f"/mobile/teams-players?team_id={team_record['id']}")
+            
+            # If not found, continue without team selection
+            print(f"[DEBUG] teams-players: Could not find team_id for legacy team name: {legacy_team_name}")
+        
+        # Get team_id parameter from URL
+        team_id = request.args.get("team_id")
+        
+        # Convert to integer if provided
+        if team_id:
+            try:
+                team_id = int(team_id)
+                print(f"[DEBUG] teams-players: Using team_id={team_id}")
+            except (ValueError, TypeError):
+                print(f"[DEBUG] teams-players: Invalid team_id parameter: {team_id}")
+                team_id = None
+        
+        # Get teams and players data with team_id filtering
+        data = get_teams_players_data(session["user"], team_id=team_id)
+
+        # Add template compatibility variables
+        template_data = {
+            "session_data": {"user": session["user"], "authenticated": True},
+            "all_teams_data": data.get("all_teams_data", []),
+            "selected_team": data.get("selected_team"),
+            "selected_team_id": data.get("selected_team_id"),
+            "team_analysis_data": data.get("team_analysis_data"),
+            "error": data.get("error")
+        }
 
         log_user_activity(
             session["user"]["email"], "page_visit", page="mobile_teams_players"
         )
 
-        return render_template(
-            "mobile/teams_players.html",
-            session_data={"user": session["user"], "authenticated": True},
-            **data,
-        )
+        return render_template("mobile/teams_players.html", **template_data)
 
     except Exception as e:
         print(f"Error in mobile teams players: {str(e)}")
@@ -1504,9 +1556,20 @@ def mobile_teams_players():
 
         print(f"Full traceback: {traceback.format_exc()}")
 
+        # Try to get at least the teams data for the dropdown, even if there's an error
+        try:
+            fallback_data = get_teams_players_data(session["user"], team_id=None)
+            all_teams_data = fallback_data.get("all_teams_data", [])
+        except:
+            all_teams_data = []
+
         return render_template(
             "mobile/teams_players.html",
             session_data={"user": session["user"], "authenticated": True},
+            all_teams_data=all_teams_data,
+            selected_team=None,
+            selected_team_id=None,
+            team_analysis_data=None,
             error="Failed to load teams and players data",
         )
 
@@ -2366,10 +2429,10 @@ def run_matchup_simulation():
         return jsonify({"error": "Simulation failed. Please try again."}), 500
 
 
-@mobile_bp.route("/api/get-team-players/<team_name>")
+@mobile_bp.route("/api/get-team-players/<int:team_id>")
 @login_required
-def get_team_players(team_name):
-    """API endpoint to get players for a specific team"""
+def get_team_players(team_id):
+    """API endpoint to get players for a specific team using team_id"""
     try:
         if "user" not in session:
             return jsonify({"error": "Not authenticated"}), 401
@@ -2377,32 +2440,105 @@ def get_team_players(team_name):
         # Get user's league ID for filtering
         user_league_id = session["user"].get("league_id")
         print(
-            f"[DEBUG] get_team_players: User league_id from session: '{user_league_id}' for team '{team_name}'"
+            f"[DEBUG] get_team_players: User league_id from session: '{user_league_id}' for team_id '{team_id}'"
         )
 
-        # Get players for the team
-        players = get_players_by_team(team_name, user_league_id)
+        # Convert string league_id to integer foreign key if needed
+        league_id_int = None
+        if isinstance(user_league_id, str) and user_league_id != "":
+            try:
+                league_record = execute_query_one(
+                    "SELECT id FROM leagues WHERE league_id = %s", [user_league_id]
+                )
+                if league_record:
+                    league_id_int = league_record["id"]
+            except Exception as e:
+                print(f"[DEBUG] Could not convert league ID: {e}")
+        elif isinstance(user_league_id, int):
+            league_id_int = user_league_id
+
+        # Get team info first
+        team_query = """
+            SELECT id, team_name, display_name
+            FROM teams
+            WHERE id = %s
+        """
+        if league_id_int:
+            team_query += " AND league_id = %s"
+            team_info = execute_query_one(team_query, [team_id, league_id_int])
+        else:
+            team_info = execute_query_one(team_query, [team_id])
+
+        if not team_info:
+            return jsonify({
+                "success": False,
+                "error": f"Team ID {team_id} not found",
+                "players": [],
+                "team_id": team_id,
+            }), 404
+
+        team_name = team_info["team_name"]
+
+        # Get players for the team using team_id
+        if league_id_int:
+            players_query = """
+                SELECT DISTINCT 
+                    p.id, 
+                    p.first_name, 
+                    p.last_name, 
+                    p.pti
+                FROM players p
+                WHERE p.team_id = %s AND p.league_id = %s AND p.is_active = true
+                ORDER BY p.first_name, p.last_name
+            """
+            players_data = execute_query(players_query, [team_id, league_id_int])
+        else:
+            players_query = """
+                SELECT DISTINCT 
+                    p.id, 
+                    p.first_name, 
+                    p.last_name, 
+                    p.pti
+                FROM players p
+                WHERE p.team_id = %s AND p.is_active = true
+                ORDER BY p.first_name, p.last_name
+            """
+            players_data = execute_query(players_query, [team_id])
+
+        # Format players data
+        players = [
+            {
+                "id": player["id"],
+                "name": f"{player['first_name']} {player['last_name']}",
+                "pti": player.get("pti", 0),
+            }
+            for player in players_data
+        ]
+
         print(
-            f"[DEBUG] get_team_players: Found {len(players)} players for team '{team_name}' in league '{user_league_id}'"
+            f"[DEBUG] get_team_players: Found {len(players)} players for team_id '{team_id}' ({team_name}) in league '{user_league_id}'"
         )
 
         if not players:
-            return (
-                jsonify(
-                    {
-                        "success": False,
-                        "error": f"No players found for team {team_name}",
-                        "players": [],
-                        "team_name": team_name,
-                    }
-                ),
-                404,
-            )
+            return jsonify({
+                "success": False,
+                "error": f"No players found for team {team_name}",
+                "players": [],
+                "team_id": team_id,
+                "team_name": team_name,
+            }), 404
 
-        return jsonify({"success": True, "players": players, "team_name": team_name})
+        return jsonify({
+            "success": True, 
+            "players": players, 
+            "team_id": team_id,
+            "team_name": team_name
+        })
 
     except Exception as e:
         print(f"Error getting team players: {str(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
         return jsonify({"error": "Failed to get team players"}), 500
 
 
@@ -3136,7 +3272,6 @@ def get_mobile_track_byes_data(user):
     """Get track byes and court assignment data for mobile interface using priority-based team detection like analyze-me"""
     try:
         from app.services.session_service import get_session_data_for_user
-        from database_utils import execute_query_one
         
         user_email = user.get("email")
         player_id = user.get("tenniscores_player_id")
