@@ -899,9 +899,9 @@ document.addEventListener('DOMContentLoaded', function() {
                      ondragstart="handleDragStart(event, '${player.id}')"
                      ondragend="handleDragEnd(event)"
                      onclick="selectPlayer('${player.id}')">
-                    <div class="text-sm font-semibold">${player.name || `${player.first_name} ${player.last_name}`}</div>
-                    <div class="text-xs">PTI: ${player.pti ? player.pti.toFixed(1) : 'N/A'}</div>
-                    <div class="text-xs text-gray-600">${player.club || ''}</div>
+                    <div class="text-sm font-semibold text-center">${player.name || `${player.first_name} ${player.last_name}`}</div>
+                    <div class="text-xs text-center">PTI: ${player.pti ? player.pti.toFixed(1) : 'N/A'}</div>
+                    <div class="text-xs text-gray-600 text-center">${player.club || ''}</div>
                 </div>
             `;
             // Debug first player HTML
@@ -1082,9 +1082,9 @@ document.addEventListener('DOMContentLoaded', function() {
                                  ondragstart="handleAssignedPlayerDragStart(event, '${player.id}', '${series.series_name}')"
                                  ondragend="handleDragEnd(event)"
                                  ondblclick="returnPlayerToPool('${player.id}', '${series.series_name}')">
-                                <div class="font-medium">${player.name || `${player.first_name} ${player.last_name}`}</div>
-                                <div>PTI: ${player.pti ? player.pti.toFixed(1) : 'N/A'}</div>
-                                <div class="text-xs opacity-75">Double-click to remove</div>
+                                <div class="font-medium text-center">${player.name || `${player.first_name} ${player.last_name}`}</div>
+                                <div class="text-center">PTI: ${player.pti ? player.pti.toFixed(1) : 'N/A'}</div>
+                                <div class="text-xs opacity-75 text-center">Double-click to remove</div>
                             </div>
                         `).join('') : '<div class="text-gray-400 text-sm w-full text-center py-4">Drag players here or tap to assign selected player</div>'}
                     </div>
