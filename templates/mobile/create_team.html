@@ -705,6 +705,10 @@ document.addEventListener('DOMContentLoaded', function() {
         // Update UI immediately for responsiveness
         updateSeriesDisplay(seriesId, series);
         
+        // Update Team Assignments in real-time to reflect new target PTI
+        console.log(`🔄 Updating Team Assignments due to ${seriesName} range change`);
+        displaySeriesTeams();
+        
         // Debounce the API call to prevent spam
         clearTimeout(updateTimeout);
         updateTimeout = setTimeout(async () => {
@@ -729,6 +733,9 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Then send the update to backend
             await updateSeriesRangeBackend(seriesName, series.current_range);
+            
+            // Refresh Team Assignments after backend update to ensure consistency
+            displaySeriesTeams();
             
             console.log(`✅ Successfully updated ${seriesName}`);
             
@@ -780,6 +787,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (adjustmentsMade) {
             // Refresh UI to show adjustments
             displaySeriesControls();
+            displaySeriesTeams(); // Update Team Assignments with new target PTI
             console.log('✅ Sequential order maintained');
         } else {
             console.log('✅ Sequential order was already correct');
@@ -1170,11 +1178,11 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Calculate PTI metrics
             const seriesAvgPTI = (series.current_range.min + series.current_range.max) / 2;
-            const targetTeamPTI = seriesAvgPTI * targetPlayers;
+            const targetTeamPTI = Math.abs(seriesAvgPTI) * targetPlayers;
             
-            // Calculate current team PTI
+            // Calculate current team PTI (using absolute values for consistency)
             const assignedPlayers = teamAssignments[series.series_name] || [];
-            const currentTeamPTI = assignedPlayers.reduce((sum, player) => sum + (player.pti || 0), 0);
+            const currentTeamPTI = assignedPlayers.reduce((sum, player) => sum + Math.abs(player.pti || 0), 0);
             const currentAvgPTI = currentPlayers > 0 ? currentTeamPTI / currentPlayers : 0;
             
             // Determine status and styling
@@ -1229,7 +1237,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="text-sm font-medium text-blue-900 mb-2">
                         <i class="fas fa-bullseye mr-1"></i>
                         Target Team PTI: <span class="font-bold">${targetTeamPTI.toFixed(1)}</span>
-                        <span class="text-xs text-blue-700 ml-2">(${seriesAvgPTI.toFixed(1)} avg × ${targetPlayers} players)</span>
+                        <span class="text-xs text-blue-700 ml-2">(${Math.abs(seriesAvgPTI).toFixed(1)} avg × ${targetPlayers} players)</span>
                     </div>
                     <div class="flex items-center justify-between">
                         <div class="text-xs text-blue-700">
