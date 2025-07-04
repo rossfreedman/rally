@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Respond to Team Polls - Rally Features</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'rally-blue': '#2563eb',
+                        'rally-green': '#10b981',
+                        'rally-orange': '#f59e0b',
+                        'rally-dark': '#1f2937',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-sm border-b border-gray-200">
+        <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <a href="index.html" class="flex items-center">
+                        <img class="h-8 w-auto" src="rallylogo.png" alt="Rally Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                        <div class="hidden text-2xl font-bold text-rally-blue">Rally</div>
+                    </a>
+                </div>
+                <div class="flex items-center space-x-6">
+                    <a href="index.html" class="text-gray-700 hover:text-rally-blue transition duration-300">← Back to Home</a>
+                    <a href="/login" class="bg-rally-blue text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition duration-300">Login</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Header Section -->
+    <section class="bg-gradient-to-br from-purple-600 to-purple-800 text-white py-20">
+        <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16 text-center">
+            <div class="w-20 h-20 bg-white/20 rounded-xl flex items-center justify-center mx-auto mb-6">
+                <i class="fas fa-poll text-3xl text-white"></i>
+            </div>
+            <h1 class="text-4xl md:text-5xl font-bold mb-6">Respond to Team Polls</h1>
+            <p class="text-xl text-purple-100 max-w-3xl mx-auto">
+                Make your voice heard in team decisions. Participate in polls about practice times, social events, rule changes, and strategic choices.
+            </p>
+        </div>
+    </section>
+
+    <!-- Feature Overview -->
+    <section class="py-16 bg-white">
+        <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                <div>
+                    <h2 class="text-3xl font-bold text-gray-900 mb-6">Democratic Team Management</h2>
+                    <p class="text-lg text-gray-600 mb-6">
+                        Rally's polling system ensures every team member has a voice in important decisions. From practice schedules to social events, make choices together as a team with transparent, easy-to-use polls.
+                    </p>
+                    <div class="space-y-4">
+                        <div class="flex items-start">
+                            <div class="w-6 h-6 bg-purple-600 rounded-full flex items-center justify-center mr-3 mt-1">
+                                <i class="fas fa-check text-white text-sm"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-gray-900">Quick Responses</h3>
+                                <p class="text-gray-600">Respond to polls instantly with simple tap-to-vote interface designed for mobile use.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <div class="w-6 h-6 bg-purple-600 rounded-full flex items-center justify-center mr-3 mt-1">
+                                <i class="fas fa-check text-white text-sm"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-gray-900">Real-Time Results</h3>
+                                <p class="text-gray-600">See how your teammates are voting as responses come in, with live result updates.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <div class="w-6 h-6 bg-purple-600 rounded-full flex items-center justify-center mr-3 mt-1">
+                                <i class="fas fa-check text-white text-sm"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-gray-900">Anonymous Options</h3>
+                                <p class="text-gray-600">Choose between anonymous and public voting based on the sensitivity of the topic.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-100 rounded-xl p-8">
+                    <img src="screenshots/team_polls.png" alt="Rally Team Polls Interface" class="w-full rounded-lg shadow-lg">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="py-16 bg-gradient-to-br from-purple-600 to-purple-800 text-white">
+        <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16 text-center">
+            <h2 class="text-3xl font-bold mb-6">Ready to Give Everyone a Voice?</h2>
+            <p class="text-xl text-purple-100 mb-8 max-w-2xl mx-auto">
+                Build stronger team unity and make better decisions with Rally's democratic polling system.
+            </p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <a href="/login" class="bg-white text-purple-600 px-8 py-4 rounded-lg text-lg font-semibold hover:bg-gray-100 transition duration-300 shadow-lg">
+                    Start Free Trial
+                </a>
+                <a href="index.html" class="border-2 border-white text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-white hover:text-purple-600 transition duration-300">
+                    View All Features
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white py-12">
+        <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16 text-center">
+            <div class="flex items-center justify-center mb-4">
+                <img class="h-8 w-auto" src="rallylogo.png" alt="Rally Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                <div class="hidden text-xl font-bold text-rally-blue">Rally</div>
+            </div>
+            <p class="text-gray-400 mb-4">The ultimate racquet sports management application.</p>
+            <div class="border-t border-gray-700 pt-6">
+                <p class="text-gray-400">© 2025 Rally LLC. All rights reserved.<br>Made with ❤️ for racquet sports players.</p>
+            </div>
+        </div>
+    </footer>
+</body>
+</html> 
