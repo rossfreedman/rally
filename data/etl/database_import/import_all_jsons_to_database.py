@@ -3795,6 +3795,61 @@ class ComprehensiveETL:
             self.log(f"❌ Error calculating series_id health: {str(e)}", "ERROR")
             return 0.0
 
+    def _create_pre_etl_backup(self) -> bool:
+        """Create a full database backup before ETL process"""
+        try:
+            # Only create backups for production or if explicitly requested
+            if self.environment not in ['railway_production', 'railway_staging'] and not os.getenv('FORCE_ETL_BACKUP'):
+                self.log("ℹ️  Skipping backup for local environment (set FORCE_ETL_BACKUP=1 to enable)")
+                return True
+            
+            self.log("🔄 Creating pre-ETL database backup...")
+            
+            # Build path to backup script
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            project_root = os.path.dirname(os.path.dirname(os.path.dirname(script_dir)))
+            backup_script = os.path.join(project_root, 'scripts', 'backup_database.py')
+            
+            if not os.path.exists(backup_script):
+                self.log(f"❌ Backup script not found: {backup_script}", "ERROR")
+                return False
+            
+            # Run backup script with custom format (smaller, faster)
+            import subprocess
+            
+            cmd = [
+                'python3', backup_script,
+                '--format', 'custom',
+                '--max-backups', '5'  # Keep only 5 backups to save space
+            ]
+            
+            self.log(f"Running: {' '.join(cmd)}")
+            
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=300  # 5 minute timeout
+            )
+            
+            if result.returncode == 0:
+                self.log("✅ Database backup completed successfully")
+                # Log backup location if available in output
+                for line in result.stdout.split('\n'):
+                    if 'Backup location:' in line:
+                        self.log(f"📁 {line.strip()}")
+                return True
+            else:
+                self.log(f"❌ Backup script failed: {result.stderr}", "ERROR")
+                return False
+                
+        except subprocess.TimeoutExpired:
+            self.log("❌ Backup script timed out after 5 minutes", "ERROR")
+            return False
+        except Exception as e:
+            self.log(f"❌ Error creating backup: {str(e)}", "ERROR")
+            return False
+
     def _parse_int(self, value: str) -> int:
         """Parse integer with error handling"""
         if not value or value.strip() == "":
@@ -3828,6 +3883,14 @@ class ComprehensiveETL:
         try:
             self.log("🚀 Starting Comprehensive JSON ETL Process")
             self.log("=" * 60)
+            
+            # CRITICAL: Create full database backup before ETL process
+            self.log("\n💾 Step 0: Creating full database backup...")
+            backup_success = self._create_pre_etl_backup()
+            if not backup_success:
+                self.log("⚠️  Backup failed but continuing ETL (backup is optional)", "WARNING")
+            else:
+                self.log("✅ Database backup completed successfully")
             
             # RAILWAY OPTIMIZATION: Log environment and resource information
             if self.is_railway:
