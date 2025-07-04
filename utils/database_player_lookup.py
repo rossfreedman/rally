@@ -511,6 +511,61 @@ def find_player_by_database_lookup(
             )
 
         # ===========================================
+        # FALLBACK 5: name_variations + series + league (drop last_name and club)
+        # This catches cases where user has correct first name + series but wrong last name/club
+        # ===========================================
+        logger.info(f"FALLBACK 5: Name variations + series search (no last name or club)")
+
+        fallback5_query = f"""
+            SELECT p.tenniscores_player_id, p.first_name, p.last_name, c.name as club_name, s.name as series_name
+            FROM players p
+            JOIN clubs c ON p.club_id = c.id
+            JOIN series s ON p.series_id = s.id  
+            WHERE p.league_id = %s
+            AND p.is_active = true
+            AND ({name_conditions})
+            AND LOWER(TRIM(s.name)) = %s
+        """
+
+        params = [league_db_id] + first_name_variations + [norm_series]
+        fallback5_matches = execute_query(fallback5_query, params)
+
+        if len(fallback5_matches) == 1:
+            player = fallback5_matches[0]
+            match_info = f"{player['first_name']} {player['last_name']} ({player['club_name']}, {player['series_name']})"
+            logger.info(
+                f"✅ FALLBACK 5: Found unique match - {first_name} {last_name} → {match_info}: {player['tenniscores_player_id']}"
+            )
+            logger.info(
+                f"✅ FALLBACK 5: Name variation + series match (last name: '{player['last_name']}' vs '{last_name}', club: '{player['club_name']}' vs '{club_name}')"
+            )
+            return {
+                "match_type": "possible",
+                "player": player,
+                "message": f"Possible match: Name variation + series match (last name: {player['last_name']} vs requested {last_name}, club: {player['club_name']} vs requested {club_name})",
+            }
+        elif len(fallback5_matches) > 1:
+            match_names = [
+                f"{m['first_name']} {m['last_name']} ({m['club_name']})"
+                for m in fallback5_matches
+            ]
+            logger.info(
+                f"⚠️ FALLBACK 5: Multiple matches for {first_name_variations} + {series_name}: {match_names}"
+            )
+            logger.info(
+                f"✅ FALLBACK 5: Found multiple possible matches - returning for user selection"
+            )
+            return {
+                "match_type": "multiple_possible",
+                "matches": fallback5_matches,
+                "message": f"Multiple possible matches found: {match_names}. Same first name variation and series with different last names/clubs.",
+            }
+        else:
+            logger.info(
+                f"❌ FALLBACK 5: No matches found for {first_name_variations} + {series_name}"
+            )
+
+        # ===========================================
         # FINAL FALLBACK: last_name + league only (VERY PERMISSIVE - USE WITH CAUTION)
         # ===========================================
         logger.warning(

@@ -301,24 +301,22 @@ def register_user(email: str, password: str, first_name: str, last_name: str,
                   league_id: str = None, club_name: str = None, series_name: str = None,
                   ad_deuce_preference: str = None, dominant_hand: str = None) -> Dict[str, Any]:
     """
-    Register a new user with simplified session management
+    Register a new user with optional player association.
     
     Args:
         email: User's email address
-        password: User's password  
+        password: User's password
         first_name: User's first name
         last_name: User's last name
-        league_id: League identifier (e.g., 'APTA_CHICAGO', 'NSTF')
-        club_name: Club name for player lookup
-        series_name: Series name for player lookup
-        ad_deuce_preference: User's ad/deuce preference
-        dominant_hand: User's dominant hand
+        league_id: League identifier (optional)
+        club_name: Club name (optional)
+        series_name: Series name (optional)
+        ad_deuce_preference: User's ad/deuce preference (optional)
+        dominant_hand: User's dominant hand (optional)
         
     Returns:
-        Dict with success status and session data
+        Dict with success status and user data or error message
     """
-    from app.services.session_service import switch_user_league, get_session_data_for_user
-    
     db_session = SessionLocal()
     
     try:
@@ -327,7 +325,7 @@ def register_user(email: str, password: str, first_name: str, last_name: str,
         if existing_user:
             return {"success": False, "error": "User with this email already exists"}
         
-        # Create new user
+        # Create new user (but don't commit yet)
         password_hash = hash_password(password)
         new_user = User(
             email=email,
@@ -339,9 +337,9 @@ def register_user(email: str, password: str, first_name: str, last_name: str,
         )
         
         db_session.add(new_user)
-        db_session.commit()
+        db_session.flush()  # Get user ID but don't commit yet
         
-        logger.info(f"Created new user: {email}")
+        logger.info(f"Created new user (pending commit): {email}")
         
         # If league/club/series provided, try to find player and create association
         if league_id and club_name and series_name:
@@ -358,6 +356,28 @@ def register_user(email: str, password: str, first_name: str, last_name: str,
                 if lookup_result and lookup_result.get("player"):
                     player_id = lookup_result["player"]["tenniscores_player_id"]
                     logger.info(f"Registration: Found player {player_id} for {email}")
+                    
+                    # ⚠️ SECURITY CHECK: Verify player ID isn't already associated with another user
+                    existing_association = db_session.query(UserPlayerAssociation).filter(
+                        UserPlayerAssociation.tenniscores_player_id == player_id
+                    ).first()
+                    
+                    if existing_association:
+                        # Get the other user's email for security logging
+                        other_user = db_session.query(User).filter(
+                            User.id == existing_association.user_id
+                        ).first()
+                        
+                        logger.warning(f"🚨 SECURITY: Player ID {player_id} already associated with {other_user.email if other_user else 'unknown user'}")
+                        logger.warning(f"🚨 SECURITY: Preventing {email} from claiming existing player identity")
+                        
+                        # Rollback the transaction - user won't be created
+                        db_session.rollback()
+                        return {
+                            "success": False, 
+                            "error": f"Player identity is already associated with another account. If this is your player record, please contact support.",
+                            "security_issue": True
+                        }
                     
                     # Get the player record to find the league
                     player_record = db_session.query(Player).filter(
@@ -381,7 +401,6 @@ def register_user(email: str, password: str, first_name: str, last_name: str,
                         if team_assigned:
                             logger.info(f"Registration: Team assignment successful for {player_record.full_name}")
                         
-                        db_session.commit()
                         logger.info(f"Registration: Created association between {email} and player {player_id}")
                 else:
                     logger.info(f"Registration: No player found for {email} with provided details")
@@ -390,35 +409,13 @@ def register_user(email: str, password: str, first_name: str, last_name: str,
                 logger.warning(f"Registration: Player lookup error for {email}: {e}")
                 # Continue with registration even if player lookup fails
         
-        # Build session data using our simple service
-        session_data = get_session_data_for_user(email)
-        if not session_data:
-            # Fallback session if no player found
-            session_data = {
-                "id": new_user.id,
-                "email": new_user.email,
-                "first_name": new_user.first_name,
-                "last_name": new_user.last_name,
-                "is_admin": new_user.is_admin,
-                "ad_deuce_preference": new_user.ad_deuce_preference or "",
-                "dominant_hand": new_user.dominant_hand or "",
-                "league_context": new_user.league_context,
-                "club": "",
-                "series": "",
-                "league_id": "",
-                "league_name": "",
-                "tenniscores_player_id": "",
-                "settings": "{}",
-            }
+        # Commit the transaction - this is where the user record is actually saved
+        db_session.commit()
+        logger.info(f"Registration completed successfully for {email}")
         
-        # Log user activity
-        log_user_activity(email, "registration", details={
-            "registration_success": True,
-            "league_provided": league_id,
-            "club_provided": club_name,
-            "series_provided": series_name,
-            "player_found": bool(session_data.get("tenniscores_player_id"))
-        })
+        # Build session data using our simple service
+        from app.services.session_service import get_session_data_for_user
+        session_data = get_session_data_for_user(email)
         
         return {
             "success": True,
@@ -427,9 +424,9 @@ def register_user(email: str, password: str, first_name: str, last_name: str,
         }
         
     except Exception as e:
+        logger.error(f"Registration failed for {email}: {str(e)}")
         db_session.rollback()
-        logger.error(f"Registration error for {email}: {str(e)}")
-        return {"success": False, "error": f"Registration failed: {str(e)}"}
+        return {"success": False, "error": "Registration failed. Please try again."}
     finally:
         db_session.close()
 
@@ -470,6 +467,31 @@ def associate_user_with_player(
 
         if existing:
             return {"success": False, "error": "Association already exists"}
+
+        # ⚠️ SECURITY CHECK: Verify player ID isn't already associated with another user
+        other_user_association = (
+            db_session.query(UserPlayerAssociation)
+            .filter(
+                UserPlayerAssociation.tenniscores_player_id == player.tenniscores_player_id,
+                UserPlayerAssociation.user_id != user_id
+            )
+            .first()
+        )
+        
+        if other_user_association:
+            # Get the other user's email for security logging
+            other_user = db_session.query(User).filter(
+                User.id == other_user_association.user_id
+            ).first()
+            
+            logger.warning(f"🚨 SECURITY: Player ID {player.tenniscores_player_id} already associated with {other_user.email if other_user else 'unknown user'}")
+            logger.warning(f"🚨 SECURITY: Preventing user {user_id} from claiming existing player identity")
+            
+            return {
+                "success": False, 
+                "error": "Player identity is already associated with another account. If this is your player record, please contact support.",
+                "security_issue": True
+            }
 
         # If this should be primary, unset other primary associations (if column exists)
         if is_primary:
