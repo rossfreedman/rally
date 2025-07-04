@@ -829,24 +829,20 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                     
                     <!-- Stats Grid -->
-                    <div class="grid grid-cols-2 gap-4 text-xxs">
-                        <div class="space-y-1">
-                            ${(player.pti !== null && player.pti !== undefined && player.pti !== 'N/A' && player.pti !== '' && !isNaN(parseFloat(player.pti))) ? `
-                                <div>
-                                    <span class="font-medium text-gray-600">PTI:</span> 
-                                    <span class="text-blue-600 font-bold">${player.pti}</span>
-                                </div>
-                            ` : ''}
+                    <div class="space-y-1 text-sm">
+                        ${(player.pti !== null && player.pti !== undefined && player.pti !== 'N/A' && player.pti !== '' && !isNaN(parseFloat(player.pti))) ? `
                             <div>
-                                <span class="font-medium text-gray-600">Record:</span> 
-                                <span class="text-gray-900 font-semibold">${player.wins}W-${player.losses}L</span>
+                                <span class="font-medium text-gray-600">PTI:</span> 
+                                <span class="text-blue-600 font-bold">${player.pti}</span>
                             </div>
+                        ` : ''}
+                        <div>
+                            <span class="font-medium text-gray-600">Record:</span> 
+                            <span class="text-gray-900 font-semibold">${player.wins}W-${player.losses}L</span>
                         </div>
-                        <div class="space-y-1">
-                            <div>
-                                <span class="font-medium text-gray-600">Win Rate:</span> 
-                                <span class="font-bold ${winRateColor}">${player.winRate}</span>
-                            </div>
+                        <div>
+                            <span class="font-medium text-gray-600">Win Rate:</span> 
+                            <span class="font-bold ${winRateColor}">${player.winRate}</span>
                         </div>
                     </div>
                 </div>
