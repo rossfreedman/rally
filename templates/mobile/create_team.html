@@ -524,47 +524,125 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Series PTI Range Management Functions
+    // Series PTI Range Management Functions - REFACTORED
+    let updateTimeout = null; // Debouncing
+    let pendingUpdates = new Set(); // Track pending updates
+    let isUpdating = false; // Prevent concurrent updates
+
     window.updateSeriesPTIRange = async function(seriesName, type, value) {
-        console.log(`Updating ${seriesName} ${type} PTI to ${value}`);
+        console.log(`🎯 Updating ${seriesName} ${type} PTI to ${value}`);
         
         const numValue = parseFloat(value);
         const seriesIndex = seriesRanges.findIndex(s => s.series_name === seriesName);
         
         if (seriesIndex === -1) {
-            console.error('Series not found:', seriesName);
+            console.error('❌ Series not found:', seriesName);
             return;
         }
         
         const series = seriesRanges[seriesIndex];
         const seriesId = series.series_name.replace(/\s+/g, '-');
         
-        // Update the series range with 2 decimal precision
+        // Update the local range with validation
         if (type === 'min') {
             // Ensure min doesn't exceed max
-            if (numValue > series.current_range.max) {
+            if (numValue >= series.current_range.max) {
                 series.current_range.max = parseFloat((numValue + 0.01).toFixed(2));
                 updateSliderValue(seriesId, 'max', series.current_range.max);
             }
             series.current_range.min = parseFloat(numValue.toFixed(2));
         } else {
             // Ensure max doesn't go below min
-            if (numValue < series.current_range.min) {
+            if (numValue <= series.current_range.min) {
                 series.current_range.min = parseFloat((numValue - 0.01).toFixed(2));
                 updateSliderValue(seriesId, 'min', series.current_range.min);
             }
             series.current_range.max = parseFloat(numValue.toFixed(2));
         }
         
-        // Update display
+        // Update UI immediately for responsiveness
         updateSeriesDisplay(seriesId, series);
         
-        // Always reposition all series to maintain sequential order
-        await resolveRangeConflicts(seriesName, series);
-        
-        // Send AJAX update to backend
-        await updateSeriesRangeBackend(seriesName, series.current_range);
+        // Debounce the API call to prevent spam
+        clearTimeout(updateTimeout);
+        updateTimeout = setTimeout(async () => {
+            await debouncedRangeUpdate(seriesName, series);
+        }, 500); // Wait 500ms after user stops changing values
     };
+
+    async function debouncedRangeUpdate(seriesName, series) {
+        if (isUpdating || pendingUpdates.has(seriesName)) {
+            console.log(`⏳ Skipping update for ${seriesName} - already in progress`);
+            return;
+        }
+
+        try {
+            isUpdating = true;
+            pendingUpdates.add(seriesName);
+            
+            console.log(`🚀 Processing update for ${seriesName}`);
+            
+            // Fix sequential order first
+            await fixSequentialOrder();
+            
+            // Then send the update to backend
+            await updateSeriesRangeBackend(seriesName, series.current_range);
+            
+            console.log(`✅ Successfully updated ${seriesName}`);
+            
+        } catch (error) {
+            console.error(`❌ Failed to update ${seriesName}:`, error);
+            showUpdateError(seriesName, error.message);
+        } finally {
+            pendingUpdates.delete(seriesName);
+            isUpdating = false;
+        }
+    }
+
+    async function fixSequentialOrder() {
+        console.log('🔧 Ensuring sequential order...');
+        
+        // Sort series by numeric order (Series 1, Series 2, etc.)
+        function getSeriesNumber(seriesName) {
+            const match = seriesName.match(/(\d+)/);
+            return match ? parseInt(match[1]) : 999;
+        }
+        
+        const sortedSeries = [...seriesRanges].sort((a, b) => {
+            return getSeriesNumber(a.series_name) - getSeriesNumber(b.series_name);
+        });
+        
+        let adjustmentsMade = false;
+        
+        // Ensure each series starts where the previous one ends
+        for (let i = 1; i < sortedSeries.length; i++) {
+            const prevSeries = sortedSeries[i - 1];
+            const currentSeries = sortedSeries[i];
+            const expectedMin = prevSeries.current_range.max + 0.01;
+            
+            // Only adjust if there's actually a gap or overlap
+            if (Math.abs(currentSeries.current_range.min - expectedMin) > 0.01) {
+                currentSeries.current_range.min = parseFloat(expectedMin.toFixed(2));
+                adjustmentsMade = true;
+                
+                // Update in main array
+                const mainIndex = seriesRanges.findIndex(s => s.series_name === currentSeries.series_name);
+                if (mainIndex !== -1) {
+                    seriesRanges[mainIndex].current_range.min = currentSeries.current_range.min;
+                }
+                
+                console.log(`📐 Adjusted ${currentSeries.series_name}: min set to ${currentSeries.current_range.min}`);
+            }
+        }
+        
+        if (adjustmentsMade) {
+            // Refresh UI to show adjustments
+            displaySeriesControls();
+            console.log('✅ Sequential order maintained');
+        } else {
+            console.log('✅ Sequential order was already correct');
+        }
+    }
 
     function updateSliderValue(seriesId, type, value) {
         const slider = document.getElementById(`${type}-pti-slider-${seriesId}`);
@@ -590,121 +668,39 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    async function resolveRangeConflicts(changedSeriesName, changedSeries) {
-        console.log('Making all ranges truly contiguous with NO overlaps...');
+    function showUpdateError(seriesName, errorMessage) {
+        const seriesId = seriesName.replace(/\s+/g, '-');
+        const seriesContainer = document.getElementById(`series-${seriesId}`);
         
-        // Show repositioning warning
-        showConflictWarning(changedSeriesName.replace(/\s+/g, '-'));
-        
-        // Sort series by their natural numeric order (Series 1, Series 2, etc.)
-        function getSeriesNumber(seriesName) {
-            const match = seriesName.match(/(\d+)/);
-            return match ? parseInt(match[1]) : 999;
-        }
-        
-        const sortedSeries = [...seriesRanges].sort((a, b) => {
-            return getSeriesNumber(a.series_name) - getSeriesNumber(b.series_name);
-        });
-        
-        console.log('Creating TRUE contiguous ranges in order:', sortedSeries.map(s => s.series_name));
-        
-        // Make series truly contiguous: each max = next min - 0.01
-        for (let i = 0; i < sortedSeries.length; i++) {
-            const series = sortedSeries[i];
-            const seriesId = series.series_name.replace(/\s+/g, '-');
+        if (seriesContainer) {
+            // Create or update error message
+            let errorDiv = document.getElementById(`error-${seriesId}`);
+            if (!errorDiv) {
+                errorDiv = document.createElement('div');
+                errorDiv.id = `error-${seriesId}`;
+                errorDiv.className = 'bg-red-50 border border-red-200 rounded-lg p-2 mt-2';
+                seriesContainer.appendChild(errorDiv);
+            }
             
-            if (i === 0) {
-                // First series: only adjust max if it would overlap with Series 2
-                if (sortedSeries.length > 1) {
-                    const nextSeries = sortedSeries[1];
-                    // If Series 1 max >= Series 2 min, fix the overlap
-                    if (series.current_range.max >= nextSeries.current_range.min) {
-                        // Make Series 1 end just before Series 2 starts
-                        series.current_range.max = nextSeries.current_range.min - 0.01;
-                        console.log(`${series.series_name}: adjusted max to avoid overlap: ${series.current_range.min} - ${series.current_range.max}`);
-                        
-                        // Update sliders and display
-                        updateSliderValue(seriesId, 'max', series.current_range.max);
-                        updateSeriesDisplay(seriesId, series);
-                        await updateSeriesRangeBackend(series.series_name, series.current_range);
-                    } else {
-                        console.log(`${series.series_name}: no overlap, keeping range ${series.current_range.min} - ${series.current_range.max}`);
-                    }
-                } else {
-                    console.log(`${series.series_name}: only series, keeping range ${series.current_range.min} - ${series.current_range.max}`);
+            errorDiv.innerHTML = `
+                <div class="flex items-center text-red-800">
+                    <i class="fas fa-exclamation-triangle mr-2"></i>
+                    <span class="text-xs">Update failed: ${errorMessage}</span>
+                </div>
+            `;
+            
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                if (errorDiv.parentNode) {
+                    errorDiv.parentNode.removeChild(errorDiv);
                 }
-            } else {
-                // All subsequent series: start exactly where previous series ends + 0.01
-                const previousSeries = sortedSeries[i - 1];
-                const newMin = previousSeries.current_range.max + 0.01;
-                
-                // Set new minimum
-                series.current_range.min = parseFloat(newMin.toFixed(2));
-                
-                // If there's a next series, make sure we don't overlap with it
-                if (i < sortedSeries.length - 1) {
-                    const nextSeries = sortedSeries[i + 1];
-                    // Make sure this series max doesn't overlap with next series min
-                    if (series.current_range.max >= nextSeries.current_range.min) {
-                        series.current_range.max = nextSeries.current_range.min - 0.01;
-                    }
-                }
-                // For last series, keep its current max
-                
-                // Apply the new contiguous range
-                series.current_range.min = parseFloat(series.current_range.min.toFixed(2));
-                series.current_range.max = parseFloat(series.current_range.max.toFixed(2));
-                
-                // Update sliders and display
-                updateSliderValue(seriesId, 'min', series.current_range.min);
-                updateSliderValue(seriesId, 'max', series.current_range.max);
-                updateSeriesDisplay(seriesId, series);
-                
-                // Update backend
-                await updateSeriesRangeBackend(series.series_name, series.current_range);
-                
-                console.log(`${series.series_name}: fixed to NO overlap: ${series.current_range.min} - ${series.current_range.max}`);
-            }
-        }
-        
-        // Final verification: check for any remaining overlaps
-        for (let i = 0; i < sortedSeries.length - 1; i++) {
-            const current = sortedSeries[i];
-            const next = sortedSeries[i + 1];
-            if (current.current_range.max >= next.current_range.min) {
-                console.error(`OVERLAP DETECTED: ${current.series_name} max ${current.current_range.max} >= ${next.series_name} min ${next.current_range.min}`);
-            } else {
-                console.log(`✅ NO overlap: ${current.series_name} (${current.current_range.max}) -> ${next.series_name} (${next.current_range.min})`);
-            }
-        }
-        
-        // Hide repositioning warning after adjustments
-        setTimeout(() => {
-            hideConflictWarning(changedSeriesName.replace(/\s+/g, '-'));
-        }, 1500);
-        
-        console.log('✅ All series are now TRULY contiguous with NO overlaps!');
-    }
-
-
-
-    function showConflictWarning(seriesId) {
-        const warningDiv = document.getElementById(`conflict-warning-${seriesId}`);
-        if (warningDiv) {
-            warningDiv.classList.remove('hidden');
-        }
-    }
-
-    function hideConflictWarning(seriesId) {
-        const warningDiv = document.getElementById(`conflict-warning-${seriesId}`);
-        if (warningDiv) {
-            warningDiv.classList.add('hidden');
+            }, 5000);
         }
     }
 
     async function updateSeriesRangeBackend(seriesName, newRange) {
         try {
-            console.log(`Updating ${seriesName} range in backend:`, newRange);
+            console.log(`📡 Sending ${seriesName} range to backend:`, newRange);
             
             const response = await fetch('/api/create-team/update-series-range', {
                 method: 'POST',
@@ -720,14 +716,31 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const data = await response.json();
             
-            if (!data.success) {
-                console.error('Failed to update series range:', data.error);
-            } else {
-                console.log(`Successfully updated ${seriesName} range in backend`);
+            if (!response.ok || !data.success) {
+                throw new Error(data.error || `HTTP ${response.status}`);
             }
+            
+            console.log(`✅ Backend confirmed update for ${seriesName}`);
+            return data;
+            
         } catch (error) {
-            console.error('Error updating series range:', error);
+            console.error(`❌ Backend update failed for ${seriesName}:`, error);
+            throw error;
         }
+    }
+
+    // Remove the old problematic functions
+    async function resolveRangeConflicts(changedSeriesName, changedSeries) {
+        // This function is now handled automatically
+        console.log('📝 Note: Range conflicts are now handled automatically');
+    }
+
+    function showConflictWarning(seriesId) {
+        // Not needed with new system
+    }
+
+    function hideConflictWarning(seriesId) {
+        // Not needed with new system  
     }
 
     // Initialize page with mobile-optimized functionality
@@ -800,48 +813,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Automatically fix overlaps without waiting for user interaction
-    async function fixAllOverlapsAutomatically() {
-        console.log('🔧 Automatically fixing any overlaps in loaded data...');
-        
-        // Sort series by their natural numeric order (Series 1, Series 2, etc.)
-        function getSeriesNumber(seriesName) {
-            const match = seriesName.match(/(\d+)/);
-            return match ? parseInt(match[1]) : 999;
-        }
-        
-        const sortedSeries = [...seriesRanges].sort((a, b) => {
-            return getSeriesNumber(a.series_name) - getSeriesNumber(b.series_name);
-        });
-        
-        let overlapsFixed = 0;
-        
-        // Check each pair of consecutive series for overlaps
-        for (let i = 0; i < sortedSeries.length - 1; i++) {
-            const current = sortedSeries[i];
-            const next = sortedSeries[i + 1];
-            
-            // If current max >= next min, there's an overlap
-            if (current.current_range.max >= next.current_range.min) {
-                console.log(`🚨 OVERLAP: ${current.series_name} (${current.current_range.max}) overlaps ${next.series_name} (${next.current_range.min})`);
-                
-                // Fix: Make current end just before next starts
-                current.current_range.max = next.current_range.min - 0.01;
-                overlapsFixed++;
-                
-                console.log(`✅ FIXED: ${current.series_name} now ends at ${current.current_range.max}`);
-                
-                // Update backend
-                await updateSeriesRangeBackend(current.series_name, current.current_range);
-            }
-        }
-        
-        if (overlapsFixed > 0) {
-            console.log(`🎉 Fixed ${overlapsFixed} overlaps automatically!`);
-        } else {
-            console.log('✅ No overlaps detected - ranges are already contiguous!');
-        }
-    }
+    // Legacy function removed - overlaps now handled automatically in real-time
 
     // Display players in the pool
     function displayPlayers() {
@@ -979,12 +951,11 @@ document.addEventListener('DOMContentLoaded', function() {
                                onchange="updateSeriesPTIRange('${series.series_name}', 'max', this.value)">
                     </div>
                     
-                                         <!-- Sequential Repositioning Warning -->
-                     <div id="conflict-warning-${series.series_name.replace(/\s+/g, '-')}" 
-                          class="hidden bg-blue-50 border border-blue-200 rounded-lg p-2">
-                         <div class="flex items-center text-blue-800">
-                             <i class="fas fa-arrows-alt-h mr-2"></i>
-                             <span class="text-xs font-medium">Repositioning all series to maintain sequential order...</span>
+                                         <!-- Real-time Status Indicator -->
+                     <div class="bg-green-50 border border-green-200 rounded-lg p-2">
+                         <div class="flex items-center text-green-800">
+                             <i class="fas fa-check-circle mr-2"></i>
+                             <span class="text-xs font-medium">Sequential order maintained automatically</span>
                          </div>
                      </div>
                     
