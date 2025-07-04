@@ -623,6 +623,14 @@
             }
         });
 
+        // Function to smoothly scroll to the top of the page
+        function scrollToTop() {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        }
+
         function showForm(formType) {
             document.querySelectorAll('.auth-tab').forEach(tab => {
                 tab.classList.remove('active');
@@ -683,11 +691,13 @@
                     authErrorMessage.textContent = data.error || 'Invalid email or password';
                     authErrorContainer.classList.add('active');
                     errorMessage.style.display = 'none';
+                    scrollToTop();
                 }
             } catch (error) {
                 authErrorMessage.textContent = 'An error occurred. Please try again.';
                 authErrorContainer.classList.add('active');
                 errorMessage.style.display = 'none';
+                scrollToTop();
             }
         });
 
@@ -712,6 +722,7 @@
             if (!validatePasswordMatch()) {
                 authErrorMessage.textContent = 'Passwords do not match. Please check your password entries.';
                 authErrorContainer.classList.add('active');
+                scrollToTop();
                 return;
             }
             
@@ -719,6 +730,7 @@
             if (password !== confirmPassword) {
                 authErrorMessage.textContent = 'Passwords do not match';
                 authErrorContainer.classList.add('active');
+                scrollToTop();
                 return;
             }
             
@@ -726,6 +738,7 @@
             if (!league) {
                 authErrorMessage.textContent = 'Please select a league';
                 authErrorContainer.classList.add('active');
+                scrollToTop();
                 return;
             }
             
@@ -785,11 +798,13 @@
                     authErrorMessage.textContent = data.error || 'Registration failed';
                     authErrorContainer.classList.add('active');
                     errorMessage.style.display = 'none';
+                    scrollToTop();
                 }
             } catch (error) {
                 authErrorMessage.textContent = 'An error occurred. Please try again.';
                 authErrorContainer.classList.add('active');
                 errorMessage.style.display = 'none';
+                scrollToTop();
             }
         });
     </script>
