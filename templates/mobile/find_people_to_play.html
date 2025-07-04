@@ -449,10 +449,8 @@ input[type="checkbox"]:checked {
 
 /* Player card styling for consistent grid layout */
 .player-card {
-    min-height: 200px;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
 }
 
 /* Better responsive grid */
@@ -800,49 +798,52 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         card.innerHTML = `
-            <div class="text-center">
-                <!-- Checkbox centered at top -->
-                <div class="flex justify-center mb-2">
-                    <input type="checkbox" id="player-${player.name.replace(/\s+/g, '-')}" 
-                           class="player-checkbox w-4 h-4 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500 focus:ring-2" 
-                           data-player-name="${player.name}" ${isSelected ? 'checked' : ''}>
+            <div class="flex gap-4">
+                <!-- Left Column: Player Info -->
+                <div class="flex-1 min-w-0">
+                    <!-- Checkbox aligned to the left -->
+                    <div class="flex justify-start mb-3">
+                        <input type="checkbox" id="player-${player.name.replace(/\s+/g, '-')}" 
+                               class="player-checkbox w-5 h-5 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500 focus:ring-2" 
+                               data-player-name="${player.name}" ${isSelected ? 'checked' : ''}>
+                    </div>
+                    
+                    <!-- Player Name -->
+                    <h3 class="font-bold text-base text-gray-900 mb-3 leading-tight">${player.name}</h3>
+                    
+                    <!-- PTI (most prominent) -->
+                    ${(player.pti !== null && player.pti !== undefined && player.pti !== 'N/A' && player.pti !== '' && !isNaN(parseFloat(player.pti))) ? `
+                        <div class="text-blue-600 font-bold text-xl mb-2">PTI: ${player.pti}</div>
+                    ` : ''}
+                    
+                    <!-- Club and Series -->
+                    <p class="text-sm text-gray-600 mb-1">${player.club || 'Unknown Club'}</p>
+                    <p class="text-sm text-gray-500 mb-3">${player.series ? player.series.replace(/^Chicago\s+(\d+.*)$/i, 'Series $1') : player.series}</p>
+                    
+                    <!-- Stats in bigger text -->
+                    <div class="text-sm space-y-1">
+                        <div>
+                            <span class="text-gray-600">Record:</span> 
+                            <span class="text-gray-900 font-medium">${player.wins}W-${player.losses}L</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-600">Win Rate:</span> 
+                            <span class="font-medium ${winRateColor}">${player.winRate}</span>
+                        </div>
+                    </div>
                 </div>
                 
-                <!-- Player Name -->
-                <h3 class="font-bold text-sm text-gray-900 mb-2 leading-tight">${player.name}</h3>
-                
-                <!-- PTI (most prominent) -->
-                ${(player.pti !== null && player.pti !== undefined && player.pti !== 'N/A' && player.pti !== '' && !isNaN(parseFloat(player.pti))) ? `
-                    <div class="text-blue-600 font-bold text-lg mb-1">PTI: ${player.pti}</div>
-                ` : ''}
-                
-                <!-- Club and Series -->
-                <p class="text-xs text-gray-600 mb-1">${player.club || 'Unknown Club'}</p>
-                <p class="text-xs text-gray-500 mb-2">${player.series ? player.series.replace(/^Chicago\s+(\d+.*)$/i, 'Series $1') : player.series}</p>
-                
-                <!-- Stats in smaller text -->
-                <div class="text-xs space-y-1">
-                    <div>
-                        <span class="text-gray-600">Record:</span> 
-                        <span class="text-gray-900 font-medium">${player.wins}W-${player.losses}L</span>
-                    </div>
-                    <div>
-                        <span class="text-gray-600">Win Rate:</span> 
-                        <span class="font-medium ${winRateColor}">${player.winRate}</span>
-                    </div>
-                </div>
-                
-                <!-- Action Buttons (smaller and stacked) -->
-                <div class="mt-3 space-y-1">
+                <!-- Right Column: Action Buttons -->
+                <div class="flex flex-col justify-center space-y-3 w-40">
                     <button class="contact-btn w-full" 
                             onclick="handleContactClick('${player.name}')"
                             style="
                                 background-color: #16a34a !important; 
                                 color: white !important; 
-                                padding: 4px 8px !important; 
-                                border-radius: 4px !important; 
-                                font-size: 11px !important; 
-                                font-weight: 500 !important; 
+                                padding: 12px 8px !important; 
+                                border-radius: 8px !important; 
+                                font-size: 12px !important; 
+                                font-weight: 600 !important; 
                                 border: none !important; 
                                 cursor: pointer !important;
                                 display: block !important;
@@ -855,10 +856,10 @@ document.addEventListener('DOMContentLoaded', function() {
                             style="
                                 background-color: #3b82f6 !important; 
                                 color: white !important; 
-                                padding: 4px 8px !important; 
-                                border-radius: 4px !important; 
-                                font-size: 11px !important; 
-                                font-weight: 500 !important; 
+                                padding: 12px 8px !important; 
+                                border-radius: 8px !important; 
+                                font-size: 12px !important; 
+                                font-weight: 600 !important; 
                                 border: none !important; 
                                 cursor: pointer !important;
                                 display: block !important;

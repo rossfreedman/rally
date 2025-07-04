@@ -224,70 +224,149 @@ def get_series_stats_data():
 
         # If no team requested, get series standings for the user's series
         user = session.get("user")
-        if not user or not user.get("series"):
-            return jsonify({"error": "User series not found"}), 400
-
-        user_series = user["series"]
+        
+        # ENHANCED: Use series_id for direct lookups, with fallback to name matching
+        user_series_id = user.get("series_id")
         user_league_id = user.get("league_id")
+        
+        print(f"[DEBUG] Getting series stats for user series_id: {user_series_id}, league: {user_league_id}")
+        
+        # Strategy 1: Use series_id for direct lookup if available
+        db_results = []
+        if user_series_id:
+            print(f"[DEBUG] Attempting direct series_id lookup: {user_series_id}")
+            
+            if user_league_id:
+                series_stats_query = """
+                    SELECT 
+                        s.series,
+                        s.team,
+                        s.points,
+                        s.matches_won,
+                        s.matches_lost,
+                        s.matches_tied,
+                        s.lines_won,
+                        s.lines_lost,
+                        s.lines_for,
+                        s.lines_ret,
+                        s.sets_won,
+                        s.sets_lost,
+                        s.games_won,
+                        s.games_lost,
+                        l.league_id,
+                        t.display_name
+                    FROM series_stats s
+                    LEFT JOIN leagues l ON s.league_id = l.id
+                    LEFT JOIN teams t ON s.team = t.team_name AND s.league_id = t.league_id
+                    WHERE s.series_id = %s AND s.league_id = %s
+                    ORDER BY s.points DESC, s.team ASC
+                """
+                db_results = execute_query(series_stats_query, [user_series_id, user_league_id])
+            else:
+                series_stats_query = """
+                    SELECT 
+                        s.series,
+                        s.team,
+                        s.points,
+                        s.matches_won,
+                        s.matches_lost,
+                        s.matches_tied,
+                        s.lines_won,
+                        s.lines_lost,
+                        s.lines_for,
+                        s.lines_ret,
+                        s.sets_won,
+                        s.sets_lost,
+                        s.games_won,
+                        s.games_lost,
+                        t.display_name
+                    FROM series_stats s
+                    LEFT JOIN teams t ON s.team = t.team_name
+                    WHERE s.series_id = %s
+                    ORDER BY s.points DESC, s.team ASC
+                """
+                db_results = execute_query(series_stats_query, [user_series_id])
+            
+            print(f"[DEBUG] Direct series_id lookup found {len(db_results)} teams")
+        
+        # Strategy 2: Fallback to series name matching if series_id lookup failed
+        if not db_results:
+            print(f"[DEBUG] Falling back to series name matching")
+            
+            # Resolve the actual series name from the series_id
+            resolved_series_name = None
+            if user_series_id:
+                series_lookup_query = "SELECT name FROM series WHERE id = %s"
+                series_record = execute_query_one(series_lookup_query, [user_series_id])
+                if series_record:
+                    resolved_series_name = series_record["name"]
+                    print(f"[DEBUG] Resolved series_id {user_series_id} -> '{resolved_series_name}'")
+                else:
+                    print(f"[DEBUG] No series found for series_id {user_series_id}")
+            
+            # Fallback to series name from session if series_id resolution fails
+            if not resolved_series_name:
+                resolved_series_name = user.get("series")
+                print(f"[DEBUG] Using session series name: '{resolved_series_name}'")
+            
+            if not resolved_series_name:
+                return jsonify({"error": "User series not found"}), 400
 
-        print(
-            f"[DEBUG] Getting series stats for user series: {user_series}, league: {user_league_id}"
-        )
+            # Query series stats using series name
+            if user_league_id:
+                series_stats_query = """
+                    SELECT 
+                        s.series,
+                        s.team,
+                        s.points,
+                        s.matches_won,
+                        s.matches_lost,
+                        s.matches_tied,
+                        s.lines_won,
+                        s.lines_lost,
+                        s.lines_for,
+                        s.lines_ret,
+                        s.sets_won,
+                        s.sets_lost,
+                        s.games_won,
+                        s.games_lost,
+                        l.league_id,
+                        t.display_name
+                    FROM series_stats s
+                    LEFT JOIN leagues l ON s.league_id = l.id
+                    LEFT JOIN teams t ON s.team = t.team_name AND s.league_id = t.league_id
+                    WHERE s.series = %s AND s.league_id = %s
+                    ORDER BY s.points DESC, s.team ASC
+                """
+                db_results = execute_query(series_stats_query, [resolved_series_name, user_league_id])
+            else:
+                series_stats_query = """
+                    SELECT 
+                        s.series,
+                        s.team,
+                        s.points,
+                        s.matches_won,
+                        s.matches_lost,
+                        s.matches_tied,
+                        s.lines_won,
+                        s.lines_lost,
+                        s.lines_for,
+                        s.lines_ret,
+                        s.sets_won,
+                        s.sets_lost,
+                        s.games_won,
+                        s.games_lost,
+                        t.display_name
+                    FROM series_stats s
+                    LEFT JOIN teams t ON s.team = t.team_name
+                    WHERE s.series = %s
+                    ORDER BY s.points DESC, s.team ASC
+                """
+                db_results = execute_query(series_stats_query, [resolved_series_name])
+            
+            print(f"[DEBUG] Series name fallback found {len(db_results)} teams")
 
-        # Query series stats from database using the unmapped series name
-        if user_league_id:
-            series_stats_query = """
-                SELECT 
-                    s.series,
-                    s.team,
-                    s.points,
-                    s.matches_won,
-                    s.matches_lost,
-                    s.matches_tied,
-                    s.lines_won,
-                    s.lines_lost,
-                    s.lines_for,
-                    s.lines_ret,
-                    s.sets_won,
-                    s.sets_lost,
-                    s.games_won,
-                    s.games_lost,
-                    l.league_id,
-                    t.display_name
-                FROM series_stats s
-                LEFT JOIN leagues l ON s.league_id = l.id
-                LEFT JOIN teams t ON s.team = t.team_name AND s.league_id = t.league_id
-                WHERE s.series = %s AND s.league_id = %s
-                ORDER BY s.points DESC, s.team ASC
-            """
-            db_results = execute_query(series_stats_query, [user_series, user_league_id])
-        else:
-            # Fallback without league filtering
-            series_stats_query = """
-                SELECT 
-                    s.series,
-                    s.team,
-                    s.points,
-                    s.matches_won,
-                    s.matches_lost,
-                    s.matches_tied,
-                    s.lines_won,
-                    s.lines_lost,
-                    s.lines_for,
-                    s.lines_ret,
-                    s.sets_won,
-                    s.sets_lost,
-                    s.games_won,
-                    s.games_lost,
-                    t.display_name
-                FROM series_stats s
-                LEFT JOIN teams t ON s.team = t.team_name
-                WHERE s.series = %s
-                ORDER BY s.points DESC, s.team ASC
-            """
-            db_results = execute_query(series_stats_query, [user_series])
-
-        print(f"[DEBUG] Found {len(db_results)} teams in series '{user_series}'")
+        print(f"[DEBUG] Total teams found: {len(db_results)}")
 
         # Transform database results to match the expected frontend format
         teams = []

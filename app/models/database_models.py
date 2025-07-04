@@ -261,6 +261,7 @@ class Series(Base):
         "League", secondary="series_leagues", back_populates="series"
     )
     teams = relationship("Team", back_populates="series")
+    series_stats = relationship("SeriesStats", back_populates="series_obj")
 
     def __repr__(self):
         return f"<Series(id={self.id}, name='{self.name}')>"
@@ -663,6 +664,7 @@ class SeriesStats(Base):
     league_id = Column(Integer, ForeignKey("leagues.id"))
     series = Column(String(255))  # Keep for backward compatibility
     team = Column(String(255))  # Keep for backward compatibility
+    series_id = Column(Integer, ForeignKey("series.id"))  # New series foreign key
     team_id = Column(Integer, ForeignKey("teams.id"))  # New team foreign key
     points = Column(Integer)
     matches_won = Column(Integer)
@@ -680,6 +682,7 @@ class SeriesStats(Base):
 
     # Relationships
     league = relationship("League")
+    series_obj = relationship("Series", back_populates="series_stats")
     team_obj = relationship("Team", back_populates="series_stats")
 
 

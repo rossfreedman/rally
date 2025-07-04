@@ -1691,12 +1691,14 @@ def convert_series_to_mapping_id(series_name, club_name, league_id=None):
 @api_bp.route("/api/update-settings", methods=["POST"])
 @login_required
 def update_settings():
-    """Update user settings using simplified session management"""
+    """Update user settings with intelligent player lookup"""
+    import logging
+    logger = logging.getLogger(__name__)
+    
     try:
         from app.services.session_service import switch_user_league, get_session_data_for_user
-        import logging
-
-        logger = logging.getLogger(__name__)
+        from utils.database_player_lookup import find_player_by_database_lookup
+        from app.models.database_models import User, Player, UserPlayerAssociation, SessionLocal
         data = request.get_json()
         user_email = session["user"]["email"]
 
@@ -1706,7 +1708,35 @@ def update_settings():
 
         logger.info(f"Settings update for {user_email}: {data}")
 
-        # Update basic user data
+        # Get current user data for comparison
+        current_user_data = session["user"]
+        current_tenniscores_player_id = current_user_data.get("tenniscores_player_id")
+        current_league_id = current_user_data.get("league_id")
+        current_club = current_user_data.get("club")
+        current_series = current_user_data.get("series")
+
+        # Check if settings have changed
+        new_league_id = data.get("league_id")
+        new_club = data.get("club")
+        new_series = data.get("series")
+        
+        settings_changed = (
+            new_league_id != current_league_id or
+            new_club != current_club or
+            new_series != current_series
+        )
+
+        # Determine if we should perform player lookup
+        should_perform_player_lookup = (
+            not current_tenniscores_player_id or  # User doesn't have player ID
+            settings_changed  # Settings have changed
+        )
+
+        logger.info(f"Player lookup decision: should_perform={should_perform_player_lookup}, "
+                   f"has_player_id={bool(current_tenniscores_player_id)}, "
+                   f"settings_changed={settings_changed}")
+
+        # Update basic user data first
         execute_query("""
             UPDATE users 
             SET first_name = %s, last_name = %s, email = %s,
@@ -1722,9 +1752,6 @@ def update_settings():
         ])
 
         # Handle league switching if league changed
-        new_league_id = data.get("league_id")
-        current_league_id = session["user"].get("league_id")
-        
         if new_league_id and new_league_id != current_league_id:
             logger.info(f"League change requested: {current_league_id} -> {new_league_id}")
             
@@ -1737,8 +1764,83 @@ def update_settings():
                     "message": f"Could not switch to {new_league_id}. You may not have a player record in that league."
                 }), 400
 
+        # Perform player lookup if needed
+        player_lookup_success = False
+        if should_perform_player_lookup and new_league_id and new_club and new_series:
+            logger.info(f"Performing player lookup for {data.get('firstName')} {data.get('lastName')}")
+            
+            try:
+                # Use database-only lookup
+                lookup_result = find_player_by_database_lookup(
+                    first_name=data.get("firstName"),
+                    last_name=data.get("lastName"),
+                    club_name=new_club,
+                    series_name=new_series,
+                    league_id=new_league_id
+                )
+
+                # Extract player ID from the enhanced result
+                found_player_id = None
+                if lookup_result and lookup_result.get("player"):
+                    found_player_id = lookup_result["player"]["tenniscores_player_id"]
+                    logger.info(f"Player lookup result: {lookup_result['match_type']} - {lookup_result['message']}")
+
+                if found_player_id:
+                    # Create user-player association
+                    db_session = SessionLocal()
+                    try:
+                        # Get user and player records
+                        user_record = db_session.query(User).filter(User.email == user_email).first()
+                        player_record = db_session.query(Player).filter(
+                            Player.tenniscores_player_id == found_player_id,
+                            Player.is_active == True
+                        ).first()
+
+                        if user_record and player_record:
+                            # Check if association already exists
+                            existing = db_session.query(UserPlayerAssociation).filter(
+                                UserPlayerAssociation.user_id == user_record.id,
+                                UserPlayerAssociation.tenniscores_player_id == player_record.tenniscores_player_id
+                            ).first()
+
+                            if not existing:
+                                # Create new association
+                                association = UserPlayerAssociation(
+                                    user_id=user_record.id,
+                                    tenniscores_player_id=player_record.tenniscores_player_id
+                                )
+                                db_session.add(association)
+                                
+                                # Update user's league context
+                                user_record.league_context = player_record.league_id
+
+                                # Ensure player has team assignment
+                                from app.services.auth_service_refactored import assign_player_to_team
+                                team_assigned = assign_player_to_team(player_record, db_session)
+                                if team_assigned:
+                                    logger.info(f"Team assignment successful for {player_record.full_name}")
+
+                                db_session.commit()
+                                logger.info(f"Created player association for {found_player_id}")
+                                player_lookup_success = True
+                            else:
+                                logger.info(f"Association already exists for player ID {found_player_id}")
+                                player_lookup_success = True
+                        else:
+                            logger.error("Could not find user or player record for association")
+
+                    except Exception as assoc_error:
+                        db_session.rollback()
+                        logger.error(f"Association error: {str(assoc_error)}")
+                    finally:
+                        db_session.close()
+                else:
+                    logger.info(f"No player match found for {data.get('firstName')} {data.get('lastName')}")
+
+            except Exception as lookup_error:
+                logger.error(f"Player lookup error: {str(lookup_error)}")
+
         # Handle series update with reverse mapping
-        new_series = data.get("series")
         if new_series:
             logger.info(f"Series update requested: {new_series}")
             
@@ -1795,20 +1897,29 @@ def update_settings():
             else:
                 logger.warning(f"Series '{database_series_name}' not found in database")
 
-        # Rebuild session from database (this gets the updated league_context)
+        # Rebuild session from database (this gets the updated league_context and player association)
         fresh_session_data = get_session_data_for_user(user_email)
         if fresh_session_data:
             session["user"] = fresh_session_data
             session.modified = True
-            logger.info(f"Session updated: {fresh_session_data['league_name']} - {fresh_session_data['club']}")
+            logger.info(f"Session updated: {fresh_session_data.get('league_name', 'Unknown')} - {fresh_session_data.get('club', 'Unknown')}")
+            
+            # Add player lookup status to response
+            success_message = "Settings updated successfully"
+            if player_lookup_success:
+                success_message += f" and player ID found: {fresh_session_data.get('tenniscores_player_id', 'Unknown')}"
+            elif should_perform_player_lookup:
+                success_message += " (Note: Player lookup attempted but no match found)"
+            
+            return jsonify({
+                "success": True, 
+                "message": success_message,
+                "user": fresh_session_data,
+                "player_lookup_performed": should_perform_player_lookup,
+                "player_lookup_success": player_lookup_success
+            })
         else:
             return jsonify({"success": False, "message": "Failed to update session"}), 500
-
-        return jsonify({
-            "success": True, 
-            "message": "Settings updated successfully",
-            "user": fresh_session_data
-        })
 
     except Exception as e:
         logger.error(f"Error updating settings: {str(e)}")
