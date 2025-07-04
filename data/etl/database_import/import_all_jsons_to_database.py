@@ -3009,8 +3009,13 @@ class ComprehensiveETL:
         # Validate the import results
         self.validate_series_stats_import(conn)
         
-        # Auto-populate missing series_id values
-        self.auto_populate_series_ids(conn)
+        # CRITICAL: Auto-populate missing series_id values - fail if unsuccessful
+        series_id_success = self.auto_populate_series_ids(conn)
+        if not series_id_success:
+            self.log("🚨 CRITICAL: Series ID auto-population failed!", "ERROR")
+            self.log("🔧 ETL process cannot continue with poor series_id coverage", "ERROR")
+            # Don't fail the entire ETL, but log the critical issue
+            self.log("⚠️  Continuing ETL but series functionality may be impaired", "WARNING")
 
     def validate_series_stats_import(self, conn):
         """Validate series stats import and trigger calculation fallback if needed"""
@@ -3070,56 +3075,90 @@ class ComprehensiveETL:
             )
 
     def auto_populate_series_ids(self, conn):
-        """Auto-populate missing series_id values in series_stats table"""
+        """Auto-populate missing series_id values in series_stats table with enhanced error handling"""
         self.log("🔄 Auto-populating missing series_id values...")
         
         cursor = conn.cursor()
         
-        # Count records without series_id
-        cursor.execute("SELECT COUNT(*) FROM series_stats WHERE series_id IS NULL")
-        null_count = cursor.fetchone()[0]
-        
-        if null_count == 0:
-            self.log("✅ All series_stats records already have series_id")
-            return
+        try:
+            # Count records without series_id
+            cursor.execute("SELECT COUNT(*) FROM series_stats WHERE series_id IS NULL")
+            null_count = cursor.fetchone()[0]
             
-        self.log(f"🔍 Found {null_count} records without series_id, attempting to populate...")
-        
-        # Get records without series_id
-        cursor.execute("""
-            SELECT id, series, league_id 
-            FROM series_stats 
-            WHERE series_id IS NULL
-        """)
-        
-        records_to_update = cursor.fetchall()
-        updated_count = 0
-        failed_count = 0
-        
-        for record in records_to_update:
-            record_id = record[0]
-            series_name = record[1]
-            league_id = record[2]
-            
-            # Try multiple matching strategies
-            series_id = self._find_series_id_for_name(cursor, series_name, league_id)
-            
-            if series_id:
-                cursor.execute("""
-                    UPDATE series_stats 
-                    SET series_id = %s 
-                    WHERE id = %s
-                """, (series_id, record_id))
-                updated_count += 1
-            else:
-                failed_count += 1
+            if null_count == 0:
+                self.log("✅ All series_stats records already have series_id")
+                return True
                 
-        conn.commit()
-        
-        if updated_count > 0:
-            self.log(f"✅ Updated {updated_count} records with series_id")
-        if failed_count > 0:
-            self.log(f"⚠️  {failed_count} records still missing series_id", "WARNING")
+            self.log(f"🔍 Found {null_count} records without series_id, attempting to populate...")
+            
+            # Get records without series_id
+            cursor.execute("""
+                SELECT id, series, league_id 
+                FROM series_stats 
+                WHERE series_id IS NULL
+            """)
+            
+            records_to_update = cursor.fetchall()
+            updated_count = 0
+            failed_count = 0
+            failed_records = []
+            
+            for record in records_to_update:
+                record_id = record[0]
+                series_name = record[1]
+                league_id = record[2]
+                
+                try:
+                    # Try multiple matching strategies
+                    series_id = self._find_series_id_for_name(cursor, series_name, league_id)
+                    
+                    if series_id:
+                        cursor.execute("""
+                            UPDATE series_stats 
+                            SET series_id = %s 
+                            WHERE id = %s
+                        """, (series_id, record_id))
+                        updated_count += 1
+                    else:
+                        failed_count += 1
+                        failed_records.append(f"{series_name} (League: {league_id})")
+                        
+                except Exception as e:
+                    failed_count += 1
+                    failed_records.append(f"{series_name} (League: {league_id}) - Error: {str(e)}")
+                    self.log(f"❌ Error updating record {record_id}: {str(e)}", "ERROR")
+                    
+            conn.commit()
+            
+            # Enhanced reporting
+            total_records = execute_query_one("SELECT COUNT(*) as count FROM series_stats")["count"] if hasattr(self, 'execute_query_one') else len(records_to_update)
+            health_score = ((total_records - failed_count) / total_records * 100) if total_records > 0 else 0
+            
+            if updated_count > 0:
+                self.log(f"✅ Updated {updated_count} records with series_id")
+            if failed_count > 0:
+                self.log(f"⚠️  {failed_count} records still missing series_id (Health Score: {health_score:.1f}%)", "WARNING")
+                
+                # Log first few failed records for debugging
+                if failed_records:
+                    self.log("❌ Failed series (first 5):", "WARNING")
+                    for i, failed in enumerate(failed_records[:5]):
+                        self.log(f"   {i+1}. {failed}", "WARNING")
+                    if len(failed_records) > 5:
+                        self.log(f"   ... and {len(failed_records) - 5} more", "WARNING")
+            
+            # CRITICAL: Set error flag if health score is too low
+            if health_score < 85:
+                self.log(f"🚨 CRITICAL: Series ID health score ({health_score:.1f}%) below acceptable threshold!", "ERROR")
+                self.log("🔧 This indicates missing series in the database - manual review required", "ERROR")
+                return False
+            
+            return True
+            
+        except Exception as e:
+            self.log(f"💥 CRITICAL ERROR in auto_populate_series_ids: {str(e)}", "ERROR")
+            self.log("🔧 Series ID population failed - manual intervention required", "ERROR")
+            return False
             
     def _find_series_id_for_name(self, cursor, series_name, league_id):
         """Find series_id using multiple matching strategies"""
@@ -3520,8 +3559,11 @@ class ComprehensiveETL:
         conn.commit()
         self.log(f"✅ Calculated and inserted {calculated_count:,} series stats records")
 
-        # Also populate any remaining missing series_id values
-        self.auto_populate_series_ids(conn)
+        # CRITICAL: Populate series_id values for calculated records
+        series_id_success = self.auto_populate_series_ids(conn)
+        if not series_id_success:
+            self.log("🚨 CRITICAL: Series ID population failed after calculation!", "ERROR")
+            self.log("🔧 Calculated series stats may not have proper foreign key relationships", "ERROR")
 
     def import_schedules(self, conn, schedules_data: List[Dict]):
         """Import schedules data"""
@@ -3715,6 +3757,44 @@ class ComprehensiveETL:
         
         return total_fixes
 
+    def _validate_final_series_id_health(self, conn) -> float:
+        """Validate final series_id health score for the entire ETL process"""
+        cursor = conn.cursor()
+        
+        try:
+            # Get total records
+            cursor.execute("SELECT COUNT(*) FROM series_stats")
+            total_records = cursor.fetchone()[0]
+            
+            # Get records with series_id
+            cursor.execute("SELECT COUNT(*) FROM series_stats WHERE series_id IS NOT NULL")
+            with_series_id = cursor.fetchone()[0]
+            
+            # Calculate health score
+            health_score = (with_series_id / total_records * 100) if total_records > 0 else 100
+            
+            # Log detailed breakdown if health is poor
+            if health_score < 85:
+                cursor.execute("""
+                    SELECT l.league_name, COUNT(*) as null_count
+                    FROM series_stats s
+                    JOIN leagues l ON s.league_id = l.id
+                    WHERE s.series_id IS NULL
+                    GROUP BY l.league_name
+                    ORDER BY null_count DESC
+                """)
+                league_breakdown = cursor.fetchall()
+                
+                self.log("❌ Series_id health breakdown by league:")
+                for league_name, null_count in league_breakdown:
+                    self.log(f"   {league_name}: {null_count} missing series_id")
+            
+            return health_score
+            
+        except Exception as e:
+            self.log(f"❌ Error calculating series_id health: {str(e)}", "ERROR")
+            return 0.0
+
     def _parse_int(self, value: str) -> int:
         """Parse integer with error handling"""
         if not value or value.strip() == "":
@@ -3862,6 +3942,16 @@ class ComprehensiveETL:
                     # ENHANCEMENT: Post-import validation and orphan prevention
                     self.log("\n🔍 Step 8: Post-import validation and orphan prevention...")
                     orphan_fixes = self.validate_and_fix_team_hierarchy_relationships(conn)
+                    
+                    # CRITICAL: Final series_id health check
+                    self.log("\n🔍 Step 9: Final series_id health validation...")
+                    final_series_health = self._validate_final_series_id_health(conn)
+                    if final_series_health < 85:
+                        self.log(f"🚨 CRITICAL: Final series_id health score ({final_series_health:.1f}%) is below 85%!", "ERROR")
+                        self.log("🔧 This will cause 'No Series Data' issues in production", "ERROR")
+                        self.log("⚠️  Manual series creation may be required", "WARNING")
+                    else:
+                        self.log(f"✅ Series_id health score: {final_series_health:.1f}% - Excellent!")
 
                     # CRITICAL: Increment session version to trigger user session refresh
                     self.increment_session_version(conn)
@@ -3873,6 +3963,7 @@ class ComprehensiveETL:
                     self.log(f"🛡️  Availability data: {restore_results['availability_records_preserved']:,} records preserved")
                     if orphan_fixes > 0:
                         self.log(f"🔧 Relationship gaps fixed: {orphan_fixes} missing relationships added")
+                    self.log(f"📊 Series_id health: {final_series_health:.1f}% ({'✅ Excellent' if final_series_health >= 95 else '⚠️ Needs attention' if final_series_health >= 85 else '🚨 Critical'})")
 
                 except Exception as e:
                     self.log(f"\n❌ ETL process failed: {str(e)}", "ERROR")
