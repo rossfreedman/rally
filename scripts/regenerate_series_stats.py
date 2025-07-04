@@ -219,16 +219,25 @@ def update_series_stats_table(team_stats, team_series_map):
         team_row = execute_query_one(team_id_query, [team_name, series_name, league_id])
         team_id = team_row["id"] if team_row else None
 
+        # Get series_id from series table
+        series_id_query = """
+            SELECT s.id FROM series s
+            JOIN series_leagues sl ON s.id = sl.series_id
+            WHERE s.name = %s AND sl.league_id = %s
+        """
+        series_row = execute_query_one(series_id_query, [series_name, league_id])
+        series_id = series_row["id"] if series_row else None
+
         # Insert new record
         insert_query = """
             INSERT INTO series_stats (
-                series, team, team_id, points, 
+                series, team, series_id, team_id, points, 
                 matches_won, matches_lost, matches_tied,
                 lines_won, lines_lost, lines_for, lines_ret,
                 sets_won, sets_lost, games_won, games_lost,
                 league_id, created_at
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
         """
 
         execute_query(
@@ -236,6 +245,7 @@ def update_series_stats_table(team_stats, team_series_map):
             [
                 series_name,
                 team_name,
+                series_id,
                 team_id,
                 stats["points"],
                 stats["matches_won"],

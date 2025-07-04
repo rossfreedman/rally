@@ -2888,33 +2888,50 @@ class ComprehensiveETL:
 
                 league_db_id = league_row[0]
 
-                # Get team_id from teams table
+                # Get series_id and team_id from database
                 cursor.execute(
                     """
-                    SELECT t.id FROM teams t
-                    JOIN leagues l ON t.league_id = l.id
-                    JOIN series s ON t.series_id = s.id
-                    WHERE l.league_id = %s AND s.name = %s AND t.team_name = %s
+                    SELECT s.id as series_id, t.id as team_id 
+                    FROM series s
+                    JOIN series_leagues sl ON s.id = sl.series_id
+                    LEFT JOIN teams t ON s.id = t.series_id AND t.team_name = %s AND t.league_id = %s
+                    WHERE s.name = %s AND sl.league_id = %s
                 """,
-                    (league_id, series, team),
+                    (team, league_db_id, series, league_db_id),
                 )
 
-                team_row = cursor.fetchone()
-                team_db_id = team_row[0] if team_row else None
+                lookup_row = cursor.fetchone()
+                if lookup_row:
+                    series_db_id = lookup_row[0]  # series_id is first column
+                    team_db_id = lookup_row[1]   # team_id is second column (may be None)
+                else:
+                    # Fallback: try to get just series_id without team matching
+                    cursor.execute(
+                        """
+                        SELECT s.id FROM series s
+                        JOIN series_leagues sl ON s.id = sl.series_id
+                        WHERE s.name = %s AND sl.league_id = %s
+                    """,
+                        (series, league_db_id),
+                    )
+                    series_row = cursor.fetchone()
+                    series_db_id = series_row[0] if series_row else None
+                    team_db_id = None
 
                 cursor.execute(
                     """
                     INSERT INTO series_stats (
-                        series, team, team_id, points, matches_won, matches_lost, matches_tied,
+                        series, team, series_id, team_id, points, matches_won, matches_lost, matches_tied,
                         lines_won, lines_lost, lines_for, lines_ret,
                         sets_won, sets_lost, games_won, games_lost,
                         league_id, created_at
                     )
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
                 """,
                     (
                         series,
                         team,
+                        series_db_id,
                         team_db_id,
                         points,
                         matches_won,
@@ -2991,6 +3008,9 @@ class ComprehensiveETL:
 
         # Validate the import results
         self.validate_series_stats_import(conn)
+        
+        # Auto-populate missing series_id values
+        self.auto_populate_series_ids(conn)
 
     def validate_series_stats_import(self, conn):
         """Validate series stats import and trigger calculation fallback if needed"""
@@ -3048,6 +3068,114 @@ class ComprehensiveETL:
             self.log(
                 f"✅ Series stats validation passed ({coverage_percentage:.1f}% coverage)"
             )
+
+    def auto_populate_series_ids(self, conn):
+        """Auto-populate missing series_id values in series_stats table"""
+        self.log("🔄 Auto-populating missing series_id values...")
+        
+        cursor = conn.cursor()
+        
+        # Count records without series_id
+        cursor.execute("SELECT COUNT(*) FROM series_stats WHERE series_id IS NULL")
+        null_count = cursor.fetchone()[0]
+        
+        if null_count == 0:
+            self.log("✅ All series_stats records already have series_id")
+            return
+            
+        self.log(f"🔍 Found {null_count} records without series_id, attempting to populate...")
+        
+        # Get records without series_id
+        cursor.execute("""
+            SELECT id, series, league_id 
+            FROM series_stats 
+            WHERE series_id IS NULL
+        """)
+        
+        records_to_update = cursor.fetchall()
+        updated_count = 0
+        failed_count = 0
+        
+        for record in records_to_update:
+            record_id = record[0]
+            series_name = record[1]
+            league_id = record[2]
+            
+            # Try multiple matching strategies
+            series_id = self._find_series_id_for_name(cursor, series_name, league_id)
+            
+            if series_id:
+                cursor.execute("""
+                    UPDATE series_stats 
+                    SET series_id = %s 
+                    WHERE id = %s
+                """, (series_id, record_id))
+                updated_count += 1
+            else:
+                failed_count += 1
+                
+        conn.commit()
+        
+        if updated_count > 0:
+            self.log(f"✅ Updated {updated_count} records with series_id")
+        if failed_count > 0:
+            self.log(f"⚠️  {failed_count} records still missing series_id", "WARNING")
+            
+    def _find_series_id_for_name(self, cursor, series_name, league_id):
+        """Find series_id using multiple matching strategies"""
+        if not series_name:
+            return None
+            
+        # Strategy 1: Exact match
+        cursor.execute("""
+            SELECT s.id FROM series s
+            JOIN series_leagues sl ON s.id = sl.series_id
+            WHERE s.name = %s AND sl.league_id = %s
+        """, (series_name, league_id))
+        
+        result = cursor.fetchone()
+        if result:
+            return result[0]
+            
+        # Strategy 2: Case-insensitive match
+        cursor.execute("""
+            SELECT s.id FROM series s
+            JOIN series_leagues sl ON s.id = sl.series_id
+            WHERE LOWER(s.name) = LOWER(%s) AND sl.league_id = %s
+        """, (series_name, league_id))
+        
+        result = cursor.fetchone()
+        if result:
+            return result[0]
+            
+        # Strategy 3: Format conversion (Series X -> Chicago X)
+        if series_name.startswith("Series "):
+            converted_name = series_name.replace("Series ", "Chicago ", 1)
+            cursor.execute("""
+                SELECT s.id FROM series s
+                JOIN series_leagues sl ON s.id = sl.series_id
+                WHERE s.name = %s AND sl.league_id = %s
+            """, (converted_name, league_id))
+            
+            result = cursor.fetchone()
+            if result:
+                return result[0]
+                
+        # Strategy 4: Division format (Division X -> SX)
+        if series_name.startswith("Division "):
+            number = series_name.replace("Division ", "")
+            sx_format = f"S{number}"
+            cursor.execute("""
+                SELECT s.id FROM series s
+                JOIN series_leagues sl ON s.id = sl.series_id
+                WHERE s.name = %s AND sl.league_id = %s
+            """, (sx_format, league_id))
+            
+            result = cursor.fetchone()
+            if result:
+                return result[0]
+                
+        return None
 
     def recalculate_missing_team_points(self, conn):
         """Recalculate points only for teams that have zero points (missing data)"""
@@ -3346,45 +3474,54 @@ class ComprehensiveETL:
         calculated_count = 0
         for team_name, stats in team_stats.items():
             try:
+                # Get series_id for the calculated series
+                series_db_id = self._find_series_id_for_name(cursor, stats["series"], stats["league_id"])
+                
                 cursor.execute(
                     """
                     INSERT INTO series_stats (
-                        series, team, league_id, points,
+                        series, team, series_id, team_id, points, 
                         matches_won, matches_lost, matches_tied,
-                        lines_won, lines_lost,
-                        sets_won, sets_lost,
-                        games_won, games_lost,
-                        created_at
+                        lines_won, lines_lost, lines_for, lines_ret,
+                        sets_won, sets_lost, games_won, games_lost,
+                        league_id, created_at
                     )
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
                 """,
                     [
                         stats["series"],
                         team_name,
-                        stats["league_id"],
+                        series_db_id,
+                        None,  # team_id - will be populated later if needed
                         stats["points"],
                         stats["matches_won"],
                         stats["matches_lost"],
                         stats["matches_tied"],
                         stats["lines_won"],
                         stats["lines_lost"],
+                        stats["lines_for"],
+                        stats["lines_ret"],
                         stats["sets_won"],
                         stats["sets_lost"],
                         stats["games_won"],
                         stats["games_lost"],
+                        stats["league_id"],
                     ],
                 )
+
                 calculated_count += 1
+
             except Exception as e:
                 self.log(
-                    f"❌ Error inserting calculated stats for {team_name}: {e}", "ERROR"
+                    f"❌ Error inserting calculated series stats for {team_name}: {str(e)}",
+                    "ERROR",
                 )
 
         conn.commit()
-        self.log(
-            f"✅ Calculated and inserted {calculated_count:,} team statistics from match data"
-        )
-        self.imported_counts["series_stats"] = calculated_count
+        self.log(f"✅ Calculated and inserted {calculated_count:,} series stats records")
+
+        # Also populate any remaining missing series_id values
+        self.auto_populate_series_ids(conn)
 
     def import_schedules(self, conn, schedules_data: List[Dict]):
         """Import schedules data"""
