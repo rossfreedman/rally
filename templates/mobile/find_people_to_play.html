@@ -147,9 +147,9 @@
             </div>
 
             <!-- Players List -->
-            <div id="playersList" class="space-y-4 p-4">
+            <div id="playersList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 p-4">
                 <!-- Initial placeholder -->
-                <div class="flex flex-col items-center justify-center py-12 px-6">
+                <div class="col-span-full flex flex-col items-center justify-center py-12 px-6">
                     <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
                         <i class="fas fa-search text-blue-500 text-2xl"></i>
                     </div>
@@ -447,6 +447,33 @@ input[type="checkbox"]:checked {
     line-height: 1.3;
 }
 
+/* Player card styling for consistent grid layout */
+.player-card {
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+/* Better responsive grid */
+@media (min-width: 768px) {
+    #playersList {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 1024px) {
+    #playersList {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 1280px) {
+    #playersList {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
+
 /* Animate pulse utility */
 @keyframes pulse {
     0%, 100% {
@@ -703,7 +730,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (players.length === 0) {
             playersList.innerHTML = `
-                <div class="flex flex-col items-center justify-center py-12 px-6">
+                <div class="col-span-full flex flex-col items-center justify-center py-12 px-6">
                     <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                         <i class="fas fa-user-friends text-gray-400 text-2xl"></i>
                     </div>
@@ -757,7 +784,7 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log(`PTI value for ${player.name}: "${player.pti}" (type: ${typeof player.pti})`);
         
         const card = document.createElement('div');
-        card.className = 'bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md transition-shadow duration-200';
+        card.className = 'player-card bg-white rounded-lg shadow-sm border border-gray-200 p-3 hover:shadow-md transition-shadow duration-200';
         
         const isSelected = selectedPlayers.has(player.name);
         
@@ -773,78 +800,72 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         card.innerHTML = `
-            <div class="flex items-start gap-3">
-                <!-- Checkbox -->
-                <div class="flex items-center pt-1">
+            <div class="text-center">
+                <!-- Checkbox centered at top -->
+                <div class="flex justify-center mb-2">
                     <input type="checkbox" id="player-${player.name.replace(/\s+/g, '-')}" 
-                           class="player-checkbox w-5 h-5 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500 focus:ring-2" 
+                           class="player-checkbox w-4 h-4 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500 focus:ring-2" 
                            data-player-name="${player.name}" ${isSelected ? 'checked' : ''}>
                 </div>
                 
-                <!-- Player Info -->
-                <div class="flex-1 min-w-0">
-                    <!-- Header Row: Name and Action Buttons -->
-                    <div class="flex items-start justify-between">
-                        <div class="min-w-0 flex-1">
-                            <h3 class="font-bold text-lg text-gray-900 truncate">${player.name}</h3>
-                            <p class="text-sm text-gray-600 font-medium">${player.club || 'Unknown Club'}</p>
-                            <p class="text-sm text-gray-500">${player.series ? player.series.replace(/^Chicago\s+(\d+.*)$/i, 'Series $1') : player.series}</p>
-                        </div>
-                        <div class="ml-3 flex flex-col gap-2">
-                            <button class="contact-btn" 
-                                    onclick="handleContactClick('${player.name}')"
-                                    style="
-                                        background-color: #16a34a !important; 
-                                        color: white !important; 
-                                        padding: 8px 16px !important; 
-                                        border-radius: 8px !important; 
-                                        font-size: 14px !important; 
-                                        font-weight: 500 !important; 
-                                        border: none !important; 
-                                        min-width: 70px !important;
-                                        cursor: pointer !important;
-                                        display: inline-block !important;
-                                        visibility: visible !important;
-                                    ">
-                                Contact
-                            </button>
-                            <button class="details-btn" 
-                                    onclick="window.location.href='/mobile/player-detail/${encodeURIComponent(player.playerId)}'"
-                                    style="
-                                        background-color: #3b82f6 !important; 
-                                        color: white !important; 
-                                        padding: 8px 16px !important; 
-                                        border-radius: 8px !important; 
-                                        font-size: 14px !important; 
-                                        font-weight: 500 !important; 
-                                        border: none !important; 
-                                        min-width: 70px !important;
-                                        cursor: pointer !important;
-                                        display: inline-block !important;
-                                        visibility: visible !important;
-                                    ">
-                                Details
-                            </button>
-                        </div>
+                <!-- Player Name -->
+                <h3 class="font-bold text-sm text-gray-900 mb-2 leading-tight">${player.name}</h3>
+                
+                <!-- PTI (most prominent) -->
+                ${(player.pti !== null && player.pti !== undefined && player.pti !== 'N/A' && player.pti !== '' && !isNaN(parseFloat(player.pti))) ? `
+                    <div class="text-blue-600 font-bold text-lg mb-1">PTI: ${player.pti}</div>
+                ` : ''}
+                
+                <!-- Club and Series -->
+                <p class="text-xs text-gray-600 mb-1">${player.club || 'Unknown Club'}</p>
+                <p class="text-xs text-gray-500 mb-2">${player.series ? player.series.replace(/^Chicago\s+(\d+.*)$/i, 'Series $1') : player.series}</p>
+                
+                <!-- Stats in smaller text -->
+                <div class="text-xs space-y-1">
+                    <div>
+                        <span class="text-gray-600">Record:</span> 
+                        <span class="text-gray-900 font-medium">${player.wins}W-${player.losses}L</span>
                     </div>
-                    
-                    <!-- Stats Grid -->
-                    <div class="text-sm">
-                        ${(player.pti !== null && player.pti !== undefined && player.pti !== 'N/A' && player.pti !== '' && !isNaN(parseFloat(player.pti))) ? `
-                            <div>
-                                <span class="font-medium text-gray-600">PTI:</span> 
-                                <span class="text-blue-600 font-bold">${player.pti}</span>
-                            </div>
-                        ` : ''}
-                        <div>
-                            <span class="font-medium text-gray-600">Record:</span> 
-                            <span class="text-gray-900 font-semibold">${player.wins}W-${player.losses}L</span>
-                        </div>
-                        <div>
-                            <span class="font-medium text-gray-600">Win Rate:</span> 
-                            <span class="font-bold ${winRateColor}">${player.winRate}</span>
-                        </div>
+                    <div>
+                        <span class="text-gray-600">Win Rate:</span> 
+                        <span class="font-medium ${winRateColor}">${player.winRate}</span>
                     </div>
+                </div>
+                
+                <!-- Action Buttons (smaller and stacked) -->
+                <div class="mt-3 space-y-1">
+                    <button class="contact-btn w-full" 
+                            onclick="handleContactClick('${player.name}')"
+                            style="
+                                background-color: #16a34a !important; 
+                                color: white !important; 
+                                padding: 4px 8px !important; 
+                                border-radius: 4px !important; 
+                                font-size: 11px !important; 
+                                font-weight: 500 !important; 
+                                border: none !important; 
+                                cursor: pointer !important;
+                                display: block !important;
+                                visibility: visible !important;
+                            ">
+                        Contact
+                    </button>
+                    <button class="details-btn w-full" 
+                            onclick="window.location.href='/mobile/player-detail/${encodeURIComponent(player.playerId)}'"
+                            style="
+                                background-color: #3b82f6 !important; 
+                                color: white !important; 
+                                padding: 4px 8px !important; 
+                                border-radius: 4px !important; 
+                                font-size: 11px !important; 
+                                font-weight: 500 !important; 
+                                border: none !important; 
+                                cursor: pointer !important;
+                                display: block !important;
+                                visibility: visible !important;
+                            ">
+                        Details
+                    </button>
                 </div>
             </div>
         `;
@@ -1097,7 +1118,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Clear results and show placeholder
         playersList.innerHTML = `
-            <div class="flex flex-col items-center justify-center py-12 px-6">
+            <div class="col-span-full flex flex-col items-center justify-center py-12 px-6">
                 <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                     <i class="fas fa-search text-gray-400 text-2xl"></i>
                 </div>
@@ -1123,7 +1144,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function showError(message) {
         showLoading(false);
         playersList.innerHTML = `
-            <div class="flex flex-col items-center justify-center py-12 px-6">
+            <div class="col-span-full flex flex-col items-center justify-center py-12 px-6">
                 <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
                     <i class="fas fa-exclamation-triangle text-red-400 text-2xl"></i>
                 </div>
