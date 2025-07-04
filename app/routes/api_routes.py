@@ -3659,8 +3659,8 @@ def calculate_balanced_pti_ranges():
                 # Calculate end of this series' range
                 max_pti = min_overall_pti + ((i + 1) * pti_range_per_series)
 
-            # Count how many players fall within this PTI range
-            players_in_range = [p for p in all_players if min_pti <= p["pti"] <= max_pti]
+            # Count how many players fall within this PTI range (convert Decimal to float for comparison)
+            players_in_range = [p for p in all_players if min_pti <= float(p["pti"]) <= max_pti]
             players_in_this_series = len(players_in_range)
 
             # Convert series name for UI display
@@ -3668,10 +3668,12 @@ def calculate_balanced_pti_ranges():
             
             # Calculate statistics for this range
             if players_in_range:
-                avg_pti = sum(p["pti"] for p in players_in_range) / len(players_in_range)
-                std_dev = (sum((p["pti"] - avg_pti) ** 2 for p in players_in_range) / len(players_in_range)) ** 0.5
-                lowest_player = min(players_in_range, key=lambda x: x["pti"])
-                highest_player = max(players_in_range, key=lambda x: x["pti"])
+                # Convert Decimal types to float for mathematical operations
+                pti_values = [float(p["pti"]) for p in players_in_range]
+                avg_pti = sum(pti_values) / len(pti_values)
+                std_dev = (sum((pti - avg_pti) ** 2 for pti in pti_values) / len(pti_values)) ** 0.5
+                lowest_player = min(players_in_range, key=lambda x: float(x["pti"]))
+                highest_player = max(players_in_range, key=lambda x: float(x["pti"]))
                 lowest_player_name = f"{lowest_player['first_name']} {lowest_player['last_name']}"
                 highest_player_name = f"{highest_player['first_name']} {highest_player['last_name']}"
             else:
