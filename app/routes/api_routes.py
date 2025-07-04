@@ -3620,57 +3620,65 @@ def calculate_balanced_pti_ranges():
 
         available_series.sort(key=lambda x: get_series_sort_key(x["series_name"]))
 
-        # Calculate balanced stratification
+        # Get overall PTI range for perfect stratification
         total_players = len(all_players)
         num_series = len(available_series)
-        players_per_series = total_players // num_series
-        remainder_players = total_players % num_series
+        min_overall_pti = float(all_players[0]["pti"])  # Lowest PTI (already sorted)
+        max_overall_pti = float(all_players[-1]["pti"])  # Highest PTI
+        total_pti_span = max_overall_pti - min_overall_pti
 
         print(f"Balanced calculation: {total_players} players, {num_series} series")
-        print(f"Base players per series: {players_per_series}, remainder: {remainder_players}")
+        print(f"PTI range: {min_overall_pti} - {max_overall_pti} (span: {total_pti_span})")
 
-        # Create balanced ranges
+        # Calculate equal PTI range per series
+        if num_series == 0:
+            return jsonify({"error": "No series available"}), 404
+        
+        if total_pti_span == 0:
+            # All players have the same PTI - create minimal ranges
+            pti_range_per_series = 0.01
+        else:
+            pti_range_per_series = total_pti_span / num_series
+
+        # Create perfectly contiguous ranges
         balanced_ranges = []
-        current_player_index = 0
         
         for i, series in enumerate(available_series):
-            # Calculate how many players this series should get
-            # First few series get one extra player if there's a remainder
-            players_in_this_series = players_per_series
-            if i < remainder_players:
-                players_in_this_series += 1
-
-            # Calculate the PTI range for this series
-            start_index = current_player_index
-            end_index = min(current_player_index + players_in_this_series - 1, total_players - 1)
-            
-            if start_index >= total_players:
-                # Edge case: no more players
-                min_pti = all_players[-1]["pti"]
-                max_pti = all_players[-1]["pti"]
+            # Calculate PTI boundaries for this series
+            if i == 0:
+                # First series starts at absolute minimum
+                min_pti = min_overall_pti
             else:
-                min_pti = all_players[start_index]["pti"]
-                max_pti = all_players[end_index]["pti"]
+                # Subsequent series start exactly where previous ended + 0.01
+                min_pti = balanced_ranges[-1]["current_range"]["max"] + 0.01
             
-            # Add small buffer to prevent overlap (0.1 PTI gap between series)
-            if i > 0:  # Not the first series
-                min_pti = max(min_pti, balanced_ranges[-1]["current_range"]["max"] + 0.1)
-            
-            # Ensure max is at least min + small buffer for single-player series
-            if max_pti <= min_pti:
-                max_pti = min_pti + 0.1
+            if i == num_series - 1:
+                # Last series ends at absolute maximum
+                max_pti = max_overall_pti
+            else:
+                # Calculate end of this series' range
+                max_pti = min_overall_pti + ((i + 1) * pti_range_per_series)
+
+            # Count how many players fall within this PTI range
+            players_in_range = [p for p in all_players if min_pti <= p["pti"] <= max_pti]
+            players_in_this_series = len(players_in_range)
 
             # Convert series name for UI display
             display_series_name = convert_chicago_to_series_for_ui(series["series_name"])
             
-            # Get some statistics for this range
-            range_players = all_players[start_index:end_index + 1]
-            if range_players:
-                avg_pti = sum(p["pti"] for p in range_players) / len(range_players)
-                std_dev = (sum((p["pti"] - avg_pti) ** 2 for p in range_players) / len(range_players)) ** 0.5
+            # Calculate statistics for this range
+            if players_in_range:
+                avg_pti = sum(p["pti"] for p in players_in_range) / len(players_in_range)
+                std_dev = (sum((p["pti"] - avg_pti) ** 2 for p in players_in_range) / len(players_in_range)) ** 0.5
+                lowest_player = min(players_in_range, key=lambda x: x["pti"])
+                highest_player = max(players_in_range, key=lambda x: x["pti"])
+                lowest_player_name = f"{lowest_player['first_name']} {lowest_player['last_name']}"
+                highest_player_name = f"{highest_player['first_name']} {highest_player['last_name']}"
             else:
-                avg_pti = min_pti
+                avg_pti = (min_pti + max_pti) / 2
                 std_dev = 0.0
+                lowest_player_name = "None"
+                highest_player_name = "None"
 
             balanced_ranges.append({
                 "series_name": display_series_name,
@@ -3693,14 +3701,12 @@ def calculate_balanced_pti_ranges():
                     }
                 },
                 "stratification_info": {
-                    "player_start_index": start_index,
-                    "player_end_index": end_index,
-                    "lowest_pti_player": f"{range_players[0]['first_name']} {range_players[0]['last_name']}" if range_players else "None",
-                    "highest_pti_player": f"{range_players[-1]['first_name']} {range_players[-1]['last_name']}" if range_players else "None"
+                    "pti_range_span": round(max_pti - min_pti, 2),
+                    "lowest_pti_player": lowest_player_name,
+                    "highest_pti_player": highest_player_name,
+                    "range_coverage": f"{min_pti:.2f} - {max_pti:.2f}"
                 }
             })
-            
-            current_player_index = end_index + 1
 
         return jsonify({
             "success": True,
@@ -3708,13 +3714,13 @@ def calculate_balanced_pti_ranges():
             "total_series": len(balanced_ranges),
             "total_players": total_players,
             "stratification_summary": {
-                "method": "Balanced Stratification",
-                "description": "Players divided evenly across series by PTI rank",
-                "players_per_series_base": players_per_series,
-                "remainder_distributed": remainder_players,
-                "lowest_pti": round(all_players[0]["pti"], 2),
-                "highest_pti": round(all_players[-1]["pti"], 2),
-                "pti_range_span": round(all_players[-1]["pti"] - all_players[0]["pti"], 2)
+                "method": "Contiguous PTI Range Stratification",
+                "description": "PTI range divided evenly across series with no gaps",
+                "pti_range_per_series": round(pti_range_per_series, 2),
+                "total_pti_span": round(total_pti_span, 2),
+                "lowest_pti": round(min_overall_pti, 2),
+                "highest_pti": round(max_overall_pti, 2),
+                "coverage": "Complete PTI spectrum with contiguous ranges"
             }
         })
         

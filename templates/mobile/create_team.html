@@ -501,10 +501,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 // Show success message with summary
                 const summary = data.stratification_summary;
-                const message = `✅ Balanced ranges calculated!\n\n` +
-                    `${summary.total_players} players stratified across ${data.total_series} series\n` +
-                    `${summary.players_per_series_base} players per series (base)\n` +
-                    `PTI range: ${summary.lowest_pti} - ${summary.highest_pti}\n\n` +
+                const message = `✅ Contiguous ranges calculated!\n\n` +
+                    `${data.total_players} players across ${data.total_series} series\n` +
+                    `${summary.pti_range_per_series} PTI points per series\n` +
+                    `Total PTI range: ${summary.lowest_pti} - ${summary.highest_pti}\n\n` +
                     `Method: ${summary.description}`;
                 
                 alert(message);

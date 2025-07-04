@@ -2324,9 +2324,9 @@ def serve_mobile_matchup_simulator():
             f"[DEBUG] serve_mobile_matchup_simulator: User league_id: '{user_league_id}', series: '{user_series}', club: '{user_club}'"
         )
 
-        # Get available teams for selection filtered by user's series
+        # Get available teams for selection filtered by user's series (all teams in series)
         available_teams = get_teams_for_selection(
-            user_league_id, user_series, user_club
+            user_league_id, user_series, None  # Don't filter by club - show all teams in series
         )
         print(
             f"[DEBUG] serve_mobile_matchup_simulator: Found {len(available_teams)} teams in league '{user_league_id}', series '{user_series}'"
