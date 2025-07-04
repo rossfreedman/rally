@@ -2164,7 +2164,18 @@ def get_series_by_league():
             
             series_names.append(series_name)
 
-        return jsonify({"series": series_names})
+        # DEDUPLICATION FIX: Remove duplicates while preserving order
+        # This fixes the issue where both "Chicago X" and "Division X" map to "Series X"
+        seen = set()
+        deduplicated_series = []
+        for name in series_names:
+            if name not in seen:
+                seen.add(name)
+                deduplicated_series.append(name)
+                
+        print(f"[API] get-series-by-league - Deduplicated: {len(series_names)} -> {len(deduplicated_series)} unique series")
+
+        return jsonify({"series": deduplicated_series})
 
     except Exception as e:
         print(f"Error getting series by league: {str(e)}")
@@ -2241,7 +2252,16 @@ def get_user_facing_series_by_league():
             
             user_facing_names.append(user_facing_name)
         
-        series_names = user_facing_names
+        # DEDUPLICATION FIX: Remove duplicates while preserving order
+        # This fixes the issue where both "Chicago X" and "Division X" map to "Series X"
+        seen = set()
+        series_names = []
+        for name in user_facing_names:
+            if name not in seen:
+                seen.add(name)
+                series_names.append(name)
+                
+        print(f"[API] Deduplicated series list: {len(user_facing_names)} -> {len(series_names)} unique series")
 
         # Sort series properly (numbers before letters)
         def get_sort_key(series_name):
