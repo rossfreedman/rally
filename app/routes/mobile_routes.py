@@ -3551,4 +3551,53 @@ def calculate_pti_adjustment():
         return jsonify({"success": False, "error": str(e)}), 500
 
 
+@mobile_bp.route("/debug/teams-check")
+def debug_teams_check():
+    """Debug route to check teams table structure and data"""
+    try:
+        from database_utils import execute_query, execute_query_one
+        
+        html = "<h2>Teams Debug</h2>"
+        
+        # Check if teams table exists
+        try:
+            result = execute_query_one("SELECT COUNT(*) as count FROM teams")
+            total_teams = result["count"] if result else 0
+            html += f"<p>✅ Teams table exists with {total_teams} total teams</p>"
+        except Exception as e:
+            html += f"<p>❌ Teams table issue: {e}</p>"
+            return html
+        
+        # Check league 4687 specifically
+        try:
+            result = execute_query_one("SELECT COUNT(*) as count FROM teams WHERE league_id = 4687")
+            league_teams = result["count"] if result else 0
+            html += f"<p>League 4687 has {league_teams} teams</p>"
+        except Exception as e:
+            html += f"<p>❌ League 4687 query failed: {e}</p>"
+        
+        # Check sample teams with joins
+        try:
+            query = """
+                SELECT t.id, t.team_name, c.name as club_name, s.name as series_name
+                FROM teams t
+                LEFT JOIN clubs c ON t.club_id = c.id
+                LEFT JOIN series s ON t.series_id = s.id
+                WHERE t.league_id = 4687 AND t.is_active = TRUE
+                LIMIT 5
+            """
+            sample_teams = execute_query(query)
+            html += f"<p>Sample teams (found {len(sample_teams) if sample_teams else 0}):</p><ul>"
+            for team in sample_teams or []:
+                html += f"<li>ID: {team['id']}, Name: {team['team_name']}, Club: {team['club_name']}, Series: {team['series_name']}</li>"
+            html += "</ul>"
+        except Exception as e:
+            html += f"<p>❌ Sample teams query failed: {e}</p>"
+        
+        return html
+        
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+
 
