@@ -133,19 +133,33 @@ def switch_user_league(user_email: str, new_league_id: str) -> bool:
             
         league_db_id = league_lookup["id"]
         
-        # Verify user has a player in this league
-        player_check = execute_query_one("""
-            SELECT p.tenniscores_player_id 
+        # Check if user has ANY player associations at all
+        any_player_check = execute_query_one("""
+            SELECT upa.user_id
             FROM users u
             JOIN user_player_associations upa ON u.id = upa.user_id
-            JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
-            WHERE u.email = %s AND p.league_id = %s AND p.is_active = true
+            WHERE u.email = %s
             LIMIT 1
-        """, [user_email, league_db_id])
+        """, [user_email])
         
-        if not player_check:
-            logger.error(f"User {user_email} has no active player in league {new_league_id}")
-            return False
+        # If user has NO player associations at all, allow league switching 
+        # (they likely need to correct their registration information)
+        if not any_player_check:
+            logger.info(f"User {user_email} has no player associations - allowing league switch to correct registration")
+        else:
+            # User has associations, verify they have a player in this specific league
+            player_check = execute_query_one("""
+                SELECT p.tenniscores_player_id 
+                FROM users u
+                JOIN user_player_associations upa ON u.id = upa.user_id
+                JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+                WHERE u.email = %s AND p.league_id = %s AND p.is_active = true
+                LIMIT 1
+            """, [user_email, league_db_id])
+            
+            if not player_check:
+                logger.error(f"User {user_email} has player associations but none in league {new_league_id}")
+                return False
         
         # Update user's league_context
         execute_query(
@@ -172,18 +186,38 @@ def get_user_leagues(user_email: str) -> list:
         List of league dicts with id, league_id, league_name
     """
     try:
-        leagues_query = """
-            SELECT DISTINCT l.id, l.league_id, l.league_name
+        # First check if user has any player associations
+        any_associations = execute_query_one("""
+            SELECT upa.user_id
             FROM users u
             JOIN user_player_associations upa ON u.id = upa.user_id
-            JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
-            JOIN leagues l ON p.league_id = l.id
-            WHERE u.email = %s AND p.is_active = true
-            ORDER BY l.league_name
-        """
+            WHERE u.email = %s
+            LIMIT 1
+        """, [user_email])
         
-        leagues = execute_query(leagues_query, [user_email])
-        return leagues or []
+        if not any_associations:
+            # User has no associations, show all leagues so they can correct their registration
+            logger.info(f"User {user_email} has no associations - showing all leagues for registration correction")
+            all_leagues_query = """
+                SELECT id, league_id, league_name
+                FROM leagues
+                ORDER BY league_name
+            """
+            return execute_query(all_leagues_query) or []
+        else:
+            # User has associations, show only leagues they're in
+            leagues_query = """
+                SELECT DISTINCT l.id, l.league_id, l.league_name
+                FROM users u
+                JOIN user_player_associations upa ON u.id = upa.user_id
+                JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+                JOIN leagues l ON p.league_id = l.id
+                WHERE u.email = %s AND p.is_active = true
+                ORDER BY l.league_name
+            """
+            
+            leagues = execute_query(leagues_query, [user_email])
+            return leagues or []
         
     except Exception as e:
         logger.error(f"Error getting leagues for {user_email}: {e}")
