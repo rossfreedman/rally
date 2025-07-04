@@ -489,6 +489,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const data = await response.json();
             
+            console.log('🔍 Full API Response:', data);
+            console.log('🔍 Response Status:', response.status);
+            console.log('🔍 Response OK:', response.ok);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${data.error || 'Unknown error'}`);
+            }
+            
             if (data.success && data.series_ranges) {
                 console.log('Balanced ranges calculated successfully:', data);
                 
@@ -510,12 +518,22 @@ document.addEventListener('DOMContentLoaded', function() {
                 alert(message);
                 
             } else {
+                console.error('❌ API returned unsuccessful response:', data);
                 throw new Error(data.error || 'Failed to calculate balanced ranges');
             }
             
         } catch (error) {
-            console.error('Error calculating balanced ranges:', error);
-            alert(`Failed to calculate balanced ranges: ${error.message}`);
+            console.error('❌ Error calculating balanced ranges:', error);
+            
+            // Show more detailed error message
+            let errorMessage = error.message;
+            if (errorMessage.includes('No players with PTI data found')) {
+                errorMessage = 'No players with PTI data found. Make sure players have valid PTI values assigned.';
+            } else if (errorMessage.includes('No series found')) {
+                errorMessage = 'No series found. Make sure your league has series configured.';
+            }
+            
+            alert(`Failed to calculate balanced ranges:\n\n${errorMessage}`);
         } finally {
             // Restore button state
             const balanceButton = document.getElementById('calculate-balanced-ranges');
