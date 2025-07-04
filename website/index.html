@@ -21,75 +21,127 @@
             }
         }
     </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        html {
+            margin: 0 !important;
+            padding: 0 !important;
+            height: 100% !important;
+            width: 100% !important;
+            overflow-x: hidden !important;
+            border: none !important;
+            outline: none !important;
+        }
+        body {
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+            overflow-x: hidden !important;
+            border: none !important;
+            outline: none !important;
+            position: relative !important;
+        }
+        .hero-section {
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            border: none !important;
+            display: flex !important;
+            flex-direction: column !important;
+        }
+        .hero-bg {
+            position: absolute !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 100vh !important;
+            object-fit: cover !important;
+            object-position: center !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            border: none !important;
+        }
+        .content-below {
+            margin-top: 100vh !important;
+            position: relative !important;
+        }
+        
+        /* Browser reset */
+        html:before, html:after, body:before, body:after {
+            content: none !important;
+            display: none !important;
+        }
+        
+        /* Aggressive border removal for hero container only */
+        .hero-section {
+            margin: 0 !important;
+            border: none !important;
+        }
+
+    </style>
 </head>
-<body class="bg-white">
-    <!-- Navigation -->
-    <nav class="bg-gradient-to-r from-rally-blue to-blue-800 shadow-lg">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <!-- Centered Logo -->
-            <div class="flex justify-center items-center py-6">
-                <img class="h-12 w-auto filter brightness-0 invert" src="../static/rallylogo.png" alt="Rally Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-                <div class="hidden text-3xl font-bold text-white">🏓 Rally</div>
-            </div>
-            
-            <!-- Navigation Links -->
-            <div class="flex justify-center items-center pb-4">
-                <div class="flex items-center space-x-8">
-                    <a href="#features" class="text-white hover:text-yellow-300 transition duration-300 font-medium">Features</a>
-                    <a href="#leagues" class="text-white hover:text-yellow-300 transition duration-300 font-medium">Leagues</a>
-                    <a href="#pricing" class="text-white hover:text-yellow-300 transition duration-300 font-medium">Pricing</a>
-                    <a href="/login" class="bg-white text-rally-blue px-6 py-2 rounded-lg hover:bg-gray-100 transition duration-300 font-medium">Login</a>
+<body>
+    <!-- Hero Section with Overlaid Navigation -->
+    <section class="hero-section bg-gradient-to-br from-rally-blue to-blue-800 text-white">
+        <!-- Background Image -->
+        <div class="absolute inset-0">
+            <img src="hero.jpg" alt="Rally Sports Action" class="hero-bg">
+            <div class="absolute inset-0 bg-gradient-to-br from-rally-blue/80 to-blue-800/80"></div>
+        </div>
+        
+        <!-- Overlaid Navigation -->
+        <nav class="relative z-20 w-full">
+            <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16">
+                <!-- Centered Logo -->
+                <div class="flex justify-center items-center py-6">
+                    <img class="h-12 w-auto filter brightness-0 invert drop-shadow-lg" src="../static/rallylogo.png" alt="Rally Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                    <div class="hidden text-3xl font-bold text-white drop-shadow-lg">🏓 Rally</div>
                 </div>
                 
-                <!-- Mobile Menu Button -->
-                <div class="md:hidden absolute right-4">
-                    <button class="text-white hover:text-yellow-300">
-                        <i class="fas fa-bars text-xl"></i>
-                    </button>
+                <!-- Navigation Links -->
+                <div class="flex justify-center items-center pb-4">
+                    <div class="flex items-center space-x-8">
+                        <a href="#features" class="text-white hover:text-yellow-300 transition duration-300 font-medium drop-shadow-md">Features</a>
+                        <a href="#leagues" class="text-white hover:text-yellow-300 transition duration-300 font-medium drop-shadow-md">Leagues</a>
+                        <a href="#pricing" class="text-white hover:text-yellow-300 transition duration-300 font-medium drop-shadow-md">Pricing</a>
+                        <a href="/login" class="bg-white text-rally-blue px-6 py-2 rounded-lg hover:bg-gray-100 transition duration-300 font-medium shadow-lg">Login</a>
+                    </div>
+                    
+
                 </div>
             </div>
-        </div>
-    </nav>
-
-    <!-- Hero Section -->
-    <section class="bg-gradient-to-br from-rally-blue to-blue-800 text-white">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-32">
-            <div class="text-center">
-                <h1 class="text-4xl md:text-6xl font-bold mb-6">
-                    Master Your <span class="text-yellow-300">Platform Tennis</span> Game
+        </nav>
+        
+        <!-- Hero Content -->
+        <div class="relative z-10 max-w-6xl mx-auto px-8 sm:px-12 lg:px-16 py-20 lg:py-32 flex-1 flex items-center">
+            <div class="text-center w-full">
+                <h1 class="text-4xl md:text-6xl font-bold mb-6 drop-shadow-lg">
+                    Take Your Game to the <span class="text-yellow-300">Next Level</span>
                 </h1>
-                <p class="text-xl md:text-2xl mb-8 text-blue-100 max-w-3xl mx-auto">
-                    The ultimate platform tennis management app. Track matches, analyze performance, find partners, and elevate your game to the next level.
+                <p class="text-xl md:text-2xl mb-4 text-white max-w-3xl mx-auto drop-shadow-md">
+                    The all-in-one match and team management app for paddle, tennis and pickleball leagues.
+                </p>
+                <p class="text-lg md:text-xl mb-8 text-blue-100 max-w-4xl mx-auto drop-shadow-md">
+                    Track results, analyze performance, scout competition, find games and stay organized—no matter what you play.
                 </p>
                 <button class="bg-rally-green text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-green-600 transition duration-300 shadow-lg transform hover:scale-105">
                     Let's Rally!
                 </button>
             </div>
         </div>
-        <div class="absolute inset-0 bg-black opacity-10"></div>
-        <div class="relative z-10 pb-16">
-            <div class="max-w-7xl mx-auto px-4 text-center">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-                    <div class="bg-white/10 backdrop-blur-sm rounded-lg p-6">
-                        <div class="text-3xl font-bold">1000+</div>
-                        <div class="text-blue-200">Active Players</div>
-                    </div>
-                    <div class="bg-white/10 backdrop-blur-sm rounded-lg p-6">
-                        <div class="text-3xl font-bold">50+</div>
-                        <div class="text-blue-200">Tennis Clubs</div>
-                    </div>
-                    <div class="bg-white/10 backdrop-blur-sm rounded-lg p-6">
-                        <div class="text-3xl font-bold">10K+</div>
-                        <div class="text-blue-200">Matches Tracked</div>
-                    </div>
-                </div>
-            </div>
-        </div>
     </section>
 
     <!-- About Rally Section -->
-    <section class="py-20 bg-gray-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section class="content-below py-20 bg-gray-50">
+        <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16">
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
                 <div>
                     <h2 class="text-4xl font-bold text-gray-900 mb-6">About Rally</h2>
@@ -125,7 +177,7 @@
 
     <!-- Features Section -->
     <section id="features" class="py-20 bg-white">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16">
             <div class="text-center mb-16">
                 <h2 class="text-4xl font-bold text-gray-900 mb-4">Features</h2>
                 <p class="text-xl text-gray-600">Everything you need to master platform tennis</p>
@@ -197,7 +249,7 @@
 
     <!-- Explore Leagues Section -->
     <section id="leagues" class="py-20 bg-gray-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16">
             <div class="text-center mb-16">
                 <h2 class="text-4xl font-bold text-gray-900 mb-4">Explore Leagues</h2>
                 <p class="text-xl text-gray-600">Join competitive leagues across the region</p>
@@ -260,7 +312,7 @@
 
     <!-- Pricing Section -->
     <section id="pricing" class="py-20 bg-white">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16">
             <div class="text-center mb-16">
                 <h2 class="text-4xl font-bold text-gray-900 mb-4">Pricing</h2>
                 <p class="text-xl text-gray-600">Choose the plan that works for you</p>
@@ -372,7 +424,7 @@
 
     <!-- Love to Rally Section -->
     <section class="py-20 bg-gradient-to-br from-rally-green to-green-700 text-white">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16 text-center">
             <h2 class="text-4xl font-bold mb-6">Love to Rally</h2>
             <p class="text-xl text-green-100 mb-8 max-w-2xl mx-auto">
                 Join thousands of platform tennis players who have elevated their game with Rally. Start your journey today and experience the difference.
@@ -390,7 +442,7 @@
 
     <!-- Footer -->
     <footer class="bg-gray-900 text-white py-16">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
                 <div>
                     <div class="flex items-center mb-4">
@@ -460,9 +512,9 @@
         window.addEventListener('scroll', function() {
             const nav = document.querySelector('nav');
             if (window.scrollY > 50) {
-                nav.classList.add('shadow-lg');
+                nav.classList.add('bg-black/20', 'backdrop-blur-sm');
             } else {
-                nav.classList.remove('shadow-lg');
+                nav.classList.remove('bg-black/20', 'backdrop-blur-sm');
             }
         });
     </script>

@@ -13,8 +13,9 @@ logger = logging.getLogger(__name__)
 # Common name variations mapping for better first name matching
 NAME_VARIATIONS = {
     "rob": ["robert", "bob"],
-    "robert": ["rob", "bob"],
+    "robert": ["rob", "bob", "ross"],
     "bob": ["robert", "rob"],
+    "ross": ["robert", "rob"],
     "mike": ["michael"],
     "michael": ["mike"],
     "jim": ["james"],
