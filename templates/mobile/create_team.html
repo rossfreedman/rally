@@ -436,6 +436,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let seriesRanges = [];
     let teamAssignments = {};
     let selectedPlayerForTap = null;
+    let playersPerSeries = {}; // Store target players per series (default: 10)
 
     // PTI Color Coding Function
     function getPTIColorClass(pti) {
@@ -997,13 +998,32 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('Updating series teams display...');
         console.log('Current team assignments:', teamAssignments);
 
-        const seriesHtml = seriesRanges.map(series => `
+        const seriesHtml = seriesRanges.map(series => {
+            // Initialize target players if not set
+            if (!playersPerSeries[series.series_name]) {
+                playersPerSeries[series.series_name] = 10;
+            }
+            const currentPlayers = teamAssignments[series.series_name]?.length || 0;
+            const targetPlayers = playersPerSeries[series.series_name];
+            
+            return `
             <div class="bg-gray-50 border border-gray-200 rounded-lg p-4">
                 <div class="flex items-center justify-between mb-3">
                     <h3 class="font-semibold text-gray-900">${series.series_name}</h3>
-                    <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                        ${teamAssignments[series.series_name]?.length || 0}/${Math.ceil(series.player_count / 4)} teams possible
-                    </span>
+                    <div class="flex items-center gap-2">
+                        <div class="flex items-center gap-1">
+                            <label class="text-xs text-gray-600">Target:</label>
+                            <input type="number" 
+                                   value="${targetPlayers}" 
+                                   min="1" 
+                                   max="20" 
+                                   class="w-12 h-6 text-xs text-center border border-gray-300 rounded px-1"
+                                   onchange="updateTargetPlayers('${series.series_name}', this.value)">
+                        </div>
+                        <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                            ${currentPlayers}/${targetPlayers} players added
+                        </span>
+                    </div>
                 </div>
                 <div class="drop-zone min-h-16 border-2 border-dashed border-gray-300 rounded-lg p-3" 
                      data-series="${series.series_name}"
@@ -1011,7 +1031,7 @@ document.addEventListener('DOMContentLoaded', function() {
                      ondragenter="handleDragEnter(event)"
                      ondragleave="handleDragLeave(event)"
                      ondrop="handleDrop(event, '${series.series_name}')"
-                     onclick="assignPlayerToSeries('${series.series_name}')"
+                     onclick="assignPlayerToSeries('${series.series_name}')">
                     <div id="team-${series.series_name}" class="flex flex-wrap gap-2">
                         ${teamAssignments[series.series_name] ? teamAssignments[series.series_name].map(player => `
                             <div class="player-card ${getPTIColorClass(player.pti)} border rounded px-2 py-1 text-xs cursor-grab"
@@ -1024,11 +1044,12 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <div>PTI: ${player.pti ? player.pti.toFixed(1) : 'N/A'}</div>
                                 <div class="text-xs opacity-75 mt-1">Double-click to remove</div>
                             </div>
-                                                 `).join('') : '<div class="text-gray-400 text-sm">Drag players here or tap to assign selected player</div>'}
-                     </div>
-                 </div>
-             </div>
-         `).join('');
+                        `).join('') : '<div class="text-gray-400 text-sm">Drag players here or tap to assign selected player</div>'}
+                    </div>
+                </div>
+            </div>
+            `;
+        }).join('');
          
          container.innerHTML = seriesHtml;
          console.log('Series teams HTML updated');
@@ -1082,6 +1103,20 @@ document.addEventListener('DOMContentLoaded', function() {
         const countElement = document.getElementById('player-count');
         if (countElement) {
             countElement.textContent = allPlayers.length;
+        }
+    }
+
+    // Update target players for a series
+    function updateTargetPlayers(seriesName, target) {
+        const targetNum = parseInt(target, 10);
+        if (targetNum >= 1 && targetNum <= 20) {
+            playersPerSeries[seriesName] = targetNum;
+            console.log(`Updated ${seriesName} target to ${targetNum} players`);
+            
+            // Refresh the display to show the updated "X/Y players added" text
+            displaySeriesTeams();
+        } else {
+            console.warn(`Invalid target: ${target}. Must be between 1 and 20.`);
         }
     }
 
@@ -1406,6 +1441,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.selectPlayer = selectPlayer;
     window.assignPlayerToSeries = assignPlayerToSeries;
     window.updateTeamSize = updateTeamSize;
+    window.updateTargetPlayers = updateTargetPlayers;
 
     // Debug functions
     window.forceShowContent = function() {
