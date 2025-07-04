@@ -3533,6 +3533,198 @@ def analyze_series_pti_ranges():
         return jsonify({"error": "Failed to analyze series data"}), 500
 
 
+@api_bp.route("/api/create-team/calculate-balanced-ranges", methods=["POST"])
+@login_required
+def calculate_balanced_pti_ranges():
+    """Calculate balanced PTI ranges by stratifying all players evenly across series"""
+    try:
+        user = session["user"]
+        user_league_id = user.get("league_id", "")
+        
+        # Convert league_id to integer foreign key
+        league_id_int = None
+        if user_league_id:
+            try:
+                league_record = execute_query_one(
+                    "SELECT id FROM leagues WHERE league_id = %s", [str(user_league_id)]
+                )
+                if league_record:
+                    league_id_int = league_record["id"]
+            except Exception as e:
+                print(f"Error converting league_id {user_league_id}: {e}")
+                pass
+
+        # Get all active players with PTI data, sorted by PTI (ascending = lowest first)
+        base_players_query = """
+            SELECT 
+                p.id,
+                p.first_name,
+                p.last_name,
+                p.pti,
+                s.name as current_series_name,
+                s.id as current_series_id
+            FROM players p
+            LEFT JOIN series s ON p.series_id = s.id
+            WHERE p.is_active = TRUE
+            AND p.pti IS NOT NULL
+            AND p.pti > 0
+        """
+        
+        if league_id_int:
+            players_query = base_players_query + " AND p.league_id = %s ORDER BY p.pti ASC"
+            all_players = execute_query(players_query, [league_id_int])
+        else:
+            players_query = base_players_query + " ORDER BY p.pti ASC"
+            all_players = execute_query(players_query)
+
+        if not all_players:
+            return jsonify({"error": "No players with PTI data found"}), 404
+
+        # Get all available series for this league (excluding SW series)
+        base_series_query = """
+            SELECT DISTINCT s.name as series_name, s.id as series_id
+            FROM series s
+            JOIN players p ON s.id = p.series_id
+            WHERE p.is_active = TRUE
+            AND s.name NOT LIKE '%%SW%%'
+        """
+        
+        if league_id_int:
+            series_query = base_series_query + " AND p.league_id = %s ORDER BY s.name"
+            available_series = execute_query(series_query, [league_id_int])
+        else:
+            series_query = base_series_query + " ORDER BY s.name"
+            available_series = execute_query(series_query)
+
+        if not available_series:
+            return jsonify({"error": "No series found"}), 404
+
+        # Sort series numerically for proper ordering
+        def get_series_sort_key(series_name):
+            import re
+            
+            # Handle series with numeric values: "Chicago 1", "Series 2", etc.
+            match = re.match(r'^(?:(Chicago|Series|Division)\s+)?(\d+)([a-zA-Z\s]*)$', series_name)
+            if match:
+                number = int(match.group(2))
+                return (0, number)  # Numeric series first, by number
+            
+            # Handle letter-only series
+            match = re.match(r'^(?:(Chicago|Series|Division)\s+)?([A-Z]+)$', series_name)
+            if match:
+                letter = match.group(2)
+                return (1, letter)  # Letters after numbers
+            
+            # Everything else
+            return (2, series_name)
+
+        available_series.sort(key=lambda x: get_series_sort_key(x["series_name"]))
+
+        # Calculate balanced stratification
+        total_players = len(all_players)
+        num_series = len(available_series)
+        players_per_series = total_players // num_series
+        remainder_players = total_players % num_series
+
+        print(f"Balanced calculation: {total_players} players, {num_series} series")
+        print(f"Base players per series: {players_per_series}, remainder: {remainder_players}")
+
+        # Create balanced ranges
+        balanced_ranges = []
+        current_player_index = 0
+        
+        for i, series in enumerate(available_series):
+            # Calculate how many players this series should get
+            # First few series get one extra player if there's a remainder
+            players_in_this_series = players_per_series
+            if i < remainder_players:
+                players_in_this_series += 1
+
+            # Calculate the PTI range for this series
+            start_index = current_player_index
+            end_index = min(current_player_index + players_in_this_series - 1, total_players - 1)
+            
+            if start_index >= total_players:
+                # Edge case: no more players
+                min_pti = all_players[-1]["pti"]
+                max_pti = all_players[-1]["pti"]
+            else:
+                min_pti = all_players[start_index]["pti"]
+                max_pti = all_players[end_index]["pti"]
+            
+            # Add small buffer to prevent overlap (0.1 PTI gap between series)
+            if i > 0:  # Not the first series
+                min_pti = max(min_pti, balanced_ranges[-1]["current_range"]["max"] + 0.1)
+            
+            # Ensure max is at least min + small buffer for single-player series
+            if max_pti <= min_pti:
+                max_pti = min_pti + 0.1
+
+            # Convert series name for UI display
+            display_series_name = convert_chicago_to_series_for_ui(series["series_name"])
+            
+            # Get some statistics for this range
+            range_players = all_players[start_index:end_index + 1]
+            if range_players:
+                avg_pti = sum(p["pti"] for p in range_players) / len(range_players)
+                std_dev = (sum((p["pti"] - avg_pti) ** 2 for p in range_players) / len(range_players)) ** 0.5
+            else:
+                avg_pti = min_pti
+                std_dev = 0.0
+
+            balanced_ranges.append({
+                "series_name": display_series_name,
+                "series_id": series["series_id"],
+                "player_count": players_in_this_series,
+                "current_range": {
+                    "min": round(min_pti, 2),
+                    "max": round(max_pti, 2)
+                },
+                "recommended_range": {
+                    "min": round(min_pti, 2),
+                    "max": round(max_pti, 2)
+                },
+                "statistics": {
+                    "avg": round(avg_pti, 2),
+                    "std_dev": round(std_dev, 2),
+                    "percentiles": {
+                        "25th": round(min_pti, 2),
+                        "75th": round(max_pti, 2)
+                    }
+                },
+                "stratification_info": {
+                    "player_start_index": start_index,
+                    "player_end_index": end_index,
+                    "lowest_pti_player": f"{range_players[0]['first_name']} {range_players[0]['last_name']}" if range_players else "None",
+                    "highest_pti_player": f"{range_players[-1]['first_name']} {range_players[-1]['last_name']}" if range_players else "None"
+                }
+            })
+            
+            current_player_index = end_index + 1
+
+        return jsonify({
+            "success": True,
+            "series_ranges": balanced_ranges,
+            "total_series": len(balanced_ranges),
+            "total_players": total_players,
+            "stratification_summary": {
+                "method": "Balanced Stratification",
+                "description": "Players divided evenly across series by PTI rank",
+                "players_per_series_base": players_per_series,
+                "remainder_distributed": remainder_players,
+                "lowest_pti": round(all_players[0]["pti"], 2),
+                "highest_pti": round(all_players[-1]["pti"], 2),
+                "pti_range_span": round(all_players[-1]["pti"] - all_players[0]["pti"], 2)
+            }
+        })
+        
+    except Exception as e:
+        print(f"Error calculating balanced PTI ranges: {str(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
+        return jsonify({"error": "Failed to calculate balanced ranges"}), 500
+
+
 @api_bp.route("/api/create-team/save", methods=["POST"])
 @login_required
 def save_team_assignments():

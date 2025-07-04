@@ -905,48 +905,15 @@ def get_teams_for_selection(
                 f"[DEBUG] get_teams_for_selection: League_id already integer: {league_id_int}"
             )
 
-
-
-        # Try a simple query first to test database connectivity
-        try:
-            simple_query = "SELECT COUNT(*) as count FROM teams WHERE league_id = %s AND is_active = TRUE"
-            simple_result = execute_query_one(simple_query, [league_id_int])
-            team_count = simple_result["count"] if simple_result else 0
-            print(f"[DEBUG] Simple count query found {team_count} active teams in league {league_id_int}")
-            
-            # If no teams found, return early
-            if team_count == 0:
-                print(f"[DEBUG] No teams found in league {league_id_int}")
-                return []
-        except Exception as e:
-            print(f"[DEBUG] Simple count query failed: {e}")
-            # If even simple queries fail, provide fallback mock data for testing
-            print(f"[DEBUG] Providing fallback mock teams for testing")
-            return [
-                {
-                    "id": 1,
-                    "name": "Test Team 1",
-                    "display_name": "Series 22",
-                    "club_name": "Test Club",
-                    "series_name": "Chicago 22"
-                },
-                {
-                    "id": 2, 
-                    "name": "Test Team 2",
-                    "display_name": "Series 21",
-                    "club_name": "Test Club 2",
-                    "series_name": "Chicago 21"
-                }
-            ]
-
-        # Get teams with simplified query to avoid complex COALESCE
+        # Get teams from the teams table, filtering by series if provided
         query = """
             SELECT DISTINCT 
                 t.id as team_id,
                 t.team_name,
                 t.team_alias,
                 c.name as club_name,
-                s.name as series_name
+                s.name as series_name,
+                s.id as series_id
             FROM teams t
             JOIN clubs c ON t.club_id = c.id
             JOIN series s ON t.series_id = s.id
@@ -954,9 +921,21 @@ def get_teams_for_selection(
         """
 
         params = []
+        
+        # Filter by league
         if league_id_int:
             query += " AND t.league_id = %s"
             params.append(league_id_int)
+
+        # Filter by series if provided
+        if user_series:
+            query += " AND s.name = %s"
+            params.append(user_series)
+
+        # Filter by club if provided (optional additional filter)
+        if user_club:
+            query += " AND c.name = %s"
+            params.append(user_club)
 
         query += " ORDER BY c.name, s.name LIMIT 50"
 
@@ -985,17 +964,24 @@ def get_teams_for_selection(
                     display_name = series_name or row["team_name"]
                 
                 teams.append({
-                    "id": row["team_id"],
+                    "id": row["team_id"],  # Use team ID as requested
                     "name": row["team_name"], 
-                    "display_name": display_name,
+                    "display_name": f"{row['club_name']} - {display_name}",
                     "club_name": row["club_name"],
-                    "series_name": row["series_name"]
+                    "series_name": row["series_name"],
+                    "series_id": row["series_id"]  # Include series ID as requested
                 })
                 
             print(f"[DEBUG] Processed {len(teams)} teams successfully")
 
+        filter_description = f"league_id {league_id_int}"
+        if user_series:
+            filter_description += f", series '{user_series}'"
+        if user_club:
+            filter_description += f", club '{user_club}'"
+
         print(
-            f"[DEBUG] get_teams_for_selection: Found {len(teams)} teams for league_id {league_id_int} (all series in league)"
+            f"[DEBUG] get_teams_for_selection: Found {len(teams)} teams for {filter_description}"
         )
 
         return teams

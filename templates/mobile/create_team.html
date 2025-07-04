@@ -72,8 +72,12 @@
                                 <i class="fas fa-sliders-h text-blue-600 mr-2"></i>
                                 Series PTI Ranges
                             </h2>
-                            <p class="text-sm text-gray-600 mt-1">Adjust PTI ranges - all series automatically maintain sequential order with no overlaps</p>
+                            <p class="text-sm text-gray-600 mt-1">Click <strong>Balance</strong> to calculate optimal PTI ranges with equal players per series. Adjust ranges manually - all series automatically maintain sequential order with no overlaps.</p>
                         </div>
+                        <button id="calculate-balanced-ranges" class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-green-600 bg-white border border-green-200 rounded-lg hover:bg-green-50 hover:text-green-700 transition-colors mr-2">
+                            <i class="fas fa-calculator text-xs"></i>
+                            Balance
+                        </button>
                         <button id="reset-ranges" class="flex items-center gap-2 px-3 py-2 text-sm font-medium text-blue-600 bg-white border border-blue-200 rounded-lg hover:bg-blue-50 hover:text-blue-700 transition-colors">
                             <i class="fas fa-undo text-xs"></i>
                             Reset
@@ -463,6 +467,61 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Simple reset - reload the series data
         location.reload();
+    }
+
+    // Calculate balanced PTI ranges using stratification
+    async function calculateBalancedRanges() {
+        console.log('Calculating balanced PTI ranges...');
+        
+        try {
+            // Show loading state
+            const balanceButton = document.getElementById('calculate-balanced-ranges');
+            const originalText = balanceButton.innerHTML;
+            balanceButton.innerHTML = '<i class="fas fa-spinner fa-spin text-xs"></i> Calculating...';
+            balanceButton.disabled = true;
+            
+            const response = await fetch('/api/create-team/calculate-balanced-ranges', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            const data = await response.json();
+            
+            if (data.success && data.series_ranges) {
+                console.log('Balanced ranges calculated successfully:', data);
+                
+                // Update seriesRanges with balanced data
+                seriesRanges = data.series_ranges;
+                
+                // Refresh the UI with new balanced ranges
+                displaySeriesControls();
+                displaySeriesTeams();
+                
+                // Show success message with summary
+                const summary = data.stratification_summary;
+                const message = `✅ Balanced ranges calculated!\n\n` +
+                    `${summary.total_players} players stratified across ${data.total_series} series\n` +
+                    `${summary.players_per_series_base} players per series (base)\n` +
+                    `PTI range: ${summary.lowest_pti} - ${summary.highest_pti}\n\n` +
+                    `Method: ${summary.description}`;
+                
+                alert(message);
+                
+            } else {
+                throw new Error(data.error || 'Failed to calculate balanced ranges');
+            }
+            
+        } catch (error) {
+            console.error('Error calculating balanced ranges:', error);
+            alert(`Failed to calculate balanced ranges: ${error.message}`);
+        } finally {
+            // Restore button state
+            const balanceButton = document.getElementById('calculate-balanced-ranges');
+            balanceButton.innerHTML = '<i class="fas fa-calculator text-xs"></i> Balance';
+            balanceButton.disabled = false;
+        }
     }
 
     // Series PTI Range Management Functions
@@ -1006,6 +1065,10 @@ document.addEventListener('DOMContentLoaded', function() {
         // Reset buttons
         document.getElementById('reset-players')?.addEventListener('click', () => {
             location.reload();
+        });
+
+        document.getElementById('calculate-balanced-ranges')?.addEventListener('click', () => {
+            calculateBalancedRanges();
         });
 
         document.getElementById('reset-ranges')?.addEventListener('click', () => {
