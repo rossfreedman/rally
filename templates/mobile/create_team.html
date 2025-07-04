@@ -802,8 +802,8 @@ document.addEventListener('DOMContentLoaded', function() {
             seriesRanges = data.series_ranges || [];
             console.log(`Loaded ${seriesRanges.length} series`);
             
-            // Automatically fix any overlaps that exist in the loaded data
-            await fixAllOverlapsAutomatically();
+            // Sequential order is now maintained automatically in real-time
+            console.log('✅ Series loaded successfully - automatic ordering enabled');
             
             displaySeriesControls();
             displaySeriesTeams();
