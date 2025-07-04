@@ -25,6 +25,7 @@ This guide ensures that the series_id foreign key system never breaks again by i
 ### 1. **Automated ETL Integration** ✅
 
 The ETL script now automatically:
+- **NEW**: Creates full database backup before import (Production/Staging)
 - Populates `series_id` when creating new `series_stats` records  
 - Runs post-import validation to catch NULL series_id issues
 - Auto-populates missing series_id values after import
@@ -37,6 +38,7 @@ The ETL script now automatically:
 
 **ETL Process Flow**:
 ```
+0. Create full database backup ← NEW SAFETY FEATURE
 1. Import series_stats data
 2. Validate import coverage  
 3. Auto-populate missing series_id values ← AUTOMATIC
