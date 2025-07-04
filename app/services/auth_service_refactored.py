@@ -753,10 +753,14 @@ def get_series_list(league_id: str = None) -> List[str]:
         db_session.close()
 
 
-def create_session_data(user_data: Dict[str, Any]) -> Dict[str, Any]:
+def create_session_data(user_data: Dict[str, Any], preserve_context: bool = False) -> Dict[str, Any]:
     """
     Create enhanced session data with context support
     Uses the new ContextService for multi-league/multi-team support
+    
+    Args:
+        user_data: User data dictionary
+        preserve_context: If True, don't auto-detect context (preserves manual selections)
     """
     from app.services.context_service import ContextService
     
@@ -776,7 +780,7 @@ def create_session_data(user_data: Dict[str, Any]) -> Dict[str, Any]:
     
     try:
         # Create enhanced session data with context information
-        enhanced_session = ContextService.create_enhanced_session_data(user, user_id)
+        enhanced_session = ContextService.create_enhanced_session_data(user, user_id, preserve_context=preserve_context)
         
         # Add legacy fields for backwards compatibility
         enhanced_session.update({

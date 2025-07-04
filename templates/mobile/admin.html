@@ -242,6 +242,12 @@ async function startImpersonation() {
     }
     
     try {
+        // Show loading state
+        const button = document.querySelector('button[onclick="startImpersonation()"]');
+        const originalText = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Starting Impersonation...';
+        button.disabled = true;
+        
         const response = await fetch('/api/admin/start-impersonation', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -254,15 +260,31 @@ async function startImpersonation() {
         const result = await response.json();
         
         if (result.success) {
-            // Show success message and refresh page to update session
+            // Show brief success message and redirect to mobile home immediately
             const contextMsg = playerId ? ` in context: ${displayText}` : ' (no player context)';
-            alert(`Successfully started impersonating ${userEmail}${contextMsg}\n\nPage will refresh to show their view.`);
-            window.location.reload();
+            
+            // Create a temporary success message div
+            const successDiv = document.createElement('div');
+            successDiv.className = 'fixed top-0 left-0 right-0 bg-green-500 text-white p-4 text-center z-50';
+            successDiv.innerHTML = `✅ Successfully started impersonating ${userEmail}${contextMsg}<br/>Redirecting to their view...`;
+            document.body.appendChild(successDiv);
+            
+            // Redirect to mobile home after brief delay
+            setTimeout(() => {
+                window.location.href = '/mobile';
+            }, 1500);
         } else {
+            // Restore button state on error
+            button.innerHTML = originalText;
+            button.disabled = false;
             alert(`Failed to start impersonation: ${result.error}`);
         }
     } catch (error) {
         console.error('Error starting impersonation:', error);
+        // Restore button state on error
+        const button = document.querySelector('button[onclick="startImpersonation()"]');
+        button.innerHTML = '<i class="fas fa-play mr-2"></i>Start Impersonation';
+        button.disabled = false;
         alert('Error starting impersonation');
     }
 }

@@ -10,6 +10,7 @@ Key principles:
 2. One session structure used everywhere  
 3. One function to rebuild session from league_context
 4. Used by: registration, settings, league toggling
+5. PRESERVES CONTEXT: This service respects manual team selections and doesn't use auto-detection
 """
 
 import logging

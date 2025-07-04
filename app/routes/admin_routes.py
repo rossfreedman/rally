@@ -1852,13 +1852,15 @@ def start_impersonation():
             player_association = execute_query_one(
                 """
                 SELECT upa.*, p.first_name as player_first_name, p.last_name as player_last_name,
-                       c.name as club_name, s.name as series_name, l.league_name, l.league_id
+                       c.name as club_name, s.name as series_name, l.league_name, l.league_id, l.id as league_db_id,
+                       t.id as team_id, t.team_name, p.club_id, p.series_id
                 FROM user_player_associations upa
                 JOIN users u ON upa.user_id = u.id
                 JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
                 JOIN clubs c ON p.club_id = c.id
                 JOIN series s ON p.series_id = s.id
                 JOIN leagues l ON p.league_id = l.id
+                JOIN teams t ON p.team_id = t.id
                 WHERE u.email = %s AND upa.tenniscores_player_id = %s
                 """, 
                 [target_email, target_player_id]
@@ -1870,70 +1872,34 @@ def start_impersonation():
         # Backup current admin session before impersonation
         admin_session_backup = dict(session["user"])
         
-        # Get target user's full session data using the auth service
-        from app.services.auth_service_refactored import create_session_data
-        from app.models.database_models import SessionLocal, User, UserPlayerAssociation
+        # If a specific player was selected, update the user's league_context to that player's league
+        if player_association:
+            try:
+                execute_query(
+                    "UPDATE users SET league_context = %s WHERE email = %s",
+                    [player_association["league_db_id"], target_email]
+                )
+                print(f"[IMPERSONATION] Set league_context to {player_association['league_db_id']} for {target_email}")
+            except Exception as e:
+                print(f"[IMPERSONATION] Warning: Could not set league_context: {e}")
         
-        db_session = SessionLocal()
-        try:
-            # Get target user with player associations
-            user_record = db_session.query(User).filter(User.email == target_email).first()
-            
-            if not user_record:
-                return jsonify({"error": "Target user not found in database"}), 404
-            
-            # Get all player associations for the user
-            associations = (
-                db_session.query(UserPlayerAssociation)
-                .filter(UserPlayerAssociation.user_id == user_record.id)
-                .all()
-            )
-            
-            # Build user data for session creation, with specific player as primary
-            players_data = []
-            primary_player = None
-            
-            for assoc in associations:
-                player = assoc.get_player(db_session)
-                if player and player.club and player.series and player.league:
-                    player_data = {
-                        "tenniscores_player_id": player.tenniscores_player_id,
-                        "club": {"name": player.club.name} if player.club else None,
-                        "series": {"name": player.series.name} if player.series else None,
-                        "league": {
-                            "league_id": player.league.league_id,
-                            "name": player.league.league_name
-                        } if player.league else None,
-                    }
-                    players_data.append(player_data)
-                    
-                    # Set the target player as primary if specified
-                    if target_player_id and player.tenniscores_player_id == target_player_id:
-                        primary_player = player_data
-            
-            # If no primary player was set and we have players, use first available (fallback)
-            if not primary_player and players_data:
-                primary_player = players_data[0]
-            
-            # Create target user's session data
-            # Note: We preserve admin status to avoid losing admin privileges during impersonation
-            target_user_data = {
-                "id": user_record.id,
-                "email": user_record.email,
-                "first_name": user_record.first_name,
-                "last_name": user_record.last_name,
-                "is_admin": admin_session_backup.get("is_admin", False),  # Preserve original admin status
-                "ad_deuce_preference": user_record.ad_deuce_preference,
-                "dominant_hand": user_record.dominant_hand,
-                "players": players_data,
-                "primary_player": primary_player,  # This can be None for users without player contexts
-            }
-            
-            # Use auth service to create proper session data
-            target_session_data = create_session_data(target_user_data)
-            
-        finally:
-            db_session.close()
+        # Get target user's full session data using the session service
+        from app.services.session_service import get_session_data_for_user, get_session_data_for_user_team
+        
+        # If a specific player context was selected, use team-specific session building
+        if player_association and player_association.get("team_id"):
+            print(f"[IMPERSONATION] Building session for specific team: {player_association['team_id']} ({player_association['club_name']}, {player_association['series_name']})")
+            target_session_data = get_session_data_for_user_team(target_email, player_association["team_id"])
+        else:
+            # Use generic session building (respects league_context)
+            print(f"[IMPERSONATION] Building generic session data for {target_email}")
+            target_session_data = get_session_data_for_user(target_email)
+        
+        if not target_session_data:
+            return jsonify({"error": "Failed to build session data for target user"}), 500
+        
+        # Preserve admin status for impersonation
+        target_session_data["is_admin"] = admin_session_backup.get("is_admin", False)
         
         # Store impersonation state in session
         session["impersonation_active"] = True
@@ -1979,8 +1945,8 @@ def start_impersonation():
             "message": success_message,
             "impersonated_user": {
                 "email": target_email,
-                "first_name": target_user_data["first_name"],
-                "last_name": target_user_data["last_name"],
+                "first_name": target_session_data.get("first_name", ""),
+                "last_name": target_session_data.get("last_name", ""),
                 "player_context": player_context
             }
         })

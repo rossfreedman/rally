@@ -81,37 +81,45 @@ def serve_mobile():
         
         print(f"[DEBUG] Checking session for user: {user_email}")
         
-        # Check if current session has valid team context - if so, preserve it
-        current_session = session.get("user", {})
-        has_valid_team_context = (
-            current_session.get("team_id") is not None and
-            current_session.get("league_id") is not None and
-            current_session.get("club") and
-            current_session.get("series")
-        )
+        # Check if we're currently impersonating - if so, ALWAYS preserve session
+        is_impersonating = session.get("impersonation_active", False)
         
-        if has_valid_team_context:
-            # Current session already has valid team context (likely from team switch)
-            # Don't override it with database refresh
-            print(f"[DEBUG] Preserving existing team context: {current_session.get('club')} - {current_session.get('series')}")
-            session_data = {"user": current_session, "authenticated": True}
+        if is_impersonating:
+            # During impersonation, never rebuild session - preserve manual selections
+            print(f"[DEBUG] Impersonation active - preserving session as-is")
+            session_data = {"user": session["user"], "authenticated": True}
         else:
-            # Session is incomplete or invalid, refresh from database
-            print(f"[DEBUG] Getting fresh session data for user: {user_email}")
-            fresh_session_data = get_session_data_for_user(user_email)
-                
-            print(f"[DEBUG] Fresh session data result: {fresh_session_data}")
+            # Check if current session has valid team context - if so, preserve it
+            current_session = session.get("user", {})
+            has_valid_team_context = (
+                current_session.get("team_id") is not None and
+                current_session.get("league_id") is not None and
+                current_session.get("club") and
+                current_session.get("series")
+            )
             
-            if fresh_session_data:
-                # Update the Flask session with fresh data
-                session["user"] = fresh_session_data
-                session.modified = True
-                session_data = {"user": fresh_session_data, "authenticated": True}
-                print(f"[DEBUG] Using fresh session data and updated Flask session")
+            if has_valid_team_context:
+                # Current session already has valid team context (likely from team switch)
+                # Don't override it with database refresh
+                print(f"[DEBUG] Preserving existing team context: {current_session.get('club')} - {current_session.get('series')}")
+                session_data = {"user": current_session, "authenticated": True}
             else:
-                # Fallback to old session if session service fails
-                session_data = {"user": session["user"], "authenticated": True}
-                print(f"[DEBUG] Using fallback session data: {session['user']}")
+                # Session is incomplete or invalid, refresh from database
+                print(f"[DEBUG] Getting fresh session data for user: {user_email}")
+                fresh_session_data = get_session_data_for_user(user_email)
+                    
+                print(f"[DEBUG] Fresh session data result: {fresh_session_data}")
+                
+                if fresh_session_data:
+                    # Update the Flask session with fresh data
+                    session["user"] = fresh_session_data
+                    session.modified = True
+                    session_data = {"user": fresh_session_data, "authenticated": True}
+                    print(f"[DEBUG] Using fresh session data and updated Flask session")
+                else:
+                    # Fallback to old session if session service fails
+                    session_data = {"user": session["user"], "authenticated": True}
+                    print(f"[DEBUG] Using fallback session data: {session['user']}")
         
         # Log mobile access
         log_user_activity(user_email, "page_visit", page="mobile_home")
@@ -467,31 +475,38 @@ def serve_mobile_analyze_me():
         
         user_email = session["user"]["email"]
         
-        # Check if current session has valid team context - if so, preserve it
-        current_session = session.get("user", {})
-        has_valid_team_context = (
-            current_session.get("team_id") is not None and
-            current_session.get("league_id") is not None and
-            current_session.get("club") and
-            current_session.get("series")
-        )
+        # Check if we're currently impersonating - if so, ALWAYS preserve session
+        is_impersonating = session.get("impersonation_active", False)
         
-        if has_valid_team_context:
-            # Current session already has valid team context (likely from team switch)
-            # Don't override it with database refresh
-            session_user = current_session
+        if is_impersonating:
+            # During impersonation, never rebuild session - preserve manual selections
+            session_user = session["user"]
         else:
-            # Session is incomplete or invalid, refresh from database
-            fresh_session_data = get_session_data_for_user(user_email)
+            # Check if current session has valid team context - if so, preserve it
+            current_session = session.get("user", {})
+            has_valid_team_context = (
+                current_session.get("team_id") is not None and
+                current_session.get("league_id") is not None and
+                current_session.get("club") and
+                current_session.get("series")
+            )
             
-            if fresh_session_data:
-                # Update Flask session with fresh data
-                session["user"] = fresh_session_data
-                session.modified = True
-                session_user = fresh_session_data
+            if has_valid_team_context:
+                # Current session already has valid team context (likely from team switch)
+                # Don't override it with database refresh
+                session_user = current_session
             else:
-                # Fallback to existing session
-                session_user = session["user"]
+                # Session is incomplete or invalid, refresh from database
+                fresh_session_data = get_session_data_for_user(user_email)
+                
+                if fresh_session_data:
+                    # Update Flask session with fresh data
+                    session["user"] = fresh_session_data
+                    session.modified = True
+                    session_user = fresh_session_data
+                else:
+                    # Fallback to existing session
+                    session_user = session["user"]
 
         # Check if session already has a tenniscores_player_id (set by league switching)
         if session_user.get("tenniscores_player_id"):
@@ -725,7 +740,16 @@ def get_season_history():
 
         # Get current team context from session service
         from app.services.session_service import get_session_data_for_user
-        session_data = get_session_data_for_user(user["email"])
+        
+        # Check if we're currently impersonating - if so, don't rebuild session
+        is_impersonating = session.get("impersonation_active", False)
+        
+        if is_impersonating:
+            # During impersonation, use current session data instead of rebuilding
+            session_data = user
+        else:
+            session_data = get_session_data_for_user(user["email"])
+        
         current_team_id = session_data.get("team_id") if session_data else None
 
         # Get player's database ID - prioritize the player record for current team context
@@ -1394,35 +1418,43 @@ def serve_mobile_settings():
         
         user_email = session["user"]["email"]
         
-        # Check if current session has valid team context - if so, preserve it
-        current_session = session.get("user", {})
-        has_valid_team_context = (
-            current_session.get("team_id") is not None and
-            current_session.get("league_id") is not None and
-            current_session.get("club") and
-            current_session.get("series")
-        )
+        # Check if we're currently impersonating - if so, ALWAYS preserve session
+        is_impersonating = session.get("impersonation_active", False)
         
-        if has_valid_team_context:
-            # Current session already has valid team context (likely from team switch)
-            # Don't override it with database refresh
-            session_user = current_session
-            print(f"[DEBUG] Settings: Preserving existing team context: {current_session.get('club')} - {current_session.get('series')}")
+        if is_impersonating:
+            # During impersonation, never rebuild session - preserve manual selections
+            session_user = session["user"]
+            print(f"[DEBUG] Settings: Impersonation active - preserving session as-is")
         else:
-            # Session is incomplete or invalid, refresh from database
-            print(f"[DEBUG] Settings: Getting fresh session data for user: {user_email}")
-            fresh_session_data = get_session_data_for_user(user_email)
+            # Check if current session has valid team context - if so, preserve it
+            current_session = session.get("user", {})
+            has_valid_team_context = (
+                current_session.get("team_id") is not None and
+                current_session.get("league_id") is not None and
+                current_session.get("club") and
+                current_session.get("series")
+            )
             
-            if fresh_session_data:
-                # Update Flask session with fresh data
-                session["user"] = fresh_session_data
-                session.modified = True
-                session_user = fresh_session_data
-                print(f"[DEBUG] Settings: Using fresh session data and updated Flask session")
+            if has_valid_team_context:
+                # Current session already has valid team context (likely from team switch)
+                # Don't override it with database refresh
+                session_user = current_session
+                print(f"[DEBUG] Settings: Preserving existing team context: {current_session.get('club')} - {current_session.get('series')}")
             else:
-                # Fallback to existing session
-                session_user = session["user"]
-                print(f"[DEBUG] Settings: Using fallback session data: {session['user']}")
+                # Session is incomplete or invalid, refresh from database
+                print(f"[DEBUG] Settings: Getting fresh session data for user: {user_email}")
+                fresh_session_data = get_session_data_for_user(user_email)
+                
+                if fresh_session_data:
+                    # Update Flask session with fresh data
+                    session["user"] = fresh_session_data
+                    session.modified = True
+                    session_user = fresh_session_data
+                    print(f"[DEBUG] Settings: Using fresh session data and updated Flask session")
+                else:
+                    # Fallback to existing session
+                    session_user = session["user"]
+                    print(f"[DEBUG] Settings: Using fallback session data: {session['user']}")
 
         session_data = {"user": session_user, "authenticated": True}
 
@@ -3368,7 +3400,15 @@ def get_mobile_track_byes_data(user):
         team_members = get_team_members_with_court_stats(user_team_id, user)
         
         # Get additional team info from session or database
-        session_data = get_session_data_for_user(user_email)
+        # Check if we're currently impersonating - if so, don't rebuild session
+        from flask import session as flask_session
+        is_impersonating = flask_session.get("impersonation_active", False)
+        
+        if is_impersonating:
+            # During impersonation, use current session data instead of rebuilding
+            session_data = user
+        else:
+            session_data = get_session_data_for_user(user_email)
         
         # Get current team info
         current_team_info = {
@@ -3450,8 +3490,12 @@ def serve_track_byes_courts():
         if requested_league_id:
             logger.info(f"League switch requested via URL: {user_email} -> {requested_league_id}")
             
-            # Switch to new league
-            if switch_user_league(user_email, requested_league_id):
+            # Switch to new league - but not during impersonation
+            is_impersonating = session.get("impersonation_active", False)
+            
+            if is_impersonating:
+                logger.info(f"Impersonation active - preserving context instead of switching leagues")
+            elif switch_user_league(user_email, requested_league_id):
                 # Update session with fresh data
                 fresh_session_data = get_session_data_for_user(user_email)
                 if fresh_session_data:

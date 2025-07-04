@@ -284,13 +284,13 @@ class ContextService:
         )
     
     @staticmethod
-    def create_enhanced_session_data(user_data: Dict[str, Any], user_id: int) -> Dict[str, Any]:
+    def create_enhanced_session_data(user_data: Dict[str, Any], user_id: int, preserve_context: bool = False) -> Dict[str, Any]:
         """Create enhanced session data with context information"""
         # Get current context
         context_info = ContextService.get_context_info(user_id)
         
-        # If no context exists, try to auto-detect
-        if not context_info.get("league_id"):
+        # Only auto-detect if no context exists AND we're not preserving context
+        if not context_info.get("league_id") and not preserve_context:
             auto_context_result = ContextService.auto_detect_context(user_id)
             if auto_context_result.get("success"):
                 context_info = ContextService.get_context_info(user_id)
