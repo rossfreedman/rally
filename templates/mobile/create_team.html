@@ -262,6 +262,33 @@
     flex-wrap: wrap;
     align-items: flex-start;
     align-content: flex-start;
+    justify-content: flex-start;
+}
+
+/* Compact player cards for team assignments */
+.drop-zone .player-card {
+    width: calc(50% - 0.25rem) !important; /* Two columns with gap */
+    max-width: calc(50% - 0.25rem) !important;
+    min-width: 0;
+    flex: 0 0 calc(50% - 0.25rem);
+    text-align: center;
+    padding: 0.375rem 0.25rem !important; /* Smaller padding */
+    font-size: 0.7rem !important; /* Smaller text */
+    line-height: 1.2;
+    box-sizing: border-box;
+}
+
+/* Make player card content more compact */
+.drop-zone .player-card > div {
+    margin: 0.125rem 0;
+    font-size: 0.65rem;
+}
+
+/* Smaller text for remove instruction */
+.drop-zone .player-card .text-xs {
+    font-size: 0.6rem !important;
+    margin-top: 0.125rem !important;
+    opacity: 0.6;
 }
 
 /* Drag and drop styling */
@@ -1047,19 +1074,19 @@ document.addEventListener('DOMContentLoaded', function() {
                      ondragleave="handleDragLeave(event)"
                      ondrop="handleDrop(event, '${series.series_name}')"
                      onclick="assignPlayerToSeries('${series.series_name}')">
-                    <div id="team-${series.series_name}" class="flex flex-wrap gap-2 items-start">
+                    <div id="team-${series.series_name}" class="flex flex-wrap gap-1 items-start">
                         ${teamAssignments[series.series_name] ? teamAssignments[series.series_name].map(player => `
-                            <div class="player-card ${getPTIColorClass(player.pti)} border rounded px-2 py-1 text-xs cursor-grab"
+                            <div class="player-card ${getPTIColorClass(player.pti)} border rounded cursor-grab"
                                  data-player-id="${player.id}"
                                  draggable="true"
                                  ondragstart="handleAssignedPlayerDragStart(event, '${player.id}', '${series.series_name}')"
                                  ondragend="handleDragEnd(event)"
                                  ondblclick="returnPlayerToPool('${player.id}', '${series.series_name}')">
-                                ${player.name || `${player.first_name} ${player.last_name}`}
+                                <div class="font-medium">${player.name || `${player.first_name} ${player.last_name}`}</div>
                                 <div>PTI: ${player.pti ? player.pti.toFixed(1) : 'N/A'}</div>
-                                <div class="text-xs opacity-75 mt-1">Double-click to remove</div>
+                                <div class="text-xs opacity-75">Double-click to remove</div>
                             </div>
-                        `).join('') : '<div class="text-gray-400 text-sm">Drag players here or tap to assign selected player</div>'}
+                        `).join('') : '<div class="text-gray-400 text-sm w-full text-center py-4">Drag players here or tap to assign selected player</div>'}
                     </div>
                 </div>
             </div>
