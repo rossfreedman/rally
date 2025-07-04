@@ -25,11 +25,26 @@ This guide ensures that the series_id foreign key system never breaks again by i
 ### 1. **Automated ETL Integration** ✅
 
 The ETL script now automatically:
-- Populates `series_id` when creating new `series_stats` records
+- Populates `series_id` when creating new `series_stats` records  
 - Runs post-import validation to catch NULL series_id issues
 - Auto-populates missing series_id values after import
+- **NEW**: Enhanced error handling with health score monitoring
+- **NEW**: Critical alerts when health score drops below 85%
+- **NEW**: Detailed failure reporting for debugging
+- **NEW**: Final validation step ensures quality before completion
 
 **Location**: `data/etl/database_import/import_all_jsons_to_database.py`
+
+**ETL Process Flow**:
+```
+1. Import series_stats data
+2. Validate import coverage  
+3. Auto-populate missing series_id values ← AUTOMATIC
+4. Check health score (fail if < 85%)
+5. Continue with other imports
+6. Final series_id health validation ← AUTOMATIC
+7. Report final health score in summary
+```
 
 ### 2. **Monitoring Tools** ✅
 
