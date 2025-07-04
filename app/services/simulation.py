@@ -907,23 +907,24 @@ def get_teams_for_selection(
 
 
 
-        # Get teams from the new teams table with club and series info
+        # Try a simple query first to test database connectivity
+        try:
+            simple_query = "SELECT COUNT(*) as count FROM teams WHERE league_id = %s AND is_active = TRUE"
+            simple_result = execute_query_one(simple_query, [league_id_int])
+            team_count = simple_result["count"] if simple_result else 0
+            print(f"[DEBUG] Simple count query found {team_count} active teams in league {league_id_int}")
+        except Exception as e:
+            print(f"[DEBUG] Simple count query failed: {e}")
+            return []
+
+        # Get teams with simplified query to avoid complex COALESCE
         query = """
             SELECT DISTINCT 
                 t.id as team_id,
                 t.team_name,
                 t.team_alias,
                 c.name as club_name,
-                s.name as series_name,
-                -- Generate display name: use alias if exists, otherwise create from series
-                COALESCE(
-                    t.team_alias,
-                    CASE 
-                        WHEN s.name LIKE 'Chicago %' THEN 'Series ' || REPLACE(s.name, 'Chicago ', '')
-                        WHEN s.name LIKE 'Division %' THEN 'Series ' || REPLACE(s.name, 'Division ', '')
-                        ELSE s.name
-                    END
-                ) as display_name
+                s.name as series_name
             FROM teams t
             JOIN clubs c ON t.club_id = c.id
             JOIN series s ON t.series_id = s.id
@@ -935,27 +936,41 @@ def get_teams_for_selection(
             query += " AND t.league_id = %s"
             params.append(league_id_int)
 
-        # Filter by user's series if provided (show all teams in series, not just user's club)
-        if user_series:
-            query += " AND s.name = %s"
-            params.append(user_series)
+        query += " ORDER BY c.name, s.name LIMIT 50"
 
-        query += " ORDER BY c.name, s.name"
-
-        results = execute_query(query, params)
+        print(f"[DEBUG] Executing query: {query}")
+        print(f"[DEBUG] With params: {params}")
+        
+        try:
+            results = execute_query(query, params)
+            print(f"[DEBUG] Query returned: {type(results)} with {len(results) if results else 0} results")
+        except Exception as e:
+            print(f"[DEBUG] Main query failed: {e}")
+            print(f"[DEBUG] Returning empty list for now")
+            results = []
 
         teams = []
-        for row in results:
-            # The SQL query already handles display_name generation
-            display_name = row["display_name"]
-            
-            teams.append({
-                "id": row["team_id"],
-                "name": row["team_name"], 
-                "display_name": display_name,
-                "club_name": row["club_name"],
-                "series_name": row["series_name"]
-            })
+        if results:
+            for row in results:
+                # Generate display name from series - simplified version
+                series_name = row["series_name"]
+                if series_name and "Chicago" in series_name:
+                    # Convert "Chicago 22" -> "Series 22"
+                    display_name = series_name.replace("Chicago ", "Series ")
+                elif row["team_alias"]:
+                    display_name = row["team_alias"]
+                else:
+                    display_name = series_name or row["team_name"]
+                
+                teams.append({
+                    "id": row["team_id"],
+                    "name": row["team_name"], 
+                    "display_name": display_name,
+                    "club_name": row["club_name"],
+                    "series_name": row["series_name"]
+                })
+                
+            print(f"[DEBUG] Processed {len(teams)} teams successfully")
 
         print(
             f"[DEBUG] get_teams_for_selection: Found {len(teams)} teams for league_id {league_id_int} (all series in league)"
