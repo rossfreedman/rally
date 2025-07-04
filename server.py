@@ -394,9 +394,8 @@ def serve_create_team_page():
 
 
 @app.route("/<path:path>")
-@login_required
 def serve_static(path):
-    """Serve static files with authentication"""
+    """Serve static files with authentication (except website directory)"""
     public_files = {
         "login.html",
         "signup.html",
@@ -415,11 +414,13 @@ def serve_static(path):
             or file_path.startswith("css/")
             or file_path.startswith("js/")
             or file_path.startswith("images/")
+            or file_path.startswith("website/")  # Allow public access to marketing site
         )
 
     if is_public_file(path):
         return send_from_directory(".", path)
 
+    # Require authentication for all other files
     if "user" not in session:
         return redirect("/login")
 
