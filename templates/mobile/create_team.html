@@ -591,7 +591,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     async function resolveRangeConflicts(changedSeriesName, changedSeries) {
-        console.log('Making all ranges contiguous with no overlaps...');
+        console.log('Making all ranges truly contiguous with NO overlaps...');
         
         // Show repositioning warning
         showConflictWarning(changedSeriesName.replace(/\s+/g, '-'));
@@ -606,28 +606,54 @@ document.addEventListener('DOMContentLoaded', function() {
             return getSeriesNumber(a.series_name) - getSeriesNumber(b.series_name);
         });
         
-        console.log('Making series contiguous in order:', sortedSeries.map(s => s.series_name));
+        console.log('Creating TRUE contiguous ranges in order:', sortedSeries.map(s => s.series_name));
         
-        // Make all series perfectly contiguous
+        // Make series truly contiguous: each max = next min - 0.01
         for (let i = 0; i < sortedSeries.length; i++) {
             const series = sortedSeries[i];
             const seriesId = series.series_name.replace(/\s+/g, '-');
             
             if (i === 0) {
-                // First series: keep its current range as the starting point
-                console.log(`${series.series_name} (first): keeping range ${series.current_range.min} - ${series.current_range.max}`);
+                // First series: only adjust max if it would overlap with Series 2
+                if (sortedSeries.length > 1) {
+                    const nextSeries = sortedSeries[1];
+                    // If Series 1 max >= Series 2 min, fix the overlap
+                    if (series.current_range.max >= nextSeries.current_range.min) {
+                        // Make Series 1 end just before Series 2 starts
+                        series.current_range.max = nextSeries.current_range.min - 0.01;
+                        console.log(`${series.series_name}: adjusted max to avoid overlap: ${series.current_range.min} - ${series.current_range.max}`);
+                        
+                        // Update sliders and display
+                        updateSliderValue(seriesId, 'max', series.current_range.max);
+                        updateSeriesDisplay(seriesId, series);
+                        await updateSeriesRangeBackend(series.series_name, series.current_range);
+                    } else {
+                        console.log(`${series.series_name}: no overlap, keeping range ${series.current_range.min} - ${series.current_range.max}`);
+                    }
+                } else {
+                    console.log(`${series.series_name}: only series, keeping range ${series.current_range.min} - ${series.current_range.max}`);
+                }
             } else {
                 // All subsequent series: start exactly where previous series ends + 0.01
                 const previousSeries = sortedSeries[i - 1];
                 const newMin = previousSeries.current_range.max + 0.01;
                 
-                // Keep the same range size as before
-                const currentRangeSize = series.current_range.max - series.current_range.min;
-                const newMax = newMin + currentRangeSize;
+                // Set new minimum
+                series.current_range.min = parseFloat(newMin.toFixed(2));
+                
+                // If there's a next series, make sure we don't overlap with it
+                if (i < sortedSeries.length - 1) {
+                    const nextSeries = sortedSeries[i + 1];
+                    // Make sure this series max doesn't overlap with next series min
+                    if (series.current_range.max >= nextSeries.current_range.min) {
+                        series.current_range.max = nextSeries.current_range.min - 0.01;
+                    }
+                }
+                // For last series, keep its current max
                 
                 // Apply the new contiguous range
-                series.current_range.min = parseFloat(newMin.toFixed(2));
-                series.current_range.max = parseFloat(newMax.toFixed(2));
+                series.current_range.min = parseFloat(series.current_range.min.toFixed(2));
+                series.current_range.max = parseFloat(series.current_range.max.toFixed(2));
                 
                 // Update sliders and display
                 updateSliderValue(seriesId, 'min', series.current_range.min);
@@ -637,7 +663,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Update backend
                 await updateSeriesRangeBackend(series.series_name, series.current_range);
                 
-                console.log(`${series.series_name}: adjusted to contiguous range ${series.current_range.min} - ${series.current_range.max}`);
+                console.log(`${series.series_name}: fixed to NO overlap: ${series.current_range.min} - ${series.current_range.max}`);
+            }
+        }
+        
+        // Final verification: check for any remaining overlaps
+        for (let i = 0; i < sortedSeries.length - 1; i++) {
+            const current = sortedSeries[i];
+            const next = sortedSeries[i + 1];
+            if (current.current_range.max >= next.current_range.min) {
+                console.error(`OVERLAP DETECTED: ${current.series_name} max ${current.current_range.max} >= ${next.series_name} min ${next.current_range.min}`);
+            } else {
+                console.log(`✅ NO overlap: ${current.series_name} (${current.current_range.max}) -> ${next.series_name} (${next.current_range.min})`);
             }
         }
         
@@ -646,7 +683,7 @@ document.addEventListener('DOMContentLoaded', function() {
             hideConflictWarning(changedSeriesName.replace(/\s+/g, '-'));
         }, 1500);
         
-        console.log('All series are now contiguous with no overlaps!');
+        console.log('✅ All series are now TRULY contiguous with NO overlaps!');
     }
 
 
@@ -752,11 +789,57 @@ document.addEventListener('DOMContentLoaded', function() {
             seriesRanges = data.series_ranges || [];
             console.log(`Loaded ${seriesRanges.length} series`);
             
+            // Automatically fix any overlaps that exist in the loaded data
+            await fixAllOverlapsAutomatically();
+            
             displaySeriesControls();
             displaySeriesTeams();
         } catch (error) {
             console.error('Error loading series:', error);
             throw error;
+        }
+    }
+
+    // Automatically fix overlaps without waiting for user interaction
+    async function fixAllOverlapsAutomatically() {
+        console.log('🔧 Automatically fixing any overlaps in loaded data...');
+        
+        // Sort series by their natural numeric order (Series 1, Series 2, etc.)
+        function getSeriesNumber(seriesName) {
+            const match = seriesName.match(/(\d+)/);
+            return match ? parseInt(match[1]) : 999;
+        }
+        
+        const sortedSeries = [...seriesRanges].sort((a, b) => {
+            return getSeriesNumber(a.series_name) - getSeriesNumber(b.series_name);
+        });
+        
+        let overlapsFixed = 0;
+        
+        // Check each pair of consecutive series for overlaps
+        for (let i = 0; i < sortedSeries.length - 1; i++) {
+            const current = sortedSeries[i];
+            const next = sortedSeries[i + 1];
+            
+            // If current max >= next min, there's an overlap
+            if (current.current_range.max >= next.current_range.min) {
+                console.log(`🚨 OVERLAP: ${current.series_name} (${current.current_range.max}) overlaps ${next.series_name} (${next.current_range.min})`);
+                
+                // Fix: Make current end just before next starts
+                current.current_range.max = next.current_range.min - 0.01;
+                overlapsFixed++;
+                
+                console.log(`✅ FIXED: ${current.series_name} now ends at ${current.current_range.max}`);
+                
+                // Update backend
+                await updateSeriesRangeBackend(current.series_name, current.current_range);
+            }
+        }
+        
+        if (overlapsFixed > 0) {
+            console.log(`🎉 Fixed ${overlapsFixed} overlaps automatically!`);
+        } else {
+            console.log('✅ No overlaps detected - ranges are already contiguous!');
         }
     }
 
