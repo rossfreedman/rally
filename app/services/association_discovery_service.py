@@ -260,10 +260,12 @@ class AssociationDiscoveryService:
             "billy": ["william", "bill", "will"],
             "will": ["william", "bill", "billy"],
             
-            "robert": ["rob", "bob", "bobby"],
+            "robert": ["rob", "bob", "bobby", "ross"],
             "rob": ["robert", "bob", "bobby"],
             "bob": ["robert", "rob", "bobby"],
             "bobby": ["robert", "rob", "bob"],
+            
+            "ross": ["robert", "rob"],
             
             "michael": ["mike", "mick"],
             "mike": ["michael", "mick"],

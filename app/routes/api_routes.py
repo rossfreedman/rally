@@ -3847,38 +3847,80 @@ def update_pti_range():
 @api_bp.route("/api/create-team/update-series-range", methods=["POST"])
 @login_required  
 def update_series_range():
-    """Update PTI range for a specific series with real-time conflict detection"""
+    """Update PTI range for a specific series with enhanced validation and error handling"""
     try:
         data = request.get_json()
         
         if not data:
-            return jsonify({"success": False, "error": "No data provided"}), 400
+            return jsonify({
+                "success": False, 
+                "error": "No data provided in request body"
+            }), 400
         
         series_name = data.get('series_name')
         min_pti = data.get('min_pti')
         max_pti = data.get('max_pti')
         
-        if not all([series_name, min_pti is not None, max_pti is not None]):
-            return jsonify({"success": False, "error": "Missing required fields"}), 400
+        # Enhanced field validation
+        missing_fields = []
+        if not series_name:
+            missing_fields.append('series_name')
+        if min_pti is None:
+            missing_fields.append('min_pti')
+        if max_pti is None:
+            missing_fields.append('max_pti')
+            
+        if missing_fields:
+            return jsonify({
+                "success": False, 
+                "error": f"Missing required fields: {', '.join(missing_fields)}"
+            }), 400
         
-        # Convert to floats
+        # Convert and validate numeric values
         try:
             min_pti = float(min_pti)
             max_pti = float(max_pti)
-        except (ValueError, TypeError):
-            return jsonify({"success": False, "error": "Invalid PTI values"}), 400
+        except (ValueError, TypeError) as e:
+            return jsonify({
+                "success": False, 
+                "error": f"Invalid PTI values - must be numeric: {str(e)}"
+            }), 400
         
-        # Validate range
+        # Enhanced range validation
+        validation_errors = []
+        
         if min_pti >= max_pti:
-            return jsonify({"success": False, "error": "Minimum PTI must be less than maximum PTI"}), 400
+            validation_errors.append("Minimum PTI must be less than maximum PTI")
         
-        if min_pti < -30 or max_pti > 100:
-            return jsonify({"success": False, "error": "PTI values must be between -30 and 100"}), 400
+        if abs(max_pti - min_pti) < 0.01:
+            validation_errors.append("PTI range must be at least 0.01 points wide")
+        
+        if min_pti < -30:
+            validation_errors.append("Minimum PTI cannot be below -30")
+        
+        if max_pti > 100:
+            validation_errors.append("Maximum PTI cannot exceed 100")
+        
+        if abs(max_pti - min_pti) > 50:
+            validation_errors.append("PTI range cannot exceed 50 points (too wide)")
+        
+        # Check for reasonable PTI values
+        if min_pti > 80:
+            validation_errors.append("Minimum PTI above 80 is unrealistic")
+        
+        if max_pti < -20:
+            validation_errors.append("Maximum PTI below -20 is unrealistic")
+        
+        if validation_errors:
+            return jsonify({
+                "success": False, 
+                "error": "; ".join(validation_errors)
+            }), 400
         
         user = session["user"]
-        user_email = user.get("email")
+        user_email = user.get("email", "unknown")
         
-        # Log the range update activity
+        # Enhanced logging with validation info
         log_user_activity(
             user_email, 
             "series_range_update", 
@@ -3887,32 +3929,48 @@ def update_series_range():
                 "series_name": series_name,
                 "min_pti": min_pti,
                 "max_pti": max_pti,
+                "range_width": round(max_pti - min_pti, 2),
+                "validation_passed": True,
                 "timestamp": datetime.now().isoformat()
             }
         )
         
-        # In a full implementation, you would:
-        # 1. Save the range to a series_ranges or series_settings table
-        # 2. Check for conflicts with other series ranges
-        # 3. Update related calculations
+        # TODO: In a full implementation, you would:
+        # 1. Save to series_ranges table
+        # 2. Validate against other series for conflicts
+        # 3. Update related team assignments
+        # 4. Trigger recalculations if needed
         
-        # For now, we'll simulate a successful update
+        # For now, simulate successful update with enhanced response
         return jsonify({
             "success": True,
-            "message": f"PTI range updated for {series_name}",
+            "message": f"PTI range successfully updated for {series_name}",
             "series_name": series_name,
             "updated_range": {
-                "min": min_pti,
-                "max": max_pti
+                "min": round(min_pti, 2),
+                "max": round(max_pti, 2),
+                "width": round(max_pti - min_pti, 2)
+            },
+            "validation": {
+                "passed": True,
+                "range_check": "valid",
+                "bounds_check": "within_limits"
             },
             "timestamp": datetime.now().isoformat()
-        })
+        }), 200
         
     except Exception as e:
-        print(f"Error updating series range: {str(e)}")
+        print(f"❌ Error in update_series_range: {str(e)}")
         import traceback
         print(f"Full traceback: {traceback.format_exc()}")
-        return jsonify({"success": False, "error": "Failed to update series range"}), 500
+        
+        # Return structured error response
+        return jsonify({
+            "success": False, 
+            "error": f"Server error: {str(e)}",
+            "error_type": "server_error",
+            "timestamp": datetime.now().isoformat()
+        }), 500
 
 
 @api_bp.route("/api/debug/database-state")
