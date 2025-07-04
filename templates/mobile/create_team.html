@@ -241,6 +241,9 @@
     margin: 0.5rem 0;
     cursor: pointer;
     position: relative;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
 }
 
 .drop-zone.drop-zone-active {
@@ -251,10 +254,21 @@
     box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
 }
 
+/* Team assignment container styling */
+.drop-zone > div {
+    min-height: inherit;
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    align-content: flex-start;
+}
+
 /* Drag and drop styling */
 .player-card[draggable="true"] {
     cursor: grab;
     user-select: none;
+    flex-shrink: 0; /* Prevent cards from shrinking */
 }
 
 .player-card[draggable="true"]:active {
@@ -1025,14 +1039,15 @@ document.addEventListener('DOMContentLoaded', function() {
                         </span>
                     </div>
                 </div>
-                <div class="drop-zone min-h-16 border-2 border-dashed border-gray-300 rounded-lg p-3" 
+                <div class="drop-zone min-h-16 max-h-none border-2 border-dashed border-gray-300 rounded-lg p-3" 
+                     style="height: auto; overflow: visible;"
                      data-series="${series.series_name}"
                      ondragover="handleDragOver(event)"
                      ondragenter="handleDragEnter(event)"
                      ondragleave="handleDragLeave(event)"
                      ondrop="handleDrop(event, '${series.series_name}')"
                      onclick="assignPlayerToSeries('${series.series_name}')">
-                    <div id="team-${series.series_name}" class="flex flex-wrap gap-2">
+                    <div id="team-${series.series_name}" class="flex flex-wrap gap-2 items-start">
                         ${teamAssignments[series.series_name] ? teamAssignments[series.series_name].map(player => `
                             <div class="player-card ${getPTIColorClass(player.pti)} border rounded px-2 py-1 text-xs cursor-grab"
                                  data-player-id="${player.id}"
