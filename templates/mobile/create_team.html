@@ -591,100 +591,62 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     async function resolveRangeConflicts(changedSeriesName, changedSeries) {
-        console.log('Repositioning ALL series to maintain sequential order with no overlaps...');
+        console.log('Making all ranges contiguous with no overlaps...');
         
         // Show repositioning warning
         showConflictWarning(changedSeriesName.replace(/\s+/g, '-'));
         
-        // Sort all series by their average PTI to determine natural order
+        // Sort series by their natural numeric order (Series 1, Series 2, etc.)
+        function getSeriesNumber(seriesName) {
+            const match = seriesName.match(/(\d+)/);
+            return match ? parseInt(match[1]) : 999;
+        }
+        
         const sortedSeries = [...seriesRanges].sort((a, b) => {
-            const aAvg = (a.current_range.min + a.current_range.max) / 2;
-            const bAvg = (b.current_range.min + b.current_range.max) / 2;
-            return aAvg - bAvg;
+            return getSeriesNumber(a.series_name) - getSeriesNumber(b.series_name);
         });
         
-        console.log('Series natural order (by average PTI):', sortedSeries.map(s => s.series_name));
+        console.log('Making series contiguous in order:', sortedSeries.map(s => s.series_name));
         
-        // Find the index of the changed series in the sorted array
-        const changedIndex = sortedSeries.findIndex(s => s.series_name === changedSeriesName);
-        
-        // The gap between series (0.01 PTI)
-        const seriesGap = 0.01;
-        
-        // Reposition all series to maintain sequential order
+        // Make all series perfectly contiguous
         for (let i = 0; i < sortedSeries.length; i++) {
             const series = sortedSeries[i];
             const seriesId = series.series_name.replace(/\s+/g, '-');
             
-            // Skip the changed series - it keeps its new range
-            if (i === changedIndex) {
-                console.log(`Keeping ${series.series_name} at user-set range: ${series.current_range.min.toFixed(2)} - ${series.current_range.max.toFixed(2)}`);
-                continue;
-            }
-            
-            // Calculate the range size for this series
-            const rangeSize = series.current_range.max - series.current_range.min;
-            
-            let newMin, newMax;
-            
-            if (i < changedIndex) {
-                // Series BEFORE the changed series - position them sequentially ending just before changed series
-                if (i === 0) {
-                    // First series can start wherever it wants, but must end before the next
-                    newMax = changedSeries.current_range.min - seriesGap;
-                    newMin = newMax - rangeSize;
-                } else {
-                    // Position after the previous series
-                    const previousSeries = sortedSeries[i - 1];
-                    newMin = previousSeries.current_range.max + seriesGap;
-                    newMax = newMin + rangeSize;
-                    
-                    // If this would overlap with changed series, compress it to fit
-                    if (newMax > changedSeries.current_range.min - seriesGap) {
-                        newMax = changedSeries.current_range.min - seriesGap;
-                        newMin = newMax - rangeSize;
-                    }
-                }
+            if (i === 0) {
+                // First series: keep its current range as the starting point
+                console.log(`${series.series_name} (first): keeping range ${series.current_range.min} - ${series.current_range.max}`);
             } else {
-                // Series AFTER the changed series - position them sequentially starting after changed series
-                if (i === changedIndex + 1) {
-                    // First series after changed series
-                    newMin = changedSeries.current_range.max + seriesGap;
-                    newMax = newMin + rangeSize;
-                } else {
-                    // Position after the previous series
-                    const previousSeries = sortedSeries[i - 1];
-                    newMin = previousSeries.current_range.max + seriesGap;
-                    newMax = newMin + rangeSize;
-                }
+                // All subsequent series: start exactly where previous series ends + 0.01
+                const previousSeries = sortedSeries[i - 1];
+                const newMin = previousSeries.current_range.max + 0.01;
+                
+                // Keep the same range size as before
+                const currentRangeSize = series.current_range.max - series.current_range.min;
+                const newMax = newMin + currentRangeSize;
+                
+                // Apply the new contiguous range
+                series.current_range.min = parseFloat(newMin.toFixed(2));
+                series.current_range.max = parseFloat(newMax.toFixed(2));
+                
+                // Update sliders and display
+                updateSliderValue(seriesId, 'min', series.current_range.min);
+                updateSliderValue(seriesId, 'max', series.current_range.max);
+                updateSeriesDisplay(seriesId, series);
+                
+                // Update backend
+                await updateSeriesRangeBackend(series.series_name, series.current_range);
+                
+                console.log(`${series.series_name}: adjusted to contiguous range ${series.current_range.min} - ${series.current_range.max}`);
             }
-            
-            // Apply the new range with 2-decimal precision
-            const adjustment = {
-                min: parseFloat(newMin.toFixed(2)),
-                max: parseFloat(newMax.toFixed(2))
-            };
-            
-            series.current_range.min = adjustment.min;
-            series.current_range.max = adjustment.max;
-            
-            // Update sliders and display
-            updateSliderValue(seriesId, 'min', adjustment.min);
-            updateSliderValue(seriesId, 'max', adjustment.max);
-            updateSeriesDisplay(seriesId, series);
-            
-            // Update backend
-            await updateSeriesRangeBackend(series.series_name, series.current_range);
-            
-            console.log(`Repositioned ${series.series_name} to sequential range: ${adjustment.min} - ${adjustment.max}`);
         }
         
         // Hide repositioning warning after adjustments
         setTimeout(() => {
             hideConflictWarning(changedSeriesName.replace(/\s+/g, '-'));
-        }, 3000);
+        }, 1500);
         
-        console.log('Sequential repositioning complete - no overlaps or gaps between series');
+        console.log('All series are now contiguous with no overlaps!');
     }
 
 
