@@ -6,12 +6,12 @@ This script creates comprehensive backups of the Rally PostgreSQL database using
 while also capturing Alembic migration state and providing restore capabilities.
 
 Usage:
-    python3 scripts/backup_database.py                    # Create backup with default settings
-    python3 scripts/backup_database.py --format custom    # Create binary backup (smaller, faster)
-    python3 scripts/backup_database.py --schema-only      # Create schema-only backup
-    python3 scripts/backup_database.py --data-only        # Create data-only backup
-    python3 scripts/backup_database.py --list             # List existing backups
-    python3 scripts/backup_database.py --max-backups 5    # Keep only 5 most recent backups
+    python3 data/backup_restore_local_db/backup_database.py                    # Create backup with default settings
+python3 data/backup_restore_local_db/backup_database.py --format custom    # Create binary backup (smaller, faster)
+python3 data/backup_restore_local_db/backup_database.py --schema-only      # Create schema-only backup
+python3 data/backup_restore_local_db/backup_database.py --data-only        # Create data-only backup
+python3 data/backup_restore_local_db/backup_database.py --list             # List existing backups
+python3 data/backup_restore_local_db/backup_database.py --max-backups 5    # Keep only 5 most recent backups
 
 Features:
 - Uses pg_dump for reliable PostgreSQL backups
@@ -438,6 +438,168 @@ def list_backups():
         logger.error(f"Error listing backups: {e}")
 
 
+def restore_backup(backup_path, confirm=True):
+    """Restore database from a backup file using pg_restore"""
+    try:
+        config = get_database_config()
+        
+        # Validate backup file exists
+        if not os.path.exists(backup_path):
+            logger.error(f"❌ Backup file not found: {backup_path}")
+            return False
+            
+        # Load backup metadata to determine format
+        metadata_path = backup_path + ".metadata.json"
+        backup_format = "custom"  # default
+        
+        if os.path.exists(metadata_path):
+            try:
+                with open(metadata_path, "r") as f:
+                    metadata = json.load(f)
+                    backup_format = metadata.get("backup_format", "custom")
+                    logger.info(f"📋 Backup metadata loaded - Format: {backup_format}")
+            except Exception as e:
+                logger.warning(f"Could not load metadata: {e}")
+        
+        logger.info(f"🔄 Restoring database from backup...")
+        logger.info(f"Backup: {backup_path}")
+        logger.info(f"Database: {config['host']}:{config['port']}/{config['database']}")
+        logger.info(f"Format: {backup_format}")
+        
+        # Confirmation check
+        if confirm:
+            logger.warning("⚠️  THIS WILL COMPLETELY REPLACE THE CURRENT DATABASE!")
+            response = input("Are you sure you want to proceed? (yes/no): ")
+            if response.lower() != "yes":
+                logger.info("❌ Restore cancelled by user")
+                return False
+        
+        start_time = datetime.now()
+        
+        # Determine restore method based on format
+        if backup_format == "sql":
+            # Use psql for SQL backups
+            cmd = [
+                "psql",
+                "--host", config["host"],
+                "--port", str(config["port"]),
+                "--username", config["user"],
+                "--dbname", config["database"],
+                "--file", backup_path,
+                "--single-transaction",
+                "--set", "ON_ERROR_STOP=on"
+            ]
+        else:
+            # Use pg_restore for custom/tar/directory formats
+            cmd = [
+                "pg_restore",
+                "--host", config["host"],
+                "--port", str(config["port"]),
+                "--username", config["user"],
+                "--dbname", config["database"],
+                "--verbose",
+                "--clean",  # Drop existing objects before recreating
+                "--if-exists",  # Don't error if objects don't exist
+                "--single-transaction"
+            ]
+            
+            if backup_format == "directory":
+                cmd.extend(["--format", "directory"])
+            
+            cmd.append(backup_path)
+        
+        # Set environment for password
+        env = os.environ.copy()
+        env["PGPASSWORD"] = config["password"]
+        
+        # Run restore command
+        logger.info(f"Running: {' '.join(cmd)}")
+        result = subprocess.run(cmd, env=env, capture_output=True, text=True)
+        
+        end_time = datetime.now()
+        duration = (end_time - start_time).total_seconds()
+        
+        if result.returncode != 0:
+            logger.error(f"❌ Restore failed: {result.stderr}")
+            return False
+        
+        logger.info(f"✅ Database restore completed successfully!")
+        logger.info(f"Duration: {duration:.2f} seconds")
+        
+        # Verify restore by checking table counts
+        try:
+            verify_restore(config, metadata_path if os.path.exists(metadata_path) else None)
+        except Exception as e:
+            logger.warning(f"Could not verify restore: {e}")
+        
+        return True
+        
+    except Exception as e:
+        logger.error(f"❌ Error during restore: {e}")
+        return False
+
+
+def verify_restore(config, metadata_path=None):
+    """Verify database restore by checking basic stats"""
+    try:
+        conn = psycopg2.connect(
+            host=config["host"],
+            port=config["port"],
+            database=config["database"],
+            user=config["user"],
+            password=config["password"],
+        )
+        
+        current_stats = {}
+        with conn.cursor() as cur:
+            # Get table count
+            cur.execute("""
+                SELECT COUNT(*) FROM information_schema.tables 
+                WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
+            """)
+            current_stats["table_count"] = cur.fetchone()[0]
+            
+            # Get record counts for major tables
+            major_tables = ["users", "players", "match_scores", "leagues", "clubs", "series"]
+            table_counts = {}
+            
+            for table in major_tables:
+                try:
+                    cur.execute(f"SELECT COUNT(*) FROM {table}")
+                    table_counts[table] = cur.fetchone()[0]
+                except:
+                    table_counts[table] = 0
+                    
+            current_stats["table_counts"] = table_counts
+        
+        conn.close()
+        
+        logger.info("📊 Restored database verification:")
+        logger.info(f"   Tables: {current_stats['table_count']}")
+        for table, count in current_stats["table_counts"].items():
+            logger.info(f"   {table}: {count:,} records")
+        
+        # Compare with backup metadata if available
+        if metadata_path and os.path.exists(metadata_path):
+            try:
+                with open(metadata_path, "r") as f:
+                    backup_metadata = json.load(f)
+                    backup_table_counts = backup_metadata.get("database_stats", {}).get("table_counts", {})
+                    
+                    logger.info("\n📋 Backup vs Restored comparison:")
+                    for table in major_tables:
+                        backup_count = backup_table_counts.get(table, "N/A")
+                        current_count = current_stats["table_counts"].get(table, 0)
+                        match = "✅" if backup_count == current_count else "⚠️"
+                        logger.info(f"   {table}: {backup_count} → {current_count} {match}")
+                        
+            except Exception as e:
+                logger.warning(f"Could not compare with backup metadata: {e}")
+                
+    except Exception as e:
+        logger.warning(f"Database verification failed: {e}")
+
+
 def cleanup_old_backups(backup_dir, max_backups):
     """Clean up old backups, keeping only the most recent ones"""
     try:
@@ -485,7 +647,7 @@ def cleanup_old_backups(backup_dir, max_backups):
 def main():
     """Main entry point"""
     parser = argparse.ArgumentParser(
-        description="Rally Database Backup Utility with Alembic Integration"
+        description="Rally Database Backup & Restore Utility with Alembic Integration"
     )
 
     parser.add_argument(
@@ -511,12 +673,32 @@ def main():
         action="store_true",
         help="List existing backups without creating a new one",
     )
+    parser.add_argument(
+        "--restore",
+        type=str,
+        help="Restore database from backup file path",
+    )
+    parser.add_argument(
+        "--no-confirm",
+        action="store_true",
+        help="Skip confirmation prompt for restore (dangerous!)",
+    )
 
     args = parser.parse_args()
 
     if args.list:
         list_backups()
+    elif args.restore:
+        # Restore operation
+        confirm = not args.no_confirm
+        success = restore_backup(args.restore, confirm=confirm)
+        if success:
+            logger.info("🎉 Database restore completed successfully!")
+        else:
+            logger.error("❌ Database restore failed!")
+            sys.exit(1)
     else:
+        # Backup operation
         if args.schema_only and args.data_only:
             logger.error("❌ Cannot use both --schema-only and --data-only")
             sys.exit(1)
@@ -531,7 +713,10 @@ def main():
         if backup_path:
             logger.info("🎉 Database backup completed successfully!")
             logger.info(
-                f"Use 'python3 scripts/backup_database.py --list' to view all backups"
+                f"Use 'python3 data/backup_restore_local_db/backup_database.py --list' to view all backups"
+            )
+            logger.info(
+                f"Use 'python3 data/backup_restore_local_db/backup_database.py --restore {backup_path}' to restore"
             )
         else:
             logger.error("❌ Database backup failed!")
