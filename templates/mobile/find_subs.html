@@ -267,18 +267,60 @@ async function fetchAndRenderSubsMobile() {
         // 3. Fetch players for each higher series using efficient ID-based queries
         const promises = higherSeriesObjects.map(seriesObj =>
             // FIXED: Use series_id parameter for direct ID lookups when available
+            // ETL-SAFE: Always pass both series_id and series name for graceful fallback
             seriesObj.id 
-                ? fetch(`/api/players?series_id=${seriesObj.id}`)
-                    .then(resp => resp.ok ? resp.json() : Promise.reject(new Error('Failed to fetch players for series ID ' + seriesObj.id)))
+                ? fetch(`/api/players?series_id=${seriesObj.id}&series=${encodeURIComponent(seriesObj.name)}`)
+                    .then(resp => {
+                        if (!resp.ok) {
+                            // ETL-SAFE: If series_id fails (e.g., after ETL), try fallback
+                            console.warn(`Series ID ${seriesObj.id} failed, trying name fallback for ${seriesObj.name}`);
+                            return fetch(`/api/players?series=${encodeURIComponent(seriesObj.name)}`)
+                                .then(fallbackResp => {
+                                    if (!fallbackResp.ok) {
+                                        throw new Error('Both series_id and series name queries failed for ' + seriesObj.name);
+                                    }
+                                    return fallbackResp.json();
+                                });
+                        }
+                        return resp.json();
+                    })
                     .then(players => ({ series: seriesObj.name, series_id: seriesObj.id, players }))
+                    .catch(error => {
+                        console.error(`Failed to fetch players for ${seriesObj.name}:`, error);
+                        // ETL-SAFE: Return empty results instead of failing entirely
+                        return { series: seriesObj.name, series_id: seriesObj.id, players: [] };
+                    })
                 : fetch(`/api/players?series=${encodeURIComponent(seriesObj.name)}`)
-                    .then(resp => resp.ok ? resp.json() : Promise.reject(new Error('Failed to fetch players for ' + seriesObj.name)))
+                    .then(resp => {
+                        if (!resp.ok) {
+                            throw new Error('Failed to fetch players for ' + seriesObj.name);
+                        }
+                        return resp.json();
+                    })
                     .then(players => ({ series: seriesObj.name, series_id: null, players }))
+                    .catch(error => {
+                        console.error(`Failed to fetch players for ${seriesObj.name}:`, error);
+                        // ETL-SAFE: Return empty results instead of failing entirely
+                        return { series: seriesObj.name, series_id: null, players: [] };
+                    })
         );
         const results = await Promise.all(promises);
         
+        // ETL-SAFE: Filter out failed requests and log summary
+        const successfulResults = results.filter(result => result.players && result.players.length > 0);
+        const failedResults = results.filter(result => !result.players || result.players.length === 0);
+        
+        if (failedResults.length > 0) {
+            console.warn(`${failedResults.length} series had no players or failed to load:`, failedResults.map(r => r.series));
+        }
+        
+        console.log(`Successfully loaded ${successfulResults.length} series with players`);
+        
+        // Use successful results for processing
+        const workingResults = successfulResults.length > 0 ? successfulResults : results;
+        
         // 4. Aggregate all players (only from same club - current restrictive logic)
-        const allPlayers = results.flatMap(result =>
+        const allPlayers = workingResults.flatMap(result =>
             result.players.map(player => ({
                 ...player,
                 series: result.series
@@ -290,7 +332,7 @@ async function fetchAndRenderSubsMobile() {
             player.club && player.club.toLowerCase() === '{{ session_data.user.club }}'.toLowerCase()
         );
         
-        console.log(`Found ${sameClubPlayers.length} players at same club from ${higherSeriesObjects.length} higher series`);
+        console.log(`Found ${sameClubPlayers.length} players at same club from ${workingResults.length} higher series`);
         
         // Fix: Show correct message - "No Subs Available" instead of "No Higher Series Found"
         // when higher series exist but no players are found at user's club

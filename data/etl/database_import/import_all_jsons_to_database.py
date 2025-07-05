@@ -942,8 +942,30 @@ class ComprehensiveETL:
                 
                 self.log(f"   📈 Session version initialized: {new_version}")
             
+            # ENHANCEMENT: Add specific cache invalidation for series ID-based queries
+            # This helps frontend detect when series IDs have changed due to ETL
+            cursor.execute("""
+                INSERT INTO system_settings (key, value, description)
+                VALUES ('series_cache_version', %s, 'Version incremented when series IDs change due to ETL')
+                ON CONFLICT (key) DO UPDATE SET 
+                    value = EXCLUDED.value, 
+                    updated_at = CURRENT_TIMESTAMP
+            """, [str(new_version)])
+            
+            self.log(f"   📋 Series cache version updated: {new_version} (invalidates frontend series ID cache)")
+            
+            # Add ETL timestamp for debugging
+            cursor.execute("""
+                INSERT INTO system_settings (key, value, description)
+                VALUES ('last_etl_run', %s, 'Timestamp of last successful ETL run')
+                ON CONFLICT (key) DO UPDATE SET 
+                    value = EXCLUDED.value, 
+                    updated_at = CURRENT_TIMESTAMP
+            """, [str(datetime.now().isoformat())])
+            
             conn.commit()
             self.log("✅ All user sessions will be automatically refreshed on next page load")
+            self.log("✅ Frontend series ID cache will be invalidated")
             
         except Exception as e:
             self.log(f"⚠️  Warning: Could not increment session version: {e}", "WARNING")
