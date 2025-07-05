@@ -421,6 +421,106 @@ def find_player_in_history(user, player_history=None):
         return None
 
 
+def get_players_by_league_and_series_id(league_id, series_id, club_name=None, team_id=None):
+    """
+    Get players for a specific league and series using direct series_id lookup
+    OPTIMIZED: Uses series_id directly instead of inefficient string name matching
+
+    Args:
+        league_id (str): League identifier (e.g., 'APTA_CHICAGO', 'NSTF')
+        series_id (int): Series ID for direct database lookup
+        club_name (str, optional): Club name for additional filtering
+        team_id (int/str, optional): Team ID for team-specific filtering (preferred over club_name)
+
+    Returns:
+        list: List of player dictionaries with stats and position preference
+    """
+    try:
+        base_query = """
+            SELECT DISTINCT p.tenniscores_player_id, p.first_name, p.last_name,
+                   p.club_id, p.series_id, c.name as club_name, s.name as series_name,
+                   l.league_name, l.league_id, p.pti, p.wins, p.losses, p.win_percentage,
+                   u.ad_deuce_preference, u.dominant_hand
+            FROM players p
+            JOIN leagues l ON p.league_id = l.id
+            LEFT JOIN clubs c ON p.club_id = c.id
+            LEFT JOIN series s ON p.series_id = s.id
+            LEFT JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
+            LEFT JOIN users u ON upa.user_id = u.id
+            WHERE l.league_id = %(league_id)s 
+            AND p.is_active = true
+            AND p.series_id = %(series_id)s
+        """
+
+        params = {"league_id": league_id, "series_id": series_id}
+        print(f"[DEBUG] Direct series_id query: series_id={series_id}, league_id={league_id}")
+
+        # FIXED: Prioritize team_id filtering over club_name filtering
+        if team_id:
+            # Use team_id for precise team filtering (preferred method)
+            try:
+                team_id_int = int(team_id)
+                base_query += " AND p.team_id = %(team_id)s"
+                params["team_id"] = team_id_int
+                print(f"[DEBUG] Using team_id {team_id_int} for team filtering")
+            except (ValueError, TypeError):
+                print(f"[WARNING] Invalid team_id '{team_id}', falling back to club filtering")
+                # Fallback to club filtering if team_id is invalid
+                if club_name:
+                    base_query += " AND c.name = %(club_name)s"
+                    params["club_name"] = club_name
+        elif club_name:
+            # Use club filtering only if no team_id provided
+            base_query += " AND c.name = %(club_name)s"
+            params["club_name"] = club_name
+            print(f"[DEBUG] Using club_name '{club_name}' for filtering")
+
+        base_query += " ORDER BY p.last_name, p.first_name"
+
+        players = execute_query(base_query, params)
+        print(f"[DEBUG] Direct ID query found {len(players)} players")
+
+        # Format for API response
+        formatted_players = []
+        for player in players:
+            # Calculate win rate
+            wins = player.get("wins", 0) or 0
+            losses = player.get("losses", 0) or 0
+            total_matches = wins + losses
+            win_rate = (
+                f"{(wins / total_matches * 100):.1f}%" if total_matches > 0 else "0.0%"
+            )
+
+            # Get preferences from database, default to None if not set
+            position_preference = player.get("ad_deuce_preference")
+            hand_preference = player.get("dominant_hand")
+
+            formatted_players.append(
+                {
+                    "name": f"{player['first_name']} {player['last_name']}",
+                    "player_id": player["tenniscores_player_id"],
+                    "series": player["series_name"],
+                    "club": player["club_name"],
+                    "league": player["league_id"],
+                    "pti": player.get("pti"),
+                    "rating": player.get("pti"),  # Alias for pti
+                    "wins": wins,
+                    "losses": losses,
+                    "winRate": win_rate,
+                    "position_preference": position_preference,  # Ad/Deuce preference
+                    "hand_preference": hand_preference,  # Lefty/Righty preference
+                }
+            )
+
+        return formatted_players
+
+    except Exception as e:
+        logger.error(
+            f"Error fetching players for league {league_id}, series_id {series_id}: {e}"
+        )
+        return []
+
+
 def get_players_by_league_and_series(league_id, series_name, club_name=None, team_id=None):
     """
     Get players for a specific league and series, optionally filtered by club or team
