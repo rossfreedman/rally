@@ -28,6 +28,29 @@
             </a>
         </div>
 
+        <!-- Notification Toggle -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                            <i class="fas fa-bell text-blue-600"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-base font-semibold text-gray-900">Get notified about games</h3>
+                            <p class="text-sm text-gray-500">Receive notifications when new pickup games are posted</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center">
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="notificationToggle" class="sr-only peer" checked>
+                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Upcoming Pickup Games Section -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             <div class="px-6 py-4 border-b border-gray-50">
@@ -395,9 +418,70 @@ document.addEventListener('DOMContentLoaded', function() {
     const gameDetailsContent = document.getElementById('gameDetailsContent');
     const gameActionsContainer = document.getElementById('gameActionsContainer');
 
+    // Initialize notification toggle
+    function initializeNotificationToggle() {
+        const toggle = document.getElementById('notificationToggle');
+        
+        if (toggle) {
+            // Load saved state from localStorage
+            const savedState = localStorage.getItem('pickupGameNotifications');
+            if (savedState !== null) {
+                toggle.checked = savedState === 'true';
+            }
+            
+            // Add event listener for toggle changes
+            toggle.addEventListener('change', handleNotificationToggle);
+        }
+    }
+
+    // Handle notification toggle changes
+    function handleNotificationToggle(event) {
+        const isEnabled = event.target.checked;
+        
+        // Save state to localStorage
+        localStorage.setItem('pickupGameNotifications', isEnabled.toString());
+        
+        // Show user feedback
+        showNotificationFeedback(isEnabled);
+        
+        console.log('Pickup game notifications:', isEnabled ? 'enabled' : 'disabled');
+    }
+
+    // Show user feedback for toggle changes
+    function showNotificationFeedback(isEnabled) {
+        // Create feedback message
+        const message = isEnabled ? 
+            'Game notifications enabled! You\'ll be notified about new pickup games.' : 
+            'Game notifications disabled. You won\'t receive notifications about new games.';
+        
+        // Create temporary feedback element
+        const feedback = document.createElement('div');
+        feedback.className = `fixed top-4 left-4 right-4 p-4 rounded-lg shadow-lg z-50 transition-all duration-300 ${
+            isEnabled ? 'bg-green-500 text-white' : 'bg-gray-600 text-white'
+        }`;
+        feedback.innerHTML = `
+            <div class="flex items-center gap-2">
+                <i class="fas fa-${isEnabled ? 'bell' : 'bell-slash'}"></i>
+                <span class="text-sm font-medium">${message}</span>
+            </div>
+        `;
+        
+        document.body.appendChild(feedback);
+        
+        // Remove feedback after 3 seconds
+        setTimeout(() => {
+            feedback.style.opacity = '0';
+            feedback.style.transform = 'translateY(-10px)';
+            setTimeout(() => {
+                document.body.removeChild(feedback);
+            }, 300);
+        }, 3000);
+    }
+
     // Initialize page
     function initializePage() {
         setupEventListeners();
+        initializeNotificationToggle();
         console.log('Pickup games page initialized');
     }
 
