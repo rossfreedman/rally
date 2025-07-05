@@ -184,9 +184,9 @@
                 <p class="text-xl text-gray-600">Everything you need to master your racquet sport</p>
             </div>
             
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" id="features-grid">
                 <!-- View Schedule Feature -->
-                <a href="view-schedule.html" class="block bg-white p-8 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition duration-300 transform hover:-translate-y-1">
+                <a href="view-schedule.html" class="feature-card block bg-white p-8 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition duration-300 transform hover:-translate-y-1">
                     <div class="w-16 h-16 bg-rally-blue rounded-lg flex items-center justify-center mb-6">
                         <i class="fas fa-calendar-alt text-white text-2xl"></i>
                     </div>
@@ -195,7 +195,7 @@
                 </a>
 
                 <!-- Search Players Feature -->
-                <a href="search-players.html" class="block bg-white p-8 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition duration-300 transform hover:-translate-y-1">
+                <a href="search-players.html" class="feature-card block bg-white p-8 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition duration-300 transform hover:-translate-y-1">
                     <div class="w-16 h-16 bg-rally-blue rounded-lg flex items-center justify-center mb-6">
                         <i class="fas fa-search text-white text-2xl"></i>
                     </div>
@@ -204,7 +204,7 @@
                 </a>
 
                 <!-- View Pickup Games Feature -->
-                <a href="view-pickup-games.html" class="block bg-white p-8 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition duration-300 transform hover:-translate-y-1">
+                <a href="view-pickup-games.html" class="feature-card block bg-white p-8 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition duration-300 transform hover:-translate-y-1">
                     <div class="w-16 h-16 bg-rally-orange rounded-lg flex items-center justify-center mb-6">
                         <i class="fas fa-table-tennis text-white text-2xl"></i>
                     </div>
@@ -213,7 +213,7 @@
                 </a>
 
                 <!-- My Stats Feature -->
-                <a href="my-stats.html" class="block bg-white p-8 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition duration-300 transform hover:-translate-y-1">
+                <a href="my-stats.html" class="feature-card block bg-white p-8 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition duration-300 transform hover:-translate-y-1">
                     <div class="w-16 h-16 bg-rally-green rounded-lg flex items-center justify-center mb-6">
                         <i class="fas fa-chart-line text-white text-2xl"></i>
                     </div>
@@ -222,7 +222,7 @@
                 </a>
 
                 <!-- My Team Feature -->
-                <a href="my-team.html" class="block bg-white p-8 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition duration-300 transform hover:-translate-y-1">
+                <a href="my-team.html" class="feature-card block bg-white p-8 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition duration-300 transform hover:-translate-y-1">
                     <div class="w-16 h-16 bg-purple-600 rounded-lg flex items-center justify-center mb-6">
                         <i class="fas fa-users text-white text-2xl"></i>
                     </div>
@@ -231,7 +231,7 @@
                 </a>
 
                 <!-- My Series Feature -->
-                <a href="my-series.html" class="block bg-white p-8 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition duration-300 transform hover:-translate-y-1">
+                <a href="my-series.html" class="feature-card block bg-white p-8 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition duration-300 transform hover:-translate-y-1">
                     <div class="w-16 h-16 bg-indigo-600 rounded-lg flex items-center justify-center mb-6">
                         <i class="fas fa-list-ol text-white text-2xl"></i>
                     </div>
@@ -239,8 +239,9 @@
                     <p class="text-gray-600">Stay informed about your entire division. Track standings, monitor competitor performance, and analyze league-wide trends.</p>
                 </a>
 
+                <!-- Hidden features - shown after clicking "View More Features" -->
                 <!-- My Club Feature -->
-                <a href="my-club.html" class="block bg-white p-8 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition duration-300 transform hover:-translate-y-1">
+                <a href="my-club.html" class="feature-card hidden-feature block bg-white p-8 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition duration-300 transform hover:-translate-y-1 hidden">
                     <div class="w-16 h-16 bg-teal-600 rounded-lg flex items-center justify-center mb-6">
                         <i class="fas fa-home text-white text-2xl"></i>
                     </div>
@@ -249,7 +250,7 @@
                 </a>
 
                 <!-- Update Availability Feature -->
-                <a href="update-availability.html" class="block bg-white p-8 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition duration-300 transform hover:-translate-y-1">
+                <a href="update-availability.html" class="feature-card hidden-feature block bg-white p-8 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition duration-300 transform hover:-translate-y-1 hidden">
                     <div class="w-16 h-16 bg-rally-green rounded-lg flex items-center justify-center mb-6">
                         <i class="fas fa-check-circle text-white text-2xl"></i>
                     </div>
@@ -258,18 +259,46 @@
                 </a>
 
                 <!-- Track Court Assignments Feature -->
-                <a href="track-court-assignments.html" class="block bg-white p-8 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition duration-300 transform hover:-translate-y-1">
+                <a href="track-court-assignments.html" class="feature-card hidden-feature block bg-white p-8 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition duration-300 transform hover:-translate-y-1 hidden">
                     <div class="w-16 h-16 bg-rally-orange rounded-lg flex items-center justify-center mb-6">
                         <i class="fas fa-map-marked-alt text-white text-2xl"></i>
                     </div>
                     <h3 class="text-xl font-bold text-gray-900 mb-4">Track Court Assignments</h3>
                     <p class="text-gray-600">Master your court performance with detailed analytics. Track wins, losses, and patterns across different courts.</p>
                 </a>
+
+                <!-- Team Polls Feature -->
+                <a href="team-polls.html" class="feature-card hidden-feature block bg-white p-8 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition duration-300 transform hover:-translate-y-1 hidden">
+                    <div class="w-16 h-16 bg-purple-600 rounded-lg flex items-center justify-center mb-6">
+                        <i class="fas fa-poll text-white text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-4">Respond to Team Polls</h3>
+                    <p class="text-gray-600">Make your voice heard in team decisions. Participate in polls about practice times, social events, and strategic choices.</p>
+                </a>
+
+                <!-- PTI Calculator Feature -->
+                <a href="pti-calculator.html" class="feature-card hidden-feature block bg-white p-8 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition duration-300 transform hover:-translate-y-1 hidden">
+                    <div class="w-16 h-16 bg-yellow-600 rounded-lg flex items-center justify-center mb-6">
+                        <i class="fas fa-calculator text-white text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-4">PTI Calculator</h3>
+                    <p class="text-gray-600">Calculate your Platform Tennis Index rating and understand your competitive ranking within the league.</p>
+                </a>
+
+                <!-- Match Simulator Feature -->
+                <a href="match-simulator.html" class="feature-card hidden-feature block bg-white p-8 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition duration-300 transform hover:-translate-y-1 hidden">
+                    <div class="w-16 h-16 bg-red-600 rounded-lg flex items-center justify-center mb-6">
+                        <i class="fas fa-chart-line text-white text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-4">Match Simulator</h3>
+                    <p class="text-gray-600">Analyze potential matchups, predict outcomes, and strategize your tournament performance.</p>
+                </a>
             </div>
 
             <div class="text-center mt-12">
-                <button class="bg-gray-100 text-gray-800 px-8 py-3 rounded-lg hover:bg-gray-200 transition duration-300">
-                    View More Features
+                <button id="view-more-btn" class="bg-gray-100 text-gray-800 px-8 py-3 rounded-lg hover:bg-gray-200 transition duration-300" onclick="toggleFeatures()">
+                    <span id="btn-text">View More Features</span>
+                    <i id="btn-icon" class="fas fa-chevron-down ml-2"></i>
                 </button>
             </div>
         </div>
@@ -545,6 +574,52 @@
                 nav.classList.remove('bg-black/20', 'backdrop-blur-sm');
             }
         });
+
+        // Toggle features visibility
+        function toggleFeatures() {
+            const hiddenFeatures = document.querySelectorAll('.hidden-feature');
+            const btnText = document.getElementById('btn-text');
+            const btnIcon = document.getElementById('btn-icon');
+            const isHidden = hiddenFeatures[0].classList.contains('hidden');
+            
+            hiddenFeatures.forEach((feature, index) => {
+                if (isHidden) {
+                    // Show features with staggered animation
+                    setTimeout(() => {
+                        feature.classList.remove('hidden');
+                        feature.style.opacity = '0';
+                        feature.style.transform = 'translateY(20px)';
+                        
+                        // Animate in
+                        setTimeout(() => {
+                            feature.style.transition = 'all 0.3s ease';
+                            feature.style.opacity = '1';
+                            feature.style.transform = 'translateY(0)';
+                        }, 50);
+                    }, index * 100);
+                } else {
+                    // Hide features
+                    feature.style.transition = 'all 0.3s ease';
+                    feature.style.opacity = '0';
+                    feature.style.transform = 'translateY(-20px)';
+                    
+                    setTimeout(() => {
+                        feature.classList.add('hidden');
+                    }, 300);
+                }
+            });
+            
+            // Update button text and icon
+            if (isHidden) {
+                btnText.textContent = 'Show Less Features';
+                btnIcon.classList.remove('fa-chevron-down');
+                btnIcon.classList.add('fa-chevron-up');
+            } else {
+                btnText.textContent = 'View More Features';
+                btnIcon.classList.remove('fa-chevron-up');
+                btnIcon.classList.add('fa-chevron-down');
+            }
+        }
     </script>
 </body>
 </html> 
