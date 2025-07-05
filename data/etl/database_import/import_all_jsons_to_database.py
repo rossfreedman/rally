@@ -541,6 +541,8 @@ class ComprehensiveETL:
             # Table doesn't exist or other error - we'll create it
             self.log(f"⚠️  Could not load series mappings: {e}")
             self.log("🔧 Will create series_name_mappings table with default data")
+            # CRITICAL: Rollback the failed transaction before proceeding
+            conn.rollback()
         
         if mapping_count > 0:
             self.log(f"✅ Loaded {mapping_count} series mappings from database")
