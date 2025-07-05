@@ -93,13 +93,49 @@ def get_players_by_series():
         # FIXED: Use series_id directly if provided, otherwise convert series name to series_id
         if series_id:
             # Direct series_id query (preferred method)
-            all_players = get_players_by_league_and_series_id(
-                league_id=user_league_string_id, 
-                series_id=series_id, 
-                club_name=user_club if not team_id else None,
-                team_id=team_id
-            )
-            print(f"[DEBUG] Used direct series_id {series_id} query")
+            # PROTECTION: Gracefully handle invalid series_id after ETL runs
+            try:
+                # First verify the series_id exists
+                series_verification = execute_query_one(
+                    "SELECT id, name FROM series WHERE id = %s", [series_id]
+                )
+                
+                if series_verification:
+                    # Valid series_id - proceed with ID-based query
+                    all_players = get_players_by_league_and_series_id(
+                        league_id=user_league_string_id, 
+                        series_id=series_id, 
+                        club_name=user_club if not team_id else None,
+                        team_id=team_id
+                    )
+                    print(f"[DEBUG] Used valid series_id {series_id} -> '{series_verification['name']}'")
+                else:
+                    # Invalid series_id (likely after ETL) - auto-fallback to name lookup
+                    print(f"[DEBUG] Series_id {series_id} not found (likely after ETL), switching to name-based fallback")
+                    
+                    # If series name was provided as well, use it as fallback
+                    if series:
+                        converted_series_id = execute_query_one(
+                            "SELECT id FROM series WHERE name = %s LIMIT 1", [series]
+                        )
+                        if converted_series_id:
+                            all_players = get_players_by_league_and_series_id(
+                                league_id=user_league_string_id, 
+                                series_id=converted_series_id["id"], 
+                                club_name=user_club if not team_id else None,
+                                team_id=team_id
+                            )
+                            print(f"[DEBUG] Fallback: Found new series_id {converted_series_id['id']} for series '{series}'")
+                        else:
+                            print(f"[DEBUG] No fallback series name provided")
+                            return jsonify({"error": f"Series_id {series_id} is invalid and no fallback series name provided"}), 404
+                    else:
+                        print(f"[DEBUG] No fallback series name available")
+                        return jsonify({"error": f"Series_id {series_id} is invalid (possibly after ETL run). Please refresh and try again."}), 404
+                        
+            except Exception as e:
+                print(f"[DEBUG] Error verifying series_id {series_id}: {e}")
+                return jsonify({"error": "Database error during series lookup"}), 500
         else:
             # Fallback: convert series name to series_id first, then query by ID
             try:
