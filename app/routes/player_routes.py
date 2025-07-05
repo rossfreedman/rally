@@ -30,17 +30,20 @@ player_bp = Blueprint("player", __name__)
 def get_players_by_series():
     """Get all players for a specific series, optionally filtered by team and club"""
     try:
-        from app.services.player_service import get_players_by_league_and_series
+        from app.services.player_service import get_players_by_league_and_series_id
 
-        # Get series and optional team from query parameters
+        # FIXED: Accept both series_id (preferred) and series (backward compatibility)
+        series_id = request.args.get("series_id")
         series = request.args.get("series")
         team_id = request.args.get("team_id")
 
-        if not series:
-            return jsonify({"error": "Series parameter is required"}), 400
+        # Require either series_id or series parameter
+        if not series_id and not series:
+            return jsonify({"error": "Either series_id or series parameter is required"}), 400
 
-        print(f"\n=== DEBUG: get_players_by_series (DATABASE) ===")
-        print(f"Requested series: {series}")
+        print(f"\n=== DEBUG: get_players_by_series (ID-BASED) ===")
+        print(f"Requested series_id: {series_id}")
+        print(f"Requested series (fallback): {series}")
         print(f"Requested team: {team_id}")
         print(f"User series: {session['user'].get('series')}")
         print(f"User club: {session['user'].get('club')}")
@@ -51,13 +54,73 @@ def get_players_by_series():
         user_league_id = session["user"].get("league_id", "")  # Keep for team filtering
         user_club = session["user"].get("club")
 
-        # FIXED: Use team_id filtering instead of club_name when team_id provided
-        all_players = get_players_by_league_and_series(
-            league_id=user_league_string_id, 
-            series_name=series, 
-            club_name=user_club if not team_id else None,
-            team_id=team_id
-        )
+        # FIXED: Convert integer league_id to string league_id if needed
+        if not user_league_string_id and user_league_id:
+            from database_utils import execute_query_one
+            try:
+                # Convert integer league_id to string league_id
+                league_record = execute_query_one(
+                    "SELECT league_id FROM leagues WHERE id = %s", [user_league_id]
+                )
+                if league_record:
+                    user_league_string_id = league_record["league_id"]
+                    print(f"[DEBUG] Converted league_id {user_league_id} -> {user_league_string_id}")
+                else:
+                    print(f"[DEBUG] No league found for id {user_league_id}")
+            except Exception as e:
+                print(f"[DEBUG] Error converting league_id: {e}")
+                
+        # Get user club from session or from player association
+        if not user_club:
+            try:
+                # Get club from player association
+                club_record = execute_query_one(
+                    """
+                    SELECT c.name as club_name
+                    FROM user_player_associations upa
+                    JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+                    JOIN clubs c ON p.club_id = c.id
+                    WHERE upa.user_id = %s
+                    LIMIT 1
+                    """, [session["user"]["id"]]
+                )
+                if club_record:
+                    user_club = club_record["club_name"]
+                    print(f"[DEBUG] Got club from association: {user_club}")
+            except Exception as e:
+                print(f"[DEBUG] Error getting club from association: {e}")
+
+        # FIXED: Use series_id directly if provided, otherwise convert series name to series_id
+        if series_id:
+            # Direct series_id query (preferred method)
+            all_players = get_players_by_league_and_series_id(
+                league_id=user_league_string_id, 
+                series_id=series_id, 
+                club_name=user_club if not team_id else None,
+                team_id=team_id
+            )
+            print(f"[DEBUG] Used direct series_id {series_id} query")
+        else:
+            # Fallback: convert series name to series_id first, then query by ID
+            try:
+                series_record = execute_query_one(
+                    "SELECT id FROM series WHERE name = %s LIMIT 1", [series]
+                )
+                if series_record:
+                    converted_series_id = series_record["id"]
+                    all_players = get_players_by_league_and_series_id(
+                        league_id=user_league_string_id, 
+                        series_id=converted_series_id, 
+                        club_name=user_club if not team_id else None,
+                        team_id=team_id
+                    )
+                    print(f"[DEBUG] Converted series '{series}' -> series_id {converted_series_id}")
+                else:
+                    print(f"[DEBUG] Could not find series_id for series name '{series}'")
+                    return jsonify({"error": f"Series '{series}' not found"}), 404
+            except Exception as e:
+                print(f"[DEBUG] Error converting series name to ID: {e}")
+                return jsonify({"error": "Failed to lookup series"}), 500
 
         # Handle team filtering if requested
         team_players = set()

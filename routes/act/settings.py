@@ -80,8 +80,8 @@ def init_routes(app):
 
             from database_utils import execute_query
 
-            # Get all available series (unsorted)
-            all_series_records = execute_query("SELECT name FROM series")
+            # FIXED: Get series with both ID and name for efficient lookups
+            all_series_records = execute_query("SELECT id, name FROM series ORDER BY name")
 
             # Extract series names and sort them numerically
             def get_series_sort_key(series_name):
@@ -109,39 +109,29 @@ def init_routes(app):
                 return (2, 0, 0, series_name)
 
             # Sort series by the extracted number
-            all_series_names = [record["name"] for record in all_series_records]
-            all_series_sorted = sorted(all_series_names, key=get_series_sort_key)
+            all_series_sorted = sorted(all_series_records, key=lambda x: get_series_sort_key(x["name"]))
             
-            # Convert series names for APTA league UI display
-            # FIXED: Use league_string_id instead of league_id (which is now an integer)
-            user_league_string_id = session.get("user", {}).get("league_string_id", "")
-            if user_league_string_id and user_league_string_id.startswith("APTA"):
-                def convert_chicago_to_series_for_ui(series_name):
-                    """Convert "Chicago X" format to "Series X" format for APTA league UI display"""
-                    import re
-                    match = re.match(r'^Chicago\s+(\d+)([a-zA-Z\s]*)$', series_name)
-                    if match:
-                        number = match.group(1)
-                        suffix = match.group(2).strip() if match.group(2) else ''
-                        if suffix:
-                            return f"Series {number} {suffix}"
-                        else:
-                            return f"Series {number}"
-                    return series_name
-                
-                all_series_sorted = [convert_chicago_to_series_for_ui(name) for name in all_series_sorted]
+            # FIXED: Create series objects with both id and name
+            all_series_objects = [{"id": record["id"], "name": record["name"]} for record in all_series_sorted]
+            
+            # For backward compatibility, also provide the old format (just names)
+            all_series_names = [record["name"] for record in all_series_sorted]
 
-            # Get user's current series (also convert if APTA)
+            # Get user's current series
             current_series = None
             if "user" in session and "series" in session["user"]:
                 current_series = session["user"]["series"]
-                if user_league_string_id and user_league_string_id.startswith("APTA"):
-                    current_series = convert_chicago_to_series_for_ui(current_series)
 
-            return jsonify({"series": current_series, "all_series": all_series_sorted})
+            # ENHANCED: Return both the new format (with IDs) and old format (names only) for compatibility
+            return jsonify({
+                "series": current_series,  # Current user's series name (backward compatibility)
+                "all_series": all_series_names,  # All series names (backward compatibility)
+                "all_series_objects": all_series_objects,  # NEW: All series with IDs
+                "current_series_object": None  # Will be populated if we can find the current series with ID
+            })
 
         except Exception as e:
-            logger.error(f"Error getting series: {str(e)}")
-            return jsonify({"error": "Failed to get series"}), 500
+            print(f"Error getting series: {str(e)}")
+            return jsonify({"error": str(e)}), 500
 
     return app

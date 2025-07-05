@@ -176,24 +176,45 @@ async function fetchAndRenderSubsMobile() {
     errorDiv.classList.add('hidden');
     
     try {
-        // 1. Get current series and all series
+        // 1. Get current series and all series with IDs
         const seriesResp = await fetch('/api/get-series');
         if (!seriesResp.ok) throw new Error('Failed to fetch series');
         const seriesData = await seriesResp.json();
         const currentSeries = seriesData.series;
-        const allSeries = seriesData.all_series;
+        const allSeriesObjects = seriesData.all_series_objects; // NEW: Use series objects with IDs
+        const allSeries = seriesData.all_series; // Fallback: series names
         
         console.log('Current series:', currentSeries, 'Type:', typeof currentSeries);
-        console.log('All series:', allSeries);
+        console.log('All series objects:', allSeriesObjects);
+        console.log('All series (fallback):', allSeries);
         
         // Check if user has a series set
         if (!currentSeries || currentSeries === null || currentSeries === '') {
             throw new Error('Current series is not available. Please set your series in settings.');
         }
         
-        // Extract the series number (e.g., 22 from 'Chicago 22')
+        // FIXED: Use series objects for ID-based lookups
+        let currentSeriesObject = null;
         let currentNum = null;
-        if (typeof currentSeries === 'string') {
+        
+        if (allSeriesObjects && allSeriesObjects.length > 0) {
+            // Find current series object by name
+            currentSeriesObject = allSeriesObjects.find(s => s.name === currentSeries);
+            
+            if (currentSeriesObject) {
+                // Extract number from current series name
+                const parts = currentSeriesObject.name.split(' ');
+                const lastPart = parts[parts.length - 1];
+                currentNum = parseInt(lastPart);
+                
+                if (isNaN(currentNum)) {
+                    throw new Error(`Unable to determine series number from "${currentSeriesObject.name}". Please contact support.`);
+                }
+            } else {
+                throw new Error(`Current series "${currentSeries}" not found in series list. Please contact support.`);
+            }
+        } else {
+            // Fallback to old method if series objects not available
             const parts = currentSeries.split(' ');
             const lastPart = parts[parts.length - 1];
             currentNum = parseInt(lastPart);
@@ -201,35 +222,58 @@ async function fetchAndRenderSubsMobile() {
             if (isNaN(currentNum)) {
                 throw new Error(`Unable to determine series number from "${currentSeries}". Please contact support.`);
             }
-        } else {
-            throw new Error('Current series format is invalid. Please set your series in settings.');
         }
         
         console.log('Current series number:', currentNum);
+        console.log('Current series object:', currentSeriesObject);
         
-        // 2. Find all higher series
-        const higherSeries = allSeries.filter(s => {
-            const parts = s.split(' ');
-            const lastPart = parts[parts.length - 1];
-            const num = parseInt(lastPart);
-            const isHigher = !isNaN(num) && num > currentNum;
-            console.log(`Series "${s}" -> number: ${num}, higher than ${currentNum}? ${isHigher}`);
-            return isHigher;
-        });
+        // 2. Find all higher series using series objects for efficient ID-based queries
+        let higherSeriesObjects = [];
         
-        console.log('Higher series found:', higherSeries);
+        if (allSeriesObjects && allSeriesObjects.length > 0) {
+            // Use series objects with IDs (preferred method)
+            higherSeriesObjects = allSeriesObjects.filter(seriesObj => {
+                const parts = seriesObj.name.split(' ');
+                const lastPart = parts[parts.length - 1];
+                const num = parseInt(lastPart);
+                const isHigher = !isNaN(num) && num > currentNum;
+                console.log(`Series "${seriesObj.name}" (ID: ${seriesObj.id}) -> number: ${num}, higher than ${currentNum}? ${isHigher}`);
+                return isHigher;
+            });
+            
+            console.log('Higher series objects found:', higherSeriesObjects);
+        } else {
+            // Fallback to old method
+            const higherSeriesNames = allSeries.filter(s => {
+                const parts = s.split(' ');
+                const lastPart = parts[parts.length - 1];
+                const num = parseInt(lastPart);
+                const isHigher = !isNaN(num) && num > currentNum;
+                console.log(`Series "${s}" -> number: ${num}, higher than ${currentNum}? ${isHigher}`);
+                return isHigher;
+            });
+            
+            // Convert names to objects for consistency
+            higherSeriesObjects = higherSeriesNames.map(name => ({ name: name, id: null }));
+            console.log('Higher series (fallback) found:', higherSeriesObjects);
+        }
         
-        if (higherSeries.length === 0) {
+        if (higherSeriesObjects.length === 0) {
             loadingDiv.classList.add('hidden');
             noResultsDiv.classList.remove('hidden');
             return;
         }
         
-        // 3. Fetch players for each higher series
-        const promises = higherSeries.map(series =>
-            fetch(`/api/players?series=${encodeURIComponent(series)}`)
-                .then(resp => resp.ok ? resp.json() : Promise.reject(new Error('Failed to fetch players for ' + series)))
-                .then(players => ({ series, players }))
+        // 3. Fetch players for each higher series using efficient ID-based queries
+        const promises = higherSeriesObjects.map(seriesObj =>
+            // FIXED: Use series_id parameter for direct ID lookups when available
+            seriesObj.id 
+                ? fetch(`/api/players?series_id=${seriesObj.id}`)
+                    .then(resp => resp.ok ? resp.json() : Promise.reject(new Error('Failed to fetch players for series ID ' + seriesObj.id)))
+                    .then(players => ({ series: seriesObj.name, series_id: seriesObj.id, players }))
+                : fetch(`/api/players?series=${encodeURIComponent(seriesObj.name)}`)
+                    .then(resp => resp.ok ? resp.json() : Promise.reject(new Error('Failed to fetch players for ' + seriesObj.name)))
+                    .then(players => ({ series: seriesObj.name, series_id: null, players }))
         );
         const results = await Promise.all(promises);
         
@@ -246,7 +290,7 @@ async function fetchAndRenderSubsMobile() {
             player.club && player.club.toLowerCase() === '{{ session_data.user.club }}'.toLowerCase()
         );
         
-        console.log(`Found ${sameClubPlayers.length} players at same club from ${higherSeries.length} higher series`);
+        console.log(`Found ${sameClubPlayers.length} players at same club from ${higherSeriesObjects.length} higher series`);
         
         // Fix: Show correct message - "No Subs Available" instead of "No Higher Series Found"
         // when higher series exist but no players are found at user's club
