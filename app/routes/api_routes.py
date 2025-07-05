@@ -3291,6 +3291,52 @@ def get_user_teams():
         }), 500
 
 
+@api_bp.route("/api/get-user-leagues", methods=["GET"])
+@login_required
+def get_user_leagues():
+    """
+    API endpoint to check if user has associations in multiple leagues.
+    Used for league selector visibility - includes all associations, not just team assignments.
+    """
+    try:
+        user_id = session["user"]["id"]
+        
+        # Get all leagues user has associations in (regardless of team assignments)
+        leagues_query = """
+            SELECT DISTINCT 
+                l.id as league_db_id,
+                l.league_id as league_string_id,
+                l.league_name,
+                COUNT(p.id) as player_count
+            FROM leagues l
+            JOIN players p ON l.id = p.league_id
+            JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
+            WHERE upa.user_id = %s 
+                AND p.is_active = TRUE
+            GROUP BY l.id, l.league_id, l.league_name
+            ORDER BY l.league_name
+        """
+        
+        leagues_result = execute_query(leagues_query, [user_id])
+        leagues = [dict(league) for league in leagues_result] if leagues_result else []
+        
+        return jsonify({
+            "success": True,
+            "leagues": leagues,
+            "has_multiple_leagues": len(leagues) > 1,
+            "league_count": len(leagues)
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting user leagues for user {session.get('user', {}).get('id', 'unknown')}: {e}")
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "leagues": [],
+            "has_multiple_leagues": False
+        }), 500
+
+
 @api_bp.route("/api/switch-team-in-league", methods=["POST"])
 @login_required
 def switch_team_in_league():

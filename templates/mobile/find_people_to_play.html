@@ -245,6 +245,7 @@
 /* Border utilities */
 .border-gray-50 { border-color: #f9fafb; }
 .border-gray-100 { border-color: #f3f4f6; }
+.border-gray-600 { border-color: #4b5563; }
 .border-blue-100 { border-color: #dbeafe; }
 .border-yellow-200 { border-color: #fde047; }
 
@@ -257,6 +258,7 @@
 .bg-blue-50 { background-color: #eff6ff; }
 .bg-blue-100 { background-color: #dbeafe; }
 .bg-gray-100 { background-color: #f3f4f6; }
+.bg-gray-500 { background-color: #6b7280; }
 .bg-purple-600 { background-color: #9333ea !important; }
 
 /* Blue color utilities */
@@ -798,19 +800,21 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         card.innerHTML = `
-            <div class="flex gap-4">
-                <!-- Left Column: Player Info -->
+            <!-- Header with Player Name -->
+            <div class="bg-gray-500 px-4 py-2 border-b border-gray-600 flex items-center gap-3">
+                <!-- Checkbox -->
+                <input type="checkbox" id="player-${player.name.replace(/\s+/g, '-')}" 
+                       class="player-checkbox w-5 h-5 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500 focus:ring-2" 
+                       data-player-name="${player.name}" ${isSelected ? 'checked' : ''}>
+                
+                <!-- Player Name -->
+                <h3 class="font-bold text-base text-white leading-tight">${player.name}</h3>
+            </div>
+            
+            <!-- Body with Player Info -->
+            <div class="p-4 flex gap-4">
+                <!-- Left Column: Player Details -->
                 <div class="flex-1 min-w-0">
-                    <!-- Checkbox aligned to the left -->
-                    <div class="flex justify-start mb-3">
-                        <input type="checkbox" id="player-${player.name.replace(/\s+/g, '-')}" 
-                               class="player-checkbox w-5 h-5 text-green-600 bg-gray-100 border-gray-300 rounded focus:ring-green-500 focus:ring-2" 
-                               data-player-name="${player.name}" ${isSelected ? 'checked' : ''}>
-                    </div>
-                    
-                    <!-- Player Name -->
-                    <h3 class="font-bold text-base text-gray-900 mb-3 leading-tight">${player.name}</h3>
-                    
                     <!-- PTI (most prominent) -->
                     ${(player.pti !== null && player.pti !== undefined && player.pti !== 'N/A' && player.pti !== '' && !isNaN(parseFloat(player.pti))) ? `
                         <div class="text-blue-600 font-bold text-xl mb-2">PTI: ${player.pti}</div>
@@ -820,7 +824,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <p class="text-sm text-gray-600 mb-1">${player.club || 'Unknown Club'}</p>
                     <p class="text-sm text-gray-500 mb-3">${player.series ? player.series.replace(/^Chicago\s+(\d+.*)$/i, 'Series $1') : player.series}</p>
                     
-                    <!-- Stats in bigger text -->
+                    <!-- Stats -->
                     <div class="text-sm space-y-1">
                         <div>
                             <span class="text-gray-600">Record:</span> 
@@ -834,14 +838,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
                 
                 <!-- Right Column: Action Buttons -->
-                <div class="flex flex-col justify-center space-y-3 w-40">
+                <div class="flex flex-col justify-center space-y-2 w-24">
                     <button class="contact-btn w-full" 
                             onclick="handleContactClick('${player.name}')"
                             style="
                                 background-color: #16a34a !important; 
                                 color: white !important; 
-                                padding: 12px 8px !important; 
-                                border-radius: 8px !important; 
+                                padding: 8px 12px !important; 
+                                border-radius: 6px !important; 
                                 font-size: 12px !important; 
                                 font-weight: 600 !important; 
                                 border: none !important; 
@@ -856,8 +860,8 @@ document.addEventListener('DOMContentLoaded', function() {
                             style="
                                 background-color: #3b82f6 !important; 
                                 color: white !important; 
-                                padding: 12px 8px !important; 
-                                border-radius: 8px !important; 
+                                padding: 8px 12px !important; 
+                                border-radius: 6px !important; 
                                 font-size: 12px !important; 
                                 font-weight: 600 !important; 
                                 border: none !important; 

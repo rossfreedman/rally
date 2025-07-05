@@ -31,6 +31,7 @@ def get_players_by_series():
     """Get all players for a specific series, optionally filtered by team and club"""
     try:
         from app.services.player_service import get_players_by_league_and_series_id
+        from database_utils import execute_query_one, execute_query
 
         # FIXED: Accept both series_id (preferred) and series (backward compatibility)
         series_id = request.args.get("series_id")
@@ -56,7 +57,6 @@ def get_players_by_series():
 
         # FIXED: Convert integer league_id to string league_id if needed
         if not user_league_string_id and user_league_id:
-            from database_utils import execute_query_one
             try:
                 # Convert integer league_id to string league_id
                 league_record = execute_query_one(
@@ -163,14 +163,12 @@ def get_players_by_series():
         if team_id:
             # FIXED: Get team players from database instead of JSON
             try:
-                from database_utils import execute_query
                 
                 # Convert string league_id to integer foreign key if needed
                 league_id_int = None
                 if user_league_id:
                     if isinstance(user_league_id, str) and user_league_id != "":
                         try:
-                            from database_utils import execute_query_one
                             league_record = execute_query_one(
                                 "SELECT id FROM leagues WHERE league_id = %s", [user_league_id]
                             )
@@ -239,7 +237,6 @@ def get_players_by_series():
                         if player_id:
                             # Get player name from database
                             try:
-                                from database_utils import execute_query_one
                                 player_name_query = """
                                     SELECT first_name, last_name FROM players 
                                     WHERE tenniscores_player_id = %s
