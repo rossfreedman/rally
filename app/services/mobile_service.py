@@ -542,6 +542,9 @@ def get_player_analysis(user):
         # Get player ID from user data
         player_id = user.get("tenniscores_player_id")
 
+        # Get team context if available (for multi-team players)
+        team_context = user.get("team_context")
+
         # Get user's league for filtering
         user_league_id = user.get("league_id", "")
         user_league_name = user.get("league_name", "")
@@ -572,43 +575,89 @@ def get_player_analysis(user):
 
         # Get player history - filter by league AND team to fix multi-team issue
         if league_id_int:
-            history_query = """
-                SELECT 
-                    id,
-                    TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
-                    home_team as "Home Team",
-                    away_team as "Away Team",
-                    winner as "Winner",
-                    scores as "Scores",
-                    home_player_1_id as "Home Player 1",
-                    home_player_2_id as "Home Player 2",
-                    away_player_1_id as "Away Player 1",
-                    away_player_2_id as "Away Player 2"
-                FROM match_scores
-                WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
-                AND league_id = %s
-                ORDER BY match_date DESC
-            """
-            query_params = [player_id, player_id, player_id, player_id, league_id_int]
+            if team_context:
+                # Filter by team_id to show only matches for this specific team
+                history_query = """
+                    SELECT 
+                        id,
+                        TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
+                        home_team as "Home Team",
+                        away_team as "Away Team",
+                        winner as "Winner",
+                        scores as "Scores",
+                        home_player_1_id as "Home Player 1",
+                        home_player_2_id as "Home Player 2",
+                        away_player_1_id as "Away Player 1",
+                        away_player_2_id as "Away Player 2"
+                    FROM match_scores
+                    WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
+                    AND league_id = %s
+                    AND (home_team_id = %s OR away_team_id = %s)
+                    ORDER BY match_date DESC
+                """
+                query_params = [player_id, player_id, player_id, player_id, league_id_int, team_context, team_context]
+                print(f"[DEBUG] Player analysis with team context: player_id={player_id}, team_id={team_context}")
+            else:
+                # Original query without team filtering
+                history_query = """
+                    SELECT 
+                        id,
+                        TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
+                        home_team as "Home Team",
+                        away_team as "Away Team",
+                        winner as "Winner",
+                        scores as "Scores",
+                        home_player_1_id as "Home Player 1",
+                        home_player_2_id as "Home Player 2",
+                        away_player_1_id as "Away Player 1",
+                        away_player_2_id as "Away Player 2"
+                    FROM match_scores
+                    WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
+                    AND league_id = %s
+                    ORDER BY match_date DESC
+                """
+                query_params = [player_id, player_id, player_id, player_id, league_id_int]
             player_matches = execute_query(history_query, query_params)
         else:
-            history_query = """
-                SELECT 
-                    id,
-                    TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
-                    home_team as "Home Team",
-                    away_team as "Away Team",
-                    winner as "Winner",
-                    scores as "Scores",
-                    home_player_1_id as "Home Player 1",
-                    home_player_2_id as "Home Player 2",
-                    away_player_1_id as "Away Player 1",
-                    away_player_2_id as "Away Player 2"
-                FROM match_scores
-                WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
-                ORDER BY match_date DESC
-            """
-            query_params = [player_id, player_id, player_id, player_id]
+            if team_context:
+                # Filter by team_id even without league context
+                history_query = """
+                    SELECT 
+                        id,
+                        TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
+                        home_team as "Home Team",
+                        away_team as "Away Team",
+                        winner as "Winner",
+                        scores as "Scores",
+                        home_player_1_id as "Home Player 1",
+                        home_player_2_id as "Home Player 2",
+                        away_player_1_id as "Away Player 1",
+                        away_player_2_id as "Away Player 2"
+                    FROM match_scores
+                    WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
+                    AND (home_team_id = %s OR away_team_id = %s)
+                    ORDER BY match_date DESC
+                """
+                query_params = [player_id, player_id, player_id, player_id, team_context, team_context]
+            else:
+                # Original query without any filtering
+                history_query = """
+                    SELECT 
+                        id,
+                        TO_CHAR(match_date, 'DD-Mon-YY') as "Date",
+                        home_team as "Home Team",
+                        away_team as "Away Team",
+                        winner as "Winner",
+                        scores as "Scores",
+                        home_player_1_id as "Home Player 1",
+                        home_player_2_id as "Home Player 2",
+                        away_player_1_id as "Away Player 1",
+                        away_player_2_id as "Away Player 2"
+                    FROM match_scores
+                    WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
+                    ORDER BY match_date DESC
+                """
+                query_params = [player_id, player_id, player_id, player_id]
             player_matches = execute_query(history_query, query_params)
 
         # Calculate accurate match statistics
@@ -646,20 +695,38 @@ def get_player_analysis(user):
         season_pti_change = "N/A"
 
         try:
-            # Get current PTI and series info from players table - prioritize player with PTI history
-            player_pti_query = """
-                SELECT 
-                    p.id,
-                    p.pti as current_pti,
-                    p.series_id,
-                    s.name as series_name,
-                    (SELECT COUNT(*) FROM player_history ph WHERE ph.player_id = p.id) as history_count
-                FROM players p
-                LEFT JOIN series s ON p.series_id = s.id
-                WHERE p.tenniscores_player_id = %s
-                ORDER BY history_count DESC, p.id DESC
-            """
-            player_pti_data = execute_query_one(player_pti_query, [player_id])
+            # Get current PTI and series info from players table - prioritize player with PTI history and team context
+            if team_context:
+                # Filter by specific team when team context is available
+                player_pti_query = """
+                    SELECT 
+                        p.id,
+                        p.pti as current_pti,
+                        p.series_id,
+                        s.name as series_name,
+                        (SELECT COUNT(*) FROM player_history ph WHERE ph.player_id = p.id) as history_count
+                    FROM players p
+                    LEFT JOIN series s ON p.series_id = s.id
+                    WHERE p.tenniscores_player_id = %s AND p.team_id = %s
+                    ORDER BY history_count DESC, p.id DESC
+                """
+                player_pti_data = execute_query_one(player_pti_query, [player_id, team_context])
+                print(f"[DEBUG] PTI query with team context: player_id={player_id}, team_id={team_context}")
+            else:
+                # Original query without team filtering
+                player_pti_query = """
+                    SELECT 
+                        p.id,
+                        p.pti as current_pti,
+                        p.series_id,
+                        s.name as series_name,
+                        (SELECT COUNT(*) FROM player_history ph WHERE ph.player_id = p.id) as history_count
+                    FROM players p
+                    LEFT JOIN series s ON p.series_id = s.id
+                    WHERE p.tenniscores_player_id = %s
+                    ORDER BY history_count DESC, p.id DESC
+                """
+                player_pti_data = execute_query_one(player_pti_query, [player_id])
 
             if player_pti_data and (player_pti_data["current_pti"] is not None or player_pti_data["history_count"] > 0):
                 current_pti = player_pti_data["current_pti"]
@@ -3188,6 +3255,7 @@ def get_mobile_team_data(user):
             }
 
         # Get team info directly from player record
+        # Try primary query first (when team_id exists)
         team_query = """
             SELECT t.id, t.team_name, t.display_name, p.league_id
             FROM players p
@@ -3199,12 +3267,46 @@ def get_mobile_team_data(user):
         
         team_record = execute_query_one(team_query, [player_id])
         
+        # If no team found via team_id, try fallback query using club + series matching
         if not team_record:
+            print(f"[DEBUG] No team found via team_id for player {player_id}, trying fallback...")
+            fallback_query = """
+                SELECT t.id, t.team_name, t.display_name, p.league_id
+                FROM players p
+                JOIN clubs c ON p.club_id = c.id
+                JOIN series s ON p.series_id = s.id
+                JOIN teams t ON (t.club_id = c.id AND t.team_alias = s.name)
+                WHERE p.tenniscores_player_id = %s 
+                AND p.is_active = TRUE
+                AND t.is_active = TRUE
+                LIMIT 1
+            """
+            team_record = execute_query_one(fallback_query, [player_id])
+            
+            if team_record:
+                print(f"[DEBUG] Found team via fallback: {team_record['team_name']} (ID: {team_record['id']})")
+        
+        if not team_record:
+            # Get player info for better error message
+            player_info_query = """
+                SELECT p.first_name, p.last_name, c.name as club_name, s.name as series_name
+                FROM players p
+                LEFT JOIN clubs c ON p.club_id = c.id
+                LEFT JOIN series s ON p.series_id = s.id
+                WHERE p.tenniscores_player_id = %s
+            """
+            player_info = execute_query_one(player_info_query, [player_id])
+            
+            if player_info:
+                error_msg = f"No active team found for {player_info['first_name']} {player_info['last_name']} ({player_info['club_name']}, {player_info['series_name']}). Please contact support."
+            else:
+                error_msg = f"No active team found for player ID {player_id}. Please contact support."
+            
             return {
                 "team_data": None,
                 "court_analysis": {},
                 "top_players": [],
-                "error": f"No active team found for player ID {player_id}. Please contact support.",
+                "error": error_msg,
             }
 
         team_id = team_record["id"]
