@@ -682,7 +682,9 @@ async function loadSeasonHistory() {
     error.classList.add('hidden');
     table.classList.add('hidden');
     
-    const response = await fetch('/api/season-history');
+    // Use the reliable player-name based endpoint instead of session-based endpoint
+    const playerName = '{{ session_data.user.first_name }} {{ session_data.user.last_name }}';
+    const response = await fetch(`/api/season-history/${encodeURIComponent(playerName)}`);
     console.log('Season history response status:', response.status);
     
     if (response.status === 404) {

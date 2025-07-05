@@ -344,42 +344,22 @@ def register_user(email: str, password: str, first_name: str, last_name: str,
         # If league/club/series provided, try to find player and create association
         if league_id and club_name and series_name:
             try:
-                # Use existing player lookup logic
-                lookup_result = find_player_by_database_lookup(
+                # Use our player lookup service to find the specific player they registered for
+                player_lookup_result = find_player_by_database_lookup(
                     first_name=first_name,
                     last_name=last_name,
+                    league_id=league_id,
                     club_name=club_name,
-                    series_name=series_name,
-                    league_id=league_id
+                    series_name=series_name
                 )
                 
-                if lookup_result and lookup_result.get("player"):
-                    player_id = lookup_result["player"]["tenniscores_player_id"]
-                    logger.info(f"Registration: Found player {player_id} for {email}")
+                logger.info(f"Registration: Player lookup result for {email}: {player_lookup_result}")
+                
+                if player_lookup_result and player_lookup_result.get("player"):
+                    player_data = player_lookup_result["player"]
+                    player_id = player_data["tenniscores_player_id"]
                     
-                    # ⚠️ SECURITY CHECK: Verify player ID isn't already associated with another user
-                    existing_association = db_session.query(UserPlayerAssociation).filter(
-                        UserPlayerAssociation.tenniscores_player_id == player_id
-                    ).first()
-                    
-                    if existing_association:
-                        # Get the other user's email for security logging
-                        other_user = db_session.query(User).filter(
-                            User.id == existing_association.user_id
-                        ).first()
-                        
-                        logger.warning(f"🚨 SECURITY: Player ID {player_id} already associated with {other_user.email if other_user else 'unknown user'}")
-                        logger.warning(f"🚨 SECURITY: Preventing {email} from claiming existing player identity")
-                        
-                        # Rollback the transaction - user won't be created
-                        db_session.rollback()
-                        return {
-                            "success": False, 
-                            "error": f"Player identity is already associated with another account. If this is your player record, please contact support.",
-                            "security_issue": True
-                        }
-                    
-                    # Get the player record to find the league
+                    # Get the full player record from database
                     player_record = db_session.query(Player).filter(
                         Player.tenniscores_player_id == player_id,
                         Player.is_active == True
@@ -393,15 +373,18 @@ def register_user(email: str, password: str, first_name: str, last_name: str,
                         )
                         db_session.add(association)
                         
-                        # Set user's league_context to this player's league
+                        # CRITICAL FIX: Set league_context based on the specific player they registered for
+                        # This ensures the session service will select the right team on login
                         new_user.league_context = player_record.league_id
+                        
+                        logger.info(f"Registration: Set league_context to {player_record.league_id} for player {player_data['club_name']} - {player_data['series_name']}")
                         
                         # Assign player to team for polls functionality
                         team_assigned = assign_player_to_team(player_record, db_session)
                         if team_assigned:
                             logger.info(f"Registration: Team assignment successful for {player_record.full_name}")
                         
-                        logger.info(f"Registration: Created association between {email} and player {player_id}")
+                        logger.info(f"Registration: Created association between {email} and player {player_id} ({player_data['club_name']} - {player_data['series_name']})")
                 else:
                     logger.info(f"Registration: No player found for {email} with provided details")
                     
