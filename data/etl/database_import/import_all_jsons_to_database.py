@@ -511,26 +511,116 @@ class ComprehensiveETL:
                     raise
     
     def load_series_mappings(self, conn):
-        """Load series mappings from the team_format_mappings table"""
+        """Load series mappings from database to prevent duplicate series creation"""
         self.log("📋 Loading series mappings from database...")
         
         cursor = conn.cursor()
+        
+        # Initialize mappings dictionary
+        self.series_mappings = {}
+        
+        # Load existing series name mappings from database
         cursor.execute("""
-            SELECT league_id, user_input_format, database_series_format 
-            FROM team_format_mappings 
-            WHERE is_active = true AND mapping_type = 'series_mapping'
+            SELECT snm.user_facing_name, snm.database_name, snm.league_id
+            FROM series_name_mappings snm
+            ORDER BY snm.league_id, snm.user_facing_name
         """)
         
         mappings = cursor.fetchall()
+        mapping_count = 0
         
-        for league_id, user_format, db_format in mappings:
+        for user_facing, database_name, league_id in mappings:
             if league_id not in self.series_mappings:
                 self.series_mappings[league_id] = {}
-            self.series_mappings[league_id][user_format] = db_format
+            
+            self.series_mappings[league_id][user_facing] = database_name
+            mapping_count += 1
         
-        total_mappings = sum(len(league_mappings) for league_mappings in self.series_mappings.values())
-        self.log(f"✅ Loaded {total_mappings} series mappings for {len(self.series_mappings)} leagues")
-    
+        if mapping_count > 0:
+            self.log(f"✅ Loaded {mapping_count} series mappings from database")
+        else:
+            self.log("⚠️  No series mappings found in database - will create default mappings")
+            # Create default mappings for common patterns
+            self._create_default_series_mappings(conn)
+            
+    def _create_default_series_mappings(self, conn):
+        """Create default series mappings for common naming patterns"""
+        self.log("🔧 Creating default series mappings...")
+        
+        cursor = conn.cursor()
+        
+        # Ensure series_name_mappings table exists
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS series_name_mappings (
+                id SERIAL PRIMARY KEY,
+                user_facing_name VARCHAR(100) NOT NULL,
+                database_name VARCHAR(100) NOT NULL,
+                league_id VARCHAR(50) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(user_facing_name, league_id)
+            )
+        """)
+        
+        # Define default mappings for each league
+        default_mappings = [
+            # NSTF mappings: "Series 2B" -> "S2B"
+            ("NSTF", "Series 1", "S1"),
+            ("NSTF", "Series 2A", "S2A"),
+            ("NSTF", "Series 2B", "S2B"),
+            ("NSTF", "Series 3", "S3"),
+            ("NSTF", "Series 4", "S4"),
+            
+            # APTA_CHICAGO mappings: "Chicago 22" -> "22"
+            ("APTA_CHICAGO", "Chicago 1", "1"),
+            ("APTA_CHICAGO", "Chicago 2", "2"),
+            ("APTA_CHICAGO", "Chicago 3", "3"),
+            ("APTA_CHICAGO", "Chicago 11", "11"),
+            ("APTA_CHICAGO", "Chicago 12", "12"),
+            ("APTA_CHICAGO", "Chicago 13", "13"),
+            ("APTA_CHICAGO", "Chicago 21", "21"),
+            ("APTA_CHICAGO", "Chicago 22", "22"),
+            ("APTA_CHICAGO", "Chicago 23", "23"),
+            ("APTA_CHICAGO", "Chicago 31", "31"),
+            ("APTA_CHICAGO", "Chicago 32", "32"),
+            ("APTA_CHICAGO", "Chicago 33", "33"),
+            
+            # CNSWPL mappings: "Division 1" -> "1"
+            ("CNSWPL", "Division 1", "1"),
+            ("CNSWPL", "Division 1a", "1a"),
+            ("CNSWPL", "Division 2", "2"),
+            ("CNSWPL", "Division 2a", "2a"),
+            ("CNSWPL", "Division 3", "3"),
+        ]
+        
+        # Insert default mappings
+        for league_id, user_facing, database_name in default_mappings:
+            cursor.execute("""
+                INSERT INTO series_name_mappings (user_facing_name, database_name, league_id)
+                VALUES (%s, %s, %s)
+                ON CONFLICT (user_facing_name, league_id) DO NOTHING
+            """, (user_facing, database_name, league_id))
+        
+        conn.commit()
+        
+        # Now load the mappings we just created
+        cursor.execute("""
+            SELECT snm.user_facing_name, snm.database_name, snm.league_id
+            FROM series_name_mappings snm
+            ORDER BY snm.league_id, snm.user_facing_name
+        """)
+        
+        mappings = cursor.fetchall()
+        mapping_count = 0
+        
+        for user_facing, database_name, league_id in mappings:
+            if league_id not in self.series_mappings:
+                self.series_mappings[league_id] = {}
+            
+            self.series_mappings[league_id][user_facing] = database_name
+            mapping_count += 1
+        
+        self.log(f"✅ Created and loaded {mapping_count} default series mappings")
+
     def map_series_name(self, series_name: str, league_id: str) -> str:
         """Convert user-facing series name to database series name using mappings"""
         if not series_name or not league_id:
@@ -1561,13 +1651,16 @@ class ComprehensiveETL:
 
         for series in series_data:
             try:
+                # Use series name as display_name for now (can be customized later)
+                display_name = series["name"]
+                
                 cursor.execute(
                     """
-                    INSERT INTO series (name)
-                    VALUES (%s)
+                    INSERT INTO series (name, display_name)
+                    VALUES (%s, %s)
                     ON CONFLICT (name) DO NOTHING
                 """,
-                    (series["name"],),
+                    (series["name"], display_name),
                 )
 
                 if cursor.rowcount > 0:
@@ -1788,15 +1881,17 @@ class ComprehensiveETL:
                 if existing_team:
                     # Team already exists, update it if needed
                     existing_id, existing_name = existing_team
+                    display_name = team_name  # Can be customized later if needed
                     cursor.execute(
                         """
                         UPDATE teams SET 
                             team_name = %s,
                             team_alias = %s,
+                            display_name = %s,
                             updated_at = CURRENT_TIMESTAMP
                         WHERE id = %s
                     """,
-                        (team_name, team_alias, existing_id),
+                        (team_name, team_alias, display_name, existing_id),
                     )
                     updated += 1
 
@@ -1825,13 +1920,14 @@ class ComprehensiveETL:
 
                     club_id, series_id, league_db_id = refs
 
-                    # Create new team
+                    # Create new team with display_name (use team_name as default)
+                    display_name = team_name  # Can be customized later if needed
                     cursor.execute(
                         """
-                        INSERT INTO teams (club_id, series_id, league_id, team_name, team_alias, created_at)
-                        VALUES (%s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+                        INSERT INTO teams (club_id, series_id, league_id, team_name, team_alias, display_name, created_at)
+                        VALUES (%s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
                     """,
-                        (club_id, series_id, league_db_id, team_name, team_alias),
+                        (club_id, series_id, league_db_id, team_name, team_alias, display_name),
                     )
                     imported += 1
 
@@ -3795,24 +3891,24 @@ class ComprehensiveETL:
             self.log(f"❌ Error calculating series_id health: {str(e)}", "ERROR")
             return 0.0
 
-    def _create_pre_etl_backup(self) -> bool:
+    def _create_pre_etl_backup(self) -> str:
         """Create a full database backup before ETL process"""
         try:
             # Only create backups for production or if explicitly requested
             if self.environment not in ['railway_production', 'railway_staging'] and not os.getenv('FORCE_ETL_BACKUP'):
                 self.log("ℹ️  Skipping backup for local environment (set FORCE_ETL_BACKUP=1 to enable)")
-                return True
+                return None
             
             self.log("🔄 Creating pre-ETL database backup...")
             
             # Build path to backup script
             script_dir = os.path.dirname(os.path.abspath(__file__))
             project_root = os.path.dirname(os.path.dirname(os.path.dirname(script_dir)))
-            backup_script = os.path.join(project_root, 'scripts', 'backup_database.py')
+            backup_script = os.path.join(project_root, 'data', 'backup_restore_local_db', 'backup_database.py')
             
             if not os.path.exists(backup_script):
                 self.log(f"❌ Backup script not found: {backup_script}", "ERROR")
-                return False
+                return None
             
             # Run backup script with custom format (smaller, faster)
             import subprocess
@@ -3834,20 +3930,96 @@ class ComprehensiveETL:
             
             if result.returncode == 0:
                 self.log("✅ Database backup completed successfully")
-                # Log backup location if available in output
-                for line in result.stdout.split('\n'):
+                
+                # Extract backup location from output (check both stdout and stderr)
+                backup_path = None
+                output_to_check = result.stdout + result.stderr
+                
+                for line in output_to_check.split('\n'):
                     if 'Backup location:' in line:
-                        self.log(f"📁 {line.strip()}")
-                return True
+                        backup_path = line.split('Backup location:')[1].strip()
+                        self.log(f"📁 Backup location: {backup_path}")
+                        break
+                    elif 'Backup path:' in line:
+                        # Alternative format in case logging format changes
+                        backup_path = line.split('Backup path:')[1].strip()
+                        self.log(f"📁 Backup path: {backup_path}")
+                        break
+                
+                if not backup_path:
+                    # Try to extract from any line containing a .dump file path
+                    for line in output_to_check.split('\n'):
+                        if '.dump' in line and '/rally_db_backup_' in line:
+                            # Extract the file path
+                            import re
+                            match = re.search(r'/[^\s]+rally_db_backup_[^\s]+\.dump', line)
+                            if match:
+                                backup_path = match.group(0)
+                                self.log(f"📁 Extracted backup path: {backup_path}")
+                                break
+                
+                return backup_path
             else:
                 self.log(f"❌ Backup script failed: {result.stderr}", "ERROR")
-                return False
+                return None
                 
         except subprocess.TimeoutExpired:
             self.log("❌ Backup script timed out after 5 minutes", "ERROR")
-            return False
+            return None
         except Exception as e:
             self.log(f"❌ Error creating backup: {str(e)}", "ERROR")
+            return None
+
+    def _restore_from_backup(self, backup_path: str) -> bool:
+        """Restore database from backup file"""
+        try:
+            if not backup_path or not os.path.exists(backup_path):
+                self.log(f"❌ Backup file not found: {backup_path}", "ERROR")
+                return False
+            
+            self.log("🔄 Restoring database from backup...")
+            self.log(f"📁 Backup: {backup_path}")
+            
+            # Build path to backup script
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            project_root = os.path.dirname(os.path.dirname(os.path.dirname(script_dir)))
+            backup_script = os.path.join(project_root, 'data', 'backup_restore_local_db', 'backup_database.py')
+            
+            if not os.path.exists(backup_script):
+                self.log(f"❌ Backup script not found: {backup_script}", "ERROR")
+                return False
+            
+            # Run restore command with no confirmation (automated)
+            import subprocess
+            
+            cmd = [
+                'python3', backup_script,
+                '--restore', backup_path,
+                '--no-confirm'  # Skip confirmation in automated restore
+            ]
+            
+            self.log(f"Running: {' '.join(cmd)}")
+            
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=600  # 10 minute timeout for restore
+            )
+            
+            if result.returncode == 0:
+                self.log("✅ Database restore completed successfully")
+                self.log("🔄 Database has been restored to pre-ETL state")
+                return True
+            else:
+                self.log(f"❌ Restore failed: {result.stderr}", "ERROR")
+                return False
+                
+        except subprocess.TimeoutExpired:
+            self.log("❌ Restore timed out after 10 minutes", "ERROR")
+            return False
+        except Exception as e:
+            self.log(f"❌ Error during restore: {str(e)}", "ERROR")
             return False
 
     def _parse_int(self, value: str) -> int:
@@ -3886,11 +4058,22 @@ class ComprehensiveETL:
             
             # CRITICAL: Create full database backup before ETL process
             self.log("\n💾 Step 0: Creating full database backup...")
-            backup_success = self._create_pre_etl_backup()
-            if not backup_success:
+            backup_path = self._create_pre_etl_backup()
+            if not backup_path:
                 self.log("⚠️  Backup failed but continuing ETL (backup is optional)", "WARNING")
             else:
                 self.log("✅ Database backup completed successfully")
+                
+            # Enable auto-restore if backup was created and environment allows it
+            auto_restore_enabled = (
+                backup_path and 
+                (self.environment in ['railway_production', 'railway_staging'] or os.getenv('FORCE_ETL_RESTORE'))
+            )
+            
+            if auto_restore_enabled:
+                self.log("🛡️  Auto-restore enabled - database will be restored if ETL fails critically")
+            elif backup_path:
+                self.log("ℹ️  Auto-restore disabled for this environment (set FORCE_ETL_RESTORE=1 to enable)")
             
             # RAILWAY OPTIMIZATION: Log environment and resource information
             if self.is_railway:
@@ -4032,11 +4215,43 @@ class ComprehensiveETL:
                     self.log(f"\n❌ ETL process failed: {str(e)}", "ERROR")
                     self.log("🔄 Rolling back all changes...", "WARNING")
                     conn.rollback()
+                    
+                    # CRITICAL: Attempt automatic restore if enabled
+                    if auto_restore_enabled and backup_path:
+                        self.log("\n🚨 CRITICAL FAILURE - Attempting automatic database restore...")
+                        restore_success = self._restore_from_backup(backup_path)
+                        
+                        if restore_success:
+                            self.log("✅ Database successfully restored to pre-ETL state")
+                            self.log("💡 You can safely retry the ETL process")
+                        else:
+                            self.log("❌ Automatic restore failed!", "ERROR")
+                            self.log(f"🔧 Manual restore required: python3 data/backup_restore_local_db/backup_database.py --restore {backup_path}", "ERROR")
+                    elif backup_path:
+                        self.log(f"\n💡 ETL failed but backup available for manual restore:", "WARNING")
+                        self.log(f"🔧 Run: python3 data/backup_restore_local_db/backup_database.py --restore {backup_path}", "WARNING")
+                    
                     raise
 
         except Exception as e:
             self.log(f"\n💥 CRITICAL ERROR: {str(e)}", "ERROR")
             self.log(f"Traceback: {traceback.format_exc()}", "ERROR")
+            
+            # CRITICAL: Attempt automatic restore if ETL failed and restore is enabled
+            if 'auto_restore_enabled' in locals() and locals()['auto_restore_enabled'] and 'backup_path' in locals() and locals()['backup_path']:
+                self.log("\n🚨 CATASTROPHIC FAILURE - Attempting automatic database restore...")
+                restore_success = self._restore_from_backup(locals()['backup_path'])
+                
+                if restore_success:
+                    self.log("✅ Database successfully restored to pre-ETL state")
+                    self.log("💡 You can safely retry the ETL process")
+                else:
+                    self.log("❌ Automatic restore failed!", "ERROR")
+                    self.log(f"🔧 Manual restore required: python3 data/backup_restore_local_db/backup_database.py --restore {locals()['backup_path']}", "ERROR")
+            elif 'backup_path' in locals() and locals()['backup_path']:
+                self.log(f"\n💡 ETL failed but backup available for manual restore:", "WARNING")
+                self.log(f"🔧 Run: python3 data/backup_restore_local_db/backup_database.py --restore {locals()['backup_path']}", "WARNING")
+            
             return False
 
         finally:

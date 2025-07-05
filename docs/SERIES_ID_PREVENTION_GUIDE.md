@@ -26,6 +26,7 @@ This guide ensures that the series_id foreign key system never breaks again by i
 
 The ETL script now automatically:
 - **NEW**: Creates full database backup before import (Production/Staging)
+- **NEW**: Automatic database restore if ETL fails critically
 - Populates `series_id` when creating new `series_stats` records  
 - Runs post-import validation to catch NULL series_id issues
 - Auto-populates missing series_id values after import
@@ -39,13 +40,18 @@ The ETL script now automatically:
 **ETL Process Flow**:
 ```
 0. Create full database backup ← NEW SAFETY FEATURE
-1. Import series_stats data
-2. Validate import coverage  
-3. Auto-populate missing series_id values ← AUTOMATIC
-4. Check health score (fail if < 85%)
-5. Continue with other imports
-6. Final series_id health validation ← AUTOMATIC
-7. Report final health score in summary
+1. Enable auto-restore if backup successful ← NEW SAFETY FEATURE
+2. Import series_stats data
+3. Validate import coverage  
+4. Auto-populate missing series_id values ← AUTOMATIC
+5. Check health score (fail if < 85%)
+6. Continue with other imports
+7. Final series_id health validation ← AUTOMATIC
+8. Report final health score in summary
+
+IF ETL FAILS:
+9. Automatic database restore ← NEW SAFETY FEATURE
+10. Provide retry instructions
 ```
 
 ### 2. **Monitoring Tools** ✅
@@ -128,6 +134,54 @@ python3 scripts/populate_series_id_in_series_stats.py
 ```bash
 # Comprehensive health report
 python3 scripts/etl_series_id_validator.py --report --auto-fix
+```
+
+## Auto-Restore System
+
+### **How Auto-Restore Works**
+
+The ETL process now includes **automatic database restoration** if critical failures occur:
+
+1. **Backup Creation**: Full database backup created before any destructive operations
+2. **Error Detection**: Monitors for critical ETL failures that could leave database in inconsistent state
+3. **Automatic Restore**: If enabled, immediately restores database to pre-ETL state
+4. **Failure Recovery**: Provides clear instructions for retry after restoration
+
+### **When Auto-Restore Triggers**
+
+- ✅ **Critical ETL Failures**: Database corruption, constraint violations, major import errors
+- ✅ **Unexpected Exceptions**: Unhandled errors that leave database in unknown state  
+- ❌ **Minor Issues**: Series ID mismatches, validation warnings (handled gracefully)
+- ❌ **User Cancellation**: Manual interruption (rollback only, no restore)
+
+### **Environment Configuration**
+
+**Production/Staging (Automatic)**:
+```bash
+# Auto-restore enabled by default
+python3 data/etl/database_import/import_all_jsons_to_database.py
+```
+
+**Local Development (Manual)**:
+```bash
+# Enable auto-restore in local environment  
+FORCE_ETL_RESTORE=1 python3 data/etl/database_import/import_all_jsons_to_database.py
+
+# Or enable backup only (manual restore)
+FORCE_ETL_BACKUP=1 python3 data/etl/database_import/import_all_jsons_to_database.py
+```
+
+### **Manual Restore Commands**
+
+```bash
+# List available backups
+python3 data/backup_restore_local_db/backup_database.py --list
+
+# Restore specific backup
+python3 data/backup_restore_local_db/backup_database.py --restore /path/to/backup.dump
+
+# Restore without confirmation (automated)
+python3 data/backup_restore_local_db/backup_database.py --restore /path/to/backup.dump --no-confirm
 ```
 
 ## Fixing Current Issues

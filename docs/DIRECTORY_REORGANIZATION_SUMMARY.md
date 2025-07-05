@@ -216,7 +216,7 @@ data/backups/
    - 4 miscellaneous backup files → `data/backups/misc/`
 
 3. **Updated 5 backup scripts**
-   - `scripts/backup_database.py`
+   - `data/backup_restore_local_db/backup_database.py`
    - `scripts/backup_current_db.py`
    - `data/etl/database_import/backup_restore_users.py`
    - `scripts/complete_database_clone.py`
