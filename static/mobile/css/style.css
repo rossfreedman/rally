@@ -196,7 +196,7 @@ a:hover {
 
 /* Rally green for mobile top nav */
 .navbar {
-  background-color: #000000 !important; /* Changed from Rally green (#007417) to black */
+  background-color: #101827 !important; /* Changed from Rally green (#007417) to dark blue-gray */
 }
 
 /* Rally green for 'I can play' button */
@@ -495,7 +495,7 @@ a:hover {
 /* --- Bottom Navigation Dock Styles --- */
 .bottom-dock {
   backdrop-filter: blur(10px);
-  background-color: rgba(0, 0, 0, 0.95);
+  background-color: #101827;
   border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 

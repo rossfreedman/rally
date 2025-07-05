@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Players - Rally Features</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'rally-blue': '#2563eb',
+                        'rally-green': '#10b981',
+                        'rally-orange': '#f59e0b',
+                        'rally-dark': '#1f2937',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-sm border-b border-gray-200">
+        <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <a href="index.html" class="flex items-center">
+                        <img class="h-8 w-auto" src="rallylogo.png" alt="Rally Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                        <div class="hidden text-2xl font-bold text-rally-blue">Rally</div>
+                    </a>
+                </div>
+                <div class="flex items-center space-x-6">
+                    <a href="index.html" class="text-gray-700 hover:text-rally-blue transition duration-300">← Back to Home</a>
+                    <a href="/login" class="bg-rally-blue text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition duration-300">Login</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Header Section -->
+    <section class="bg-gradient-to-br from-rally-blue to-blue-800 text-white py-20">
+        <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16 text-center">
+            <div class="w-20 h-20 bg-white/20 rounded-xl flex items-center justify-center mx-auto mb-6">
+                <i class="fas fa-search text-3xl text-white"></i>
+            </div>
+            <h1 class="text-4xl md:text-5xl font-bold mb-6">Search Players</h1>
+            <p class="text-xl text-blue-100 max-w-3xl mx-auto">
+                Find the perfect playing partner or opponent. Search through your club, league, or the entire Rally network to connect with players at your skill level.
+            </p>
+        </div>
+    </section>
+
+    <!-- Feature Overview -->
+    <section class="py-16 bg-white">
+        <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                <div>
+                    <h2 class="text-3xl font-bold text-gray-900 mb-6">Discover Your Next Playing Partner</h2>
+                    <p class="text-lg text-gray-600 mb-6">
+                        Rally's advanced player search helps you find the ideal match for your skill level, playing style, and schedule. Whether you're looking for a practice partner, competitive opponent, or substitute player, our intelligent search makes connections effortless.
+                    </p>
+                    <div class="space-y-4">
+                        <div class="flex items-start">
+                            <div class="w-6 h-6 bg-rally-green rounded-full flex items-center justify-center mr-3 mt-1">
+                                <i class="fas fa-check text-white text-sm"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-gray-900">Smart Skill Matching</h3>
+                                <p class="text-gray-600">Find players with complementary skill levels and playing styles for optimal match-ups.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <div class="w-6 h-6 bg-rally-green rounded-full flex items-center justify-center mr-3 mt-1">
+                                <i class="fas fa-check text-white text-sm"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-gray-900">Comprehensive Profiles</h3>
+                                <p class="text-gray-600">View detailed player statistics, availability, and contact information before reaching out.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <div class="w-6 h-6 bg-rally-green rounded-full flex items-center justify-center mr-3 mt-1">
+                                <i class="fas fa-check text-white text-sm"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-gray-900">Multi-League Coverage</h3>
+                                <p class="text-gray-600">Search across multiple leagues and clubs to expand your playing network.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-100 rounded-xl p-8">
+                    <img src="screenshots/search_players.png" alt="Rally Search Players Interface" class="w-full rounded-lg shadow-lg">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Key Features -->
+    <section class="py-16 bg-gray-50">
+        <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16">
+            <h2 class="text-3xl font-bold text-gray-900 text-center mb-12">Search Features</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div class="bg-white p-6 rounded-xl shadow-sm">
+                    <div class="w-12 h-12 bg-rally-blue rounded-lg flex items-center justify-center mb-4">
+                        <i class="fas fa-filter text-white text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3">Advanced Filters</h3>
+                    <p class="text-gray-600">Filter by skill level, location, availability, age group, and playing preferences for targeted results.</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm">
+                    <div class="w-12 h-12 bg-rally-green rounded-lg flex items-center justify-center mb-4">
+                        <i class="fas fa-chart-bar text-white text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3">Player Statistics</h3>
+                    <p class="text-gray-600">View win/loss records, PTI ratings, recent performance trends, and playing history.</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm">
+                    <div class="w-12 h-12 bg-rally-orange rounded-lg flex items-center justify-center mb-4">
+                        <i class="fas fa-map-marker-alt text-white text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3">Location-Based Search</h3>
+                    <p class="text-gray-600">Find players at your club, nearby clubs, or expand your search across the entire league network.</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm">
+                    <div class="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center mb-4">
+                        <i class="fas fa-calendar-alt text-white text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3">Availability Matching</h3>
+                    <p class="text-gray-600">See when players are available and find matches that work with your schedule.</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm">
+                    <div class="w-12 h-12 bg-red-600 rounded-lg flex items-center justify-center mb-4">
+                        <i class="fas fa-star text-white text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3">Skill Compatibility</h3>
+                    <p class="text-gray-600">Smart algorithms suggest players who match your skill level and playing style preferences.</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm">
+                    <div class="w-12 h-12 bg-indigo-600 rounded-lg flex items-center justify-center mb-4">
+                        <i class="fas fa-comments text-white text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3">Direct Messaging</h3>
+                    <p class="text-gray-600">Connect directly with players through Rally's built-in messaging system to coordinate matches.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Benefits Section -->
+    <section class="py-16 bg-white">
+        <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold text-gray-900 mb-4">Why Player Search Matters</h2>
+                <p class="text-xl text-gray-600">Building connections that elevate your game</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="flex items-start">
+                    <div class="w-8 h-8 bg-rally-blue rounded-full flex items-center justify-center mr-4 mt-1">
+                        <i class="fas fa-users text-white text-sm"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-semibold text-gray-900 mb-2">Expand Your Network</h3>
+                        <p class="text-gray-600">Connect with players beyond your immediate circle to experience different playing styles and strategies.</p>
+                    </div>
+                </div>
+                <div class="flex items-start">
+                    <div class="w-8 h-8 bg-rally-green rounded-full flex items-center justify-center mr-4 mt-1">
+                        <i class="fas fa-trophy text-white text-sm"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-semibold text-gray-900 mb-2">Improve Your Game</h3>
+                        <p class="text-gray-600">Playing with diverse opponents helps you develop new skills and adapt to different competitive scenarios.</p>
+                    </div>
+                </div>
+                <div class="flex items-start">
+                    <div class="w-8 h-8 bg-rally-orange rounded-full flex items-center justify-center mr-4 mt-1">
+                        <i class="fas fa-clock text-white text-sm"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-semibold text-gray-900 mb-2">Save Time</h3>
+                        <p class="text-gray-600">No more endless group chats trying to find a substitute. Quick search, instant results, immediate connection.</p>
+                    </div>
+                </div>
+                <div class="flex items-start">
+                    <div class="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center mr-4 mt-1">
+                        <i class="fas fa-handshake text-white text-sm"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-semibold text-gray-900 mb-2">Build Community</h3>
+                        <p class="text-gray-600">Foster stronger club and league relationships by connecting with players you might never have met otherwise.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="py-16 bg-gradient-to-br from-rally-green to-green-700 text-white">
+        <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16 text-center">
+            <h2 class="text-3xl font-bold mb-6">Ready to Find Your Perfect Playing Partner?</h2>
+            <p class="text-xl text-green-100 mb-8 max-w-2xl mx-auto">
+                Join thousands of players who've expanded their network and improved their game through Rally's player search.
+            </p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <a href="/login" class="bg-white text-rally-green px-8 py-4 rounded-lg text-lg font-semibold hover:bg-gray-100 transition duration-300 shadow-lg">
+                    Start Searching
+                </a>
+                <a href="index.html" class="border-2 border-white text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-white hover:text-rally-green transition duration-300">
+                    View All Features
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white py-12">
+        <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16 text-center">
+            <div class="flex items-center justify-center mb-4">
+                <img class="h-8 w-auto" src="rallylogo.png" alt="Rally Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                <div class="hidden text-xl font-bold text-rally-blue">Rally</div>
+            </div>
+            <p class="text-gray-400 mb-4">The ultimate racquet sports management application.</p>
+            <div class="border-t border-gray-700 pt-6">
+                <p class="text-gray-400">© 2025 Rally LLC. All rights reserved.<br>Made with ❤️ for racquet sports players.</p>
+            </div>
+        </div>
+    </footer>
+</body>
+</html> 

@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Stats - Rally Features</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'rally-blue': '#2563eb',
+                        'rally-green': '#10b981',
+                        'rally-orange': '#f59e0b',
+                        'rally-dark': '#1f2937',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-sm border-b border-gray-200">
+        <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <a href="index.html" class="flex items-center">
+                        <img class="h-8 w-auto" src="rallylogo.png" alt="Rally Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                        <div class="hidden text-2xl font-bold text-rally-blue">Rally</div>
+                    </a>
+                </div>
+                <div class="flex items-center space-x-6">
+                    <a href="index.html" class="text-gray-700 hover:text-rally-blue transition duration-300">← Back to Home</a>
+                    <a href="/login" class="bg-rally-blue text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition duration-300">Login</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Header Section -->
+    <section class="bg-gradient-to-br from-rally-green to-green-700 text-white py-20">
+        <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16 text-center">
+            <div class="w-20 h-20 bg-white/20 rounded-xl flex items-center justify-center mx-auto mb-6">
+                <i class="fas fa-chart-line text-3xl text-white"></i>
+            </div>
+            <h1 class="text-4xl md:text-5xl font-bold mb-6">My Stats</h1>
+            <p class="text-xl text-green-100 max-w-3xl mx-auto">
+                Track your performance, monitor your progress, and identify areas for improvement with comprehensive personal statistics and analytics.
+            </p>
+        </div>
+    </section>
+
+    <!-- Feature Overview -->
+    <section class="py-16 bg-white">
+        <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                <div>
+                    <h2 class="text-3xl font-bold text-gray-900 mb-6">Your Complete Performance Dashboard</h2>
+                    <p class="text-lg text-gray-600 mb-6">
+                        Rally's comprehensive statistics dashboard gives you deep insights into your playing performance. Track win/loss records, analyze trends over time, monitor your PTI rating evolution, and identify patterns that help you improve your game strategically.
+                    </p>
+                    <div class="space-y-4">
+                        <div class="flex items-start">
+                            <div class="w-6 h-6 bg-rally-green rounded-full flex items-center justify-center mr-3 mt-1">
+                                <i class="fas fa-check text-white text-sm"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-gray-900">Detailed Performance Metrics</h3>
+                                <p class="text-gray-600">Track wins, losses, PTI rating, match history, and performance trends across all competitions.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <div class="w-6 h-6 bg-rally-green rounded-full flex items-center justify-center mr-3 mt-1">
+                                <i class="fas fa-check text-white text-sm"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-gray-900">Visual Analytics</h3>
+                                <p class="text-gray-600">Interactive charts and graphs make it easy to spot patterns and track improvement over time.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <div class="w-6 h-6 bg-rally-green rounded-full flex items-center justify-center mr-3 mt-1">
+                                <i class="fas fa-check text-white text-sm"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-gray-900">Multi-Season Comparison</h3>
+                                <p class="text-gray-600">Compare your performance across different seasons and leagues to measure long-term progress.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-100 rounded-xl p-8">
+                    <img src="screenshots/my_stats1.png" alt="Rally My Stats Dashboard" class="w-full rounded-lg shadow-lg mb-4">
+                    <img src="screenshots/my_stats2.png" alt="Rally Detailed Statistics" class="w-full rounded-lg shadow-lg">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Key Features -->
+    <section class="py-16 bg-gray-50">
+        <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16">
+            <h2 class="text-3xl font-bold text-gray-900 text-center mb-12">Statistical Features</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div class="bg-white p-6 rounded-xl shadow-sm">
+                    <div class="w-12 h-12 bg-rally-green rounded-lg flex items-center justify-center mb-4">
+                        <i class="fas fa-trophy text-white text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3">Win/Loss Records</h3>
+                    <p class="text-gray-600">Comprehensive tracking of your competitive record across all leagues, seasons, and tournaments.</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm">
+                    <div class="w-12 h-12 bg-rally-blue rounded-lg flex items-center justify-center mb-4">
+                        <i class="fas fa-star text-white text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3">PTI Rating Tracker</h3>
+                    <p class="text-gray-600">Monitor your Platform Tennis Index rating evolution and see how you rank against other players.</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm">
+                    <div class="w-12 h-12 bg-rally-orange rounded-lg flex items-center justify-center mb-4">
+                        <i class="fas fa-chart-bar text-white text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3">Performance Trends</h3>
+                    <p class="text-gray-600">Visualize your improvement over time with detailed charts and performance analytics.</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm">
+                    <div class="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center mb-4">
+                        <i class="fas fa-users text-white text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3">Partner Analysis</h3>
+                    <p class="text-gray-600">See how you perform with different partners and identify your most successful combinations.</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm">
+                    <div class="w-12 h-12 bg-red-600 rounded-lg flex items-center justify-center mb-4">
+                        <i class="fas fa-target text-white text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3">Opponent Breakdown</h3>
+                    <p class="text-gray-600">Analyze your performance against different skill levels and identify areas for improvement.</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm">
+                    <div class="w-12 h-12 bg-indigo-600 rounded-lg flex items-center justify-center mb-4">
+                        <i class="fas fa-calendar-alt text-white text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3">Season Comparisons</h3>
+                    <p class="text-gray-600">Compare your performance across different seasons to track long-term development.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Benefits Section -->
+    <section class="py-16 bg-white">
+        <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold text-gray-900 mb-4">Why Personal Statistics Matter</h2>
+                <p class="text-xl text-gray-600">Data-driven improvement for serious players</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="flex items-start">
+                    <div class="w-8 h-8 bg-rally-green rounded-full flex items-center justify-center mr-4 mt-1">
+                        <i class="fas fa-bullseye text-white text-sm"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-semibold text-gray-900 mb-2">Identify Strengths & Weaknesses</h3>
+                        <p class="text-gray-600">Understand what's working in your game and where you need to focus your practice and improvement efforts.</p>
+                    </div>
+                </div>
+                <div class="flex items-start">
+                    <div class="w-8 h-8 bg-rally-blue rounded-full flex items-center justify-center mr-4 mt-1">
+                        <i class="fas fa-chart-line text-white text-sm"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-semibold text-gray-900 mb-2">Track Progress Over Time</h3>
+                        <p class="text-gray-600">See tangible evidence of your improvement and stay motivated with clear progress indicators.</p>
+                    </div>
+                </div>
+                <div class="flex items-start">
+                    <div class="w-8 h-8 bg-rally-orange rounded-full flex items-center justify-center mr-4 mt-1">
+                        <i class="fas fa-cog text-white text-sm"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-semibold text-gray-900 mb-2">Strategic Decision Making</h3>
+                        <p class="text-gray-600">Use data to make informed decisions about partner selection, tournament entry, and competitive strategy.</p>
+                    </div>
+                </div>
+                <div class="flex items-start">
+                    <div class="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center mr-4 mt-1">
+                        <i class="fas fa-trophy text-white text-sm"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-semibold text-gray-900 mb-2">Goal Setting & Achievement</h3>
+                        <p class="text-gray-600">Set realistic, data-backed goals and track your progress toward achieving them throughout the season.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="py-16 bg-gradient-to-br from-rally-green to-green-700 text-white">
+        <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16 text-center">
+            <h2 class="text-3xl font-bold mb-6">Ready to Unlock Your Performance Insights?</h2>
+            <p class="text-xl text-green-100 mb-8 max-w-2xl mx-auto">
+                Start tracking your stats today and discover what the data reveals about your game and potential for improvement.
+            </p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <a href="/login" class="bg-white text-rally-green px-8 py-4 rounded-lg text-lg font-semibold hover:bg-gray-100 transition duration-300 shadow-lg">
+                    View My Stats
+                </a>
+                <a href="index.html" class="border-2 border-white text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-white hover:text-rally-green transition duration-300">
+                    View All Features
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white py-12">
+        <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16 text-center">
+            <div class="flex items-center justify-center mb-4">
+                <img class="h-8 w-auto" src="rallylogo.png" alt="Rally Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                <div class="hidden text-xl font-bold text-rally-blue">Rally</div>
+            </div>
+            <p class="text-gray-400 mb-4">The ultimate racquet sports management application.</p>
+            <div class="border-t border-gray-700 pt-6">
+                <p class="text-gray-400">© 2025 Rally LLC. All rights reserved.<br>Made with ❤️ for racquet sports players.</p>
+            </div>
+        </div>
+    </footer>
+</body>
+</html> 
