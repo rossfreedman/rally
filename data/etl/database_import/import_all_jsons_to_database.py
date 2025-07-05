@@ -518,23 +518,29 @@ class ComprehensiveETL:
         
         # Initialize mappings dictionary
         self.series_mappings = {}
-        
-        # Load existing series name mappings from database
-        cursor.execute("""
-            SELECT snm.user_facing_name, snm.database_name, snm.league_id
-            FROM series_name_mappings snm
-            ORDER BY snm.league_id, snm.user_facing_name
-        """)
-        
-        mappings = cursor.fetchall()
         mapping_count = 0
         
-        for user_facing, database_name, league_id in mappings:
-            if league_id not in self.series_mappings:
-                self.series_mappings[league_id] = {}
+        try:
+            # Try to load existing series name mappings from database
+            cursor.execute("""
+                SELECT snm.user_facing_name, snm.database_name, snm.league_id
+                FROM series_name_mappings snm
+                ORDER BY snm.league_id, snm.user_facing_name
+            """)
             
-            self.series_mappings[league_id][user_facing] = database_name
-            mapping_count += 1
+            mappings = cursor.fetchall()
+            
+            for user_facing, database_name, league_id in mappings:
+                if league_id not in self.series_mappings:
+                    self.series_mappings[league_id] = {}
+                
+                self.series_mappings[league_id][user_facing] = database_name
+                mapping_count += 1
+                
+        except Exception as e:
+            # Table doesn't exist or other error - we'll create it
+            self.log(f"⚠️  Could not load series mappings: {e}")
+            self.log("🔧 Will create series_name_mappings table with default data")
         
         if mapping_count > 0:
             self.log(f"✅ Loaded {mapping_count} series mappings from database")
