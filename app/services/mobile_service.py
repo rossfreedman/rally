@@ -1140,8 +1140,8 @@ def get_mobile_availability_data(user):
         if not team_id:
             print(f"[DEBUG] No team_id in session for {user_email}, attempting database fallback...")
             
-            # Get user's player associations directly from database
-            fallback_query = """
+            # Try primary query first (when team_id exists)
+            primary_fallback_query = """
                 SELECT p.team_id, p.tenniscores_player_id, t.team_name, 
                        c.name as club_name, s.name as series_name, l.league_name,
                        p.league_id, l.id as league_db_id
@@ -1160,7 +1160,34 @@ def get_mobile_availability_data(user):
                     p.team_id DESC
                 LIMIT 1
             """
-            fallback_result = execute_query_one(fallback_query, [user_email])
+            fallback_result = execute_query_one(primary_fallback_query, [user_email])
+            
+            # If no team found via team_id, try fallback using club + series matching (like my-team fix)
+            if not fallback_result:
+                print(f"[DEBUG] No team found via team_id for {user_email}, trying club+series fallback...")
+                series_fallback_query = """
+                    SELECT t.id as team_id, p.tenniscores_player_id, t.team_name, 
+                           c.name as club_name, s.name as series_name, l.league_name,
+                           p.league_id, l.id as league_db_id
+                    FROM user_player_associations upa
+                    JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+                    JOIN clubs c ON p.club_id = c.id
+                    JOIN series s ON p.series_id = s.id
+                    JOIN leagues l ON p.league_id = l.id
+                    JOIN users u ON upa.user_id = u.id
+                    JOIN teams t ON (t.club_id = c.id AND t.team_alias = s.name)
+                    WHERE u.email = %s 
+                    AND p.is_active = TRUE
+                    AND t.is_active = TRUE
+                    ORDER BY 
+                        CASE WHEN p.league_id = u.league_context THEN 1 ELSE 2 END,
+                        t.id DESC
+                    LIMIT 1
+                """
+                fallback_result = execute_query_one(series_fallback_query, [user_email])
+                
+                if fallback_result:
+                    print(f"[DEBUG] Found team via club+series fallback: {fallback_result['team_name']} (ID: {fallback_result['team_id']})")
             
             if fallback_result:
                 team_id = fallback_result["team_id"]
