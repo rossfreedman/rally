@@ -1,0 +1,141 @@
+{
+  "timestamp": "2025-07-05T07:06:46.126804",
+  "comparison_type": "local_vs_staging",
+  "schema_comparison": {
+    "tables_only_in_local": [],
+    "tables_only_in_railway_staging": [
+      "user_player_associations_backup",
+      "user_league_contexts_backup",
+      "player_availability_backup",
+      "series_name_mappings"
+    ],
+    "column_differences": {},
+    "constraint_differences": {},
+    "summary": {
+      "total_tables_local": 25,
+      "total_tables_railway_staging": 29,
+      "common_tables": 25,
+      "tables_with_differences": 0,
+      "schema_identical": false
+    }
+  },
+  "data_comparison": {
+    "row_count_differences": {
+      "player_season_tracking": {
+        "local_count": 22,
+        "railway_staging_count": 27,
+        "difference": -5
+      },
+      "series_stats": {
+        "local_count": 978,
+        "railway_staging_count": 0,
+        "difference": 978
+      },
+      "polls": {
+        "local_count": 12,
+        "railway_staging_count": 9,
+        "difference": 3
+      },
+      "user_player_associations": {
+        "local_count": 23,
+        "railway_staging_count": 0,
+        "difference": 23
+      },
+      "series": {
+        "local_count": 201,
+        "railway_staging_count": 197,
+        "difference": 4
+      },
+      "match_scores": {
+        "local_count": 26786,
+        "railway_staging_count": 0,
+        "difference": 26786
+      },
+      "users": {
+        "local_count": 22,
+        "railway_staging_count": 4,
+        "difference": 18
+      },
+      "poll_choices": {
+        "local_count": 25,
+        "railway_staging_count": 18,
+        "difference": 7
+      },
+      "activity_log": {
+        "local_count": 57,
+        "railway_staging_count": 165,
+        "difference": -108
+      },
+      "player_history": {
+        "local_count": 392958,
+        "railway_staging_count": 136000,
+        "difference": 256958
+      },
+      "club_leagues": {
+        "local_count": 123,
+        "railway_staging_count": 133,
+        "difference": -10
+      },
+      "leagues": {
+        "local_count": 4,
+        "railway_staging_count": 5,
+        "difference": -1
+      },
+      "user_instructions": {
+        "local_count": 1,
+        "railway_staging_count": 2,
+        "difference": -1
+      },
+      "system_settings": {
+        "local_count": 3,
+        "railway_staging_count": 1,
+        "difference": 2
+      },
+      "series_leagues": {
+        "local_count": 194,
+        "railway_staging_count": 190,
+        "difference": 4
+      },
+      "schedule": {
+        "local_count": 7343,
+        "railway_staging_count": 0,
+        "difference": 7343
+      },
+      "player_availability": {
+        "local_count": 6,
+        "railway_staging_count": 9,
+        "difference": -3
+      },
+      "poll_responses": {
+        "local_count": 13,
+        "railway_staging_count": 7,
+        "difference": 6
+      },
+      "user_activity_logs": {
+        "local_count": 4153,
+        "railway_staging_count": 2966,
+        "difference": 1187
+      }
+    },
+    "tables_only_in_local": [],
+    "tables_only_in_railway_staging": [
+      "user_player_associations_backup",
+      "user_league_contexts_backup",
+      "player_availability_backup",
+      "series_name_mappings"
+    ],
+    "summary": {
+      "total_tables_local": 25,
+      "total_tables_railway_staging": 29,
+      "common_tables": 25,
+      "total_rows_local": 444240,
+      "total_rows_railway_staging": 151086,
+      "tables_with_count_differences": 19,
+      "data_identical": false
+    }
+  },
+  "databases": {
+    "local": "localhost:5432/rally",
+    "railway_staging": "switchback.proxy.rlwy.net:28473/railway"
+  }
+}
