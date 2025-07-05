@@ -97,20 +97,18 @@
            
            async function checkMultipleLeagues() {
              try {
-               // Check if this specific user has multiple leagues
-               const response = await fetch('/api/get-user-teams');
+               // Check if this specific user has multiple leagues (including all associations)
+               const response = await fetch('/api/get-user-leagues');
                const data = await response.json();
                
-               if (data.success && data.teams) {
-                 // Check if user has teams in multiple leagues
-                 const uniqueLeagues = new Set(data.teams.map(team => team.league_db_id));
-                 
-                 if (uniqueLeagues.size > 1) {
-                   const leagueButton = document.getElementById('leagueSwitcherTrigger');
-                   if (leagueButton) {
-                     leagueButton.classList.remove('hidden');
-                   }
+               if (data.success && data.has_multiple_leagues) {
+                 const leagueButton = document.getElementById('leagueSwitcherTrigger');
+                 if (leagueButton) {
+                   leagueButton.classList.remove('hidden');
+                   console.log(`✅ League selector shown - user has ${data.league_count} leagues`);
                  }
+               } else {
+                 console.log(`❌ League selector hidden - user has ${data.league_count || 0} leagues`);
                }
              } catch (error) {
                console.error('Error checking multiple leagues:', error);

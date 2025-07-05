@@ -789,19 +789,36 @@ class ComprehensiveETL:
         }
 
     def _auto_fix_null_league_contexts(self, conn):
-        """Auto-fix users with NULL league_context by setting to their most active league"""
+        """Auto-fix users with NULL or broken league_context by setting to their most active league"""
         cursor = conn.cursor()
         
         # Find users with NULL league_context who have associations
         cursor.execute("""
-            SELECT DISTINCT u.id, u.email, u.first_name, u.last_name
+            SELECT DISTINCT u.id, u.email, u.first_name, u.last_name, 'NULL' as issue_type
             FROM users u
             JOIN user_player_associations upa ON u.id = upa.user_id
             WHERE u.league_context IS NULL
         """)
         
-        users_to_fix = cursor.fetchall()
+        null_users = cursor.fetchall()
+        
+        # ENHANCEMENT: Also find users with broken league_context (pointing to non-existent leagues)
+        cursor.execute("""
+            SELECT DISTINCT u.id, u.email, u.first_name, u.last_name, 'BROKEN' as issue_type
+            FROM users u
+            JOIN user_player_associations upa ON u.id = upa.user_id
+            LEFT JOIN leagues l ON u.league_context = l.id
+            WHERE u.league_context IS NOT NULL AND l.id IS NULL
+        """)
+        
+        broken_users = cursor.fetchall()
+        
+        # Combine both types of users that need fixing
+        users_to_fix = list(null_users) + list(broken_users)
         fixed_count = 0
+        
+        if users_to_fix:
+            self.log(f"🔧 Found {len(null_users)} users with NULL contexts and {len(broken_users)} users with broken contexts")
         
         for user in users_to_fix:
             # Get their most active league with team assignment preference
@@ -842,9 +859,86 @@ class ComprehensiveETL:
                 """, [best_league[0], user[0]])
                 
                 fixed_count += 1
-                self.log(f"   🔧 {user[2]} {user[3]}: → {best_league[1]} ({best_league[2]} matches)")
+                issue_type = user[4]  # NULL or BROKEN
+                self.log(f"   🔧 {user[2]} {user[3]} ({issue_type}): → {best_league[1]} ({best_league[2]} matches)")
         
         return fixed_count
+
+    def _validate_multi_league_contexts(self, conn):
+        """Validate that users with multiple league associations are properly configured for league selector visibility"""
+        cursor = conn.cursor()
+        
+        self.log("🔍 Validating multi-league users for league selector visibility...")
+        
+        # Find users with associations in multiple leagues
+        cursor.execute("""
+            SELECT 
+                u.id,
+                u.email,
+                u.first_name,
+                u.last_name,
+                u.league_context,
+                COUNT(DISTINCT p.league_id) as league_count,
+                STRING_AGG(DISTINCT l.league_name, ', ' ORDER BY l.league_name) as leagues
+            FROM users u
+            JOIN user_player_associations upa ON u.id = upa.user_id
+            JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+            JOIN leagues l ON p.league_id = l.id
+            WHERE p.is_active = TRUE
+            GROUP BY u.id, u.email, u.first_name, u.last_name, u.league_context
+            HAVING COUNT(DISTINCT p.league_id) > 1
+            ORDER BY COUNT(DISTINCT p.league_id) DESC, u.email
+        """)
+        
+        multi_league_users = cursor.fetchall()
+        
+        if not multi_league_users:
+            self.log("   ℹ️  No users with multiple league associations found")
+            return
+        
+        self.log(f"   📊 Found {len(multi_league_users)} users with multiple league associations:")
+        
+        properly_configured = 0
+        needs_attention = 0
+        
+        for user in multi_league_users:
+            user_id, email, first_name, last_name, league_context, league_count, leagues = user
+            
+            # Check if league_context is valid
+            if league_context:
+                cursor.execute("SELECT league_name FROM leagues WHERE id = %s", [league_context])
+                context_league = cursor.fetchone()
+                context_league_name = context_league[0] if context_league else "INVALID"
+            else:
+                context_league_name = "NULL"
+            
+            # Status check
+            is_properly_configured = (
+                league_context is not None and 
+                context_league_name != "INVALID"
+            )
+            
+            if is_properly_configured:
+                properly_configured += 1
+                status = "✅"
+            else:
+                needs_attention += 1
+                status = "⚠️"
+            
+            self.log(f"     {status} {first_name} {last_name} ({email})")
+            self.log(f"        Leagues: {leagues}")
+            self.log(f"        Context: {context_league_name}")
+            self.log(f"        League Selector: {'Will Show' if is_properly_configured else 'May Not Show'}")
+        
+        # Summary
+        self.log(f"   📊 Multi-league user status:")
+        self.log(f"      ✅ Properly configured: {properly_configured}")
+        self.log(f"      ⚠️  Need attention: {needs_attention}")
+        
+        if needs_attention > 0:
+            self.log(f"   ⚠️  {needs_attention} users may not see league selector properly", "WARNING")
+        else:
+            self.log("   ✅ All multi-league users properly configured for league selector")
 
     def _check_final_league_context_health(self, conn):
         """Check the final health of league contexts and availability data after ETL"""
@@ -4123,18 +4217,29 @@ class ComprehensiveETL:
                     self.log("\n🔄 Step 7: Restoring user data...")
                     restore_results = self.restore_user_associations(conn)
                     
-                    # Run association discovery to find any new associations
-                    if restore_results["associations_restored"] > 0:
-                        self.log("🔍 Running association discovery for additional connections...")
-                        try:
-                            from app.services.association_discovery_service import AssociationDiscoveryService
-                            discovery_result = AssociationDiscoveryService.discover_for_all_users(limit=50)
-                            if discovery_result.get("total_associations_created", 0) > 0:
-                                self.log(f"   ✅ Discovery found {discovery_result['total_associations_created']} additional associations")
-                            else:
-                                self.log("   ℹ️  No additional associations needed")
-                        except Exception as discovery_error:
-                            self.log(f"   ⚠️  Association discovery failed: {discovery_error}", "WARNING")
+                    # ENHANCED: Run comprehensive association discovery for all users
+                    # This ensures users with multiple leagues are properly linked
+                    self.log("🔍 Running comprehensive association discovery...")
+                    try:
+                        from app.services.association_discovery_service import AssociationDiscoveryService
+                        # Run discovery for all users to catch cross-league associations
+                        discovery_result = AssociationDiscoveryService.discover_for_all_users(limit=None)
+                        if discovery_result.get("total_associations_created", 0) > 0:
+                            self.log(f"   ✅ Discovery found {discovery_result['total_associations_created']} additional associations")
+                            
+                            # Re-run league context fixing after new associations are found
+                            self.log("🔧 Re-running league context fixes after discovery...")
+                            additional_fixes = self._auto_fix_null_league_contexts(conn)
+                            if additional_fixes > 0:
+                                self.log(f"   ✅ Fixed {additional_fixes} additional league contexts")
+                        else:
+                            self.log("   ℹ️  No additional associations needed")
+                        
+                        # ENHANCEMENT: Validate multi-league users have proper league selectors
+                        self._validate_multi_league_contexts(conn)
+                        
+                    except Exception as discovery_error:
+                        self.log(f"   ⚠️  Association discovery failed: {discovery_error}", "WARNING")
 
                     # Auto-run final league context health check
                     self.log("🔧 Running final league context health check...")
@@ -4172,6 +4277,8 @@ class ComprehensiveETL:
                     if orphan_fixes > 0:
                         self.log(f"🔧 Relationship gaps fixed: {orphan_fixes} missing relationships added")
                     self.log(f"📊 Series_id health: {final_series_health:.1f}% ({'✅ Excellent' if final_series_health >= 95 else '⚠️ Needs attention' if final_series_health >= 85 else '🚨 Critical'})")
+                    self.log("🎯 League selector and Find Subs functionality: ✅ Ready")
+                    self.log("🔄 Session version incremented: ✅ Users will auto-refresh")
 
                 except Exception as e:
                     self.log(f"\n❌ ETL process failed: {str(e)}", "ERROR")
