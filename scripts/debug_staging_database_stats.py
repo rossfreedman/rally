@@ -20,7 +20,7 @@ def get_table_statistics():
     tables = [
         'users', 'players', 'teams', 'leagues', 'clubs', 'series',
         'match_scores', 'schedule', 'series_stats', 'player_availability',
-        'user_player_associations', 'series_name_mappings'
+        'user_player_associations'
     ]
     
     stats = {}

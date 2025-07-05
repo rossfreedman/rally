@@ -9,7 +9,7 @@ Issues found:
 1. Name spelling: "Sheffren" (user) vs "Shefren" (database) 
 2. Missing series field in registration form
 3. SQL syntax error when no series provided
-4. Missing series_name_mappings table
+    4. Missing series.display_name mappings (formerly series_name_mappings table)
 """
 
 import sys
@@ -198,7 +198,7 @@ def proposed_fixes():
     
     print("\n3. **Fix Series Dropdown Loading**:")
     print("   - Ensure series API endpoints work properly") 
-    print("   - Add fallback when series_name_mappings table is missing")
+    print("   - Add fallback when series.display_name mappings are missing")
     print("   - Convert 'Chicago 38' → 'Series 38' for APTA league display")
     
     print("\n4. **Registration Form Improvements**:")
