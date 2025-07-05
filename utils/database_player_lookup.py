@@ -105,9 +105,9 @@ def normalize_series_name(series_name: str, league_id: str = None) -> str:
     if league_id:
         try:
             mapping_query = """
-                SELECT database_series_name
+                SELECT database_name
                 FROM series_name_mappings
-                WHERE league_id = %s AND user_series_name = %s
+                WHERE league_id = %s AND user_facing_name = %s
                 LIMIT 1
             """
             
@@ -1089,17 +1089,17 @@ def get_series_name_variations(series_name: str, league_id: str = None) -> List[
         try:
             # Get all mappings for this league that might match
             mappings_query = """
-                SELECT user_series_name, database_series_name
+                SELECT user_facing_name, database_name
                 FROM series_name_mappings
                 WHERE league_id = %s 
-                AND (user_series_name = %s OR database_series_name = %s)
+                AND (user_facing_name = %s OR database_name = %s)
             """
             
             mappings = execute_query(mappings_query, [league_id, series_name, series_name])
             
             for mapping in mappings:
-                user_name = mapping["user_series_name"]
-                db_name = mapping["database_series_name"]
+                user_name = mapping["user_facing_name"]
+                db_name = mapping["database_name"]
                 
                 # Add both directions of the mapping
                 if user_name not in variations:
