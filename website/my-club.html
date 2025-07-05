@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Club - Rally Features</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'rally-blue': '#2563eb',
+                        'rally-green': '#10b981',
+                        'rally-orange': '#f59e0b',
+                        'rally-dark': '#1f2937',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-50">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-sm border-b border-gray-200">
+        <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <a href="index.html" class="flex items-center">
+                        <img class="h-8 w-auto" src="rallylogo.png" alt="Rally Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                        <div class="hidden text-2xl font-bold text-rally-blue">Rally</div>
+                    </a>
+                </div>
+                <div class="flex items-center space-x-6">
+                    <a href="index.html" class="text-gray-700 hover:text-rally-blue transition duration-300">← Back to Home</a>
+                    <a href="/login" class="bg-rally-blue text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition duration-300">Login</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Header Section -->
+    <section class="bg-gradient-to-br from-teal-600 to-teal-800 text-white py-20">
+        <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16 text-center">
+            <div class="w-20 h-20 bg-white/20 rounded-xl flex items-center justify-center mx-auto mb-6">
+                <i class="fas fa-home text-3xl text-white"></i>
+            </div>
+            <h1 class="text-4xl md:text-5xl font-bold mb-6">My Club</h1>
+            <p class="text-xl text-teal-100 max-w-3xl mx-auto">
+                Connect with your club community. Track how your fellow club members and teams are performing across all leagues and divisions.
+            </p>
+        </div>
+    </section>
+
+    <!-- Feature Overview -->
+    <section class="py-16 bg-white">
+        <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                <div>
+                    <h2 class="text-3xl font-bold text-gray-900 mb-6">Your Club's Performance Hub</h2>
+                    <p class="text-lg text-gray-600 mb-6">
+                        Rally's club dashboard provides comprehensive insights into how your club is performing across all leagues and divisions. Track your fellow club members' success, monitor team standings, and stay connected with your local racquet sports community through detailed performance analytics.
+                    </p>
+                    <div class="space-y-4">
+                        <div class="flex items-start">
+                            <div class="w-6 h-6 bg-rally-green rounded-full flex items-center justify-center mr-3 mt-1">
+                                <i class="fas fa-check text-white text-sm"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-gray-900">Club-Wide Performance</h3>
+                                <p class="text-gray-600">See how all club teams and players are performing across multiple leagues and divisions.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <div class="w-6 h-6 bg-rally-green rounded-full flex items-center justify-center mr-3 mt-1">
+                                <i class="fas fa-check text-white text-sm"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-gray-900">Player Spotlights</h3>
+                                <p class="text-gray-600">Highlight top performers and celebrate achievements within your club community.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <div class="w-6 h-6 bg-rally-green rounded-full flex items-center justify-center mr-3 mt-1">
+                                <i class="fas fa-check text-white text-sm"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-gray-900">Team Coordination</h3>
+                                <p class="text-gray-600">Stay informed about all your club's teams and their competitive standings.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-100 rounded-xl p-8">
+                    <img src="screenshots/my_club.png" alt="Rally My Club Dashboard" class="w-full rounded-lg shadow-lg">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Key Features -->
+    <section class="py-16 bg-gray-50">
+        <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16">
+            <h2 class="text-3xl font-bold text-gray-900 text-center mb-12">Club Management Features</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div class="bg-white p-6 rounded-xl shadow-sm">
+                    <div class="w-12 h-12 bg-teal-600 rounded-lg flex items-center justify-center mb-4">
+                        <i class="fas fa-users text-white text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3">Member Directory</h3>
+                    <p class="text-gray-600">Complete roster of club members with contact information, skill levels, and playing history.</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm">
+                    <div class="w-12 h-12 bg-rally-blue rounded-lg flex items-center justify-center mb-4">
+                        <i class="fas fa-trophy text-white text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3">Team Standings</h3>
+                    <p class="text-gray-600">Track how all your club's teams are performing across different leagues and divisions.</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm">
+                    <div class="w-12 h-12 bg-rally-green rounded-lg flex items-center justify-center mb-4">
+                        <i class="fas fa-star text-white text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3">Top Performers</h3>
+                    <p class="text-gray-600">Highlight the most successful players and partnerships representing your club.</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm">
+                    <div class="w-12 h-12 bg-rally-orange rounded-lg flex items-center justify-center mb-4">
+                        <i class="fas fa-chart-line text-white text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3">Performance Analytics</h3>
+                    <p class="text-gray-600">Detailed statistics on club-wide performance trends and competitive success rates.</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm">
+                    <div class="w-12 h-12 bg-purple-600 rounded-lg flex items-center justify-center mb-4">
+                        <i class="fas fa-calendar-alt text-white text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3">Club Events</h3>
+                    <p class="text-gray-600">Track important matches, tournaments, and club events for all teams and members.</p>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm">
+                    <div class="w-12 h-12 bg-red-600 rounded-lg flex items-center justify-center mb-4">
+                        <i class="fas fa-comments text-white text-xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold text-gray-900 mb-3">Club Communication</h3>
+                    <p class="text-gray-600">Stay connected with club announcements, team updates, and member achievements.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Benefits Section -->
+    <section class="py-16 bg-white">
+        <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold text-gray-900 mb-4">Why Club Community Matters</h2>
+                <p class="text-xl text-gray-600">Stronger together - building lasting connections</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="flex items-start">
+                    <div class="w-8 h-8 bg-teal-600 rounded-full flex items-center justify-center mr-4 mt-1">
+                        <i class="fas fa-handshake text-white text-sm"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-semibold text-gray-900 mb-2">Community Building</h3>
+                        <p class="text-gray-600">Foster stronger relationships with fellow club members through shared competitive experiences and achievements.</p>
+                    </div>
+                </div>
+                <div class="flex items-start">
+                    <div class="w-8 h-8 bg-rally-blue rounded-full flex items-center justify-center mr-4 mt-1">
+                        <i class="fas fa-users text-white text-sm"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-semibold text-gray-900 mb-2">Team Coordination</h3>
+                        <p class="text-gray-600">Stay informed about all club teams and players, making it easier to coordinate and support each other.</p>
+                    </div>
+                </div>
+                <div class="flex items-start">
+                    <div class="w-8 h-8 bg-rally-green rounded-full flex items-center justify-center mr-4 mt-1">
+                        <i class="fas fa-trophy text-white text-sm"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-semibold text-gray-900 mb-2">Club Pride</h3>
+                        <p class="text-gray-600">Celebrate collective achievements and build pride in your club's competitive success across all leagues.</p>
+                    </div>
+                </div>
+                <div class="flex items-start">
+                    <div class="w-8 h-8 bg-rally-orange rounded-full flex items-center justify-center mr-4 mt-1">
+                        <i class="fas fa-chart-line text-white text-sm"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-xl font-semibold text-gray-900 mb-2">Growth & Development</h3>
+                        <p class="text-gray-600">Learn from successful club members and identify opportunities for skill development and improvement.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="py-16 bg-gradient-to-br from-rally-green to-green-700 text-white">
+        <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16 text-center">
+            <h2 class="text-3xl font-bold mb-6">Ready to Connect With Your Club Community?</h2>
+            <p class="text-xl text-green-100 mb-8 max-w-2xl mx-auto">
+                Join your club's digital community and stay connected with fellow members, teams, and competitive achievements.
+            </p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <a href="/login" class="bg-white text-rally-green px-8 py-4 rounded-lg text-lg font-semibold hover:bg-gray-100 transition duration-300 shadow-lg">
+                    View My Club
+                </a>
+                <a href="index.html" class="border-2 border-white text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-white hover:text-rally-green transition duration-300">
+                    View All Features
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white py-12">
+        <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16 text-center">
+            <div class="flex items-center justify-center mb-4">
+                <img class="h-8 w-auto" src="rallylogo.png" alt="Rally Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                <div class="hidden text-xl font-bold text-rally-blue">Rally</div>
+            </div>
+            <p class="text-gray-400 mb-4">The ultimate racquet sports management application.</p>
+            <div class="border-t border-gray-700 pt-6">
+                <p class="text-gray-400">© 2025 Rally LLC. All rights reserved.<br>Made with ❤️ for racquet sports players.</p>
+            </div>
+        </div>
+    </footer>
+</body>
+</html> 
