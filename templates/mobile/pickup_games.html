@@ -20,35 +20,16 @@
     <!-- Content -->
     <div class="px-4 py-6 space-y-6">
 
-        <!-- Create Button -->
-        <div class="flex justify-center">
-            <a href="/mobile/create-pickup-game" class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center gap-2 shadow-sm">
+        <!-- Action Buttons -->
+        <div class="flex gap-3">
+            <a href="/mobile/create-pickup-game" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center gap-2 shadow-sm">
                 <i class="fas fa-plus"></i>
-                <span>Create new pickup game</span>
+                <span>Create new game</span>
             </a>
-        </div>
-
-        <!-- Notification Toggle -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="px-6 py-4">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                            <i class="fas fa-bell text-blue-600"></i>
-                        </div>
-                        <div>
-                            <h3 class="text-base font-semibold text-gray-900">Get notified about games</h3>
-                            <p class="text-sm text-gray-500">Receive notifications when new pickup games are posted</p>
-                        </div>
-                    </div>
-                    <div class="flex items-center">
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" id="notificationToggle" class="sr-only peer" checked>
-                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                        </label>
-                    </div>
-                </div>
-            </div>
+            <button id="notificationToggle" class="flex-1 text-white px-6 py-3 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center gap-2 shadow-sm" style="background-color: #2563eb !important;" data-state="disabled">
+                <i class="fas fa-bell-slash" id="notificationIcon"></i>
+                <span id="notificationText">Get notified about games</span>
+            </button>
         </div>
 
         <!-- Upcoming Pickup Games Section -->
@@ -421,25 +402,91 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize notification toggle
     function initializeNotificationToggle() {
         const toggle = document.getElementById('notificationToggle');
+        const icon = document.getElementById('notificationIcon');
+        const text = document.getElementById('notificationText');
         
         if (toggle) {
-            // Load saved state from localStorage
-            const savedState = localStorage.getItem('pickupGameNotifications');
-            if (savedState !== null) {
-                toggle.checked = savedState === 'true';
-            }
+            // Always start with disabled state (red button) - ignore localStorage for now
+            const isEnabled = false;
+            localStorage.setItem('pickupGameNotifications', 'false');
             
-            // Add event listener for toggle changes
-            toggle.addEventListener('change', handleNotificationToggle);
+            // Set initial button state
+            updateToggleAppearance(isEnabled);
+            
+            // Add event listener for button clicks
+            toggle.addEventListener('click', handleNotificationToggle);
+            
+            // Add hover effects
+            toggle.addEventListener('mouseenter', handleToggleHover);
+            toggle.addEventListener('mouseleave', handleToggleHoverOut);
+        }
+    }
+
+    // Update toggle button appearance based on state
+    function updateToggleAppearance(isEnabled) {
+        const toggle = document.getElementById('notificationToggle');
+        const icon = document.getElementById('notificationIcon');
+        const text = document.getElementById('notificationText');
+        
+        console.log('updateToggleAppearance called with isEnabled:', isEnabled);
+        
+        if (isEnabled) {
+            // Enabled state - GREEN button
+            toggle.className = 'flex-1 text-white px-6 py-3 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center gap-2 shadow-sm';
+            toggle.style.setProperty('background-color', '#16a34a', 'important');
+            toggle.style.setProperty('background', '#16a34a', 'important');
+            toggle.dataset.state = 'enabled';
+            icon.className = 'fas fa-bell';
+            text.textContent = 'Notifications: ON';
+            console.log('Set to GREEN - Notifications: ON');
+        } else {
+            // Disabled state - BLUE button
+            toggle.className = 'flex-1 text-white px-6 py-3 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center gap-2 shadow-sm';
+            toggle.style.setProperty('background-color', '#2563eb', 'important');
+            toggle.style.setProperty('background', '#2563eb', 'important');
+            toggle.dataset.state = 'disabled';
+            icon.className = 'fas fa-bell-slash';
+            text.textContent = 'Get notified about games';
+            console.log('Set to BLUE - Get notified about games');
+        }
+    }
+
+    // Handle hover effects
+    function handleToggleHover(event) {
+        const toggle = event.target;
+        const state = toggle.dataset.state;
+        
+        if (state === 'enabled') {
+            toggle.style.backgroundColor = '#15803d !important'; // darker green
+        } else {
+            toggle.style.backgroundColor = '#1d4ed8 !important'; // darker blue
+        }
+    }
+
+    function handleToggleHoverOut(event) {
+        const toggle = event.target;
+        const state = toggle.dataset.state;
+        
+        if (state === 'enabled') {
+            toggle.style.backgroundColor = '#16a34a !important'; // green
+        } else {
+            toggle.style.backgroundColor = '#2563eb !important'; // blue
         }
     }
 
     // Handle notification toggle changes
     function handleNotificationToggle(event) {
-        const isEnabled = event.target.checked;
+        event.preventDefault();
         
-        // Save state to localStorage
+        // Get current state and flip it
+        const currentState = localStorage.getItem('pickupGameNotifications');
+        const isEnabled = currentState !== 'true'; // Flip the state
+        
+        // Save new state to localStorage
         localStorage.setItem('pickupGameNotifications', isEnabled.toString());
+        
+        // Update button appearance
+        updateToggleAppearance(isEnabled);
         
         // Show user feedback
         showNotificationFeedback(isEnabled);
@@ -457,7 +504,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Create temporary feedback element
         const feedback = document.createElement('div');
         feedback.className = `fixed top-4 left-4 right-4 p-4 rounded-lg shadow-lg z-50 transition-all duration-300 ${
-            isEnabled ? 'bg-green-500 text-white' : 'bg-gray-600 text-white'
+            isEnabled ? 'bg-green-500 text-white' : 'bg-blue-600 text-white'
         }`;
         feedback.innerHTML = `
             <div class="flex items-center gap-2">
