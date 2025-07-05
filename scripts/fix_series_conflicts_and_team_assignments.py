@@ -34,23 +34,12 @@ def log(message: str, level: str = "INFO"):
 
 
 def create_series_mapping_table(conn):
-    """Create the series_name_mappings table if it doesn't exist"""
-    log("📋 Creating series_name_mappings table...")
+    """DEPRECATED: Create the series_name_mappings table if it doesn't exist"""
+    log("📋 DEPRECATED: series_name_mappings table creation - now using series.display_name column")
     
-    cursor = conn.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS series_name_mappings (
-            id SERIAL PRIMARY KEY,
-            user_facing_name VARCHAR(100) NOT NULL,
-            database_name VARCHAR(100) NOT NULL,
-            league_id VARCHAR(50) NOT NULL,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            UNIQUE(user_facing_name, league_id)
-        )
-    """)
-    
-    conn.commit()
-    log("✅ series_name_mappings table ready")
+    # This function is deprecated but kept for backward compatibility
+    # The series.display_name migration has replaced the series_name_mappings table
+    log("✅ Skipping series_name_mappings table creation (deprecated)")
 
 
 def populate_series_mappings(conn):
@@ -91,16 +80,8 @@ def populate_series_mappings(conn):
         ("CNSWPL", "Division 3", "3"),
     ]
     
-    # Insert mappings
-    for league_id, user_facing, database_name in mappings:
-        cursor.execute("""
-            INSERT INTO series_name_mappings (user_facing_name, database_name, league_id)
-            VALUES (%s, %s, %s)
-            ON CONFLICT (user_facing_name, league_id) DO NOTHING
-        """, (user_facing, database_name, league_id))
-    
-    conn.commit()
-    log(f"✅ Populated {len(mappings)} series mappings")
+    # DEPRECATED: Mappings are now handled by series.display_name column
+    log("✅ Skipping series mappings population (deprecated - using series.display_name)")
 
 
 def analyze_series_conflicts(conn):

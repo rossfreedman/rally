@@ -511,126 +511,58 @@ class ComprehensiveETL:
                     raise
     
     def load_series_mappings(self, conn):
-        """Load series mappings from database to prevent duplicate series creation"""
-        self.log("📋 Loading series mappings from database...")
+        """Load series display names from database (using new series.display_name system)"""
+        self.log("📋 Loading series display names from database...")
         
         cursor = conn.cursor()
         
-        # Initialize mappings dictionary
+        # Initialize mappings dictionary using the new display_name system
         self.series_mappings = {}
         mapping_count = 0
         
         try:
-            # Try to load existing series name mappings from database
+            # Load existing series with display names from series table
             cursor.execute("""
-                SELECT snm.user_facing_name, snm.database_name, snm.league_id
-                FROM series_name_mappings snm
-                ORDER BY snm.league_id, snm.user_facing_name
+                SELECT s.name, s.display_name, sl.league_id
+                FROM series s
+                JOIN series_leagues sl ON s.id = sl.series_id
+                JOIN leagues l ON sl.league_id = l.id
+                WHERE s.display_name IS NOT NULL AND s.display_name != s.name
+                ORDER BY l.league_id, s.name
             """)
             
             mappings = cursor.fetchall()
             
-            for user_facing, database_name, league_id in mappings:
+            for database_name, display_name, league_id in mappings:
                 if league_id not in self.series_mappings:
                     self.series_mappings[league_id] = {}
                 
-                self.series_mappings[league_id][user_facing] = database_name
+                # Map both directions: display_name -> database_name and database_name -> display_name
+                self.series_mappings[league_id][display_name] = database_name
+                self.series_mappings[league_id][database_name] = database_name  # Identity mapping
                 mapping_count += 1
                 
         except Exception as e:
-            # Table doesn't exist or other error - we'll create it
-            self.log(f"⚠️  Could not load series mappings: {e}")
-            self.log("🔧 Will create series_name_mappings table with default data")
+            # Table structure might be different - use safe fallback
+            self.log(f"⚠️  Could not load series display names: {e}")
+            self.log("🔧 Will use identity mapping (no transformations)")
             # CRITICAL: Rollback the failed transaction before proceeding
             conn.rollback()
         
         if mapping_count > 0:
-            self.log(f"✅ Loaded {mapping_count} series mappings from database")
+            self.log(f"✅ Loaded {mapping_count} series display mappings from database")
         else:
-            self.log("⚠️  No series mappings found in database - will create default mappings")
-            # Create default mappings for common patterns
-            self._create_default_series_mappings(conn)
+            self.log("⚠️  No series display mappings found - using identity mapping")
+            # No need to create default mappings - series.display_name handles this
             
     def _create_default_series_mappings(self, conn):
-        """Create default series mappings for common naming patterns"""
-        self.log("🔧 Creating default series mappings...")
-        
-        cursor = conn.cursor()
-        
-        # Ensure series_name_mappings table exists
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS series_name_mappings (
-                id SERIAL PRIMARY KEY,
-                user_facing_name VARCHAR(100) NOT NULL,
-                database_name VARCHAR(100) NOT NULL,
-                league_id VARCHAR(50) NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE(user_facing_name, league_id)
-            )
-        """)
-        
-        # Define default mappings for each league
-        default_mappings = [
-            # NSTF mappings: "Series 2B" -> "S2B"
-            ("NSTF", "Series 1", "S1"),
-            ("NSTF", "Series 2A", "S2A"),
-            ("NSTF", "Series 2B", "S2B"),
-            ("NSTF", "Series 3", "S3"),
-            ("NSTF", "Series 4", "S4"),
-            
-            # APTA_CHICAGO mappings: "Chicago 22" -> "22"
-            ("APTA_CHICAGO", "Chicago 1", "1"),
-            ("APTA_CHICAGO", "Chicago 2", "2"),
-            ("APTA_CHICAGO", "Chicago 3", "3"),
-            ("APTA_CHICAGO", "Chicago 11", "11"),
-            ("APTA_CHICAGO", "Chicago 12", "12"),
-            ("APTA_CHICAGO", "Chicago 13", "13"),
-            ("APTA_CHICAGO", "Chicago 21", "21"),
-            ("APTA_CHICAGO", "Chicago 22", "22"),
-            ("APTA_CHICAGO", "Chicago 23", "23"),
-            ("APTA_CHICAGO", "Chicago 31", "31"),
-            ("APTA_CHICAGO", "Chicago 32", "32"),
-            ("APTA_CHICAGO", "Chicago 33", "33"),
-            
-            # CNSWPL mappings: "Division 1" -> "1"
-            ("CNSWPL", "Division 1", "1"),
-            ("CNSWPL", "Division 1a", "1a"),
-            ("CNSWPL", "Division 2", "2"),
-            ("CNSWPL", "Division 2a", "2a"),
-            ("CNSWPL", "Division 3", "3"),
-        ]
-        
-        # Insert default mappings
-        for league_id, user_facing, database_name in default_mappings:
-            cursor.execute("""
-                INSERT INTO series_name_mappings (user_facing_name, database_name, league_id)
-                VALUES (%s, %s, %s)
-                ON CONFLICT (user_facing_name, league_id) DO NOTHING
-            """, (user_facing, database_name, league_id))
-        
-        conn.commit()
-        
-        # Now load the mappings we just created
-        cursor.execute("""
-            SELECT snm.user_facing_name, snm.database_name, snm.league_id
-            FROM series_name_mappings snm
-            ORDER BY snm.league_id, snm.user_facing_name
-        """)
-        
-        mappings = cursor.fetchall()
-        mapping_count = 0
-        
-        for user_facing, database_name, league_id in mappings:
-            if league_id not in self.series_mappings:
-                self.series_mappings[league_id] = {}
-            
-            self.series_mappings[league_id][user_facing] = database_name
-            mapping_count += 1
-        
-        self.log(f"✅ Created and loaded {mapping_count} default series mappings")
+        """DEPRECATED: No longer needed - series.display_name handles mapping"""
+        self.log("🔧 Series mapping creation is deprecated - using series.display_name column instead")
+        # This method is kept for backward compatibility but does nothing
+        pass
 
     def map_series_name(self, series_name: str, league_id: str) -> str:
-        """Convert user-facing series name to database series name using mappings"""
+        """Convert user-facing series name to database series name using series.display_name system"""
         if not series_name or not league_id:
             return series_name
             
@@ -647,7 +579,7 @@ class ComprehensiveETL:
             if user_format.lower() == series_name.lower():
                 return db_format
                 
-        # No mapping found, return original
+        # No mapping found, return original (series.display_name handles this at runtime)
         return series_name
 
     def load_json_file(self, filename: str) -> List[Dict]:

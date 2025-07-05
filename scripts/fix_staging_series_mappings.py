@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """
-Fix missing series_name_mappings table on staging environment
+DEPRECATED: Fix missing series_name_mappings table on staging environment
+
+This script is DEPRECATED as of the series.display_name migration.
+The series_name_mappings table has been replaced with series.display_name column.
+This script is kept for historical reference only.
 """
 
 import os

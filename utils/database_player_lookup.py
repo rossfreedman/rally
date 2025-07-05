@@ -104,17 +104,20 @@ def normalize_series_name(series_name: str, league_id: str = None) -> str:
     # If we have a league_id, try to get the database mapping
     if league_id:
         try:
+            # Try to find database name using series.display_name system
             mapping_query = """
-                SELECT database_name
-                FROM series_name_mappings
-                WHERE league_id = %s AND user_facing_name = %s
+                SELECT s.name as database_name
+                FROM series s
+                JOIN series_leagues sl ON s.id = sl.series_id
+                JOIN leagues l ON sl.league_id = l.id
+                WHERE l.league_id = %s AND (s.display_name = %s OR s.name = %s)
                 LIMIT 1
             """
             
-            mapping_result = execute_query_one(mapping_query, [league_id, series_name])
+            mapping_result = execute_query_one(mapping_query, [league_id, series_name, series_name])
             
             if mapping_result:
-                mapped_name = mapping_result["database_series_name"]
+                mapped_name = mapping_result["database_name"]
                 logger.info(f"Mapped series '{series_name}' -> '{mapped_name}' for league {league_id}")
                 return mapped_name
                 
@@ -1084,28 +1087,30 @@ def get_series_name_variations(series_name: str, league_id: str = None) -> List[
     
     variations = [series_name.strip()]  # Always include original
     
-    # If we have a league_id, get all mapped variations from database
+    # If we have a league_id, get all mapped variations from database using series.display_name
     if league_id:
         try:
-            # Get all mappings for this league that might match
+            # Get all series for this league that might match
             mappings_query = """
-                SELECT user_facing_name, database_name
-                FROM series_name_mappings
-                WHERE league_id = %s 
-                AND (user_facing_name = %s OR database_name = %s)
+                SELECT s.name as database_name, s.display_name
+                FROM series s
+                JOIN series_leagues sl ON s.id = sl.series_id
+                JOIN leagues l ON sl.league_id = l.id
+                WHERE l.league_id = %s 
+                AND (s.display_name = %s OR s.name = %s)
             """
             
             mappings = execute_query(mappings_query, [league_id, series_name, series_name])
             
             for mapping in mappings:
-                user_name = mapping["user_facing_name"]
                 db_name = mapping["database_name"]
+                display_name = mapping["display_name"]
                 
                 # Add both directions of the mapping
-                if user_name not in variations:
-                    variations.append(user_name)
                 if db_name not in variations:
                     variations.append(db_name)
+                if display_name and display_name not in variations:
+                    variations.append(display_name)
                     
             logger.info(f"Found {len(variations)} series variations for '{series_name}' in {league_id}: {variations}")
             
