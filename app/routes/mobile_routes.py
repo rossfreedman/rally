@@ -409,9 +409,27 @@ def serve_mobile_player_detail(player_id):
                 player_record = execute_query_one(player_info_query, [actual_player_id])
         
         if player_record:
+            # Format series name for display (e.g., "Chicago: 7" -> "Series 7")
+            formatted_series = player_record["series_name"]
+            if formatted_series:
+                try:
+                    if ":" in formatted_series:
+                        series_number = formatted_series.split(":")[-1].strip()
+                        formatted_series = f"Series {series_number}"
+                    else:
+                        # Handle format like "Chicago 7"
+                        parts = formatted_series.split()
+                        if len(parts) >= 2 and parts[-1].isdigit():
+                            series_number = parts[-1]
+                            formatted_series = f"Series {series_number}"
+                    print(f"[DEBUG] Player detail - Formatted series '{player_record['series_name']}' -> '{formatted_series}'")
+                except Exception as e:
+                    print(f"[DEBUG] Could not format series for player detail: {e}")
+                    pass
+                    
             player_info = {
                 "club": player_record["club_name"],
-                "series": player_record["series_name"], 
+                "series": formatted_series, 
                 "team_name": player_record["team_name"]
             }
 
@@ -524,7 +542,15 @@ def serve_mobile_analyze_me():
                 except Exception as e:
                     pass
 
-            # Use the session data (now with resolved league_id if applicable)
+            # Add team context for multi-team players (same as player-detail route)
+            user_team_id = session_user.get("team_id")
+            if user_team_id:
+                session_user["team_context"] = user_team_id
+                print(f"[DEBUG] Analyze-me - Using team context: team_id={user_team_id}")
+            else:
+                print(f"[DEBUG] Analyze-me - No team context available")
+
+            # Use the session data (now with resolved league_id and team_context if applicable)
             analyze_data = get_player_analysis(session_user)
         else:
             # Fallback: Look up player data from database using name matching
@@ -536,7 +562,8 @@ def serve_mobile_analyze_me():
                     tenniscores_player_id,
                     club_id,
                     series_id,
-                    league_id
+                    league_id,
+                    team_id
                 FROM players 
                 WHERE first_name = %s AND last_name = %s
                 ORDER BY id DESC
@@ -559,6 +586,12 @@ def serve_mobile_analyze_me():
                     "series_id": player_data["series_id"],
                     "league_id": player_data["league_id"],
                 }
+                
+                # Add team context from database lookup if available
+                if player_data.get("team_id"):
+                    complete_user["team_context"] = player_data["team_id"]
+                    print(f"[DEBUG] Analyze-me fallback - Using team context from DB: team_id={player_data['team_id']}")
+                
                 analyze_data = get_player_analysis(complete_user)
             else:
                 analyze_data = {
@@ -568,7 +601,53 @@ def serve_mobile_analyze_me():
                     "career_stats": None,
                 }
 
-        session_data = {"user": session["user"], "authenticated": True}
+        # Ensure session data has proper series display name for header
+        session_user_for_template = session["user"].copy()
+        
+        # Format series display name for header - check both series field and series_id
+        current_series = session_user_for_template.get("series", "")
+        
+        try:
+            # If we have a series field that looks like database format, format it
+            if current_series and (":" in current_series or current_series.startswith("Chicago")):
+                # Format database series names like "Chicago: 7" or "Chicago 7" -> "Series 7"
+                if ":" in current_series:
+                    series_number = current_series.split(":")[-1].strip()
+                    formatted_series = f"Series {series_number}"
+                else:
+                    # Handle format like "Chicago 7"
+                    parts = current_series.split()
+                    if len(parts) >= 2 and parts[-1].isdigit():
+                        series_number = parts[-1]
+                        formatted_series = f"Series {series_number}"
+                    else:
+                        formatted_series = current_series
+                session_user_for_template["series"] = formatted_series
+                print(f"[DEBUG] Formatted series '{current_series}' -> '{formatted_series}'")
+            
+            # If no series field but we have series_id, look it up and format
+            elif session_user_for_template.get("series_id") and not current_series:
+                series_query = "SELECT name FROM series WHERE id = %s"
+                series_data = execute_query_one(series_query, [session_user_for_template["series_id"]])
+                if series_data:
+                    series_name = series_data["name"]
+                    if ":" in series_name:
+                        series_number = series_name.split(":")[-1].strip()
+                        formatted_series = f"Series {series_number}"
+                    else:
+                        parts = series_name.split()
+                        if len(parts) >= 2 and parts[-1].isdigit():
+                            series_number = parts[-1]
+                            formatted_series = f"Series {series_number}"
+                        else:
+                            formatted_series = series_name
+                    session_user_for_template["series"] = formatted_series
+                    print(f"[DEBUG] Looked up and formatted series '{series_name}' -> '{formatted_series}'")
+        except Exception as e:
+            print(f"[DEBUG] Could not format series display name: {e}")
+            pass
+
+        session_data = {"user": session_user_for_template, "authenticated": True}
 
         log_user_activity(
             session["user"]["email"], "page_visit", page="mobile_analyze_me"
@@ -816,10 +895,13 @@ def get_season_history():
         # Filter by specific player_id AND series to avoid showing multiple series per season
         current_series_name = player_data.get("series_name", "")
         
-        # Safety check - if no team context, return empty results to avoid showing mixed data
-        if not player_team_id or not current_series_name:
-            print(f"[DEBUG] Season History - Missing team context (team_id: {player_team_id}, series: {current_series_name})")
-            return jsonify({"error": "No season history found - missing team context"}), 404
+        # Previous Season History shows historical performance across all seasons
+        # No team context restriction needed - this is about historical PTI progression
+        print(f"[DEBUG] Season History - Player: {player_data.get('first_name', '')} {player_data.get('last_name', '')}, DB ID: {player_db_id}")
+        if player_team_id and current_series_name:
+            print(f"[DEBUG] Season History - Team context available (team_id: {player_team_id}, series: {current_series_name})")
+        else:
+            print(f"[DEBUG] Season History - No team context, showing historical data across all seasons")
 
         # CORE FIX: Use ONLY the specific player record ID for current team context
         # This eliminates all cross-team contamination

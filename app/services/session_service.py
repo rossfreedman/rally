@@ -27,7 +27,6 @@ def get_session_data_for_user(user_email: str) -> Optional[Dict[str, Any]]:
     """
     try:
         # Get comprehensive user data with player associations via league_context prioritization
-        # FIXED: Make player associations optional to handle users without active players
         query = """
             SELECT DISTINCT ON (u.id)
                 u.id, u.email, u.first_name, u.last_name, u.is_admin,
@@ -51,6 +50,12 @@ def get_session_data_for_user(user_email: str) -> Optional[Dict[str, Any]]:
             WHERE u.email = %s
             ORDER BY u.id, 
                      (CASE WHEN p.league_id = u.league_context THEN 1 ELSE 2 END),
+                     -- Prefer lower series numbers (Series 7 over Series 8)
+                     CASE 
+                         WHEN s.name ~ 'Chicago [0-9]+' THEN 
+                             CAST(substring(s.name from 'Chicago ([0-9]+)') AS INTEGER)
+                         ELSE 999
+                     END ASC,
                      p.id DESC
             LIMIT 1
         """
@@ -65,8 +70,8 @@ def get_session_data_for_user(user_email: str) -> Optional[Dict[str, Any]]:
         # Get raw series name from database
         raw_series_name = result["series"] or ""
         display_series_name = raw_series_name
-        
-        # Build standard session structure with ALL required IDs
+
+        # Build session data dictionary
         session_data = {
             "id": result["id"],
             "email": result["email"],
@@ -77,35 +82,31 @@ def get_session_data_for_user(user_email: str) -> Optional[Dict[str, Any]]:
             "dominant_hand": result["dominant_hand"] or "",
             "league_context": result["league_context"],
             
-            # Player-specific data with ALL IDs
+            # Player data
             "club": result["club"] or "",
             "club_logo": result["club_logo"] or "",
-            "series": raw_series_name,  # 👈 Keep database format (e.g., "Chicago 22")
+            "series": display_series_name,
             "club_id": result["club_id"],
             "series_id": result["series_id"],
             "team_id": result["team_id"],
-            "team_name": result["team_name"] or "",
-            "display_name": result["display_name"] or result["team_name"] or "",  # Use display_name if available
+            "team_name": result["team_name"],
             "tenniscores_player_id": result["tenniscores_player_id"] or "",
             
-            # League data - provide both formats for compatibility
-            "league_id": result["league_db_id"],  # INTEGER for database queries
-            "league_string_id": result["league_string_id"] or "",  # STRING for display/API
+            # League data
+            "league_id": result["league_db_id"],
+            "league_string_id": result["league_string_id"] or "",
             "league_name": result["league_name"] or "",
             
             # Legacy fields for compatibility
             "settings": "{}",
         }
         
-        print(f"[SESSION_SERVICE] Built session data: {session_data}")
-        logger.info(f"Built session for {user_email}: {session_data['league_name']} - {session_data['club']}")
+        print(f"[SESSION_SERVICE] Session data created for {user_email}: {result['club']} - {result['series']}")
         return session_data
         
     except Exception as e:
-        print(f"[SESSION_SERVICE] ERROR: {e}")
-        import traceback
-        print(f"[SESSION_SERVICE] Traceback: {traceback.format_exc()}")
         logger.error(f"Error building session data for {user_email}: {e}")
+        print(f"[SESSION_SERVICE] ERROR: {e}")
         return None
 
 
