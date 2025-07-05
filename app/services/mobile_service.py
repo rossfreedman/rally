@@ -1155,6 +1155,7 @@ def get_mobile_availability_data(user):
                 WHERE u.email = %s 
                 AND p.is_active = TRUE 
                 AND p.team_id IS NOT NULL
+                AND (u.league_context IS NULL OR p.league_id = u.league_context)
                 ORDER BY 
                     CASE WHEN p.league_id = u.league_context THEN 1 ELSE 2 END,
                     p.team_id DESC
@@ -1179,6 +1180,7 @@ def get_mobile_availability_data(user):
                     WHERE u.email = %s 
                     AND p.is_active = TRUE
                     AND t.is_active = TRUE
+                    AND (u.league_context IS NULL OR p.league_id = u.league_context)
                     ORDER BY 
                         CASE WHEN p.league_id = u.league_context THEN 1 ELSE 2 END,
                         t.id DESC
