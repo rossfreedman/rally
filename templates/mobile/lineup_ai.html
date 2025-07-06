@@ -280,7 +280,7 @@
                 <button id="ai-previous-3" class="px-6 py-3 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors font-semibold" style="background-color: #4b5563; color: white;" onmouseover="this.style.backgroundColor='#374151'" onmouseout="this.style.backgroundColor='#4b5563'">
                     ← Previous
                 </button>
-                <button id="ai-generate-lineup" class="px-6 py-3 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition-colors font-semibold" style="background-color: #ea580c; color: white;" onmouseover="this.style.backgroundColor='#dc2626'" onmouseout="this.style.backgroundColor='#ea580c'">
+                <button id="ai-generate-lineup" class="px-6 py-3 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors font-semibold" style="background-color: #16a34a; color: white;" onmouseover="this.style.backgroundColor='#15803d'" onmouseout="this.style.backgroundColor='#16a34a'">
                     Generate Lineup →
                 </button>
             </div>
@@ -995,9 +995,31 @@ function generateAILineup() {
   contentElement.classList.add('hidden');
   errorElement.classList.add('hidden');
   
-  // Add enhanced status indicator
+  // Add enhanced status indicator with progress bar
   loadingElement.innerHTML = `
     <div class="text-center py-8">
+      <!-- Progress Indicator -->
+      <div id="lineup-progress" class="mb-6">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-sm font-medium text-gray-700">Progress</span>
+          <span id="lineup-progress-text" class="text-sm text-gray-500">0%</span>
+        </div>
+        <div class="w-full bg-gray-200 rounded-full h-2">
+          <div id="lineup-progress-bar" class="bg-green-600 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+        </div>
+        
+        <!-- Current Status Indicator -->
+        <div id="lineup-current-status" class="mt-3 p-3 bg-gray-50 rounded-lg">
+          <div class="flex items-center">
+            <div class="loading-spinner mr-2"></div>
+            <div>
+              <div id="lineup-current-step" class="font-medium text-gray-800">Initializing...</div>
+              <div id="lineup-elapsed-time" class="text-sm text-gray-600">Elapsed: 0s</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
       <div class="inline-block animate-spin rounded-full h-16 w-16 border-b-2 border-blue-500 mb-4"></div>
       <div class="space-y-3">
         <p class="text-gray-800 font-semibold text-lg">🚀 Generating optimal lineup...</p>
@@ -1029,6 +1051,45 @@ function generateAILineup() {
       clearInterval(statusInterval);
     }
   }, 600);
+  
+  // Animate progress bar and elapsed time
+  let progress = 0;
+  const startTime = new Date();
+  const progressInterval = setInterval(() => {
+    // Update progress bar (simulate progress)
+    progress += Math.random() * 15 + 5; // Random increment between 5-20%
+    if (progress > 95) progress = 95; // Don't complete until actual completion
+    
+    const progressBar = document.getElementById('lineup-progress-bar');
+    const progressText = document.getElementById('lineup-progress-text');
+    if (progressBar) progressBar.style.width = `${progress}%`;
+    if (progressText) progressText.textContent = `${Math.round(progress)}%`;
+    
+    // Update elapsed time
+    const elapsed = new Date() - startTime;
+    const seconds = Math.floor(elapsed / 1000);
+    const elapsedText = document.getElementById('lineup-elapsed-time');
+    if (elapsedText) elapsedText.textContent = `Elapsed: ${seconds}s`;
+    
+    // Update current step based on progress
+    const stepText = document.getElementById('lineup-current-step');
+    if (stepText) {
+      if (progress < 25) {
+        stepText.textContent = 'Analyzing player data and PTI rankings...';
+      } else if (progress < 50) {
+        stepText.textContent = 'Calculating optimal pairings...';
+      } else if (progress < 75) {
+        stepText.textContent = 'Applying PTI-based court assignments...';
+      } else {
+        stepText.textContent = 'Finalizing strategic recommendations...';
+      }
+    }
+    
+    // Clear interval when we hit 95% (will complete on actual response)
+    if (progress >= 95) {
+      clearInterval(progressInterval);
+    }
+  }, 500);
   
   // Prepare lineup generation request
   const selectedPlayersArray = [...selectedPlayers];
@@ -1078,6 +1139,15 @@ function generateAILineup() {
         throw new Error(data.error);
       }
       
+      // Complete the progress bar
+      const progressBar = document.getElementById('lineup-progress-bar');
+      const progressText = document.getElementById('lineup-progress-text');
+      const stepText = document.getElementById('lineup-current-step');
+      
+      if (progressBar) progressBar.style.width = '100%';
+      if (progressText) progressText.textContent = '100%';
+      if (stepText) stepText.textContent = 'Lineup generation completed!';
+      
       // Hide loading, show content
       document.getElementById('lineup-loading').classList.add('hidden');
       document.getElementById('lineup-content').classList.remove('hidden');
@@ -1087,6 +1157,19 @@ function generateAILineup() {
     })
     .catch(error => {
       console.error('Error generating lineup:', error);
+      
+      // Update progress bar to show error state
+      const progressBar = document.getElementById('lineup-progress-bar');
+      const progressText = document.getElementById('lineup-progress-text');
+      const stepText = document.getElementById('lineup-current-step');
+      
+      if (progressBar) {
+        progressBar.style.width = '100%';
+        progressBar.classList.remove('bg-green-600');
+        progressBar.classList.add('bg-red-600');
+      }
+      if (progressText) progressText.textContent = 'Error';
+      if (stepText) stepText.textContent = 'Generation failed - please try again';
       
       // Hide loading, show error
       document.getElementById('lineup-loading').classList.add('hidden');
@@ -1712,6 +1795,17 @@ i.fas {
     border-color: transparent;
     border-top-color: #2563eb;
     border-right-color: #2563eb;
+}
+
+/* Loading spinner for progress indicator */
+.loading-spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #f3f4f6;
+    border-top: 2px solid #3b82f6;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    display: inline-block;
 }
 </style>
 
