@@ -1786,79 +1786,47 @@ def init_rally_ai_routes(app):
 
 
 def format_response(text):
-    """Simple text formatting - no visual styling"""
-    # Remove all markdown headers and clean up formatting
+    """Remove all formatting and return plain text only"""
+    # Remove all markdown and formatting elements
     text = text.replace("###", "").replace("##", "").replace("#", "")
-
-    # Remove all bold formatting
-    text = text.replace("**", "")
-
+    text = text.replace("**", "").replace("*", "")
+    text = text.replace("___", "").replace("__", "").replace("_", "")
+    
+    # Remove separators and dividers
+    text = text.replace("---", "").replace("===", "").replace("***", "")
+    text = text.replace("___", "").replace("...", "")
+    
     # Remove HTML tags
     text = re.sub(r"<[^>]+>", "", text)
-
-    # Clean up extra spaces and normalize line breaks
+    
+    # Split into lines and process each line
     lines = []
     for line in text.split("\n"):
         line = line.strip()
+        if not line:
+            continue
+            
+        # Remove numbered list formatting (1., 2., etc.)
+        line = re.sub(r"^\d+\.\s*", "", line)
+        
+        # Remove bullet points and dashes
+        line = re.sub(r"^[-•*]\s*", "", line)
+        
+        # Remove multiple leading/trailing spaces
+        line = line.strip()
+        
         if line:
             lines.append(line)
-
-    text = "\n".join(lines)
-
-    # Split into sections and clean them up
-    sections = text.split("\n\n")
-    formatted_sections = []
-
-    for section in sections:
-        section = section.strip()
-        if not section:
-            continue
-
-        # Clean up section headers (remove numbers)
-        if (
-            any(
-                keyword in section.lower()
-                for keyword in [
-                    "contact point",
-                    "routine",
-                    "rhythm",
-                    "recommended drills",
-                    "technique",
-                    "fundamentals",
-                    "key technique points",
-                    "drills",
-                    "tips",
-                    "common mistakes",
-                    "strategy",
-                    "positioning",
-                ]
-            )
-            and len(section) < 100
-        ):
-            # Remove number prefixes from headers
-            section = (
-                section.replace("1.", "")
-                .replace("2.", "")
-                .replace("3.", "")
-                .replace("4.", "")
-                .replace("5.", "")
-            )
-            section = (
-                section.replace("6.", "")
-                .replace("7.", "")
-                .replace("8.", "")
-                .replace("9.", "")
-            )
-            section = section.strip()
-
-        formatted_sections.append(section)
-
-    # Join sections with consistent spacing
-    formatted_text = "\n\n".join(formatted_sections)
-
-    # Final cleanup - remove double spaces
-    formatted_text = formatted_text.replace("  ", " ")
-
+    
+    # Join lines with single spaces instead of line breaks for continuous text
+    formatted_text = " ".join(lines)
+    
+    # Clean up multiple spaces
+    formatted_text = re.sub(r"\s+", " ", formatted_text)
+    
+    # Final cleanup
+    formatted_text = formatted_text.strip()
+    
     return formatted_text
 
 
