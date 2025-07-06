@@ -15,6 +15,14 @@ This guide explains how to migrate your existing Railway cron jobs to use the ne
 | **Logging** | ✅ Preserved | ✅ Enhanced |
 | **Monitoring** | ✅ Preserved | ✅ Enhanced |
 
+## 📋 **Available Atomic Cron Jobs**
+
+| Environment | Script | Purpose |
+|-------------|--------|---------|
+| **Local** | `local_cron_etl_atomic.py` | Local development and testing |
+| **Staging** | `railway_cron_etl_staging_atomic.py` | Railway staging environment |
+| **Production** | `railway_cron_etl_atomic.py` | Railway production environment |
+
 ## 📋 **Migration Steps**
 
 ### Step 1: Test Atomic ETL Locally
@@ -22,9 +30,26 @@ This guide explains how to migrate your existing Railway cron jobs to use the ne
 # Test the atomic ETL wrapper locally first
 cd /Users/rossfreedman/dev/rally
 python data/etl/database_import/atomic_wrapper.py --environment local --no-backup
+
+# OR use the local cron job version
+python chronjobs/local_cron_etl_atomic.py --test-only
 ```
 
-### Step 2: Update Staging Cron Job
+### Step 2: Update Local Development (Optional)
+**New local cron job**: `chronjobs/local_cron_etl_atomic.py`
+
+```bash
+# Test local cron job
+python chronjobs/local_cron_etl_atomic.py --test-only
+
+# Safe local import (with backup - default)
+python chronjobs/local_cron_etl_atomic.py
+
+# Fast local import (no backup)
+python chronjobs/local_cron_etl_atomic.py --no-backup
+```
+
+### Step 3: Update Staging Cron Job
 **Current staging cron job**: `chronjobs/railway_cron_etl_staging.py`  
 **New atomic staging cron job**: `chronjobs/railway_cron_etl_staging_atomic.py`
 
@@ -36,7 +61,7 @@ python chronjobs/railway_cron_etl_staging_atomic.py --test-only
 python chronjobs/railway_cron_etl_staging_atomic.py
 ```
 
-### Step 3: Update Production Cron Job  
+### Step 4: Update Production Cron Job  
 **Current production cron job**: `chronjobs/railway_cron_etl.py`  
 **New atomic production cron job**: `chronjobs/railway_cron_etl_atomic.py`
 
@@ -48,7 +73,7 @@ python chronjobs/railway_cron_etl_atomic.py --test-only
 python chronjobs/railway_cron_etl_atomic.py
 ```
 
-### Step 4: Update Railway Cron Configuration
+### Step 5: Update Railway Cron Configuration
 Update your Railway cron job configurations to use the new atomic scripts:
 
 **Old Staging Cron**:
@@ -136,7 +161,8 @@ python chronjobs/railway_cron_etl_atomic.py
 - **Connections**: Longer-held database connections
 
 ### 2. **Backup Requirements**
-- **Staging**: Backup optional (can use `--skip-backup`)
+- **Local**: Backup enabled by default (can use `--no-backup` to skip)
+- **Staging**: Backup enabled by default (can use `--skip-backup` to skip)
 - **Production**: Backup always enabled (no skip option)
 - **Storage**: Additional disk space needed for backups
 
@@ -149,11 +175,20 @@ python chronjobs/railway_cron_etl_atomic.py
 
 ### 1. **Local Testing**
 ```bash
-# Test atomic ETL locally
+# Test atomic ETL wrapper locally
 python data/etl/database_import/atomic_wrapper.py --environment local
 
-# Test atomic cron job locally  
-python chronjobs/railway_cron_etl_staging_atomic.py --test-only
+# Test local atomic cron job
+python chronjobs/local_cron_etl_atomic.py --test-only
+
+# Run local atomic import (with backup - default)
+python chronjobs/local_cron_etl_atomic.py
+
+# Local import without backup (faster)
+python chronjobs/local_cron_etl_atomic.py --no-backup
+
+# Dry run (test without actual import)
+python chronjobs/local_cron_etl_atomic.py --dry-run
 ```
 
 ### 2. **Staging Testing**
@@ -178,7 +213,8 @@ python chronjobs/railway_cron_etl_atomic.py
 
 ### Week 1: **Local Testing**
 - [ ] Test atomic ETL wrapper locally
-- [ ] Test atomic cron jobs locally
+- [ ] Test local atomic cron job (`local_cron_etl_atomic.py`)
+- [ ] Test staging atomic cron job locally
 - [ ] Verify all functionality works
 
 ### Week 2: **Staging Migration**
