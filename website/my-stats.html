@@ -11,7 +11,7 @@
             theme: {
                 extend: {
                     colors: {
-                        'rally-blue': '#2563eb',
+                        'rally-blue': '#0f1727',
                         'rally-green': '#10b981',
                         'rally-orange': '#f59e0b',
                         'rally-dark': '#1f2937',
@@ -20,28 +20,39 @@
             }
         }
     </script>
+    <style>
+        .nav-solid {
+            background: linear-gradient(to bottom right, #0f1727, #0b1220) !important;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+    </style>
 </head>
 <body class="bg-gray-50">
     <!-- Navigation -->
-    <nav class="bg-white shadow-sm border-b border-gray-200">
+    <nav class="fixed top-0 w-full z-50 nav-solid">
         <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16">
-            <div class="flex justify-between items-center h-16">
-                <div class="flex items-center">
-                    <a href="index.html" class="flex items-center">
-                        <img class="h-8 w-auto" src="rallylogo.png" alt="Rally Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-                        <div class="hidden text-2xl font-bold text-rally-blue">Rally</div>
-                    </a>
-                </div>
-                <div class="flex items-center space-x-6">
-                    <a href="index.html" class="text-gray-700 hover:text-rally-blue transition duration-300">← Back to Home</a>
-                    <a href="/login" class="bg-rally-blue text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition duration-300">Login</a>
+            <!-- Centered Logo -->
+            <div class="flex justify-center items-center py-6">
+                <a href="index.html" class="flex items-center">
+                    <img class="h-12 w-auto drop-shadow-lg" src="rallylogo.png" alt="Rally Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                    <div class="hidden text-3xl font-bold text-white drop-shadow-lg">🏓 Rally</div>
+                </a>
+            </div>
+            
+            <!-- Navigation Links -->
+            <div class="flex justify-center items-center pb-4">
+                <div class="flex items-center space-x-8">
+                    <a href="index.html#features" class="text-white hover:text-yellow-300 transition duration-300 font-medium drop-shadow-md">Features</a>
+                    <a href="index.html#leagues" class="text-white hover:text-yellow-300 transition duration-300 font-medium drop-shadow-md">Leagues</a>
+                    <a href="index.html#pricing" class="text-white hover:text-yellow-300 transition duration-300 font-medium drop-shadow-md">Pricing</a>
+                    <a href="/login" class="text-white hover:text-yellow-300 transition duration-300 font-medium drop-shadow-md">Login</a>
                 </div>
             </div>
         </div>
     </nav>
 
     <!-- Header Section -->
-    <section class="bg-gradient-to-br from-rally-green to-green-700 text-white py-20">
+    <section class="bg-gradient-to-br from-rally-blue to-slate-900 text-white py-20" style="padding-top: 185px;">
         <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16 text-center">
             <div class="w-20 h-20 bg-white/20 rounded-xl flex items-center justify-center mx-auto mb-6">
                 <i class="fas fa-chart-line text-3xl text-white"></i>
@@ -221,12 +232,14 @@
     <footer class="bg-gray-900 text-white py-12">
         <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16 text-center">
             <div class="flex items-center justify-center mb-4">
-                <img class="h-8 w-auto" src="rallylogo.png" alt="Rally Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-                <div class="hidden text-xl font-bold text-rally-blue">Rally</div>
+                <a href="index.html" class="flex items-center">
+                    <img class="h-8 w-auto" src="rallylogo.png" alt="Rally Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                    <div class="hidden text-xl font-bold text-rally-blue">Rally</div>
+                </a>
             </div>
             <p class="text-gray-400 mb-4">The ultimate racquet sports management application.</p>
             <div class="border-t border-gray-700 pt-6">
-                <p class="text-gray-400">© 2025 Rally LLC. All rights reserved.<br>Made with ❤️ for racquet sports players.</p>
+                <p class="text-gray-400">© 2025 Rally LLC. All rights reserved.<br>Made for players who ❤️ racquet sports.</p>
             </div>
         </div>
     </footer>

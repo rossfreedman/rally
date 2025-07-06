@@ -12,7 +12,7 @@
             theme: {
                 extend: {
                     colors: {
-                        'rally-blue': '#2563eb',
+                        'rally-blue': '#0f1727',
                         'rally-green': '#10b981',
                         'rally-orange': '#f59e0b',
                         'rally-dark': '#1f2937',
@@ -30,80 +30,60 @@
         html {
             margin: 0 !important;
             padding: 0 !important;
-            height: 100% !important;
             width: 100% !important;
             overflow-x: hidden !important;
-            border: none !important;
-            outline: none !important;
         }
         body {
             margin: 0 !important;
             padding: 0 !important;
             width: 100% !important;
             overflow-x: hidden !important;
-            border: none !important;
-            outline: none !important;
-            position: relative !important;
         }
         .hero-section {
-            position: absolute !important;
-            top: 0 !important;
-            left: 0 !important;
-            width: 100vw !important;
-            height: 100vh !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            border: none !important;
-            display: flex !important;
-            flex-direction: column !important;
+            position: relative;
+            width: 100vw;
+            height: 80vh;
+            min-height: 600px;
+            overflow: hidden;
         }
         .hero-bg {
             position: absolute !important;
             top: 0 !important;
             left: 0 !important;
-            width: 100vw !important;
-            height: 100vh !important;
+            width: 100% !important;
+            height: 100% !important;
             object-fit: cover !important;
             object-position: center !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            border: none !important;
         }
-        .content-below {
-            margin-top: 100vh !important;
-            position: relative !important;
+        .nav-transparent {
+            background: transparent !important;
+            transition: all 0.3s ease;
         }
-        
-        /* Browser reset */
-        html:before, html:after, body:before, body:after {
-            content: none !important;
-            display: none !important;
+        .nav-solid {
+            background: linear-gradient(to bottom right, #0f1727, #0b1220) !important;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
         }
-        
-        /* Aggressive border removal for hero container only */
-        .hero-section {
-            margin: 0 !important;
-            border: none !important;
-        }
-
     </style>
 </head>
 <body>
     <!-- Hero Section with Overlaid Navigation -->
-    <section class="hero-section bg-gradient-to-br from-rally-blue to-blue-800 text-white">
+    <section class="hero-section bg-gradient-to-br from-rally-blue to-slate-900 text-white">
         <!-- Background Image -->
         <div class="absolute inset-0">
-            <img src="images/hero1.png" alt="Rally Sports Action" class="hero-bg">
-            <div class="absolute inset-0 bg-gradient-to-br from-rally-blue/80 to-blue-800/80"></div>
+            <img src="images/hero.jpg" alt="Rally Sports Action" class="hero-bg">
+            <div class="absolute inset-0 bg-gradient-to-br from-rally-blue/80 to-slate-900/80"></div>
         </div>
         
         <!-- Overlaid Navigation -->
-        <nav class="relative z-20 w-full">
+        <nav id="main-nav" class="fixed top-0 w-full z-50 nav-transparent">
             <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16">
                 <!-- Centered Logo -->
                 <div class="flex justify-center items-center py-6">
-                    <img class="h-12 w-auto filter brightness-0 invert drop-shadow-lg" src="../static/rallylogo.png" alt="Rally Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-                    <div class="hidden text-3xl font-bold text-white drop-shadow-lg">🏓 Rally</div>
+                    <a href="index.html" class="flex items-center">
+                        <img class="h-12 w-auto drop-shadow-lg" src="rallylogo.png" alt="Rally Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                        <div class="hidden text-3xl font-bold text-white drop-shadow-lg">🏓 Rally</div>
+                    </a>
                 </div>
                 
                 <!-- Navigation Links -->
@@ -114,14 +94,12 @@
                         <a href="#pricing" class="text-white hover:text-yellow-300 transition duration-300 font-medium drop-shadow-md">Pricing</a>
                         <a href="/login" class="text-white hover:text-yellow-300 transition duration-300 font-medium drop-shadow-md">Login</a>
                     </div>
-                    
-
                 </div>
             </div>
         </nav>
         
         <!-- Hero Content -->
-        <div class="relative z-10 max-w-6xl mx-auto px-8 sm:px-12 lg:px-16 py-20 lg:py-32 flex-1 flex items-center">
+        <div class="relative z-10 max-w-6xl mx-auto px-8 sm:px-12 lg:px-16 pt-40 pb-6 lg:pt-48 lg:pb-10 flex-1 flex items-center">
             <div class="text-center w-full">
                 <h1 class="text-4xl md:text-6xl font-bold mb-6 drop-shadow-lg">
                     Built by Players, <br><span class="text-yellow-300">for Players</span>
@@ -132,21 +110,21 @@
                 <p class="text-lg md:text-xl mb-8 text-blue-100 max-w-4xl mx-auto drop-shadow-md">
                     Rally makes it easy to track match scores, update your schedule, find other players, and scout competition—without the email chains, spreadsheets, or group texts. Whether you play paddle, tennis, or pickleball, everything you need lives here.
                 </p>
-                <button class="bg-rally-green text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-green-600 transition duration-300 shadow-lg transform hover:scale-105">
+                <a href="/login" class="inline-block bg-rally-green text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-green-600 transition duration-300 shadow-lg transform hover:scale-105">
                     Let's Rally!
-                </button>
+                </a>
             </div>
         </div>
     </section>
 
     <!-- About Rally Section -->
-    <section class="content-below py-20 bg-gray-50">
+    <section class="pt-24 pb-20 bg-gray-50">
         <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16">
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
                 <div>
-                    <h2 class="text-4xl font-bold text-gray-900 mb-6">About Rally</h2>
+                    <h2 class="text-4xl font-bold text-gray-900 mb-6 text-center lg:text-left">About Rally</h2>
                     <p class="text-lg text-gray-600 mb-6">
-                        Rally is the premier racquet sports management application designed by players, for players. We understand the unique challenges of platform tennis (paddle), tennis, and pickleball - from scheduling matches to tracking performance across different leagues and seasons.
+                        Made for players who ❤️ racquet sports, Rally is the premier racquet sports management application designed by players, for players. We understand the unique challenges of platform tennis (paddle), tennis, and pickleball - from team scheduling to scouting competition and tracking performance across different leagues and seasons. Everything you need to play, improve, and stay on top of your game.
                     </p>
                     <p class="text-lg text-gray-600 mb-8">
                         Our comprehensive suite of tools helps you manage every aspect of your racquet sports journey, whether you're a recreational player looking to improve or a competitive athlete tracking your path to championships.
@@ -154,7 +132,7 @@
 
                 </div>
                 <div class="relative">
-                    <div class="bg-gradient-to-br from-rally-blue to-blue-800 rounded-2xl p-8 text-white">
+                    <div class="bg-gradient-to-br from-rally-blue to-slate-900 rounded-2xl p-8 text-white">
                         <div class="flex justify-center gap-4 mb-4">
                             <div class="w-16 h-16 bg-white/20 rounded-lg flex items-center justify-center" title="Platform Tennis (Paddle)">
                                 <img src="images/icon_paddle_ball.png" alt="Platform Tennis Paddle" class="w-8 h-8 filter brightness-0 invert">
@@ -187,7 +165,7 @@
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" id="features-grid">
                 <!-- View Schedule Feature -->
                 <a href="view-schedule.html" class="feature-card block bg-white p-8 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition duration-300 transform hover:-translate-y-1">
-                    <div class="w-16 h-16 bg-rally-blue rounded-lg flex items-center justify-center mb-6">
+                    <div class="w-16 h-16 bg-blue-500 rounded-lg flex items-center justify-center mb-6">
                         <i class="fas fa-calendar-alt text-white text-2xl"></i>
                     </div>
                     <h3 class="text-xl font-bold text-gray-900 mb-4">View Schedule</h3>
@@ -196,20 +174,11 @@
 
                 <!-- Search Players Feature -->
                 <a href="search-players.html" class="feature-card block bg-white p-8 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition duration-300 transform hover:-translate-y-1">
-                    <div class="w-16 h-16 bg-rally-blue rounded-lg flex items-center justify-center mb-6">
+                    <div class="w-16 h-16 bg-purple-600 rounded-lg flex items-center justify-center mb-6">
                         <i class="fas fa-search text-white text-2xl"></i>
                     </div>
                     <h3 class="text-xl font-bold text-gray-900 mb-4">Search Players</h3>
                     <p class="text-gray-600">Find the perfect playing partner or opponent. Search through your club, league, or the entire Rally network.</p>
-                </a>
-
-                <!-- View Pickup Games Feature -->
-                <a href="view-pickup-games.html" class="feature-card block bg-white p-8 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition duration-300 transform hover:-translate-y-1">
-                    <div class="w-16 h-16 bg-rally-orange rounded-lg flex items-center justify-center mb-6">
-                        <i class="fas fa-table-tennis text-white text-2xl"></i>
-                    </div>
-                    <h3 class="text-xl font-bold text-gray-900 mb-4">View Pickup Games</h3>
-                    <p class="text-gray-600">Discover and join pickup games in your area, or create your own for spontaneous competition.</p>
                 </a>
 
                 <!-- My Stats Feature -->
@@ -221,13 +190,13 @@
                     <p class="text-gray-600">Track your performance, monitor your progress, and identify areas for improvement with comprehensive analytics.</p>
                 </a>
 
-                <!-- My Team Feature -->
-                <a href="my-team.html" class="feature-card block bg-white p-8 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition duration-300 transform hover:-translate-y-1">
+                <!-- View Pickup Games Feature -->
+                <a href="view-pickup-games.html" class="feature-card block bg-white p-8 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition duration-300 transform hover:-translate-y-1">
                     <div class="w-16 h-16 bg-purple-600 rounded-lg flex items-center justify-center mb-6">
-                        <i class="fas fa-users text-white text-2xl"></i>
+                        <i class="fas fa-table-tennis text-white text-2xl"></i>
                     </div>
-                    <h3 class="text-xl font-bold text-gray-900 mb-4">My Team</h3>
-                    <p class="text-gray-600">Monitor your team's performance, analyze strength of schedule, and coordinate with teammates.</p>
+                    <h3 class="text-xl font-bold text-gray-900 mb-4">View Pickup Games</h3>
+                    <p class="text-gray-600">Discover and join pickup games in your area, or create your own for spontaneous competition.</p>
                 </a>
 
                 <!-- My Series Feature -->
@@ -239,7 +208,25 @@
                     <p class="text-gray-600">Stay informed about your entire division. Track standings, monitor competitor performance, and analyze league-wide trends.</p>
                 </a>
 
+                <!-- Track Court Assignments Feature -->
+                <a href="track-court-assignments.html" class="feature-card block bg-white p-8 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition duration-300 transform hover:-translate-y-1">
+                    <div class="w-16 h-16 bg-rally-orange rounded-lg flex items-center justify-center mb-6">
+                        <i class="fas fa-map-marked-alt text-white text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-4">Track Court Assignments</h3>
+                    <p class="text-gray-600">Master your court performance with detailed analytics. Track wins, losses, and patterns across different courts.</p>
+                </a>
+
                 <!-- Hidden features - shown after clicking "View More Features" -->
+                <!-- My Team Feature -->
+                <a href="my-team.html" class="feature-card hidden-feature block bg-white p-8 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition duration-300 transform hover:-translate-y-1 hidden">
+                    <div class="w-16 h-16 bg-purple-600 rounded-lg flex items-center justify-center mb-6">
+                        <i class="fas fa-users text-white text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 mb-4">My Team</h3>
+                    <p class="text-gray-600">Monitor your team's performance, analyze strength of schedule, and coordinate with teammates.</p>
+                </a>
+
                 <!-- My Club Feature -->
                 <a href="my-club.html" class="feature-card hidden-feature block bg-white p-8 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition duration-300 transform hover:-translate-y-1 hidden">
                     <div class="w-16 h-16 bg-teal-600 rounded-lg flex items-center justify-center mb-6">
@@ -256,15 +243,6 @@
                     </div>
                     <h3 class="text-xl font-bold text-gray-900 mb-4">Update Availability</h3>
                     <p class="text-gray-600">Keep your team informed and organized. Easily update your availability for matches and practices with smart notifications.</p>
-                </a>
-
-                <!-- Track Court Assignments Feature -->
-                <a href="track-court-assignments.html" class="feature-card hidden-feature block bg-white p-8 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition duration-300 transform hover:-translate-y-1 hidden">
-                    <div class="w-16 h-16 bg-rally-orange rounded-lg flex items-center justify-center mb-6">
-                        <i class="fas fa-map-marked-alt text-white text-2xl"></i>
-                    </div>
-                    <h3 class="text-xl font-bold text-gray-900 mb-4">Track Court Assignments</h3>
-                    <p class="text-gray-600">Master your court performance with detailed analytics. Track wins, losses, and patterns across different courts.</p>
                 </a>
 
                 <!-- Team Polls Feature -->
@@ -361,6 +339,99 @@
         </div>
     </section>
 
+    <!-- League Interest Section -->
+    <section class="py-16 bg-gradient-to-r from-rally-blue to-slate-900 text-white">
+        <div class="max-w-4xl mx-auto px-8 sm:px-12 lg:px-16 text-center">
+            <h2 class="text-3xl font-bold mb-6">Don't see your league?</h2>
+            <p class="text-xl text-blue-100 mb-8">
+                Click here to let us know you are interested in getting your league online in Rally.
+            </p>
+            <button onclick="openLeagueInterestModal()" class="bg-rally-green text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-green-600 transition duration-300 shadow-lg transform hover:scale-105">
+                Tell us about your league
+            </button>
+        </div>
+    </section>
+
+    <!-- League Interest Modal -->
+    <div id="leagueInterestModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg p-8 max-w-md w-full mx-4 relative">
+            <button onclick="closeLeagueInterestModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+            
+            <h3 class="text-2xl font-bold text-gray-900 mb-6">League Interest Form</h3>
+            
+            <form id="leagueInterestForm" action="https://formspree.io/f/YOUR_FORM_ID" method="POST" class="space-y-4">
+                <div>
+                    <label for="name" class="block text-sm font-medium text-gray-700 mb-2">Your Name *</label>
+                    <input type="text" id="name" name="name" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rally-blue focus:border-transparent">
+                </div>
+                
+                <div>
+                    <label for="email" class="block text-sm font-medium text-gray-700 mb-2">Email Address *</label>
+                    <input type="email" id="email" name="email" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rally-blue focus:border-transparent">
+                </div>
+                
+                <div>
+                    <label for="phone" class="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
+                    <input type="tel" id="phone" name="phone" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rally-blue focus:border-transparent">
+                </div>
+                
+                <div>
+                    <label for="leagueName" class="block text-sm font-medium text-gray-700 mb-2">League Name *</label>
+                    <input type="text" id="leagueName" name="leagueName" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rally-blue focus:border-transparent">
+                </div>
+                
+                <div>
+                    <label for="sport" class="block text-sm font-medium text-gray-700 mb-2">Sport *</label>
+                    <select id="sport" name="sport" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rally-blue focus:border-transparent">
+                        <option value="">Select a sport</option>
+                        <option value="Platform Tennis (Paddle)">Platform Tennis (Paddle)</option>
+                        <option value="Tennis">Tennis</option>
+                        <option value="Pickleball">Pickleball</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label for="location" class="block text-sm font-medium text-gray-700 mb-2">Location/Region *</label>
+                    <input type="text" id="location" name="location" required placeholder="e.g., Chicago, IL" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rally-blue focus:border-transparent">
+                </div>
+                
+                <div>
+                    <label for="teamCount" class="block text-sm font-medium text-gray-700 mb-2">Approximate Number of Teams</label>
+                    <input type="number" id="teamCount" name="teamCount" min="1" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rally-blue focus:border-transparent">
+                </div>
+                
+                <div>
+                    <label for="role" class="block text-sm font-medium text-gray-700 mb-2">Your Role *</label>
+                    <select id="role" name="role" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rally-blue focus:border-transparent">
+                        <option value="">Select your role</option>
+                        <option value="League Administrator">League Administrator</option>
+                        <option value="Club Manager">Club Manager</option>
+                        <option value="Team Captain">Team Captain</option>
+                        <option value="Player">Player</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label for="additionalInfo" class="block text-sm font-medium text-gray-700 mb-2">Additional Information</label>
+                    <textarea id="additionalInfo" name="additionalInfo" rows="4" placeholder="Tell us more about your league, timeline, or any specific needs..." class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rally-blue focus:border-transparent"></textarea>
+                </div>
+                
+                <div class="flex gap-4 pt-4">
+                    <button type="button" onclick="closeLeagueInterestModal()" class="flex-1 bg-gray-100 text-gray-800 py-3 rounded-lg hover:bg-gray-200 transition duration-300">
+                        Cancel
+                    </button>
+                    <button type="submit" class="flex-1 bg-rally-blue text-white py-3 rounded-lg hover:bg-blue-800 transition duration-300">
+                        Submit Interest
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Pricing Section -->
     <section id="pricing" class="py-20 bg-white">
         <div class="max-w-6xl mx-auto px-8 sm:px-12 lg:px-16">
@@ -407,7 +478,7 @@
                 </div>
 
                 <!-- Rally Pro -->
-                <div class="bg-gradient-to-br from-rally-blue to-blue-800 text-white rounded-xl p-8 shadow-xl transform scale-105 relative">
+                <div class="bg-gradient-to-br from-rally-blue to-slate-900 text-white rounded-xl p-8 shadow-xl transform scale-105 relative">
                     <div class="absolute -top-4 left-1/2 transform -translate-x-1/2">
                         <span class="bg-rally-orange text-white px-4 py-2 rounded-full text-sm font-semibold">Popular</span>
                     </div>
@@ -497,8 +568,10 @@
             <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
                 <div>
                     <div class="flex items-center mb-4">
-                        <img class="h-8 w-auto mr-2" src="../static/rallylogo.png" alt="Rally Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-                        <div class="hidden text-xl font-bold">🏓 Rally</div>
+                        <a href="index.html" class="flex items-center">
+                            <img class="h-8 w-auto mr-2" src="rallylogo.png" alt="Rally Logo" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                            <div class="hidden text-xl font-bold">🏓 Rally</div>
+                        </a>
                     </div>
                     <p class="text-gray-400">The ultimate racquet sports management application.</p>
                 </div>
@@ -539,34 +612,42 @@
             </div>
             
             <div class="border-t border-gray-700 mt-12 pt-8 text-center text-gray-400">
-                <p>&copy; 2025 Rally LLC. All rights reserved.<br>Made with ❤️ for racquet sports players.</p>
+                <p>&copy; 2025 Rally LLC. All rights reserved.<br>Made for players who ❤️ racquet sports.</p>
             </div>
         </div>
     </footer>
 
     <script>
-        // Smooth scrolling for navigation links
+        // Handle navigation background change on scroll
+        window.addEventListener('scroll', function() {
+            const nav = document.getElementById('main-nav');
+            const heroSection = document.querySelector('.hero-section');
+            const heroHeight = heroSection ? heroSection.offsetHeight : 0;
+            
+            if (window.scrollY > 50) {
+                nav.classList.remove('nav-transparent');
+                nav.classList.add('nav-solid');
+            } else {
+                nav.classList.remove('nav-solid');
+                nav.classList.add('nav-transparent');
+            }
+        });
+
+        // Smooth scrolling for navigation links with offset for fixed navbar
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             anchor.addEventListener('click', function (e) {
                 e.preventDefault();
                 const target = document.querySelector(this.getAttribute('href'));
                 if (target) {
-                    target.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'start'
+                    const navHeight = document.querySelector('nav').offsetHeight;
+                    const targetPosition = target.offsetTop - navHeight; // Align top of section with bottom of navbar
+                    
+                    window.scrollTo({
+                        top: targetPosition,
+                        behavior: 'smooth'
                     });
                 }
             });
-        });
-
-        // Add scroll effect to navbar
-        window.addEventListener('scroll', function() {
-            const nav = document.querySelector('nav');
-            if (window.scrollY > 50) {
-                nav.classList.add('bg-black/20', 'backdrop-blur-sm');
-            } else {
-                nav.classList.remove('bg-black/20', 'backdrop-blur-sm');
-            }
         });
 
         // Toggle features visibility
@@ -614,6 +695,60 @@
                 btnIcon.classList.add('fa-chevron-down');
             }
         }
+
+        // League Interest Modal Functions
+        function openLeagueInterestModal() {
+            document.getElementById('leagueInterestModal').classList.remove('hidden');
+            document.body.style.overflow = 'hidden'; // Prevent background scrolling
+        }
+
+        function closeLeagueInterestModal() {
+            document.getElementById('leagueInterestModal').classList.add('hidden');
+            document.body.style.overflow = 'auto'; // Restore scrolling
+        }
+
+        // Close modal when clicking outside of it
+        document.getElementById('leagueInterestModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeLeagueInterestModal();
+            }
+        });
+
+        // Handle form submission
+        document.getElementById('leagueInterestForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            
+            // Submit to Formspree
+            fetch(this.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'Accept': 'application/json'
+                }
+            }).then(response => {
+                if (response.ok) {
+                    // Success - show thank you message
+                    alert('Thank you for your interest! We\'ll be in touch soon.');
+                    this.reset();
+                    closeLeagueInterestModal();
+                } else {
+                    // Error
+                    alert('There was an error submitting your form. Please try again.');
+                }
+            }).catch(error => {
+                console.error('Error:', error);
+                alert('There was an error submitting your form. Please try again.');
+            });
+        });
+
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape' && !document.getElementById('leagueInterestModal').classList.contains('hidden')) {
+                closeLeagueInterestModal();
+            }
+        });
     </script>
 </body>
 </html> 
