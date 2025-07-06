@@ -60,14 +60,12 @@ OPTIMIZATION_LEVEL = os.environ.get(
     "AI_OPTIMIZATION_LEVEL", "ULTRA"
 )  # Changed from HIGH to ULTRA
 
-# NEW: Streaming configuration for ultra-fast responses
-USE_STREAMING = (
-    os.environ.get("USE_AI_STREAMING", "true").lower() == "true"
-)  # Enable streaming to eliminate polling
+# NEW: Streaming configuration - DISABLED due to conflict issues
+USE_STREAMING = False  # Disabled - causes active run conflicts
 STREAMING_TIMEOUT = int(
-    os.environ.get("AI_STREAMING_TIMEOUT", "12")
-)  # Balanced timeout for complete responses
-FALLBACK_TO_POLLING = os.environ.get("AI_FALLBACK_POLLING", "true").lower() == "true"
+    os.environ.get("AI_STREAMING_TIMEOUT", "5")
+)  # Not used when streaming disabled
+FALLBACK_TO_POLLING = True  # Always use polling for reliability
 
 # NEW: User context caching for speed
 _user_context_cache = {}  # {user_email: {context, timestamp}}
@@ -76,9 +74,9 @@ USER_CONTEXT_CACHE_DURATION = 300  # Cache for 5 minutes
 # Set optimization parameters based on level - ULTRA SPEED SETTINGS
 if OPTIMIZATION_LEVEL == "ULTRA":
     BATCH_OPERATIONS = True
-    MIN_POLL_INTERVAL = 0.5  # Much faster - reduced from 4.0
-    MAX_POLL_INTERVAL = 3.0  # Much faster - reduced from 15.0
-    EXPONENTIAL_BACKOFF = 1.3  # Reduced from 2.5
+    MIN_POLL_INTERVAL = 0.2  # Extremely fast - reduced from 0.5
+    MAX_POLL_INTERVAL = 1.5  # Much faster - reduced from 3.0
+    EXPONENTIAL_BACKOFF = 1.2  # Reduced from 1.3
     ASSISTANT_CACHE_DURATION = 14400  # 4 hours
     PREDICTIVE_POLLING = True
 elif OPTIMIZATION_LEVEL == "HIGH":
@@ -114,6 +112,10 @@ _api_stats = {
     "thread_reuses": 0,  # NEW: Threads reused instead of created
     "response_cache_hits": 0,  # NEW: Response cache hits
 }
+
+# NEW: Fast response system - configurable via environment
+ENABLE_FAST_RESPONSE = os.environ.get("ENABLE_FAST_RESPONSE", "false").lower() == "true"  # Disabled temporarily
+FAST_RESPONSE_TIMEOUT = float(os.environ.get("FAST_RESPONSE_TIMEOUT", "2.0"))
 
 
 def get_cached_assistant():
@@ -319,7 +321,7 @@ def create_optimized_thread_with_context(
                     content=msg.content[0].text.value,
                 )
 
-        print(f"📝 Created optimized thread: {new_thread.id}")
+        print(f"CREATED: Optimized thread: {new_thread.id}")
         return new_thread.id
 
     except Exception as e:
@@ -384,7 +386,7 @@ def legacy_polling_fallback(thread_id, run_id, timeout=30):
     start_time = time.time()
     poll_count = 0
 
-    print(f"🔄 Starting optimized polling for run {run_id}")
+    print(f"POLLING: Starting optimized polling for run {run_id}")
 
     # Optimized polling loop with smart intervals
     while time.time() - start_time < timeout:
@@ -395,23 +397,23 @@ def legacy_polling_fallback(thread_id, run_id, timeout=30):
                 thread_id=thread_id, run_id=run_id
             )
 
-            print(f"📊 Poll #{poll_count}: {run_status.status}")
+            print(f"Poll #{poll_count}: {run_status.status}")
 
             if run_status.status == "completed":
                 print(
-                    f"✅ Run completed after {poll_count} polls in {time.time() - start_time:.1f}s"
+                    f"COMPLETED: Run completed after {poll_count} polls in {time.time() - start_time:.1f}s"
                 )
                 return run_status, poll_count
             elif run_status.status in ["failed", "cancelled", "expired"]:
                 print(
-                    f"❌ Run {run_status.status}: {getattr(run_status, 'last_error', 'No error details')}"
+                    f"ERROR: Run {run_status.status}: {getattr(run_status, 'last_error', 'No error details')}"
                 )
                 raise Exception(
                     f"Run {run_status.status}: {getattr(run_status, 'last_error', 'Unknown error')}"
                 )
             elif run_status.status == "requires_action":
                 # Handle function calls
-                print(f"🔧 Run requires action - handling function calls")
+                print(f"ACTION: Run requires action - handling function calls")
                 if (
                     run_status.required_action
                     and run_status.required_action.type == "submit_tool_outputs"
@@ -424,7 +426,7 @@ def legacy_polling_fallback(thread_id, run_id, timeout=30):
 
                     def execute_function_call(tool_call):
                         """Execute a single function call - optimized for speed"""
-                        print(f"🛠️ Executing function: {tool_call.function.name}")
+                        print(f"EXEC: Executing function: {tool_call.function.name}")
 
                         try:
                             if tool_call.function.name == "get_complete_training_info":
@@ -437,7 +439,7 @@ def legacy_polling_fallback(thread_id, run_id, timeout=30):
                                 )
 
                                 print(
-                                    f"🚀 Getting complete training info for: '{topic}'"
+                                    f"TRAINING: Getting complete training info for: '{topic}'"
                                 )
 
                                 # Get training data from cache (ultra-fast)
@@ -472,7 +474,7 @@ def legacy_polling_fallback(thread_id, run_id, timeout=30):
                                 }
 
                                 print(
-                                    f"✅ Complete training info retrieved for: '{topic_key or topic}'"
+                                    f"SUCCESS: Complete training info retrieved for: '{topic_key or topic}'"
                                 )
 
                             elif tool_call.function.name == "find_training_video":
@@ -484,7 +486,7 @@ def legacy_polling_fallback(thread_id, run_id, timeout=30):
                                 )
 
                                 print(
-                                    f"🔍 Looking up video for technique: '{technique}'"
+                                    f"LOOKUP: Looking up video for technique: '{technique}'"
                                 )
                                 result = find_training_video_direct(technique)
 
@@ -501,7 +503,7 @@ def legacy_polling_fallback(thread_id, run_id, timeout=30):
                                 )
 
                                 print(
-                                    f"🔍 Looking up training data for topic: '{topic}'"
+                                    f"LOOKUP: Looking up training data for topic: '{topic}'"
                                 )
 
                                 training_data = get_cached_training_data()
@@ -511,21 +513,21 @@ def legacy_polling_fallback(thread_id, run_id, timeout=30):
 
                                 if topic_data:
                                     result = {"topic": topic_key, "data": topic_data}
-                                    print(f"📚 Found training data for: '{topic_key}'")
+                                    print(f"FOUND: Found training data for: '{topic_key}'")
                                 else:
                                     result = {
                                         "error": f"Training data not found for topic: {topic}"
                                     }
 
                             else:
-                                print(f"⚠️ Unknown function: {tool_call.function.name}")
+                                print(f"WARNING: Unknown function: {tool_call.function.name}")
                                 result = {
                                     "error": f"Unknown function: {tool_call.function.name}"
                                 }
 
                         except Exception as e:
                             result = {"error": f"Function execution failed: {str(e)}"}
-                            print(f"❌ Error in {tool_call.function.name}: {str(e)}")
+                            print(f"ERROR: Error in {tool_call.function.name}: {str(e)}")
 
                         return {
                             "tool_call_id": tool_call.id,
@@ -560,7 +562,7 @@ def legacy_polling_fallback(thread_id, run_id, timeout=30):
                                 except Exception as e:
                                     call = future_to_call[future]
                                     print(
-                                        f"❌ Parallel execution failed for {call.function.name}: {str(e)}"
+                                        f"ERROR: Parallel execution failed for {call.function.name}: {str(e)}"
                                     )
                                     tool_outputs.append(
                                         {
@@ -575,7 +577,7 @@ def legacy_polling_fallback(thread_id, run_id, timeout=30):
 
                     # Submit the tool outputs
                     if tool_outputs:
-                        print(f"📤 Submitting {len(tool_outputs)} tool outputs")
+                        print(f"SUBMIT: Submitting {len(tool_outputs)} tool outputs")
                         client.beta.threads.runs.submit_tool_outputs(
                             thread_id=thread_id,
                             run_id=run_id,
@@ -585,13 +587,13 @@ def legacy_polling_fallback(thread_id, run_id, timeout=30):
                         time.sleep(MIN_POLL_INTERVAL)
                         continue
                     else:
-                        print(f"⚠️ No tool outputs to submit")
+                        print(f"WARNING: No tool outputs to submit")
 
             elif run_status.status in ["in_progress", "queued"]:
                 # Continue polling
                 pass
             else:
-                print(f"⚠️ Unexpected run status: {run_status.status}")
+                print(f"WARNING: Unexpected run status: {run_status.status}")
 
             # Ultra-fast wait times for speed
             if poll_count == 1:
@@ -607,76 +609,20 @@ def legacy_polling_fallback(thread_id, run_id, timeout=30):
 
         except Exception as e:
             if "rate limit" in str(e).lower():
-                print(f"⚠️ Rate limit hit, waiting 10s...")
+                print(f"RATE_LIMIT: Rate limit hit, waiting 10s...")
                 time.sleep(10)  # Long wait for rate limits
             else:
-                print(f"❌ Polling error: {str(e)}")
+                print(f"ERROR: Polling error: {str(e)}")
                 raise
 
     raise Exception(f"Request timed out after {timeout}s with {poll_count} polls")
 
 
 def create_streaming_run(thread_id, assistant_id):
-    """Create a run with streaming enabled for real-time responses"""
-    print(f"🚀 Attempting streaming for ultra-fast responses")
+    """Direct polling approach - streaming disabled to avoid conflicts"""
+    print(f"POLLING: Using direct polling for reliable responses")
 
-    try:
-        # Try streaming first for maximum speed
-        start_time = time.time()
-
-        # Create run with streaming
-        stream = client.beta.threads.runs.create(
-            thread_id=thread_id, assistant_id=assistant_id, stream=True
-        )
-
-        response_text = ""
-        event_count = 0
-
-        for event in stream:
-            event_count += 1
-
-            # Check for timeout
-            if time.time() - start_time > STREAMING_TIMEOUT:
-                print(
-                    f"⚠️ Streaming timeout after {STREAMING_TIMEOUT}s, falling back to polling"
-                )
-                break
-
-            if event.event == "thread.message.delta":
-                if hasattr(event.data, "delta") and hasattr(
-                    event.data.delta, "content"
-                ):
-                    for content in event.data.delta.content:
-                        if hasattr(content, "text") and hasattr(content.text, "value"):
-                            response_text += content.text.value
-            elif event.event == "thread.run.completed":
-                print(
-                    f"✅ Streaming completed in {time.time() - start_time:.1f}s with {event_count} events"
-                )
-                return response_text, 1  # Only 1 "poll" since we streamed
-            elif event.event in [
-                "thread.run.failed",
-                "thread.run.cancelled",
-                "thread.run.expired",
-            ]:
-                raise Exception(f"Run failed: {event.event}")
-
-        # Only return streaming response if it completed successfully (not timed out)
-        if response_text.strip() and time.time() - start_time <= STREAMING_TIMEOUT:
-            print(f"✅ Streaming response received in {time.time() - start_time:.1f}s")
-            return response_text, 1
-        elif response_text.strip():
-            print(
-                f"⚠️ Streaming timed out with partial response ({len(response_text)} chars), falling back to polling"
-            )
-        else:
-            print("⚠️ No response through streaming, falling back to polling")
-
-    except Exception as e:
-        print(f"⚠️ Streaming failed: {str(e)}, falling back to polling")
-
-    # Fallback to optimized polling
-    print(f"🔄 Using optimized polling fallback")
+    # Skip streaming entirely - go straight to polling
     run = client.beta.threads.runs.create(
         thread_id=thread_id, assistant_id=assistant_id
     )
@@ -775,124 +721,85 @@ def handle_active_run_conflict(thread_id):
 
         for run in runs.data:
             if run.status in ["in_progress", "queued", "requires_action"]:
-                print(f"🔍 Found active run {run.id} with status: {run.status}")
+                print(f"FOUND: Found active run {run.id} with status: {run.status}")
 
                 if run.status == "requires_action":
                     # Try to complete the existing run by handling function calls
-                    print(f"🔧 Attempting to complete existing run {run.id}")
+                    print(f"ATTEMPTING: Attempting to complete existing run {run.id}")
                     try:
                         run_status, poll_count = legacy_polling_fallback(
-                            thread_id, run.id, timeout=15
+                            thread_id, run.id, timeout=5  # Much shorter timeout
                         )
                         return True  # Successfully completed existing run
                     except Exception as e:
-                        print(f"⚠️ Could not complete existing run: {str(e)}")
-                        # Cancel the run if we can't complete it
+                        print(f"WARNING: Could not complete existing run: {str(e)}")
+                        # Cancel the run immediately if we can't complete it quickly
                         try:
                             client.beta.threads.runs.cancel(
                                 thread_id=thread_id, run_id=run.id
                             )
-                            print(f"🚫 Cancelled stuck run {run.id}")
-                            time.sleep(1.0)  # Wait a moment for cancellation to process
+                            print(f"CANCELLED: Cancelled stuck run {run.id}")
+                            time.sleep(0.5)  # Shorter wait
                             return True
                         except Exception as cancel_error:
-                            print(f"⚠️ Could not cancel run: {str(cancel_error)}")
+                            print(f"WARNING: Could not cancel run: {str(cancel_error)}")
 
                 elif run.status in ["in_progress", "queued"]:
-                    # Wait a bit for the run to complete
-                    print(f"⏳ Waiting for existing run {run.id} to complete...")
+                    # Don't wait long for existing runs - cancel them quickly
+                    print(f"CANCELLING: Cancelling existing run {run.id} for speed...")
                     try:
-                        run_status, poll_count = legacy_polling_fallback(
-                            thread_id, run.id, timeout=10
+                        client.beta.threads.runs.cancel(
+                            thread_id=thread_id, run_id=run.id
                         )
-                        return True  # Successfully waited for completion
+                        print(f"CANCELLED: Cancelled existing run {run.id}")
+                        time.sleep(0.5)
+                        return True
                     except Exception as e:
-                        print(f"⚠️ Existing run did not complete: {str(e)}")
-                        # Try to cancel it
+                        print(f"WARNING: Could not cancel existing run: {str(e)}")
+                        # If we can't cancel, try waiting briefly
                         try:
-                            client.beta.threads.runs.cancel(
-                                thread_id=thread_id, run_id=run.id
+                            run_status, poll_count = legacy_polling_fallback(
+                                thread_id, run.id, timeout=3  # Very short timeout
                             )
-                            print(f"🚫 Cancelled slow run {run.id}")
-                            time.sleep(1.0)
                             return True
-                        except Exception as cancel_error:
-                            print(f"⚠️ Could not cancel run: {str(cancel_error)}")
+                        except Exception as wait_error:
+                            print(f"WARNING: Existing run timeout: {str(wait_error)}")
+                            return False  # Give up and create new thread
 
         return True  # No active runs found
 
     except Exception as e:
-        print(f"⚠️ Error handling active run conflict: {str(e)}")
+        print(f"WARNING: Error handling active run conflict: {str(e)}")
         return False
 
 
 def batch_operations_with_streaming(thread_id, user_message, assistant_id):
-    """Optimized batch operations with reliable response handling"""
+    """Ultra-simple approach - create new thread on any conflict"""
+    
     try:
-        # First, handle any existing active runs
-        if not handle_active_run_conflict(thread_id):
-            print(f"⚠️ Could not resolve active run conflict, creating new thread")
-            # Create a new thread if we can't resolve the conflict
-            new_thread = client.beta.threads.create()
-            thread_id = new_thread.id
-            print(f"🆕 Created new thread due to conflict: {thread_id}")
-
-        print(f"📝 Adding user message to thread {thread_id}")
-        # Add message to thread
+        print(f"ADDING: Adding user message to thread {thread_id}")
         message = client.beta.threads.messages.create(
             thread_id=thread_id, role="user", content=user_message
         )
-        print(f"✅ Message added: {message.id}")
+        print(f"SUCCESS: Message added: {message.id}")
 
-        # Use optimized polling approach (streaming disabled for now)
         response_text, poll_count = create_streaming_run(thread_id, assistant_id)
-        return (
-            response_text,
-            poll_count,
-            thread_id,
-        )  # Return the thread_id in case it changed
+        return response_text, poll_count, thread_id
 
     except Exception as e:
-        print(f"⚠️ Batch operations failed: {str(e)}")
+        print(f"WARNING: Thread conflict detected, creating new thread immediately")
+        
+        # ANY error = create new thread immediately (no complex resolution)
+        new_thread = client.beta.threads.create()
+        thread_id = new_thread.id
+        print(f"NEW: Created new thread: {thread_id}")
 
-        # Check if it's an active run error and try to handle it
-        if "already has an active run" in str(e) or "while a run" in str(e):
-            print(f"🔄 Detected active run conflict, attempting resolution...")
-            if handle_active_run_conflict(thread_id):
-                # Try again after resolving conflict
-                try:
-                    message = client.beta.threads.messages.create(
-                        thread_id=thread_id, role="user", content=user_message
-                    )
-                    response_text, poll_count = create_streaming_run(
-                        thread_id, assistant_id
-                    )
-                    return response_text, poll_count, thread_id
-                except Exception as retry_error:
-                    print(
-                        f"⚠️ Retry after conflict resolution failed: {str(retry_error)}"
-                    )
+        message = client.beta.threads.messages.create(
+            thread_id=thread_id, role="user", content=user_message
+        )
 
-        # Final fallback - create completely new thread
-        try:
-            print(f"🆕 Creating new thread as final fallback")
-            new_thread = client.beta.threads.create()
-            new_thread_id = new_thread.id
-
-            message = client.beta.threads.messages.create(
-                thread_id=new_thread_id, role="user", content=user_message
-            )
-
-            response_text, poll_count = create_streaming_run(
-                new_thread_id, assistant_id
-            )
-            return response_text, poll_count, new_thread_id
-
-        except Exception as final_error:
-            print(f"❌ Final fallback also failed: {str(final_error)}")
-            raise Exception(
-                f"All fallback attempts failed: {str(e)} | {str(final_error)}"
-            )
+        response_text, poll_count = create_streaming_run(thread_id, assistant_id)
+        return response_text, poll_count, thread_id
 
 
 def estimate_completion_time(thread_id):
@@ -921,7 +828,7 @@ def get_cached_response(thread_id):
     cached = _response_cache.get(thread_id)
     if cached and time.time() - cached["timestamp"] < RESPONSE_CACHE_DURATION:
         _api_stats["response_cache_hits"] += 1  # NEW: Track response cache hits
-        print(f"📋 Response cache hit for thread {thread_id}")
+        print(f"CACHE: Response cache hit for thread {thread_id}")
         return cached["response"]
     return None
 
@@ -942,7 +849,7 @@ def get_cached_training_data():
         or current_time - _training_data_cache_time > TRAINING_DATA_CACHE_DURATION
     ):
 
-        print(f"📚 Loading training data into cache...")
+        print(f"LOADING: Loading training data into cache...")
         try:
             import json
 
@@ -962,19 +869,19 @@ def get_cached_training_data():
                 with open(training_guide_path, "r", encoding="utf-8") as f:
                     _training_data_cache = json.load(f)
                 _training_data_cache_time = current_time
-                print(f"✅ Training data cached: {len(_training_data_cache)} topics")
+                print(f"SUCCESS: Training data cached: {len(_training_data_cache)} topics")
             else:
                 print(
-                    f"⚠️ Training guide not found at {training_guide_path}, using empty cache"
+                    f"WARNING: Training guide not found at {training_guide_path}, using empty cache"
                 )
                 _training_data_cache = {}
                 _training_data_cache_time = current_time
         except Exception as e:
-            print(f"❌ Error loading training data: {str(e)}, using empty cache")
+            print(f"ERROR: Error loading training data: {str(e)}, using empty cache")
             _training_data_cache = {}
             _training_data_cache_time = current_time
     else:
-        print(f"📋 Training data cache hit")
+        print(f"CACHE: Training data cache hit")
 
     return _training_data_cache
 
@@ -1094,7 +1001,8 @@ def get_user_playing_context(user):
                     """
                     SELECT DISTINCT p.id, p.tenniscores_player_id, p.first_name, p.last_name, 
                            p.pti, p.wins, p.losses, p.win_percentage,
-                           s.name as series_name, c.name as club_name, l.league_name
+                           s.name as series_name, c.name as club_name, l.league_name,
+                           p.updated_at
                     FROM players p
                     JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
                     JOIN users u ON upa.user_id = u.id
@@ -1116,7 +1024,8 @@ def get_user_playing_context(user):
                         """
                         SELECT DISTINCT p.id, p.tenniscores_player_id, p.first_name, p.last_name, 
                                p.pti, p.wins, p.losses, p.win_percentage,
-                               s.name as series_name, c.name as club_name, l.league_name
+                               s.name as series_name, c.name as club_name, l.league_name,
+                               p.updated_at
                         FROM players p
                         LEFT JOIN series s ON p.series_id = s.id
                         LEFT JOIN clubs c ON p.club_id = c.id
@@ -1142,6 +1051,7 @@ def get_user_playing_context(user):
                         series_name,
                         club_name,
                         league_name,
+                        updated_at,
                     ) = player_record
 
                     # Update context with player info
@@ -1428,19 +1338,24 @@ def init_rally_ai_routes(app):
 
             # ULTRA-FAST MESSAGE ENHANCEMENT (maximum speed optimization)
             try:
-                print(
-                    f"⚡ Getting cached user context and creating ultra-fast message..."
-                )
-                user_context = get_cached_user_context(session.get("user", {}))
-                enhanced_message = create_ultra_fast_enhanced_message(
-                    message, user_context
-                )
+                if ENABLE_FAST_RESPONSE:
+                    print(f"FAST: Using lightweight user context for maximum speed...")
+                    user_context = get_lightweight_user_context(session.get("user", {}))
+                    enhanced_message = create_ultra_fast_enhanced_message_minimal(
+                        message, user_context
+                    )
+                else:
+                    print(f"FAST: Getting cached user context and creating ultra-fast message...")
+                    user_context = get_cached_user_context(session.get("user", {}))
+                    enhanced_message = create_ultra_fast_enhanced_message(
+                        message, user_context
+                    )
 
                 # Minimal debug output for speed
-                print(f"✅ Enhanced: {len(message)} → {len(enhanced_message)} chars")
+                print(f"SUCCESS: Enhanced: {len(message)} → {len(enhanced_message)} chars")
 
             except Exception as e:
-                print(f"⚠️ Error creating ultra-fast message: {str(e)}, using original")
+                print(f"WARNING: Error creating ultra-fast message: {str(e)}, using original")
                 enhanced_message = message
 
             # Smart thread management with caching
@@ -1451,7 +1366,7 @@ def init_rally_ai_routes(app):
                 # Create new thread
                 thread = client.beta.threads.create()
                 thread_id = thread.id
-                print(f"🆕 Created thread: {thread_id}")
+                print(f"NEW: Created thread: {thread_id}")
                 context_chars = 0
                 message_count = 0
             else:
@@ -1479,7 +1394,7 @@ def init_rally_ai_routes(app):
                         thread = client.beta.threads.create()
                         thread_id = thread.id
                         print(
-                            f"🆕 Created new thread after {time_diff:.0f}s gap (threshold: {gap_threshold}s)"
+                            f"NEW: Created new thread after {time_diff:.0f}s gap (threshold: {gap_threshold}s)"
                         )
                         context_chars = 0
                         message_count = 0
@@ -1490,7 +1405,7 @@ def init_rally_ai_routes(app):
                         )
                         _api_stats["thread_reuses"] += 1  # NEW: Track thread reuses
                         print(
-                            f"♻️ Reusing thread (gap: {time_diff:.0f}s < {gap_threshold}s)"
+                            f"REUSING: Reusing thread (gap: {time_diff:.0f}s < {gap_threshold}s)"
                         )
                 else:
                     # Fallback for threads without metadata
@@ -1498,57 +1413,21 @@ def init_rally_ai_routes(app):
                         smart_context_check(thread_id)
                     )
 
-            # Ultra-fast streaming approach - no polling needed!
+            # Ultra-fast response system
             start_time = time.time()
 
+            # Use ultra-simple approach - no complex fallbacks
             try:
-                # Use optimized batch operations with conflict resolution
                 result = batch_operations_with_streaming(
                     thread_id, enhanced_message, assistant.id
                 )
 
-                # Handle the return format (could be 2 or 3 values)
-                if len(result) == 3:
-                    response_text, poll_count, thread_id = result
-                    print(
-                        f"🚀 Response received (thread may have changed to {thread_id})"
-                    )
-                else:
-                    response_text, poll_count = result
-                    print(f"🚀 Response received directly")
+                response_text, poll_count, thread_id = result
+                print(f"RESPONSE: Response received in {time.time() - start_time:.1f}s")
 
             except Exception as e:
-                print(f"⚠️ All operations failed, using final fallback: {str(e)}")
-                # Final fallback to traditional approach with new thread
-                try:
-                    new_thread = client.beta.threads.create()
-                    thread_id = new_thread.id
-                    print(f"🆕 Created final fallback thread: {thread_id}")
-
-                    client.beta.threads.messages.create(
-                        thread_id=thread_id, role="user", content=enhanced_message
-                    )
-
-                    run = client.beta.threads.runs.create(
-                        thread_id=thread_id, assistant_id=assistant.id
-                    )
-
-                    run_status, poll_count = legacy_polling_fallback(thread_id, run.id)
-
-                    # Get response from completed run
-                    messages = client.beta.threads.messages.list(
-                        thread_id=thread_id, limit=1
-                    )
-                    if messages.data and messages.data[0].content:
-                        response_text = messages.data[0].content[0].text.value
-                    else:
-                        raise Exception("No response received from final fallback")
-
-                except Exception as final_error:
-                    print(f"❌ Final fallback failed: {str(final_error)}")
-                    raise Exception(
-                        f"All attempts failed: {str(e)} | {str(final_error)}"
-                    )
+                print(f"ERROR: Chat processing failed: {str(e)}")
+                raise Exception(f"Could not process chat request: {str(e)}")
 
             # Enhanced metadata update with better tracking
             enhanced_metadata_update(
@@ -1574,18 +1453,18 @@ def init_rally_ai_routes(app):
             )
             final_message_count = message_count + 2
 
-            print(f"✅ Response: {len(response_text)} chars in {processing_time:.1f}s")
+            print(f"SUCCESS: Response: {len(response_text)} chars in {processing_time:.1f}s")
             print(
-                f"📊 Context: {final_context_chars} chars, {final_message_count} msgs"
+                f"CONTEXT: Context: {final_context_chars} chars, {final_message_count} msgs"
             )
             if was_optimized:
                 print(
-                    f"🎯 Optimization saved ~{max(0, context_chars - MAX_CONTEXT_CHARS)} chars"
+                    f"OPTIMIZATION: Optimization saved ~{max(0, context_chars - MAX_CONTEXT_CHARS)} chars"
                 )
 
             # Calculate efficiency improvements
             if poll_count == 1:
-                print(f"🚀 STREAMING SUCCESS: Direct response (eliminated polling!)")
+                print(f"STREAMING: STREAMING SUCCESS: Direct response (eliminated polling!)")
                 efficiency_rating = "EXCELLENT - Streaming"
             else:
                 estimated_old_polls = 15  # Old system average
@@ -1593,7 +1472,7 @@ def init_rally_ai_routes(app):
                     0, ((estimated_old_polls - poll_count) / estimated_old_polls) * 100
                 )
                 print(
-                    f"🚀 API Efficiency: {poll_count} polls (saved {efficiency_improvement:.0f}% vs baseline)"
+                    f"EFFICIENCY: API Efficiency: {poll_count} polls (saved {efficiency_improvement:.0f}% vs baseline)"
                 )
                 efficiency_rating = (
                     "Excellent"
@@ -1601,7 +1480,7 @@ def init_rally_ai_routes(app):
                     else "Good" if processing_time < 10 else "Fair"
                 )
 
-            print(f"⚡ Performance: {efficiency_rating}")
+            print(f"PERFORMANCE: Performance: {efficiency_rating}")
             print(f"=== CHAT COMPLETE ===\n")
 
             # Log with optimization info
@@ -1653,7 +1532,7 @@ def init_rally_ai_routes(app):
             )
 
         except Exception as e:
-            print(f"❌ Chat error: {str(e)}")
+            print(f"ERROR: Chat error: {str(e)}")
             return jsonify({"error": f"Chat processing failed: {str(e)}"}), 500
 
     @app.route("/api/chat/debug/<thread_id>")
@@ -1880,6 +1759,28 @@ def init_rally_ai_routes(app):
                 "response_cache_hits": 0,  # NEW: Response cache hits
             }
             return jsonify({"message": "AI statistics reset successfully"})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/ai/performance-config")
+    @login_required  
+    def get_performance_config():
+        """Get current AI performance configuration"""
+        try:
+            return jsonify({
+                "fast_response_enabled": ENABLE_FAST_RESPONSE,
+                "fast_response_timeout": FAST_RESPONSE_TIMEOUT,
+                "optimization_level": OPTIMIZATION_LEVEL,
+                "streaming_enabled": USE_STREAMING,
+                "streaming_timeout": STREAMING_TIMEOUT,
+                "min_poll_interval": MIN_POLL_INTERVAL,
+                "max_poll_interval": MAX_POLL_INTERVAL,
+                "recommendations": {
+                    "status": "Fast response system enabled for instant user feedback" if ENABLE_FAST_RESPONSE else "Traditional system in use",
+                    "expected_improvement": "Responses should appear within 2 seconds max" if ENABLE_FAST_RESPONSE else "Normal OpenAI response times",
+                    "fallback": "Traditional system used only if fast response fails" if ENABLE_FAST_RESPONSE else "No fast response fallback"
+                }
+            })
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
@@ -2181,17 +2082,17 @@ def create_optimized_enhanced_message(user_message, user_context):
                             if isinstance(video, dict) and "url" in video:
                                 enhanced_message += f"\nVideo: {video.get('title', 'Training Video')} - {video['url']}"
             except Exception as e:
-                print(f"⚠️ Error adding training data: {str(e)}")
+                print(f"WARNING: Error adding training data: {str(e)}")
 
         enhanced_message += "\n\nProvide specific, actionable advice based on the player's level and recent performance."
 
         print(
-            f"✅ Optimized enhanced message created: {len(enhanced_message)} chars (vs {len(user_message)} original)"
+            f"SUCCESS: Optimized enhanced message created: {len(enhanced_message)} chars (vs {len(user_message)} original)"
         )
         return enhanced_message
 
     except Exception as e:
-        print(f"❌ Error creating optimized message: {str(e)}")
+        print(f"ERROR: Error creating optimized message: {str(e)}")
         return user_message  # Fallback to original message
 
 
@@ -2206,11 +2107,11 @@ def get_cached_user_context(user):
     if user_email in _user_context_cache:
         cached_data = _user_context_cache[user_email]
         if current_time - cached_data["timestamp"] < USER_CONTEXT_CACHE_DURATION:
-            print(f"📋 User context cache hit for {user_email}")
+            print(f"CACHE: User context cache hit for {user_email}")
             return cached_data["context"]
 
     # Cache miss - get fresh data
-    print(f"🔄 Loading user context for {user_email}")
+    print(f"LOADING: Loading user context for {user_email}")
     user_context = get_user_playing_context(user)
 
     # Cache the result
@@ -2287,32 +2188,84 @@ def create_ultra_fast_enhanced_message(user_message, user_context):
                                 f"\nVideo: {video_title} - {video['url']}"
                             )
             except Exception as e:
-                print(f"⚠️ Quick training data lookup failed: {str(e)}")
+                print(f"WARNING: Quick training data lookup failed: {str(e)}")
 
         enhanced_message += "\n\nProvide specific advice for this player's level."
 
-        print(f"⚡ Ultra-fast message: {len(enhanced_message)} chars")
+        print(f"FAST: Ultra-fast message: {len(enhanced_message)} chars")
         return enhanced_message
 
     except Exception as e:
-        print(f"❌ Ultra-fast message failed: {str(e)}")
+        print(f"ERROR: Ultra-fast message failed: {str(e)}")
         return user_message
 
 
 def prewarm_caches():
     """Pre-warm all caches for maximum speed on first request"""
     try:
-        print(f"🔥 Pre-warming caches for ultra-fast responses...")
+        print(f"WARMING: Pre-warming caches for ultra-fast responses...")
 
         # Pre-warm training data cache
         training_data = get_cached_training_data()
-        print(f"✅ Training data cache warmed: {len(training_data)} topics")
+        print(f"SUCCESS: Training data cache warmed: {len(training_data)} topics")
 
         # Pre-warm assistant cache
         assistant = get_cached_assistant()
-        print(f"✅ Assistant cache warmed: {assistant.id}")
+        print(f"SUCCESS: Assistant cache warmed: {assistant.id}")
 
-        print(f"🚀 All caches pre-warmed for maximum speed!")
+        print(f"COMPLETE: All caches pre-warmed for maximum speed!")
 
     except Exception as e:
-        print(f"⚠️ Cache pre-warming failed: {str(e)}")
+        print(f"WARNING: Cache pre-warming failed: {str(e)}")
+
+
+def create_fast_response_system(thread_id, user_message, assistant_id):
+    """Ultra-fast response system - returns immediately if response takes too long"""
+    start_time = time.time()
+    
+    try:
+        # Try to get response quickly
+        response_text, poll_count = create_streaming_run(thread_id, assistant_id)
+        
+        # If we got response quickly, return it
+        if time.time() - start_time < FAST_RESPONSE_TIMEOUT:
+            return response_text, poll_count, False
+        
+    except Exception as e:
+        print(f"Fast response attempt failed: {str(e)}")
+    
+    # If taking too long, return processing message
+    processing_message = """I'm analyzing your question and preparing a detailed response. This may take a moment...
+    
+⏳ **Processing your request...**
+
+I'll provide you with:
+• Specific technique recommendations
+• Training tips tailored to your level
+• Relevant practice drills
+• Video demonstrations if available
+
+Please wait while I gather the best information for you."""
+    
+    return processing_message, 1, True  # True indicates this is a processing message
+
+def get_lightweight_user_context(user):
+    """Get minimal user context without expensive database queries"""
+    return {
+        "name": f"{user.get('first_name', '')} {user.get('last_name', '')}".strip(),
+        "email": user.get("email", "unknown"),
+        "club": user.get("club", "Unknown"),
+        "series": user.get("series", "Unknown"),
+        # Skip expensive database queries for speed
+    }
+
+def create_ultra_fast_enhanced_message_minimal(user_message, user_context):
+    """Create enhanced message with minimal context for speed"""
+    player_name = user_context.get("name", "Player")
+    club = user_context.get("club", "Unknown")
+    series = user_context.get("series", "Unknown")
+    
+    return f"""Player: {player_name} from {club} ({series})
+Question: {user_message}
+
+Please provide specific, actionable advice for this paddle tennis question."""

@@ -418,27 +418,31 @@ def generate_fast_lineup(players, instructions, series, players_with_preferences
 
 **STRATEGIC ANALYSIS FRAMEWORK:**
 
-**PRIMARY COURT ASSIGNMENT RULES (in order of priority):**
-1. **PTI-Based Court Assignment**: Lower PTI scores should generally play on lower courts
-   - Court 1 = LOWEST PTI players (e.g., 44.10, 45.60)
-   - Court 2 = NEXT LOWEST PTI players (e.g., 50.40, 50.90)  
-   - Court 3 = HIGHER PTI players (e.g., 55.90, 56.30)
-   - Court 4 = HIGHEST PTI players (e.g., 58.90, 59.90)
+Prioritize instructions for your analysis in this specific order and weighting:
 
-2. **Partnership Consistency**: Prioritize players who have successful win rates together
-   - Look for pairings with 60%+ win rates and multiple matches played
-   - Consider recent partnership success over isolated good results
+1. **Special Instructions** (50% weighted in analysis) - User-provided instructions take absolute priority
+2. **Most Skilled Players First** (25% weighted in analysis) - Players with LOWEST PTI numbers are most skilled and should play on lower-numbered courts
+3. **Consistency & Success Rate** (25% weighted in analysis) - Prioritize pairings that have played together frequently AND have high win rates together
 
-3. **Ad/Deuce Court Positioning**: Ad players should be paired with Deuce players when possible
-   - This creates optimal court coverage and reduces confusion
-   - If position preferences aren't available, pair based on other factors
+**COURT ASSIGNMENT RULES (CRITICAL):**
+PTI INTERPRETATION: Lower PTI numbers = More skilled players, Higher PTI numbers = Less skilled players
 
-4. **Win Percentage Override**: Players with exceptionally high individual win rates can play lower courts even if their PTI is higher, unless their combined PTI significantly exceeds the norm
+- Court 1 = MOST SKILLED players (LOWEST PTI numbers: e.g., 44.10, 45.60)
+- Court 2 = NEXT MOST SKILLED players (NEXT LOWEST PTI numbers: e.g., 50.40, 50.90)  
+- Court 3 = LESS SKILLED players (HIGHER PTI numbers: e.g., 55.90, 56.30)
+- Court 4 = LEAST SKILLED players (HIGHEST PTI numbers: e.g., 58.90, 59.90)
+
+CRITICAL PAIRING RULE: Do NOT mix skill levels! Pair players with similar PTI scores together (within 3-5 points maximum). 
+
+**ADDITIONAL CONSIDERATIONS:**
+- **Partnership Consistency**: Look for pairings with 60%+ win rates and multiple matches played
+- **Ad/Deuce Court Positioning**: Ad players should be paired with Deuce players when possible
+- **Win Percentage Override**: Players with exceptionally high individual win rates can play lower courts even if their PTI is higher
 
 **REASONING REQUIREMENTS:**
 - Reference specific PTI numbers, win/loss records, and partnership statistics
 - Mention successful pairing history with actual win rates when relevant
-- Explain court assignment logic based on PTI + partnership success
+- Explain court assignment logic based on the weighted priority system above
 - Note any strategic positioning considerations (Ad/Deuce when known)
 
 **Required Format:**
@@ -450,9 +454,7 @@ Court 4: Player7/Player8 - [PTI: X/Y, reasoning: specific data-driven explanatio
 **FORBIDDEN** - Do NOT use vague phrases like:
 - "Strong net play" / "baseline consistency" / "tactical awareness"
 - "Experience" / "communication" / "strategic play"
-- Any playing style characteristics not shown in the data
-
-Focus ONLY on: PTI scores, actual win/loss records, proven partnership success rates, and court positioning strategy."""
+- Any playing style characteristics not shown in the data"""
 
     # Add instructions if provided
     if instructions:
