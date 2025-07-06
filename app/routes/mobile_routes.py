@@ -53,6 +53,8 @@ from routes.act.schedule import get_matches_for_user_club
 from utils.auth import login_required
 from utils.logging import log_user_activity
 
+
+
 # Create logger
 logger = logging.getLogger(__name__)
 
@@ -1126,6 +1128,171 @@ def get_season_history():
         return jsonify({"error": "Failed to fetch season history"}), 500
 
 
+@mobile_bp.route("/api/season-history-by-id/<player_id>")
+@login_required
+def get_player_season_history_by_id(player_id):
+    """API endpoint to get previous season history data for a specific player by ID"""
+    try:
+        if "user" not in session:
+            return jsonify({"error": "Not authenticated"}), 401
+
+        # URL decode the player ID
+        from urllib.parse import unquote
+        player_id = unquote(player_id)
+        
+        print(f"[DEBUG] Season History by ID - Player ID: {player_id}")
+
+        # Find the player in the database by tenniscores_player_id, prioritizing the one with PTI history
+        player_query = """
+            SELECT 
+                p.id,
+                p.tenniscores_player_id,
+                p.pti as current_pti,
+                p.series_id,
+                s.name as series_name,
+                p.first_name,
+                p.last_name,
+                (SELECT COUNT(*) FROM player_history ph WHERE ph.player_id = p.id) as history_count
+            FROM players p
+            LEFT JOIN series s ON p.series_id = s.id
+            WHERE p.tenniscores_player_id = %s
+            ORDER BY history_count DESC, p.id DESC
+            LIMIT 1
+        """
+        player_data = execute_query_one(player_query, [player_id])
+
+        if not player_data:
+            print(f"[DEBUG] Season History by ID - Player '{player_id}' not found in database")
+            return jsonify({"error": "Player not found"}), 404
+
+        player_db_id = player_data["id"]
+
+        # Debug logging
+        print(f"[DEBUG] Season History by ID - Found player: {player_data['first_name']} {player_data['last_name']}")
+        print(f"[DEBUG] Season History by ID - Player DB ID: {player_db_id}")
+        print(f"[DEBUG] Season History by ID - History count: {player_data['history_count']}")
+
+        # Get season history using the same query as the name-based endpoint
+        season_history_query = """
+            WITH season_data AS (
+                SELECT 
+                    series,
+                    CASE 
+                        WHEN EXTRACT(MONTH FROM date) >= 8 THEN EXTRACT(YEAR FROM date)
+                        ELSE EXTRACT(YEAR FROM date) - 1
+                    END as season_year,
+                    date,
+                    end_pti
+                FROM player_history
+                WHERE player_id = %s
+                ORDER BY date DESC
+            ),
+            career_start AS (
+                SELECT end_pti as first_career_pti
+                FROM season_data 
+                ORDER BY date ASC 
+                LIMIT 1
+            ),
+            season_boundaries AS (
+                SELECT 
+                    season_year,
+                    MIN(date) as season_start_date,
+                    MAX(date) as season_end_date,
+                    COUNT(*) as matches_count
+                FROM season_data
+                GROUP BY season_year
+                HAVING COUNT(*) >= 3  -- Only show seasons with at least 3 matches
+            ),
+            season_summary AS (
+                SELECT 
+                    sb.season_year,
+                    CASE 
+                        WHEN ROW_NUMBER() OVER (ORDER BY sb.season_year ASC) = 1 THEN 
+                            cs.first_career_pti
+                        ELSE 
+                            (SELECT end_pti FROM season_data sd WHERE sd.season_year = sb.season_year AND sd.date = sb.season_start_date LIMIT 1)
+                    END as pti_start,
+                    (SELECT end_pti FROM season_data sd WHERE sd.season_year = sb.season_year AND sd.date = sb.season_end_date LIMIT 1) as pti_end,
+                    sb.matches_count,
+                    (
+                        SELECT series 
+                        FROM season_data sd2
+                        WHERE sd2.season_year = sb.season_year
+                        AND POSITION('tournament' IN LOWER(series)) = 0
+                        AND POSITION('pti' IN LOWER(series)) = 0
+                        ORDER BY 
+                            CASE 
+                                WHEN series ~ '\\d+' THEN 
+                                    CAST(regexp_replace(series, '[^0-9]', '', 'g') AS INTEGER)
+                                ELSE 0 
+                            END DESC
+                        LIMIT 1
+                    ) as highest_series
+                FROM season_boundaries sb
+                CROSS JOIN career_start cs
+            )
+            SELECT 
+                highest_series as series,
+                season_year,
+                pti_start,
+                pti_end,
+                (pti_end - pti_start) as trend,
+                matches_count
+            FROM season_summary
+            ORDER BY season_year ASC
+            LIMIT 10
+        """
+
+        season_records = execute_query(season_history_query, [player_db_id])
+
+        print(f"[DEBUG] Season History by ID - Query returned {len(season_records) if season_records else 0} records")
+
+        if not season_records:
+            print(f"[DEBUG] Season History by ID - No season records found for player {player_id}")
+            return jsonify({"error": "No season history found"}), 404
+
+        # Format season data
+        seasons = []
+        for record in season_records:
+            season_year = int(record["season_year"])
+            next_year = season_year + 1
+            season_str = f"{season_year}-{next_year}"
+
+            trend_value = float(record["trend"])
+            if trend_value > 0:
+                trend_display = f"+{trend_value:.1f} ▲"
+                trend_class = "text-red-600"
+            elif trend_value < 0:
+                trend_display = f"{trend_value:.1f} ▼"
+                trend_class = "text-green-600"
+            else:
+                trend_display = "0.0 ─"
+                trend_class = "text-gray-500"
+
+            seasons.append({
+                "season": season_str,
+                "series": record["series"],
+                "pti_start": round(float(record["pti_start"]), 1),
+                "pti_end": round(float(record["pti_end"]), 1),
+                "trend": trend_value,
+                "trend_display": trend_display,
+                "trend_class": trend_class,
+                "matches_count": record["matches_count"],
+            })
+
+        return jsonify({
+            "success": True,
+            "seasons": seasons,
+            "player_name": f"{player_data['first_name']} {player_data['last_name']}",
+        })
+
+    except Exception as e:
+        print(f"Error fetching season history by ID: {str(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
+        return jsonify({"error": "Failed to fetch season history"}), 500
+
+
 @mobile_bp.route("/api/season-history/<player_name>")
 @login_required
 def get_player_season_history(player_name):
@@ -1159,9 +1326,7 @@ def get_player_season_history(player_name):
         player_data = execute_query_one(player_query, [player_name])
 
         if not player_data:
-            print(
-                f"[DEBUG] Player Season History - Player '{player_name}' not found in database"
-            )
+            print(f"[DEBUG] Player Season History - Player '{player_name}' not found in database")
             return jsonify({"error": "Player not found"}), 404
 
         player_db_id = player_data["id"]
@@ -1171,9 +1336,7 @@ def get_player_season_history(player_name):
         print(f"[DEBUG] Player Season History - Player Name: {player_name}")
         print(f"[DEBUG] Player Season History - Player DB ID: {player_db_id}")
         print(f"[DEBUG] Player Season History - TennisCore ID: {tenniscores_player_id}")
-        print(
-            f"[DEBUG] Player Season History - Player Series: {player_data.get('series_name')}"
-        )
+        print(f"[DEBUG] Player Season History - Player Series: {player_data.get('series_name')}")
 
         # Get season history using the team-specific player record
         # Fixed to show ONE row per season instead of multiple rows per series
