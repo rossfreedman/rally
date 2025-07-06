@@ -3270,9 +3270,12 @@ def get_mobile_improve_data(user):
 
 
 def get_mobile_team_data(user):
-    """Get team data for mobile my team page"""
+    """Get team data for mobile my team page - enhanced with team context support for multi-team users"""
     try:
-        # Simple approach: use player ID to find team ID
+        # ENHANCED TEAM CONTEXT SUPPORT (same pattern as analyze-me and track-byes-courts)
+        # Use priority-based team detection to handle multi-team users properly
+        
+        user_email = user.get("email")
         player_id = user.get("tenniscores_player_id")
         
         if not player_id:
@@ -3283,68 +3286,145 @@ def get_mobile_team_data(user):
                 "error": "Player ID not found. Please check your profile setup.",
             }
 
-        # Get team info directly from player record
-        # Try primary query first (when team_id exists)
-        team_query = """
-            SELECT t.id, t.team_name, t.display_name, p.league_id
-            FROM players p
-            JOIN teams t ON p.team_id = t.id
-            WHERE p.tenniscores_player_id = %s 
-            AND p.is_active = TRUE
-            LIMIT 1
-        """
+        # PRIORITY-BASED TEAM DETECTION (same as analyze-me page)
+        team_id = None
+        team_name = None
+        league_id_int = None
         
-        team_record = execute_query_one(team_query, [player_id])
+        # PRIORITY 1: Use team_id from session if available (most reliable for multi-team players)
+        session_team_id = user.get("team_id")
+        print(f"[DEBUG] My-team: session_team_id from user: {session_team_id}")
         
-        # If no team found via team_id, try fallback query using club + series matching
-        if not team_record:
-            print(f"[DEBUG] No team found via team_id for player {player_id}, trying fallback...")
-            fallback_query = """
+        if session_team_id:
+            try:
+                # Get team info for the specific team_id from session
+                session_team_query = """
+                    SELECT t.id, t.team_name, t.display_name, t.league_id
+                    FROM teams t
+                    WHERE t.id = %s AND t.is_active = TRUE
+                """
+                session_team_result = execute_query_one(session_team_query, [session_team_id])
+                if session_team_result:
+                    team_id = session_team_result['id'] 
+                    team_name = session_team_result['team_name']
+                    display_name = session_team_result['display_name']
+                    league_id_int = session_team_result['league_id']
+                    print(f"[DEBUG] My-team: Using team_id from session: team_id={team_id}, team_name={team_name}, display_name={display_name}")
+                else:
+                    print(f"[DEBUG] My-team: Session team_id {session_team_id} not found in teams table")
+            except Exception as e:
+                print(f"[DEBUG] My-team: Error getting team from session team_id {session_team_id}: {e}")
+        
+        # PRIORITY 2: Use team_context from user if provided (from composite player URL)
+        if not team_id:
+            team_context = user.get("team_context")
+            if team_context:
+                try:
+                    # Get team info for the specific team_id from team context
+                    team_context_query = """
+                        SELECT t.id, t.team_name, t.display_name, t.league_id
+                        FROM teams t
+                        WHERE t.id = %s AND t.is_active = TRUE
+                    """
+                    team_context_result = execute_query_one(team_context_query, [team_context])
+                    if team_context_result:
+                        team_id = team_context_result['id'] 
+                        team_name = team_context_result['team_name']
+                        display_name = team_context_result['display_name']
+                        league_id_int = team_context_result['league_id']
+                        print(f"[DEBUG] My-team: Using team_context from URL: team_id={team_id}, team_name={team_name}")
+                    else:
+                        print(f"[DEBUG] My-team: team_context {team_context} not found in teams table")
+                except Exception as e:
+                    print(f"[DEBUG] My-team: Error getting team from team_context {team_context}: {e}")
+        
+        # PRIORITY 3: Fallback to session service
+        if not team_id:
+            print(f"[DEBUG] My-team: No direct team_id, using session service fallback")
+            from app.services.session_service import get_session_data_for_user
+            session_data = get_session_data_for_user(user_email)
+            if session_data:
+                team_id = session_data.get("team_id")
+                if team_id:
+                    try:
+                        session_team_query = """
+                            SELECT t.id, t.team_name, t.display_name, t.league_id
+                            FROM teams t
+                            WHERE t.id = %s AND t.is_active = TRUE
+                        """
+                        session_team_result = execute_query_one(session_team_query, [team_id])
+                        if session_team_result:
+                            team_name = session_team_result['team_name']
+                            display_name = session_team_result['display_name']
+                            league_id_int = session_team_result['league_id']
+                            print(f"[DEBUG] My-team: Session service provided: team_id={team_id}, team_name={team_name}")
+                    except Exception as e:
+                        print(f"[DEBUG] My-team: Error getting team name from session service team_id: {e}")
+        
+        # PRIORITY 4: Legacy fallback - find first team for player (last resort)
+        if not team_id:
+            print(f"[DEBUG] My-team: Using legacy fallback - finding first team for player {player_id}")
+            # Try primary query first (when team_id exists)
+            team_query = """
                 SELECT t.id, t.team_name, t.display_name, p.league_id
                 FROM players p
-                JOIN clubs c ON p.club_id = c.id
-                JOIN series s ON p.series_id = s.id
-                JOIN teams t ON (t.club_id = c.id AND t.team_alias = s.name)
+                JOIN teams t ON p.team_id = t.id
                 WHERE p.tenniscores_player_id = %s 
                 AND p.is_active = TRUE
-                AND t.is_active = TRUE
                 LIMIT 1
             """
-            team_record = execute_query_one(fallback_query, [player_id])
+            
+            team_record = execute_query_one(team_query, [player_id])
+            
+            # If no team found via team_id, try fallback query using club + series matching
+            if not team_record:
+                print(f"[DEBUG] My-team: No team found via team_id for player {player_id}, trying fallback...")
+                fallback_query = """
+                    SELECT t.id, t.team_name, t.display_name, p.league_id
+                    FROM players p
+                    JOIN clubs c ON p.club_id = c.id
+                    JOIN series s ON p.series_id = s.id
+                    JOIN teams t ON (t.club_id = c.id AND t.team_alias = s.name)
+                    WHERE p.tenniscores_player_id = %s 
+                    AND p.is_active = TRUE
+                    AND t.is_active = TRUE
+                    LIMIT 1
+                """
+                team_record = execute_query_one(fallback_query, [player_id])
+                
+                if team_record:
+                    print(f"[DEBUG] My-team: Found team via fallback: {team_record['team_name']} (ID: {team_record['id']})")
             
             if team_record:
-                print(f"[DEBUG] Found team via fallback: {team_record['team_name']} (ID: {team_record['id']})")
-        
-        if not team_record:
-            # Get player info for better error message
-            player_info_query = """
-                SELECT p.first_name, p.last_name, c.name as club_name, s.name as series_name
-                FROM players p
-                LEFT JOIN clubs c ON p.club_id = c.id
-                LEFT JOIN series s ON p.series_id = s.id
-                WHERE p.tenniscores_player_id = %s
-            """
-            player_info = execute_query_one(player_info_query, [player_id])
-            
-            if player_info:
-                error_msg = f"No active team found for {player_info['first_name']} {player_info['last_name']} ({player_info['club_name']}, {player_info['series_name']}). Please contact support."
+                team_id = team_record["id"]
+                team_name = team_record["team_name"]
+                display_name = team_record["display_name"]
+                league_id_int = team_record["league_id"]
             else:
-                error_msg = f"No active team found for player ID {player_id}. Please contact support."
-            
-            return {
-                "team_data": None,
-                "court_analysis": {},
-                "top_players": [],
-                "error": error_msg,
-            }
+                # Get player info for better error message
+                player_info_query = """
+                    SELECT p.first_name, p.last_name, c.name as club_name, s.name as series_name
+                    FROM players p
+                    LEFT JOIN clubs c ON p.club_id = c.id
+                    LEFT JOIN series s ON p.series_id = s.id
+                    WHERE p.tenniscores_player_id = %s
+                """
+                player_info = execute_query_one(player_info_query, [player_id])
+                
+                if player_info:
+                    error_msg = f"No active team found for {player_info['first_name']} {player_info['last_name']} ({player_info['club_name']}, {player_info['series_name']}). Please contact support."
+                else:
+                    error_msg = f"No active team found for player ID {player_id}. Please contact support."
+                
+                return {
+                    "team_data": None,
+                    "court_analysis": {},
+                    "top_players": [],
+                    "error": error_msg,
+                }
 
-        team_id = team_record["id"]
-        team_name = team_record["team_name"]
-        display_name = team_record["display_name"]
-        league_id_int = team_record["league_id"]
-
-        print(f"[DEBUG] Found team: {display_name} (ID: {team_id}) for player {player_id}")
-        print(f"[DEBUG] Using league_id: {league_id_int}")
+        print(f"[DEBUG] My-team: Final team selection: team_id={team_id}, team_name={team_name}, display_name={display_name}")
+        print(f"[DEBUG] My-team: Using league_id: {league_id_int}")
 
         # Get team stats from series_stats table first
         team_stats_query = """
@@ -3362,9 +3442,9 @@ def get_mobile_team_data(user):
             FROM series_stats
             WHERE team = %s AND league_id = %s
         """
-        print(f"[DEBUG] Querying series_stats with team='{team_name}' and league_id={league_id_int}")
+        print(f"[DEBUG] My-team: Querying series_stats with team='{team_name}' and league_id={league_id_int}")
         team_stats = execute_query_one(team_stats_query, [team_name, league_id_int])
-        print(f"[DEBUG] Team stats query result: {team_stats}")
+        print(f"[DEBUG] My-team: Team stats query result: {team_stats}")
         
         # Let's also check what teams exist in series_stats for this league
         check_teams_query = """
@@ -3374,11 +3454,11 @@ def get_mobile_team_data(user):
             ORDER BY team
         """
         existing_teams = execute_query(check_teams_query, [league_id_int])
-        print(f"[DEBUG] Teams in series_stats for league {league_id_int}: {[t['team'] for t in existing_teams]}")
+        print(f"[DEBUG] My-team: Teams in series_stats for league {league_id_int}: {[t['team'] for t in existing_teams]}")
 
         # If no stats found in series_stats, calculate them from match_scores
         if not team_stats:
-            print(f"[DEBUG] No stats found in series_stats for {team_name}, calculating from match_scores...")
+            print(f"[DEBUG] My-team: No stats found in series_stats for {team_name}, calculating from match_scores...")
             
             # Let's check what teams exist in match_scores for this league
             check_match_teams_query = """
@@ -3389,7 +3469,7 @@ def get_mobile_team_data(user):
                 LIMIT 10
             """
             similar_match_teams = execute_query(check_match_teams_query, [league_id_int, f"%{team_name.split()[0]}%", f"%{team_name.split()[0]}%"])
-            print(f"[DEBUG] Similar teams in match_scores: {similar_match_teams}")
+            print(f"[DEBUG] My-team: Similar teams in match_scores: {similar_match_teams}")
             
             matches_query = """
                 WITH team_matches AS (
@@ -3428,9 +3508,9 @@ def get_mobile_team_data(user):
                 FROM team_matches
             """
             
-            print(f"[DEBUG] Running match stats query with team='{team_name}' (4 times) and league_id={league_id_int}")
+            print(f"[DEBUG] My-team: Running match stats query with team='{team_name}' (4 times) and league_id={league_id_int}")
             match_stats = execute_query_one(matches_query, [team_name, team_name, team_name, team_name, league_id_int])
-            print(f"[DEBUG] Match stats query result: {match_stats}")
+            print(f"[DEBUG] My-team: Match stats query result: {match_stats}")
             
             if match_stats and match_stats["total_matches"] > 0:
                 # Create stats object
@@ -3479,7 +3559,7 @@ def get_mobile_team_data(user):
             ORDER BY match_date DESC
         """
         team_matches = execute_query(matches_query, [team_name, team_name, league_id_int])
-        print(f"[DEBUG] Found {len(team_matches)} team matches")
+        print(f"[DEBUG] My-team: Found {len(team_matches)} team matches")
 
         # Calculate team analysis
         team_analysis = calculate_team_analysis_mobile(team_stats, team_matches, team_name)
