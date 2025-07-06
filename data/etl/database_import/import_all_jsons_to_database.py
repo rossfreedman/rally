@@ -648,23 +648,39 @@ class ComprehensiveETL:
         self.log(f"✅ Backed up {availability_backup_count:,} availability records")
         conn.commit()
         return associations_backup_count, contexts_backup_count, availability_backup_count
-
-    def restore_user_associations(self, conn):
-        """Restore user-player associations and league contexts after import, with validation"""
-        self.log("🔄 Restoring user-player associations and league contexts...")
+    
+    def _backup_league_contexts(self, conn):
+        """Backup only user league contexts (user associations are now protected)"""
+        self.log("💾 Backing up user league contexts...")
         
         cursor = conn.cursor()
         
-        # Check if backup tables exist
+        # Create temporary backup table for user league contexts only
         cursor.execute("""
-            SELECT EXISTS (
-                SELECT FROM information_schema.tables 
-                WHERE table_name = 'user_player_associations_backup'
-            )
+            DROP TABLE IF EXISTS user_league_contexts_backup;
+            CREATE TABLE user_league_contexts_backup AS 
+            SELECT u.id as user_id, u.email, u.first_name, u.last_name, 
+                   u.league_context, l.league_id as league_string_id, l.league_name
+            FROM users u
+            LEFT JOIN leagues l ON u.league_context = l.id
+            WHERE u.league_context IS NOT NULL;
         """)
         
-        associations_backup_exists = cursor.fetchone()[0]
+        # Count backed up data
+        cursor.execute("SELECT COUNT(*) FROM user_league_contexts_backup")
+        contexts_backup_count = cursor.fetchone()[0]
         
+        self.log(f"✅ Backed up {contexts_backup_count:,} user league contexts")
+        conn.commit()
+        return contexts_backup_count
+
+    def restore_user_associations(self, conn):
+        """Restore league contexts after import (user associations are now protected)"""
+        self.log("🔄 Restoring user league contexts...")
+        
+        cursor = conn.cursor()
+        
+        # Check if backup table exists
         cursor.execute("""
             SELECT EXISTS (
                 SELECT FROM information_schema.tables 
@@ -674,53 +690,11 @@ class ComprehensiveETL:
         
         contexts_backup_exists = cursor.fetchone()[0]
         
-        restored_associations = 0
+        restored_associations = 0  # Always 0 since we don't restore associations anymore
         restored_contexts = 0
         
-        # Restore associations
-        if associations_backup_exists:
-            # Get counts
-            cursor.execute("SELECT COUNT(*) FROM user_player_associations_backup")
-            backup_count = cursor.fetchone()[0]
-            
-            cursor.execute("SELECT COUNT(*) FROM user_player_associations")
-            current_count = cursor.fetchone()[0]
-            
-            self.log(f"📊 Associations - Backup: {backup_count:,}, Current: {current_count:,}")
-            
-            # Restore valid associations (only those where player still exists)
-            cursor.execute("""
-                INSERT INTO user_player_associations (user_id, tenniscores_player_id, is_primary, created_at)
-                SELECT DISTINCT upa_backup.user_id, upa_backup.tenniscores_player_id, 
-                       upa_backup.is_primary, upa_backup.created_at
-                FROM user_player_associations_backup upa_backup
-                JOIN users u ON upa_backup.user_id = u.id
-                JOIN players p ON upa_backup.tenniscores_player_id = p.tenniscores_player_id
-                WHERE NOT EXISTS (
-                    SELECT 1 FROM user_player_associations upa_current
-                    WHERE upa_current.user_id = upa_backup.user_id 
-                    AND upa_current.tenniscores_player_id = upa_backup.tenniscores_player_id
-                )
-                AND p.is_active = true
-                ON CONFLICT (user_id, tenniscores_player_id) DO NOTHING
-            """)
-            
-            restored_associations = cursor.rowcount
-            
-            # Log broken associations (players that no longer exist)
-            cursor.execute("""
-                SELECT COUNT(*) 
-                FROM user_player_associations_backup upa_backup
-                LEFT JOIN players p ON upa_backup.tenniscores_player_id = p.tenniscores_player_id
-                WHERE p.tenniscores_player_id IS NULL
-            """)
-            broken_count = cursor.fetchone()[0]
-            
-            self.log(f"✅ Restored {restored_associations:,} valid associations")
-            if broken_count > 0:
-                self.log(f"⚠️  Skipped {broken_count:,} associations with missing players", "WARNING")
-        else:
-            self.log("⚠️  No associations backup table found", "WARNING")
+        # User associations are now protected and never cleared, so no restoration needed
+        self.log("🛡️  User associations preserved - no restoration needed")
         
         # Restore league contexts
         if contexts_backup_exists:
@@ -762,22 +736,22 @@ class ComprehensiveETL:
             self.log("⚠️  No league contexts backup table found", "WARNING")
         
         # Clean up backup tables
-        cursor.execute("DROP TABLE IF EXISTS user_player_associations_backup")
         cursor.execute("DROP TABLE IF EXISTS user_league_contexts_backup")
-        cursor.execute("DROP TABLE IF EXISTS player_availability_backup")  # Clean up availability backup too
         
         # Auto-fix any remaining NULL league contexts
         self.log("🔧 Auto-fixing any remaining NULL league contexts...")
         null_contexts_fixed = self._auto_fix_null_league_contexts(conn)
         
-        # CRITICAL: Verify availability data integrity after restore
+        # Verify final data integrity
+        cursor.execute("SELECT COUNT(*) FROM user_player_associations")
+        final_associations_count = cursor.fetchone()[0]
+        
         cursor.execute("SELECT COUNT(*) FROM player_availability")
         final_availability_count = cursor.fetchone()[0]
         
+        self.log(f"✅ User associations preserved: {final_associations_count:,} records intact")
         if final_availability_count > 0:
-            self.log(f"✅ Availability data preserved: {final_availability_count:,} records remain intact")
-        else:
-            self.log("⚠️  No availability data found - this is expected for fresh imports", "WARNING")
+            self.log(f"✅ Availability data preserved: {final_availability_count:,} records intact")
         
         conn.commit()
         
@@ -785,7 +759,8 @@ class ComprehensiveETL:
             "associations_restored": restored_associations,
             "contexts_restored": restored_contexts,
             "null_contexts_fixed": null_contexts_fixed,
-            "availability_records_preserved": final_availability_count
+            "availability_records_preserved": final_availability_count,
+            "associations_preserved": final_associations_count
         }
 
     def _auto_fix_null_league_contexts(self, conn):
@@ -1073,14 +1048,14 @@ class ComprehensiveETL:
         # ENHANCEMENT: Backup user associations and league contexts before clearing
         associations_backup_count, contexts_backup_count, availability_backup_count = self.backup_user_associations(conn)
 
-        # CRITICAL: player_availability is NEVER cleared - it uses stable user_id references
-        # that are never orphaned during ETL imports (same pattern as user_player_associations)
+        # CRITICAL: These tables are NEVER cleared - they use stable user_id references
+        # that are never orphaned during ETL imports
         tables_to_clear = [
             "schedule",  # No dependencies
             "series_stats",  # References leagues, teams
             "match_scores",  # References players, leagues, teams
             "player_history",  # References players, leagues
-            "user_player_associations",  # ADDED: Clear associations (we have backup)
+            # "user_player_associations",  # PROTECTED: Uses stable tenniscores_player_id references that remain valid after ETL
             "players",  # References leagues, clubs, series, teams
             "teams",  # References leagues, clubs, series
             "series_leagues",  # References series, leagues
@@ -1090,11 +1065,13 @@ class ComprehensiveETL:
             "leagues",  # Referenced by others
         ]
         
-        # CRITICAL VERIFICATION: Ensure player_availability is NEVER in the clear list
-        if "player_availability" in tables_to_clear:
-            raise Exception("CRITICAL ERROR: player_availability should NEVER be cleared - it uses stable user_id references!")
+        # CRITICAL VERIFICATION: Ensure critical user data tables are NEVER in the clear list
+        protected_tables = ["player_availability", "user_player_associations"]
+        for protected_table in protected_tables:
+            if protected_table in tables_to_clear:
+                raise Exception(f"CRITICAL ERROR: {protected_table} should NEVER be cleared - it uses stable user_id references!")
         
-        self.log(f"🛡️  PROTECTED: player_availability table will be preserved (uses stable user_id references)")
+        self.log(f"🛡️  PROTECTED: player_availability and user_player_associations tables will be preserved (prevent session logout)")
         self.log(f"🗑️  Clearing {len(tables_to_clear)} tables: {', '.join(tables_to_clear)}")
 
         try:

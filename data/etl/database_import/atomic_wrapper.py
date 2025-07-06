@@ -41,7 +41,7 @@ class AtomicETLWrapper:
         self.start_time = None
         
         # Initialize the underlying ETL class
-        self.etl = ComprehensiveETL(environment=environment)
+        self.etl = ComprehensiveETL(force_environment=environment)
         
         self.log(f"🏗️  Atomic ETL Wrapper initialized")
         self.log(f"🎯 Environment: {self.etl.environment}")
@@ -107,36 +107,29 @@ class AtomicETLWrapper:
     @contextmanager
     def _get_atomic_connection(self):
         """Get database connection for atomic operations"""
-        conn = None
         try:
-            # Get connection using existing method
-            conn = get_db()
-            
-            # Configure for atomic operations
-            with conn.cursor() as cursor:
-                # Set long timeout for atomic operations
-                cursor.execute("SET statement_timeout = '1800000'")  # 30 minutes
-                cursor.execute("SET idle_in_transaction_session_timeout = '3600000'")  # 60 minutes
+            # Get connection using existing method (get_db returns a context manager)
+            with get_db() as conn:
+                # Configure for atomic operations
+                with conn.cursor() as cursor:
+                    # Set long timeout for atomic operations
+                    cursor.execute("SET statement_timeout = '1800000'")  # 30 minutes
+                    cursor.execute("SET idle_in_transaction_session_timeout = '3600000'")  # 60 minutes
+                    
+                    # Optimize for bulk operations
+                    cursor.execute("SET work_mem = '512MB'")
+                    cursor.execute("SET maintenance_work_mem = '1GB'")
+                    cursor.execute("SET effective_cache_size = '1GB'")
+                    
+                    # Note: autocommit is already managed by the get_db() context manager
+                    
+                    self.log("🔗 Atomic connection established with extended timeouts")
+                    
+                yield conn
                 
-                # Optimize for bulk operations
-                cursor.execute("SET work_mem = '512MB'")
-                cursor.execute("SET maintenance_work_mem = '1GB'")
-                cursor.execute("SET effective_cache_size = '1GB'")
-                
-                # Disable autocommit for manual transaction control
-                conn.autocommit = False
-                
-                self.log("🔗 Atomic connection established with extended timeouts")
-                
-            yield conn
-            
         except Exception as e:
             self.log(f"❌ Connection error: {str(e)}", "ERROR")
             raise
-        finally:
-            if conn:
-                conn.close()
-                self.log("🔒 Atomic connection closed")
     
     def _monkey_patch_etl_for_atomic_behavior(self):
         """Monkey patch the ETL class to prevent intermediate commits"""
@@ -244,7 +237,7 @@ class AtomicETLWrapper:
                         
                         # Run post-import validations
                         self.etl.log("\n🔍 Step 8: Running validations...")
-                        self.etl.run_post_import_validations(conn)
+                        self.etl.player_validator.print_validation_summary()
                         
                         # Increment session version
                         self.etl.increment_session_version(conn)
