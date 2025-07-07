@@ -2013,6 +2013,150 @@ def check_recent_database_changes():
         }), 500
 
 
+@app.route("/debug/test-pickup-games-staging")
+def test_pickup_games_staging():
+    """
+    Debug pickup games loading issue on staging
+    """
+    railway_env = os.environ.get("RAILWAY_ENVIRONMENT", "not_set")
+    
+    if railway_env != "staging":
+        return jsonify({
+            "error": "This endpoint only works on staging",
+            "railway_env": railway_env
+        }), 403
+    
+    try:
+        from database_utils import execute_query, execute_query_one
+        
+        results = {
+            "railway_env": railway_env,
+            "timestamp": datetime.now().isoformat(),
+            "tests": {}
+        }
+        
+        # Test 1: Check if pickup_games table exists
+        try:
+            table_check = execute_query_one("""
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables 
+                    WHERE table_name = 'pickup_games'
+                )
+            """)
+            results["tests"]["pickup_games_table_exists"] = table_check["exists"] if table_check else False
+        except Exception as e:
+            results["tests"]["pickup_games_table_exists"] = f"Error: {str(e)}"
+        
+        # Test 2: Check if pickup_game_participants table exists
+        try:
+            participants_check = execute_query_one("""
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables 
+                    WHERE table_name = 'pickup_game_participants'
+                )
+            """)
+            results["tests"]["pickup_game_participants_table_exists"] = participants_check["exists"] if participants_check else False
+        except Exception as e:
+            results["tests"]["pickup_game_participants_table_exists"] = f"Error: {str(e)}"
+        
+        # Test 3: Try to query pickup_games table
+        try:
+            count_query = "SELECT COUNT(*) as total FROM pickup_games"
+            count_result = execute_query_one(count_query)
+            results["tests"]["pickup_games_count"] = count_result["total"] if count_result else 0
+        except Exception as e:
+            results["tests"]["pickup_games_count"] = f"Error: {str(e)}"
+        
+        # Test 4: Try the exact API query that's failing
+        try:
+            now = datetime.now()
+            current_date = now.date()
+            current_time = now.time()
+            
+            # This is the exact query from the API
+            upcoming_query = """
+                SELECT 
+                    pg.id,
+                    pg.description,
+                    pg.game_date,
+                    pg.game_time,
+                    pg.players_requested,
+                    pg.players_committed,
+                    pg.pti_low,
+                    pg.pti_high,
+                    pg.series_low,
+                    pg.series_high,
+                    pg.club_only,
+                    pg.creator_user_id,
+                    pg.created_at,
+                    COUNT(pgp.id) as actual_participants
+                FROM pickup_games pg
+                LEFT JOIN pickup_game_participants pgp ON pg.id = pgp.pickup_game_id
+                WHERE (pg.game_date > %s) OR (pg.game_date = %s AND pg.game_time > %s)
+                GROUP BY pg.id
+                ORDER BY pg.game_date ASC, pg.game_time ASC
+            """
+            
+            upcoming_games = execute_query(upcoming_query, [current_date, current_date, current_time])
+            results["tests"]["api_query_success"] = True
+            results["tests"]["upcoming_games_count"] = len(upcoming_games) if upcoming_games else 0
+            results["tests"]["upcoming_games_sample"] = upcoming_games[:3] if upcoming_games else []
+            
+        except Exception as e:
+            results["tests"]["api_query_success"] = False
+            results["tests"]["api_query_error"] = str(e)
+            import traceback
+            results["tests"]["api_query_traceback"] = traceback.format_exc()
+        
+        # Test 5: Check database schema for pickup tables
+        try:
+            schema_query = """
+                SELECT column_name, data_type, is_nullable 
+                FROM information_schema.columns 
+                WHERE table_name = 'pickup_games'
+                ORDER BY ordinal_position
+            """
+            schema_result = execute_query(schema_query)
+            results["tests"]["pickup_games_schema"] = schema_result if schema_result else []
+        except Exception as e:
+            results["tests"]["pickup_games_schema"] = f"Error: {str(e)}"
+        
+        # Test 6: Check if there are any pickup games at all
+        try:
+            all_games_query = "SELECT id, description, game_date FROM pickup_games LIMIT 5"
+            all_games = execute_query(all_games_query)
+            results["tests"]["all_games_sample"] = []
+            for game in (all_games or []):
+                results["tests"]["all_games_sample"].append({
+                    "id": game["id"],
+                    "description": game["description"],
+                    "game_date": str(game["game_date"])
+                })
+        except Exception as e:
+            results["tests"]["all_games_sample"] = f"Error: {str(e)}"
+        
+        return jsonify({
+            "debug": "test_pickup_games_staging",
+            "results": results,
+            "diagnosis": {
+                "likely_cause": "pickup_games table missing or API query failing",
+                "next_steps": [
+                    "1. Check if database migration ran for pickup_games table",
+                    "2. Verify table structure matches expected schema",
+                    "3. Test API endpoint directly if tables exist"
+                ]
+            }
+        })
+        
+    except Exception as e:
+        import traceback
+        return jsonify({
+            "error": str(e),
+            "traceback": traceback.format_exc(),
+            "railway_env": railway_env
+        }), 500
+
+
 # ==========================================
 # ERROR HANDLERS
 # ==========================================
