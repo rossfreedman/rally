@@ -23,7 +23,7 @@
     <div class="px-4 py-6 space-y-6">
         
         <!-- User Information Card -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden" id="userInfoCard">
             <div class="px-6 py-4 border-b border-gray-50">
                 <h2 class="text-lg font-semibold text-gray-900 flex items-center">
                     <i class="fas fa-user text-blue-500 mr-2"></i>
@@ -31,21 +31,57 @@
                 </h2>
             </div>
             
-            <div class="p-6">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="userInfo">
-                    <div class="text-center md:text-left">
-                        <p class="text-sm text-gray-600 mb-1">Name</p>
-                        <p class="font-semibold text-gray-900 text-lg user-name">Loading...</p>
-                    </div>
-                    <div class="text-center md:text-left">
-                        <p class="text-sm text-gray-600 mb-1">Email</p>
-                        <p class="font-medium text-gray-900 user-email">Loading...</p>
-                    </div>
-                    <div class="text-center md:text-left">
-                        <p class="text-sm text-gray-600 mb-1">Last Login</p>
-                        <p class="font-medium text-gray-900 user-last-login">Loading...</p>
-                    </div>
-                </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full">
+                    <tbody class="divide-y divide-gray-100">
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 text-sm font-medium text-gray-500 w-1/4">Name</td>
+                            <td class="px-6 py-4 text-sm text-gray-900 text-left">
+                                <span class="font-medium">{{ user.first_name if user else 'Loading...' }} {{ user.last_name if user else '' }}</span>
+                                {% if user and user.has_recent_activity %}
+                                    <span class="inline-flex items-center px-2 py-1 ml-2 text-xs font-medium bg-green-100 text-green-800 rounded-full">
+                                        <span class="w-2 h-2 bg-green-400 rounded-full mr-1"></span>
+                                        Active User
+                                    </span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 text-sm font-medium text-gray-500">Email</td>
+                            <td class="px-6 py-4 text-sm text-gray-900 user-email">Loading...</td>
+                        </tr>
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 text-sm font-medium text-gray-500 w-1/4">Club</td>
+                            <td class="px-6 py-4 text-sm text-gray-900">{{ user.club_name if user else 'Loading...' }}</td>
+                        </tr>
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 text-sm font-medium text-gray-500 w-1/4">Series</td>
+                            <td class="px-6 py-4 text-sm text-gray-900">{{ user.series_name if user else 'Loading...' }}</td>
+                        </tr>
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 text-sm font-medium text-gray-500 w-1/4">Date Registered</td>
+                            <td class="px-6 py-4 text-sm text-gray-900">
+                                {% if user and user.created_at %}
+                                    {{ user.created_at.strftime('%b %d, %Y') }}
+                                {% else %}
+                                    Loading...
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 text-sm font-medium text-gray-500 w-1/4">Last Login</td>
+                            <td class="px-6 py-4 text-sm text-gray-900">
+                                {% if user and user.last_login %}
+                                    {{ user.last_login.strftime('%b %d, %Y at %I:%M %p') }}
+                                {% elif user %}
+                                    Never
+                                {% else %}
+                                    Loading...
+                                {% endif %}
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
         
@@ -77,10 +113,24 @@
                         <p class="text-sm text-gray-600">Active Days</p>
                     </div>
                 </div>
+                
+                <!-- System Breakdown -->
+                <div class="grid grid-cols-2 gap-4 mt-4">
+                    <div class="text-center p-4 bg-indigo-50 rounded-lg">
+                        <p class="text-2xl font-bold text-indigo-600" id="comprehensiveActivities">0</p>
+                        <p class="text-sm text-gray-600">Enhanced Logs</p>
+                        <p class="text-xs text-gray-500">Rich structured data</p>
+                    </div>
+                    <div class="text-center p-4 bg-gray-50 rounded-lg">
+                        <p class="text-2xl font-bold text-gray-600" id="legacyActivities">0</p>
+                        <p class="text-sm text-gray-600">Legacy Logs</p>
+                        <p class="text-xs text-gray-500">Basic activity tracking</p>
+                    </div>
+                </div>
             </div>
         </div>
 
-        <!-- Recent Activities -->
+        <!-- Recent Activities Table -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
             <div class="px-6 py-4 border-b border-gray-50">
                 <h2 class="text-lg font-semibold text-gray-900 flex items-center">
@@ -89,7 +139,7 @@
                 </h2>
             </div>
             
-            <div class="divide-y divide-gray-100" id="activityList">
+            <div class="overflow-x-auto" id="activitiesContainer">
                 <div class="p-6 text-center text-gray-500">
                     <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
                     <p>Loading activities...</p>
@@ -108,11 +158,145 @@ if (!userEmail) {
     window.location.href = '/admin/users';
 }
 
+// Function to format page names nicely
+function formatPageName(page) {
+    if (!page) return 'Unknown Page';
+    
+    // Define mapping for common page names
+    const pageMap = {
+        'mobile': 'Home Page',
+        'mobile_home': 'Home Page',
+        'mobile_availability': 'Availability Page',
+        'mobile_analyze_me': 'Analyze Me Page',
+        'mobile_my_club': 'My Club Page',
+        'mobile_my_series': 'My Series Page',
+        'mobile_my_team': 'My Team Page',
+        'mobile_find_people_to_play': 'Find People to Play',
+        'mobile_track_byes_courts': 'Track Byes & Courts',
+        'mobile_team_schedule': 'Team Schedule',
+        'mobile_player_search': 'Player Search',
+        'mobile_settings': 'Settings Page',
+        'mobile_profile': 'Profile Page',
+        'mobile_polls': 'Team Polls',
+        'mobile_rankings': 'Rankings Page',
+        'mobile_practice_times': 'Practice Times',
+        'mobile_improve': 'Improve Game',
+        'mobile_schedule': 'Schedule Page',
+        'mobile_matches': 'Matches Page',
+        'mobile_rally': 'Rally AI Chat',
+        'mobile_ask_ai': 'Ask AI',
+        'mobile_lineup': 'Team Lineup',
+        'mobile_find_subs': 'Find Substitutes',
+        'mobile_email_team': 'Email Team',
+        'mobile_reserve_court': 'Reserve Court',
+        'mobile_create_pickup_game': 'Create Pickup Game',
+        'mobile_pickup_games': 'Pickup Games',
+        'mobile_teams_players': 'Teams & Players',
+        'mobile_training_videos': 'Training Videos',
+        'mobile_matchup_simulator': 'Matchup Simulator',
+        'mobile_player_stats': 'Player Statistics',
+        'mobile_all_team_availability': 'Team Availability',
+        'login': 'Login Page',
+        'logout': 'Logout',
+        'register': 'Registration Page',
+        'admin_users': 'Admin - User Management',
+        'admin_clubs': 'Admin - Club Management',
+        'admin_series': 'Admin - Series Management',
+        'admin_dashboard': 'Admin - Dashboard',
+        'admin_etl': 'Admin - Data Import',
+        'admin_user_activity': 'Admin - User Activity',
+        'user_activity': 'User Activity Page',
+        'pti_calculator': 'PTI Calculator',
+        'contact_sub': 'Contact Substitute',
+        'schedule': 'Schedule Page',
+        'create_team': 'Create Team'
+    };
+    
+    // Check if we have a direct mapping
+    if (pageMap[page]) {
+        return pageMap[page];
+    }
+    
+    // Handle pages that start with mobile/
+    if (page.startsWith('mobile/')) {
+        const cleanPage = page.replace('mobile/', '').replace(/-/g, '_');
+        if (pageMap[`mobile_${cleanPage}`]) {
+            return pageMap[`mobile_${cleanPage}`];
+        }
+    }
+    
+    // Handle admin pages
+    if (page.startsWith('admin_') || page.startsWith('admin/')) {
+        const cleanPage = page.replace('admin/', '').replace('admin_', '');
+        return `Admin - ${cleanPage.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}`;
+    }
+    
+    // Handle API endpoints
+    if (page.startsWith('api/')) {
+        return `API - ${page.replace('api/', '').replace(/[_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}`;
+    }
+    
+    // Fallback: clean up the page name
+    return page
+        .replace(/[/_-]/g, ' ')
+        .replace(/\b\w/g, l => l.toUpperCase())
+        .replace(/^Mobile\s+/, '')
+        + ' Page';
+}
+
+// Function to format action names
+function formatActionName(action) {
+    if (!action || action === 'null') return '-';
+    
+    const actionMap = {
+        'login': 'User Login',
+        'logout': 'User Logout',
+        'page_visit': 'Page Visit',
+        'user_action': 'User Action',
+        'admin_action': 'Admin Action',
+        'availability_update': 'Availability Update',
+        'poll_voted': 'Poll Vote',
+        'poll_created': 'Poll Created',
+        'ai_chat': 'AI Chat',
+        'simulation_run': 'Simulation Run',
+        'score_submitted': 'Score Submitted',
+        'team_email': 'Team Email',
+        'court_reservation': 'Court Reservation'
+    };
+    
+    if (actionMap[action]) {
+        return actionMap[action];
+    }
+    
+    return action.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+}
+
 // Utility function to format timestamps
 function formatTimestamp(timestamp) {
     if (!timestamp) return 'Never';
     const date = new Date(timestamp);
-    return date.toLocaleString();
+    return date.toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+    });
+}
+
+// Helper function to format date
+function formatDate(dateString) {
+    if (!dateString) return 'Unknown';
+    try {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric' 
+        });
+    } catch {
+        return 'Invalid Date';
+    }
 }
 
 // Calculate activity statistics
@@ -120,8 +304,10 @@ function calculateStats(activities) {
     const stats = {
         total: activities.length,
         pageVisits: activities.filter(a => a.activity_type === 'page_visit').length,
-        userActions: activities.filter(a => a.activity_type === 'user_action').length,
-        uniqueDays: new Set(activities.map(a => new Date(a.timestamp).toDateString())).size
+        userActions: activities.filter(a => a.activity_type === 'user_action' || a.activity_type === 'admin_action').length,
+        uniqueDays: new Set(activities.map(a => new Date(a.timestamp).toDateString())).size,
+        comprehensive: activities.filter(a => a.system === 'comprehensive').length,
+        legacy: activities.filter(a => a.system === 'legacy').length
     };
     
     return stats;
@@ -137,152 +323,329 @@ async function loadUserActivity() {
             throw new Error(data.error || 'Failed to fetch user activity');
         }
 
-        // Update user info
+        // Validate response structure
+        if (!data || !data.user) {
+            throw new Error('Invalid response: missing user data');
+        }
+
+        // Get user info and activity data
         const userInfo = data.user;
-        document.querySelector('.user-name').textContent = `${userInfo.first_name} ${userInfo.last_name}`;
-        document.querySelector('.user-email').textContent = userInfo.email;
-        document.querySelector('.user-last-login').textContent = userInfo.last_login ? formatTimestamp(userInfo.last_login) : 'Never';
+        const activities = data.activities || [];
+        const hasRecentActivity = userInfo.has_recent_activity || false;
+        
+        console.log('Loaded user activity data:', {
+            user: userInfo,
+            activityCount: activities.length,
+            hasRecentActivity: hasRecentActivity
+        });
+
+        // Update basic user information that's still rendered as "Loading..." with validation
+        const userNameElement = document.querySelector('.user-name');
+        const userEmailElement = document.querySelector('.user-email');
+        
+        if (userNameElement && userInfo.first_name && userInfo.last_name) {
+            userNameElement.textContent = `${userInfo.first_name} ${userInfo.last_name}`;
+        }
+        if (userEmailElement && userInfo.email) {
+            userEmailElement.textContent = userInfo.email;
+        }
+
+        // Update activity indicator and highlighting for server-rendered user card
+        const indicator = document.getElementById('userActivityIndicator');
+        const badge = document.getElementById('userActivityBadge');
+        const userCard = document.getElementById('userInfoCard');
+        
+        if (indicator && badge && userCard) {
+            if (hasRecentActivity) {
+                indicator.className = 'w-3 h-3 bg-green-400 rounded-full mr-2';
+                badge.classList.remove('hidden');
+                userCard.classList.add('border-l-4', 'border-green-400', 'bg-green-50');
+            } else {
+                indicator.className = 'w-3 h-3 bg-gray-300 rounded-full mr-2';
+                badge.classList.add('hidden');
+            }
+        }
 
         // Calculate and display statistics
-        const activities = data.activities;
         const stats = calculateStats(activities);
         
-        document.getElementById('totalActivities').textContent = stats.total;
-        document.getElementById('pageVisits').textContent = stats.pageVisits;
-        document.getElementById('userActions').textContent = stats.userActions;
-        document.getElementById('uniqueDays').textContent = stats.uniqueDays;
+        const totalActivitiesEl = document.getElementById('totalActivities');
+        const pageVisitsEl = document.getElementById('pageVisits');
+        const userActionsEl = document.getElementById('userActions');
+        const uniqueDaysEl = document.getElementById('uniqueDays');
+        const comprehensiveActivitiesEl = document.getElementById('comprehensiveActivities');
+        const legacyActivitiesEl = document.getElementById('legacyActivities');
+        
+        if (totalActivitiesEl) totalActivitiesEl.textContent = stats.total;
+        if (pageVisitsEl) pageVisitsEl.textContent = stats.pageVisits;
+        if (userActionsEl) userActionsEl.textContent = stats.userActions;
+        if (uniqueDaysEl) uniqueDaysEl.textContent = stats.uniqueDays;
+        if (comprehensiveActivitiesEl) comprehensiveActivitiesEl.textContent = stats.comprehensive;
+        if (legacyActivitiesEl) legacyActivitiesEl.textContent = stats.legacy;
 
         // Display activities
-        const activityList = document.getElementById('activityList');
+        renderActivities(activities);
         
-        if (activities.length === 0) {
-            activityList.innerHTML = `
-                <div class="p-6 text-center text-gray-500">
-                    <i class="fas fa-clipboard text-3xl mb-3"></i>
-                    <p class="text-lg font-medium">No activity found</p>
-                    <p class="text-sm">This user hasn't performed any tracked activities yet.</p>
-                </div>
-            `;
-        } else {
-            activityList.innerHTML = activities.map((activity, index) => {
-                const date = new Date(activity.timestamp);
-                const timeAgo = getTimeAgo(date);
-                
-                return `
-                    <div class="p-6 hover:bg-gray-50 transition-colors">
-                        <div class="flex items-start justify-between mb-3">
-                            <div class="flex items-center gap-3">
-                                <div class="w-10 h-10 rounded-full flex items-center justify-center ${getActivityColor(activity.activity_type)}">
-                                    <i class="fas ${getActivityIcon(activity.activity_type)} text-white text-sm"></i>
-                                </div>
-                                <div>
-                                    <p class="font-medium text-gray-900">${activity.activity_type?.replace('_', ' ') || 'Unknown'}</p>
-                                    <p class="text-sm text-gray-500">${timeAgo}</p>
-                                </div>
-                            </div>
-                            <span class="text-xs font-medium px-2 py-1 rounded-full ${getActivityBadgeColor(activity.activity_type)}">
-                                ${activity.activity_type || 'unknown'}
-                            </span>
-                        </div>
-                        
-                        <div class="ml-13 space-y-2 text-sm text-gray-600">
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div>
-                                    <span class="font-medium text-gray-700">Page:</span> 
-                                    <span class="text-gray-900">${activity.page || '-'}</span>
-                                </div>
-                                <div>
-                                    <span class="font-medium text-gray-700">Action:</span> 
-                                    <span class="text-gray-900">${activity.action || '-'}</span>
-                                </div>
-                            </div>
-                            
-                            ${activity.details ? `
-                                <div>
-                                    <span class="font-medium text-gray-700">Details:</span> 
-                                    <span class="text-gray-900">${activity.details}</span>
-                                </div>
-                            ` : ''}
-                            
-                            <div class="flex justify-between items-center pt-2 border-t border-gray-100">
-                                <span class="text-xs text-gray-500">
-                                    <i class="fas fa-globe mr-1"></i>
-                                    IP: ${activity.ip_address || 'Unknown'}
-                                </span>
-                                <span class="text-xs text-gray-500">
-                                    ${date.toLocaleString()}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
+        console.log('User activity data loaded successfully');
+        
     } catch (error) {
         console.error('Error fetching user activity:', error);
         
-        document.getElementById('activityList').innerHTML = `
+        const errorMessage = `
             <div class="p-6 text-center text-red-500">
                 <i class="fas fa-exclamation-triangle text-3xl mb-3"></i>
                 <p class="text-lg font-medium">Error loading activity</p>
                 <p class="text-sm">${error.message}</p>
+                <div class="mt-4">
+                    <button onclick="loadUserActivity()" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+                        Retry
+                    </button>
+                </div>
             </div>
         `;
+        
+        const container = document.getElementById('activitiesContainer');
+        if (container) {
+            container.innerHTML = errorMessage;
+        }
+        
+        // Reset statistics to 0 on error
+        const statElements = ['totalActivities', 'pageVisits', 'userActions', 'uniqueDays', 'comprehensiveActivities', 'legacyActivities'];
+        statElements.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = '0';
+        });
     }
 }
 
-// Helper functions for activity styling
-function getActivityIcon(type) {
-    switch(type) {
-        case 'page_visit': return 'fa-eye';
-        case 'user_action': return 'fa-mouse-pointer';
-        case 'admin_action': return 'fa-shield-alt';
-        case 'login': return 'fa-sign-in-alt';
-        case 'logout': return 'fa-sign-out-alt';
-        default: return 'fa-circle';
-    }
-}
-
-function getActivityColor(type) {
-    switch(type) {
-        case 'page_visit': return 'bg-blue-500';
-        case 'user_action': return 'bg-green-500';
-        case 'admin_action': return 'bg-red-500';
-        case 'login': return 'bg-purple-500';
-        case 'logout': return 'bg-gray-500';
-        default: return 'bg-gray-400';
-    }
-}
-
-function getActivityBadgeColor(type) {
-    switch(type) {
-        case 'page_visit': return 'bg-blue-100 text-blue-800';
-        case 'user_action': return 'bg-green-100 text-green-800';
-        case 'admin_action': return 'bg-red-100 text-red-800';
-        case 'login': return 'bg-purple-100 text-purple-800';
-        case 'logout': return 'bg-gray-100 text-gray-800';
-        default: return 'bg-gray-100 text-gray-600';
-    }
-}
-
-function getTimeAgo(date) {
-    const now = new Date();
-    const diffMs = now - date;
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
+function renderActivities(activities) {
+    const container = document.getElementById('activitiesContainer');
     
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
-    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
-    if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
-    return date.toLocaleDateString();
+    if (activities.length === 0) {
+        const noActivityMessage = `
+            <div class="p-8 text-center">
+                <div class="w-16 h-16 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+                    <i class="fas fa-clipboard text-gray-400 text-2xl"></i>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">No Activity Found</h3>
+                <p class="text-gray-500">This user hasn't performed any tracked activities yet.</p>
+            </div>
+        `;
+        
+        container.innerHTML = noActivityMessage;
+        return;
+    }
+    
+    // Create modern card-based layout
+    const cardsHTML = `
+        <div class="space-y-3 p-4">
+            ${activities.map(activity => {
+                const isRecent = activity.is_recent;
+                const isComprehensive = activity.system === 'comprehensive';
+                const activityIcon = getActivityIcon(activity.activity_type);
+                const activityColor = getActivityColor(activity.activity_type);
+                
+                return `
+                    <div class="modern-activity-card ${isRecent ? 'recent-activity' : 'normal-activity'}">
+                        <!-- Card Header -->
+                        <div class="card-header">
+                            <div class="activity-icon-container ${activityColor}">
+                                <i class="${activityIcon}"></i>
+                            </div>
+                            
+                                                         <div class="activity-main-info">
+                                 <div class="activity-type-row">
+                                     <h4 class="activity-title">${activity.page ? formatPageName(activity.page) : getActivityTypeDisplay(activity.activity_type)}</h4>
+                                     <div class="activity-badges">
+                                         ${isRecent ? '<span class="badge recent-badge">RECENT</span>' : ''}
+                                         ${isComprehensive ? '<span class="badge enhanced-badge">ENHANCED</span>' : '<span class="badge legacy-badge">LEGACY</span>'}
+                                     </div>
+                                 </div>
+                                 
+                                 <div class="activity-timestamp">
+                                     <i class="fas fa-clock text-xs mr-1"></i>
+                                     ${formatTimestamp(activity.timestamp)}
+                                 </div>
+                             </div>
+                        </div>
+                        
+                        <!-- Card Content -->
+                        <div class="card-content">
+                            ${isComprehensive && activity.action_description ? `
+                                <div class="activity-description">
+                                    <i class="fas fa-info-circle text-blue-500 text-xs mr-2"></i>
+                                    ${activity.action_description}
+                                </div>
+                            ` : ''}
+                            
+                                                         <!-- Activity Details Grid -->
+                             <div class="activity-details-grid">
+                                 <div class="detail-item">
+                                    <div class="detail-label">
+                                        <i class="fas fa-network-wired text-gray-500 text-xs mr-1"></i>
+                                        IP Address
+                                    </div>
+                                    <div class="detail-value">${activity.ip_address || 'Unknown'}</div>
+                                </div>
+                                
+                                ${activity.user_agent ? `
+                                    <div class="detail-item">
+                                        <div class="detail-label">
+                                            <i class="fas fa-desktop text-blue-500 text-xs mr-1"></i>
+                                            Device
+                                        </div>
+                                        <div class="detail-value">${formatUserAgent(activity.user_agent)}</div>
+                                    </div>
+                                ` : ''}
+                                
+                                ${isComprehensive && activity.related_type ? `
+                                    <div class="detail-item">
+                                        <div class="detail-label">
+                                            <i class="fas fa-link text-green-500 text-xs mr-1"></i>
+                                            Related
+                                        </div>
+                                        <div class="detail-value">${activity.related_type}: ${activity.related_id || 'N/A'}</div>
+                                    </div>
+                                ` : ''}
+                                
+                                ${isComprehensive && activity.player_name ? `
+                                    <div class="detail-item">
+                                        <div class="detail-label">
+                                            <i class="fas fa-user text-indigo-500 text-xs mr-1"></i>
+                                            Player
+                                        </div>
+                                        <div class="detail-value">${activity.player_name}</div>
+                                    </div>
+                                ` : ''}
+                                
+                                ${isComprehensive && activity.team_name ? `
+                                    <div class="detail-item">
+                                        <div class="detail-label">
+                                            <i class="fas fa-users text-orange-500 text-xs mr-1"></i>
+                                            Team
+                                        </div>
+                                        <div class="detail-value">${activity.team_name}</div>
+                                    </div>
+                                ` : ''}
+                                
+                                ${(!isComprehensive && activity.details) ? `
+                                    <div class="detail-item">
+                                        <div class="detail-label">
+                                            <i class="fas fa-info text-gray-500 text-xs mr-1"></i>
+                                            Details
+                                        </div>
+                                        <div class="detail-value">${activity.details}</div>
+                                    </div>
+                                ` : ''}
+                            </div>
+                            
+                            ${isComprehensive && activity.extra_data ? `
+                                <div class="extra-data-section">
+                                    <details class="cursor-pointer">
+                                        <summary class="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center">
+                                            <i class="fas fa-code text-xs mr-2"></i>
+                                            View Structured Data
+                                        </summary>
+                                        <pre class="structured-data-display">${JSON.stringify(activity.extra_data, null, 2)}</pre>
+                                    </details>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('')}
+        </div>
+    `;
+    
+    container.innerHTML = cardsHTML;
 }
 
-// Load data when page loads
-document.addEventListener('DOMContentLoaded', () => {
-    loadUserActivity();
-});
+// Helper functions for the new modern UI
+function getActivityIcon(activityType) {
+    const iconMap = {
+        'page_visit': 'fas fa-eye',
+        'user_action': 'fas fa-mouse-pointer', 
+        'admin_action': 'fas fa-user-shield',
+        'login': 'fas fa-sign-in-alt',
+        'logout': 'fas fa-sign-out-alt',
+        'auth': 'fas fa-key',
+        'availability_update': 'fas fa-calendar-check',
+        'poll_voted': 'fas fa-vote-yea',
+        'poll_created': 'fas fa-poll',
+        'ai_chat': 'fas fa-robot',
+        'simulation_run': 'fas fa-play-circle',
+        'score_submitted': 'fas fa-trophy',
+        'team_email': 'fas fa-envelope',
+        'court_reservation': 'fas fa-calendar-plus',
+        'comprehensive_registration': 'fas fa-user-plus',
+        'match_created': 'fas fa-plus-circle',
+        'poll_response': 'fas fa-check-circle'
+    };
+    return iconMap[activityType] || 'fas fa-circle';
+}
+
+function getActivityColor(activityType) {
+    const colorMap = {
+        'page_visit': 'blue-theme',
+        'user_action': 'green-theme',
+        'admin_action': 'red-theme', 
+        'login': 'green-theme',
+        'logout': 'gray-theme',
+        'auth': 'purple-theme',
+        'availability_update': 'cyan-theme',
+        'poll_voted': 'purple-theme',
+        'poll_created': 'indigo-theme',
+        'ai_chat': 'indigo-theme',
+        'simulation_run': 'orange-theme',
+        'score_submitted': 'yellow-theme',
+        'team_email': 'blue-theme',
+        'court_reservation': 'green-theme',
+        'comprehensive_registration': 'purple-theme',
+        'match_created': 'green-theme',
+        'poll_response': 'blue-theme'
+    };
+    return colorMap[activityType] || 'gray-theme';
+}
+
+// Helper function to format user agent strings
+function formatUserAgent(userAgent) {
+    if (!userAgent) return 'Unknown';
+    
+    // Extract key information from user agent
+    const mobile = /Mobile|Android|iPhone|iPad/.test(userAgent);
+    const browser = userAgent.match(/(Chrome|Firefox|Safari|Edge)/)?.[1] || 'Unknown';
+    const os = userAgent.match(/(Windows|Mac|Linux|iOS|Android)/)?.[1] || 'Unknown';
+    
+    return `${browser} on ${os}${mobile ? ' (Mobile)' : ''}`;
+}
+
+// Helper function to get activity type display name
+function getActivityTypeDisplay(type) {
+    const typeMap = {
+        'page_visit': 'Page Visit',
+        'user_action': 'User Action',
+        'admin_action': 'Admin Action',
+        'login': 'Login',
+        'logout': 'Logout',
+        'auth': 'Authentication',
+        'availability_update': 'Availability Update',
+        'poll_voted': 'Poll Vote',
+        'poll_created': 'Poll Created',
+        'ai_chat': 'AI Chat',
+        'simulation_run': 'Simulation',
+        'score_submitted': 'Score Submitted',
+        'team_email': 'Team Email',
+        'court_reservation': 'Court Reservation',
+        'comprehensive_registration': 'User Registration',
+        'match_created': 'Match Created',
+        'poll_response': 'Poll Response'
+    };
+    
+    return typeMap[type] || type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+}
+
+// Load activity data when page loads
+document.addEventListener('DOMContentLoaded', loadUserActivity);
 </script>
 
 <style>
@@ -296,12 +659,273 @@ document.addEventListener('DOMContentLoaded', () => {
 .bg-green-50 { background-color: #f0fdf4; }
 .bg-purple-50 { background-color: #faf5ff; }
 .bg-orange-50 { background-color: #fff7ed; }
+.bg-indigo-50 { background-color: #eef2ff; }
 .bg-blue-500 { background-color: #3b82f6; }
 .bg-green-500 { background-color: #10b981; }
 .bg-red-500 { background-color: #ef4444; }
 .bg-purple-500 { background-color: #8b5cf6; }
 .bg-gray-500 { background-color: #6b7280; }
 .bg-gray-400 { background-color: #9ca3af; }
+
+/* Modern Activity Card Styles */
+.modern-activity-card {
+    background: white;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+    transition: all 0.2s ease-in-out;
+    overflow: hidden;
+}
+
+.modern-activity-card:hover {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    transform: translateY(-1px);
+}
+
+.modern-activity-card.recent-activity {
+    border-left: 4px solid #10b981;
+    background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
+}
+
+.modern-activity-card.normal-activity {
+    border-left: 4px solid #e5e7eb;
+}
+
+.card-header {
+    display: flex;
+    align-items: flex-start;
+    padding: 16px 20px 12px 20px;
+    gap: 16px;
+}
+
+.activity-icon-container {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Activity Icon Theme Colors */
+.blue-theme {
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+    color: #1d4ed8;
+}
+
+.green-theme {
+    background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+    color: #059669;
+}
+
+.red-theme {
+    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+    color: #dc2626;
+}
+
+.purple-theme {
+    background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%);
+    color: #7c3aed;
+}
+
+.gray-theme {
+    background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+    color: #4b5563;
+}
+
+.indigo-theme {
+    background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+    color: #4f46e5;
+}
+
+.orange-theme {
+    background: linear-gradient(135deg, #fed7aa 0%, #fdba74 100%);
+    color: #ea580c;
+}
+
+.yellow-theme {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    color: #d97706;
+}
+
+.cyan-theme {
+    background: linear-gradient(135deg, #cffafe 0%, #a5f3fc 100%);
+    color: #0891b2;
+}
+
+.activity-main-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.activity-type-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+    gap: 12px;
+}
+
+.activity-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #111827;
+    margin: 0;
+}
+
+.activity-badges {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+.recent-badge {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.enhanced-badge {
+    background: #dbeafe;
+    color: #1e40af;
+}
+
+.legacy-badge {
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+.activity-timestamp {
+    display: flex;
+    align-items: center;
+    font-size: 13px;
+    color: #6b7280;
+    font-weight: 500;
+}
+
+.card-content {
+    padding: 0 20px 16px 20px;
+}
+
+.activity-description {
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    border: 1px solid #bfdbfe;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 16px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #1e40af;
+    display: flex;
+    align-items: flex-start;
+}
+
+.activity-details-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.detail-item {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 10px 12px;
+    transition: all 0.2s ease;
+}
+
+.detail-item:hover {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+}
+
+.detail-label {
+    display: flex;
+    align-items: center;
+    font-size: 11px;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+    margin-bottom: 4px;
+}
+
+.detail-value {
+    font-size: 13px;
+    font-weight: 500;
+    color: #334155;
+    word-break: break-all;
+}
+
+.extra-data-section {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #e5e7eb;
+}
+
+.structured-data-display {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 12px;
+    margin-top: 8px;
+    font-size: 11px;
+    line-height: 1.5;
+    color: #475569;
+    overflow-x: auto;
+    white-space: pre-wrap;
+}
+
+/* Mobile Responsive Improvements */
+@media (max-width: 768px) {
+    .activity-details-grid {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+    
+    .card-header {
+        padding: 12px 16px 8px 16px;
+        gap: 12px;
+    }
+    
+    .card-content {
+        padding: 0 16px 12px 16px;
+    }
+    
+    .activity-icon-container {
+        width: 36px;
+        height: 36px;
+        font-size: 16px;
+    }
+    
+    .activity-title {
+        font-size: 15px;
+    }
+    
+    .activity-type-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+    }
+    
+    .activity-badges {
+        align-self: flex-end;
+    }
+}
 
 /* Text colors */
 .text-gray-900 { color: #111827; }
@@ -315,6 +939,7 @@ document.addEventListener('DOMContentLoaded', () => {
 .text-purple-500 { color: #8b5cf6; }
 .text-purple-600 { color: #7c3aed; }
 .text-indigo-500 { color: #6366f1; }
+.text-indigo-600 { color: #4f46e5; }
 .text-orange-600 { color: #ea580c; }
 .text-red-500 { color: #ef4444; }
 .text-white { color: #ffffff; }

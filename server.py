@@ -1905,6 +1905,8 @@ def emergency_stop_etl():
         }), 500
 
 
+
+
 @app.route("/debug/check-recent-database-changes")
 def check_recent_database_changes():
     """

@@ -8,7 +8,7 @@ These routes handle API endpoints for data retrieval, research, analytics, and o
 import json
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, date, time
 from functools import wraps
 
 import pytz
@@ -18,7 +18,7 @@ from app.models.database_models import Player, SessionLocal, User, UserPlayerAss
 from app.services.api_service import *
 from app.services.dashboard_service import log_user_action
 from app.services.mobile_service import get_club_players_data
-from database_utils import execute_query, execute_query_one, execute_update
+from database_utils import execute_query, execute_query_one, execute_update, get_db_cursor
 from utils.database_player_lookup import find_player_by_database_lookup
 from utils.logging import log_user_activity
 
@@ -4414,3 +4414,740 @@ def test_mobile_service_public():
             "traceback": traceback.format_exc(),
             "test_email": test_email
         }), 500
+
+
+# ==========================================
+# PICKUP GAMES API ENDPOINTS
+# ==========================================
+
+@api_bp.route("/api/pickup-games", methods=["GET"])
+@login_required
+def get_pickup_games():
+    """Get all pickup games (upcoming and past)"""
+    try:
+        # Get current date/time for determining upcoming vs past
+        now = datetime.now()
+        current_date = now.date()
+        current_time = now.time()
+        
+        # Query for upcoming games (future date or today but future time)
+        upcoming_query = """
+            SELECT 
+                pg.id,
+                pg.description,
+                pg.game_date,
+                pg.game_time,
+                pg.players_requested,
+                pg.players_committed,
+                pg.pti_low,
+                pg.pti_high,
+                pg.series_low,
+                pg.series_high,
+                pg.club_only,
+                pg.creator_user_id,
+                pg.created_at,
+                COUNT(pgp.id) as actual_participants
+            FROM pickup_games pg
+            LEFT JOIN pickup_game_participants pgp ON pg.id = pgp.pickup_game_id
+            WHERE (pg.game_date > %s) OR (pg.game_date = %s AND pg.game_time > %s)
+            GROUP BY pg.id
+            ORDER BY pg.game_date ASC, pg.game_time ASC
+        """
+        
+        # Query for past games
+        past_query = """
+            SELECT 
+                pg.id,
+                pg.description,
+                pg.game_date,
+                pg.game_time,
+                pg.players_requested,
+                pg.players_committed,
+                pg.pti_low,
+                pg.pti_high,
+                pg.series_low,
+                pg.series_high,
+                pg.club_only,
+                pg.creator_user_id,
+                pg.created_at,
+                COUNT(pgp.id) as actual_participants
+            FROM pickup_games pg
+            LEFT JOIN pickup_game_participants pgp ON pg.id = pgp.pickup_game_id
+            WHERE (pg.game_date < %s) OR (pg.game_date = %s AND pg.game_time <= %s)
+            GROUP BY pg.id
+            ORDER BY pg.game_date DESC, pg.game_time DESC
+        """
+        
+        upcoming_games = execute_query(upcoming_query, [current_date, current_date, current_time])
+        past_games = execute_query(past_query, [current_date, current_date, current_time])
+        
+        # Helper function to calculate game status
+        def get_game_status(players_requested, actual_participants):
+            if actual_participants >= players_requested:
+                return "Closed"
+            elif actual_participants >= players_requested * 0.8:  # 80% full
+                return "Nearly Full"
+            else:
+                return "Open"
+        
+        # Get current user ID to check participation
+        user = session["user"]
+        current_user_id = user.get("id")
+        
+        # Helper function to check if user has joined a game
+        def user_has_joined(game_id):
+            if not current_user_id:
+                return False
+            participation_check = execute_query_one(
+                "SELECT id FROM pickup_game_participants WHERE pickup_game_id = %s AND user_id = %s",
+                [game_id, current_user_id]
+            )
+            return participation_check is not None
+        
+        # Helper function to get series criteria display
+        def get_series_criteria_display(series_low_id, series_high_id):
+            if not series_low_id and not series_high_id:
+                return "All Series"
+            
+            series_names = []
+            if series_low_id:
+                series_record = execute_query_one("SELECT name FROM series WHERE id = %s", [series_low_id])
+                if series_record:
+                    series_names.append(series_record["name"])
+            
+            if series_high_id:
+                series_record = execute_query_one("SELECT name FROM series WHERE id = %s", [series_high_id])
+                if series_record:
+                    series_names.append(series_record["name"])
+            
+            if len(series_names) == 2 and series_names[0] != series_names[1]:
+                return f"Series {series_names[0]} to {series_names[1]}"
+            elif len(series_names) == 1:
+                return f"Series {series_names[0]} and below"
+            else:
+                return "All Series"
+        
+        # Helper function to format game data
+        def format_game(game):
+            # Get user's club name for display
+            user_club = user.get("club", "My Club")
+            
+            return {
+                "id": game["id"],
+                "description": game["description"],
+                "date": game["game_date"].strftime('%Y-%m-%d'),
+                "time": game["game_time"].strftime('%H:%M'),
+                "formatted_date": game["game_date"].strftime('%A, %b %d'),
+                "formatted_time": game["game_time"].strftime('%I:%M %p').lstrip('0'),
+                "players_requested": game["players_requested"],
+                "players_committed": game["actual_participants"],
+                "status": get_game_status(game["players_requested"], game["actual_participants"]),
+                "pti_range": f"{game['pti_low']}-{game['pti_high']}",
+                "series_criteria": get_series_criteria_display(game["series_low"], game["series_high"]),
+                "club_only": game["club_only"],
+                "club_name": user_club,
+                "creator_user_id": game["creator_user_id"],
+                "user_has_joined": user_has_joined(game["id"])
+            }
+        
+        # Format the results
+        upcoming_formatted = [format_game(game) for game in upcoming_games] if upcoming_games else []
+        past_formatted = [format_game(game) for game in past_games] if past_games else []
+        
+        return jsonify({
+            "upcoming_games": upcoming_formatted,
+            "past_games": past_formatted,
+            "total_upcoming": len(upcoming_formatted),
+            "total_past": len(past_formatted)
+        })
+        
+    except Exception as e:
+        print(f"Error getting pickup games: {str(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
+        return jsonify({"error": "Failed to retrieve pickup games"}), 500
+
+
+@api_bp.route("/api/pickup-games", methods=["POST"])
+@login_required
+def create_pickup_game():
+    """Create a new pickup game"""
+    try:
+        user = session["user"]
+        user_email = user.get("email")
+        user_id = user.get("id")
+        
+        print(f"[CREATE_PICKUP_GAME] User session data: email={user_email}, user_id={user_id}")
+        
+        # If user_id is not in session, try to get it from database
+        if not user_id and user_email:
+            user_record = execute_query_one("SELECT id FROM users WHERE email = %s", [user_email])
+            if user_record:
+                user_id = user_record["id"]
+                print(f"[CREATE_PICKUP_GAME] Retrieved user_id from database: {user_id}")
+            else:
+                print(f"[CREATE_PICKUP_GAME] No user record found for email: {user_email}")
+                return jsonify({"error": "User account not found"}), 400
+        
+        if not user_id:
+            print(f"[CREATE_PICKUP_GAME] User ID still not found after database lookup")
+            return jsonify({"error": "User ID not found. Please log out and log back in."}), 400
+            
+        data = request.get_json()
+        print(f"[CREATE_PICKUP_GAME] Received data: {data}")
+        
+        # Validate required fields
+        required_fields = ["description", "game_date", "game_time", "players_requested"]
+        for field in required_fields:
+            if field not in data or not data[field]:
+                print(f"[CREATE_PICKUP_GAME] Missing required field: {field}")
+                return jsonify({"error": f"Missing required field: {field}"}), 400
+        
+        # Parse and validate data
+        try:
+            game_date_obj = datetime.strptime(data["game_date"], "%Y-%m-%d").date()
+            game_time_obj = datetime.strptime(data["game_time"], "%H:%M").time()
+            players_requested = int(data["players_requested"])
+            
+            if players_requested <= 0:
+                return jsonify({"error": "Players requested must be greater than 0"}), 400
+                
+        except ValueError as e:
+            print(f"[CREATE_PICKUP_GAME] Data parsing error: {str(e)}")
+            return jsonify({"error": f"Invalid data format: {str(e)}"}), 400
+        
+        # Optional fields with defaults
+        pti_low = data.get("pti_low", -30)
+        pti_high = data.get("pti_high", 100)
+        series_low = data.get("series_low")
+        series_high = data.get("series_high")
+        club_only = data.get("club_only", False)
+        
+        # Convert series names to series IDs if provided
+        series_low_id = None
+        series_high_id = None
+        
+        if series_low:
+            series_record = execute_query_one("SELECT id FROM series WHERE name = %s", [series_low])
+            if series_record:
+                series_low_id = series_record["id"]
+                print(f"[CREATE_PICKUP_GAME] Converted series_low '{series_low}' to ID {series_low_id}")
+            else:
+                print(f"[CREATE_PICKUP_GAME] Warning: series_low '{series_low}' not found in database")
+                # Don't fail the creation if series is not found, just set to None
+                series_low_id = None
+        
+        if series_high:
+            series_record = execute_query_one("SELECT id FROM series WHERE name = %s", [series_high])
+            if series_record:
+                series_high_id = series_record["id"]
+                print(f"[CREATE_PICKUP_GAME] Converted series_high '{series_high}' to ID {series_high_id}")
+            else:
+                print(f"[CREATE_PICKUP_GAME] Warning: series_high '{series_high}' not found in database")
+                # Don't fail the creation if series is not found, just set to None
+                series_high_id = None
+        
+        # Validate PTI range
+        if pti_low > pti_high:
+            return jsonify({"error": "PTI low cannot be greater than PTI high"}), 400
+            
+        # Validate series range
+        if series_low_id is not None and series_high_id is not None and series_low_id > series_high_id:
+            return jsonify({"error": "Series low cannot be greater than series high"}), 400
+        
+        # Insert the new pickup game
+        insert_query = """
+            INSERT INTO pickup_games 
+            (description, game_date, game_time, players_requested, pti_low, pti_high, 
+             series_low, series_high, club_only, creator_user_id)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            RETURNING id
+        """
+        
+        insert_params = [
+            data["description"], game_date_obj, game_time_obj, players_requested,
+            pti_low, pti_high, series_low_id, series_high_id, club_only, user_id
+        ]
+        
+        print(f"[CREATE_PICKUP_GAME] Executing insert with params: {insert_params}")
+        
+        result = execute_query_one(insert_query, insert_params)
+        
+        if result:
+            pickup_game_id = result["id"]
+            print(f"[CREATE_PICKUP_GAME] Successfully created pickup game with ID: {pickup_game_id}")
+            
+            log_user_activity(user_email, "pickup_game_created", 
+                            details=f"Created pickup game: {data['description']}")
+            
+            return jsonify({
+                "success": True,
+                "pickup_game_id": pickup_game_id,
+                "message": "Pickup game created successfully"
+            }), 201
+        else:
+            print(f"[CREATE_PICKUP_GAME] Insert query returned no result")
+            return jsonify({"error": "Failed to create pickup game - database insert failed"}), 500
+            
+    except Exception as e:
+        print(f"[CREATE_PICKUP_GAME] Error creating pickup game: {str(e)}")
+        import traceback
+        print(f"[CREATE_PICKUP_GAME] Full traceback: {traceback.format_exc()}")
+        return jsonify({"error": "Failed to create pickup game due to server error"}), 500
+
+
+@api_bp.route("/api/pickup-games/<int:game_id>/join", methods=["POST"])
+@login_required
+def join_pickup_game(game_id):
+    """Join a pickup game"""
+    try:
+        user = session["user"]
+        user_email = user.get("email")
+        user_id = user.get("id")
+        
+        print(f"[JOIN_PICKUP_GAME] User {user_email} attempting to join game {game_id}")
+        
+        # If user_id is not in session, try to get it from database
+        if not user_id and user_email:
+            user_record = execute_query_one("SELECT id FROM users WHERE email = %s", [user_email])
+            if user_record:
+                user_id = user_record["id"]
+                print(f"[JOIN_PICKUP_GAME] Retrieved user_id from database: {user_id}")
+        
+        if not user_id:
+            print(f"[JOIN_PICKUP_GAME] User ID not found for {user_email}")
+            return jsonify({"error": "User ID not found. Please log out and log back in."}), 400
+        
+        # Check if game exists and is not full
+        game_query = """
+            SELECT pg.*, COUNT(pgp.id) as current_participants
+            FROM pickup_games pg
+            LEFT JOIN pickup_game_participants pgp ON pg.id = pgp.pickup_game_id
+            WHERE pg.id = %s
+            GROUP BY pg.id
+        """
+        
+        game = execute_query_one(game_query, [game_id])
+        
+        if not game:
+            return jsonify({"error": "Pickup game not found"}), 404
+            
+        if game["current_participants"] >= game["players_requested"]:
+            return jsonify({"error": "Pickup game is full"}), 400
+        
+        # Check if user is already in this game
+        existing_query = """
+            SELECT id FROM pickup_game_participants 
+            WHERE pickup_game_id = %s AND user_id = %s
+        """
+        
+        existing = execute_query_one(existing_query, [game_id, user_id])
+        
+        if existing:
+            return jsonify({"error": "You have already joined this game"}), 400
+        
+        # Add user to the game
+        join_query = """
+            INSERT INTO pickup_game_participants (pickup_game_id, user_id)
+            VALUES (%s, %s)
+            RETURNING id
+        """
+        
+        result = execute_query_one(join_query, [game_id, user_id])
+        
+        if result:
+            # Update the players_committed count
+            update_query = """
+                UPDATE pickup_games 
+                SET players_committed = (
+                    SELECT COUNT(*) FROM pickup_game_participants 
+                    WHERE pickup_game_id = %s
+                )
+                WHERE id = %s
+            """
+            execute_update(update_query, [game_id, game_id])
+            
+            print(f"[JOIN_PICKUP_GAME] User {user_email} successfully joined game {game_id}")
+            
+            log_user_activity(user_email, "pickup_game_joined", 
+                            details=f"Joined pickup game ID: {game_id}")
+            
+            return jsonify({
+                "success": True,
+                "message": "Successfully joined pickup game"
+            })
+        else:
+            print(f"[JOIN_PICKUP_GAME] Failed to insert participant record for user {user_email} and game {game_id}")
+            return jsonify({"error": "Failed to join pickup game - database insert failed"}), 500
+            
+    except Exception as e:
+        print(f"Error joining pickup game: {str(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
+        return jsonify({"error": "Failed to join pickup game"}), 500
+
+
+@api_bp.route("/api/pickup-games/<int:game_id>", methods=["PUT"])
+@login_required
+def update_pickup_game(game_id):
+    """Update an existing pickup game (only by creator)"""
+    try:
+        user = session["user"]
+        user_email = user.get("email")
+        user_id = user.get("id")
+        
+        print(f"[UPDATE_PICKUP_GAME] User {user_email} attempting to update game {game_id}")
+        
+        # If user_id is not in session, try to get it from database
+        if not user_id and user_email:
+            user_record = execute_query_one("SELECT id FROM users WHERE email = %s", [user_email])
+            if user_record:
+                user_id = user_record["id"]
+                print(f"[UPDATE_PICKUP_GAME] Retrieved user_id from database: {user_id}")
+        
+        if not user_id:
+            print(f"[UPDATE_PICKUP_GAME] User ID not found for {user_email}")
+            return jsonify({"error": "User ID not found. Please log out and log back in."}), 400
+        
+        # Check if game exists and user is the creator
+        game_check_query = """
+            SELECT creator_user_id 
+            FROM pickup_games 
+            WHERE id = %s
+        """
+        
+        existing_game = execute_query_one(game_check_query, [game_id])
+        
+        if not existing_game:
+            return jsonify({"error": "Pickup game not found"}), 404
+            
+        if existing_game["creator_user_id"] != user_id:
+            return jsonify({"error": "Only the creator can edit this pickup game"}), 403
+        
+        # Get the update data
+        data = request.get_json()
+        print(f"[UPDATE_PICKUP_GAME] Received data: {data}")
+        
+        # Validate required fields
+        required_fields = ["description", "game_date", "game_time", "players_requested"]
+        for field in required_fields:
+            if field not in data or not data[field]:
+                print(f"[UPDATE_PICKUP_GAME] Missing required field: {field}")
+                return jsonify({"error": f"Missing required field: {field}"}), 400
+        
+        # Parse and validate data
+        try:
+            game_date_obj = datetime.strptime(data["game_date"], "%Y-%m-%d").date()
+            game_time_obj = datetime.strptime(data["game_time"], "%H:%M").time()
+            players_requested = int(data["players_requested"])
+            
+            if players_requested <= 0:
+                return jsonify({"error": "Players requested must be greater than 0"}), 400
+                
+        except ValueError as e:
+            print(f"[UPDATE_PICKUP_GAME] Data parsing error: {str(e)}")
+            return jsonify({"error": f"Invalid data format: {str(e)}"}), 400
+        
+        # Optional fields with defaults
+        pti_low = data.get("pti_low", -30)
+        pti_high = data.get("pti_high", 100)
+        series_low = data.get("series_low")
+        series_high = data.get("series_high")
+        club_only = data.get("club_only", False)
+        
+        # Convert series names to series IDs if provided
+        series_low_id = None
+        series_high_id = None
+        
+        if series_low:
+            series_record = execute_query_one("SELECT id FROM series WHERE name = %s", [series_low])
+            if series_record:
+                series_low_id = series_record["id"]
+                print(f"[UPDATE_PICKUP_GAME] Converted series_low '{series_low}' to ID {series_low_id}")
+        
+        if series_high:
+            series_record = execute_query_one("SELECT id FROM series WHERE name = %s", [series_high])
+            if series_record:
+                series_high_id = series_record["id"]
+                print(f"[UPDATE_PICKUP_GAME] Converted series_high '{series_high}' to ID {series_high_id}")
+        
+        # Validate PTI range
+        if pti_low > pti_high:
+            return jsonify({"error": "PTI low cannot be greater than PTI high"}), 400
+            
+        # Validate series range
+        if series_low_id is not None and series_high_id is not None and series_low_id > series_high_id:
+            return jsonify({"error": "Series low cannot be greater than series high"}), 400
+        
+        # Update the pickup game
+        update_query = """
+            UPDATE pickup_games 
+            SET description = %s, game_date = %s, game_time = %s, players_requested = %s,
+                pti_low = %s, pti_high = %s, series_low = %s, series_high = %s, club_only = %s
+            WHERE id = %s
+        """
+        
+        update_params = [
+            data["description"], game_date_obj, game_time_obj, players_requested,
+            pti_low, pti_high, series_low_id, series_high_id, club_only, game_id
+        ]
+        
+        print(f"[UPDATE_PICKUP_GAME] Executing update with params: {update_params}")
+        
+        rows_updated = execute_update(update_query, update_params)
+        
+        if rows_updated > 0:
+            print(f"[UPDATE_PICKUP_GAME] Successfully updated pickup game {game_id}")
+            
+            log_user_activity(user_email, "pickup_game_updated", 
+                            details=f"Updated pickup game ID: {game_id}")
+            
+            return jsonify({
+                "success": True,
+                "message": "Pickup game updated successfully"
+            })
+        else:
+            print(f"[UPDATE_PICKUP_GAME] Update query affected 0 rows for game {game_id}")
+            return jsonify({"error": "Failed to update pickup game"}), 500
+            
+    except Exception as e:
+        print(f"[UPDATE_PICKUP_GAME] Error updating pickup game: {str(e)}")
+        import traceback
+        print(f"[UPDATE_PICKUP_GAME] Full traceback: {traceback.format_exc()}")
+        return jsonify({"error": "Failed to update pickup game due to server error"}), 500
+
+
+@api_bp.route("/api/pickup-games/<int:game_id>", methods=["GET"])
+@login_required
+def get_pickup_game(game_id):
+    """Get a single pickup game for editing (only by creator)"""
+    try:
+        user = session["user"]
+        user_email = user.get("email")
+        user_id = user.get("id")
+        
+        # If user_id is not in session, try to get it from database
+        if not user_id and user_email:
+            user_record = execute_query_one("SELECT id FROM users WHERE email = %s", [user_email])
+            if user_record:
+                user_id = user_record["id"]
+        
+        if not user_id:
+            return jsonify({"error": "User ID not found. Please log out and log back in."}), 400
+        
+        # Get the pickup game
+        game_query = """
+            SELECT 
+                pg.id,
+                pg.description,
+                pg.game_date,
+                pg.game_time,
+                pg.players_requested,
+                pg.pti_low,
+                pg.pti_high,
+                pg.series_low,
+                pg.series_high,
+                pg.club_only,
+                pg.creator_user_id,
+                s_low.name as series_low_name,
+                s_high.name as series_high_name
+            FROM pickup_games pg
+            LEFT JOIN series s_low ON pg.series_low = s_low.id
+            LEFT JOIN series s_high ON pg.series_high = s_high.id
+            WHERE pg.id = %s
+        """
+        
+        game = execute_query_one(game_query, [game_id])
+        
+        if not game:
+            return jsonify({"error": "Pickup game not found"}), 404
+            
+        # Check if user is the creator
+        if game["creator_user_id"] != user_id:
+            return jsonify({"error": "Only the creator can view edit details for this pickup game"}), 403
+        
+        # Format the response (return game data directly as expected by frontend)
+        game_data = {
+            "id": game["id"],
+            "description": game["description"],
+            "game_date": game["game_date"].strftime('%Y-%m-%d'),
+            "game_time": game["game_time"].strftime('%H:%M'),
+            "players_requested": game["players_requested"],
+            "pti_low": float(game["pti_low"]),
+            "pti_high": float(game["pti_high"]),
+            "series_low": game["series_low_name"],
+            "series_high": game["series_high_name"],
+            "club_only": game["club_only"],
+            "creator_user_id": game["creator_user_id"]
+        }
+        
+        print(f"[GET_PICKUP_GAME] Returning game data: {game_data}")
+        return jsonify(game_data)
+        
+    except Exception as e:
+        print(f"Error getting pickup game: {str(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
+        return jsonify({"error": "Failed to retrieve pickup game"}), 500
+
+
+
+
+
+@api_bp.route("/api/pickup-games/<int:game_id>/leave", methods=["DELETE"])
+@login_required
+def leave_pickup_game(game_id):
+    """Leave a pickup game"""
+    try:
+        user = session["user"]
+        user_email = user.get("email")
+        user_id = user.get("id")
+        
+        print(f"[LEAVE_PICKUP_GAME] User {user_email} attempting to leave game {game_id}")
+        
+        # If user_id is not in session, try to get it from database
+        if not user_id and user_email:
+            user_record = execute_query_one("SELECT id FROM users WHERE email = %s", [user_email])
+            if user_record:
+                user_id = user_record["id"]
+                print(f"[LEAVE_PICKUP_GAME] Retrieved user_id from database: {user_id}")
+        
+        if not user_id:
+            print(f"[LEAVE_PICKUP_GAME] User ID not found for {user_email}")
+            return jsonify({"error": "User ID not found. Please log out and log back in."}), 400
+        
+        # Check if user is in this game
+        existing_query = """
+            SELECT id FROM pickup_game_participants 
+            WHERE pickup_game_id = %s AND user_id = %s
+        """
+        
+        existing = execute_query_one(existing_query, [game_id, user_id])
+        
+        if not existing:
+            return jsonify({"error": "You are not in this game"}), 400
+        
+        # Remove user from the game
+        leave_query = """
+            DELETE FROM pickup_game_participants 
+            WHERE pickup_game_id = %s AND user_id = %s
+        """
+        
+        # Remove user from the game
+        with get_db_cursor() as cursor:
+            cursor.execute(leave_query, [game_id, user_id])
+            rows_affected = cursor.rowcount
+            print(f"[LEAVE_PICKUP_GAME] Rows affected: {rows_affected}")
+        
+        if rows_affected > 0:
+            # Update the players_committed count
+            update_query = """
+                UPDATE pickup_games 
+                SET players_committed = (
+                    SELECT COUNT(*) FROM pickup_game_participants 
+                    WHERE pickup_game_id = %s
+                )
+                WHERE id = %s
+            """
+            execute_update(update_query, [game_id, game_id])
+            
+            print(f"[LEAVE_PICKUP_GAME] User {user_email} successfully left game {game_id}")
+            
+            log_user_activity(user_email, "pickup_game_left", 
+                            details=f"Left pickup game ID: {game_id}")
+            
+            return jsonify({
+                "success": True,
+                "message": "Successfully left pickup game"
+            })
+        else:
+            print(f"[LEAVE_PICKUP_GAME] No rows affected when trying to remove user {user_email} from game {game_id}")
+            return jsonify({"error": "Failed to leave pickup game - no participant record found"}), 500
+            
+    except Exception as e:
+        print(f"Error leaving pickup game: {str(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
+        return jsonify({"error": "Failed to leave pickup game"}), 500
+
+
+@api_bp.route("/api/series-options", methods=["GET"])
+@login_required  
+def get_series_options():
+    """Get series options for dropdown in pickup game creation"""
+    try:
+        user = session["user"]
+        user_league_id = user.get("league_id")
+        
+        if not user_league_id:
+            return jsonify({"error": "User league not found"}), 400
+        
+        # Convert league_id to integer if needed
+        if isinstance(user_league_id, str) and user_league_id.isdigit():
+            league_id_int = int(user_league_id)
+        elif isinstance(user_league_id, int):
+            league_id_int = user_league_id
+        else:
+            # Try to look up league by string ID
+            league_record = execute_query_one(
+                "SELECT id FROM leagues WHERE league_id = %s", [user_league_id]
+            )
+            if league_record:
+                league_id_int = league_record["id"]
+            else:
+                return jsonify({"error": "League not found"}), 404
+        
+        # Get series for this league - we'll sort manually for proper numerical ordering
+        series_query = """
+            SELECT DISTINCT s.name, s.display_name
+            FROM series s
+            JOIN series_leagues sl ON s.id = sl.series_id
+            WHERE sl.league_id = %s
+        """
+        
+        series_data = execute_query(series_query, [league_id_int])
+        
+        # Helper function to extract numerical sort key from series name
+        def get_series_sort_key(series_name):
+            """Extract numerical sort key from series name for proper ordering"""
+            import re
+            
+            # Handle various series name formats
+            if not series_name:
+                return (0, "")
+            
+            # Extract number from series name (e.g., "Chicago 12" -> 12, "Series 5" -> 5)
+            number_match = re.search(r'(\d+)', series_name)
+            if number_match:
+                number = int(number_match.group(1))
+            else:
+                number = 0
+            
+            # Return tuple for sorting: (number, full_name)
+            # This ensures proper numerical ordering while maintaining alphabetical 
+            # ordering for series with the same number
+            return (number, series_name.lower())
+        
+        # Format and sort series options for dropdown
+        series_options = []
+        for series in series_data:
+            # Use display_name if available, otherwise fall back to name
+            display_name = series.get("display_name") or series["name"]
+            series_options.append({
+                "value": series["name"],
+                "display_name": display_name
+            })
+        
+        # Sort by numerical value using the sort key function
+        series_options.sort(key=lambda x: get_series_sort_key(x["display_name"]))
+        
+        return jsonify({
+            "series_options": series_options,
+            "league_id": league_id_int
+        })
+        
+    except Exception as e:
+        print(f"Error getting series options: {str(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
+        return jsonify({"error": "Failed to retrieve series options"}), 500

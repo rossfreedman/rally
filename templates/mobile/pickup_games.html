@@ -42,96 +42,52 @@
                 <p class="text-sm text-gray-600 mt-2">Players who meet the criteria set by the organizer will be notified by text about upcoming games and can choose to join.</p>
             </div>
             
-            <div class="p-4 space-y-4">
-                <!-- Game 1 -->
-                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                    <div class="flex justify-between items-start mb-3">
-                        <div>
-                            <h3 class="text-lg font-semibold text-gray-900">Looking for 8 Saturday morning</h3>
-                            <p class="text-sm text-gray-600">Saturday, Jan 20 at 9:00 AM</p>
-                        </div>
-                        <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">Open</span>
-                    </div>
-                    
-                    <div class="grid grid-cols-2 gap-4 mb-3">
-                        <div class="text-center">
-                            <div class="text-xl font-bold text-gray-900">8</div>
-                            <div class="text-xs text-gray-500">Players Requested</div>
-                        </div>
-                        <div class="text-center">
-                            <div class="text-xl font-bold text-green-600">5</div>
-                            <div class="text-xs text-gray-500">Committed Players</div>
-                        </div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <p class="text-sm text-gray-700"><strong>Criteria:</strong> PTI Range: 33.3-43.1, All Series</p>
-                    </div>
-                    
-                    <button class="w-full bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors">
-                        <i class="fas fa-plus mr-1"></i>Join Game
-                    </button>
+            <div id="upcomingGamesContainer" class="p-4">
+                <!-- Loading state -->
+                <div id="upcomingGamesLoading" class="text-center py-8">
+                    <div class="loading-spinner loading-lg mx-auto mb-4"></div>
+                    <p class="text-gray-500">Loading upcoming games...</p>
                 </div>
+                
+                <!-- Empty state -->
+                <div id="upcomingGamesEmpty" class="text-center py-8 hidden">
+                    <i class="fas fa-calendar-plus text-gray-400 text-4xl mb-4"></i>
+                    <p class="text-gray-500 mb-4">No upcoming pickup games found</p>
+                    <a href="/mobile/create-pickup-game" class="inline-block bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+                        <i class="fas fa-plus mr-2"></i>Create the First Game
+                    </a>
+                </div>
+                
+                <!-- Games will be populated here -->
+                <div id="upcomingGamesList" class="space-y-4 hidden"></div>
+            </div>
+        </div>
 
-                <!-- Game 2 -->
-                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                    <div class="flex justify-between items-start mb-3">
-                        <div>
-                            <h3 class="text-lg font-semibold text-gray-900">Monday night - Series 28 or lower</h3>
-                            <p class="text-sm text-gray-600">Monday, Jan 22 at 6:30 PM</p>
-                        </div>
-                        <span class="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded-full">Nearly Full</span>
-                    </div>
-                    
-                    <div class="grid grid-cols-2 gap-4 mb-3">
-                        <div class="text-center">
-                            <div class="text-xl font-bold text-gray-900">6</div>
-                            <div class="text-xs text-gray-500">Players Requested</div>
-                        </div>
-                        <div class="text-center">
-                            <div class="text-xl font-bold text-orange-600">5</div>
-                            <div class="text-xs text-gray-500">Committed Players</div>
-                        </div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <p class="text-sm text-gray-700"><strong>Criteria:</strong> Series 28 or lower, Tennaqua only</p>
-                    </div>
-                    
-                    <button class="w-full bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors">
-                        <i class="fas fa-plus mr-1"></i>Join Game
-                    </button>
+        <!-- Past Pickup Games Section -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-history text-blue-500 mr-2"></i>
+                    Past Pickup Games
+                </h2>
+                <p class="text-sm text-gray-600 mt-2">View previous pickup games and their results.</p>
+            </div>
+            
+            <div id="pastGamesContainer" class="p-4">
+                <!-- Loading state -->
+                <div id="pastGamesLoading" class="text-center py-8">
+                    <div class="loading-spinner loading-lg mx-auto mb-4"></div>
+                    <p class="text-gray-500">Loading past games...</p>
                 </div>
-
-                <!-- Game 3 -->
-                <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                    <div class="flex justify-between items-start mb-3">
-                        <div>
-                            <h3 class="text-lg font-semibold text-gray-900">Sunday afternoon - inter club play</h3>
-                            <p class="text-sm text-gray-600">Sunday, Jan 21 at 2:00 PM</p>
-                        </div>
-                        <span class="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">Open</span>
-                    </div>
-                    
-                    <div class="grid grid-cols-2 gap-4 mb-3">
-                        <div class="text-center">
-                            <div class="text-xl font-bold text-gray-900">8</div>
-                            <div class="text-xs text-gray-500">Players Requested</div>
-                        </div>
-                        <div class="text-center">
-                            <div class="text-xl font-bold text-blue-600">3</div>
-                            <div class="text-xs text-gray-500">Committed Players</div>
-                        </div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <p class="text-sm text-gray-700"><strong>Criteria:</strong> Series 7 to 15, all clubs</p>
-                    </div>
-                    
-                    <button class="w-full bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors">
-                        <i class="fas fa-plus mr-1"></i>Join Game
-                    </button>
+                
+                <!-- Empty state -->
+                <div id="pastGamesEmpty" class="text-center py-8 hidden">
+                    <i class="fas fa-calendar-times text-gray-400 text-4xl mb-4"></i>
+                    <p class="text-gray-500">No past pickup games found</p>
                 </div>
+                
+                <!-- Games will be populated here -->
+                <div id="pastGamesList" class="space-y-4 hidden"></div>
             </div>
         </div>
 
@@ -398,6 +354,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const closeGameModal = document.getElementById('closeGameModal');
     const gameDetailsContent = document.getElementById('gameDetailsContent');
     const gameActionsContainer = document.getElementById('gameActionsContainer');
+    
+    // Get current user ID for creator comparison
+    const currentUserId = {{ session_data.user.id if session_data and session_data.user and session_data.user.id else 'null' }};
 
     // Initialize notification toggle
     function initializeNotificationToggle() {
@@ -525,10 +484,430 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 3000);
     }
 
+    // Load pickup games from API
+    async function loadPickupGames() {
+        try {
+            const response = await fetch('/api/pickup-games');
+            if (response.ok) {
+                const data = await response.json();
+                renderUpcomingGames(data.upcoming_games || []);
+                renderPastGames(data.past_games || []);
+            } else {
+                showError('Failed to load pickup games');
+            }
+        } catch (error) {
+            console.error('Error loading pickup games:', error);
+            showError('Network error loading pickup games');
+        }
+    }
+    
+    // Render upcoming games
+    function renderUpcomingGames(games) {
+        const loadingEl = document.getElementById('upcomingGamesLoading');
+        const emptyEl = document.getElementById('upcomingGamesEmpty');
+        const listEl = document.getElementById('upcomingGamesList');
+        
+        // Hide loading
+        loadingEl.classList.add('hidden');
+        
+        if (games.length === 0) {
+            emptyEl.classList.remove('hidden');
+            listEl.classList.add('hidden');
+        } else {
+            emptyEl.classList.add('hidden');
+            listEl.classList.remove('hidden');
+            
+            listEl.innerHTML = games.map(game => createGameHTML(game, false)).join('');
+        }
+    }
+    
+    // Render past games
+    function renderPastGames(games) {
+        const loadingEl = document.getElementById('pastGamesLoading');
+        const emptyEl = document.getElementById('pastGamesEmpty');
+        const listEl = document.getElementById('pastGamesList');
+        
+        // Hide loading
+        loadingEl.classList.add('hidden');
+        
+        if (games.length === 0) {
+            emptyEl.classList.remove('hidden');
+            listEl.classList.add('hidden');
+        } else {
+            emptyEl.classList.add('hidden');
+            listEl.classList.remove('hidden');
+            
+            listEl.innerHTML = games.map(game => createGameHTML(game, true)).join('');
+        }
+    }
+    
+    // Create HTML for a single game
+    function createGameHTML(game, isPast = false) {
+        const statusColors = {
+            'Open': { bg: 'bg-blue-100', text: 'text-blue-800' },
+            'Nearly Full': { bg: 'bg-orange-100', text: 'text-orange-800' },
+            'Closed': { bg: 'bg-red-100', text: 'text-red-800' }
+        };
+        
+        const statusColor = statusColors[game.status] || statusColors['Open'];
+        
+        // Check if current user is the creator
+        const isCreator = currentUserId && game.creator_user_id && currentUserId === game.creator_user_id;
+        
+        // Determine button text and action based on user participation
+        let buttonText, buttonAction, buttonClass, buttonIcon, buttonDisabled;
+        
+        if (isPast) {
+            buttonText = 'View Results';
+            buttonAction = 'view';
+            buttonClass = 'bg-gray-400 cursor-not-allowed';
+            buttonIcon = 'eye';
+            buttonDisabled = true;
+        } else if (game.status === 'Closed') {
+            buttonText = 'Game Full';
+            buttonAction = 'join';
+            buttonClass = 'bg-gray-400 cursor-not-allowed';
+            buttonIcon = 'ban';
+            buttonDisabled = true;
+        } else if (game.user_has_joined) {
+            buttonText = 'Leave Game';
+            buttonAction = 'leave';
+            buttonClass = 'bg-red-600 hover:bg-red-700';
+            buttonIcon = '';
+            buttonDisabled = false;
+        } else {
+            buttonText = 'Join Game';
+            buttonAction = 'join';
+            buttonClass = 'bg-green-600 hover:bg-green-700';
+            buttonIcon = '';
+            buttonDisabled = false;
+        }
+        
+        // Format criteria on multiple lines
+        const criteriaLines = [
+            `PTI Range: ${game.pti_range}`,
+            `Series: ${game.series_criteria}`,
+            game.club_only ? `${game.club_name} only` : 'All clubs'
+        ];
+        
+        const criteriaHTML = criteriaLines.map(line => 
+            `<div class="text-sm text-gray-700">${line}</div>`
+        ).join('');
+        
+        // Create edit button HTML if user is creator
+        const editButtonHTML = isCreator && !isPast ? `
+            <button class="game-edit-btn w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors mb-2" 
+                    data-game-id="${game.id}">
+                <i class="fas fa-edit mr-2"></i>Edit Game
+            </button>
+        ` : '';
+        
+        return `
+            <div class="bg-gray-50 rounded-lg p-4 border border-gray-200" data-game-id="${game.id}">
+                <div class="flex justify-between items-start mb-3">
+                    <div class="flex-1">
+                        <h3 class="text-lg font-semibold text-gray-900">${game.description}</h3>
+                        <p class="text-sm text-gray-600">${game.formatted_date} at ${game.formatted_time}</p>
+                        ${isCreator ? '<p class="text-xs text-blue-600 font-medium mt-1"><i class="fas fa-crown mr-1"></i>Your Game</p>' : ''}
+                    </div>
+                    <span class="text-xs ${statusColor.bg} ${statusColor.text} px-2 py-1 rounded-full">${game.status}</span>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4 mb-3">
+                    <div class="text-center">
+                        <div class="text-xl font-bold text-gray-900">${game.players_requested}</div>
+                        <div class="text-xs text-gray-500">Players Requested</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-xl font-bold ${game.status === 'Open' ? 'text-blue-600' : game.status === 'Nearly Full' ? 'text-orange-600' : 'text-red-600'}">${game.players_committed}</div>
+                        <div class="text-xs text-gray-500">Committed Players</div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="text-sm font-medium text-gray-900 mb-1">Criteria:</div>
+                    ${criteriaHTML}
+                </div>
+                
+                ${editButtonHTML}
+                <button class="game-action-btn w-full ${buttonClass} text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors" 
+                        data-game-id="${game.id}" 
+                        data-action="${buttonAction}"
+                        ${buttonDisabled ? 'disabled' : ''}>
+                    ${buttonIcon ? `<i class="fas fa-${buttonIcon} mr-1"></i>` : ''}${buttonText}
+                </button>
+            </div>
+        `;
+    }
+    
+    // Handle game edit
+    async function handleGameEdit(gameId) {
+        try {
+            showInfo('Loading game details for editing...');
+            
+            // Redirect to create page with edit parameter
+            window.location.href = `/mobile/create-pickup-game?edit=${gameId}`;
+            
+        } catch (error) {
+            console.error('Error handling game edit:', error);
+            showError('Failed to load game for editing');
+        }
+    }
+    
+    // Handle game action (join/leave)
+    async function handleGameAction(gameId, action) {
+        if (action === 'view') {
+            // TODO: Implement view past game functionality
+            showInfo('View past game functionality coming soon!');
+            return;
+        }
+        
+        // Get game details from the DOM for personalized message
+        const gameElement = document.querySelector(`[data-game-id="${gameId}"]`);
+        let gameDescription = 'pickup game';
+        let gameDate = '';
+        let gameTime = '';
+        
+        if (gameElement) {
+            const titleElement = gameElement.querySelector('h3');
+            const dateTimeElement = gameElement.querySelector('.text-sm.text-gray-600');
+            
+            if (titleElement) {
+                gameDescription = titleElement.textContent.trim();
+            }
+            
+            if (dateTimeElement) {
+                const dateTimeText = dateTimeElement.textContent.trim();
+                // Extract date and time from "Monday, Jan 15 at 6:30 PM" format
+                const parts = dateTimeText.split(' at ');
+                if (parts.length === 2) {
+                    gameDate = parts[0];
+                    gameTime = parts[1];
+                }
+            }
+        }
+        
+        try {
+            let url, method, successMessage;
+            
+            if (action === 'join') {
+                url = `/api/pickup-games/${gameId}/join`;
+                method = 'POST';
+                successMessage = `You just joined "${gameDescription}" at ${gameDate} ${gameTime}`;
+            } else if (action === 'leave') {
+                url = `/api/pickup-games/${gameId}/leave`;
+                method = 'DELETE';
+                successMessage = `You just left "${gameDescription}" at ${gameDate} ${gameTime}`;
+            } else {
+                showError('Invalid action');
+                return;
+            }
+            
+            const response = await fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok && result.success) {
+                if (action === 'leave') {
+                    showLeaveSuccess(successMessage);
+                } else {
+                    showSuccess(successMessage);
+                }
+                // Reload games to update counts and button states
+                setTimeout(() => loadPickupGames(), 1000);
+            } else {
+                showError(result.error || `Failed to ${action} pickup game`);
+            }
+        } catch (error) {
+            console.error(`Error ${action}ing pickup game:`, error);
+            showError('Network error. Please try again.');
+        }
+    }
+    
+    // Show error message
+    function showError(message) {
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'fixed top-4 left-4 right-4 bg-red-500 text-white p-4 rounded-lg shadow-lg z-50 transform transition-all duration-300';
+        errorDiv.style.zIndex = '1000';
+        errorDiv.innerHTML = `
+            <div class="flex items-center gap-2">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span class="font-medium">${message}</span>
+                <button onclick="this.parentNode.parentNode.remove()" class="ml-auto">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `;
+        
+        // Add entrance animation
+        errorDiv.style.transform = 'translateY(-20px)';
+        errorDiv.style.opacity = '0';
+        
+        document.body.appendChild(errorDiv);
+        
+        // Trigger entrance animation
+        setTimeout(() => {
+            errorDiv.style.transform = 'translateY(0)';
+            errorDiv.style.opacity = '1';
+        }, 10);
+        
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            if (errorDiv.parentNode) {
+                errorDiv.style.transform = 'translateY(-20px)';
+                errorDiv.style.opacity = '0';
+                setTimeout(() => {
+                    if (errorDiv.parentNode) {
+                        errorDiv.parentNode.removeChild(errorDiv);
+                    }
+                }, 300);
+            }
+        }, 5000);
+    }
+    
+    // Show success message
+    function showSuccess(message) {
+        const successDiv = document.createElement('div');
+        successDiv.className = 'fixed top-4 left-4 right-4 bg-green-500 text-white p-6 rounded-lg shadow-xl z-50 transform transition-all duration-300';
+        successDiv.style.zIndex = '9999';  // Much higher z-index
+        successDiv.style.position = 'fixed';
+        successDiv.style.top = '1rem';
+        successDiv.style.left = '1rem';
+        successDiv.style.right = '1rem';
+        successDiv.style.boxShadow = '0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.04)';
+        successDiv.innerHTML = `
+            <div class="flex items-center gap-3">
+                <i class="fas fa-check-circle text-2xl text-green-200"></i>
+                <span class="font-semibold text-lg flex-1">${message}</span>
+                <button onclick="this.parentNode.parentNode.remove()" class="ml-2 text-green-200 hover:text-white transition-colors">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+        `;
+        
+        // Add entrance animation
+        successDiv.style.transform = 'translateY(-50px) scale(0.9)';
+        successDiv.style.opacity = '0';
+        
+        document.body.appendChild(successDiv);
+        
+        // Trigger entrance animation
+        setTimeout(() => {
+            successDiv.style.transform = 'translateY(0) scale(1)';
+            successDiv.style.opacity = '1';
+        }, 10);
+        
+        // Auto-remove after 4 seconds
+        setTimeout(() => {
+            if (successDiv.parentNode) {
+                successDiv.style.transform = 'translateY(-50px) scale(0.9)';
+                successDiv.style.opacity = '0';
+                setTimeout(() => {
+                    if (successDiv.parentNode) {
+                        successDiv.parentNode.removeChild(successDiv);
+                    }
+                }, 300);
+            }
+        }, 4000);
+    }
+    
+    // Show info message
+    function showInfo(message) {
+        const infoDiv = document.createElement('div');
+        infoDiv.className = 'fixed top-4 left-4 right-4 bg-blue-500 text-white p-4 rounded-lg shadow-lg z-50 transform transition-all duration-300';
+        infoDiv.style.zIndex = '1000';
+        infoDiv.innerHTML = `
+            <div class="flex items-center gap-2">
+                <i class="fas fa-info-circle"></i>
+                <span class="font-medium">${message}</span>
+                <button onclick="this.parentNode.parentNode.remove()" class="ml-auto">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `;
+        
+        // Add entrance animation
+        infoDiv.style.transform = 'translateY(-20px)';
+        infoDiv.style.opacity = '0';
+        
+        document.body.appendChild(infoDiv);
+        
+        // Trigger entrance animation
+        setTimeout(() => {
+            infoDiv.style.transform = 'translateY(0)';
+            infoDiv.style.opacity = '1';
+        }, 10);
+        
+        // Auto-remove after 3 seconds
+        setTimeout(() => {
+            if (infoDiv.parentNode) {
+                infoDiv.style.transform = 'translateY(-20px)';
+                infoDiv.style.opacity = '0';
+                setTimeout(() => {
+                    if (infoDiv.parentNode) {
+                        infoDiv.parentNode.removeChild(infoDiv);
+                    }
+                }, 300);
+            }
+        }, 3000);
+    }
+
+    // Show success message for leaving games (red background) - mirrors showSuccess exactly
+    function showLeaveSuccess(message) {
+        const successDiv = document.createElement('div');
+        successDiv.className = 'fixed top-4 left-4 right-4 bg-red-500 text-white p-6 rounded-lg shadow-xl z-50 transform transition-all duration-300';
+        successDiv.style.zIndex = '9999';  // Same high z-index as join message
+        successDiv.style.position = 'fixed';
+        successDiv.style.top = '1rem';
+        successDiv.style.left = '1rem';
+        successDiv.style.right = '1rem';
+        successDiv.style.boxShadow = '0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.04)';
+        successDiv.innerHTML = `
+            <div class="flex items-center gap-3">
+                <i class="fas fa-check-circle text-2xl text-red-200"></i>
+                <span class="font-semibold text-lg flex-1">${message}</span>
+                <button onclick="this.parentNode.parentNode.remove()" class="ml-2 text-red-200 hover:text-white transition-colors">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+        `;
+        
+        // Add entrance animation - same as join message
+        successDiv.style.transform = 'translateY(-50px) scale(0.9)';
+        successDiv.style.opacity = '0';
+        
+        document.body.appendChild(successDiv);
+        
+        // Trigger entrance animation
+        setTimeout(() => {
+            successDiv.style.transform = 'translateY(0) scale(1)';
+            successDiv.style.opacity = '1';
+        }, 10);
+        
+        // Auto-remove after 4 seconds
+        setTimeout(() => {
+            if (successDiv.parentNode) {
+                successDiv.style.transform = 'translateY(-50px) scale(0.9)';
+                successDiv.style.opacity = '0';
+                setTimeout(() => {
+                    if (successDiv.parentNode) {
+                        successDiv.parentNode.removeChild(successDiv);
+                    }
+                }, 300);
+            }
+        }, 4000);
+    }
+
     // Initialize page
     function initializePage() {
         setupEventListeners();
         initializeNotificationToggle();
+        loadPickupGames();
         console.log('Pickup games page initialized');
     }
 
@@ -541,11 +920,6 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
         
-        // Join game listeners for upcoming games
-        document.querySelectorAll('.w-full.bg-green-600').forEach(btn => {
-            btn.addEventListener('click', handleJoinUpcomingGame);
-        });
-        
         // Close modal when clicking outside
         if (gameDetailsModal) {
             gameDetailsModal.addEventListener('click', (e) => {
@@ -554,19 +928,58 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
         }
-    }
-
-    // Handle join upcoming game
-    function handleJoinUpcomingGame(event) {
-        const gameCard = event.target.closest('.bg-gray-50');
-        const gameTitle = gameCard.querySelector('h3').textContent;
         
-        // In a real app, this would make an API call to join the game
-        alert(`Joining "${gameTitle}"! The organizer will be notified.`);
+        // Game action buttons (join/view) - use event delegation for dynamically created content
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('game-action-btn') || e.target.closest('.game-action-btn')) {
+                const button = e.target.classList.contains('game-action-btn') ? e.target : e.target.closest('.game-action-btn');
+                const gameId = parseInt(button.dataset.gameId);
+                const action = button.dataset.action;
+                
+                if (gameId && action && !button.disabled) {
+                    handleGameAction(gameId, action);
+                }
+            }
+        });
+        
+        // Game edit buttons - use event delegation for dynamically created content
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('game-edit-btn') || e.target.closest('.game-edit-btn')) {
+                const button = e.target.classList.contains('game-edit-btn') ? e.target : e.target.closest('.game-edit-btn');
+                const gameId = parseInt(button.dataset.gameId);
+                
+                if (gameId) {
+                    handleGameEdit(gameId);
+                }
+            }
+        });
     }
 
     // Initialize the page
     initializePage();
+    
+    // Add global test functions for easy console testing
+    window.testSuccess = function() {
+        showSuccess('✅ Test Success: You just joined "Saturday Morning Game" at Saturday, Jul 13 8:00 AM');
+    };
+    
+    window.testError = function() {
+        showError('❌ Test Error: Game is full - you cannot join this game');
+    };
+    
+    window.testInfo = function() {
+        showInfo('ℹ️ Test Info: View past game functionality coming soon!');
+    };
+    
+    window.testLeave = function() {
+        showLeaveSuccess('🔴 Test Leave: You just left "Saturday Morning Game" at Saturday, Jul 13 8:00 AM');
+    };
+    
+    console.log('🔧 Global test functions available:');
+    console.log('   testSuccess() - Test green join message');
+    console.log('   testLeave() - Test red leave message');
+    console.log('   testError() - Test error message');
+    console.log('   testInfo() - Test info message');
 });
 </script>
 {% endblock %} 

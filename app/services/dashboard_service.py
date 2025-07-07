@@ -297,40 +297,79 @@ def get_activity_heatmap_data(days: int = 30) -> List[Dict]:
         return []
 
 
-def get_top_active_players(limit: int = 10) -> List[Dict]:
+def get_top_active_players(limit: int = 10, filters: Dict[str, Any] = None) -> List[Dict]:
     """
-    Get top players by activity count
+    Get top users by activity count (aggregated by user, not individual player records)
 
     Args:
-        limit: Number of top players to return
+        limit: Number of top users to return
+        filters: Dictionary with filtering options (exclude_impersonated, exclude_admin)
 
     Returns:
-        List of player dictionaries with activity counts
+        List of user dictionaries with activity counts
     """
     try:
-        top_players = execute_query(
-            """
+        # Handle filters
+        if filters is None:
+            filters = {"exclude_impersonated": False, "exclude_admin": False}
+        
+        exclude_impersonated_filter = filters.get("exclude_impersonated", False)
+        exclude_admin_filter = filters.get("exclude_admin", False)
+        
+        # Build exclusion clauses
+        base_exclusions = """
+            WHERE ual.id IS NOT NULL AND ual.timestamp IS NOT NULL
+            AND NOT (ual.page = 'admin_dashboard' AND ual.details = 'Admin accessed activity monitoring dashboard')
+        """
+        
+        # Add filtering exclusions
+        additional_exclusions = []
+        
+        if exclude_impersonated_filter:
+            additional_exclusions.append("NOT (ual.details LIKE '%impersonation%' OR ual.action LIKE '%impersonation%')")
+            
+        if exclude_admin_filter:
+            additional_exclusions.append("NOT (u.is_admin = true)")
+        
+        # Combine all exclusions
+        all_exclusions = base_exclusions
+        if additional_exclusions:
+            all_exclusions += " AND " + " AND ".join(additional_exclusions)
+        
+        top_users = execute_query(
+            f"""
             SELECT 
-                p.id,
-                p.first_name,
-                p.last_name,
-                c.name as club_name,
-                s.name as series_name,
+                u.id as user_id,
+                u.first_name,
+                u.last_name,
+                -- Get primary club/series from user's league_context or most recent association
+                COALESCE(
+                    (SELECT c.name FROM user_player_associations upa 
+                     JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id 
+                     JOIN clubs c ON p.club_id = c.id 
+                     WHERE upa.user_id = u.id AND (p.league_id = u.league_context OR u.league_context IS NULL)
+                     ORDER BY CASE WHEN p.league_id = u.league_context THEN 1 ELSE 2 END, upa.created_at DESC 
+                     LIMIT 1),
+                    'No Club'
+                ) as club_name,
+                COALESCE(
+                    (SELECT s.name FROM user_player_associations upa 
+                     JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id 
+                     JOIN series s ON p.series_id = s.id 
+                     WHERE upa.user_id = u.id AND (p.league_id = u.league_context OR u.league_context IS NULL)
+                     ORDER BY CASE WHEN p.league_id = u.league_context THEN 1 ELSE 2 END, upa.created_at DESC 
+                     LIMIT 1),
+                    'No Series'
+                ) as series_name,
                 COUNT(ual.id) as activity_count,
                 COUNT(CASE WHEN ual.activity_type = 'login' THEN 1 END) as login_count,
                 COUNT(CASE WHEN ual.activity_type = 'score_submitted' THEN 1 END) as matches_created,
                 COUNT(CASE WHEN ual.activity_type = 'poll_response' THEN 1 END) as poll_responses,
                 MAX(ual.timestamp) as last_activity
-            FROM players p
-            LEFT JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
-            LEFT JOIN users u ON upa.user_id = u.id
-            LEFT JOIN user_activity_logs ual ON u.email = ual.user_email
-            LEFT JOIN clubs c ON p.club_id = c.id
-            LEFT JOIN series s ON p.series_id = s.id
-            WHERE ual.id IS NOT NULL AND ual.timestamp IS NOT NULL
-            AND NOT (ual.page = 'admin_dashboard' AND ual.details = 'Admin accessed activity monitoring dashboard')
-            AND NOT (ual.user_email = 'rossfreedman@gmail.com')
-            GROUP BY p.id, p.first_name, p.last_name, c.name, s.name
+            FROM users u
+            JOIN user_activity_logs ual ON u.email = ual.user_email
+            {all_exclusions}
+            GROUP BY u.id, u.first_name, u.last_name, u.league_context
             ORDER BY activity_count DESC
             LIMIT %(limit)s
         """,
@@ -338,64 +377,81 @@ def get_top_active_players(limit: int = 10) -> List[Dict]:
         )
 
         # Format for frontend
-        formatted_players = []
-        for player in top_players:
-            formatted_players.append(
+        formatted_users = []
+        for user in top_users:
+            formatted_users.append(
                 {
-                    "id": player["id"],
-                    "first_name": player["first_name"],
-                    "last_name": player["last_name"],
-                    "club_name": player["club_name"],
-                    "series_name": player["series_name"],
-                    "activity_count": player["activity_count"],
-                    "login_count": player["login_count"],
-                    "matches_created": player["matches_created"],
-                    "poll_responses": player["poll_responses"],
+                    "id": user["user_id"],
+                    "first_name": user["first_name"],
+                    "last_name": user["last_name"],
+                    "club_name": user["club_name"],
+                    "series_name": user["series_name"],
+                    "activity_count": user["activity_count"],
+                    "login_count": user["login_count"],
+                    "matches_created": user["matches_created"],
+                    "poll_responses": user["poll_responses"],
                     "last_activity": (
-                        player["last_activity"].isoformat()
-                        if player["last_activity"]
+                        user["last_activity"].isoformat()
+                        if user["last_activity"]
                         else None
                     ),
                 }
             )
 
-        return formatted_players
+        return formatted_users
 
     except Exception as e:
-        print(f"Error getting top active players: {str(e)}")
+        print(f"Error getting top active users: {str(e)}")
         print(traceback.format_exc())
         return []
 
 
-def get_activity_stats(exclude_impersonated: bool = False) -> Dict[str, Any]:
+def get_activity_stats(exclude_impersonated: bool = False, filters: Dict[str, Any] = None) -> Dict[str, Any]:
     """
     Get overall activity statistics
 
     Args:
-        exclude_impersonated: Whether to exclude impersonated activities from stats
+        exclude_impersonated: Whether to exclude impersonated activities from stats (deprecated, use filters)
+        filters: Dictionary with filtering options (exclude_impersonated, exclude_admin)
 
     Returns:
         Dictionary with various activity statistics
     """
     try:
+        # Handle both old and new parameter patterns for backward compatibility
+        if filters is None:
+            filters = {"exclude_impersonated": exclude_impersonated, "exclude_admin": False}
+        
+        # Extract filter values
+        exclude_impersonated_filter = filters.get("exclude_impersonated", exclude_impersonated)
+        exclude_admin_filter = filters.get("exclude_admin", False)
+        
         # Build base exclusion clauses
         base_exclusions = """
             WHERE ual.timestamp IS NOT NULL
             AND NOT (ual.page = 'admin_dashboard' AND ual.details = 'Admin accessed activity monitoring dashboard')
-            AND NOT (u.is_admin = true AND ual.user_email = 'rossfreedman@gmail.com')
         """
         
-        impersonation_exclusion = ""
-        if exclude_impersonated:
-            impersonation_exclusion = "AND NOT (ual.details LIKE '%impersonation%' OR ual.action LIKE '%impersonation%')"
+        # Add filtering exclusions
+        additional_exclusions = []
+        
+        if exclude_impersonated_filter:
+            additional_exclusions.append("NOT (ual.details LIKE '%impersonation%' OR ual.action LIKE '%impersonation%')")
+            
+        if exclude_admin_filter:
+            additional_exclusions.append("NOT (u.is_admin = true)")
+        
+        # Combine all exclusions
+        all_exclusions = base_exclusions
+        if additional_exclusions:
+            all_exclusions += " AND " + " AND ".join(additional_exclusions)
 
         # Get basic counts
         total_activities = execute_query_one(
             f"""
             SELECT COUNT(*) as count FROM user_activity_logs ual
             LEFT JOIN users u ON ual.user_email = u.email
-            {base_exclusions}
-            {impersonation_exclusion}
+            {all_exclusions}
         """
         )["count"]
 
@@ -404,9 +460,8 @@ def get_activity_stats(exclude_impersonated: bool = False) -> Dict[str, Any]:
             f"""
             SELECT COUNT(*) as count FROM user_activity_logs ual
             LEFT JOIN users u ON ual.user_email = u.email
-            {base_exclusions}
+            {all_exclusions}
             AND DATE(ual.timestamp) = CURRENT_DATE
-            {impersonation_exclusion}
         """
         )["count"]
 
@@ -418,24 +473,33 @@ def get_activity_stats(exclude_impersonated: bool = False) -> Dict[str, Any]:
                 COUNT(*) as count
             FROM user_activity_logs ual
             LEFT JOIN users u ON ual.user_email = u.email
-            {base_exclusions}
-            {impersonation_exclusion}
+            {all_exclusions}
             GROUP BY ual.activity_type
             ORDER BY count DESC
             LIMIT 10
         """
         )
 
-        # Get unique users active today
-        active_users_today = execute_query_one(
-            """
-            SELECT COUNT(DISTINCT ual.user_email) as count FROM user_activity_logs ual
-            LEFT JOIN users u ON ual.user_email = u.email
+        # Get unique users active today - need to build custom query for this one
+        active_users_exclusions = """
             WHERE DATE(ual.timestamp) = CURRENT_DATE
             AND ual.timestamp IS NOT NULL
             AND ual.user_email IS NOT NULL
             AND NOT (ual.page = 'admin_dashboard' AND ual.details = 'Admin accessed activity monitoring dashboard')
-            AND NOT (u.is_admin = true AND ual.user_email = 'rossfreedman@gmail.com')
+        """
+        
+        # Add filtering exclusions to active users query
+        if exclude_impersonated_filter:
+            active_users_exclusions += " AND NOT (ual.details LIKE '%impersonation%' OR ual.action LIKE '%impersonation%')"
+            
+        if exclude_admin_filter:
+            active_users_exclusions += " AND NOT (u.is_admin = true)"
+        
+        active_users_today = execute_query_one(
+            f"""
+            SELECT COUNT(DISTINCT ual.user_email) as count FROM user_activity_logs ual
+            LEFT JOIN users u ON ual.user_email = u.email
+            {active_users_exclusions}
         """
         )["count"]
 
@@ -496,7 +560,6 @@ def get_player_activity_history(player_id: int, limit: int = 100) -> List[Dict]:
             LEFT JOIN series s ON p.series_id = s.id
             WHERE p.id = %(player_id)s AND ual.timestamp IS NOT NULL
             AND NOT (ual.page = 'admin_dashboard' AND ual.details = 'Admin accessed activity monitoring dashboard')
-            AND NOT (ual.user_email = 'rossfreedman@gmail.com')
             ORDER BY ual.timestamp DESC
             LIMIT %(limit)s
         """,
@@ -581,7 +644,6 @@ def get_team_activity_history(team_id: int, limit: int = 100) -> List[Dict]:
             LEFT JOIN teams t ON p.team_id = t.id
             WHERE t.id = %(team_id)s AND ual.timestamp IS NOT NULL
             AND NOT (ual.page = 'admin_dashboard' AND ual.details = 'Admin accessed activity monitoring dashboard')
-            AND NOT (ual.user_email = 'rossfreedman@gmail.com')
             ORDER BY ual.timestamp DESC
             LIMIT %(limit)s
         """,
@@ -655,7 +717,6 @@ def get_filter_options() -> Dict[str, List]:
             LEFT JOIN users u ON ual.user_email = u.email
             WHERE ual.timestamp IS NOT NULL
             AND NOT (ual.page = 'admin_dashboard' AND ual.details = 'Admin accessed activity monitoring dashboard')
-            AND NOT (u.is_admin = true AND ual.user_email = 'rossfreedman@gmail.com')
             ORDER BY ual.activity_type
         """
         )
@@ -673,7 +734,6 @@ def get_filter_options() -> Dict[str, List]:
             JOIN series s ON t.series_id = s.id
             WHERE ual.timestamp IS NOT NULL
             AND NOT (ual.page = 'admin_dashboard' AND ual.details = 'Admin accessed activity monitoring dashboard')
-            AND NOT (ual.user_email = 'rossfreedman@gmail.com')
             ORDER BY t.team_name
         """
         )
