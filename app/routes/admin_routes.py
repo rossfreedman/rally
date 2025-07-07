@@ -182,11 +182,27 @@ def serve_admin_etl():
 @admin_required
 def serve_admin_user_activity():
     """Serve the admin user activity page"""
+    # Get email from query parameter
+    email = request.args.get('email')
+    
+    user_data = None
+    if email:
+        try:
+            # Get enhanced user data using the same service as the API
+            response_data = get_user_activity_logs(email)
+            user_data = response_data.get('user')
+        except Exception as e:
+            print(f"Error fetching user data for {email}: {str(e)}")
+            user_data = None
+    
     log_user_activity(
         session["user"]["email"], "page_visit", page="admin_user_activity"
     )
+    
     return render_template(
-        "mobile/admin_user_activity.html", session_data={"user": session["user"]}
+        "mobile/admin_user_activity.html", 
+        session_data={"user": session["user"]},
+        user=user_data
     )
 
 
@@ -1694,7 +1710,16 @@ def get_dashboard_top_players():
     """Get top active players for dashboard"""
     try:
         limit = int(request.args.get("limit", 10))
-        top_players = get_top_active_players(limit=limit)
+        exclude_impersonated = request.args.get("exclude_impersonated", "false").lower() == "true"
+        exclude_admin = request.args.get("exclude_admin", "false").lower() == "true"
+        
+        # Build filters for the top players function
+        filters = {
+            "exclude_impersonated": exclude_impersonated,
+            "exclude_admin": exclude_admin
+        }
+        
+        top_players = get_top_active_players(limit=limit, filters=filters)
 
         return jsonify({"status": "success", "top_players": top_players})
 
@@ -1710,7 +1735,15 @@ def get_dashboard_stats():
     """Get overall activity statistics for dashboard"""
     try:
         exclude_impersonated = request.args.get("exclude_impersonated", "false").lower() == "true"
-        stats = get_activity_stats(exclude_impersonated=exclude_impersonated)
+        exclude_admin = request.args.get("exclude_admin", "false").lower() == "true"
+        
+        # Build filters for the stats function
+        filters = {
+            "exclude_impersonated": exclude_impersonated,
+            "exclude_admin": exclude_admin
+        }
+        
+        stats = get_activity_stats(filters=filters)
 
         return jsonify({"status": "success", "stats": stats})
 

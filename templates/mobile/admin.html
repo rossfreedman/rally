@@ -34,7 +34,162 @@
     </p>
   </div>
 
-  <!-- Testing & Debug Section -->
+  <!-- 1. Activity Dashboard Section (Embedded) -->
+  <div class="icon-section mb-8">
+    <div class="flex items-center justify-center mb-6">
+      <div class="flex-grow border-t-2 border-gray-400"></div>
+      <div class="section-header text-xl font-bold px-4 text-center">
+        Activity Dashboard
+      </div>
+      <div class="flex-grow border-t-2 border-gray-400"></div>
+    </div>
+    
+    <!-- Stats Overview Cards -->
+    <div class="stats-section mb-6">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+        <div class="stat-card bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow">
+          <div class="flex items-center">
+            <div class="p-2 bg-blue-100 rounded-lg">
+              <i class="fas fa-chart-line text-blue-600 text-xl"></i>
+            </div>
+            <div class="ml-4">
+              <p class="text-sm font-medium text-gray-600">Total Activities</p>
+              <p class="text-xl font-bold text-gray-900" id="total-activities">-</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="stat-card bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow">
+          <div class="flex items-center">
+            <div class="p-2 bg-green-100 rounded-lg">
+              <i class="fas fa-calendar-day text-green-600 text-xl"></i>
+            </div>
+            <div class="ml-4">
+              <p class="text-sm font-medium text-gray-600">Today</p>
+              <p class="text-xl font-bold text-gray-900" id="today-activities">-</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="stat-card bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow">
+          <div class="flex items-center">
+            <div class="p-2 bg-purple-100 rounded-lg">
+              <i class="fas fa-users text-purple-600 text-xl"></i>
+            </div>
+            <div class="ml-4">
+              <p class="text-sm font-medium text-gray-600">Active Users</p>
+              <p class="text-xl font-bold text-gray-900" id="active-users">-</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="stat-card bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow">
+          <div class="flex items-center">
+            <div class="p-2 bg-orange-100 rounded-lg">
+              <i class="fas fa-bolt text-orange-600 text-xl"></i>
+            </div>
+            <div class="ml-4">
+              <p class="text-sm font-medium text-gray-600">Activity Rate</p>
+              <p class="text-lg font-bold text-gray-900" id="activity-rate">-</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Dashboard Content Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+      
+      <!-- Activity Timeline - Left Column -->
+      <div class="lg:col-span-2">
+        <!-- Activity Timeline -->
+        <div class="timeline-section bg-white rounded-lg shadow">
+          <div class="p-4 border-b border-gray-200">
+            <div class="flex items-center justify-between">
+              <h2 class="text-lg font-semibold text-gray-900">
+                <i class="fas fa-clock mr-2 text-blue-600"></i>Recent Activity
+              </h2>
+              <div class="flex items-center space-x-2">
+                <button id="refresh-timeline" class="text-gray-500 hover:text-blue-600 transition-colors">
+                  <i class="fas fa-sync-alt"></i>
+                </button>
+                <span class="text-sm text-gray-500" id="timeline-status">Loading...</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="timeline-container p-4" style="max-height: 400px; overflow-y: auto;">
+            <div id="timeline-content">
+              <!-- Timeline items will be loaded here -->
+              <div class="flex items-center justify-center py-8">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                <span class="ml-2 text-gray-600">Loading activities...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Sidebar -->
+      <div class="space-y-4">
+        
+        <!-- Top Active Users -->
+        <div class="top-players-section bg-white rounded-lg shadow">
+          <div class="p-4 border-b border-gray-200">
+            <h2 class="text-lg font-semibold text-gray-900">
+              <i class="fas fa-star mr-2 text-yellow-600"></i>Most Active Users
+            </h2>
+            <p class="text-sm text-gray-600 mt-1">Top performers today</p>
+          </div>
+          <div class="p-4">
+            <div id="top-players-content">
+              <div class="flex items-center justify-center py-4">
+                <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-yellow-600"></div>
+                <span class="ml-2 text-gray-600 text-sm">Loading users...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Rally Data Management Section -->
+  <div class="icon-section mb-8">
+    <div class="flex items-center justify-center mb-6">
+      <div class="flex-grow border-t-2 border-gray-400"></div>
+      <div class="section-header text-xl font-bold px-4 text-center">
+        Rally Data Management
+      </div>
+      <div class="flex-grow border-t-2 border-gray-400"></div>
+    </div>
+    <div class="icon-grid grid grid-cols-2 md:grid-cols-5 gap-4" aria-label="Rally Data Management">
+      <a href="/admin/leagues" class="icon-btn flex flex-col items-center p-4 bg-white rounded-lg shadow hover:shadow-md transition-shadow">
+        <i class="fas fa-trophy text-green-600 text-3xl mb-3"></i>
+        <span class="icon-label text-center font-semibold">Leagues</span>
+      </a>
+      <a href="/admin/clubs" class="icon-btn flex flex-col items-center p-4 bg-white rounded-lg shadow hover:shadow-md transition-shadow">
+        <i class="fas fa-building text-purple-600 text-3xl mb-3"></i>
+        <span class="icon-label text-center font-semibold">Clubs</span>
+      </a>
+      <a href="/admin/series" class="icon-btn flex flex-col items-center p-4 bg-white rounded-lg shadow hover:shadow-md transition-shadow">
+        <i class="fas fa-list text-orange-600 text-3xl mb-3"></i>
+        <span class="icon-label text-center font-semibold">Series</span>
+      </a>
+      <a href="/admin/users" class="icon-btn flex flex-col items-center p-4 bg-white rounded-lg shadow hover:shadow-md transition-shadow">
+        <i class="fas fa-users text-blue-600 text-3xl mb-3"></i>
+        <span class="icon-label text-center font-semibold">Users</span>
+      </a>
+      <a href="/admin/etl" class="icon-btn flex flex-col items-center p-4 bg-white rounded-lg shadow hover:shadow-md transition-shadow">
+        <i class="fas fa-database text-red-600 text-3xl mb-3"></i>
+        <span class="icon-label text-center font-semibold">ETL</span>
+      </a>
+    </div>
+  </div>
+
+  <!-- 3. Testing & Debug Section -->
   <div class="icon-section mb-8">
     <div class="flex items-center justify-center mb-6">
       <div class="flex-grow border-t-2 border-gray-400"></div>
@@ -84,79 +239,245 @@
       </div>
     </div>
   </div>
-
-  <!-- Player Management Section -->
-  <div class="icon-section mb-8">
-    <div class="flex items-center justify-center mb-6">
-      <div class="flex-grow border-t-2 border-gray-400"></div>
-      <div class="section-header text-xl font-bold px-4 text-center">
-        Player Management
-      </div>
-      <div class="flex-grow border-t-2 border-gray-400"></div>
-    </div>
-    <div class="icon-grid grid grid-cols-2 md:grid-cols-4 gap-4" aria-label="Player Management">
-      <a href="/admin/leagues" class="icon-btn flex flex-col items-center p-4 bg-white rounded-lg shadow hover:shadow-md transition-shadow">
-        <i class="fas fa-trophy text-green-600 text-3xl mb-3"></i>
-        <span class="icon-label text-center font-semibold">Leagues</span>
-      </a>
-      <a href="/admin/clubs" class="icon-btn flex flex-col items-center p-4 bg-white rounded-lg shadow hover:shadow-md transition-shadow">
-        <i class="fas fa-building text-purple-600 text-3xl mb-3"></i>
-        <span class="icon-label text-center font-semibold">Clubs</span>
-      </a>
-      <a href="/admin/series" class="icon-btn flex flex-col items-center p-4 bg-white rounded-lg shadow hover:shadow-md transition-shadow">
-        <i class="fas fa-list text-orange-600 text-3xl mb-3"></i>
-        <span class="icon-label text-center font-semibold">Series</span>
-      </a>
-      <a href="/admin/users" class="icon-btn flex flex-col items-center p-4 bg-white rounded-lg shadow hover:shadow-md transition-shadow">
-        <i class="fas fa-users text-blue-600 text-3xl mb-3"></i>
-        <span class="icon-label text-center font-semibold">Users</span>
-      </a>
-    </div>
-  </div>
-
-  <!-- Analytics & Monitoring Section -->
-  <div class="icon-section mb-8">
-    <div class="flex items-center justify-center mb-6">
-      <div class="flex-grow border-t-2 border-gray-400"></div>
-      <div class="section-header text-xl font-bold px-4 text-center">
-        Analytics & Monitoring
-      </div>
-      <div class="flex-grow border-t-2 border-gray-400"></div>
-    </div>
-    <div class="icon-grid grid grid-cols-1 gap-4 flex justify-center" aria-label="Analytics & Monitoring">
-      <a href="/admin/dashboard" class="icon-btn flex flex-col items-center p-4 bg-gradient-to-br from-blue-500 to-purple-600 text-white rounded-lg shadow hover:shadow-lg transition-all transform hover:scale-105">
-        <i class="fas fa-chart-line text-3xl mb-3"></i>
-        <span class="icon-label text-center font-semibold">Activity Dashboard</span>
-        <span class="text-xs mt-1 opacity-80">Real-time analytics</span>
-      </a>
-    </div>
-  </div>
-
-  <!-- Data Management Section -->
-  <div class="icon-section">
-    <div class="flex items-center justify-center mb-6">
-      <div class="flex-grow border-t-2 border-gray-400"></div>
-      <div class="section-header text-xl font-bold px-4 text-center">
-        Data Management
-      </div>
-      <div class="flex-grow border-t-2 border-gray-400"></div>
-    </div>
-    <div class="icon-grid grid grid-cols-1 gap-4 flex justify-center" aria-label="Data Management">
-      <a href="/admin/etl" class="icon-btn flex flex-col items-center p-4 bg-white rounded-lg shadow hover:shadow-md transition-shadow">
-        <i class="fas fa-database text-red-600 text-3xl mb-3"></i>
-        <span class="icon-label text-center font-semibold">ETL</span>
-      </a>
-    </div>
-  </div>
 </div>
 
 <script>
-// Load users for impersonation dropdown
+// Dashboard and Impersonation JavaScript
+let dashboardData = {
+  activities: [],
+  stats: {},
+  topPlayers: []
+};
+
+// Load users for impersonation dropdown and initialize dashboard
 document.addEventListener('DOMContentLoaded', function() {
     loadUsersForImpersonation();
     checkImpersonationStatus();
+    initializeDashboard();
 });
 
+// Dashboard initialization
+function initializeDashboard() {
+  loadDashboardStats();
+  loadTimelineActivities();
+  loadTopPlayers();
+  
+  // Set up auto-refresh
+  setInterval(refreshDashboardData, 30000); // Refresh every 30 seconds
+}
+
+async function loadDashboardStats() {
+  try {
+    // Include admin filtering - default to exclude admin activities for cleaner overview
+    const response = await fetch('/api/admin/dashboard/stats?exclude_admin=true&exclude_impersonated=false');
+    const data = await response.json();
+    
+    if (data.status === 'success') {
+      dashboardData.stats = data.stats;
+      updateStatsDisplay();
+    }
+  } catch (error) {
+    console.error('Error loading dashboard stats:', error);
+  }
+}
+
+async function loadTimelineActivities() {
+  try {
+    document.getElementById('timeline-status').textContent = 'Loading...';
+    
+    // Filter out admin activities for cleaner overview consistent with other sections
+    const response = await fetch('/api/admin/dashboard/activities?limit=10&exclude_admin=true&exclude_impersonated=false');
+    const data = await response.json();
+    
+    if (data.status === 'success') {
+      dashboardData.activities = data.activities;
+      renderTimeline();
+      document.getElementById('timeline-status').textContent = 'Updated just now';
+    }
+  } catch (error) {
+    console.error('Error loading timeline activities:', error);
+    document.getElementById('timeline-status').textContent = 'Error loading';
+  }
+}
+
+async function loadTopPlayers() {
+  try {
+    // Include admin filtering - default to exclude admin activities for cleaner overview
+    const response = await fetch('/api/admin/dashboard/top-players?limit=5&exclude_admin=true&exclude_impersonated=false');
+    const data = await response.json();
+    
+    if (data.status === 'success') {
+      dashboardData.topPlayers = data.top_players;
+      renderTopPlayers();
+    }
+  } catch (error) {
+    console.error('Error loading top users:', error);
+  }
+}
+
+function updateStatsDisplay() {
+  const stats = dashboardData.stats;
+  document.getElementById('total-activities').textContent = formatNumber(stats.total_activities || 0);
+  document.getElementById('today-activities').textContent = formatNumber(stats.today_activities || 0);
+  document.getElementById('active-users').textContent = formatNumber(stats.active_users_today || 0);
+  
+  // Calculate activity rate (activities per hour today)
+  const currentHour = new Date().getHours();
+  const rate = currentHour > 0 ? Math.round((stats.today_activities || 0) / currentHour) : (stats.today_activities || 0);
+  document.getElementById('activity-rate').textContent = `${rate}/hr`;
+}
+
+function renderTimeline() {
+  const container = document.getElementById('timeline-content');
+  const activities = dashboardData.activities;
+  
+  if (activities.length === 0) {
+    container.innerHTML = '<p class="text-gray-500 text-center py-4">No recent activities</p>';
+    return;
+  }
+  
+  const html = activities.map(activity => {
+    const timeAgo = getTimeAgo(activity.timestamp);
+    const actionIcon = getActionTypeIcon(activity.action_type);
+    const actionColor = getActionTypeColor(activity.action_type);
+    
+    return `
+      <div class="timeline-item ${activity.action_type} mb-4">
+        <div class="flex items-start space-x-3">
+          <div class="flex-shrink-0">
+            <div class="w-8 h-8 bg-${actionColor}-100 rounded-full flex items-center justify-center">
+              <i class="${actionIcon} text-${actionColor}-600 text-sm"></i>
+            </div>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between">
+              <p class="text-sm font-medium text-gray-900">
+                ${activity.action_description}
+              </p>
+              <p class="text-xs text-gray-500">${timeAgo}</p>
+            </div>
+            
+            ${activity.user ? `
+              <p class="text-xs text-gray-600 mt-1">
+                <i class="fas fa-user mr-1"></i>
+                ${activity.user.first_name} ${activity.user.last_name}
+              </p>
+            ` : ''}
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+  
+  container.innerHTML = html;
+}
+
+function renderTopPlayers() {
+  const container = document.getElementById('top-players-content');
+  const players = dashboardData.topPlayers;
+  
+  if (players.length === 0) {
+    container.innerHTML = '<p class="text-gray-500 text-sm text-center py-4">No user activity data</p>';
+    return;
+  }
+  
+  const html = players.map((player, index) => {
+    const rankIcon = index < 3 ? ['🥇', '🥈', '🥉'][index] : `#${index + 1}`;
+    
+    return `
+      <div class="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
+        <div class="flex items-center space-x-3">
+          <span class="text-sm font-bold" style="min-width: 30px;">${rankIcon}</span>
+          <div>
+            <p class="text-sm font-medium text-gray-900">
+              ${player.first_name} ${player.last_name}
+            </p>
+            <p class="text-xs text-gray-600">
+              ${player.club_name || 'Unknown Club'}
+            </p>
+          </div>
+        </div>
+        <div class="text-right">
+          <p class="text-sm font-bold text-gray-900">${formatNumber(player.activity_count)}</p>
+          <p class="text-xs text-gray-600">activities</p>
+        </div>
+      </div>
+    `;
+  }).join('');
+  
+  container.innerHTML = html;
+}
+
+function refreshDashboardData() {
+  loadDashboardStats();
+  loadTimelineActivities();
+  loadTopPlayers();
+}
+
+// Refresh button click handler
+document.addEventListener('click', function(e) {
+  if (e.target.id === 'refresh-timeline' || e.target.parentElement.id === 'refresh-timeline') {
+    refreshDashboardData();
+  }
+});
+
+// Utility functions
+function formatNumber(num) {
+  if (num >= 1000000) {
+    return (num / 1000000).toFixed(1) + 'M';
+  } else if (num >= 1000) {
+    return (num / 1000).toFixed(1) + 'K';
+  }
+  return num.toString();
+}
+
+function getTimeAgo(timestamp) {
+  const now = new Date();
+  const time = new Date(timestamp);
+  const diffMs = now - time;
+  const diffMins = Math.floor(diffMs / 60000);
+  
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  
+  const diffDays = Math.floor(diffHours / 24);
+  return `${diffDays}d ago`;
+}
+
+function getActionTypeIcon(actionType) {
+  const iconMap = {
+    'page_visit': 'fas fa-eye',
+    'user_action': 'fas fa-mouse-pointer',
+    'login': 'fas fa-sign-in-alt',
+    'logout': 'fas fa-sign-out-alt',
+    'availability_update': 'fas fa-calendar-check',
+    'poll_voted': 'fas fa-vote-yea',
+    'ai_chat': 'fas fa-robot',
+    'simulation_run': 'fas fa-play-circle',
+    'admin_action': 'fas fa-user-shield'
+  };
+  return iconMap[actionType] || 'fas fa-circle';
+}
+
+function getActionTypeColor(actionType) {
+  const colorMap = {
+    'page_visit': 'blue',
+    'user_action': 'green',
+    'login': 'green',
+    'logout': 'gray',
+    'availability_update': 'cyan',
+    'poll_voted': 'purple',
+    'ai_chat': 'indigo',
+    'simulation_run': 'orange',
+    'admin_action': 'red'
+  };
+  return colorMap[actionType] || 'gray';
+}
+
+// Impersonation functions (existing code)
 async function loadUsersForImpersonation() {
     try {
         const response = await fetch('/api/admin/users-for-impersonation');
@@ -334,7 +655,20 @@ async function checkImpersonationStatus() {
 </script>
 
 <style>
-/* Additional styles for the impersonation section */
+/* Dashboard Styles */
+.stat-card {
+  transition: transform 0.2s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+}
+
+.timeline-item {
+  position: relative;
+}
+
+/* Custom styles for various elements */
 .bg-yellow-100 { background-color: #fef3c7; }
 .border-yellow-500 { border-color: #f59e0b; }
 .text-yellow-600 { color: #d97706; }
@@ -352,5 +686,53 @@ async function checkImpersonationStatus() {
 .border-amber-200 { border-color: #fde68a; }
 .text-amber-500 { color: #f59e0b; }
 .text-amber-700 { color: #b45309; }
+
+/* Background color utilities */
+.bg-blue-100 { background-color: #dbeafe; }
+.bg-green-100 { background-color: #dcfce7; }
+.bg-purple-100 { background-color: #e9d5ff; }
+.bg-orange-100 { background-color: #fed7aa; }
+.bg-gray-100 { background-color: #f3f4f6; }
+
+/* Text color utilities */
+.text-blue-600 { color: #2563eb; }
+.text-green-600 { color: #16a34a; }
+.text-purple-600 { color: #9333ea; }
+.text-orange-600 { color: #ea580c; }
+.text-gray-600 { color: #4b5563; }
+.text-yellow-600 { color: #d97706; }
+
+/* Loading states */
+.loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .stats-section .grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+  }
+  
+  .stat-card {
+    padding: 0.75rem;
+  }
+  
+  .stat-card .text-xl {
+    font-size: 1.125rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .stats-section .grid {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+  
+  .stat-card {
+    padding: 1rem;
+  }
+}
 </style>
 {% endblock %} 

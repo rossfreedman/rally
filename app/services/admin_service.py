@@ -15,14 +15,34 @@ def get_all_users():
     try:
         users = execute_query(
             """
-            SELECT DISTINCT ON (u.id) u.id, u.first_name, u.last_name, u.email, u.last_login,
-                   c.name as club_name, s.name as series_name
+            SELECT DISTINCT ON (u.id) 
+                u.id, u.first_name, u.last_name, u.email, u.last_login, u.created_at,
+                c.name as club_name, s.name as series_name,
+                -- Check for activity in past 24 hours
+                CASE 
+                    WHEN ual.recent_activity_count > 0 THEN true 
+                    ELSE false 
+                END as has_recent_activity,
+                ual.recent_activity_count
             FROM users u
+            LEFT JOIN (
+                -- Get recent activity count for each user
+                SELECT 
+                    user_email,
+                    COUNT(*) as recent_activity_count
+                FROM user_activity_logs 
+                WHERE timestamp > NOW() - INTERVAL '24 hours'
+                GROUP BY user_email
+            ) ual ON u.email = ual.user_email
             LEFT JOIN user_player_associations upa ON u.id = upa.user_id
-            LEFT JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+            LEFT JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id 
+                AND (p.league_id = u.league_context OR u.league_context IS NULL)  -- Use league_context or fallback to any association
             LEFT JOIN clubs c ON p.club_id = c.id
             LEFT JOIN series s ON p.series_id = s.id
-            ORDER BY u.id, upa.created_at DESC NULLS LAST
+            ORDER BY u.id, 
+                     -- Prioritize league_context matches, then most recent associations
+                     CASE WHEN p.league_id = u.league_context THEN 1 ELSE 2 END,
+                     upa.created_at DESC NULLS LAST
         """
         )
         return users
@@ -262,17 +282,55 @@ def delete_user_by_email(email, admin_email):
 
 
 def get_user_activity_logs(email):
-    """Get comprehensive activity logs for a specific user"""
+    """Get comprehensive activity logs for a specific user using the new activity_log system"""
     try:
-        print(f"\n=== Getting Activity for User: {email} ===")
+        print(f"\n=== Getting Comprehensive Activity for User: {email} ===")
 
-        # Get user details first
+        # Get user details with enhanced information
         print("Fetching user details...")
         user = execute_query_one(
             """
-            SELECT first_name, last_name, email, last_login
-            FROM users
-            WHERE email = %(email)s
+            SELECT DISTINCT ON (u.id)
+                u.id, u.first_name, u.last_name, u.email, u.last_login, u.created_at,
+                c.name as club_name, s.name as series_name,
+                -- Check for activity in past 24 hours from both systems
+                CASE 
+                    WHEN (ual.recent_activity_count > 0 OR al.recent_activity_count > 0) THEN true 
+                    ELSE false 
+                END as has_recent_activity,
+                COALESCE(ual.recent_activity_count, 0) + COALESCE(al.recent_activity_count, 0) as recent_activity_count
+            FROM users u
+            LEFT JOIN (
+                -- Get recent legacy activity count for this user
+                SELECT 
+                    user_email,
+                    COUNT(*) as recent_activity_count
+                FROM user_activity_logs 
+                WHERE timestamp > NOW() - INTERVAL '24 hours'
+                AND user_email = %(email)s
+                GROUP BY user_email
+            ) ual ON u.email = ual.user_email
+            LEFT JOIN (
+                -- Get recent comprehensive activity count for this user
+                SELECT 
+                    user_id,
+                    COUNT(*) as recent_activity_count
+                FROM activity_log 
+                WHERE timestamp > NOW() - INTERVAL '24 hours'
+                AND user_id IS NOT NULL
+                GROUP BY user_id
+            ) al ON u.id = al.user_id
+            LEFT JOIN user_player_associations upa ON u.id = upa.user_id
+            LEFT JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id 
+                AND (p.league_id = u.league_context OR u.league_context IS NULL)
+            LEFT JOIN clubs c ON p.club_id = c.id
+            LEFT JOIN series s ON p.series_id = s.id
+            WHERE u.email = %(email)s
+            ORDER BY u.id, 
+                     -- Prioritize league_context matches, then most recent associations
+                     CASE WHEN p.league_id = u.league_context THEN 1 ELSE 2 END,
+                     upa.created_at DESC NULLS LAST
+            LIMIT 1
             """,
             {"email": email},
         )
@@ -283,47 +341,134 @@ def get_user_activity_logs(email):
 
         print(f"Found user: {user['first_name']} {user['last_name']}")
 
-        # Get activity logs with explicit timestamp ordering
-        print("Fetching activity logs...")
-        logs = execute_query(
+        # Get comprehensive activity logs from the new activity_log table
+        print("Fetching comprehensive activity logs...")
+        comprehensive_logs = execute_query(
             """
-            SELECT id, activity_type, page, action, details, ip_address, 
-                   timezone('America/Chicago', timestamp) as central_time
-            FROM user_activity_logs
-            WHERE user_email = %(email)s
-            ORDER BY timestamp DESC, id DESC
+            SELECT 
+                al.id,
+                al.action_type,
+                al.action_description,
+                al.related_id,
+                al.related_type,
+                al.ip_address,
+                al.user_agent,
+                al.extra_data,
+                timezone('America/Chicago', al.timestamp) as central_time,
+                -- Mark activities from last 24 hours
+                CASE 
+                    WHEN al.timestamp > NOW() - INTERVAL '24 hours' THEN true 
+                    ELSE false 
+                END as is_recent,
+                -- User info
+                u.first_name as user_first_name,
+                u.last_name as user_last_name,
+                -- Player info
+                p.first_name as player_first_name,
+                p.last_name as player_last_name,
+                -- Team info
+                t.team_name,
+                c.name as club_name,
+                s.name as series_name
+            FROM activity_log al
+            LEFT JOIN users u ON al.user_id = u.id
+            LEFT JOIN players p ON al.player_id = p.id
+            LEFT JOIN teams t ON al.team_id = t.id
+            LEFT JOIN clubs c ON t.club_id = c.id
+            LEFT JOIN series s ON t.series_id = s.id
+            WHERE u.email = %(email)s
+            ORDER BY al.timestamp DESC
             LIMIT 1000
             """,
             {"email": email},
         )
 
-        print("\nMost recent activities:")
-        for idx, log in enumerate(
-            logs[:5]
-        ):  # Print details of 5 most recent activities
-            print(
-                f"ID: {log['id']}, Type: {log['activity_type']}, Time: {log['central_time']}"
-            )
+        # Also get legacy logs for completeness (until full migration)
+        print("Fetching legacy activity logs for comparison...")
+        legacy_logs = execute_query(
+            """
+            SELECT 
+                'legacy_' || id::text as id,
+                activity_type,
+                page,
+                action,
+                details,
+                ip_address,
+                NULL as user_agent,
+                NULL as extra_data,
+                timezone('America/Chicago', timestamp) as central_time,
+                -- Mark activities from last 24 hours
+                CASE 
+                    WHEN timestamp > NOW() - INTERVAL '24 hours' THEN true 
+                    ELSE false 
+                END as is_recent
+            FROM user_activity_logs
+            WHERE user_email = %(email)s
+            ORDER BY timestamp DESC
+            LIMIT 200
+            """,
+            {"email": email},
+        )
 
-        formatted_logs = [
-            {
+        print(f"Found {len(comprehensive_logs)} comprehensive logs and {len(legacy_logs)} legacy logs")
+
+        # Format comprehensive logs
+        formatted_comprehensive = []
+        for log in comprehensive_logs:
+            # Parse extra_data if it exists
+            extra_data = None
+            if log["extra_data"]:
+                try:
+                    import json
+                    extra_data = json.loads(log["extra_data"])
+                except:
+                    extra_data = None
+
+            formatted_comprehensive.append({
+                "id": str(log["id"]),
+                "system": "comprehensive",
+                "activity_type": log["action_type"],
+                "action_description": log["action_description"],
+                "page": extra_data.get("page") if extra_data else None,
+                "related_id": log["related_id"],
+                "related_type": log["related_type"],
+                "ip_address": log["ip_address"],
+                "user_agent": log["user_agent"],
+                "extra_data": extra_data,
+                "timestamp": log["central_time"].isoformat(),
+                "is_recent": log["is_recent"],
+                # Context information
+                "user_name": f"{log['user_first_name'] or ''} {log['user_last_name'] or ''}".strip(),
+                "player_name": f"{log['player_first_name'] or ''} {log['player_last_name'] or ''}".strip() if log['player_first_name'] else None,
+                "team_name": log["team_name"],
+                "club_name": log["club_name"],
+                "series_name": log["series_name"],
+            })
+
+        # Format legacy logs for comparison
+        formatted_legacy = []
+        for log in legacy_logs:
+            formatted_legacy.append({
                 "id": log["id"],
+                "system": "legacy",
                 "activity_type": log["activity_type"],
+                "action_description": log["details"] or f"{log['activity_type'].replace('_', ' ').title()} activity",
                 "page": log["page"],
                 "action": log["action"],
                 "details": log["details"],
                 "ip_address": log["ip_address"],
-                "timestamp": log[
-                    "central_time"
-                ].isoformat(),  # Format timestamp as ISO string
-            }
-            for log in logs
-        ]
+                "user_agent": log["user_agent"],
+                "timestamp": log["central_time"].isoformat(),
+                "is_recent": log["is_recent"],
+            })
 
-        print(f"\nFound {len(formatted_logs)} activity logs")
-        if formatted_logs:
-            print(f"Most recent log ID: {formatted_logs[0]['id']}")
-            print(f"Most recent timestamp: {formatted_logs[0]['timestamp']}")
+        # Combine and sort by timestamp (most recent first)
+        all_activities = formatted_comprehensive + formatted_legacy
+        all_activities.sort(key=lambda x: x["timestamp"], reverse=True)
+
+        print(f"Returning {len(all_activities)} total activities ({len(formatted_comprehensive)} comprehensive, {len(formatted_legacy)} legacy)")
+        if all_activities:
+            print(f"Most recent activity: {all_activities[0]['activity_type']} at {all_activities[0]['timestamp']}")
 
         response_data = {
             "user": {
@@ -331,17 +476,27 @@ def get_user_activity_logs(email):
                 "last_name": user["last_name"],
                 "email": user["email"],
                 "last_login": user["last_login"],
+                "created_at": user["created_at"],  # Date registered
+                "club_name": user["club_name"],   # Club from league_context
+                "series_name": user["series_name"], # Series from league_context  
+                "has_recent_activity": user["has_recent_activity"],
+                "recent_activity_count": user["recent_activity_count"] or 0,
             },
-            "activities": formatted_logs,
+            "activities": all_activities,
+            "summary": {
+                "total_activities": len(all_activities),
+                "comprehensive_activities": len(formatted_comprehensive),
+                "legacy_activities": len(formatted_legacy),
+            }
         }
 
-        print("Returning response data")
-        print("=== End Activity Request ===\n")
+        print("Returning comprehensive response data")
+        print("=== End Comprehensive Activity Request ===\n")
 
         return response_data
 
     except Exception as e:
-        print(f"Error getting user activity: {str(e)}")
+        print(f"Error getting comprehensive user activity: {str(e)}")
         print(traceback.format_exc())
         raise e
 
