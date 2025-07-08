@@ -2179,6 +2179,174 @@ def run_pickup_games_migration():
         }), 500
 
 
+@app.route("/admin/fix-series-dropdown")
+def fix_series_dropdown():
+    """
+    Web endpoint to fix series dropdown display names on production
+    """
+    railway_env = os.environ.get("RAILWAY_ENVIRONMENT", "not_set")
+    
+    if railway_env != "production":
+        return jsonify({
+            "error": "This series dropdown fix endpoint only works on production",
+            "railway_env": railway_env,
+            "instructions": "Visit this URL on production environment to fix the series dropdown"
+        }), 403
+    
+    try:
+        from database_utils import execute_query, execute_query_one, execute_update
+        import re
+        
+        results = {
+            "railway_env": railway_env,
+            "timestamp": datetime.now().isoformat(),
+            "fix_steps": []
+        }
+        
+        # Get APTA Chicago league ID
+        chicago_league = execute_query_one("SELECT id FROM leagues WHERE league_id = 'APTA_CHICAGO'")
+        if not chicago_league:
+            return jsonify({
+                "status": "error",
+                "message": "APTA Chicago league not found",
+                "results": results
+            }), 404
+            
+        chicago_league_id = chicago_league['id']
+        results["chicago_league_id"] = chicago_league_id
+        results["fix_steps"].append(f"📋 Found APTA Chicago League ID: {chicago_league_id}")
+        
+        # Get current series
+        current_series = execute_query(f"""
+            SELECT s.id, s.name, s.display_name
+            FROM series s
+            JOIN series_leagues sl ON s.id = sl.series_id
+            WHERE sl.league_id = {chicago_league_id}
+            ORDER BY s.name
+        """)
+        
+        results["initial_series_count"] = len(current_series)
+        results["fix_steps"].append(f"📊 Found {len(current_series)} series in APTA Chicago")
+        
+        # Fix regular Chicago series (Chicago X -> Series X)
+        results["fix_steps"].append("🔧 Fixing regular Chicago series display names...")
+        regular_fixes = 0
+        
+        for series in current_series:
+            match = re.match(r'^Chicago (\d+)$', series['name'])
+            if match:
+                number = match.group(1)
+                correct_display_name = f"Series {number}"
+                
+                if series['display_name'] != correct_display_name:
+                    rows_updated = execute_update(
+                        "UPDATE series SET display_name = %s WHERE id = %s",
+                        [correct_display_name, series['id']]
+                    )
+                    if rows_updated > 0:
+                        results["fix_steps"].append(f"  ✅ Fixed '{series['name']}': '{series['display_name']}' → '{correct_display_name}'")
+                        regular_fixes += 1
+        
+        results["regular_fixes"] = regular_fixes
+        results["fix_steps"].append(f"✅ Fixed {regular_fixes} regular series display names")
+        
+        # Fix SW series (Chicago X SW -> Series X SW)
+        results["fix_steps"].append("🔧 Fixing SW series display names...")
+        sw_fixes = 0
+        
+        for series in current_series:
+            match = re.match(r'^Chicago (\d+) SW$', series['name'])
+            if match:
+                number = match.group(1)
+                correct_display_name = f"Series {number} SW"
+                
+                if series['display_name'] != correct_display_name:
+                    rows_updated = execute_update(
+                        "UPDATE series SET display_name = %s WHERE id = %s",
+                        [correct_display_name, series['id']]
+                    )
+                    if rows_updated > 0:
+                        results["fix_steps"].append(f"  ✅ Fixed '{series['name']}': '{series['display_name']}' → '{correct_display_name}'")
+                        sw_fixes += 1
+        
+        results["sw_fixes"] = sw_fixes
+        results["fix_steps"].append(f"✅ Fixed {sw_fixes} SW series display names")
+        
+        # Remove incorrect Division series
+        results["fix_steps"].append("🗑️ Removing incorrect Division series from APTA Chicago...")
+        
+        division_series = execute_query(f"""
+            SELECT s.id, s.name, s.display_name
+            FROM series s
+            JOIN series_leagues sl ON s.id = sl.series_id
+            WHERE sl.league_id = {chicago_league_id}
+            AND s.name LIKE 'Division %'
+        """)
+        
+        removed_count = 0
+        for series in division_series:
+            rows_deleted = execute_update(
+                "DELETE FROM series_leagues WHERE series_id = %s AND league_id = %s",
+                [series['id'], chicago_league_id]
+            )
+            if rows_deleted > 0:
+                results["fix_steps"].append(f"  🗑️ Removed '{series['name']}' from APTA Chicago")
+                removed_count += 1
+        
+        results["division_series_removed"] = removed_count
+        results["fix_steps"].append(f"✅ Removed {removed_count} incorrect Division series")
+        
+        # Verify final state
+        final_series = execute_query(f"""
+            SELECT s.name, s.display_name
+            FROM series s
+            JOIN series_leagues sl ON s.id = sl.series_id
+            WHERE sl.league_id = {chicago_league_id}
+            ORDER BY s.name
+        """)
+        
+        results["final_series_count"] = len(final_series)
+        results["fix_steps"].append(f"🧪 Final verification: {len(final_series)} series")
+        
+        # Count consistent series
+        consistent_count = 0
+        for series in final_series:
+            if series['display_name'] and series['display_name'].startswith('Series '):
+                consistent_count += 1
+        
+        results["consistent_series_count"] = consistent_count
+        results["fix_steps"].append(f"✅ {consistent_count}/{len(final_series)} series have consistent 'Series X' display names")
+        
+        # Sample results
+        sample_series = []
+        for series in final_series[:10]:
+            display = series['display_name'] or series['name']
+            sample_series.append(display)
+        
+        results["sample_series"] = sample_series
+        
+        return jsonify({
+            "status": "success",
+            "message": "Series dropdown fix completed successfully!",
+            "results": results,
+            "next_steps": [
+                "✅ Series dropdown fix complete",
+                "👉 Refresh pickup games page to see consistent 'Series X' format",
+                "🎯 Dropdown should now show clean, consistent series names"
+            ]
+        })
+        
+    except Exception as e:
+        import traceback
+        return jsonify({
+            "status": "error",
+            "message": "Series dropdown fix error",
+            "error": str(e),
+            "traceback": traceback.format_exc(),
+            "railway_env": railway_env
+        }), 500
+
+
 @app.route("/debug/test-pickup-games-staging")
 def test_pickup_games_staging():
     """
