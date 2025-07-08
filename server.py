@@ -2272,19 +2272,47 @@ def fix_series_dropdown():
         results["sw_fixes"] = sw_fixes
         results["fix_steps"].append(f"✅ Fixed {sw_fixes} SW series display names")
         
-        # Remove incorrect Division series
-        results["fix_steps"].append("🗑️ Removing incorrect Division series from APTA Chicago...")
+        # Remove incorrect/invalid series from APTA Chicago
+        results["fix_steps"].append("🗑️ Removing incorrect/invalid series from APTA Chicago...")
         
-        division_series = execute_query(f"""
-            SELECT s.id, s.name, s.display_name
-            FROM series s
-            JOIN series_leagues sl ON s.id = sl.series_id
-            WHERE sl.league_id = {chicago_league_id}
-            AND s.name LIKE 'Division %'
-        """)
+        # List of series that should NOT be in APTA Chicago dropdown
+        invalid_series_patterns = [
+            'Division %',           # Division series (belong to CNSWPL)
+            'Chicago Chicago',      # Duplicate/invalid entry
+            'Legends',              # Invalid entry
+            'SA',                   # Invalid entry  
+            'SLegends',             # Invalid entry
+        ]
+        
+        # Also remove standalone "Chicago" (without number)
+        invalid_series_exact = ['Chicago']
+        
+        invalid_series = []
+        
+        # Find series matching patterns
+        for pattern in invalid_series_patterns:
+            pattern_series = execute_query(f"""
+                SELECT s.id, s.name, s.display_name
+                FROM series s
+                JOIN series_leagues sl ON s.id = sl.series_id
+                WHERE sl.league_id = {chicago_league_id}
+                AND s.name LIKE '{pattern}'
+            """)
+            invalid_series.extend(pattern_series)
+        
+        # Find exact matches
+        for exact_name in invalid_series_exact:
+            exact_series = execute_query(f"""
+                SELECT s.id, s.name, s.display_name
+                FROM series s
+                JOIN series_leagues sl ON s.id = sl.series_id
+                WHERE sl.league_id = {chicago_league_id}
+                AND s.name = '{exact_name}'
+            """)
+            invalid_series.extend(exact_series)
         
         removed_count = 0
-        for series in division_series:
+        for series in invalid_series:
             rows_deleted = execute_update(
                 "DELETE FROM series_leagues WHERE series_id = %s AND league_id = %s",
                 [series['id'], chicago_league_id]
@@ -2293,8 +2321,8 @@ def fix_series_dropdown():
                 results["fix_steps"].append(f"  🗑️ Removed '{series['name']}' from APTA Chicago")
                 removed_count += 1
         
-        results["division_series_removed"] = removed_count
-        results["fix_steps"].append(f"✅ Removed {removed_count} incorrect Division series")
+        results["invalid_series_removed"] = removed_count
+        results["fix_steps"].append(f"✅ Removed {removed_count} invalid series from APTA Chicago")
         
         # Verify final state
         final_series = execute_query(f"""

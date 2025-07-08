@@ -89,20 +89,47 @@ def fix_production_series_dropdown():
         
         print(f"✅ Fixed {sw_fixes} SW series display names")
         
-        # Step 4: Remove incorrect Division series that don't belong to APTA Chicago
-        print("\n🗑️ Removing incorrect Division series from APTA Chicago...")
+        # Step 4: Remove incorrect/invalid series from APTA Chicago
+        print("\n🗑️ Removing incorrect/invalid series from APTA Chicago...")
         
-        # Find Division series incorrectly linked to APTA Chicago
-        division_series = execute_query(f"""
-            SELECT s.id, s.name, s.display_name
-            FROM series s
-            JOIN series_leagues sl ON s.id = sl.series_id
-            WHERE sl.league_id = {chicago_league_id}
-            AND s.name LIKE 'Division %'
-        """)
+        # List of series that should NOT be in APTA Chicago dropdown
+        invalid_series_patterns = [
+            'Division %',           # Division series (belong to CNSWPL)  
+            'Chicago Chicago',      # Duplicate/invalid entry
+            'Legends',              # Invalid entry
+            'SA',                   # Invalid entry
+            'SLegends',             # Invalid entry
+        ]
+        
+        # Also remove standalone "Chicago" (without number)
+        invalid_series_exact = ['Chicago']
+        
+        invalid_series = []
+        
+        # Find series matching patterns
+        for pattern in invalid_series_patterns:
+            pattern_series = execute_query(f"""
+                SELECT s.id, s.name, s.display_name
+                FROM series s
+                JOIN series_leagues sl ON s.id = sl.series_id
+                WHERE sl.league_id = {chicago_league_id}
+                AND s.name LIKE '{pattern}'
+            """)
+            invalid_series.extend(pattern_series)
+        
+        # Find exact matches  
+        for exact_name in invalid_series_exact:
+            exact_series = execute_query(f"""
+                SELECT s.id, s.name, s.display_name
+                FROM series s
+                JOIN series_leagues sl ON s.id = sl.series_id
+                WHERE sl.league_id = {chicago_league_id}
+                AND s.name = '{exact_name}'
+            """)
+            invalid_series.extend(exact_series)
         
         removed_count = 0
-        for series in division_series:
+        for series in invalid_series:
             # Remove the incorrect league association
             rows_deleted = execute_update(
                 "DELETE FROM series_leagues WHERE series_id = %s AND league_id = %s",
@@ -112,7 +139,7 @@ def fix_production_series_dropdown():
                 print(f"  🗑️ Removed '{series['name']}' from APTA Chicago")
                 removed_count += 1
         
-        print(f"✅ Removed {removed_count} incorrect Division series")
+        print(f"✅ Removed {removed_count} invalid series from APTA Chicago")
         
         # Step 5: Verify final state
         print("\n🧪 Verifying final series dropdown state...")
