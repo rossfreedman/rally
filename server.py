@@ -2013,6 +2013,172 @@ def check_recent_database_changes():
         }), 500
 
 
+@app.route("/admin/run-pickup-games-migration")
+def run_pickup_games_migration():
+    """
+    Web endpoint to run pickup games migration on staging or production
+    """
+    railway_env = os.environ.get("RAILWAY_ENVIRONMENT", "not_set")
+    
+    if railway_env not in ["staging", "production"]:
+        return jsonify({
+            "error": "This migration endpoint only works on staging or production",
+            "railway_env": railway_env,
+            "instructions": "Visit this URL on staging or production environment to run the migration"
+        }), 403
+    
+    try:
+        import subprocess
+        from database_utils import execute_query_one
+        
+        results = {
+            "railway_env": railway_env,
+            "timestamp": datetime.now().isoformat(),
+            "migration_steps": []
+        }
+        
+        # Step 1: Check current revision
+        results["migration_steps"].append("🔍 Checking current Alembic revision...")
+        
+        try:
+            current_result = subprocess.run(
+                ["alembic", "current"], 
+                capture_output=True, 
+                text=True, 
+                cwd="/app"
+            )
+            
+            if current_result.returncode == 0:
+                current_output = current_result.stdout.strip()
+                results["current_revision"] = current_output
+                results["migration_steps"].append(f"📊 Current revision: {current_output}")
+                
+                # Check if already at target revision
+                if "20484d947d9d" in current_output:
+                    results["migration_steps"].append("✅ Already at pickup games revision - checking tables...")
+                    
+                    # Verify tables exist
+                    pg_check = execute_query_one("""
+                        SELECT EXISTS (
+                            SELECT FROM information_schema.tables 
+                            WHERE table_name = 'pickup_games'
+                        )
+                    """)
+                    
+                    if pg_check and pg_check["exists"]:
+                        return jsonify({
+                            "status": "success",
+                            "message": "Migration already complete - pickup games tables exist",
+                            "results": results,
+                            "next_step": f"Visit https://rally-{railway_env}.up.railway.app/mobile/pickup-games to test"
+                        })
+                        
+            else:
+                results["migration_steps"].append(f"⚠️ Could not check current revision: {current_result.stderr}")
+                
+        except Exception as e:
+            results["migration_steps"].append(f"❌ Error checking revision: {str(e)}")
+        
+        # Step 2: Run the migration
+        results["migration_steps"].append("🔄 Running Alembic upgrade to head...")
+        
+        upgrade_result = subprocess.run(
+            ["alembic", "upgrade", "head"], 
+            capture_output=True, 
+            text=True,
+            cwd="/app"
+        )
+        
+        if upgrade_result.returncode == 0:
+            results["migration_steps"].append("✅ Alembic upgrade completed!")
+            results["upgrade_output"] = upgrade_result.stdout
+            results["migration_steps"].append("📋 Migration output captured")
+            
+            # Verify the migration worked
+            results["migration_steps"].append("🧪 Verifying pickup games tables...")
+            
+            # Check pickup_games table
+            pg_check = execute_query_one("""
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables 
+                    WHERE table_name = 'pickup_games'
+                )
+            """)
+            
+            pg_exists = pg_check["exists"] if pg_check else False
+            results["pickup_games_table_exists"] = pg_exists
+            results["migration_steps"].append(f"📋 pickup_games table exists: {pg_exists}")
+            
+            # Check pickup_game_participants table
+            pgp_check = execute_query_one("""
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables 
+                    WHERE table_name = 'pickup_game_participants'
+                )
+            """)
+            
+            pgp_exists = pgp_check["exists"] if pgp_check else False
+            results["pickup_game_participants_table_exists"] = pgp_exists
+            results["migration_steps"].append(f"📋 pickup_game_participants table exists: {pgp_exists}")
+            
+            # Final verification
+            if pg_exists and pgp_exists:
+                results["migration_steps"].append("🎉 Migration successful - all tables created!")
+                
+                # Check final revision
+                final_result = subprocess.run(
+                    ["alembic", "current"], 
+                    capture_output=True, 
+                    text=True,
+                    cwd="/app"
+                )
+                
+                if final_result.returncode == 0:
+                    final_revision = final_result.stdout.strip()
+                    results["final_revision"] = final_revision
+                    results["migration_steps"].append(f"✅ Final revision: {final_revision}")
+                
+                return jsonify({
+                    "status": "success",
+                    "message": "Pickup games migration completed successfully!",
+                    "results": results,
+                    "next_steps": [
+                        "✅ Migration complete",
+                        f"👉 Test pickup games: https://rally-{railway_env}.up.railway.app/mobile/pickup-games",
+                        "🎯 The page should now load instead of being stuck on 'Loading upcoming games...'"
+                    ]
+                })
+            else:
+                results["migration_steps"].append("❌ Tables verification failed")
+                return jsonify({
+                    "status": "partial_success", 
+                    "message": "Migration ran but table verification failed",
+                    "results": results
+                }), 500
+                
+        else:
+            results["migration_steps"].append("❌ Alembic upgrade failed")
+            results["upgrade_error"] = upgrade_result.stderr
+            results["upgrade_output"] = upgrade_result.stdout
+            
+            return jsonify({
+                "status": "error",
+                "message": "Migration failed",
+                "results": results,
+                "error_details": upgrade_result.stderr
+            }), 500
+        
+    except Exception as e:
+        import traceback
+        return jsonify({
+            "status": "error",
+            "message": "Migration endpoint error",
+            "error": str(e),
+            "traceback": traceback.format_exc(),
+            "railway_env": railway_env
+        }), 500
+
+
 @app.route("/debug/test-pickup-games-staging")
 def test_pickup_games_staging():
     """
