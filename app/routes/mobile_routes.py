@@ -2534,6 +2534,24 @@ def serve_mobile_pickup_games():
         return jsonify({"error": str(e)}), 500
 
 
+@mobile_bp.route("/mobile/my-groups")
+@login_required
+def serve_mobile_my_groups():
+    """Serve the mobile My Groups page"""
+    try:
+        session_data = {"user": session["user"], "authenticated": True}
+
+        log_user_activity(
+            session["user"]["email"], "page_visit", page="mobile_my_groups"
+        )
+
+        return render_template("mobile/my_groups.html", session_data=session_data)
+
+    except Exception as e:
+        print(f"Error serving my groups page: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
 @mobile_bp.route("/mobile/create-pickup-game")
 @login_required
 def serve_mobile_create_pickup_game():

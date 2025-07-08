@@ -105,7 +105,7 @@
         <!-- Activity Timeline -->
         <div class="timeline-section bg-white rounded-lg shadow">
           <div class="p-4 border-b border-gray-200">
-            <div class="flex items-center justify-between mb-3">
+            <div class="flex items-center justify-between">
               <h2 class="text-lg font-semibold text-gray-900">
                 <i class="fas fa-clock mr-2 text-blue-600"></i>Recent Activity
               </h2>
@@ -116,19 +116,9 @@
                 <span class="text-sm text-gray-500" id="timeline-status">Loading...</span>
               </div>
             </div>
-            
-            <!-- Activity Filter -->
-            <div class="flex items-center space-x-3">
-              <label class="text-sm font-medium text-gray-700">Time Period:</label>
-              <select id="activity-filter" class="text-sm border border-gray-300 rounded-md px-3 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                <option value="today">Today</option>
-                <option value="7days">Last 7 Days</option>
-                <option value="30days">Last 30 Days</option>
-              </select>
-            </div>
           </div>
           
-          <div class="timeline-container p-4" style="max-height: 500px; overflow-y: auto;">
+          <div class="timeline-container p-4" style="max-height: 400px; overflow-y: auto;">
             <div id="timeline-content">
               <!-- Timeline items will be loaded here -->
               <div class="flex items-center justify-center py-8">
@@ -256,7 +246,9 @@
 let dashboardData = {
   activities: [],
   stats: {},
-  topPlayers: []
+  topPlayers: [],
+  currentFilter: 'today',
+  emptyText: 'No activities today'
 };
 
 // Load users for impersonation dropdown and initialize dashboard
@@ -291,66 +283,22 @@ async function loadDashboardStats() {
   }
 }
 
-async function loadTimelineActivities(filterValue = 'today') {
+async function loadTimelineActivities() {
   try {
     document.getElementById('timeline-status').textContent = 'Loading...';
     
-    // Calculate date range based on filter
-    const { dateFrom, dateTo, statusText, emptyText } = getDateRangeForFilter(filterValue);
-    
-    // Fetch activities for the selected period
-    const response = await fetch(`/api/admin/dashboard/activities?limit=1000&date_from=${dateFrom}&date_to=${dateTo}&exclude_admin=true&exclude_impersonated=false`);
+    // Filter out admin activities for cleaner overview consistent with other sections
+    const response = await fetch('/api/admin/dashboard/activities?limit=10&exclude_admin=true&exclude_impersonated=false');
     const data = await response.json();
     
     if (data.status === 'success') {
       dashboardData.activities = data.activities;
-      dashboardData.currentFilter = filterValue;
-      dashboardData.emptyText = emptyText;
       renderTimeline();
-      const activityCount = data.activities.length;
-      document.getElementById('timeline-status').textContent = `${activityCount} ${statusText}`;
+      document.getElementById('timeline-status').textContent = 'Updated just now';
     }
   } catch (error) {
     console.error('Error loading timeline activities:', error);
     document.getElementById('timeline-status').textContent = 'Error loading';
-  }
-}
-
-function getDateRangeForFilter(filterValue) {
-  const today = new Date();
-  const todayStr = today.toISOString().split('T')[0];
-  
-  switch (filterValue) {
-    case 'today':
-      return {
-        dateFrom: todayStr,
-        dateTo: todayStr,
-        statusText: 'activities today',
-        emptyText: 'No activities today'
-      };
-    
-    case '7days':
-      const sevenDaysAgo = new Date(today);
-      sevenDaysAgo.setDate(today.getDate() - 6); // Include today, so 6 days back
-      return {
-        dateFrom: sevenDaysAgo.toISOString().split('T')[0],
-        dateTo: todayStr,
-        statusText: 'activities (last 7 days)',
-        emptyText: 'No activities in the last 7 days'
-      };
-    
-    case '30days':
-      const thirtyDaysAgo = new Date(today);
-      thirtyDaysAgo.setDate(today.getDate() - 29); // Include today, so 29 days back
-      return {
-        dateFrom: thirtyDaysAgo.toISOString().split('T')[0],
-        dateTo: todayStr,
-        statusText: 'activities (last 30 days)',
-        emptyText: 'No activities in the last 30 days'
-      };
-    
-    default:
-      return getDateRangeForFilter('today');
   }
 }
 
@@ -386,8 +334,7 @@ function renderTimeline() {
   const activities = dashboardData.activities;
   
   if (activities.length === 0) {
-    const emptyText = dashboardData.emptyText || 'No activities found';
-    container.innerHTML = `<p class="text-gray-500 text-center py-4">${emptyText}</p>`;
+    container.innerHTML = '<p class="text-gray-500 text-center py-4">No recent activities</p>';
     return;
   }
   
@@ -465,14 +412,23 @@ function renderTopPlayers() {
 
 function refreshDashboardData() {
   loadDashboardStats();
-  loadTimelineActivities();
+  const currentFilter = dashboardData.currentFilter || 'today';
+  loadTimelineActivities(currentFilter);
   loadTopPlayers();
 }
 
-// Refresh button click handler
+// Event handlers
 document.addEventListener('click', function(e) {
   if (e.target.id === 'refresh-timeline' || e.target.parentElement.id === 'refresh-timeline') {
     refreshDashboardData();
+  }
+});
+
+// Activity filter change handler
+document.addEventListener('change', function(e) {
+  if (e.target.id === 'activity-filter') {
+    const selectedFilter = e.target.value;
+    loadTimelineActivities(selectedFilter);
   }
 });
 
