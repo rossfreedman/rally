@@ -18,6 +18,7 @@ from app.models.database_models import Player, SessionLocal, User, UserPlayerAss
 from app.services.api_service import *
 from app.services.dashboard_service import log_user_action
 from app.services.mobile_service import get_club_players_data
+from app.services.groups_service import GroupsService
 from database_utils import execute_query, execute_query_one, execute_update, get_db_cursor
 from utils.database_player_lookup import find_player_by_database_lookup
 from utils.logging import log_user_activity
@@ -5195,3 +5196,355 @@ def get_series_options():
         import traceback
         print(f"Full traceback: {traceback.format_exc()}")
         return jsonify({"error": "Failed to retrieve series options"}), 500
+
+
+# =====================================================
+# GROUPS API ROUTES
+# =====================================================
+
+@api_bp.route("/api/groups", methods=["GET"])
+@login_required
+def get_user_groups():
+    """Get all groups for the current user"""
+    try:
+        user = session["user"]
+        user_id = user.get("id")
+        
+        if not user_id:
+            return jsonify({"error": "User ID not found"}), 400
+        
+        # Get database session
+        with SessionLocal() as db_session:
+            groups_service = GroupsService(db_session)
+            groups = groups_service.get_user_groups(user_id)
+            
+            return jsonify({
+                "success": True,
+                "groups": groups
+            })
+    
+    except Exception as e:
+        print(f"Error getting user groups: {str(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
+        return jsonify({"error": "Failed to retrieve groups"}), 500
+
+
+@api_bp.route("/api/groups", methods=["POST"])
+@login_required
+def create_group():
+    """Create a new group"""
+    try:
+        user = session["user"]
+        user_id = user.get("id")
+        user_email = user.get("email")
+        
+        if not user_id:
+            return jsonify({"error": "User ID not found"}), 400
+        
+        data = request.get_json()
+        
+        # Validate required fields
+        if not data.get("name"):
+            return jsonify({"error": "Group name is required"}), 400
+        
+        group_name = data["name"].strip()
+        description = data.get("description", "").strip()
+        
+        if len(group_name) < 2:
+            return jsonify({"error": "Group name must be at least 2 characters"}), 400
+        
+        # Get database session
+        with SessionLocal() as db_session:
+            groups_service = GroupsService(db_session)
+            result = groups_service.create_group(user_id, group_name, description)
+            
+            if result["success"]:
+                log_user_activity(user_email, "group_created", 
+                                details=f"Created group: {group_name}")
+            
+            return jsonify(result), 201 if result["success"] else 400
+    
+    except Exception as e:
+        print(f"Error creating group: {str(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
+        return jsonify({"error": "Failed to create group"}), 500
+
+
+@api_bp.route("/api/groups/<int:group_id>", methods=["GET"])
+@login_required
+def get_group_details(group_id):
+    """Get detailed information about a group"""
+    try:
+        user = session["user"]
+        user_id = user.get("id")
+        
+        if not user_id:
+            return jsonify({"error": "User ID not found"}), 400
+        
+        # Get database session
+        with SessionLocal() as db_session:
+            groups_service = GroupsService(db_session)
+            result = groups_service.get_group_details(group_id, user_id)
+            
+            return jsonify(result), 200 if result["success"] else 404
+    
+    except Exception as e:
+        print(f"Error getting group details: {str(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
+        return jsonify({"error": "Failed to retrieve group details"}), 500
+
+
+@api_bp.route("/api/groups/<int:group_id>", methods=["DELETE"])
+@login_required
+def delete_group(group_id):
+    """Delete a group (creator only)"""
+    try:
+        user = session["user"]
+        user_id = user.get("id")
+        user_email = user.get("email")
+        
+        if not user_id:
+            return jsonify({"error": "User ID not found"}), 400
+        
+        # Get database session
+        with SessionLocal() as db_session:
+            groups_service = GroupsService(db_session)
+            result = groups_service.delete_group(group_id, user_id)
+            
+            if result["success"]:
+                log_user_activity(user_email, "group_deleted", 
+                                details=f"Deleted group ID: {group_id}")
+            
+            return jsonify(result), 200 if result["success"] else 400
+    
+    except Exception as e:
+        print(f"Error deleting group: {str(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
+        return jsonify({"error": "Failed to delete group"}), 500
+
+
+@api_bp.route("/api/groups/search-players", methods=["GET"])
+@login_required
+def search_players_for_groups():
+    """Search for players to add to groups"""
+    try:
+        user = session["user"]
+        user_id = user.get("id")
+        
+        if not user_id:
+            return jsonify({"error": "User ID not found"}), 400
+        
+        query = request.args.get("q", "").strip()
+        league_id = request.args.get("league_id")
+        
+        if len(query) < 2:
+            return jsonify({"success": True, "players": []})
+        
+        # Convert league_id to integer foreign key if provided
+        league_id_int = None
+        if league_id:
+            try:
+                # First try direct integer conversion
+                league_id_int = int(league_id)
+            except ValueError:
+                # If that fails, try to look up by string league_id
+                try:
+                    league_record = execute_query_one(
+                        "SELECT id FROM leagues WHERE league_id = %s", [league_id]
+                    )
+                    if league_record:
+                        league_id_int = league_record["id"]
+                    else:
+                        print(f"League not found for league_id: {league_id}")
+                        return jsonify({"error": f"League not found: {league_id}"}), 400
+                except Exception as e:
+                    print(f"Error looking up league: {e}")
+                    return jsonify({"error": "Invalid league ID"}), 400
+        
+        print(f"Searching players: query='{query}', user_id={user_id}, league_id_int={league_id_int}")
+        
+        # Get database session
+        with SessionLocal() as db_session:
+            groups_service = GroupsService(db_session)
+            players = groups_service.search_players(query, user_id, league_id_int)
+            
+            print(f"Found {len(players)} players")
+            
+            return jsonify({
+                "success": True,
+                "players": players
+            })
+    
+    except Exception as e:
+        print(f"Error searching players: {str(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
+        return jsonify({"error": "Failed to search players"}), 500
+
+
+@api_bp.route("/api/groups/<int:group_id>/members", methods=["POST"])
+@login_required
+def add_group_member(group_id):
+    """Add a member to a group"""
+    try:
+        user = session["user"]
+        user_id = user.get("id")
+        user_email = user.get("email")
+        
+        if not user_id:
+            return jsonify({"error": "User ID not found"}), 400
+        
+        data = request.get_json()
+        member_user_id = data.get("user_id")
+        
+        if not member_user_id:
+            return jsonify({"error": "User ID to add is required"}), 400
+        
+        try:
+            member_user_id = int(member_user_id)
+        except ValueError:
+            return jsonify({"error": "Invalid user ID"}), 400
+        
+        # Get database session
+        with SessionLocal() as db_session:
+            groups_service = GroupsService(db_session)
+            result = groups_service.add_member_to_group(group_id, user_id, member_user_id)
+            
+            if result["success"]:
+                log_user_activity(user_email, "group_member_added", 
+                                details=f"Added member to group ID: {group_id}")
+            
+            return jsonify(result), 200 if result["success"] else 400
+    
+    except Exception as e:
+        print(f"Error adding group member: {str(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
+        return jsonify({"error": "Failed to add group member"}), 500
+
+
+@api_bp.route("/api/groups/<int:group_id>/members/<int:member_user_id>", methods=["DELETE"])
+@login_required
+def remove_group_member(group_id, member_user_id):
+    """Remove a member from a group"""
+    try:
+        user = session["user"]
+        user_id = user.get("id")
+        user_email = user.get("email")
+        
+        if not user_id:
+            return jsonify({"error": "User ID not found"}), 400
+        
+        # Get database session
+        with SessionLocal() as db_session:
+            groups_service = GroupsService(db_session)
+            result = groups_service.remove_member_from_group(group_id, user_id, member_user_id)
+            
+            if result["success"]:
+                log_user_activity(user_email, "group_member_removed", 
+                                details=f"Removed member from group ID: {group_id}")
+            
+            return jsonify(result), 200 if result["success"] else 400
+    
+    except Exception as e:
+        print(f"Error removing group member: {str(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
+        return jsonify({"error": "Failed to remove group member"}), 500
+
+
+@api_bp.route("/api/groups/<int:group_id>", methods=["PUT"])
+@login_required
+def update_group(group_id):
+    """Update group details (creator only)"""
+    try:
+        user = session["user"]
+        user_id = user.get("id")
+        user_email = user.get("email")
+        
+        if not user_id:
+            return jsonify({"error": "User ID not found"}), 400
+        
+        data = request.get_json()
+        
+        # Validate required fields
+        if not data.get("name"):
+            return jsonify({"error": "Group name is required"}), 400
+        
+        group_name = data["name"].strip()
+        description = data.get("description", "").strip()
+        
+        if len(group_name) < 2:
+            return jsonify({"error": "Group name must be at least 2 characters"}), 400
+        
+        # Get database session
+        with SessionLocal() as db_session:
+            groups_service = GroupsService(db_session)
+            result = groups_service.update_group(group_id, user_id, group_name, description)
+            
+            if result["success"]:
+                log_user_activity(user_email, "group_updated", 
+                                details=f"Updated group ID: {group_id}")
+            
+            return jsonify(result), 200 if result["success"] else 400
+    
+    except Exception as e:
+        print(f"Error updating group: {str(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
+        return jsonify({"error": "Failed to update group"}), 500
+
+
+@api_bp.route("/api/groups/send-message", methods=["POST"])
+@login_required
+def send_group_message():
+    """Send a message to all members of a group"""
+    try:
+        user = session["user"]
+        user_id = user.get("id")
+        user_email = user.get("email")
+        
+        if not user_id:
+            return jsonify({"error": "User ID not found"}), 400
+        
+        data = request.get_json()
+        
+        # Validate required fields
+        if not data.get("group_id"):
+            return jsonify({"error": "Group ID is required"}), 400
+        
+        if not data.get("subject"):
+            return jsonify({"error": "Subject is required"}), 400
+        
+        if not data.get("message"):
+            return jsonify({"error": "Message is required"}), 400
+        
+        group_id = data["group_id"]
+        subject = data["subject"].strip()
+        message = data["message"].strip()
+        
+        try:
+            group_id = int(group_id)
+        except ValueError:
+            return jsonify({"error": "Invalid group ID"}), 400
+        
+        # Get database session
+        with SessionLocal() as db_session:
+            groups_service = GroupsService(db_session)
+            result = groups_service.send_group_message(group_id, user_id, subject, message)
+            
+            if result["success"]:
+                log_user_activity(user_email, "group_message_sent", 
+                                details=f"Sent message to group ID: {group_id}")
+            
+            return jsonify(result), 200 if result["success"] else 400
+    
+    except Exception as e:
+        print(f"Error sending group message: {str(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
+        return jsonify({"error": "Failed to send group message"}), 500

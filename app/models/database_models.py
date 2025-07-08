@@ -820,3 +820,76 @@ class ActivityLog(Base):
 
     def __repr__(self):
         return f"<ActivityLog(id={self.id}, action='{self.action_type}', player_id={self.player_id})>"
+
+
+class Group(Base):
+    """
+    User-created groups for organizing players
+    Allows users to create custom groups of players for easy organization
+    """
+
+    __tablename__ = "groups"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(255), nullable=False)
+    description = Column(Text, nullable=True)
+    creator_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime(timezone=True), default=func.now())
+    updated_at = Column(DateTime(timezone=True), default=func.now(), onupdate=func.now())
+
+    # Relationships
+    creator = relationship("User", backref="created_groups")
+    members = relationship("GroupMember", back_populates="group", cascade="all, delete-orphan")
+
+    def get_member_count(self, session):
+        """Get the number of members in this group"""
+        return session.query(GroupMember).filter(GroupMember.group_id == self.id).count()
+
+    def get_members_list(self, session):
+        """Get list of User objects who are members of this group"""
+        return (
+            session.query(User)
+            .join(GroupMember, User.id == GroupMember.user_id)
+            .filter(GroupMember.group_id == self.id)
+            .all()
+        )
+
+    def is_member(self, session, user_id):
+        """Check if a user is a member of this group"""
+        return (
+            session.query(GroupMember)
+            .filter(GroupMember.group_id == self.id, GroupMember.user_id == user_id)
+            .first()
+            is not None
+        )
+
+    def __repr__(self):
+        return f"<Group(id={self.id}, name='{self.name}', creator_id={self.creator_user_id})>"
+
+
+class GroupMember(Base):
+    """
+    Junction table for group membership
+    Links users to groups with tracking of when and by whom they were added
+    """
+
+    __tablename__ = "group_members"
+
+    id = Column(Integer, primary_key=True)
+    group_id = Column(Integer, ForeignKey("groups.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    added_at = Column(DateTime(timezone=True), default=func.now())
+    added_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+
+    # Relationships
+    group = relationship("Group", back_populates="members")
+    user = relationship("User", foreign_keys=[user_id], backref="group_memberships")
+    added_by = relationship("User", foreign_keys=[added_by_user_id])
+
+    # Constraints
+    __table_args__ = (
+        UniqueConstraint("group_id", "user_id", name="uc_unique_group_member"),
+    )
+
+    def __repr__(self):
+        return f"<GroupMember(group_id={self.group_id}, user_id={self.user_id})>"
