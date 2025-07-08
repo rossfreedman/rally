@@ -4423,7 +4423,7 @@ def test_mobile_service_public():
 @api_bp.route("/api/pickup-games", methods=["GET"])
 @login_required
 def get_pickup_games():
-    """Get all pickup games (upcoming and past)"""
+    """Get all pickup games (upcoming and past) with participant details"""
     try:
         # Get current date/time for determining upcoming vs past
         now = datetime.now()
@@ -4481,6 +4481,39 @@ def get_pickup_games():
         upcoming_games = execute_query(upcoming_query, [current_date, current_date, current_time])
         past_games = execute_query(past_query, [current_date, current_date, current_time])
         
+        # Helper function to get participants for a game
+        def get_game_participants(game_id):
+            """Get list of participants with user details for a game"""
+            participants_query = """
+                SELECT 
+                    pgp.id,
+                    pgp.user_id,
+                    pgp.joined_at,
+                    u.first_name,
+                    u.last_name,
+                    u.email
+                FROM pickup_game_participants pgp
+                JOIN users u ON pgp.user_id = u.id
+                WHERE pgp.pickup_game_id = %s
+                ORDER BY pgp.joined_at ASC
+            """
+            participants = execute_query(participants_query, [game_id])
+            
+            if not participants:
+                return []
+            
+            return [
+                {
+                    "user_id": p["user_id"],
+                    "name": f"{p['first_name']} {p['last_name']}".strip(),
+                    "first_name": p["first_name"],
+                    "last_name": p["last_name"],
+                    "email": p["email"],
+                    "joined_at": p["joined_at"].isoformat() if p["joined_at"] else None
+                }
+                for p in participants
+            ]
+        
         # Helper function to calculate game status
         def get_game_status(players_requested, actual_participants):
             if actual_participants >= players_requested:
@@ -4532,6 +4565,12 @@ def get_pickup_games():
             # Get user's club name for display
             user_club = user.get("club", "My Club")
             
+            # Get participants
+            participants = get_game_participants(game["id"])
+            
+            # Calculate available slots
+            available_slots = max(0, game["players_requested"] - len(participants))
+            
             return {
                 "id": game["id"],
                 "description": game["description"],
@@ -4547,7 +4586,12 @@ def get_pickup_games():
                 "club_only": game["club_only"],
                 "club_name": user_club,
                 "creator_user_id": game["creator_user_id"],
-                "user_has_joined": user_has_joined(game["id"])
+                "user_has_joined": user_has_joined(game["id"]),
+                # New fields for participants and slots
+                "participants": participants,
+                "available_slots": available_slots,
+                "slots_filled": len(participants),
+                "is_full": len(participants) >= game["players_requested"]
             }
         
         # Format the results

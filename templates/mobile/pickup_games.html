@@ -613,6 +613,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     <span class="text-xs ${statusColor.bg} ${statusColor.text} px-2 py-1 rounded-full">${game.status}</span>
                 </div>
                 
+                <div class="mb-3">
+                    <div class="text-sm font-bold text-gray-900 mb-1">Criteria:</div>
+                    ${criteriaHTML}
+                </div>
+                
                 <div class="grid grid-cols-2 gap-4 mb-3">
                     <div class="text-center">
                         <div class="text-xl font-bold text-gray-900">${game.players_requested}</div>
@@ -624,9 +629,52 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                 </div>
                 
-                <div class="mb-3">
-                    <div class="text-sm font-medium text-gray-900 mb-1">Criteria:</div>
-                    ${criteriaHTML}
+                <!-- Participants and Available Slots Section -->
+                <div class="mb-4">
+                    <div class="text-sm font-medium text-gray-900 mb-2">
+                        Players (${game.slots_filled}/${game.players_requested})
+                    </div>
+                    
+                    <!-- Visual slot representation -->
+                    <div class="grid grid-cols-4 gap-1 mb-3">
+                        ${Array.from({ length: game.players_requested }, (_, i) => {
+                            const slotNumber = i + 1;
+                            const isOccupied = i < game.slots_filled;
+                            const participant = isOccupied ? game.participants[i] : null;
+                            
+                            if (isOccupied && participant) {
+                                const joinDateTime = new Date(participant.joined_at);
+                                const joinDate = joinDateTime.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: '2-digit' });
+                                const joinTime = joinDateTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+                                return `<div class="bg-green-100 text-green-800 rounded-lg text-xs font-medium border border-green-200 flex items-center p-2 gap-2" title="Slot ${slotNumber}: ${participant.name} - Joined ${joinDate} at ${joinTime}">
+                                    <div class="bg-green-600 text-white rounded-full w-6 h-6 flex items-center justify-center font-bold text-xs flex-shrink-0">${slotNumber}</div>
+                                    <div class="flex-1 min-w-0">
+                                        <div class="truncate font-medium text-green-800">${participant.name}</div>
+                                        <div class="text-green-600 opacity-75 text-xs">Joined ${joinDate} at ${joinTime}</div>
+                                    </div>
+                                </div>`;
+                            } else {
+                                return `<div class="bg-gray-100 text-gray-500 rounded-lg text-xs border border-gray-200 flex items-center p-2 gap-2" title="Slot ${slotNumber}: Available">
+                                    <div class="bg-gray-400 text-white rounded-full w-6 h-6 flex items-center justify-center font-bold text-xs flex-shrink-0">${slotNumber}</div>
+                                    <div class="flex-1">
+                                        <div class="font-medium">Open</div>
+                                    </div>
+                                </div>`;
+                            }
+                        }).join('')}
+                    </div>
+                    
+                    ${game.available_slots > 0 ? `
+                        <div class="text-xs text-blue-600 font-medium mt-2">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            ${game.available_slots} slot${game.available_slots === 1 ? '' : 's'} still available
+                        </div>
+                    ` : game.is_full ? `
+                        <div class="text-xs text-red-600 font-medium mt-2">
+                            <i class="fas fa-exclamation-circle mr-1"></i>
+                            Game is full
+                        </div>
+                    ` : ''}
                 </div>
                 
                 ${editButtonHTML}

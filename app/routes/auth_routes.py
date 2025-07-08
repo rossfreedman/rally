@@ -26,8 +26,14 @@ logger = logging.getLogger(__name__)
 def login():
     """Serve the login page"""
     if request.method == "GET":
-        return render_template("login.html")
+        return render_template("login.html", default_tab="login")
     return jsonify({"error": "Method not allowed"}), 405
+
+
+@auth_bp.route("/register", methods=["GET"])
+def register():
+    """Serve the registration page (uses login template with register tab active)"""
+    return render_template("login.html", default_tab="register")
 
 
 @auth_bp.route("/api/register", methods=["POST"])
