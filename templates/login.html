@@ -254,11 +254,11 @@
                 </div>
                 
                 <div class="auth-tabs">
-                    <div class="auth-tab active" onclick="showForm('login')">Sign In</div>
-                    <div class="auth-tab" onclick="showForm('register')">Register</div>
+                    <div class="auth-tab {{ 'active' if default_tab == 'login' else '' }}" onclick="showForm('login')">Sign In</div>
+                    <div class="auth-tab {{ 'active' if default_tab == 'register' else '' }}" onclick="showForm('register')">Register</div>
                 </div>
                 
-                <form id="loginForm" class="auth-form active">
+                <form id="loginForm" class="auth-form {{ 'active' if default_tab == 'login' else '' }}">
                     <div class="form-floating">
                         <input type="email" class="form-control" id="loginEmail" placeholder="name@example.com" required>
                         <label for="loginEmail">Email address</label>
@@ -276,7 +276,7 @@
                     </button>
                 </form>
                 
-                <form id="registerForm" class="auth-form">
+                <form id="registerForm" class="auth-form {{ 'active' if default_tab == 'register' else '' }}">
                     <!-- Account Information Section -->
                     <div class="form-section mb-4" style="background-color: #f8f9fa; border-radius: 8px; padding: 20px; border-left: 3px solid #007bff;">
                         <h6 class="section-title mb-3" style="color: #495057; font-weight: 600; font-size: 0.9rem; margin-bottom: 1rem;">About you</h6>
@@ -390,6 +390,30 @@
     <script>
         // Load leagues, clubs and series on page load with filtering
         document.addEventListener('DOMContentLoaded', async () => {
+            // Set the correct tab based on the current URL or server-provided default
+            const currentPath = window.location.pathname;
+            let activeTab = '{{ default_tab if default_tab else "login" }}';
+            
+            // Override with URL if user directly navigated to a specific page
+            if (currentPath === '/register') {
+                activeTab = 'register';
+            } else if (currentPath === '/login') {
+                activeTab = 'login';
+            }
+            
+            // Ensure the correct tab is displayed
+            showForm(activeTab);
+            
+            // Handle browser back/forward navigation
+            window.addEventListener('popstate', function(event) {
+                const currentPath = window.location.pathname;
+                if (currentPath === '/register') {
+                    showForm('register');
+                } else if (currentPath === '/login') {
+                    showForm('login');
+                }
+            });
+            
             try {
                 await loadLeaguesAndFilters();
             } catch (error) {
@@ -641,6 +665,12 @@
             
             document.querySelector(`.auth-tab:nth-child(${formType === 'login' ? 1 : 2})`).classList.add('active');
             document.getElementById(`${formType}Form`).classList.add('active');
+            
+            // Update URL to match the current tab (without page reload)
+            const newPath = formType === 'register' ? '/register' : '/login';
+            if (window.location.pathname !== newPath) {
+                window.history.pushState(null, '', newPath);
+            }
             
             // If switching to register form, ensure dropdowns are properly initialized
             if (formType === 'register') {
