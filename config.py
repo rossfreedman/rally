@@ -15,7 +15,8 @@ class TwilioConfig:
     AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
     MESSAGING_SERVICE_SID = os.getenv("TWILIO_MESSAGING_SERVICE_SID", "MGa5958eb19c37c4d26b111098d4ffb809")
     SENDER_PHONE = os.getenv("TWILIO_SENDER_PHONE", "+13128001632")
-    CAMPAIGN_SID = os.getenv("TWILIO_CAMPAIGN_SID", "CM09eba13d94c2053c6bf9a2bb78410d58")
+    # Removed invalid CAMPAIGN_SID to prevent A2P 10DLC enforcement issues
+    # CAMPAIGN_SID = os.getenv("TWILIO_CAMPAIGN_SID", "CM09eba13d94c2053c6bf9a2bb78410d58")
     
     @classmethod
     def is_configured(cls):
