@@ -2550,9 +2550,10 @@ def check_twilio_delivery():
     """
     try:
         import os
-        from twilio.rest import Client
+        import requests
+        from requests.auth import HTTPBasicAuth
         
-        # Initialize Twilio client
+        # Get Twilio credentials (same as notifications service)
         account_sid = os.getenv('TWILIO_ACCOUNT_SID')
         auth_token = os.getenv('TWILIO_AUTH_TOKEN')
         
@@ -2562,8 +2563,6 @@ def check_twilio_delivery():
                 "account_sid_available": bool(account_sid),
                 "auth_token_available": bool(auth_token)
             }), 500
-        
-        client = Client(account_sid, auth_token)
         
         # Check the specific message SIDs from recent logs
         message_sids = [
@@ -2579,36 +2578,51 @@ def check_twilio_delivery():
             "recent_messages": []
         }
         
+        # Set up HTTP auth for Twilio API
+        auth = HTTPBasicAuth(account_sid, auth_token)
+        
         # Check each specific message
         for sid in message_sids:
             try:
-                message = client.messages(sid).fetch()
+                # Get message details via HTTP API
+                url = f"https://api.twilio.com/2010-04-01/Accounts/{account_sid}/Messages/{sid}.json"
+                response = requests.get(url, auth=auth, timeout=10)
                 
-                message_info = {
-                    "sid": sid,
-                    "to": message.to,
-                    "body": message.body[:50] + "..." if len(message.body) > 50 else message.body,
-                    "status": message.status,
-                    "date_sent": str(message.date_sent),
-                    "price": f"${message.price} {message.price_unit}" if message.price else "N/A",
-                    "error_code": message.error_code,
-                    "error_message": message.error_message,
-                    "delivery_analysis": "Unknown"
-                }
-                
-                # Analyze delivery status
-                if message.status == 'delivered':
-                    message_info["delivery_analysis"] = "✅ Successfully delivered"
-                elif message.status == 'failed':
-                    message_info["delivery_analysis"] = "❌ Delivery failed"
-                elif message.status == 'undelivered':
-                    message_info["delivery_analysis"] = "⚠️ Undelivered (carrier issue)"
-                elif message.status == 'sent':
-                    message_info["delivery_analysis"] = "📤 Sent (pending delivery)"
-                elif message.status == 'queued':
-                    message_info["delivery_analysis"] = "⏳ Queued for sending"
+                if response.status_code == 200:
+                    message_data = response.json()
                     
-                results["checked_messages"].append(message_info)
+                    message_info = {
+                        "sid": sid,
+                        "to": message_data.get("to"),
+                        "body": message_data.get("body", "")[:50] + "..." if len(message_data.get("body", "")) > 50 else message_data.get("body", ""),
+                        "status": message_data.get("status"),
+                        "date_sent": message_data.get("date_sent"),
+                        "price": f"${message_data.get('price')} {message_data.get('price_unit')}" if message_data.get('price') else "N/A",
+                        "error_code": message_data.get("error_code"),
+                        "error_message": message_data.get("error_message"),
+                        "delivery_analysis": "Unknown"
+                    }
+                    
+                    # Analyze delivery status
+                    status = message_data.get("status")
+                    if status == 'delivered':
+                        message_info["delivery_analysis"] = "✅ Successfully delivered"
+                    elif status == 'failed':
+                        message_info["delivery_analysis"] = "❌ Delivery failed"
+                    elif status == 'undelivered':
+                        message_info["delivery_analysis"] = "⚠️ Undelivered (carrier issue)"
+                    elif status == 'sent':
+                        message_info["delivery_analysis"] = "📤 Sent (pending delivery)"
+                    elif status == 'queued':
+                        message_info["delivery_analysis"] = "⏳ Queued for sending"
+                        
+                    results["checked_messages"].append(message_info)
+                else:
+                    results["checked_messages"].append({
+                        "sid": sid,
+                        "error": f"HTTP {response.status_code}: {response.text}",
+                        "delivery_analysis": "❌ Error fetching message"
+                    })
                 
             except Exception as e:
                 results["checked_messages"].append({
@@ -2617,20 +2631,26 @@ def check_twilio_delivery():
                     "delivery_analysis": "❌ Error fetching message"
                 })
         
-        # Get recent messages to this number
+        # Get recent messages to this number via HTTP API
         try:
-            recent_messages = client.messages.list(
-                to='+17732138911',
-                limit=15
-            )
+            url = f"https://api.twilio.com/2010-04-01/Accounts/{account_sid}/Messages.json"
+            params = {
+                "To": "+17732138911",
+                "PageSize": 15
+            }
+            response = requests.get(url, auth=auth, params=params, timeout=10)
             
-            for msg in recent_messages:
-                results["recent_messages"].append({
-                    "sid": msg.sid,
-                    "status": msg.status,
-                    "body": msg.body[:30] + "..." if len(msg.body) > 30 else msg.body,
-                    "date_sent": str(msg.date_sent)
-                })
+            if response.status_code == 200:
+                messages_data = response.json()
+                for msg in messages_data.get("messages", []):
+                    results["recent_messages"].append({
+                        "sid": msg.get("sid"),
+                        "status": msg.get("status"),
+                        "body": msg.get("body", "")[:30] + "..." if len(msg.get("body", "")) > 30 else msg.get("body", ""),
+                        "date_sent": msg.get("date_sent")
+                    })
+            else:
+                results["recent_messages_error"] = f"HTTP {response.status_code}: {response.text}"
                 
         except Exception as e:
             results["recent_messages_error"] = str(e)
