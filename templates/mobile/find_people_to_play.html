@@ -208,6 +208,48 @@
     </div>
 </div>
 
+<!-- Add to Group Modal -->
+<div id="addToGroupModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-xl max-w-md w-full max-h-[80vh] overflow-hidden shadow-xl">
+        <!-- Modal Header -->
+        <div class="px-6 py-4 border-b border-gray-100 bg-black">
+            <div class="flex justify-between items-center">
+                <h3 class="text-lg font-semibold text-white">Add to Group Chat</h3>
+                <button id="closeGroupModal" class="text-white hover:text-gray-300 focus:outline-none">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Modal Body -->
+        <div class="p-6">
+            <div id="selectedPlayerInfo" class="mb-4 p-3 bg-gray-50 rounded-lg">
+                <!-- Selected player info will be populated here -->
+            </div>
+            
+            <div id="groupsLoading" class="text-center py-4 hidden">
+                <div class="loading loading-spinner loading-md text-blue-500 mb-2"></div>
+                <p class="text-gray-500 text-sm">Loading your groups...</p>
+            </div>
+            
+            <div id="groupsList" class="space-y-3">
+                <!-- User's groups will be populated here -->
+            </div>
+            
+            <div id="noGroupsMessage" class="text-center py-6 hidden">
+                <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-users text-gray-400 text-2xl"></i>
+                </div>
+                <p class="text-gray-600 text-sm mb-4">You don't have any group chats yet.</p>
+                <a href="/mobile/my-groups" class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200">
+                    <i class="fas fa-plus"></i>
+                    Create Group Chat
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
 <style>
 /* Custom styles for modern mobile design */
 .min-h-screen {
@@ -656,10 +698,23 @@ document.addEventListener('DOMContentLoaded', function() {
         messageSelectedBtn.addEventListener('click', showSelectedPlayersModal);
         closeModal.addEventListener('click', hideSelectedPlayersModal);
         
+        // Group modal events
+        const closeGroupModal = document.getElementById('closeGroupModal');
+        const addToGroupModal = document.getElementById('addToGroupModal');
+        
+        closeGroupModal.addEventListener('click', hideAddToGroupModal);
+        
         // Close modal when clicking outside
         selectedPlayersModal.addEventListener('click', function(e) {
             if (e.target === selectedPlayersModal) {
                 hideSelectedPlayersModal();
+            }
+        });
+        
+        // Close group modal when clicking outside
+        addToGroupModal.addEventListener('click', function(e) {
+            if (e.target === addToGroupModal) {
+                hideAddToGroupModal();
             }
         });
     }
@@ -785,8 +840,191 @@ document.addEventListener('DOMContentLoaded', function() {
         const firstName = nameParts[0] || 'Unknown';
         const lastName = nameParts.slice(1).join(' ') || 'Unknown';
         console.log('Parsed name:', firstName, lastName);
-        window.location.href = `/add-to-text-group?first=${encodeURIComponent(firstName)}&last=${encodeURIComponent(lastName)}`;
+        
+        // Show the group selection modal
+        showAddToGroupModal(playerName, firstName, lastName);
     };
+
+    // Show Add to Group Modal
+    async function showAddToGroupModal(playerName, firstName, lastName) {
+        const modal = document.getElementById('addToGroupModal');
+        const selectedPlayerInfo = document.getElementById('selectedPlayerInfo');
+        const groupsLoading = document.getElementById('groupsLoading');
+        const groupsList = document.getElementById('groupsList');
+        const noGroupsMessage = document.getElementById('noGroupsMessage');
+        
+        // Store player info for later use
+        window.currentSelectedPlayer = { name: playerName, firstName, lastName };
+        
+        // Show player info
+        selectedPlayerInfo.innerHTML = `
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                    <i class="fas fa-user text-blue-600"></i>
+                </div>
+                <div>
+                    <div class="font-semibold text-gray-900">${playerName}</div>
+                    <div class="text-sm text-gray-600">Select a group to add this player to</div>
+                </div>
+            </div>
+        `;
+        
+        // Show modal and loading state
+        modal.classList.remove('hidden');
+        groupsLoading.classList.remove('hidden');
+        groupsList.innerHTML = '';
+        noGroupsMessage.classList.add('hidden');
+        
+        try {
+            // Load user's groups
+            const response = await fetch('/api/groups');
+            if (!response.ok) throw new Error('Failed to fetch groups');
+            
+            const data = await response.json();
+            const groups = data.groups || [];
+            
+            groupsLoading.classList.add('hidden');
+            
+            if (groups.length === 0) {
+                noGroupsMessage.classList.remove('hidden');
+                return;
+            }
+            
+            // Display groups
+            groups.forEach(group => {
+                const groupElement = document.createElement('div');
+                groupElement.className = 'group-item bg-white border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-sm transition-all duration-200 cursor-pointer';
+                groupElement.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                            <div class="font-semibold text-gray-900">${group.name}</div>
+                            <div class="text-sm text-gray-600">${group.member_count} members</div>
+                            ${group.description ? `<div class="text-xs text-gray-500 mt-1">${group.description}</div>` : ''}
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <i class="fas fa-users text-gray-400"></i>
+                            <i class="fas fa-chevron-right text-gray-300"></i>
+                        </div>
+                    </div>
+                `;
+                
+                groupElement.addEventListener('click', () => addPlayerToGroup(group.id, group.name));
+                groupsList.appendChild(groupElement);
+            });
+            
+        } catch (error) {
+            console.error('Error loading groups:', error);
+            groupsLoading.classList.add('hidden');
+            groupsList.innerHTML = `
+                <div class="text-center py-4">
+                    <div class="text-red-600 mb-2">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <p class="text-red-600 text-sm">Failed to load groups. Please try again.</p>
+                </div>
+            `;
+        }
+    }
+    
+    // Add player to selected group
+    async function addPlayerToGroup(groupId, groupName) {
+        const { name: playerName, firstName, lastName } = window.currentSelectedPlayer;
+        
+        try {
+            // Show loading state
+            const groupsList = document.getElementById('groupsList');
+            groupsList.innerHTML = `
+                <div class="text-center py-6">
+                    <div class="loading loading-spinner loading-lg text-blue-500 mb-3"></div>
+                    <p class="text-gray-600 text-sm">Adding ${playerName} to ${groupName}...</p>
+                </div>
+            `;
+            
+            // Find the player by name to get their user ID
+            const searchResponse = await fetch(`/api/groups/search-players?q=${encodeURIComponent(playerName)}`);
+            if (!searchResponse.ok) throw new Error('Failed to search for player');
+            
+            const searchData = await searchResponse.json();
+            const matchedPlayers = searchData.players || [];
+            
+            // Find exact match
+            const exactMatch = matchedPlayers.find(player => 
+                player.full_name.toLowerCase() === playerName.toLowerCase()
+            );
+            
+            if (!exactMatch || !exactMatch.user_id) {
+                throw new Error('Player not found or not registered in the system');
+            }
+            
+            // Add player to group
+            const addResponse = await fetch(`/api/groups/${groupId}/members`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    user_id: exactMatch.user_id
+                })
+            });
+            
+            if (!addResponse.ok) {
+                const errorData = await addResponse.json();
+                throw new Error(errorData.error || 'Failed to add player to group');
+            }
+            
+            const result = await addResponse.json();
+            
+            // Show success message
+            showGroupSuccessMessage(`${playerName} has been added to ${groupName}!`);
+            
+            // Close modal after delay
+            setTimeout(() => {
+                hideAddToGroupModal();
+            }, 1500);
+            
+        } catch (error) {
+            console.error('Error adding player to group:', error);
+            showGroupErrorMessage(error.message);
+            
+            // Re-show groups list after error
+            setTimeout(() => {
+                showAddToGroupModal(playerName, firstName, lastName);
+            }, 2000);
+        }
+    }
+    
+    // Hide Add to Group Modal
+    function hideAddToGroupModal() {
+        const modal = document.getElementById('addToGroupModal');
+        modal.classList.add('hidden');
+        window.currentSelectedPlayer = null;
+    }
+    
+    // Show success message in group modal
+    function showGroupSuccessMessage(message) {
+        const groupsList = document.getElementById('groupsList');
+        groupsList.innerHTML = `
+            <div class="text-center py-6">
+                <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-check text-green-600 text-2xl"></i>
+                </div>
+                <p class="text-green-600 text-sm font-medium">${message}</p>
+            </div>
+        `;
+    }
+    
+    // Show error message in group modal
+    function showGroupErrorMessage(message) {
+        const groupsList = document.getElementById('groupsList');
+        groupsList.innerHTML = `
+            <div class="text-center py-6">
+                <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-exclamation-triangle text-red-600 text-2xl"></i>
+                </div>
+                <p class="text-red-600 text-sm font-medium">${message}</p>
+            </div>
+        `;
+    }
 
     // Create player card with checkbox
     function createPlayerCard(player) {
