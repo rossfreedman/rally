@@ -366,12 +366,48 @@ def register_user(email: str, password: str, first_name: str, last_name: str,
                     ).first()
                     
                     if player_record:
-                        # Create user-player association
-                        association = UserPlayerAssociation(
-                            user_id=new_user.id,
-                            tenniscores_player_id=player_id
-                        )
-                        db_session.add(association)
+                        # ENHANCEMENT: Handle existing placeholder associations
+                        # Check if this player is already associated with a placeholder user
+                        existing_association = db_session.query(UserPlayerAssociation).filter(
+                            UserPlayerAssociation.tenniscores_player_id == player_id
+                        ).first()
+                        
+                        if existing_association:
+                            # Check if it's a placeholder user
+                            existing_user = db_session.query(User).filter(
+                                User.id == existing_association.user_id
+                            ).first()
+                            
+                            if existing_user and existing_user.email.endswith('@placeholder.rally'):
+                                logger.info(f"Registration: Removing placeholder association for player {player_id}")
+                                
+                                # Remove the placeholder association
+                                db_session.delete(existing_association)
+                                
+                                # If placeholder user has no other associations, remove the user too
+                                other_associations = db_session.query(UserPlayerAssociation).filter(
+                                    UserPlayerAssociation.user_id == existing_user.id,
+                                    UserPlayerAssociation.tenniscores_player_id != player_id
+                                ).count()
+                                
+                                if other_associations == 0:
+                                    logger.info(f"Registration: Removing empty placeholder user {existing_user.email}")
+                                    db_session.delete(existing_user)
+                                
+                                db_session.flush()  # Apply deletes before creating new association
+                            else:
+                                # Real user already associated - this is unusual but handle gracefully
+                                logger.warning(f"Registration: Player {player_id} already associated with real user {existing_user.email}")
+                                # Don't create duplicate association, but continue with registration
+                                association = None
+                        
+                        # Create new association if no conflicts
+                        if not existing_association or (existing_association and existing_user and existing_user.email.endswith('@placeholder.rally')):
+                            association = UserPlayerAssociation(
+                                user_id=new_user.id,
+                                tenniscores_player_id=player_id
+                            )
+                            db_session.add(association)
                         
                         # CRITICAL FIX: Set league_context based on the specific player they registered for
                         # This ensures the session service will select the right team on login
@@ -384,7 +420,11 @@ def register_user(email: str, password: str, first_name: str, last_name: str,
                         if team_assigned:
                             logger.info(f"Registration: Team assignment successful for {player_record.full_name}")
                         
-                        logger.info(f"Registration: Created association between {email} and player {player_id} ({player_data['club_name']} - {player_data['series_name']})")
+                        # Log association creation (or existing association)
+                        if 'association' in locals() and association:
+                            logger.info(f"Registration: Created association between {email} and player {player_id} ({player_data['club_name']} - {player_data['series_name']})")
+                        else:
+                            logger.info(f"Registration: Using existing association for {email} and player {player_id} ({player_data['club_name']} - {player_data['series_name']})")
                 else:
                     logger.info(f"Registration: No player found for {email} with provided details")
                     
