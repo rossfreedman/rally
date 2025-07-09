@@ -154,7 +154,7 @@ def _send_sms_with_retry(formatted_phone: str, message: str, max_retries: int) -
         "From": TwilioConfig.SENDER_PHONE,  # Use direct phone number instead of invalid messaging service
         "Body": message,
         # Use publicly accessible Rally logo for MMS
-        "MediaUrl": "https://www.lovetorally.com/static/images/rallylogo.png"
+        "MediaUrl": "https://www.lovetorally.com/static/rallylogo.png"
     }
     
     # SMS fallback data (no media)

@@ -78,7 +78,7 @@ def test_media_url():
     print("\n🔍 MEDIA URL CHECK")
     print("=" * 50)
     
-    media_url = "https://www.lovetorally.com/static/images/rallylogo.png"
+    media_url = "https://www.lovetorally.com/static/rallylogo.png"
     print(f"Testing URL: {media_url}")
     
     try:
@@ -167,7 +167,7 @@ def test_mms_send():
         "To": test_phone,
         "MessagingServiceSid": TwilioConfig.MESSAGING_SERVICE_SID,
         "Body": f"🧪 MMS Test from Rally Production - {datetime.now().strftime('%H:%M:%S')}",
-        "MediaUrl": "https://www.lovetorally.com/static/images/rallylogo.png"
+        "MediaUrl": "https://www.lovetorally.com/static/rallylogo.png"
     }
     
     try:
