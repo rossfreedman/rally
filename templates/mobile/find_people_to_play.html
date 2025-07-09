@@ -833,15 +833,15 @@ document.addEventListener('DOMContentLoaded', function() {
         window.location.href = `/contact-sub?first=${encodeURIComponent(firstName)}&last=${encodeURIComponent(lastName)}`;
     };
 
-    // Handle Add to Text Group button click
+    // Handle Add to Text Group button click - Updated with Modal functionality v2.0
     window.handleAddToGroupClick = function(playerName) {
-        console.log('Add to Text Group button clicked for player:', playerName);
+        console.log('Add to Text Group button clicked for player (MODAL VERSION):', playerName);
         const nameParts = playerName.split(' ');
         const firstName = nameParts[0] || 'Unknown';
         const lastName = nameParts.slice(1).join(' ') || 'Unknown';
         console.log('Parsed name:', firstName, lastName);
         
-        // Show the group selection modal
+        // Show the group selection modal (NEW FUNCTIONALITY)
         showAddToGroupModal(playerName, firstName, lastName);
     };
 
