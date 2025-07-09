@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to Rally</title>
+    <link rel="icon" type="image/png" href="/static/images/rally_favicon.png">
+    
+    <!-- Tailwind CSS (compiled) & DaisyUI -->
+    <link href="/static/css/output.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Google Fonts - Nunito for playful, rounded text -->
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        /* Subtle logo animation */
+        @keyframes gentlePulse {
+            0%, 100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1.05);
+                opacity: 0.9;
+            }
+        }
+        
+        .logo-container {
+            animation: gentlePulse 3s ease-in-out infinite;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .tagline {
+            animation: fadeInUp 0.8s ease-out 0.5s both;
+        }
+        
+        body {
+            background-color: #c4ff60 !important;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center">
+    
+    <div class="flex flex-col items-center justify-center min-h-screen text-center">
+        <!-- Rally Logo directly on green background -->
+        <div class="logo-container mb-6">
+            <img src="/static/rallylogobug.png" alt="Rally Logo" class="h-auto mx-auto" style="width: 200px;">
+        </div>
+        
+        <!-- Tagline -->
+        <p class="text-gray-800 text-xl font-bold px-6 max-w-md tagline" style="font-family: 'Nunito', sans-serif; font-weight: 700; letter-spacing: 0.02em;">
+            Built by players for players<br>who <i class="fas fa-heart text-red-500"></i> racquet sports.
+        </p>
+    </div>
+
+    <script>
+        // Redirect to the main app after 3 seconds
+        setTimeout(() => {
+            window.location.href = '/mobile';
+        }, 3000);
+    </script>
+</body>
+</html> 
