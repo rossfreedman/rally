@@ -659,7 +659,7 @@ def serve_mobile_analyze_me():
             "user_series": session["user"].get("series", "Unknown"),
             "user_team_id": session["user"].get("team_id"),
             "has_player_id": bool(session["user"].get("tenniscores_player_id")),
-            "has_matches": bool(len(analysis_data.get("current_season", {}).get("matches", [])) > 0)
+            "has_matches": bool(len(analyze_data.get("current_season", {}).get("matches", [])) > 0)
         }
         
         log_user_activity(
