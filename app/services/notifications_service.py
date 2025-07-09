@@ -4,10 +4,13 @@ Notifications Service
 
 This module handles SMS notifications using Twilio's A2P messaging service.
 Supports sending test messages and managing notification preferences.
+
+Enhanced with retry logic for error 21704 (provider disruptions).
 """
 
 import logging
 import re
+import time
 from datetime import datetime
 from typing import Dict, Optional, Tuple
 
@@ -59,14 +62,15 @@ def validate_phone_number(phone: str) -> Tuple[bool, str]:
     return True, formatted
 
 
-def send_sms_notification(to_number: str, message: str, test_mode: bool = False) -> Dict:
+def send_sms_notification(to_number: str, message: str, test_mode: bool = False, max_retries: int = 3) -> Dict:
     """
-    Send an SMS using Twilio's Messaging Service API
+    Send an SMS using Twilio's Messaging Service API with retry logic for error 21704
     
     Args:
         to_number (str): Recipient phone number
         message (str): Message content
         test_mode (bool): If True, validates but doesn't actually send
+        max_retries (int): Maximum number of retry attempts for error 21704
         
     Returns:
         Dict: Result with status, message_sid, and any errors
@@ -122,6 +126,23 @@ def send_sms_notification(to_number: str, message: str, test_mode: bool = False)
             "message_sid": "test_message_id"
         }
     
+    # Send SMS with retry logic for error 21704
+    return _send_sms_with_retry(formatted_phone, message, max_retries)
+
+
+def _send_sms_with_retry(formatted_phone: str, message: str, max_retries: int) -> Dict:
+    """
+    Send SMS with exponential backoff retry for error 21704
+    
+    Args:
+        formatted_phone (str): Validated phone number
+        message (str): Message content
+        max_retries (int): Maximum retry attempts
+        
+    Returns:
+        Dict: Result with status, message_sid, and any errors
+    """
+    
     # Prepare API request
     url = f"https://api.twilio.com/2010-04-01/Accounts/{TwilioConfig.ACCOUNT_SID}/Messages.json"
     
@@ -133,71 +154,111 @@ def send_sms_notification(to_number: str, message: str, test_mode: bool = False)
     
     auth = HTTPBasicAuth(TwilioConfig.ACCOUNT_SID, TwilioConfig.AUTH_TOKEN)
     
-    try:
-        logger.info(f"Sending SMS to {formatted_phone} via Twilio")
-        
-        response = requests.post(
-            url,
-            data=data,
-            auth=auth,
-            timeout=30
-        )
-        
-        response_data = response.json()
-        
-        if response.status_code == 201:  # Twilio success status
-            logger.info(f"SMS sent successfully. Message SID: {response_data.get('sid')}")
-            return {
-                "success": True,
-                "message": "SMS sent successfully",
-                "status_code": response.status_code,
-                "message_sid": response_data.get("sid"),
-                "formatted_phone": formatted_phone,
-                "message_length": len(message),
-                "twilio_status": response_data.get("status"),
-                "price": response_data.get("price"),
-                "date_sent": response_data.get("date_sent")
-            }
-        else:
-            error_message = response_data.get("message", "Unknown Twilio error")
-            error_code = response_data.get("code")
-            logger.error(f"Twilio API error {response.status_code}: {error_message} (Code: {error_code})")
+    last_error = None
+    last_response_data = None
+    
+    for attempt in range(max_retries + 1):  # +1 for initial attempt
+        try:
+            if attempt > 0:
+                # Calculate exponential backoff delay
+                delay = min(2 ** attempt, 60)  # Max 60 seconds
+                logger.info(f"SMS retry {attempt}/{max_retries} in {delay}s (error 21704 recovery)")
+                time.sleep(delay)
             
-            return {
-                "success": False,
-                "error": f"Twilio error: {error_message}",
-                "error_code": error_code,
-                "status_code": response.status_code,
-                "message_sid": None,
-                "raw_response": response_data
-            }
+            logger.info(f"Sending SMS to {formatted_phone} via Twilio (attempt {attempt + 1}/{max_retries + 1})")
             
-    except requests.exceptions.Timeout:
-        logger.error("Twilio API request timed out")
-        return {
-            "success": False,
-            "error": "Request timed out - please try again",
-            "status_code": None,
-            "message_sid": None
-        }
-        
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Network error sending SMS: {str(e)}")
-        return {
-            "success": False,
-            "error": f"Network error: {str(e)}",
-            "status_code": None,
-            "message_sid": None
-        }
-        
-    except Exception as e:
-        logger.error(f"Unexpected error sending SMS: {str(e)}")
-        return {
-            "success": False,
-            "error": f"Unexpected error: {str(e)}",
-            "status_code": None,
-            "message_sid": None
-        }
+            response = requests.post(
+                url,
+                data=data,
+                auth=auth,
+                timeout=30
+            )
+            
+            response_data = response.json()
+            last_response_data = response_data
+            
+            if response.status_code == 201:  # Twilio success status
+                success_msg = f"SMS sent successfully"
+                if attempt > 0:
+                    success_msg += f" (succeeded on retry {attempt})"
+                
+                logger.info(f"{success_msg}. Message SID: {response_data.get('sid')}")
+                return {
+                    "success": True,
+                    "message": success_msg,
+                    "status_code": response.status_code,
+                    "message_sid": response_data.get("sid"),
+                    "formatted_phone": formatted_phone,
+                    "message_length": len(message),
+                    "twilio_status": response_data.get("status"),
+                    "price": response_data.get("price"),
+                    "date_sent": response_data.get("date_sent"),
+                    "retry_attempt": attempt
+                }
+            else:
+                error_message = response_data.get("message", "Unknown Twilio error")
+                error_code = response_data.get("code")
+                
+                # Check if this is error 21704 (provider disruption) - retry if we have attempts left
+                if error_code == 21704 and attempt < max_retries:
+                    logger.warning(f"Error 21704 (provider disruption) on attempt {attempt + 1}, retrying...")
+                    last_error = f"Twilio error 21704: {error_message}"
+                    continue
+                
+                # For other errors or final attempt, return failure
+                logger.error(f"Twilio API error {response.status_code}: {error_message} (Code: {error_code})")
+                
+                return {
+                    "success": False,
+                    "error": f"Twilio error: {error_message}",
+                    "error_code": error_code,
+                    "status_code": response.status_code,
+                    "message_sid": None,
+                    "raw_response": response_data,
+                    "final_attempt": attempt + 1,
+                    "max_retries": max_retries
+                }
+                
+        except requests.exceptions.Timeout:
+            error_msg = f"Twilio API request timed out (attempt {attempt + 1})"
+            logger.error(error_msg)
+            last_error = "Request timed out"
+            
+            # Retry timeouts for error 21704 scenarios
+            if attempt < max_retries:
+                logger.info("Retrying after timeout...")
+                continue
+            
+        except requests.exceptions.RequestException as e:
+            error_msg = f"Network error sending SMS (attempt {attempt + 1}): {str(e)}"
+            logger.error(error_msg)
+            last_error = f"Network error: {str(e)}"
+            
+            # Retry network errors for error 21704 scenarios
+            if attempt < max_retries:
+                logger.info("Retrying after network error...")
+                continue
+            
+        except Exception as e:
+            error_msg = f"Unexpected error sending SMS (attempt {attempt + 1}): {str(e)}"
+            logger.error(error_msg)
+            last_error = f"Unexpected error: {str(e)}"
+            # Don't retry unexpected errors
+            break
+    
+    # All retries exhausted
+    final_error = last_error or "All retry attempts failed"
+    logger.error(f"SMS sending failed after {max_retries + 1} attempts: {final_error}")
+    
+    return {
+        "success": False,
+        "error": f"Failed after {max_retries + 1} attempts: {final_error}",
+        "status_code": None,
+        "message_sid": None,
+        "final_attempt": attempt + 1,
+        "max_retries": max_retries,
+        "last_response": last_response_data
+    }
 
 
 def get_predefined_messages() -> Dict[str, str]:
