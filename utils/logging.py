@@ -5,8 +5,6 @@ from datetime import datetime
 
 from flask import request
 
-from database import get_db
-
 logger = logging.getLogger(__name__)
 
 # Ross Freedman's phone number for admin notifications
@@ -65,23 +63,29 @@ def _log_to_database(user_email, activity_type, page, action, details_json, is_i
     This is a private function called by log_user_activity
     """
     try:
-        # Use context manager for database connection
-        with get_db() as conn:
-            cursor = conn.cursor()
+        # Use the same database connection method as the rest of the app
+        import psycopg2
+        from database_config import get_db_url, parse_db_url
+        
+        params = parse_db_url(get_db_url())
+        conn = psycopg2.connect(**params)
+        cursor = conn.cursor()
 
-            # Get current timestamp
-            current_time = datetime.now()
+        # Get current timestamp
+        current_time = datetime.now()
 
-            # Insert activity log (using existing user_activity_logs table)
-            cursor.execute(
-                """
-                INSERT INTO user_activity_logs (user_email, activity_type, page, action, details, timestamp)
-                VALUES (%s, %s, %s, %s, %s, %s)
-                """,
-                (user_email, activity_type, page, action, details_json, current_time),
-            )
+        # Insert activity log (using existing user_activity_logs table)
+        cursor.execute(
+            """
+            INSERT INTO user_activity_logs (user_email, activity_type, page, action, details, timestamp)
+            VALUES (%s, %s, %s, %s, %s, %s)
+            """,
+            (user_email, activity_type, page, action, details_json, current_time),
+        )
 
-            conn.commit()
+        conn.commit()
+        cursor.close()
+        conn.close()
 
     except Exception as e:
         logger.error(f"Database logging error: {str(e)}")
@@ -221,37 +225,43 @@ def _format_activity_for_sms(user_email, activity_type, page, action, details, i
 def get_user_activity(user_email):
     """Get user activity history"""
     try:
-        # Connect to database
-        with get_db() as conn:
-            cursor = conn.cursor()
+        # Use the same database connection method as the rest of the app
+        import psycopg2
+        from database_config import get_db_url, parse_db_url
+        
+        params = parse_db_url(get_db_url())
+        conn = psycopg2.connect(**params)
+        cursor = conn.cursor()
 
-            # Get activity logs
-            cursor.execute(
-                """
-                SELECT activity_type, page, action, details, ip_address, timestamp
-                FROM user_activity_logs
-                WHERE user_email = %s
-                ORDER BY timestamp DESC
-                LIMIT 100
-            """,
-                (user_email,),
+        # Get activity logs
+        cursor.execute(
+            """
+            SELECT activity_type, page, action, details, ip_address, timestamp
+            FROM user_activity_logs
+            WHERE user_email = %s
+            ORDER BY timestamp DESC
+            LIMIT 100
+        """,
+            (user_email,),
+        )
+
+        activities = []
+        for row in cursor.fetchall():
+            activity_type, page, action, details, ip_address, timestamp = row
+            activities.append(
+                {
+                    "type": activity_type,
+                    "page": page,
+                    "action": action,
+                    "details": details,
+                    "ip_address": ip_address,
+                    "timestamp": timestamp.isoformat() if timestamp else None,
+                }
             )
 
-            activities = []
-            for row in cursor.fetchall():
-                activity_type, page, action, details, ip_address, timestamp = row
-                activities.append(
-                    {
-                        "type": activity_type,
-                        "page": page,
-                        "action": action,
-                        "details": details,
-                        "ip_address": ip_address,
-                        "timestamp": timestamp.isoformat() if timestamp else None,
-                    }
-                )
-
-            return activities
+        cursor.close()
+        conn.close()
+        return activities
     except Exception as e:
         logger.error(f"Error getting user activity: {str(e)}")
         return []
