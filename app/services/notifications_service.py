@@ -151,7 +151,7 @@ def _send_sms_with_retry(formatted_phone: str, message: str, max_retries: int) -
     # Try MMS first with publicly accessible media URL
     mms_data = {
         "To": formatted_phone,
-        "MessagingServiceSid": TwilioConfig.MESSAGING_SERVICE_SID,  # Use messaging service for better reliability
+        "From": TwilioConfig.SENDER_PHONE,  # Use direct phone number instead of invalid messaging service
         "Body": message,
         # Use publicly accessible Rally logo for MMS
         "MediaUrl": "https://www.lovetorally.com/static/images/rallylogo.png"
@@ -160,7 +160,7 @@ def _send_sms_with_retry(formatted_phone: str, message: str, max_retries: int) -
     # SMS fallback data (no media)
     sms_data = {
         "To": formatted_phone,
-        "MessagingServiceSid": TwilioConfig.MESSAGING_SERVICE_SID,
+        "From": TwilioConfig.SENDER_PHONE,  # Use direct phone number instead of invalid messaging service
         "Body": message
     }
     
