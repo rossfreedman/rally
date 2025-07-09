@@ -2543,6 +2543,122 @@ def internal_error(error):
     return jsonify({"error": "Internal server error"}), 500
 
 
+@app.route("/debug/check-twilio-delivery")
+def check_twilio_delivery():
+    """
+    Check Twilio delivery status for recent SMS messages to Ross
+    """
+    try:
+        import os
+        from twilio.rest import Client
+        
+        # Initialize Twilio client
+        account_sid = os.getenv('TWILIO_ACCOUNT_SID')
+        auth_token = os.getenv('TWILIO_AUTH_TOKEN')
+        
+        if not account_sid or not auth_token:
+            return jsonify({
+                "error": "Twilio credentials not available",
+                "account_sid_available": bool(account_sid),
+                "auth_token_available": bool(auth_token)
+            }), 500
+        
+        client = Client(account_sid, auth_token)
+        
+        # Check the specific message SIDs from recent logs
+        message_sids = [
+            'SM1a4b7be4941f362d9d4452d37f841dde',
+            'SM1bf7e2be6e5a206571534818d1f86f4f', 
+            'SM2c37139ae0cffe4f2109c0c874a52b05'
+        ]
+        
+        results = {
+            "timestamp": datetime.now().isoformat(),
+            "target_number": "+17732138911",
+            "checked_messages": [],
+            "recent_messages": []
+        }
+        
+        # Check each specific message
+        for sid in message_sids:
+            try:
+                message = client.messages(sid).fetch()
+                
+                message_info = {
+                    "sid": sid,
+                    "to": message.to,
+                    "body": message.body[:50] + "..." if len(message.body) > 50 else message.body,
+                    "status": message.status,
+                    "date_sent": str(message.date_sent),
+                    "price": f"${message.price} {message.price_unit}" if message.price else "N/A",
+                    "error_code": message.error_code,
+                    "error_message": message.error_message,
+                    "delivery_analysis": "Unknown"
+                }
+                
+                # Analyze delivery status
+                if message.status == 'delivered':
+                    message_info["delivery_analysis"] = "✅ Successfully delivered"
+                elif message.status == 'failed':
+                    message_info["delivery_analysis"] = "❌ Delivery failed"
+                elif message.status == 'undelivered':
+                    message_info["delivery_analysis"] = "⚠️ Undelivered (carrier issue)"
+                elif message.status == 'sent':
+                    message_info["delivery_analysis"] = "📤 Sent (pending delivery)"
+                elif message.status == 'queued':
+                    message_info["delivery_analysis"] = "⏳ Queued for sending"
+                    
+                results["checked_messages"].append(message_info)
+                
+            except Exception as e:
+                results["checked_messages"].append({
+                    "sid": sid,
+                    "error": str(e),
+                    "delivery_analysis": "❌ Error fetching message"
+                })
+        
+        # Get recent messages to this number
+        try:
+            recent_messages = client.messages.list(
+                to='+17732138911',
+                limit=15
+            )
+            
+            for msg in recent_messages:
+                results["recent_messages"].append({
+                    "sid": msg.sid,
+                    "status": msg.status,
+                    "body": msg.body[:30] + "..." if len(msg.body) > 30 else msg.body,
+                    "date_sent": str(msg.date_sent)
+                })
+                
+        except Exception as e:
+            results["recent_messages_error"] = str(e)
+        
+        # Summary analysis
+        delivered_count = len([m for m in results["checked_messages"] if m.get("status") == "delivered"])
+        failed_count = len([m for m in results["checked_messages"] if m.get("status") == "failed"])
+        
+        results["summary"] = {
+            "total_checked": len(message_sids),
+            "delivered": delivered_count,
+            "failed": failed_count,
+            "diagnosis": "All messages sent successfully from our system" if delivered_count == len(message_sids) else "Some delivery issues detected"
+        }
+        
+        return jsonify({
+            "debug": "check_twilio_delivery",
+            "results": results
+        })
+        
+    except Exception as e:
+        import traceback
+        return jsonify({
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }), 500
+
+
 # ==========================================
 # SERVER STARTUP
 # ==========================================
