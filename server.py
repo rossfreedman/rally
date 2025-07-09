@@ -2950,6 +2950,143 @@ def test_activity_logging_sms():
         }), 500
 
 
+@app.route("/debug/test-sms-direct")
+def test_sms_direct():
+    """
+    Test SMS sending without Messaging Service to bypass potential A2P issues
+    """
+    try:
+        import requests
+        from requests.auth import HTTPBasicAuth
+        from config import TwilioConfig
+        
+        results = {
+            "debug": "test_sms_direct",
+            "timestamp": datetime.now().isoformat(),
+            "tests": {}
+        }
+        
+        # Test 1: Direct SMS without Messaging Service
+        try:
+            url = f"https://api.twilio.com/2010-04-01/Accounts/{TwilioConfig.ACCOUNT_SID}/Messages.json"
+            
+            # Use direct From/To without MessagingServiceSid
+            data = {
+                "To": "+17732138911",
+                "From": TwilioConfig.SENDER_PHONE,  # +13128001632
+                "Body": f"🔧 DIRECT SMS TEST (no messaging service) - {datetime.now().strftime('%H:%M:%S')}"
+            }
+            
+            auth = HTTPBasicAuth(TwilioConfig.ACCOUNT_SID, TwilioConfig.AUTH_TOKEN)
+            
+            response = requests.post(url, data=data, auth=auth, timeout=30)
+            response_data = response.json()
+            
+            if response.status_code == 201:
+                results["tests"]["direct_sms_no_service"] = {
+                    "success": True,
+                    "message_sid": response_data.get("sid"),
+                    "status": response_data.get("status"),
+                    "from_number": data["From"],
+                    "to_number": data["To"],
+                    "message": "Direct SMS sent successfully (without messaging service)"
+                }
+            else:
+                results["tests"]["direct_sms_no_service"] = {
+                    "success": False,
+                    "error": response_data.get("message", "Unknown error"),
+                    "error_code": response_data.get("code"),
+                    "status_code": response.status_code,
+                    "message": "Direct SMS failed"
+                }
+                
+        except Exception as e:
+            results["tests"]["direct_sms_no_service"] = {
+                "success": False,
+                "error": str(e),
+                "message": "Direct SMS test failed with exception"
+            }
+        
+        # Test 2: SMS with Messaging Service (current method)
+        try:
+            url = f"https://api.twilio.com/2010-04-01/Accounts/{TwilioConfig.ACCOUNT_SID}/Messages.json"
+            
+            # Use Messaging Service (current production method)
+            data = {
+                "To": "+17732138911", 
+                "MessagingServiceSid": TwilioConfig.MESSAGING_SERVICE_SID,
+                "Body": f"🏗️ MESSAGING SERVICE TEST - {datetime.now().strftime('%H:%M:%S')}"
+            }
+            
+            auth = HTTPBasicAuth(TwilioConfig.ACCOUNT_SID, TwilioConfig.AUTH_TOKEN)
+            
+            response = requests.post(url, data=data, auth=auth, timeout=30)
+            response_data = response.json()
+            
+            if response.status_code == 201:
+                results["tests"]["messaging_service_sms"] = {
+                    "success": True,
+                    "message_sid": response_data.get("sid"),
+                    "status": response_data.get("status"), 
+                    "messaging_service_sid": data["MessagingServiceSid"],
+                    "to_number": data["To"],
+                    "message": "Messaging Service SMS sent successfully"
+                }
+            else:
+                results["tests"]["messaging_service_sms"] = {
+                    "success": False,
+                    "error": response_data.get("message", "Unknown error"),
+                    "error_code": response_data.get("code"),
+                    "status_code": response.status_code,
+                    "message": "Messaging Service SMS failed"
+                }
+                
+        except Exception as e:
+            results["tests"]["messaging_service_sms"] = {
+                "success": False,
+                "error": str(e),
+                "message": "Messaging Service SMS test failed with exception"
+            }
+        
+        # Determine overall result
+        direct_success = results["tests"].get("direct_sms_no_service", {}).get("success", False)
+        service_success = results["tests"].get("messaging_service_sms", {}).get("success", False)
+        
+        if direct_success and service_success:
+            results["conclusion"] = {
+                "status": "BOTH_WORK",
+                "message": "Both direct SMS and messaging service work - issue might be elsewhere",
+                "recommendation": "Check message delivery status after a few minutes"
+            }
+        elif direct_success and not service_success:
+            results["conclusion"] = {
+                "status": "MESSAGING_SERVICE_ISSUE", 
+                "message": "Direct SMS works but messaging service fails - use direct SMS",
+                "recommendation": "Switch activity logging to use direct From/To instead of messaging service"
+            }
+        elif not direct_success and service_success:
+            results["conclusion"] = {
+                "status": "PHONE_NUMBER_ISSUE",
+                "message": "Messaging service works but direct from number fails",
+                "recommendation": "Check if sender phone number is properly configured"
+            }
+        else:
+            results["conclusion"] = {
+                "status": "BOTH_FAIL",
+                "message": "Both methods fail - likely account or infrastructure issue",
+                "recommendation": "Check Twilio account status and configuration"
+            }
+        
+        return jsonify(results)
+        
+    except Exception as e:
+        import traceback
+        return jsonify({
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }), 500
+
+
 # ==========================================
 # SERVER STARTUP
 # ==========================================
