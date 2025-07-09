@@ -132,8 +132,8 @@ def send_sms_notification(to_number: str, message: str, test_mode: bool = False,
 
 def _send_sms_with_retry(formatted_phone: str, message: str, max_retries: int) -> Dict:
     """
-    Send MMS with text content with exponential backoff retry for error 21704
-    Using MMS to bypass SMS connectivity issues (Twilio SMS currently degraded)
+    Send SMS with exponential backoff retry for error 21704
+    Enhanced to try MMS first with publicly accessible media URL, then fallback to SMS
     
     Args:
         formatted_phone (str): Validated phone number
@@ -144,21 +144,25 @@ def _send_sms_with_retry(formatted_phone: str, message: str, max_retries: int) -
         Dict: Result with status, message_sid, and any errors
     """
     
-    # Prepare API request for MMS (bypasses SMS connectivity issues)
+    # Prepare API request
     url = f"https://api.twilio.com/2010-04-01/Accounts/{TwilioConfig.ACCOUNT_SID}/Messages.json"
+    auth = HTTPBasicAuth(TwilioConfig.ACCOUNT_SID, TwilioConfig.AUTH_TOKEN)
     
-    # USE MMS INSTEAD OF SMS to bypass current SMS connectivity issues
-    # MMS is fully operational while SMS has connectivity issues
-    data = {
+    # Try MMS first with publicly accessible media URL
+    mms_data = {
         "To": formatted_phone,
-        "From": TwilioConfig.SENDER_PHONE,
+        "MessagingServiceSid": TwilioConfig.MESSAGING_SERVICE_SID,  # Use messaging service for better reliability
         "Body": message,
-        # Adding MediaUrl makes this an MMS instead of SMS
-        # Using a 1x1 transparent pixel to make it valid MMS with minimal data
-        "MediaUrl": "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+        # Use publicly accessible Rally logo for MMS
+        "MediaUrl": "https://www.lovetorally.com/static/images/rallylogo.png"
     }
     
-    auth = HTTPBasicAuth(TwilioConfig.ACCOUNT_SID, TwilioConfig.AUTH_TOKEN)
+    # SMS fallback data (no media)
+    sms_data = {
+        "To": formatted_phone,
+        "MessagingServiceSid": TwilioConfig.MESSAGING_SERVICE_SID,
+        "Body": message
+    }
     
     last_error = None
     last_response_data = None
@@ -168,87 +172,99 @@ def _send_sms_with_retry(formatted_phone: str, message: str, max_retries: int) -
             if attempt > 0:
                 # Calculate exponential backoff delay
                 delay = min(2 ** attempt, 60)  # Max 60 seconds
-                logger.info(f"MMS retry {attempt}/{max_retries} in {delay}s (bypassing SMS connectivity issue)")
+                logger.info(f"Retry {attempt}/{max_retries} in {delay}s")
                 time.sleep(delay)
             
-            logger.info(f"Sending MMS to {formatted_phone} via Twilio (attempt {attempt + 1}/{max_retries + 1}) [MMS MODE - bypassing SMS issues]")
-            
-            response = requests.post(
-                url,
-                data=data,
-                auth=auth,
-                timeout=30
-            )
-            
-            response_data = response.json()
-            last_response_data = response_data
-            
-            if response.status_code == 201:  # Twilio success status
-                success_msg = f"MMS sent successfully [MMS MODE - bypassing SMS connectivity issues]"
-                if attempt > 0:
-                    success_msg += f" (succeeded on retry {attempt})"
-                
-                logger.info(f"{success_msg}. Message SID: {response_data.get('sid')}")
-                return {
-                    "success": True,
-                    "message": success_msg,
-                    "status_code": response.status_code,
-                    "message_sid": response_data.get("sid"),
-                    "formatted_phone": formatted_phone,
-                    "message_length": len(message),
-                    "twilio_status": response_data.get("status"),
-                    "price": response_data.get("price"),
-                    "date_sent": response_data.get("date_sent"),
-                    "retry_attempt": attempt,
-                    "sending_method": "mms_bypass"  # Track that we used MMS to bypass SMS issues
-                }
-            else:
-                error_message = response_data.get("message", "Unknown Twilio error")
-                error_code = response_data.get("code")
-                
-                # Check if this is error 21704 (provider disruption) - retry if we have attempts left
-                if error_code == 21704 and attempt < max_retries:
-                    logger.warning(f"Error 21704 (provider disruption) on attempt {attempt + 1}, retrying with MMS...")
-                    last_error = f"Twilio error 21704: {error_message}"
+            # Try MMS first, then fallback to SMS
+            for method, data in [("MMS", mms_data), ("SMS", sms_data)]:
+                try:
+                    logger.info(f"Sending {method} to {formatted_phone} via Twilio (attempt {attempt + 1}/{max_retries + 1})")
+                    
+                    response = requests.post(
+                        url,
+                        data=data,
+                        auth=auth,
+                        timeout=30
+                    )
+                    
+                    response_data = response.json()
+                    last_response_data = response_data
+                    
+                    if response.status_code == 201:  # Twilio success status
+                        success_msg = f"{method} sent successfully"
+                        if attempt > 0:
+                            success_msg += f" (succeeded on retry {attempt})"
+                        
+                        logger.info(f"{success_msg}. Message SID: {response_data.get('sid')}")
+                        return {
+                            "success": True,
+                            "message": success_msg,
+                            "status_code": response.status_code,
+                            "message_sid": response_data.get("sid"),
+                            "formatted_phone": formatted_phone,
+                            "message_length": len(message),
+                            "twilio_status": response_data.get("status"),
+                            "price": response_data.get("price"),
+                            "date_sent": response_data.get("date_sent"),
+                            "retry_attempt": attempt,
+                            "sending_method": method.lower()
+                        }
+                    else:
+                        error_message = response_data.get("message", "Unknown Twilio error")
+                        error_code = response_data.get("code")
+                        
+                        # If MMS failed with media URL error, continue to SMS fallback
+                        if method == "MMS" and error_code == 21620:
+                            logger.warning(f"MMS failed with error 21620 (invalid media URL), trying SMS fallback...")
+                            continue
+                        
+                        # Check if this is error 21704 (provider disruption) - retry if we have attempts left
+                        if error_code == 21704 and attempt < max_retries:
+                            logger.warning(f"Error 21704 (provider disruption) on attempt {attempt + 1}, will retry...")
+                            last_error = f"Twilio error 21704: {error_message}"
+                            break  # Break from method loop, continue to next attempt
+                        
+                        # For other errors, try next method or fail
+                        logger.error(f"Twilio API error {response.status_code}: {error_message} (Code: {error_code})")
+                        
+                        # If this was SMS (last fallback), return failure
+                        if method == "SMS":
+                            return {
+                                "success": False,
+                                "error": f"Twilio error: {error_message}",
+                                "error_code": error_code,
+                                "status_code": response.status_code,
+                                "message_sid": None,
+                                "raw_response": response_data,
+                                "final_attempt": attempt + 1,
+                                "max_retries": max_retries,
+                                "sending_method": method.lower()
+                            }
+                        
+                        # If MMS failed with non-media error, continue to SMS
+                        continue
+                        
+                except requests.exceptions.Timeout:
+                    logger.error(f"{method} request timed out (attempt {attempt + 1})")
+                    if method == "SMS":  # Last fallback
+                        last_error = "Request timed out"
+                        break
                     continue
-                
-                # For other errors or final attempt, return failure
-                logger.error(f"Twilio API error {response.status_code}: {error_message} (Code: {error_code})")
-                
-                return {
-                    "success": False,
-                    "error": f"Twilio error: {error_message}",
-                    "error_code": error_code,
-                    "status_code": response.status_code,
-                    "message_sid": None,
-                    "raw_response": response_data,
-                    "final_attempt": attempt + 1,
-                    "max_retries": max_retries,
-                    "sending_method": "mms_bypass"
-                }
-                
-        except requests.exceptions.Timeout:
-            error_msg = f"Twilio API request timed out (attempt {attempt + 1})"
-            logger.error(error_msg)
-            last_error = "Request timed out"
-            
-            # Retry timeouts for error 21704 scenarios
-            if attempt < max_retries:
-                logger.info("Retrying after timeout...")
-                continue
-            
-        except requests.exceptions.RequestException as e:
-            error_msg = f"Network error sending MMS (attempt {attempt + 1}): {str(e)}"
-            logger.error(error_msg)
-            last_error = f"Network error: {str(e)}"
-            
-            # Retry network errors for error 21704 scenarios
-            if attempt < max_retries:
-                logger.info("Retrying after network error...")
+                    
+                except requests.exceptions.RequestException as e:
+                    logger.error(f"Network error sending {method} (attempt {attempt + 1}): {str(e)}")
+                    if method == "SMS":  # Last fallback
+                        last_error = f"Network error: {str(e)}"
+                        break
+                    continue
+                    
+            # If we get here, all methods failed for this attempt
+            if attempt < max_retries and last_error:
+                logger.info("Retrying after failures...")
                 continue
             
         except Exception as e:
-            error_msg = f"Unexpected error sending MMS (attempt {attempt + 1}): {str(e)}"
+            error_msg = f"Unexpected error (attempt {attempt + 1}): {str(e)}"
             logger.error(error_msg)
             last_error = f"Unexpected error: {str(e)}"
             # Don't retry unexpected errors
@@ -256,7 +272,7 @@ def _send_sms_with_retry(formatted_phone: str, message: str, max_retries: int) -
     
     # All retries exhausted
     final_error = last_error or "All retry attempts failed"
-    logger.error(f"MMS sending failed after {max_retries + 1} attempts: {final_error}")
+    logger.error(f"Message sending failed after {max_retries + 1} attempts: {final_error}")
     
     return {
         "success": False,
@@ -266,7 +282,7 @@ def _send_sms_with_retry(formatted_phone: str, message: str, max_retries: int) -
         "final_attempt": attempt + 1,
         "max_retries": max_retries,
         "last_response": last_response_data,
-        "sending_method": "mms_bypass"
+        "sending_method": "failed"
     }
 
 
