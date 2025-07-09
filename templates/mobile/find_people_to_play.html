@@ -778,6 +778,16 @@ document.addEventListener('DOMContentLoaded', function() {
         window.location.href = `/contact-sub?first=${encodeURIComponent(firstName)}&last=${encodeURIComponent(lastName)}`;
     };
 
+    // Handle Add to Text Group button click
+    window.handleAddToGroupClick = function(playerName) {
+        console.log('Add to Text Group button clicked for player:', playerName);
+        const nameParts = playerName.split(' ');
+        const firstName = nameParts[0] || 'Unknown';
+        const lastName = nameParts.slice(1).join(' ') || 'Unknown';
+        console.log('Parsed name:', firstName, lastName);
+        window.location.href = `/add-to-text-group?first=${encodeURIComponent(firstName)}&last=${encodeURIComponent(lastName)}`;
+    };
+
     // Create player card with checkbox
     function createPlayerCard(player) {
         console.log('Creating player card for:', player); // Debug log
@@ -855,6 +865,23 @@ document.addEventListener('DOMContentLoaded', function() {
                                 min-height: 44px !important;
                             ">
                         Contact
+                    </button>
+                    <button class="add-to-group-btn w-full" 
+                            onclick="handleAddToGroupClick('${player.name}')"
+                            style="
+                                background-color: #f59e0b !important; 
+                                color: white !important; 
+                                padding: 12px 16px !important; 
+                                border-radius: 8px !important; 
+                                font-size: 14px !important; 
+                                font-weight: 600 !important; 
+                                border: none !important; 
+                                cursor: pointer !important;
+                                display: block !important;
+                                visibility: visible !important;
+                                min-height: 44px !important;
+                            ">
+                        Add to Text Group
                     </button>
                     <button class="details-btn w-full" 
                             onclick="window.location.href='/mobile/player-detail/${encodeURIComponent(player.playerId)}'"

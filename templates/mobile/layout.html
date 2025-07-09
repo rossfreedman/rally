@@ -162,6 +162,11 @@
             letter-spacing: -0.02em;
         }
         
+        /* Rally logo color styling */
+        .rally-logo-colored {
+            filter: brightness(0) saturate(100%) invert(91%) sepia(94%) saturate(1457%) hue-rotate(63deg) brightness(107%) contrast(108%);
+        }
+        
         /* Responsive adjustments - Keep 2 columns on mobile */
         @media (max-width: 768px) {
             .candy-grid {
@@ -200,7 +205,7 @@
 <body class="min-h-screen bg-base-100 text-base-content">
 
     <!-- Top Bar -->
-    <nav class="navbar shadow-md px-4 py-2 relative flex items-center" style="position: fixed; top: 0; left: 0; width: 100%; z-index: 1000; height: 56px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); background-color: #101827;">
+    <nav class="navbar shadow-md px-4 py-2 relative flex items-center" style="position: fixed; top: 0; left: 0; width: 100%; z-index: 1000; height: 56px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); background-color: #085454;">
         <!-- Left side -->
         <div class="flex items-center" style="flex: 1;">
             {% if show_back_arrow %}
@@ -215,7 +220,7 @@
         <!-- Center logo -->
         <div class="flex justify-center" style="flex: 1;">
             <a href="/mobile" class="navbar-logo">
-                <img src="/static/images/rallylogo.png" alt="Rally Logo" class="h-10 w-auto">
+                <img src="/static/images/rallylogo.png" alt="Rally Logo" class="w-auto rally-logo-colored" style="height: 78px;">
             </a>
         </div>
         
@@ -417,7 +422,7 @@
     </main>
 
     <!-- Bottom Navigation Dock -->
-    <nav class="bottom-dock fixed bottom-0 left-0 right-0 border-t border-gray-700 z-40" style="height: 72px; box-shadow: 0 -2px 8px rgba(0,0,0,0.08); background-color: #101827;">
+    <nav class="bottom-dock fixed bottom-0 left-0 right-0 border-t border-gray-700 z-40" style="height: 72px; box-shadow: 0 -2px 8px rgba(0,0,0,0.08); background-color: #085454;">
         <div class="flex items-center justify-around h-full px-2">
             <!-- Home -->
             <a href="/mobile" class="dock-item flex flex-col items-center justify-center flex-1 py-2 px-1 text-center transition-colors duration-200 hover:bg-gray-800 rounded-lg mx-1">

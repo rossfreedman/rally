@@ -1,0 +1,1368 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<project name="PostgreSQL" database="PostgreSQL" id="67d4474f-9009-4caa-868c-a1ae952f674c" >
+	<schema name="public" catalogname="rally" >
+		<comment><![CDATA[standard public schema]]></comment>
+		<table name="activity_log" row_count="55" spec="" >
+			<column name="id" type="uuid" mandatory="y" />
+			<column name="player_id" type="integer" length="32" />
+			<column name="team_id" type="integer" length="32" />
+			<column name="user_id" type="integer" length="32" />
+			<column name="action_type" type="varchar" length="255" mandatory="y" />
+			<column name="action_description" type="text" mandatory="y" />
+			<column name="related_id" type="varchar" length="255" />
+			<column name="related_type" type="varchar" length="100" />
+			<column name="ip_address" type="varchar" length="45" />
+			<column name="user_agent" type="text" />
+			<column name="extra_data" type="text" />
+			<column name="timestamp" type="timestamptz" mandatory="y" />
+			<index name="activity_log_pkey" unique="PRIMARY_KEY" >
+				<column name="id" />
+			</index>
+			<fk name="activity_log_user_id_fkey" to_schema="rally.public" to_table="users" options="" >
+				<fk_column name="user_id" pk="id" />
+			</fk>
+		</table>
+		<table name="alembic_version" row_count="1" spec="" >
+			<column name="version_num" type="varchar" length="32" mandatory="y" />
+			<index name="alembic_version_pkc" unique="PRIMARY_KEY" >
+				<column name="version_num" />
+			</index>
+		</table>
+		<table name="club_leagues" row_count="123" spec="" >
+			<column name="id" type="serial" length="32" mandatory="y" />
+			<column name="club_id" type="integer" length="32" mandatory="y" />
+			<column name="league_id" type="integer" length="32" mandatory="y" />
+			<column name="created_at" type="timestamptz" >
+				<defo><![CDATA[CURRENT_TIMESTAMP]]></defo>
+			</column>
+			<index name="club_leagues_pkey" unique="PRIMARY_KEY" >
+				<column name="id" />
+			</index>
+			<index name="unique_club_league" unique="UNIQUE_KEY" >
+				<column name="club_id" />
+				<column name="league_id" />
+			</index>
+			<index name="idx_club_leagues_club_id" unique="NORMAL" spec="USING  btree" >
+				<column name="club_id" />
+			</index>
+			<index name="idx_club_leagues_league_id" unique="NORMAL" spec="USING  btree" >
+				<column name="league_id" />
+			</index>
+			<fk name="club_leagues_league_id_fkey" to_schema="rally.public" to_table="leagues" options="" >
+				<fk_column name="league_id" pk="id" />
+			</fk>
+			<fk name="club_leagues_club_id_fkey" to_schema="rally.public" to_table="clubs" options="" >
+				<fk_column name="club_id" pk="id" />
+			</fk>
+		</table>
+		<table name="clubs" row_count="83" spec="" >
+			<column name="id" type="serial" length="32" mandatory="y" />
+			<column name="name" type="varchar" length="255" mandatory="y" />
+			<column name="updated_at" type="timestamptz" >
+				<defo><![CDATA[CURRENT_TIMESTAMP]]></defo>
+			</column>
+			<column name="club_address" type="varchar" length="500" />
+			<column name="logo_filename" type="varchar" length="500" />
+			<index name="clubs_pkey" unique="PRIMARY_KEY" >
+				<column name="id" />
+			</index>
+			<index name="clubs_name_key" unique="UNIQUE_KEY" >
+				<column name="name" />
+			</index>
+		</table>
+		<table name="leagues" row_count="4" spec="" >
+			<column name="id" type="serial" length="32" mandatory="y" />
+			<column name="league_id" type="varchar" length="255" mandatory="y" />
+			<column name="league_name" type="varchar" length="255" mandatory="y" />
+			<column name="league_url" type="varchar" length="512" />
+			<column name="created_at" type="timestamptz" >
+				<defo><![CDATA[CURRENT_TIMESTAMP]]></defo>
+			</column>
+			<column name="updated_at" type="timestamptz" >
+				<defo><![CDATA[CURRENT_TIMESTAMP]]></defo>
+			</column>
+			<index name="leagues_pkey" unique="PRIMARY_KEY" >
+				<column name="id" />
+			</index>
+			<index name="idx_leagues_league_id" unique="NORMAL" spec="USING  btree" >
+				<column name="league_id" />
+			</index>
+		</table>
+		<table name="match_scores" row_count="26786" spec="" >
+			<column name="id" type="serial" length="32" mandatory="y" />
+			<column name="match_date" type="date" length="0" />
+			<column name="home_team" type="text" />
+			<column name="away_team" type="text" />
+			<column name="home_player_1_id" type="text" />
+			<column name="home_player_2_id" type="text" />
+			<column name="away_player_1_id" type="text" />
+			<column name="away_player_2_id" type="text" />
+			<column name="scores" type="text" />
+			<column name="winner" type="text" />
+			<column name="created_at" type="timestamptz" >
+				<defo><![CDATA[CURRENT_TIMESTAMP]]></defo>
+			</column>
+			<column name="league_id" type="integer" length="32" />
+			<column name="home_team_id" type="integer" length="32" />
+			<column name="away_team_id" type="integer" length="32" />
+			<index name="match_scores_pkey" unique="PRIMARY_KEY" >
+				<column name="id" />
+			</index>
+			<constraint name="match_scores_winner_check" type="CHECK" options="" >
+				<string><![CDATA[winner = ANY (ARRAY['home'::text, 'away'::text])]]></string>
+			</constraint>
+			<fk name="fk_match_scores_away_team_id" to_schema="rally.public" to_table="teams" options="" >
+				<fk_column name="away_team_id" pk="id" />
+			</fk>
+			<fk name="fk_match_scores_home_team_id" to_schema="rally.public" to_table="teams" options="" >
+				<fk_column name="home_team_id" pk="id" />
+			</fk>
+			<fk name="match_scores_home_team_id_fkey" to_schema="rally.public" to_table="teams" options="" >
+				<fk_column name="home_team_id" pk="id" />
+			</fk>
+			<fk name="match_scores_away_team_id_fkey" to_schema="rally.public" to_table="teams" options="" >
+				<fk_column name="away_team_id" pk="id" />
+			</fk>
+			<fk name="fk_match_scores_league_id" to_schema="rally.public" to_table="leagues" options="" >
+				<fk_column name="league_id" pk="id" />
+			</fk>
+		</table>
+		<table name="pickup_game_participants" row_count="0" spec="" >
+			<column name="id" type="serial" length="32" mandatory="y" />
+			<column name="pickup_game_id" type="integer" length="32" mandatory="y" />
+			<column name="user_id" type="integer" length="32" mandatory="y" />
+			<column name="joined_at" type="timestamp" >
+				<defo><![CDATA[CURRENT_TIMESTAMP]]></defo>
+			</column>
+			<index name="pickup_game_participants_pkey" unique="PRIMARY_KEY" >
+				<column name="id" />
+			</index>
+			<index name="uc_unique_game_participant" unique="UNIQUE_KEY" >
+				<column name="pickup_game_id" />
+				<column name="user_id" />
+			</index>
+			<index name="idx_pickup_participants_game" unique="NORMAL" spec="USING  btree" >
+				<column name="pickup_game_id" />
+			</index>
+			<index name="idx_pickup_participants_user" unique="NORMAL" spec="USING  btree" >
+				<column name="user_id" />
+			</index>
+			<fk name="pickup_game_participants_user_id_fkey" to_schema="rally.public" to_table="users" delete_action="cascade" options="" >
+				<fk_column name="user_id" pk="id" />
+			</fk>
+			<fk name="pickup_game_participants_pickup_game_id_fkey" to_schema="rally.public" to_table="pickup_games" delete_action="cascade" options="" >
+				<fk_column name="pickup_game_id" pk="id" />
+			</fk>
+		</table>
+		<table name="pickup_games" row_count="0" spec="" >
+			<column name="id" type="serial" length="32" mandatory="y" />
+			<column name="description" type="text" mandatory="y" />
+			<column name="game_date" type="date" length="0" mandatory="y" />
+			<column name="game_time" type="time" length="6" mandatory="y" />
+			<column name="players_requested" type="integer" length="32" mandatory="y" />
+			<column name="players_committed" type="integer" length="32" mandatory="y" >
+				<defo><![CDATA[0]]></defo>
+			</column>
+			<column name="pti_low" type="integer" length="32" mandatory="y" >
+				<defo><![CDATA['-30'::integer]]></defo>
+			</column>
+			<column name="pti_high" type="integer" length="32" mandatory="y" >
+				<defo><![CDATA[100]]></defo>
+			</column>
+			<column name="series_low" type="integer" length="32" />
+			<column name="series_high" type="integer" length="32" />
+			<column name="club_only" type="boolean" mandatory="y" >
+				<defo><![CDATA[false]]></defo>
+			</column>
+			<column name="creator_user_id" type="integer" length="32" />
+			<column name="created_at" type="timestamp" >
+				<defo><![CDATA[CURRENT_TIMESTAMP]]></defo>
+			</column>
+			<column name="updated_at" type="timestamp" >
+				<defo><![CDATA[CURRENT_TIMESTAMP]]></defo>
+			</column>
+			<index name="pickup_games_pkey" unique="PRIMARY_KEY" >
+				<column name="id" />
+			</index>
+			<index name="idx_pickup_games_date_time" unique="NORMAL" spec="USING  btree" >
+				<column name="game_date" />
+				<column name="game_time" />
+			</index>
+			<index name="idx_pickup_games_creator" unique="NORMAL" spec="USING  btree" >
+				<column name="creator_user_id" />
+			</index>
+			<index name="idx_pickup_games_status" unique="NORMAL" spec="USING  btree" >
+				<column name="players_requested" />
+				<column name="players_committed" />
+			</index>
+			<constraint name="ck_players_committed_non_negative" type="CHECK" options="" >
+				<string><![CDATA[players_committed >= 0]]></string>
+			</constraint>
+			<constraint name="ck_valid_player_counts" type="CHECK" options="" >
+				<string><![CDATA[players_committed <= players_requested]]></string>
+			</constraint>
+			<constraint name="ck_valid_pti_range" type="CHECK" options="" >
+				<string><![CDATA[pti_low <= pti_high]]></string>
+			</constraint>
+			<constraint name="ck_valid_series_range" type="CHECK" options="" >
+				<string><![CDATA[series_low IS NULL) OR (series_high IS NULL) OR (series_low <= series_high]]></string>
+			</constraint>
+			<constraint name="ck_players_requested_positive" type="CHECK" options="" >
+				<string><![CDATA[players_requested > 0]]></string>
+			</constraint>
+			<fk name="pickup_games_creator_user_id_fkey" to_schema="rally.public" to_table="users" delete_action="setNull" options="" >
+				<fk_column name="creator_user_id" pk="id" />
+			</fk>
+		</table>
+		<table name="player_availability" row_count="6" spec="" >
+			<column name="id" type="serial" length="32" mandatory="y" />
+			<column name="player_name" type="varchar" length="255" mandatory="y" />
+			<column name="availability_status" type="integer" length="32" mandatory="y" >
+				<defo><![CDATA[3]]></defo>
+			</column>
+			<column name="updated_at" type="timestamptz" >
+				<defo><![CDATA[CURRENT_TIMESTAMP]]></defo>
+			</column>
+			<column name="series_id" type="integer" length="32" mandatory="y" />
+			<column name="match_date" type="timestamptz" mandatory="y" />
+			<column name="player_id" type="integer" length="32" />
+			<column name="notes" type="text" />
+			<column name="user_id" type="integer" length="32" />
+			<index name="player_availability_pkey" unique="PRIMARY_KEY" >
+				<column name="id" />
+			</index>
+			<index name="idx_availability_user_date" unique="NORMAL" spec="USING  btree" options="WHERE (user_id IS NOT NULL)" >
+				<column name="user_id" />
+				<column name="match_date" />
+			</index>
+			<constraint name="match_date_must_be_midnight_utc" type="CHECK" options="" >
+				<string><![CDATA[date_part('hour'::text, (match_date AT TIME ZONE 'UTC'::text)) = (0)::double precision) AND (date_part('minute'::text, (match_date AT TIME ZONE 'UTC'::text)) = (0)::double precision) AND (date_part('second'::text, (match_date AT TIME ZONE 'UTC'::text)) = (0)::double precision]]></string>
+			</constraint>
+			<constraint name="valid_availability_status" type="CHECK" options="" >
+				<string><![CDATA[availability_status = ANY (ARRAY[1, 2, 3])]]></string>
+			</constraint>
+			<fk name="player_availability_user_id_fkey" to_schema="rally.public" to_table="users" options="" >
+				<fk_column name="user_id" pk="id" />
+			</fk>
+		</table>
+		<table name="player_availability_backup" row_count="0" spec="" >
+			<column name="id" type="integer" length="32" />
+			<column name="player_name" type="varchar" length="255" />
+			<column name="availability_status" type="integer" length="32" />
+			<column name="updated_at" type="timestamptz" />
+			<column name="series_id" type="integer" length="32" />
+			<column name="match_date" type="timestamptz" />
+			<column name="player_id" type="integer" length="32" />
+			<column name="notes" type="text" />
+			<column name="user_id" type="integer" length="32" />
+		</table>
+		<table name="player_history" row_count="367000" spec="" >
+			<column name="id" type="serial" length="32" mandatory="y" />
+			<column name="series" type="varchar" length="255" />
+			<column name="date" type="date" length="0" />
+			<column name="end_pti" type="numeric" length="10" decimal="2" />
+			<column name="created_at" type="timestamptz" >
+				<defo><![CDATA[CURRENT_TIMESTAMP]]></defo>
+			</column>
+			<column name="league_id" type="integer" length="32" />
+			<column name="player_id" type="integer" length="32" />
+			<index name="player_history_pkey" unique="PRIMARY_KEY" >
+				<column name="id" />
+			</index>
+			<fk name="fk_player_history_player_id" to_schema="rally.public" to_table="players" options="" >
+				<fk_column name="player_id" pk="id" />
+			</fk>
+			<fk name="fk_player_history_league_id" to_schema="rally.public" to_table="leagues" options="" >
+				<fk_column name="league_id" pk="id" />
+			</fk>
+		</table>
+		<table name="player_season_tracking" row_count="19" spec="" >
+			<column name="id" type="serial" length="32" mandatory="y" />
+			<column name="player_id" type="varchar" length="255" mandatory="y" />
+			<column name="league_id" type="integer" length="32" />
+			<column name="season_year" type="integer" length="32" mandatory="y" />
+			<column name="forced_byes" type="integer" length="32" >
+				<defo><![CDATA[0]]></defo>
+			</column>
+			<column name="not_available" type="integer" length="32" >
+				<defo><![CDATA[0]]></defo>
+			</column>
+			<column name="injury" type="integer" length="32" >
+				<defo><![CDATA[0]]></defo>
+			</column>
+			<column name="created_at" type="timestamptz" >
+				<defo><![CDATA[CURRENT_TIMESTAMP]]></defo>
+			</column>
+			<column name="updated_at" type="timestamptz" >
+				<defo><![CDATA[CURRENT_TIMESTAMP]]></defo>
+			</column>
+			<index name="player_season_tracking_pkey" unique="PRIMARY_KEY" >
+				<column name="id" />
+			</index>
+			<index name="unique_player_season_tracking" unique="UNIQUE_KEY" >
+				<column name="player_id" />
+				<column name="league_id" />
+				<column name="season_year" />
+			</index>
+		</table>
+		<table name="players" row_count="10298" spec="" >
+			<column name="id" type="integer" length="32" mandatory="y" >
+				<defo><![CDATA[nextval('users_id_seq'::regclass)]]></defo>
+			</column>
+			<column name="email" type="varchar" length="255" />
+			<column name="first_name" type="varchar" length="255" mandatory="y" />
+			<column name="last_name" type="varchar" length="255" mandatory="y" />
+			<column name="club_id" type="integer" length="32" mandatory="y" />
+			<column name="series_id" type="integer" length="32" mandatory="y" />
+			<column name="created_at" type="timestamptz" >
+				<defo><![CDATA[CURRENT_TIMESTAMP]]></defo>
+			</column>
+			<column name="tenniscores_player_id" type="varchar" length="255" mandatory="y" />
+			<column name="league_id" type="integer" length="32" mandatory="y" />
+			<column name="is_active" type="boolean" >
+				<defo><![CDATA[true]]></defo>
+			</column>
+			<column name="pti" type="numeric" length="10" decimal="2" />
+			<column name="wins" type="integer" length="32" >
+				<defo><![CDATA[0]]></defo>
+			</column>
+			<column name="losses" type="integer" length="32" >
+				<defo><![CDATA[0]]></defo>
+			</column>
+			<column name="win_percentage" type="numeric" length="5" decimal="2" >
+				<defo><![CDATA[0.00]]></defo>
+			</column>
+			<column name="captain_status" type="varchar" length="50" />
+			<column name="updated_at" type="timestamptz" >
+				<defo><![CDATA[CURRENT_TIMESTAMP]]></defo>
+			</column>
+			<column name="career_wins" type="integer" length="32" >
+				<defo><![CDATA[0]]></defo>
+			</column>
+			<column name="career_losses" type="integer" length="32" >
+				<defo><![CDATA[0]]></defo>
+			</column>
+			<column name="career_matches" type="integer" length="32" >
+				<defo><![CDATA[0]]></defo>
+			</column>
+			<column name="career_win_percentage" type="numeric" length="5" decimal="2" >
+				<defo><![CDATA[0.00]]></defo>
+			</column>
+			<column name="team_id" type="integer" length="32" />
+			<index name="users_pkey" unique="PRIMARY_KEY" >
+				<column name="id" />
+			</index>
+			<index name="unique_player_in_league_club_series" unique="UNIQUE_KEY" >
+				<column name="tenniscores_player_id" />
+				<column name="league_id" />
+				<column name="club_id" />
+				<column name="series_id" />
+			</index>
+			<fk name="users_series_id_fkey" to_schema="rally.public" to_table="series" options="" >
+				<fk_column name="series_id" pk="id" />
+			</fk>
+			<fk name="users_club_id_fkey" to_schema="rally.public" to_table="clubs" options="" >
+				<fk_column name="club_id" pk="id" />
+			</fk>
+			<fk name="players_team_id_fkey" to_schema="rally.public" to_table="teams" options="" >
+				<fk_column name="team_id" pk="id" />
+			</fk>
+			<fk name="players_league_id_fkey" to_schema="rally.public" to_table="leagues" options="" >
+				<fk_column name="league_id" pk="id" />
+			</fk>
+		</table>
+		<table name="poll_choices" row_count="18" spec="" >
+			<column name="id" type="serial" length="32" mandatory="y" />
+			<column name="poll_id" type="integer" length="32" />
+			<column name="choice_text" type="text" mandatory="y" />
+			<index name="poll_choices_pkey" unique="PRIMARY_KEY" >
+				<column name="id" />
+			</index>
+			<fk name="poll_choices_poll_id_fkey" to_schema="rally.public" to_table="polls" delete_action="cascade" options="" >
+				<fk_column name="poll_id" pk="id" />
+			</fk>
+		</table>
+		<table name="poll_responses" row_count="9" spec="" >
+			<column name="id" type="serial" length="32" mandatory="y" />
+			<column name="poll_id" type="integer" length="32" />
+			<column name="choice_id" type="integer" length="32" />
+			<column name="player_id" type="integer" length="32" />
+			<column name="responded_at" type="timestamptz" >
+				<defo><![CDATA[now()]]></defo>
+			</column>
+			<index name="poll_responses_pkey" unique="PRIMARY_KEY" >
+				<column name="id" />
+			</index>
+			<index name="unique_poll_player_response" unique="UNIQUE_KEY" >
+				<column name="poll_id" />
+				<column name="player_id" />
+			</index>
+			<fk name="poll_responses_poll_id_fkey" to_schema="rally.public" to_table="polls" delete_action="cascade" options="" >
+				<fk_column name="poll_id" pk="id" />
+			</fk>
+			<fk name="poll_responses_choice_id_fkey" to_schema="rally.public" to_table="poll_choices" options="" >
+				<fk_column name="choice_id" pk="id" />
+			</fk>
+		</table>
+		<table name="polls" row_count="9" spec="" >
+			<column name="id" type="serial" length="32" mandatory="y" />
+			<column name="team_id" type="integer" length="32" />
+			<column name="created_by" type="integer" length="32" />
+			<column name="question" type="text" mandatory="y" />
+			<column name="created_at" type="timestamptz" >
+				<defo><![CDATA[now()]]></defo>
+			</column>
+			<index name="polls_pkey" unique="PRIMARY_KEY" >
+				<column name="id" />
+			</index>
+			<fk name="polls_created_by_fkey" to_schema="rally.public" to_table="users" options="" >
+				<fk_column name="created_by" pk="id" />
+			</fk>
+		</table>
+		<table name="pro_lessons" row_count="0" spec="" >
+			<column name="id" type="serial" length="32" mandatory="y" />
+			<column name="user_email" type="varchar" length="255" mandatory="y" />
+			<column name="pro_id" type="integer" length="32" />
+			<column name="lesson_date" type="date" length="0" mandatory="y" />
+			<column name="lesson_time" type="time" length="6" mandatory="y" />
+			<column name="focus_areas" type="text" mandatory="y" />
+			<column name="notes" type="text" />
+			<column name="status" type="varchar" >
+				<defo><![CDATA['requested'::character varying]]></defo>
+			</column>
+			<column name="created_at" type="timestamp" >
+				<defo><![CDATA[CURRENT_TIMESTAMP]]></defo>
+			</column>
+			<column name="updated_at" type="timestamp" >
+				<defo><![CDATA[CURRENT_TIMESTAMP]]></defo>
+			</column>
+			<index name="pro_lessons_pkey" unique="PRIMARY_KEY" >
+				<column name="id" />
+			</index>
+			<index name="idx_pro_lessons_lesson_date" unique="NORMAL" spec="USING  btree" >
+				<column name="lesson_date" />
+			</index>
+			<index name="idx_pro_lessons_status" unique="NORMAL" spec="USING  btree" >
+				<column name="status" />
+			</index>
+			<index name="idx_pro_lessons_user_email" unique="NORMAL" spec="USING  btree" >
+				<column name="user_email" />
+			</index>
+			<fk name="pro_lessons_pro_id_fkey" to_schema="rally.public" to_table="pros" options="" >
+				<fk_column name="pro_id" pk="id" />
+			</fk>
+		</table>
+		<table name="pros" row_count="3" spec="" >
+			<column name="id" type="serial" length="32" mandatory="y" />
+			<column name="name" type="varchar" length="255" mandatory="y" />
+			<column name="bio" type="text" />
+			<column name="specialties" type="text" />
+			<column name="hourly_rate" type="numeric" length="6" decimal="2" />
+			<column name="image_url" type="varchar" length="500" />
+			<column name="phone" type="varchar" length="20" />
+			<column name="email" type="varchar" length="255" />
+			<column name="is_active" type="boolean" >
+				<defo><![CDATA[true]]></defo>
+			</column>
+			<column name="created_at" type="timestamp" >
+				<defo><![CDATA[CURRENT_TIMESTAMP]]></defo>
+			</column>
+			<column name="updated_at" type="timestamp" >
+				<defo><![CDATA[CURRENT_TIMESTAMP]]></defo>
+			</column>
+			<index name="pros_pkey" unique="PRIMARY_KEY" >
+				<column name="id" />
+			</index>
+			<index name="idx_pros_active" unique="NORMAL" spec="USING  btree" >
+				<column name="is_active" />
+			</index>
+		</table>
+		<table name="schedule" row_count="7343" spec="" >
+			<column name="id" type="serial" length="32" mandatory="y" />
+			<column name="match_date" type="date" length="0" />
+			<column name="match_time" type="time" length="6" />
+			<column name="home_team" type="text" />
+			<column name="away_team" type="text" />
+			<column name="location" type="text" />
+			<column name="created_at" type="timestamptz" >
+				<defo><![CDATA[CURRENT_TIMESTAMP]]></defo>
+			</column>
+			<column name="league_id" type="integer" length="32" />
+			<column name="home_team_id" type="integer" length="32" />
+			<column name="away_team_id" type="integer" length="32" />
+			<index name="schedule_pkey" unique="PRIMARY_KEY" >
+				<column name="id" />
+			</index>
+			<fk name="fk_schedule_away_team_id" to_schema="rally.public" to_table="teams" options="" >
+				<fk_column name="away_team_id" pk="id" />
+			</fk>
+			<fk name="fk_schedule_home_team_id" to_schema="rally.public" to_table="teams" options="" >
+				<fk_column name="home_team_id" pk="id" />
+			</fk>
+			<fk name="schedule_home_team_id_fkey" to_schema="rally.public" to_table="teams" options="" >
+				<fk_column name="home_team_id" pk="id" />
+			</fk>
+			<fk name="schedule_away_team_id_fkey" to_schema="rally.public" to_table="teams" options="" >
+				<fk_column name="away_team_id" pk="id" />
+			</fk>
+			<fk name="fk_schedule_league_id" to_schema="rally.public" to_table="leagues" options="" >
+				<fk_column name="league_id" pk="id" />
+			</fk>
+		</table>
+		<table name="series" row_count="201" spec="" >
+			<column name="id" type="serial" length="32" mandatory="y" />
+			<column name="name" type="varchar" length="255" mandatory="y" />
+			<column name="updated_at" type="timestamptz" >
+				<defo><![CDATA[CURRENT_TIMESTAMP]]></defo>
+			</column>
+			<column name="display_name" type="varchar" length="255" mandatory="y" />
+			<index name="series_pkey" unique="PRIMARY_KEY" >
+				<column name="id" />
+			</index>
+			<index name="series_name_key" unique="UNIQUE_KEY" >
+				<column name="name" />
+			</index>
+			<index name="idx_series_display_name" unique="NORMAL" spec="USING  btree" >
+				<column name="display_name" />
+			</index>
+		</table>
+		<table name="series_leagues" row_count="168" spec="" >
+			<column name="id" type="serial" length="32" mandatory="y" />
+			<column name="series_id" type="integer" length="32" mandatory="y" />
+			<column name="league_id" type="integer" length="32" mandatory="y" />
+			<column name="created_at" type="timestamptz" >
+				<defo><![CDATA[CURRENT_TIMESTAMP]]></defo>
+			</column>
+			<index name="series_leagues_pkey" unique="PRIMARY_KEY" >
+				<column name="id" />
+			</index>
+			<index name="unique_series_league" unique="UNIQUE_KEY" >
+				<column name="series_id" />
+				<column name="league_id" />
+			</index>
+			<fk name="series_leagues_series_id_fkey" to_schema="rally.public" to_table="series" options="" >
+				<fk_column name="series_id" pk="id" />
+			</fk>
+			<fk name="series_leagues_league_id_fkey" to_schema="rally.public" to_table="leagues" options="" >
+				<fk_column name="league_id" pk="id" />
+			</fk>
+		</table>
+		<table name="series_stats" row_count="978" spec="" >
+			<column name="id" type="serial" length="32" mandatory="y" />
+			<column name="series" type="varchar" length="255" />
+			<column name="team" type="varchar" length="255" />
+			<column name="points" type="integer" length="32" />
+			<column name="matches_won" type="integer" length="32" />
+			<column name="matches_lost" type="integer" length="32" />
+			<column name="matches_tied" type="integer" length="32" />
+			<column name="lines_won" type="integer" length="32" />
+			<column name="lines_lost" type="integer" length="32" />
+			<column name="lines_for" type="integer" length="32" />
+			<column name="lines_ret" type="integer" length="32" />
+			<column name="sets_won" type="integer" length="32" />
+			<column name="sets_lost" type="integer" length="32" />
+			<column name="games_won" type="integer" length="32" />
+			<column name="games_lost" type="integer" length="32" />
+			<column name="created_at" type="timestamptz" >
+				<defo><![CDATA[CURRENT_TIMESTAMP]]></defo>
+			</column>
+			<column name="league_id" type="integer" length="32" />
+			<column name="team_id" type="integer" length="32" />
+			<column name="series_id" type="integer" length="32" />
+			<index name="series_stats_pkey" unique="PRIMARY_KEY" >
+				<column name="id" />
+			</index>
+			<index name="idx_series_stats_series_id" unique="NORMAL" spec="USING  btree" >
+				<column name="series_id" />
+			</index>
+			<fk name="fk_series_stats_team_id" to_schema="rally.public" to_table="teams" options="" >
+				<fk_column name="team_id" pk="id" />
+			</fk>
+			<fk name="fk_series_stats_series_id" to_schema="rally.public" to_table="series" options="" >
+				<fk_column name="series_id" pk="id" />
+			</fk>
+			<fk name="series_stats_team_id_fkey" to_schema="rally.public" to_table="teams" options="" >
+				<fk_column name="team_id" pk="id" />
+			</fk>
+			<fk name="fk_series_stats_league_id" to_schema="rally.public" to_table="leagues" options="" >
+				<fk_column name="league_id" pk="id" />
+			</fk>
+		</table>
+		<table name="system_settings" row_count="1" spec="" >
+			<column name="id" type="serial" length="32" mandatory="y" />
+			<column name="key" type="varchar" length="100" mandatory="y" />
+			<column name="value" type="text" mandatory="y" />
+			<column name="description" type="text" />
+			<column name="created_at" type="timestamp" >
+				<defo><![CDATA[CURRENT_TIMESTAMP]]></defo>
+			</column>
+			<column name="updated_at" type="timestamp" >
+				<defo><![CDATA[CURRENT_TIMESTAMP]]></defo>
+			</column>
+			<index name="system_settings_pkey" unique="PRIMARY_KEY" >
+				<column name="id" />
+			</index>
+			<index name="idx_system_settings_key" unique="NORMAL" spec="USING  btree" >
+				<column name="key" />
+			</index>
+		</table>
+		<table name="teams" row_count="931" spec="" >
+			<column name="id" type="serial" length="32" mandatory="y" />
+			<column name="club_id" type="integer" length="32" mandatory="y" />
+			<column name="series_id" type="integer" length="32" mandatory="y" />
+			<column name="league_id" type="integer" length="32" mandatory="y" />
+			<column name="team_name" type="varchar" length="255" mandatory="y" />
+			<column name="external_team_id" type="varchar" length="255" />
+			<column name="is_active" type="boolean" >
+				<defo><![CDATA[true]]></defo>
+			</column>
+			<column name="created_at" type="timestamptz" >
+				<defo><![CDATA[CURRENT_TIMESTAMP]]></defo>
+			</column>
+			<column name="updated_at" type="timestamptz" >
+				<defo><![CDATA[CURRENT_TIMESTAMP]]></defo>
+			</column>
+			<column name="team_alias" type="varchar" length="255" />
+			<column name="display_name" type="varchar" length="255" mandatory="y" />
+			<index name="teams_pkey" unique="PRIMARY_KEY" >
+				<column name="id" />
+			</index>
+			<index name="unique_team_club_series_league" unique="UNIQUE_KEY" >
+				<column name="club_id" />
+				<column name="series_id" />
+				<column name="league_id" />
+			</index>
+			<index name="unique_team_name_per_league" unique="UNIQUE_KEY" >
+				<column name="team_name" />
+				<column name="league_id" />
+			</index>
+			<index name="idx_teams_display_name" unique="NORMAL" spec="USING  btree" >
+				<column name="display_name" />
+			</index>
+			<fk name="teams_series_id_fkey" to_schema="rally.public" to_table="series" options="" >
+				<fk_column name="series_id" pk="id" />
+			</fk>
+			<fk name="teams_league_id_fkey" to_schema="rally.public" to_table="leagues" options="" >
+				<fk_column name="league_id" pk="id" />
+			</fk>
+			<fk name="teams_club_id_fkey" to_schema="rally.public" to_table="clubs" options="" >
+				<fk_column name="club_id" pk="id" />
+			</fk>
+		</table>
+		<table name="user_activity_logs" row_count="4637" spec="" >
+			<column name="id" type="serial" length="32" mandatory="y" />
+			<column name="user_email" type="varchar" length="255" mandatory="y" />
+			<column name="activity_type" type="varchar" length="255" mandatory="y" />
+			<column name="page" type="varchar" length="255" />
+			<column name="action" type="text" />
+			<column name="details" type="text" />
+			<column name="ip_address" type="varchar" length="45" />
+			<column name="timestamp" type="timestamptz" >
+				<defo><![CDATA[CURRENT_TIMESTAMP]]></defo>
+			</column>
+			<index name="user_activity_logs_pkey" unique="PRIMARY_KEY" >
+				<column name="id" />
+			</index>
+		</table>
+		<table name="user_instructions" row_count="0" spec="" >
+			<column name="id" type="serial" length="32" mandatory="y" />
+			<column name="user_email" type="varchar" length="255" mandatory="y" />
+			<column name="instruction" type="text" mandatory="y" />
+			<column name="series_id" type="integer" length="32" />
+			<column name="team_id" type="integer" length="32" />
+			<column name="created_at" type="timestamptz" >
+				<defo><![CDATA[CURRENT_TIMESTAMP]]></defo>
+			</column>
+			<column name="is_active" type="boolean" >
+				<defo><![CDATA[true]]></defo>
+			</column>
+			<index name="user_instructions_pkey" unique="PRIMARY_KEY" >
+				<column name="id" />
+			</index>
+			<fk name="user_instructions_series_id_fkey" to_schema="rally.public" to_table="series" options="" >
+				<fk_column name="series_id" pk="id" />
+			</fk>
+			<fk name="fk_user_instructions_team_id" to_schema="rally.public" to_table="teams" options="" >
+				<fk_column name="team_id" pk="id" />
+			</fk>
+		</table>
+		<table name="user_player_associations" row_count="21" spec="" >
+			<column name="user_id" type="integer" length="32" mandatory="y" />
+			<column name="is_primary" type="boolean" >
+				<defo><![CDATA[false]]></defo>
+			</column>
+			<column name="created_at" type="timestamptz" >
+				<defo><![CDATA[CURRENT_TIMESTAMP]]></defo>
+			</column>
+			<column name="tenniscores_player_id" type="varchar" length="255" mandatory="y" />
+			<index name="user_player_associations_pkey" unique="PRIMARY_KEY" >
+				<column name="user_id" />
+				<column name="tenniscores_player_id" />
+			</index>
+			<index name="idx_upa_unique_player_check" unique="NORMAL" spec="USING  btree" >
+				<column name="tenniscores_player_id" />
+			</index>
+			<fk name="fk_upa_user_id" to_schema="rally.public" to_table="users" options="" >
+				<fk_column name="user_id" pk="id" />
+			</fk>
+		</table>
+		<table name="user_player_associations_backup" row_count="0" spec="" >
+			<column name="user_id" type="integer" length="32" />
+			<column name="is_primary" type="boolean" />
+			<column name="created_at" type="timestamptz" />
+			<column name="tenniscores_player_id" type="varchar" length="255" />
+		</table>
+		<table name="users" row_count="19" spec="" >
+			<column name="id" type="integer" length="32" mandatory="y" >
+				<defo><![CDATA[nextval('users_id_seq1'::regclass)]]></defo>
+			</column>
+			<column name="email" type="varchar" length="255" mandatory="y" />
+			<column name="password_hash" type="varchar" length="255" mandatory="y" />
+			<column name="first_name" type="varchar" length="255" />
+			<column name="last_name" type="varchar" length="255" />
+			<column name="club_automation_password" type="varchar" length="255" />
+			<column name="created_at" type="timestamptz" >
+				<defo><![CDATA[CURRENT_TIMESTAMP]]></defo>
+			</column>
+			<column name="last_login" type="timestamptz" />
+			<column name="is_admin" type="boolean" mandatory="y" >
+				<defo><![CDATA[false]]></defo>
+			</column>
+			<column name="ad_deuce_preference" type="varchar" length="50" />
+			<column name="dominant_hand" type="varchar" length="20" />
+			<column name="league_id" type="integer" length="32" />
+			<column name="tenniscores_player_id" type="varchar" length="255" />
+			<column name="league_context" type="integer" length="32" />
+			<index name="users_pkey1" unique="PRIMARY_KEY" >
+				<column name="id" />
+			</index>
+			<index name="users_email_key1" unique="UNIQUE_KEY" >
+				<column name="email" />
+			</index>
+			<index name="idx_users_league_id" unique="NORMAL" spec="USING  btree" >
+				<column name="league_id" />
+			</index>
+			<index name="idx_users_tenniscores_player_id" unique="NORMAL" spec="USING  btree" >
+				<column name="tenniscores_player_id" />
+			</index>
+			<fk name="users_league_context_fkey" to_schema="rally.public" to_table="leagues" options="" >
+				<fk_column name="league_context" pk="id" />
+			</fk>
+			<fk name="users_league_id_fkey" to_schema="rally.public" to_table="leagues" options="" >
+				<fk_column name="league_id" pk="id" />
+			</fk>
+		</table>
+		<view name="migration_validation" >
+			<view_script><![CDATA[CREATE OR REPLACE VIEW ${view} AS SELECT 'users'::text AS table_name,
+    count(*) AS record_count,
+    'Authentication-only fields'::text AS description
+   FROM users
+UNION ALL
+ SELECT 'players'::text AS table_name,
+    count(*) AS record_count,
+    'League-specific player records'::text AS description
+   FROM players
+UNION ALL
+ SELECT 'user_player_associations'::text AS table_name,
+    count(*) AS record_count,
+    'User-to-player links'::text AS description
+   FROM user_player_associations
+UNION ALL
+ SELECT 'match_scores'::text AS table_name,
+    count(*) AS record_count,
+    'With INTEGER league_id FK'::text AS description
+   FROM match_scores
+  WHERE (match_scores.league_id IS NOT NULL)]]></view_script>
+			<column name="table_name" type="text" />
+			<column name="record_count" type="bigint" />
+			<column name="description" type="text" />
+		</view>
+		<sequence name="club_leagues_id_seq" options="AS integer START WITH 1 INCREMENT BY 1" />
+		<sequence name="clubs_id_seq" options="AS integer START WITH 1 INCREMENT BY 1" />
+		<sequence name="leagues_id_seq" options="AS integer START WITH 1 INCREMENT BY 1" />
+		<sequence name="match_scores_id_seq" options="AS integer START WITH 1 INCREMENT BY 1" />
+		<sequence name="pickup_game_participants_id_seq" options="AS integer START WITH 1 INCREMENT BY 1" />
+		<sequence name="pickup_games_id_seq" options="AS integer START WITH 1 INCREMENT BY 1" />
+		<sequence name="player_availability_id_seq" options="AS integer START WITH 1 INCREMENT BY 1" />
+		<sequence name="player_history_id_seq" options="AS integer START WITH 1 INCREMENT BY 1" />
+		<sequence name="player_season_tracking_id_seq" options="AS integer START WITH 1 INCREMENT BY 1" />
+		<sequence name="poll_choices_id_seq" options="AS integer START WITH 1 INCREMENT BY 1" />
+		<sequence name="poll_responses_id_seq" options="AS integer START WITH 1 INCREMENT BY 1" />
+		<sequence name="polls_id_seq" options="AS integer START WITH 1 INCREMENT BY 1" />
+		<sequence name="pro_lessons_id_seq" options="AS integer START WITH 1 INCREMENT BY 1" />
+		<sequence name="pros_id_seq" options="AS integer START WITH 1 INCREMENT BY 1" />
+		<sequence name="schedule_id_seq" options="AS integer START WITH 1 INCREMENT BY 1" />
+		<sequence name="series_id_seq" options="AS integer START WITH 1 INCREMENT BY 1" />
+		<sequence name="series_leagues_id_seq" options="AS integer START WITH 1 INCREMENT BY 1" />
+		<sequence name="series_stats_id_seq" options="AS integer START WITH 1 INCREMENT BY 1" />
+		<sequence name="system_settings_id_seq" options="AS integer START WITH 1 INCREMENT BY 1" />
+		<sequence name="teams_id_seq" options="AS integer START WITH 1 INCREMENT BY 1" />
+		<sequence name="user_activity_logs_id_seq" options="AS integer START WITH 1 INCREMENT BY 1" />
+		<sequence name="user_instructions_id_seq" options="AS integer START WITH 1 INCREMENT BY 1" />
+		<sequence name="users_id_seq" options="AS integer START WITH 1 INCREMENT BY 1" />
+		<sequence name="users_id_seq1" options="AS integer START WITH 1 INCREMENT BY 1" />
+		<function name="assign_player_teams_from_matches" id="56c5d5f7-ee92-4bb8-9ab8-cfeac4069e4e" isSystem="false" params_known="y" >
+			<string><![CDATA[CREATE OR REPLACE FUNCTION public.assign_player_teams_from_matches()
+ RETURNS TABLE(player_id text, player_name text, old_team text, new_team text, match_count bigint, assignment_confidence text)
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+    RETURN QUERY
+    WITH player_match_teams AS (
+        SELECT 
+            CASE 
+                WHEN ms.home_player_1_id = p.tenniscores_player_id THEN 
+                    COALESCE(tfm_home.database_series_format, ms.home_team)
+                WHEN ms.home_player_2_id = p.tenniscores_player_id THEN 
+                    COALESCE(tfm_home.database_series_format, ms.home_team)
+                WHEN ms.away_player_1_id = p.tenniscores_player_id THEN 
+                    COALESCE(tfm_away.database_series_format, ms.away_team)
+                WHEN ms.away_player_2_id = p.tenniscores_player_id THEN 
+                    COALESCE(tfm_away.database_series_format, ms.away_team)
+            END as resolved_team,
+            p.tenniscores_player_id,
+            p.first_name || ' ' || p.last_name as full_name,
+            t.team_name as current_team,
+            COUNT(*) as team_match_count
+        FROM players p
+        LEFT JOIN teams t ON p.team_id = t.id
+        JOIN match_scores ms ON (
+            ms.home_player_1_id = p.tenniscores_player_id OR
+            ms.home_player_2_id = p.tenniscores_player_id OR
+            ms.away_player_1_id = p.tenniscores_player_id OR
+            ms.away_player_2_id = p.tenniscores_player_id
+        )
+        LEFT JOIN team_format_mappings tfm_home ON tfm_home.user_input_format = ms.home_team AND tfm_home.is_active = TRUE
+        LEFT JOIN team_format_mappings tfm_away ON tfm_away.user_input_format = ms.away_team AND tfm_away.is_active = TRUE
+        WHERE p.is_active = TRUE
+        GROUP BY p.tenniscores_player_id, full_name, current_team, resolved_team
+    ),
+    player_primary_teams AS (
+        SELECT 
+            tenniscores_player_id,
+            full_name,
+            current_team,
+            resolved_team as primary_team,
+            team_match_count,
+            SUM(team_match_count) OVER (PARTITION BY tenniscores_player_id) as total_matches,
+            ROW_NUMBER() OVER (
+                PARTITION BY tenniscores_player_id 
+                ORDER BY team_match_count DESC
+            ) as team_rank
+        FROM player_match_teams
+    ),
+    final_assignments AS (
+        SELECT 
+            tenniscores_player_id,
+            full_name,
+            current_team,
+            primary_team,
+            team_match_count,
+            total_matches,
+            CASE 
+                WHEN team_match_count::FLOAT / total_matches > 0.8 THEN 'HIGH'
+                WHEN team_match_count::FLOAT / total_matches > 0.6 THEN 'MEDIUM'
+                WHEN team_match_count::FLOAT / total_matches > 0.4 THEN 'LOW'
+                ELSE 'VERY_LOW'
+            END as confidence
+        FROM player_primary_teams
+        WHERE team_rank = 1
+    )
+    SELECT 
+        fa.tenniscores_player_id::TEXT,
+        fa.full_name::TEXT,
+        COALESCE(fa.current_team, 'UNASSIGNED')::TEXT,
+        fa.primary_team::TEXT,
+        fa.team_match_count,
+        fa.confidence::TEXT
+    FROM final_assignments fa
+    WHERE fa.current_team IS NULL 
+    OR fa.current_team != fa.primary_team
+    ORDER BY fa.team_match_count DESC;
+END;
+$function$
+;]]></string>
+			<input_param name="player_id" jt="-1" type="text" inOut="3" />
+			<input_param name="player_name" jt="-1" type="text" inOut="3" />
+			<input_param name="old_team" jt="-1" type="text" inOut="3" />
+			<input_param name="new_team" jt="-1" type="text" inOut="3" />
+			<input_param name="match_count" jt="-1" type="bigint" inOut="3" />
+			<input_param name="assignment_confidence" jt="-1" type="text" inOut="3" />
+		</function>
+		<function name="auto_populate_player_id" id="1e677fd3-78bc-481c-b440-1bccdfc69f64" isSystem="false" params_known="y" >
+			<string><![CDATA[CREATE OR REPLACE FUNCTION public.auto_populate_player_id()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+            BEGIN
+                IF NEW.player_id IS NULL THEN
+                    NEW.player_id := validate_player_exists(NEW.player_name, NEW.series_id);
+                    
+                    IF NEW.player_id IS NULL THEN
+                        RAISE EXCEPTION 'Cannot create availability record: Player "%" not found in series ID % (or player is inactive). Please verify player name and series are correct.',
+                            NEW.player_name, NEW.series_id;
+                    END IF;
+                END IF;
+                
+                RETURN NEW;
+            END;
+            $function$
+;]]></string>
+			<result_param jt="-1" />
+		</function>
+		<function name="update_groups_updated_at" id="0e5ee96d-1b4e-4f00-bcda-a8cf06f0b5b3" isSystem="false" params_known="y" >
+			<string><![CDATA[CREATE OR REPLACE FUNCTION public.update_groups_updated_at()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$function$
+;]]></string>
+			<result_param jt="-1" />
+		</function>
+		<function name="update_pickup_games_updated_at" id="64f00278-1b50-4c41-ad06-d1b15f26bb70" isSystem="false" params_known="y" >
+			<string><![CDATA[CREATE OR REPLACE FUNCTION public.update_pickup_games_updated_at()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+    BEGIN
+        NEW.updated_at = CURRENT_TIMESTAMP;
+        RETURN NEW;
+    END;
+    $function$
+;]]></string>
+			<result_param jt="-1" />
+		</function>
+		<function name="update_player_season_tracking_updated_at" id="6150da66-f173-4564-bd11-3f1043c55164" isSystem="false" params_known="y" >
+			<string><![CDATA[CREATE OR REPLACE FUNCTION public.update_player_season_tracking_updated_at()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$function$
+;]]></string>
+			<result_param jt="-1" />
+		</function>
+		<function name="update_teams_updated_at_column" id="2ea1eedb-714f-4678-9dc8-c80b0c170bce" isSystem="false" params_known="y" >
+			<string><![CDATA[CREATE OR REPLACE FUNCTION public.update_teams_updated_at_column()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$function$
+;]]></string>
+			<result_param jt="-1" />
+		</function>
+		<function name="update_updated_at_column" id="50411c6d-deea-4909-a9e8-17117b40cab8" isSystem="false" params_known="y" >
+			<string><![CDATA[CREATE OR REPLACE FUNCTION public.update_updated_at_column()
+ RETURNS trigger
+ LANGUAGE plpgsql
+AS $function$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$function$
+;]]></string>
+			<result_param jt="-1" />
+		</function>
+		<function name="validate_player_exists" id="6897de98-2f94-4627-aded-c1cc2250ad81" isSystem="false" params_known="y" >
+			<string><![CDATA[CREATE OR REPLACE FUNCTION public.validate_player_exists(p_player_name character varying, p_series_id integer)
+ RETURNS integer
+ LANGUAGE plpgsql
+AS $function$
+            DECLARE
+                player_record_id INTEGER;
+            BEGIN
+                SELECT id INTO player_record_id
+                FROM players 
+                WHERE CONCAT(first_name, ' ', last_name) = p_player_name
+                AND series_id = p_series_id
+                AND is_active = true;
+                
+                RETURN player_record_id;
+            END;
+            $function$
+;]]></string>
+			<input_param name="p_player_name" jt="-1" type="character varying" inOut="1" />
+			<input_param name="p_series_id" jt="-1" type="integer" inOut="1" />
+		</function>
+		<function name="validate_team_assignments" id="55c6e845-9f4d-4926-babe-e0765ffb8db7" isSystem="false" params_known="y" >
+			<string><![CDATA[CREATE OR REPLACE FUNCTION public.validate_team_assignments()
+ RETURNS TABLE(validation_type character varying, issue_count integer, description character varying)
+ LANGUAGE plpgsql
+AS $function$
+    BEGIN
+        -- Check for players with no team assignment who have matches
+        RETURN QUERY
+        SELECT 
+            'UNASSIGNED_WITH_MATCHES'::VARCHAR,
+            COUNT(*)::INTEGER,
+            'Players with matches but no team assignment'::VARCHAR
+        FROM players p
+        WHERE p.team_id IS NULL 
+        AND p.is_active = TRUE
+        AND EXISTS (
+            SELECT 1 FROM match_scores ms 
+            WHERE ms.home_player_1_id = p.tenniscores_player_id
+            OR ms.home_player_2_id = p.tenniscores_player_id
+            OR ms.away_player_1_id = p.tenniscores_player_id
+            OR ms.away_player_2_id = p.tenniscores_player_id
+        );
+        
+        -- Check for mismatched team assignments
+        RETURN QUERY
+        WITH player_match_teams AS (
+            SELECT 
+                p.tenniscores_player_id,
+                CASE 
+                    WHEN ms.home_player_1_id = p.tenniscores_player_id THEN ms.home_team
+                    WHEN ms.home_player_2_id = p.tenniscores_player_id THEN ms.home_team
+                    WHEN ms.away_player_1_id = p.tenniscores_player_id THEN ms.away_team
+                    WHEN ms.away_player_2_id = p.tenniscores_player_id THEN ms.away_team
+                END as match_team,
+                t.team_name as assigned_team,
+                COUNT(*) as match_count
+            FROM players p
+            LEFT JOIN teams t ON p.team_id = t.id
+            JOIN match_scores ms ON (
+                ms.home_player_1_id = p.tenniscores_player_id OR
+                ms.home_player_2_id = p.tenniscores_player_id OR
+                ms.away_player_1_id = p.tenniscores_player_id OR
+                ms.away_player_2_id = p.tenniscores_player_id
+            )
+            WHERE p.is_active = TRUE AND t.team_name IS NOT NULL
+            GROUP BY p.tenniscores_player_id, assigned_team, match_team
+        ),
+        mismatched AS (
+            SELECT tenniscores_player_id
+            FROM player_match_teams
+            WHERE assigned_team != match_team
+            GROUP BY tenniscores_player_id
+        )
+        SELECT 
+            'MISMATCHED_ASSIGNMENTS'::VARCHAR,
+            COUNT(*)::INTEGER,
+            'Players assigned to wrong team based on matches'::VARCHAR
+        FROM mismatched;
+        
+        -- Check for empty teams
+        RETURN QUERY
+        SELECT 
+            'EMPTY_TEAMS'::VARCHAR,
+            COUNT(*)::INTEGER,
+            'Teams with no active players'::VARCHAR
+        FROM teams t
+        WHERE NOT EXISTS (
+            SELECT 1 FROM players p 
+            WHERE p.team_id = t.id AND p.is_active = TRUE
+        );
+    END;
+    $function$
+;]]></string>
+			<input_param name="validation_type" jt="-1" type="character varying" inOut="3" />
+			<input_param name="issue_count" jt="-1" type="integer" inOut="3" />
+			<input_param name="description" jt="-1" type="character varying" inOut="3" />
+		</function>
+		<trigger name="trigger_auto_populate_player_id" table="player_availability" id="f9624d3e-2ee0-40fd-a4b2-b964721907f8" isSystem="false" >
+			<string><![CDATA[CREATE TRIGGER trigger_auto_populate_player_id BEFORE INSERT ON public.player_availability FOR EACH ROW EXECUTE FUNCTION auto_populate_player_id()]]></string>
+		</trigger>
+		<trigger name="trigger_pickup_games_updated_at" table="pickup_games" id="f5f00f64-4366-4cb0-a58c-b169a75d8952" isSystem="false" >
+			<string><![CDATA[CREATE TRIGGER trigger_pickup_games_updated_at BEFORE UPDATE ON public.pickup_games FOR EACH ROW EXECUTE FUNCTION update_pickup_games_updated_at()]]></string>
+		</trigger>
+		<trigger name="trigger_update_player_season_tracking_updated_at" table="player_season_tracking" id="36288b73-f531-4b68-9243-b07cb1f1eae5" isSystem="false" >
+			<string><![CDATA[CREATE TRIGGER trigger_update_player_season_tracking_updated_at BEFORE UPDATE ON public.player_season_tracking FOR EACH ROW EXECUTE FUNCTION update_player_season_tracking_updated_at()]]></string>
+		</trigger>
+		<trigger name="update_clubs_updated_at" table="clubs" id="1eca1b8e-157e-4406-96f9-5eda24897d8e" isSystem="false" >
+			<string><![CDATA[CREATE TRIGGER update_clubs_updated_at BEFORE UPDATE ON public.clubs FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()]]></string>
+		</trigger>
+		<trigger name="update_leagues_updated_at" table="leagues" id="23f0bb31-bf11-43d7-b5ad-f8c54ef10efd" isSystem="false" >
+			<string><![CDATA[CREATE TRIGGER update_leagues_updated_at BEFORE UPDATE ON public.leagues FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()]]></string>
+		</trigger>
+		<trigger name="update_players_updated_at" table="players" id="d8df33f4-f109-480d-b1f1-6633ebd06f06" isSystem="false" >
+			<string><![CDATA[CREATE TRIGGER update_players_updated_at BEFORE UPDATE ON public.players FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()]]></string>
+		</trigger>
+		<trigger name="update_series_updated_at" table="series" id="8c83478c-c225-4468-b900-ac4671c92f4d" isSystem="false" >
+			<string><![CDATA[CREATE TRIGGER update_series_updated_at BEFORE UPDATE ON public.series FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()]]></string>
+		</trigger>
+		<trigger name="update_system_settings_updated_at" table="system_settings" id="7db3fe27-d259-4110-8012-ab1f7da74366" isSystem="false" >
+			<string><![CDATA[CREATE TRIGGER update_system_settings_updated_at BEFORE UPDATE ON public.system_settings FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()]]></string>
+		</trigger>
+		<trigger name="update_teams_updated_at" table="teams" id="4b8dff7f-3d7b-4489-b5dd-06dc4724bc75" isSystem="false" >
+			<string><![CDATA[CREATE TRIGGER update_teams_updated_at BEFORE UPDATE ON public.teams FOR EACH ROW EXECUTE FUNCTION update_teams_updated_at_column()]]></string>
+		</trigger>
+	</schema>
+	<layout name="Main Diagram" id="15ac6166-9c4a-48b7-87d4-b6ead75302a9" show_relation="columns" >
+		<entity schema="rally.public" name="activity_log" color="F4DDBE" x="2060" y="1580" />
+		<entity schema="rally.public" name="alembic_version" color="BED3F4" x="400" y="1720" />
+		<entity schema="rally.public" name="club_leagues" color="C7F4BE" x="660" y="800" />
+		<entity schema="rally.public" name="clubs" color="C7F4BE" x="60" y="800" />
+		<entity schema="rally.public" name="leagues" color="C7F4BE" x="340" y="100" />
+		<entity schema="rally.public" name="match_scores" color="BED3F4" x="1680" y="2740" />
+		<entity schema="rally.public" name="pickup_game_participants" color="F4DDBE" x="1480" y="1420" />
+		<entity schema="rally.public" name="pickup_games" color="F4DDBE" x="1480" y="1680" />
+		<entity schema="rally.public" name="player_availability" color="F4DDBE" x="2400" y="1320" />
+		<entity schema="rally.public" name="player_availability_backup" color="F4DDBE" x="1760" y="1320" />
+		<entity schema="rally.public" name="player_history" color="C7F4BE" x="660" y="420" />
+		<entity schema="rally.public" name="player_season_tracking" color="C7F4BE" x="340" y="420" />
+		<entity schema="rally.public" name="players" color="C7F4BE" x="600" y="1080" />
+		<entity schema="rally.public" name="poll_choices" color="D1BEF4" x="960" y="2320" />
+		<entity schema="rally.public" name="poll_responses" color="D1BEF4" x="1180" y="2320" />
+		<entity schema="rally.public" name="polls" color="D1BEF4" x="1420" y="2320" />
+		<entity schema="rally.public" name="pro_lessons" color="BEBEF4" x="1180" y="1720" />
+		<entity schema="rally.public" name="pros" color="BEBEF4" x="960" y="1720" />
+		<entity schema="rally.public" name="schedule" color="C7F4BE" x="60" y="400" />
+		<entity schema="rally.public" name="series" color="BED3F4" x="1980" y="2740" />
+		<entity schema="rally.public" name="series_leagues" color="C7F4BE" x="340" y="800" />
+		<entity schema="rally.public" name="series_stats" color="BED3F4" x="2260" y="2400" />
+		<entity schema="rally.public" name="system_settings" color="BED3F4" x="400" y="1920" />
+		<entity schema="rally.public" name="teams" color="BED3F4" x="1680" y="2320" />
+		<entity schema="rally.public" name="user_activity_logs" color="BED3F4" x="160" y="1920" />
+		<entity schema="rally.public" name="user_instructions" color="BED3F4" x="1980" y="2400" />
+		<entity schema="rally.public" name="user_player_associations" color="F4DDBE" x="1760" y="1680" />
+		<entity schema="rally.public" name="user_player_associations_backup" color="F4DDBE" x="2060" y="1320" />
+		<entity schema="rally.public" name="users" color="F4DDBE" x="1440" y="900" />
+		<entity schema="rally.public" name="migration_validation" color="BED3F4" x="640" y="1720" />
+		<callout x="1680" y="2180" pointer="Round" >
+			<comment><![CDATA[Double-click the table headers, columns, or foreign keys to edit.
+
+Create multiple diagrams with the same or different tables.
+The diagrams will be saved to the model file and can be later reopen.]]></comment>
+		</callout>
+		<group name="alembic_version" color="ECF0F7" >
+			<entity schema="rally.public" name="alembic_version" />
+			<entity schema="rally.public" name="migration_validation" />
+			<entity schema="rally.public" name="system_settings" />
+			<entity schema="rally.public" name="user_activity_logs" />
+		</group>
+		<group name="pros" color="ECECF7" >
+			<entity schema="rally.public" name="pros" />
+			<entity schema="rally.public" name="pro_lessons" />
+		</group>
+		<group name="poll_choices" color="F0ECF7" >
+			<entity schema="rally.public" name="poll_choices" />
+			<entity schema="rally.public" name="polls" />
+			<entity schema="rally.public" name="poll_responses" />
+		</group>
+		<group name="player_availability_backup" color="F7F2EC" >
+			<entity schema="rally.public" name="player_availability_backup" />
+			<entity schema="rally.public" name="user_player_associations_backup" />
+			<entity schema="rally.public" name="player_availability" />
+			<entity schema="rally.public" name="activity_log" />
+			<entity schema="rally.public" name="pickup_games" />
+			<entity schema="rally.public" name="user_player_associations" />
+			<entity schema="rally.public" name="users" />
+			<entity schema="rally.public" name="pickup_game_participants" />
+		</group>
+		<group name="player_season_tracking" color="EEF7EC" >
+			<entity schema="rally.public" name="player_season_tracking" />
+			<entity schema="rally.public" name="clubs" />
+			<entity schema="rally.public" name="leagues" />
+			<entity schema="rally.public" name="player_history" />
+			<entity schema="rally.public" name="club_leagues" />
+			<entity schema="rally.public" name="series_leagues" />
+			<entity schema="rally.public" name="players" />
+			<entity schema="rally.public" name="schedule" />
+		</group>
+		<group name="series" color="ECF0F7" >
+			<entity schema="rally.public" name="series" />
+			<entity schema="rally.public" name="user_instructions" />
+			<entity schema="rally.public" name="teams" />
+			<entity schema="rally.public" name="series_stats" />
+			<entity schema="rally.public" name="match_scores" />
+		</group>
+		<script name="SQL_Editor" id="b0cb9ac5-86d9-45b2-b17b-87174e7d40eb" language="SQL" >
+			<string><![CDATA[-- =====================================================
+-- Create Groups Tables for Rally Application
+-- To run in DBSchema: Copy this entire script into the SQL Editor and execute
+-- =====================================================
+
+-- Drop tables if they exist (for clean recreation)
+DROP TABLE IF EXISTS group_members CASCADE;
+DROP TABLE IF EXISTS groups CASCADE;
+
+-- Drop trigger function if it exists
+DROP FUNCTION IF EXISTS update_groups_updated_at() CASCADE;
+
+-- =====================================================
+-- CREATE GROUPS TABLE
+-- =====================================================
+
+CREATE TABLE groups (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    creator_user_id INTEGER NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    -- Foreign key constraint
+    CONSTRAINT fk_groups_creator_user_id 
+        FOREIGN KEY (creator_user_id) 
+        REFERENCES users(id) 
+        ON DELETE CASCADE
+);
+
+-- =====================================================
+-- CREATE GROUP_MEMBERS TABLE
+-- =====================================================
+
+CREATE TABLE group_members (
+    id SERIAL PRIMARY KEY,
+    group_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    added_by_user_id INTEGER NOT NULL,
+    
+    -- Foreign key constraints
+    CONSTRAINT fk_group_members_group_id 
+        FOREIGN KEY (group_id) 
+        REFERENCES groups(id) 
+        ON DELETE CASCADE,
+        
+    CONSTRAINT fk_group_members_user_id 
+        FOREIGN KEY (user_id) 
+        REFERENCES users(id) 
+        ON DELETE CASCADE,
+        
+    CONSTRAINT fk_group_members_added_by_user_id 
+        FOREIGN KEY (added_by_user_id) 
+        REFERENCES users(id) 
+        ON DELETE CASCADE,
+    
+    -- Unique constraint to prevent duplicate memberships
+    CONSTRAINT uc_unique_group_member 
+        UNIQUE (group_id, user_id)
+);
+
+-- =====================================================
+-- CREATE INDEXES FOR PERFORMANCE
+-- =====================================================
+
+-- Groups table indexes
+CREATE INDEX idx_groups_creator ON groups(creator_user_id);
+CREATE INDEX idx_groups_name ON groups(name);
+CREATE INDEX idx_groups_created_at ON groups(created_at);
+
+-- Group members table indexes
+CREATE INDEX idx_group_members_group ON group_members(group_id);
+CREATE INDEX idx_group_members_user ON group_members(user_id);
+CREATE INDEX idx_group_members_added_by ON group_members(added_by_user_id);
+
+-- =====================================================
+-- CREATE TRIGGER FUNCTION FOR UPDATED_AT
+-- =====================================================
+
+CREATE OR REPLACE FUNCTION update_groups_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- =====================================================
+-- CREATE TRIGGER
+-- =====================================================
+
+CREATE TRIGGER trigger_groups_updated_at
+    BEFORE UPDATE ON groups
+    FOR EACH ROW
+    EXECUTE FUNCTION update_groups_updated_at();
+
+-- =====================================================
+-- VERIFY TABLES WERE CREATED
+-- =====================================================
+
+-- Show table structures
+\d groups;
+\d group_members;
+
+-- Show constraints
+SELECT 
+    tc.constraint_name, 
+    tc.table_name, 
+    kcu.column_name, 
+    ccu.table_name AS foreign_table_name,
+    ccu.column_name AS foreign_column_name 
+FROM information_schema.table_constraints AS tc 
+JOIN information_schema.key_column_usage AS kcu
+    ON tc.constraint_name = kcu.constraint_name
+    AND tc.table_schema = kcu.table_schema
+JOIN information_schema.constraint_column_usage AS ccu
+    ON ccu.constraint_name = tc.constraint_name
+    AND ccu.table_schema = tc.table_schema
+WHERE tc.constraint_type = 'FOREIGN KEY' 
+    AND tc.table_name IN ('groups', 'group_members');
+
+-- Show indexes
+SELECT 
+    tablename,
+    indexname,
+    indexdef
+FROM pg_indexes 
+WHERE tablename IN ('groups', 'group_members')
+ORDER BY tablename, indexname;
+
+-- =====================================================
+-- SUCCESS MESSAGE
+-- =====================================================
+
+SELECT 'Groups tables created successfully! 🎉' AS status;
+]]></string>
+		</script>
+	</layout>
+	<layout name="~Diagram with Sample Tools" id="e250ead0-7382-4af4-86a5-3772b4acfd33" show_column_type="y" show_relation="columns" >
+		<entity schema="rally.public" name="activity_log" color="F4DDBE" x="2460" y="1340" />
+		<entity schema="rally.public" name="alembic_version" color="BED3F4" x="560" y="1360" />
+		<entity schema="rally.public" name="club_leagues" color="C7F4BE" x="760" y="440" />
+		<entity schema="rally.public" name="clubs" color="C7F4BE" x="60" y="440" />
+		<entity schema="rally.public" name="leagues" color="C7F4BE" x="60" y="120" />
+		<entity schema="rally.public" name="match_scores" color="BED3F4" x="2080" y="2240" />
+		<entity schema="rally.public" name="pickup_game_participants" color="F4DDBE" x="2120" y="860" />
+		<entity schema="rally.public" name="pickup_games" color="F4DDBE" x="1800" y="1000" />
+		<entity schema="rally.public" name="player_availability" color="F4DDBE" x="2820" y="1100" />
+		<entity schema="rally.public" name="player_availability_backup" color="F4DDBE" x="2120" y="1100" />
+		<entity schema="rally.public" name="player_history" color="C7F4BE" x="760" y="60" />
+		<entity schema="rally.public" name="player_season_tracking" color="C7F4BE" x="420" y="60" />
+		<entity schema="rally.public" name="players" color="C7F4BE" x="760" y="720" />
+		<entity schema="rally.public" name="poll_choices" color="D1BEF4" x="1180" y="1960" />
+		<entity schema="rally.public" name="poll_responses" color="D1BEF4" x="1420" y="1960" />
+		<entity schema="rally.public" name="polls" color="D1BEF4" x="1740" y="1960" />
+		<entity schema="rally.public" name="pro_lessons" color="BEBEF4" x="1480" y="1360" />
+		<entity schema="rally.public" name="pros" color="BEBEF4" x="1180" y="1360" />
+		<entity schema="rally.public" name="schedule" color="C7F4BE" x="420" y="720" />
+		<entity schema="rally.public" name="series" color="BED3F4" x="2400" y="2720" />
+		<entity schema="rally.public" name="series_leagues" color="C7F4BE" x="420" y="440" />
+		<entity schema="rally.public" name="series_stats" color="BED3F4" x="2760" y="2380" />
+		<entity schema="rally.public" name="system_settings" color="BED3F4" x="560" y="1560" />
+		<entity schema="rally.public" name="teams" color="BED3F4" x="2420" y="1960" />
+		<entity schema="rally.public" name="user_activity_logs" color="BED3F4" x="240" y="1560" />
+		<entity schema="rally.public" name="user_instructions" color="BED3F4" x="2420" y="2380" />
+		<entity schema="rally.public" name="user_player_associations" color="F4DDBE" x="2080" y="1440" />
+		<entity schema="rally.public" name="user_player_associations_backup" color="F4DDBE" x="2460" y="1100" />
+		<entity schema="rally.public" name="users" color="F4DDBE" x="2460" y="660" />
+		<entity schema="rally.public" name="migration_validation" color="BED3F4" x="860" y="1360" />
+		<script name="SQL Editor" id="4530eddf-f665-4c4f-99f0-d9157ff40816" language="SQL" >
+			<string><![CDATA[SELECT
+	"id", club_id, series_id, league_id, team_name, external_team_id, is_active, created_at, updated_at, team_alias, 
+	display_name
+FROM
+	"public".teams s;]]></string>
+		</script>
+		<browser id="7fb84976-78bf-4c77-bf87-4975d5d110a4" name="Relational Data Editor" confirm_updates="y" >
+			<browse_table schema="rally.public" entity="teams" fk_out="n" x="20" y="20" width="270" height="-60" >
+				<browse_table schema="rally.public" entity="players" fk="players_team_id_fkey" fk_out="y" x="310" y="20" width="500" height="350" />
+			</browse_table>
+		</browser>
+	</layout>
+</project>

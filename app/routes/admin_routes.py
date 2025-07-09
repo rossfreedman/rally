@@ -45,6 +45,8 @@ from app.services.admin_service import (
     update_club_name,
     update_series_name,
     update_user_info,
+    get_detailed_logging_notifications_setting,
+    set_detailed_logging_notifications_setting
 )
 
 # ETL service imports temporarily disabled
@@ -228,6 +230,18 @@ def serve_admin_dashboard():
 
     return render_template(
         "mobile/admin_dashboard.html", session_data={"user": session["user"]}
+    )
+
+
+@admin_bp.route("/admin/test-notifications")
+@login_required
+@admin_required
+def serve_admin_test_notifications():
+    """Serve the admin test notifications page"""
+    log_user_activity(session["user"]["email"], "page_visit", page="admin_test_notifications")
+    
+    return render_template(
+        "mobile/admin_test_notifications.html", session_data={"user": session["user"]}
     )
 
 
@@ -2082,5 +2096,209 @@ def get_impersonation_status():
     except Exception as e:
         print(f"Error checking impersonation status: {str(e)}")
         return jsonify({"error": f"Failed to check impersonation status: {str(e)}"}), 500
+
+
+@admin_bp.route('/create-groups-tables', methods=['GET'])
+@admin_required
+def create_groups_tables():
+    """Temporary route to create groups tables on staging"""
+    try:
+        from app.models.database_models import db
+        
+        # Create groups table
+        db.engine.execute("""
+            CREATE TABLE IF NOT EXISTS groups (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(255) NOT NULL,
+                description TEXT,
+                creator_user_id INTEGER NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                CONSTRAINT fk_groups_creator_user_id 
+                    FOREIGN KEY (creator_user_id) 
+                    REFERENCES users(id) ON DELETE CASCADE
+            );
+        """)
+        
+        # Create group_members table
+        db.engine.execute("""
+            CREATE TABLE IF NOT EXISTS group_members (
+                id SERIAL PRIMARY KEY,
+                group_id INTEGER NOT NULL,
+                user_id INTEGER NOT NULL,
+                added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                added_by_user_id INTEGER NOT NULL,
+                CONSTRAINT fk_group_members_group_id 
+                    FOREIGN KEY (group_id) REFERENCES groups(id) ON DELETE CASCADE,
+                CONSTRAINT fk_group_members_user_id 
+                    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                CONSTRAINT fk_group_members_added_by_user_id 
+                    FOREIGN KEY (added_by_user_id) REFERENCES users(id) ON DELETE CASCADE,
+                CONSTRAINT uc_unique_group_member UNIQUE (group_id, user_id)
+            );
+        """)
+        
+        # Create indexes
+        db.engine.execute("CREATE INDEX IF NOT EXISTS idx_groups_creator ON groups(creator_user_id);")
+        db.engine.execute("CREATE INDEX IF NOT EXISTS idx_groups_name ON groups(name);")
+        db.engine.execute("CREATE INDEX IF NOT EXISTS idx_group_members_group ON group_members(group_id);")
+        db.engine.execute("CREATE INDEX IF NOT EXISTS idx_group_members_user ON group_members(user_id);")
+        
+        # Verify tables exist
+        result = db.engine.execute("SELECT COUNT(*) FROM groups;").fetchone()
+        groups_count = result[0] if result else 0
+        
+        return f"SUCCESS: Groups tables created! Groups table has {groups_count} rows."
+        
+    except Exception as e:
+        return f"ERROR: Failed to create groups tables: {str(e)}", 500
+
+
+@admin_bp.route("/api/admin/notifications/status")
+@login_required
+@admin_required
+def get_notifications_status():
+    """Get Twilio configuration status"""
+    try:
+        from app.services.notifications_service import get_twilio_status
+        
+        status = get_twilio_status()
+        return jsonify({"status": "success", "twilio_status": status})
+    
+    except Exception as e:
+        print(f"Error getting notification status: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+@admin_bp.route("/api/admin/notifications/predefined-messages")
+@login_required
+@admin_required
+def get_predefined_messages():
+    """Get predefined message templates"""
+    try:
+        from app.services.notifications_service import get_predefined_messages
+        
+        messages = get_predefined_messages()
+        return jsonify({"status": "success", "messages": messages})
+    
+    except Exception as e:
+        print(f"Error getting predefined messages: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+@admin_bp.route("/api/admin/notifications/send-sms", methods=["POST"])
+@login_required
+@admin_required
+def send_test_sms():
+    """Send a test SMS message"""
+    try:
+        from app.services.notifications_service import send_sms_notification
+        
+        data = request.json
+        to_number = data.get("to_number", "").strip()
+        message = data.get("message", "").strip()
+        test_mode = data.get("test_mode", False)
+        
+        if not to_number:
+            return jsonify({"success": False, "error": "Phone number is required"}), 400
+        
+        if not message:
+            return jsonify({"success": False, "error": "Message content is required"}), 400
+        
+        # Log admin action
+        admin_email = session["user"]["email"]
+        admin_name = f"{session['user'].get('first_name', '')} {session['user'].get('last_name', '')}"
+        
+        log_admin_action(
+            admin_email=admin_email,
+            action="send_test_sms",
+            details={
+                "to_number": to_number,
+                "message_preview": message[:50] + "..." if len(message) > 50 else message,
+                "test_mode": test_mode,
+                "message_length": len(message)
+            }
+        )
+        
+        # Send the SMS
+        result = send_sms_notification(to_number, message, test_mode=test_mode)
+        
+        if result["success"]:
+            return jsonify(result)
+        else:
+            return jsonify(result), 400
+    
+    except Exception as e:
+        print(f"Error sending test SMS: {str(e)}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+# ==========================================
+# DETAILED LOGGING NOTIFICATIONS ENDPOINTS
+# ==========================================
+
+@admin_bp.route("/api/admin/detailed-logging-notifications/status")
+@login_required
+@admin_required
+def get_detailed_logging_notifications_status():
+    """Get the current status of detailed logging notifications"""
+    try:
+        from app.services.admin_service import get_detailed_logging_notifications_setting
+        
+        is_enabled = get_detailed_logging_notifications_setting()
+        
+        return jsonify({
+            "success": True,
+            "enabled": is_enabled,
+            "admin_phone": "773-213-8911",  # Ross's phone number
+            "feature_description": "Send SMS alert to admin for every user activity when enabled"
+        })
+        
+    except Exception as e:
+        print(f"Error getting detailed logging notifications status: {str(e)}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@admin_bp.route("/api/admin/detailed-logging-notifications/toggle", methods=["POST"])
+@login_required
+@admin_required
+def toggle_detailed_logging_notifications():
+    """Enable or disable detailed logging notifications"""
+    try:
+        from app.services.admin_service import (
+            get_detailed_logging_notifications_setting,
+            set_detailed_logging_notifications_setting
+        )
+        
+        data = request.get_json()
+        enabled = data.get("enabled")
+        
+        if enabled is None:
+            return jsonify({"success": False, "error": "enabled parameter is required"}), 400
+        
+        # Validate that it's a boolean
+        if not isinstance(enabled, bool):
+            return jsonify({"success": False, "error": "enabled must be true or false"}), 400
+        
+        admin_email = session["user"]["email"]
+        
+        # Set the new value
+        success = set_detailed_logging_notifications_setting(enabled, admin_email)
+        
+        if success:
+            status_text = "enabled" if enabled else "disabled"
+            
+            return jsonify({
+                "success": True,
+                "enabled": enabled,
+                "message": f"Detailed logging notifications {status_text} successfully",
+                "admin_phone": "773-213-8911"
+            })
+        else:
+            return jsonify({"success": False, "error": "Failed to update setting"}), 500
+        
+    except Exception as e:
+        print(f"Error toggling detailed logging notifications: {str(e)}")
+        return jsonify({"success": False, "error": str(e)}), 500
 
 

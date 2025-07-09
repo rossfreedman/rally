@@ -22,7 +22,7 @@
         <!-- Create Group Action -->
         <div class="bg-white px-4 py-4 border-b border-gray-100">
             <button onclick="showCreateGroupModal()" class="w-full bg-purple-600 hover:bg-purple-700 text-white px-4 py-3 rounded-lg shadow-sm text-sm font-medium transition-colors duration-200 flex items-center justify-center">
-                <i class="fas fa-plus mr-2"></i>Create Group
+                <i class="fas fa-plus mr-2"></i>Create Group Chat
             </button>
         </div>
 
@@ -51,7 +51,7 @@
                         <h3 class="text-lg font-semibold text-gray-700 mb-2">No Groups Yet</h3>
                         <p class="text-gray-500 mb-4">Create your first group to organize players and build connections!</p>
                         <button onclick="showCreateGroupModal()" class="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors shadow-sm">
-                            <i class="fas fa-plus mr-2"></i>Create Your First Group
+                            <i class="fas fa-plus mr-2"></i>Create Your First Group Chat
                         </button>
                     </div>
                     
@@ -219,11 +219,11 @@
                     <div class="p-4 space-y-4">
                         <div>
                             <label for="messageBody" class="block text-sm font-medium text-gray-700 mb-2">Message</label>
-                            <textarea id="messageBody" name="messageBody" rows="8" required maxlength="1000"
+                            <textarea id="messageBody" name="messageBody" rows="8" required maxlength="800"
                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
                                       placeholder="Write your message here..."></textarea>
                             <div class="text-sm text-gray-500 mt-1">
-                                <span id="messageCounter">0</span>/1000 characters
+                                <span id="messageCounter">0</span>/800 characters (SMS limit)
                             </div>
                         </div>
                         
@@ -241,7 +241,7 @@
 
                 <!-- Actions -->
                 <div class="flex gap-3">
-                    <button type="button" onclick="showGroupDetailsFromText()" 
+                    <button type="button" onclick="showTextGroupBackNavigation()" 
                             class="flex-1 px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200 font-medium">
                         <i class="fas fa-arrow-left mr-2"></i>Back
                     </button>
@@ -304,7 +304,7 @@
   <div class="bg-white rounded-xl max-w-md w-full shadow-xl">
     <div class="px-6 py-4 border-b border-gray-100 bg-purple-600 rounded-t-xl">
       <div class="flex justify-between items-center">
-        <h2 class="text-xl font-bold text-white">Create New Group</h2>
+        <h2 class="text-xl font-bold text-white">Create New Group Chat</h2>
         <button onclick="hideCreateGroupModal()" class="text-white hover:text-gray-200 focus:outline-none">
           <i class="fas fa-times text-xl"></i>
         </button>
@@ -336,7 +336,7 @@
         </button>
         <button type="submit" id="createGroupBtn"
                 class="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-colors duration-200 shadow-sm">
-          Create Group
+          Create Group Chat
         </button>
       </div>
     </form>
@@ -397,13 +397,31 @@ function showTextGroupPage() {
     
     const group = window.currentGroup;
     
+    // Reset flag to indicate user came from group details page (not card)
+    window.textGroupFromCard = false;
+    
     // Populate text group page
     document.getElementById('textGroupName').textContent = group.name;
     document.getElementById('textGroupMemberCount').textContent = `${group.member_count} member${group.member_count !== 1 ? 's' : ''}`;
     
-    // Show recipients list
-    const memberNames = group.members.map(member => `${member.first_name} ${member.last_name}`);
-    document.getElementById('recipientsList').textContent = memberNames.join(', ');
+    // Show recipients list with phone numbers
+    const membersWithPhones = group.members.filter(member => member.phone_number && member.phone_number.trim());
+    const membersWithoutPhones = group.members.filter(member => !member.phone_number || !member.phone_number.trim());
+    
+    let recipientsText = '';
+    
+    if (membersWithPhones.length > 0) {
+        const phoneList = membersWithPhones.map(member => `${member.first_name} ${member.last_name} (${member.phone_number})`);
+        recipientsText += `Will receive SMS: ${phoneList.join(', ')}`;
+    }
+    
+    if (membersWithoutPhones.length > 0) {
+        const noPhoneList = membersWithoutPhones.map(member => `${member.first_name} ${member.last_name}`);
+        if (recipientsText) recipientsText += '. ';
+        recipientsText += `No phone numbers: ${noPhoneList.join(', ')}`;
+    }
+    
+    document.getElementById('recipientsList').textContent = recipientsText || 'No members to text';
     
     // Clear form
     document.getElementById('textGroupForm').reset();
@@ -419,21 +437,95 @@ function showGroupDetailsFromText() {
     showElement('groupDetailsView');
 }
 
+function showTextGroupBackNavigation() {
+    // Check where the user came from and navigate accordingly
+    if (window.textGroupFromCard) {
+        // User came directly from group card, go back to groups list
+        hideElement('textGroupView');
+        showElement('groupsListView');
+        window.textGroupFromCard = false; // Reset flag
+    } else {
+        // User came from group details page, go back to details
+        showGroupDetailsFromText();
+    }
+}
+
+async function showTextGroupFromCard(groupId) {
+    try {
+        currentGroupId = groupId;
+        
+        const response = await fetch(`/api/groups/${groupId}`);
+        const data = await response.json();
+        
+        if (data.success) {
+            // Store group data globally
+            window.currentGroup = data.group;
+            
+            // Set flag to indicate user came from group card (not group details)
+            window.textGroupFromCard = true;
+            
+            // Populate text group page
+            document.getElementById('textGroupName').textContent = data.group.name;
+            document.getElementById('textGroupMemberCount').textContent = `${data.group.member_count} member${data.group.member_count !== 1 ? 's' : ''}`;
+            
+            // Show recipients list with phone numbers
+            const membersWithPhones = data.group.members.filter(member => member.phone_number && member.phone_number.trim());
+            const membersWithoutPhones = data.group.members.filter(member => !member.phone_number || !member.phone_number.trim());
+            
+            let recipientsText = '';
+            
+            if (membersWithPhones.length > 0) {
+                const phoneList = membersWithPhones.map(member => `${member.first_name} ${member.last_name} (${member.phone_number})`);
+                recipientsText += `Will receive SMS: ${phoneList.join(', ')}`;
+            }
+            
+            if (membersWithoutPhones.length > 0) {
+                const noPhoneList = membersWithoutPhones.map(member => `${member.first_name} ${member.last_name}`);
+                if (recipientsText) recipientsText += '. ';
+                recipientsText += `No phone numbers: ${noPhoneList.join(', ')}`;
+            }
+            
+            document.getElementById('recipientsList').textContent = recipientsText || 'No members to text';
+            
+            // Clear form
+            document.getElementById('textGroupForm').reset();
+            updateMessageCounter();
+            
+            // Hide groups list and show text group view directly
+            hideElement('groupsListView');
+            showElement('textGroupView');
+        } else {
+            showToast(data.error || 'Failed to load group details', 'error');
+        }
+    } catch (error) {
+        console.error('Error loading group for texting:', error);
+        showToast('Failed to load group for texting', 'error');
+    }
+}
+
 async function handleTextGroup(e) {
     e.preventDefault();
     
     const btn = document.getElementById('sendMessageBtn');
-    const originalText = btn.textContent;
+    const originalText = btn.innerHTML;
     
     try {
         btn.disabled = true;
-        btn.textContent = 'Sending...';
+        btn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i>Sending...';
         
         const formData = new FormData(e.target);
+        const messageBody = formData.get('messageBody').trim();
+        
+        // Validate message length
+        if (messageBody.length > 800) {
+            showToast('Message too long. Please keep under 800 characters for SMS.', 'error');
+            return;
+        }
+        
         const messageData = {
             group_id: currentGroupId,
             subject: 'Group Message', // Default subject for text messages
-            message: formData.get('messageBody').trim()
+            message: messageBody
         };
         
         const response = await fetch('/api/groups/send-message', {
@@ -447,17 +539,57 @@ async function handleTextGroup(e) {
         const data = await response.json();
         
         if (data.success) {
-            showToast('Texting functionality not yet implemented.', 'success');
-            showGroupDetailsFromText();
+            // Show detailed success message
+            const details = data.details || {};
+            let toastMessage = data.message;
+            
+            // If there were some failures, show detailed info
+            if (details.failed_sends > 0) {
+                const failedNames = details.failed_recipients?.map(r => r.name).join(', ') || '';
+                toastMessage += failedNames ? ` Failed: ${failedNames}` : '';
+            }
+            
+            // If there were members without phone numbers, mention it
+            if (details.members_without_phones > 0) {
+                const noPhoneNames = details.members_without_phones_list?.join(', ') || '';
+                if (noPhoneNames) {
+                    toastMessage += ` Note: ${noPhoneNames} ${details.members_without_phones === 1 ? 'has' : 'have'} no phone number set.`;
+                }
+            }
+            
+            // Show admin recipients info if in console (not in toast - too long)
+            if (details.admin_successful_sends > 0) {
+                console.log(`📧 Admin copies sent to ${details.admin_successful_sends} admin(s):`, 
+                          details.admin_successful_recipients?.map(r => r.name).join(', '));
+            }
+            
+            showToast(toastMessage, 'success');
+            
+            // Clear the form and go back
+            document.getElementById('textGroupForm').reset();
+            updateMessageCounter();
+            showTextGroupBackNavigation();
+            
         } else {
-            showToast(data.error || 'Failed to send message', 'error');
+            // Handle different types of errors
+            let errorMessage = data.error || 'Failed to send message';
+            
+            // If it's a phone number issue, provide helpful guidance
+            if (response.status === 422 || errorMessage.includes('phone number')) {
+                const details = data.details || {};
+                if (details.members_without_phones_list && details.members_without_phones_list.length > 0) {
+                    errorMessage += ` Members without phone numbers: ${details.members_without_phones_list.join(', ')}. Ask them to add phone numbers in Settings.`;
+                }
+            }
+            
+            showToast(errorMessage, 'error');
         }
     } catch (error) {
         console.error('Error sending message:', error);
-        showToast('Failed to send message', 'error');
+        showToast('Network error while sending message. Please try again.', 'error');
     } finally {
         btn.disabled = false;
-        btn.textContent = originalText;
+        btn.innerHTML = originalText;
     }
 }
 
@@ -537,7 +669,22 @@ function updateEditDescriptionCounter() {
 function updateMessageCounter() {
     const textarea = document.getElementById('messageBody');
     const counter = document.getElementById('messageCounter');
-    counter.textContent = textarea.value.length;
+    const length = textarea.value.length;
+    const maxLength = 800;
+    
+    counter.textContent = length;
+    
+    // Add visual feedback based on character count
+    if (length > maxLength) {
+        counter.classList.add('text-red-600');
+        counter.classList.remove('text-gray-500', 'text-yellow-600');
+    } else if (length > maxLength * 0.8) { // Warning at 80% (640 chars)
+        counter.classList.add('text-yellow-600');
+        counter.classList.remove('text-gray-500', 'text-red-600');
+    } else {
+        counter.classList.add('text-gray-500');
+        counter.classList.remove('text-yellow-600', 'text-red-600');
+    }
 }
 
 function setupTypeAhead() {
@@ -621,7 +768,7 @@ function setupTypeAhead() {
     
     function selectPlayer(player) {
         // Add the selected player to the group
-        addMemberToGroup(player.user_id);
+        addMemberToGroup(player);
         
         // Clear the search
         searchInput.value = '';
@@ -728,10 +875,15 @@ function createGroupCard(group) {
             </div>
         </div>
         
-        <!-- Action Button -->
-        <button onclick="showGroupDetailsPage(${group.id})" class="w-full bg-purple-600 hover:bg-purple-700 text-white px-4 py-3 rounded-lg text-sm font-semibold transition-all duration-200 flex items-center justify-center shadow-md hover:shadow-lg border border-purple-700">
-            <i class="fas fa-arrow-right mr-2"></i>View Group
-        </button>
+        <!-- Action Buttons -->
+        <div class="flex gap-3">
+            <button onclick="showGroupDetailsPage(${group.id})" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white px-4 py-3 rounded-lg text-sm font-semibold transition-all duration-200 flex items-center justify-center shadow-md hover:shadow-lg border border-purple-700">
+                <i class="fas fa-arrow-right mr-2"></i>View Group Chat
+            </button>
+            <button onclick="showTextGroupFromCard(${group.id})" class="flex-1 bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg text-sm font-semibold transition-all duration-200 flex items-center justify-center shadow-md hover:shadow-lg border border-green-700">
+                <i class="fas fa-comments mr-2"></i>Text Group
+            </button>
+        </div>
     `;
     
     return card;
@@ -861,6 +1013,18 @@ function createMemberCard(member, isCreator) {
                         </div>
                     `}
                     
+                    ${member.phone_number ? `
+                        <div class="text-sm text-blue-600 font-mono mb-2">
+                            <i class="fas fa-phone mr-2 text-xs"></i>
+                            ${escapeHtml(member.phone_number)}
+                        </div>
+                    ` : `
+                        <div class="text-sm text-gray-400 italic mb-2">
+                            <i class="fas fa-phone-slash mr-2 text-xs"></i>
+                            No phone number
+                        </div>
+                    `}
+                    
                     <div class="text-xs text-gray-500 flex items-center">
                         <i class="fas fa-clock mr-1"></i>
                         Added ${formatDate(member.added_at)}
@@ -948,42 +1112,30 @@ function displaySearchResults(players, query = '') {
     }
     
     resultsContainer.innerHTML = players.map((player, index) => {
-        const canAdd = player.user_id && !player.no_account;
+        const canAdd = true; // Allow adding all players, including those without accounts
         const playerInfo = player.player_info && player.player_info.length > 0 
             ? player.player_info.map(info => `${info.league} - ${info.club} - ${info.series}`).join(', ')
             : 'No player info';
         
         return `
-            <div class="search-result-item p-3 ${canAdd ? 'hover:bg-gray-50 cursor-pointer' : 'bg-gray-50'} flex items-center justify-between border border-transparent transition-colors duration-150"
-                 ${canAdd ? `onclick="selectPlayerByIndex(${index})"` : ''}
+            <div class="search-result-item p-3 hover:bg-gray-50 cursor-pointer flex items-center justify-between border border-transparent transition-colors duration-150"
+                 onclick="selectPlayerByIndex(${index})"
                  data-player-id="${player.user_id || 'none'}"
                  data-index="${index}">
                 <div class="flex-1 min-w-0">
-                    <div class="font-medium ${canAdd ? 'text-gray-900' : 'text-gray-500'} truncate">
+                    <div class="font-medium text-gray-900 truncate">
                         ${escapeHtml(player.full_name)}
-                        ${player.no_account ? ' <span class="text-xs">(No Account)</span>' : ''}
+                        ${player.no_account ? ' <span class="text-xs text-orange-600">(No Account)</span>' : ''}
                     </div>
                     <div class="text-sm text-gray-600 truncate">
                         ${escapeHtml(playerInfo)}
                         ${player.player_info && player.player_info[0] && player.player_info[0].pti ? ` • PTI: ${player.player_info[0].pti}` : ''}
                     </div>
-                    ${player.no_account ? `
-                        <div class="text-xs text-orange-600 mt-1">
-                            <i class="fas fa-exclamation-triangle mr-1"></i>
-                            Player hasn't created an account yet
-                        </div>
-                    ` : ''}
                 </div>
                 <div class="ml-3 flex-shrink-0">
-                    ${canAdd ? `
-                        <div class="w-8 h-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center hover:bg-purple-200 transition-colors duration-150">
-                            <i class="fas fa-plus text-sm"></i>
-                        </div>
-                    ` : `
-                        <div class="w-8 h-8 rounded-full bg-gray-200 text-gray-400 flex items-center justify-center">
-                            <i class="fas fa-ban text-sm"></i>
-                        </div>
-                    `}
+                    <div class="w-8 h-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center hover:bg-purple-200 transition-colors duration-150">
+                        <i class="fas fa-plus text-sm"></i>
+                    </div>
                 </div>
             </div>
         `;
@@ -996,21 +1148,36 @@ function selectPlayerByIndex(index) {
     const currentResults = window.currentSearchResults || [];
     if (index >= 0 && index < currentResults.length) {
         const player = currentResults[index];
-        // Only allow selection if player has a user account
-        if (player.user_id && !player.no_account) {
-            window.typeAheadSelectPlayer(player);
-        }
+        // Allow selection of all players, including those without accounts
+        window.typeAheadSelectPlayer(player);
     }
 }
 
-async function addMemberToGroup(userId) {
+async function addMemberToGroup(player) {
     try {
+        // Handle both player objects and legacy user_id calls
+        let requestBody;
+        if (typeof player === 'object' && player !== null) {
+            // New way: pass player object
+            requestBody = {
+                user_id: player.user_id,
+                tenniscores_player_id: player.tenniscores_player_id,
+                first_name: player.first_name,
+                last_name: player.last_name,
+                full_name: player.full_name,
+                no_account: player.no_account || false
+            };
+        } else {
+            // Legacy way: just user_id
+            requestBody = { user_id: player };
+        }
+
         const response = await fetch(`/api/groups/${currentGroupId}/members`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ user_id: userId })
+            body: JSON.stringify(requestBody)
         });
         
         const data = await response.json();

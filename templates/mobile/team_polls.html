@@ -158,20 +158,9 @@
     </div>
 </div>
 
-<!-- Success Toast -->
-<div id="successToast" class="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 hidden">
-    <div class="flex items-center">
-        <i class="fas fa-check-circle mr-2"></i>
-        <span id="successMessage">Poll created successfully!</span>
-    </div>
-</div>
-
-<!-- Error Toast -->
-<div id="errorToast" class="fixed top-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 hidden">
-    <div class="flex items-center">
-        <i class="fas fa-exclamation-circle mr-2"></i>
-        <span id="errorMessage">An error occurred</span>
-    </div>
+<!-- Toast Notification -->
+<div id="toast" class="fixed top-4 right-4 px-4 py-2 rounded-lg shadow-lg hidden z-50 transition-all duration-300">
+  <span id="toastMessage"></span>
 </div>
 
 <!-- Delete Poll Confirmation Modal -->
@@ -537,25 +526,36 @@ function renderPolls() {
             ` : ''}
             
             <!-- Action Buttons -->
-            <div class="flex flex-wrap gap-2">
-                <button onclick="respondToPoll(${poll.id})" class="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 rounded transition-colors text-xs">
-                    <i class="fas fa-vote-yea"></i>
-                    <span>Respond</span>
-                </button>
-                <button onclick="viewPollResults(${poll.id})" class="flex items-center space-x-2 bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded transition-colors text-xs" style="display: flex !important; visibility: visible !important; opacity: 1 !important; background-color: #059669 !important; color: white !important;">
-                    <i class="fas fa-chart-bar"></i>
-                    <span>Results</span>
-                </button>
-                <button onclick="copyPollLink(${poll.id}, this)" class="flex items-center space-x-2 bg-purple-600 hover:bg-purple-700 text-white px-2 py-1 rounded transition-colors text-xs" style="display: flex !important; visibility: visible !important; opacity: 1 !important; background-color: #9333ea !important; color: white !important;" title="Copy link">
-                    <i class="fas fa-copy"></i>
-                    <span>Copy Link</span>
-                </button>
-                ${isAdmin ? `
-                    <button class="delete-poll-btn flex items-center space-x-2 bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded transition-colors text-xs" data-poll-id="${poll.id}" data-poll-question="${escapeHtml(poll.question)}">
-                        <i class="fas fa-trash"></i>
-                        <span>Delete</span>
+            <div class="space-y-2">
+                <!-- Row 1: Respond, Results -->
+                <div class="flex gap-2">
+                    <button onclick="respondToPoll(${poll.id})" class="flex items-center space-x-2 text-white px-2 py-1 rounded transition-colors text-xs flex-1" style="background-color: #2563eb;">
+                        <i class="fas fa-vote-yea"></i>
+                        <span>Respond</span>
                     </button>
-                ` : ''}
+                    <button onclick="viewPollResults(${poll.id})" class="flex items-center space-x-2 text-white px-2 py-1 rounded transition-colors text-xs flex-1" style="background-color: #9333ea;">
+                        <i class="fas fa-chart-bar"></i>
+                        <span>Results</span>
+                    </button>
+                </div>
+                
+                <!-- Row 2: Text Team, Copy Link, Delete -->
+                <div class="flex gap-2">
+                    <button onclick="textTeam(${poll.id}, '${escapeHtml(poll.question).replace(/'/g, "\\'")}')" class="flex items-center space-x-2 text-white px-2 py-1 rounded transition-colors text-xs flex-1" style="background-color: #16a34a;" title="Send SMS to team">
+                        <i class="fas fa-sms"></i>
+                        <span>Text Team</span>
+                    </button>
+                    <button onclick="copyPollLink(${poll.id}, this)" class="flex items-center space-x-2 text-white px-2 py-1 rounded transition-colors text-xs flex-1" style="background-color: #ea580c;" title="Copy link">
+                        <i class="fas fa-copy"></i>
+                        <span>Copy Link</span>
+                    </button>
+                    ${isAdmin ? `
+                        <button class="delete-poll-btn flex items-center space-x-2 text-white px-2 py-1 rounded transition-colors text-xs flex-1" style="background-color: #dc2626;" data-poll-id="${poll.id}" data-poll-question="${escapeHtml(poll.question)}">
+                            <i class="fas fa-trash"></i>
+                            <span>Delete</span>
+                        </button>
+                    ` : ''}
+                </div>
             </div>
         </div>
     `;
@@ -769,6 +769,57 @@ function viewPollResults(pollId) {
     window.location.href = `/mobile/polls/${pollId}#results`;
 }
 
+// Send SMS to team about poll
+async function textTeam(pollId, pollQuestion) {
+    try {
+        // Show loading state
+        const button = event.target.closest('button');
+        const originalHTML = button.innerHTML;
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i><span>Sending...</span>';
+        
+        console.log('📱 Sending SMS for poll:', pollId, pollQuestion);
+        
+        const response = await fetch(`/api/polls/${pollId}/text-team`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            console.log('✅ SMS sent successfully:', data);
+            console.log('🔍 API Response Debug:');
+            console.log('- data.message:', data.message);
+            console.log('- data.recipients_count:', data.recipients_count);
+            console.log('- Full response:', JSON.stringify(data, null, 2));
+            
+            const messageToShow = data.message || `SMS sent to ${data.recipients_count} team members!`;
+            console.log('🔍 Message to show:', messageToShow);
+            
+            showSuccess(messageToShow);
+        } else {
+            console.error('❌ Failed to send SMS:', data.error);
+            showError(data.error || 'Failed to send SMS to team');
+        }
+        
+        // Restore button state
+        button.disabled = false;
+        button.innerHTML = originalHTML;
+        
+    } catch (error) {
+        console.error('❌ Error sending SMS:', error);
+        showError('Failed to send SMS to team');
+        
+        // Restore button state
+        const button = event.target.closest('button');
+        button.disabled = false;
+        button.innerHTML = '<i class="fas fa-sms mr-1"></i><span>Text Team</span>';
+    }
+}
+
 // Utility functions
 function escapeHtml(text) {
     const div = document.createElement('div');
@@ -785,26 +836,40 @@ function formatDate(dateString) {
     });
 }
 
-function showSuccess(message) {
-    const toast = document.getElementById('successToast');
-    const messageSpan = document.getElementById('successMessage');
-    messageSpan.textContent = message;
-    toast.classList.remove('hidden');
+// Utility functions for UI management
+function showElement(id) {
+    document.getElementById(id).classList.remove('hidden');
+}
+
+function hideElement(id) {
+    document.getElementById(id).classList.add('hidden');
+}
+
+function showToast(message, type = 'success') {
+    const toast = document.getElementById('toast');
+    const messageEl = document.getElementById('toastMessage');
+    
+    messageEl.textContent = message;
+    
+    // Set color based on type
+    toast.className = `fixed top-4 right-4 px-4 py-2 rounded-lg shadow-lg z-50 ${
+        type === 'error' ? 'bg-red-600' : 'bg-green-600'
+    } text-white`;
+    
+    showElement('toast');
     
     setTimeout(() => {
-        toast.classList.add('hidden');
+        hideElement('toast');
     }, 3000);
 }
 
+// Legacy support for existing function calls
+function showSuccess(message) {
+    showToast(message, 'success');
+}
+
 function showError(message) {
-    const toast = document.getElementById('errorToast');
-    const messageSpan = document.getElementById('errorMessage');
-    messageSpan.textContent = message;
-    toast.classList.remove('hidden');
-    
-    setTimeout(() => {
-        toast.classList.add('hidden');
-    }, 3000);
+    showToast(message, 'error');
 }
 
 // Poll deletion functions

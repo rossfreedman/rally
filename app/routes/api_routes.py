@@ -1565,7 +1565,7 @@ def get_user_settings():
         user_data = execute_query_one(
             """
             SELECT u.first_name, u.last_name, u.email, u.is_admin, 
-                   u.ad_deuce_preference, u.dominant_hand, u.league_context
+                   u.ad_deuce_preference, u.dominant_hand, u.league_context, u.phone_number
             FROM users u
             WHERE u.email = %s
         """,
@@ -1658,6 +1658,7 @@ def get_user_settings():
             "first_name": user_data["first_name"] or "",
             "last_name": user_data["last_name"] or "",
             "email": user_data["email"] or "",
+            "phone_number": user_data["phone_number"] or "",
             "club": club_name,
             "series": series_name,
             "league_id": league_id,  # This should be the string ID for JavaScript compatibility
@@ -1741,7 +1742,7 @@ def update_settings():
         execute_query("""
             UPDATE users 
             SET first_name = %s, last_name = %s, email = %s,
-                ad_deuce_preference = %s, dominant_hand = %s
+                ad_deuce_preference = %s, dominant_hand = %s, phone_number = %s
             WHERE email = %s
         """, [
             data.get("firstName"),
@@ -1749,6 +1750,7 @@ def update_settings():
             data.get("email"),
             data.get("adDeuce", ""),
             data.get("dominantHand", ""),
+            data.get("phoneNumber", ""),
             user_email
         ])
 
@@ -1904,6 +1906,44 @@ def update_settings():
             session["user"] = fresh_session_data
             session.modified = True
             logger.info(f"Session updated: {fresh_session_data.get('league_name', 'Unknown')} - {fresh_session_data.get('club', 'Unknown')}")
+            
+            # Enhanced logging for settings update
+            settings_update_details = {
+                "action": "settings_update",
+                "changes_made": {
+                    "league_changed": new_league_id != current_league_id,
+                    "club_changed": new_club != current_club,
+                    "series_changed": new_series != current_series,
+                    "player_lookup_attempted": should_perform_player_lookup,
+                    "player_lookup_successful": player_lookup_success
+                },
+                "old_settings": {
+                    "league_id": current_league_id,
+                    "club": current_club,
+                    "series": current_series,
+                    "had_player_id": bool(current_tenniscores_player_id)
+                },
+                "new_settings": {
+                    "league_id": fresh_session_data.get("league_id"),
+                    "club": fresh_session_data.get("club"),
+                    "series": fresh_session_data.get("series"),
+                    "has_player_id": bool(fresh_session_data.get("tenniscores_player_id"))
+                },
+                "personal_info": {
+                    "first_name": data.get("firstName"),
+                    "last_name": data.get("lastName"),
+                    "phone_updated": bool(data.get("phoneNumber")),
+                    "dominant_hand": data.get("dominantHand", ""),
+                    "ad_deuce_preference": data.get("adDeuce", "")
+                }
+            }
+            
+            log_user_activity(
+                user_email,
+                "settings_update",
+                action="update_user_settings",
+                details=settings_update_details
+            )
             
             # Add player lookup status to response
             success_message = "Settings updated successfully"
@@ -2625,6 +2665,15 @@ def get_club_players():
             request.args.get("club_only", "true").lower() == "true"
         )  # Default to true
 
+        # Enhanced logging for find people to play search
+        search_filters = {}
+        if series_filter: search_filters["series"] = series_filter
+        if first_name_filter: search_filters["first_name"] = first_name_filter
+        if last_name_filter: search_filters["last_name"] = last_name_filter
+        if pti_min is not None: search_filters["pti_min"] = pti_min
+        if pti_max is not None: search_filters["pti_max"] = pti_max
+        search_filters["club_only"] = club_only
+        
         # Use the mobile service function to get the data
         result = get_club_players_data(
             session["user"],
@@ -2634,6 +2683,35 @@ def get_club_players():
             pti_min,
             pti_max,
             club_only,
+        )
+        
+        # Log the search activity with detailed filters and results
+        search_details = {
+            "search_context": "find_people_to_play",
+            "filters_used": search_filters,
+            "results_count": len(result.get("players", [])),
+            "user_league": session["user"].get("league_id", "Unknown"),
+            "user_club": session["user"].get("club", "Unknown"),
+            "user_series": session["user"].get("series", "Unknown")
+        }
+        
+        # Add top results if any found
+        if result.get("players"):
+            top_results = []
+            for player in result["players"][:3]:
+                player_info = f"{player.get('name', 'Unknown')}"
+                if player.get("pti"):
+                    player_info += f" (PTI: {player['pti']})"
+                if player.get("series"):
+                    player_info += f" - {player['series']}"
+                top_results.append(player_info)
+            search_details["top_results"] = top_results
+        
+        log_user_activity(
+            session["user"]["email"],
+            "player_search",
+            action="find_people_to_play",
+            details=search_details
         )
 
         return jsonify(result)
@@ -3076,12 +3154,23 @@ def switch_team_context():
             return jsonify({"success": False, "error": "team_id required"}), 400
         
         user_id = session["user"]["id"]
+        user_email = session["user"]["email"]
+        
+        # Store current context for logging
+        current_context = {
+            "from_team_id": session["user"].get("team_id"),
+            "from_league_id": session["user"].get("league_id"),
+            "from_club": session["user"].get("club", "Unknown"),
+            "from_series": session["user"].get("series", "Unknown")
+        }
         
         # Get the league for this team and verify user access
         team_league_query = """
-            SELECT t.league_id, l.league_name, t.team_name
+            SELECT t.league_id, l.league_name, t.team_name, c.name as club_name, s.name as series_name
             FROM teams t
             JOIN leagues l ON t.league_id = l.id
+            JOIN clubs c ON t.club_id = c.id
+            JOIN series s ON t.series_id = s.id
             JOIN players p ON t.id = p.team_id
             JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
             WHERE upa.user_id = %s AND t.id = %s AND p.is_active = TRUE
@@ -3089,11 +3178,30 @@ def switch_team_context():
         team_info = execute_query_one(team_league_query, [user_id, team_id])
         
         if not team_info:
+            # Log failed team switch attempt
+            switch_details = {
+                "action": "team_switch_attempt",
+                "from_context": current_context,
+                "to_team_id": team_id,
+                "switch_method": "switch_team_context_api",
+                "success": False,
+                "error": "User does not have access to this team"
+            }
+            
+            log_user_activity(
+                user_email,
+                "team_switch",
+                action="switch_team_context_failed",
+                details=switch_details
+            )
+            
             return jsonify({"success": False, "error": "User does not have access to this team"}), 403
         
         league_id = team_info["league_id"]
         league_name = team_info["league_name"]
         team_name = team_info["team_name"]
+        club_name = team_info["club_name"]
+        series_name = team_info["series_name"]
         
         # Update user's league_context field
         update_query = "UPDATE users SET league_context = %s WHERE id = %s"
@@ -3103,6 +3211,29 @@ def switch_team_context():
         session["user"]["league_context"] = league_id
         session.modified = True
         
+        # Enhanced logging for successful team switch
+        switch_details = {
+            "action": "team_switch_successful",
+            "from_context": current_context,
+            "to_context": {
+                "team_id": team_id,
+                "team_name": team_name,
+                "club_name": club_name,
+                "series_name": series_name,
+                "league_id": league_id,
+                "league_name": league_name
+            },
+            "switch_method": "switch_team_context_api",
+            "success": True
+        }
+        
+        log_user_activity(
+            user_email,
+            "team_switch",
+            action="switch_team_context_success",
+            details=switch_details
+        )
+        
         return jsonify({
             "success": True,
             "league_id": league_id,
@@ -3111,6 +3242,22 @@ def switch_team_context():
         })
             
     except Exception as e:
+        # Log the error with context
+        error_details = {
+            "action": "team_switch_error",
+            "error": str(e),
+            "switch_method": "switch_team_context_api",
+            "success": False,
+            "attempted_team_id": data.get("team_id") if 'data' in locals() else None
+        }
+        
+        log_user_activity(
+            session["user"]["email"],
+            "team_switch",
+            action="switch_team_context_error", 
+            details=error_details
+        )
+        
         logger.error(f"Error switching team context: {e}")
         return jsonify({
             "success": False,
@@ -5116,6 +5263,95 @@ def leave_pickup_game(game_id):
         return jsonify({"error": "Failed to leave pickup game"}), 500
 
 
+@api_bp.route("/api/pickup-games/<int:game_id>", methods=["DELETE"])
+@login_required
+def delete_pickup_game(game_id):
+    """Delete a pickup game (only by creator)"""
+    try:
+        user = session["user"]
+        user_email = user.get("email")
+        user_id = user.get("id")
+        
+        print(f"[DELETE_PICKUP_GAME] User {user_email} attempting to delete game {game_id}")
+        
+        # If user_id is not in session, try to get it from database
+        if not user_id and user_email:
+            user_record = execute_query_one("SELECT id FROM users WHERE email = %s", [user_email])
+            if user_record:
+                user_id = user_record["id"]
+                print(f"[DELETE_PICKUP_GAME] Retrieved user_id from database: {user_id}")
+        
+        if not user_id:
+            print(f"[DELETE_PICKUP_GAME] User ID not found for {user_email}")
+            return jsonify({"error": "User ID not found. Please log out and log back in."}), 400
+        
+        # Check if game exists and user is the creator
+        game_query = """
+            SELECT 
+                creator_user_id,
+                description,
+                game_date,
+                game_time,
+                (SELECT COUNT(*) FROM pickup_game_participants WHERE pickup_game_id = %s) as participant_count
+            FROM pickup_games 
+            WHERE id = %s
+        """
+        
+        game = execute_query_one(game_query, [game_id, game_id])
+        
+        if not game:
+            return jsonify({"error": "Pickup game not found"}), 404
+            
+        if game["creator_user_id"] != user_id:
+            return jsonify({"error": "Only the creator can delete this pickup game"}), 403
+        
+        # Check if there are participants (optional warning, but still allow deletion)
+        participant_count = game["participant_count"]
+        
+        # Delete all participants first (cascade delete)
+        delete_participants_query = """
+            DELETE FROM pickup_game_participants 
+            WHERE pickup_game_id = %s
+        """
+        
+        participants_deleted = execute_update(delete_participants_query, [game_id])
+        print(f"[DELETE_PICKUP_GAME] Deleted {participants_deleted} participants from game {game_id}")
+        
+        # Delete the pickup game
+        delete_game_query = """
+            DELETE FROM pickup_games 
+            WHERE id = %s AND creator_user_id = %s
+        """
+        
+        rows_deleted = execute_update(delete_game_query, [game_id, user_id])
+        
+        if rows_deleted > 0:
+            print(f"[DELETE_PICKUP_GAME] Successfully deleted pickup game {game_id}")
+            
+            log_user_activity(user_email, "pickup_game_deleted", 
+                            details=f"Deleted pickup game ID: {game_id}, Description: {game['description']}")
+            
+            # Create response message
+            message = f"Successfully deleted pickup game '{game['description']}'"
+            if participant_count > 0:
+                message += f" and removed {participant_count} participant(s)"
+            
+            return jsonify({
+                "success": True,
+                "message": message,
+                "participants_removed": participant_count
+            })
+        else:
+            print(f"[DELETE_PICKUP_GAME] No rows affected when trying to delete game {game_id}")
+            return jsonify({"error": "Failed to delete pickup game - game not found or access denied"}), 500
+            
+    except Exception as e:
+        print(f"[DELETE_PICKUP_GAME] Error deleting pickup game: {str(e)}")
+        import traceback
+        print(f"[DELETE_PICKUP_GAME] Full traceback: {traceback.format_exc()}")
+        return jsonify({"error": "Failed to delete pickup game due to server error"}), 500
+
+
 @api_bp.route("/api/series-options", methods=["GET"])
 @login_required  
 def get_series_options():
@@ -5334,6 +5570,7 @@ def search_players_for_groups():
     try:
         user = session["user"]
         user_id = user.get("id")
+        user_club_id = user.get("club_id")  # Get user's current club ID
         
         if not user_id:
             return jsonify({"error": "User ID not found"}), 400
@@ -5365,25 +5602,52 @@ def search_players_for_groups():
                     print(f"Error looking up league: {e}")
                     return jsonify({"error": "Invalid league ID"}), 400
         
-        print(f"Searching players: query='{query}', user_id={user_id}, league_id_int={league_id_int}")
+        print(f"Searching players: query='{query}', user_id={user_id}, league_id_int={league_id_int}, user_club_id={user_club_id}")
         
-        # Get database session
-        with SessionLocal() as db_session:
-            groups_service = GroupsService(db_session)
-            players = groups_service.search_players(query, user_id, league_id_int)
-            
-            print(f"Found {len(players)} players")
-            
-            return jsonify({
-                "success": True,
-                "players": players
-            })
-    
+        # Use GroupsService to search players
+        groups_service = GroupsService()
+        matching_players = groups_service.search_players(
+            query=query,
+            user_id=user_id,
+            league_id=league_id_int,
+            club_id=user_club_id  # Filter by user's current club
+        )
+        
+        # Enhanced logging for groups player search
+        search_details = {
+            "search_query": query,
+            "search_context": "groups_player_search",
+            "league_filter": league_id,
+            "club_filter": user_club_id,
+            "results_count": len(matching_players),
+            "user_league": user.get("league_id", "Unknown"),
+            "user_club": user.get("club", "Unknown")
+        }
+        
+        # Add top results if any found
+        if matching_players:
+            result_names = [player.get("full_name", "Unknown") for player in matching_players[:3]]
+            search_details["top_results"] = result_names
+        
+        log_user_activity(
+            user["email"],
+            "player_search",
+            action="groups_search",
+            details=search_details
+        )
+        
+        print(f"Found {len(matching_players)} matching players")
+        
+        return jsonify({
+            "success": True,
+            "players": matching_players
+        })
+        
     except Exception as e:
-        print(f"Error searching players: {str(e)}")
+        print(f"Error in search_players_for_groups: {str(e)}")
         import traceback
         print(f"Full traceback: {traceback.format_exc()}")
-        return jsonify({"error": "Failed to search players"}), 500
+        return jsonify({"error": "Search failed"}), 500
 
 
 @api_bp.route("/api/groups/<int:group_id>/members", methods=["POST"])
@@ -5401,8 +5665,29 @@ def add_group_member(group_id):
         data = request.get_json()
         member_user_id = data.get("user_id")
         
+        # Handle players without accounts
         if not member_user_id:
-            return jsonify({"error": "User ID to add is required"}), 400
+            # Check if we have player info for someone without an account
+            tenniscores_player_id = data.get("tenniscores_player_id")
+            first_name = data.get("first_name")
+            last_name = data.get("last_name")
+            no_account = data.get("no_account", False)
+            
+            if no_account and tenniscores_player_id and first_name and last_name:
+                # Handle player without account
+                with SessionLocal() as db_session:
+                    groups_service = GroupsService(db_session)
+                    result = groups_service.add_player_without_account_to_group(
+                        group_id, user_id, tenniscores_player_id, first_name, last_name, user_club_id
+                    )
+                    
+                    if result["success"]:
+                        log_user_activity(user_email, "group_member_added", 
+                                        details=f"Added player without account to group ID: {group_id}")
+                    
+                    return jsonify(result), 200 if result["success"] else 400
+            else:
+                return jsonify({"error": "User ID or valid player information is required"}), 400
         
         try:
             member_user_id = int(member_user_id)
@@ -5502,7 +5787,7 @@ def update_group(group_id):
 @api_bp.route("/api/groups/send-message", methods=["POST"])
 @login_required
 def send_group_message():
-    """Send a message to all members of a group"""
+    """Send SMS messages to all members of a group"""
     try:
         user = session["user"]
         user_id = user.get("id")
@@ -5517,15 +5802,16 @@ def send_group_message():
         if not data.get("group_id"):
             return jsonify({"error": "Group ID is required"}), 400
         
-        if not data.get("subject"):
-            return jsonify({"error": "Subject is required"}), 400
-        
         if not data.get("message"):
-            return jsonify({"error": "Message is required"}), 400
+            return jsonify({"error": "Message content is required"}), 400
         
         group_id = data["group_id"]
-        subject = data["subject"].strip()
+        subject = data.get("subject", "Group Message").strip()  # Make subject optional
         message = data["message"].strip()
+        
+        # Validate message length for SMS
+        if len(message) > 800:  # Leave room for sender info and formatting
+            return jsonify({"error": "Message too long. Please keep under 800 characters for SMS."}), 400
         
         try:
             group_id = int(group_id)
@@ -5537,14 +5823,32 @@ def send_group_message():
             groups_service = GroupsService(db_session)
             result = groups_service.send_group_message(group_id, user_id, subject, message)
             
+            # Enhanced logging
             if result["success"]:
+                details = result.get("details", {})
                 log_user_activity(user_email, "group_message_sent", 
-                                details=f"Sent message to group ID: {group_id}")
+                                details=f"Group: {details.get('group_name')}, "
+                                      f"Sent to {details.get('successful_sends', 0)} members")
+            else:
+                log_user_activity(user_email, "group_message_failed", 
+                                details=f"Group ID: {group_id}, Error: {result.get('error')}")
             
-            return jsonify(result), 200 if result["success"] else 400
+            # Return appropriate status code
+            if result["success"]:
+                return jsonify(result), 200
+            else:
+                # Check if it's a user error (no phone numbers) vs system error
+                error_msg = result.get("error", "")
+                if "phone numbers" in error_msg.lower():
+                    return jsonify(result), 422  # Unprocessable Entity - user action needed
+                else:
+                    return jsonify(result), 400  # Bad Request - general error
     
     except Exception as e:
         print(f"Error sending group message: {str(e)}")
         import traceback
         print(f"Full traceback: {traceback.format_exc()}")
-        return jsonify({"error": "Failed to send group message"}), 500
+        return jsonify({
+            "success": False,
+            "error": "System error occurred while sending messages. Please try again."
+        }), 500
