@@ -5605,13 +5605,14 @@ def search_players_for_groups():
         print(f"Searching players: query='{query}', user_id={user_id}, league_id_int={league_id_int}, user_club_id={user_club_id}")
         
         # Use GroupsService to search players
-        groups_service = GroupsService()
-        matching_players = groups_service.search_players(
-            query=query,
-            user_id=user_id,
-            league_id=league_id_int,
-            club_id=user_club_id  # Filter by user's current club
-        )
+        with SessionLocal() as db_session:
+            groups_service = GroupsService(db_session)
+            matching_players = groups_service.search_players(
+                query=query,
+                user_id=user_id,
+                league_id=league_id_int,
+                club_id=user_club_id  # Filter by user's current club
+            )
         
         # Enhanced logging for groups player search
         search_details = {
