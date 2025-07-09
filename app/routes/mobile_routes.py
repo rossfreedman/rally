@@ -1735,24 +1735,30 @@ def serve_mobile_settings():
 @login_required
 def serve_mobile_my_series():
     """Serve the mobile My Series page"""
+    print(f"🏆 MY-SERIES ROUTE CALLED for user: {session.get('user', {}).get('email', 'unknown')}")
     try:
+        print(f"🔍 Getting series data for user: {session['user']}")
         series_data = get_mobile_series_data(session["user"])
+        print(f"✅ Series data retrieved: {'error' in series_data}")
 
         session_data = {"user": session["user"], "authenticated": True}
+        print(f"✅ Session data created")
 
-        log_user_activity(
+        print(f"📱 Calling log_user_activity for my-series...")
+        log_result = log_user_activity(
             session["user"]["email"], "page_visit", page="mobile_my_series"
         )
+        print(f"✅ Activity logged: {log_result}")
 
+        print(f"🎨 Rendering template...")
         return render_template(
             "mobile/my_series.html", session_data=session_data, **series_data
         )
 
     except Exception as e:
-        print(f"Error serving mobile my series: {str(e)}")
+        print(f"❌ ERROR in my-series route: {str(e)}")
         import traceback
-
-        print(f"Full traceback: {traceback.format_exc()}")
+        print(f"❌ Full traceback: {traceback.format_exc()}")
 
         session_data = {"user": session["user"], "authenticated": True}
 
@@ -1932,22 +1938,28 @@ def mobile_player_search():
 @login_required
 def my_club():
     """Serve the mobile My Club page"""
+    print(f"🏆 MY-CLUB ROUTE CALLED for user: {session.get('user', {}).get('email', 'unknown')}")
     try:
+        print(f"🔍 Getting club data for user: {session['user']}")
         club_data = get_mobile_club_data(session["user"])
+        print(f"✅ Club data retrieved: {'error' in club_data}")
 
         session_data = {"user": session["user"], "authenticated": True}
+        print(f"✅ Session data created")
 
-        log_user_activity(session["user"]["email"], "page_visit", page="mobile_my_club")
+        print(f"📱 Calling log_user_activity for my-club...")
+        log_result = log_user_activity(session["user"]["email"], "page_visit", page="mobile_my_club")
+        print(f"✅ Activity logged: {log_result}")
 
+        print(f"🎨 Rendering template...")
         return render_template(
             "mobile/my_club.html", session_data=session_data, **club_data
         )
 
     except Exception as e:
-        print(f"Error serving mobile my club: {str(e)}")
+        print(f"❌ ERROR in my-club route: {str(e)}")
         import traceback
-
-        print(f"Full traceback: {traceback.format_exc()}")
+        print(f"❌ Full traceback: {traceback.format_exc()}")
 
         session_data = {"user": session["user"], "authenticated": True}
 
