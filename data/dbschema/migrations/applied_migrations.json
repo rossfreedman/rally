@@ -1,0 +1,10 @@
+[
+  {
+    "filename": "staging_backup_20250709_110438.sql",
+    "applied_at": "2025-07-09T12:18:32.020918",
+    "applied_to": [
+      "staging",
+      "production"
+    ]
+  }
+]
