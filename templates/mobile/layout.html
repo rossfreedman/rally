@@ -162,9 +162,21 @@
             letter-spacing: -0.02em;
         }
         
-        /* Rally logo color styling */
-        .rally-logo-colored {
-            filter: brightness(0) saturate(100%) invert(91%) sepia(94%) saturate(1457%) hue-rotate(63deg) brightness(107%) contrast(108%);
+        /* Rally logo styling - removed color filter to show original colors */
+        .rally-logo {
+            transform: translateY(3px);
+        }
+        
+        /* Bottom dock icons and text styling */
+        .dock-item i,
+        .dock-item span {
+            color: #c4ff60 !important;
+        }
+        
+        /* Active state for dock items */
+        .dock-item.active i,
+        .dock-item.active span {
+            color: #c4ff60 !important;
         }
         
         /* Responsive adjustments - Keep 2 columns on mobile */
@@ -220,7 +232,7 @@
         <!-- Center logo -->
         <div class="flex justify-center" style="flex: 1;">
             <a href="/mobile" class="navbar-logo">
-                <img src="/static/images/rallylogo.png" alt="Rally Logo" class="w-auto rally-logo-colored" style="height: 78px;">
+                <img src="/static/rallylogo.png" alt="Rally Logo" class="w-auto rally-logo" style="height: 78px;">
             </a>
         </div>
         

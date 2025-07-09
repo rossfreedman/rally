@@ -67,7 +67,7 @@
   }
   
   .navbar-logo {
-    height: 1.75rem;
+    /* Removed fixed height to allow logo to display at natural size */
   }
 }
 
@@ -522,11 +522,11 @@ a:hover {
 }
 
 .dock-item.active i {
-  color: #d1d5db;
+  color: #c4ff60;
 }
 
 .dock-item.active span {
-  color: #d1d5db;
+  color: #c4ff60;
   font-weight: 600;
 }
 

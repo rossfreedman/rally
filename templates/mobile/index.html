@@ -13,79 +13,78 @@
   /* Custom button styles for each section with different shades of #085454 */
   .act-button {
     background-color: #085454 !important;
-    color: #c3db5b !important;
+    color: #c4ff60 !important;
   }
   
   .analyze-button {
     background-color: #0a5f5f !important;
-    color: #c3db5b !important;
+    color: #c4ff60 !important;
   }
   
   .prepare-button {
     background-color: #0c6a6a !important;
-    color: #c3db5b !important;
+    color: #c4ff60 !important;
   }
   
   .play-button {
     background-color: #0e7575 !important;
-    color: #c3db5b !important;
+    color: #c4ff60 !important;
   }
   
   .improve-button {
     background-color: #108080 !important;
-    color: #c3db5b !important;
+    color: #c4ff60 !important;
   }
   
   .captain-button {
     background-color: #128b8b !important;
-    color: #c3db5b !important;
+    color: #c4ff60 !important;
   }
   
   .admin-button {
     background-color: #054040 !important;
-    color: #c3db5b !important;
+    color: #c4ff60 !important;
   }
   
   /* Icon colors to match the text color */
   .act-button i, .analyze-button i, .prepare-button i, .play-button i, 
   .improve-button i, .captain-button i, .admin-button i {
-    color: #c3db5b !important;
+    color: #c4ff60 !important;
   }
 </style>
 <div class="container mx-auto px-4 py-6">
   <!-- Welcome Section with Club Logo and Info -->
-  <div class="welcome-section text-center mb-8">
-        <!-- Club Logo and Welcome Message -->
-    <div class="flex items-center justify-center mb-4">
-      <div class="text-center">
-        <!-- Club Logo -->
-        <div class="flex justify-center mb-4">
-          <div class="w-20 h-20 flex items-center justify-center">
-            {% if session_data and session_data.user and session_data.user.club_logo %}
-              <img src="/{{ session_data.user.club_logo }}" 
-                   alt="{{ session_data.user.club }} Logo" 
-                   class="w-20 h-20 object-contain"
-                   onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-            {% else %}
-              <img src="/static/images/clubs/default_club_logo.png" 
-                   alt="Club Logo" 
-                   class="w-20 h-20 object-contain"
-                   onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-            {% endif %}
-            <!-- Fallback placeholder if logo doesn't load -->
-            <div class="w-20 h-20 bg-green-600 rounded-lg flex items-center justify-center shadow-lg text-white text-center hidden">
-              <div class="text-xs font-bold">{{ session_data.user.club[:8] if session_data and session_data.user and session_data.user.club else 'CLUB' }}</div>
-              <div class="flex justify-center items-center mt-1">
-                <i class="fas fa-table-tennis text-xs mr-1"></i>
-                <i class="fas fa-tennis-ball text-xs"></i>
-              </div>
-              <div class="w-6 h-1 bg-blue-400 mx-auto mt-1 rounded"></div>
+  <div class="welcome-section mb-8">
+    <!-- Club Logo and Welcome Message - Two Column Layout -->
+    <div class="flex items-center justify-center gap-4 mb-4">
+      <!-- Column 1: Club Logo -->
+      <div class="flex-shrink-0">
+        <div class="w-20 h-20 flex items-center justify-center">
+          {% if session_data and session_data.user and session_data.user.club_logo %}
+            <img src="/{{ session_data.user.club_logo }}" 
+                 alt="{{ session_data.user.club }} Logo" 
+                 class="w-20 h-20 object-contain"
+                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+          {% else %}
+            <img src="/static/images/clubs/default_club_logo.png" 
+                 alt="Club Logo" 
+                 class="w-20 h-20 object-contain"
+                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+          {% endif %}
+          <!-- Fallback placeholder if logo doesn't load -->
+          <div class="w-20 h-20 bg-green-600 rounded-lg flex items-center justify-center shadow-lg text-white text-center hidden">
+            <div class="text-xs font-bold">{{ session_data.user.club[:8] if session_data and session_data.user and session_data.user.club else 'CLUB' }}</div>
+            <div class="flex justify-center items-center mt-1">
+              <i class="fas fa-table-tennis text-xs mr-1"></i>
+              <i class="fas fa-tennis-ball text-xs"></i>
             </div>
+            <div class="w-6 h-1 bg-blue-400 mx-auto mt-1 rounded"></div>
           </div>
         </div>
-        
-        <!-- Welcome Message and League Info -->
-        <div class="text-center">
+      </div>
+      
+      <!-- Column 2: Welcome Message and League Info (Left Justified) -->
+      <div>
         <h1 class="text-xl font-bold text-gray-800 mb-1">
           {% if session_data and session_data.user and session_data.user.first_name %}
             Welcome back, {{ session_data.user.first_name }}!
@@ -96,185 +95,185 @@
         
         {% if session_data and session_data.user and session_data.user.league_name %}
         <!-- League Information -->
-                 <div class="text-sm text-gray-600 space-y-1">
-           <div class="flex items-center justify-center">
-             <span class="font-medium text-gray-800">{{ session_data.user.league_name }}</span>
-             <button id="leagueSwitcherTrigger" class="ml-2 text-blue-600 text-xs underline hidden" aria-label="Change League" style="font-size: 10px;">
-               (change)
-             </button>
-           </div>
-           
-           <div class="flex items-center justify-center">
-             <span id="seriesNameDisplay" class="font-medium text-gray-800" data-series="{{ session_data.user.series }}" data-club="{{ session_data.user.club }}">
-               {{ session_data.user.series }} @ {{ session_data.user.club }}
-             </span>
-             <button id="clubSwitcherTrigger" class="ml-2 text-blue-600 text-xs underline hidden" onclick="showClubSwitcher()" style="font-size: 10px;">
-               (change)
-             </button>
-           </div>
-         </div>
+        <div class="text-sm text-gray-600 space-y-1">
+          <div class="flex items-center">
+            <span class="font-medium text-gray-800">{{ session_data.user.league_name }}</span>
+            <button id="leagueSwitcherTrigger" class="ml-2 text-blue-600 text-xs underline hidden" aria-label="Change League" style="font-size: 10px;">
+              (change)
+            </button>
+          </div>
+          
+          <div class="flex items-center">
+            <span id="seriesNameDisplay" class="font-medium text-gray-800" data-series="{{ session_data.user.series }}" data-club="{{ session_data.user.club }}">
+              {{ session_data.user.series }} @ {{ session_data.user.club }}
+            </span>
+            <button id="clubSwitcherTrigger" class="ml-2 text-blue-600 text-xs underline hidden" onclick="showClubSwitcher()" style="font-size: 10px;">
+              (change)
+            </button>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
          
-         <script>
-           // Apply series alias transformation to the display and check for multiple leagues/clubs
-           document.addEventListener('DOMContentLoaded', function() {
-             const seriesElement = document.getElementById('seriesNameDisplay');
-             if (seriesElement) {
-               const originalSeries = seriesElement.getAttribute('data-series');
-               const clubName = seriesElement.getAttribute('data-club');
-               
-               if (originalSeries && clubName) {
-                 // Transform the series name (e.g., "Chicago 22" -> "Series 22")
-                 let displaySeries = originalSeries;
-                 const numberMatch = originalSeries.match(/(\d+)(\s+\w+)*$/);
-                 if (numberMatch) {
-                   const seriesNumber = numberMatch[1];
-                   const suffix = numberMatch[2] || '';
-                   displaySeries = `Series ${seriesNumber}${suffix}`;
-                 }
-                 
-                 // Update the display with the format "Series X @ Club"
-                 seriesElement.textContent = `${displaySeries} @ ${clubName}`;
-               }
-             }
-             
-             // Check if user has multiple leagues
-             checkMultipleLeagues();
-             
-             // Check if user has multiple clubs in current league
-             checkMultipleClubs();
-           });
-           
-           async function checkMultipleLeagues() {
-             try {
-               // Check if this specific user has multiple leagues (including all associations)
-               const response = await fetch('/api/get-user-leagues');
-               const data = await response.json();
-               
-               if (data.success && data.has_multiple_leagues) {
-                 const leagueButton = document.getElementById('leagueSwitcherTrigger');
-                 if (leagueButton) {
-                   leagueButton.classList.remove('hidden');
-                   console.log(`✅ League selector shown - user has ${data.league_count} leagues`);
-                 }
-               } else {
-                 console.log(`❌ League selector hidden - user has ${data.league_count || 0} leagues`);
-               }
-             } catch (error) {
-               console.error('Error checking multiple leagues:', error);
-             }
-           }
-           
-           async function checkMultipleClubs() {
-             try {
-               // Check if this specific user has multiple teams in current league
-               const response = await fetch('/api/get-user-teams-in-current-league');
-               const data = await response.json();
-               
-               if (data.success && data.has_multiple_teams) {
-                 const clubButton = document.getElementById('clubSwitcherTrigger');
-                 if (clubButton) {
-                   clubButton.classList.remove('hidden');
-                 }
-               }
-             } catch (error) {
-               console.error('Error checking multiple clubs:', error);
-             }
-           }
-           
-           function showClubSwitcher() {
-             const modal = document.getElementById('clubSwitcherModal');
-             if (modal) {
-               modal.classList.remove('hidden');
-               document.body.style.overflow = 'hidden';
-               loadClubSwitcherOptions();
-             }
-           }
-           
-           async function loadClubSwitcherOptions() {
-             try {
-               const response = await fetch('/api/get-user-teams-in-current-league');
-               const data = await response.json();
-               
-               if (data.success && data.teams) {
-                 const optionsContainer = document.querySelector('#clubSwitcherModal .club-options');
-                 if (optionsContainer) {
-                   optionsContainer.innerHTML = data.teams.map(team => `
-                     <button onclick="switchTeamInLeague(${team.team_id}, '${team.team_name}', '${team.club_name}', '${team.series_name}')" 
-                             class="team-switch-btn w-full flex items-center justify-between p-4 rounded-lg bg-white hover:bg-green-50 transition-all duration-200 border-2 border-gray-300 hover:border-green-400 hover:shadow-md group
-                                    ${team.is_current ? 'bg-green-100 border-green-400' : ''}">
-                         <div class="text-left">
-                             <div class="font-bold text-gray-900 group-hover:text-green-900">${team.club_name}</div>
-                             <div class="text-sm text-gray-600 group-hover:text-green-700">${team.series_name} • ${team.match_count} matches</div>
-                         </div>
-                         <div class="text-sm ${team.is_current ? 'bg-green-600 text-white px-3 py-1 rounded' : 'bg-green-500 group-hover:bg-green-600 text-white px-3 py-1 rounded'}">
-                             ${team.is_current ? 'Current' : 'Switch'}
-                         </div>
-                     </button>
-                   `).join('');
-                 }
-               }
-             } catch (error) {
-               console.error('Error loading club switcher options:', error);
-             }
-           }
-           
-           async function switchTeamInLeague(teamId, teamName, clubName, seriesName) {
-             try {
-               // Close modal first
-               const modal = document.getElementById('clubSwitcherModal');
-               if (modal) {
-                 modal.classList.add('hidden');
-                 document.body.style.overflow = '';
-               }
-               
-               // Show loading
-               const clubButton = document.getElementById('clubSwitcherTrigger');
-               if (clubButton) {
-                 clubButton.innerHTML = '<i class="fas fa-spinner fa-spin text-xs"></i>';
-                 clubButton.disabled = true;
-               }
-               
-               const response = await fetch('/api/switch-team-in-league', {
-                 method: 'POST',
-                 headers: {
-                   'Content-Type': 'application/json',
-                 },
-                 body: JSON.stringify({
-                   team_id: teamId
-                 })
-               });
-               
-               const data = await response.json();
-               
-               if (data.success) {
-                 // Show success briefly then reload
-                 if (clubButton) {
-                   clubButton.innerHTML = '<i class="fas fa-check text-xs text-green-400"></i>';
-                 }
-                 
-                 setTimeout(() => {
-                   window.location.reload();
-                 }, 1000);
-               } else {
-                 throw new Error(data.error || 'Team switch failed');
-               }
-             } catch (error) {
-               console.error('Team switch error:', error);
-               alert(`Failed to switch teams: ${error.message}`);
-               
-               // Reset button
-               const clubButton = document.getElementById('clubSwitcherTrigger');
-               if (clubButton) {
-                 clubButton.innerHTML = '(change)';
-                 clubButton.disabled = false;
-               }
-             }
-           }
-         </script>
-         {% endif %}
-       </div>
-     </div>
-   </div>
+    <script>
+      // Apply series alias transformation to the display and check for multiple leagues/clubs
+      document.addEventListener('DOMContentLoaded', function() {
+        const seriesElement = document.getElementById('seriesNameDisplay');
+        if (seriesElement) {
+          const originalSeries = seriesElement.getAttribute('data-series');
+          const clubName = seriesElement.getAttribute('data-club');
+          
+          if (originalSeries && clubName) {
+            // Transform the series name (e.g., "Chicago 22" -> "Series 22")
+            let displaySeries = originalSeries;
+            const numberMatch = originalSeries.match(/(\d+)(\s+\w+)*$/);
+            if (numberMatch) {
+              const seriesNumber = numberMatch[1];
+              const suffix = numberMatch[2] || '';
+              displaySeries = `Series ${seriesNumber}${suffix}`;
+            }
+            
+            // Update the display with the format "Series X @ Club"
+            seriesElement.textContent = `${displaySeries} @ ${clubName}`;
+          }
+        }
+        
+        // Check if user has multiple leagues
+        checkMultipleLeagues();
+        
+        // Check if user has multiple clubs in current league
+        checkMultipleClubs();
+      });
+      
+      async function checkMultipleLeagues() {
+        try {
+          // Check if this specific user has multiple leagues (including all associations)
+          const response = await fetch('/api/get-user-leagues');
+          const data = await response.json();
+          
+          if (data.success && data.has_multiple_leagues) {
+            const leagueButton = document.getElementById('leagueSwitcherTrigger');
+            if (leagueButton) {
+              leagueButton.classList.remove('hidden');
+              console.log(`✅ League selector shown - user has ${data.league_count} leagues`);
+            }
+          } else {
+            console.log(`❌ League selector hidden - user has ${data.league_count || 0} leagues`);
+          }
+        } catch (error) {
+          console.error('Error checking multiple leagues:', error);
+        }
+      }
+      
+      async function checkMultipleClubs() {
+        try {
+          // Check if this specific user has multiple teams in current league
+          const response = await fetch('/api/get-user-teams-in-current-league');
+          const data = await response.json();
+          
+          if (data.success && data.has_multiple_teams) {
+            const clubButton = document.getElementById('clubSwitcherTrigger');
+            if (clubButton) {
+              clubButton.classList.remove('hidden');
+            }
+          }
+        } catch (error) {
+          console.error('Error checking multiple clubs:', error);
+        }
+      }
+      
+      function showClubSwitcher() {
+        const modal = document.getElementById('clubSwitcherModal');
+        if (modal) {
+          modal.classList.remove('hidden');
+          document.body.style.overflow = 'hidden';
+          loadClubSwitcherOptions();
+        }
+      }
+      
+      async function loadClubSwitcherOptions() {
+        try {
+          const response = await fetch('/api/get-user-teams-in-current-league');
+          const data = await response.json();
+          
+          if (data.success && data.teams) {
+            const optionsContainer = document.querySelector('#clubSwitcherModal .club-options');
+            if (optionsContainer) {
+              optionsContainer.innerHTML = data.teams.map(team => `
+                <button onclick="switchTeamInLeague(${team.team_id}, '${team.team_name}', '${team.club_name}', '${team.series_name}')" 
+                        class="team-switch-btn w-full flex items-center justify-between p-4 rounded-lg bg-white hover:bg-green-50 transition-all duration-200 border-2 border-gray-300 hover:border-green-400 hover:shadow-md group
+                               ${team.is_current ? 'bg-green-100 border-green-400' : ''}">
+                    <div class="text-left">
+                        <div class="font-bold text-gray-900 group-hover:text-green-900">${team.club_name}</div>
+                        <div class="text-sm text-gray-600 group-hover:text-green-700">${team.series_name} • ${team.match_count} matches</div>
+                    </div>
+                    <div class="text-sm ${team.is_current ? 'bg-green-600 text-white px-3 py-1 rounded' : 'bg-green-500 group-hover:bg-green-600 text-white px-3 py-1 rounded'}">
+                        ${team.is_current ? 'Current' : 'Switch'}
+                    </div>
+                </button>
+              `).join('');
+            }
+          }
+        } catch (error) {
+          console.error('Error loading club switcher options:', error);
+        }
+      }
+      
+      async function switchTeamInLeague(teamId, teamName, clubName, seriesName) {
+        try {
+          // Close modal first
+          const modal = document.getElementById('clubSwitcherModal');
+          if (modal) {
+            modal.classList.add('hidden');
+            document.body.style.overflow = '';
+          }
+          
+          // Show loading
+          const clubButton = document.getElementById('clubSwitcherTrigger');
+          if (clubButton) {
+            clubButton.innerHTML = '<i class="fas fa-spinner fa-spin text-xs"></i>';
+            clubButton.disabled = true;
+          }
+          
+          const response = await fetch('/api/switch-team-in-league', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              team_id: teamId
+            })
+          });
+          
+          const data = await response.json();
+          
+          if (data.success) {
+            // Show success briefly then reload
+            if (clubButton) {
+              clubButton.innerHTML = '<i class="fas fa-check text-xs text-green-400"></i>';
+            }
+            
+            setTimeout(() => {
+              window.location.reload();
+            }, 1000);
+          } else {
+            throw new Error(data.error || 'Team switch failed');
+          }
+        } catch (error) {
+          console.error('Team switch error:', error);
+          alert(`Failed to switch teams: ${error.message}`);
+          
+          // Reset button
+          const clubButton = document.getElementById('clubSwitcherTrigger');
+          if (clubButton) {
+            clubButton.innerHTML = '(change)';
+            clubButton.disabled = false;
+          }
+        }
+      }
+    </script>
+  </div>
     
     <!-- Profile completion notification -->
     {% if session_data and session_data.user and session_data.authenticated and (session_data.user.ad_deuce_preference is none or session_data.user.ad_deuce_preference == "" or session_data.user.dominant_hand is none or session_data.user.dominant_hand == "") %}
@@ -322,7 +321,7 @@
   </div>
 
   <!-- Act Section -->
-  <div class="icon-section mb-8">
+  <div class="icon-section mb-8" style="margin-top: -10px;">
     <div class="flex items-center justify-center mb-6">
       <div class="flex-grow border-t-2 border-gray-400"></div>
       <div class="section-header text-xl font-bold px-4 text-center">
