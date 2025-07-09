@@ -875,3 +875,193 @@ def vote_on_poll(poll_id):
     
     # ✅ FIX: Simply call the respond_to_poll function
     return respond_to_poll(poll_id)
+
+
+@polls_bp.route("/api/polls/<int:poll_id>/text-team", methods=["POST"])
+@login_required
+def text_team_about_poll(poll_id):
+    """Send SMS to team members about a poll"""
+    print(f"📱 === POLL SMS API STARTED ===")
+    print(f"📱 Poll ID: {poll_id}")
+    
+    try:
+        from app.services.notifications_service import send_sms_notification
+        
+        # Get poll details
+        poll_query = """
+            SELECT 
+                p.id,
+                p.question,
+                p.team_id,
+                p.created_by,
+                u.first_name as creator_first_name,
+                u.last_name as creator_last_name
+            FROM polls p
+            LEFT JOIN users u ON p.created_by = u.id
+            WHERE p.id = %s
+        """
+        poll = execute_query_one(poll_query, [poll_id])
+        
+        if not poll:
+            print(f"📱 Poll {poll_id} not found")
+            return jsonify({"error": "Poll not found"}), 404
+        
+        # Get user's team information for finding team members
+        user = session["user"]
+        user_team_id = None
+        
+        # Get user's team ID (same logic as in poll creation)
+        session_team_id = user.get("team_id")
+        if session_team_id:
+            user_team_id = session_team_id
+        else:
+            # Fallback: get from user_player_associations
+            team_query = """
+                SELECT DISTINCT p.team_id
+                FROM players p
+                JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
+                WHERE upa.user_id = %s AND p.team_id IS NOT NULL
+                LIMIT 1
+            """
+            team_result = execute_query_one(team_query, [user["id"]])
+            if team_result:
+                user_team_id = team_result["team_id"]
+        
+        if not user_team_id:
+            print(f"📱 User has no team association")
+            return jsonify({"error": "No team found for user"}), 400
+        
+        print(f"📱 User team ID: {user_team_id}")
+        
+        # Get total team members count first (for debugging)
+        total_team_members_query = """
+            SELECT COUNT(DISTINCT u.id) as total_count
+            FROM users u
+            JOIN user_player_associations upa ON u.id = upa.user_id
+            JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+            WHERE p.team_id = %s
+        """
+        
+        total_result = execute_query_one(total_team_members_query, [user_team_id])
+        total_team_members = total_result["total_count"] if total_result else 0
+        
+        print(f"📱 Total team members (including you): {total_team_members}")
+        
+        # Get team members with phone numbers
+        team_members_query = """
+            SELECT DISTINCT
+                u.id,
+                u.first_name,
+                u.last_name,
+                u.email,
+                u.phone_number,
+                p.team_id
+            FROM users u
+            JOIN user_player_associations upa ON u.id = upa.user_id
+            JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+            WHERE p.team_id = %s 
+            AND u.phone_number IS NOT NULL 
+            AND u.phone_number != ''
+            ORDER BY u.first_name, u.last_name
+        """
+        
+        team_members = execute_query(team_members_query, [user_team_id])
+        print(f"📱 Found {len(team_members)} team members with phone numbers")
+        
+        if not team_members:
+            if total_team_members == 0:
+                return jsonify({"error": "No team members found."}), 400
+            else:
+                return jsonify({"error": f"No team members have phone numbers set. Found {total_team_members} team members total, but none have added phone numbers in their Profile Settings."}), 400
+        
+        # Generate poll link
+        poll_url = f"https://lovetorally.com/mobile/polls/{poll_id}"
+        
+        # Create SMS message
+        message = f"📊 Team Poll from Rally:\n\n\"{poll['question']}\"\n\nVote now:\n{poll_url}"
+        
+        print(f"📱 SMS Message: {message}")
+        
+        # Send SMS to each team member
+        successful_sends = 0
+        failed_sends = 0
+        send_results = []
+        
+        for member in team_members:
+            try:
+                result = send_sms_notification(
+                    to_number=member["phone_number"],
+                    message=message,
+                    test_mode=False
+                )
+                
+                if result["success"]:
+                    successful_sends += 1
+                    send_results.append({
+                        "name": f"{member['first_name']} {member['last_name']}",
+                        "phone": member["phone_number"],
+                        "status": "sent",
+                        "message_sid": result.get("message_sid")
+                    })
+                    print(f"📱 ✅ SMS sent to {member['first_name']} {member['last_name']} ({member['phone_number']})")
+                else:
+                    failed_sends += 1
+                    send_results.append({
+                        "name": f"{member['first_name']} {member['last_name']}",
+                        "phone": member["phone_number"],
+                        "status": "failed",
+                        "error": result.get("error")
+                    })
+                    print(f"📱 ❌ SMS failed to {member['first_name']} {member['last_name']}: {result.get('error')}")
+                    
+            except Exception as e:
+                failed_sends += 1
+                send_results.append({
+                    "name": f"{member['first_name']} {member['last_name']}",
+                    "phone": member["phone_number"],
+                    "status": "error",
+                    "error": str(e)
+                })
+                print(f"📱 ❌ Exception sending to {member['first_name']} {member['last_name']}: {str(e)}")
+        
+        # Log admin action for audit
+        from app.services.admin_service import log_admin_action
+        log_admin_action(
+            admin_email=user["email"],
+            action="send_poll_sms",
+            details={
+                "poll_id": poll_id,
+                "poll_question": poll["question"][:50] + "..." if len(poll["question"]) > 50 else poll["question"],
+                "recipients_count": len(team_members),
+                "successful_sends": successful_sends,
+                "failed_sends": failed_sends
+            }
+        )
+        
+        print(f"📱 SMS Results: {successful_sends} sent, {failed_sends} failed")
+        
+        # Return results with confirmation message
+        if successful_sends > 0:
+            confirmation_message = f"Confirmation: The team has been sent the new poll: \"{poll['question']}\""
+            return jsonify({
+                "success": True,
+                "message": confirmation_message,
+                "recipients_count": successful_sends,
+                "total_attempted": len(team_members),
+                "successful_sends": successful_sends,
+                "failed_sends": failed_sends,
+                "results": send_results
+            })
+        else:
+            return jsonify({
+                "error": f"Failed to send SMS to any team members ({failed_sends} failures)",
+                "successful_sends": successful_sends,
+                "failed_sends": failed_sends,
+                "results": send_results
+            }), 500
+            
+    except Exception as e:
+        print(f"📱 Error in poll SMS API: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": "Failed to send SMS to team"}), 500

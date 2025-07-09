@@ -29,12 +29,19 @@ from sqlalchemy.sql import func
 Base = declarative_base()
 
 # Database session configuration
-DATABASE_URL = os.getenv("DATABASE_URL")
-if DATABASE_URL:
+try:
+    # Import database config to use the same URL resolution logic
+    import sys
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+    from database_config import get_db_url
+    
+    DATABASE_URL = get_db_url()
     engine = create_engine(DATABASE_URL)
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-else:
-    # Fallback for when DATABASE_URL is not available (e.g., during migrations)
+    print("✅ Database session factory initialized successfully")
+except Exception as e:
+    print(f"⚠️  Failed to initialize database session factory: {e}")
+    # Fallback for when database is not available (e.g., during migrations)
     SessionLocal = None
 
 
@@ -53,6 +60,7 @@ class User(Base):
     last_name = Column(String(255))
     club_automation_password = Column(String(255))  # For club automation features
     is_admin = Column(Boolean, nullable=False, default=False)
+    phone_number = Column(String(20))  # For SMS notifications
 
     # Player preferences - personal attributes that don't change across leagues
     ad_deuce_preference = Column(String(50))  # 'Ad', 'Deuce', 'Either'

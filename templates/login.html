@@ -19,7 +19,7 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-            background: linear-gradient(135deg, #101827, #0f172a);
+            background: linear-gradient(135deg, #085454, #0f172a);
             display: flex;
             justify-content: center;
             align-items: center;
@@ -55,7 +55,7 @@
         }
 
         .logo-img {
-            width: 194px;
+            width: 256px;
             height: auto;
             margin-bottom: 0;
             filter: none;
@@ -86,7 +86,7 @@
         }
 
         .btn-primary {
-            background-color: #101827 !important;
+            background-color: #085454 !important;
             color: #fff !important;
             border: none !important;
             border-radius: 8px;
@@ -98,7 +98,7 @@
         }
 
         .btn-primary:hover {
-            background-color: #1e293b !important;
+            background-color: #064040 !important;
         }
 
         .error-message {
@@ -238,13 +238,18 @@
         .auth-container {
             position: static;
         }
+        
+        /* Rally logo color styling */
+        .rally-logo-colored {
+            filter: brightness(0) saturate(100%) invert(91%) sepia(94%) saturate(1457%) hue-rotate(63deg) brightness(107%) contrast(108%);
+        }
     </style>
 </head>
 <body>
     <div class="login-stack">
         <div style="height:100px;"></div>
         <div style="display:flex; justify-content:center; align-items:center;">
-                                <img src="/static/images/rallylogo.png" alt="Rally" class="logo-img">
+                                <img src="/static/images/rallylogo.png" alt="Rally" class="logo-img rally-logo-colored">
         </div>
         <div style="height:100px;"></div>
         <div class="auth-container">

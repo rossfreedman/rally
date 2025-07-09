@@ -1,0 +1,636 @@
+{% extends "mobile/layout.html" %}
+{% set show_back_arrow = True %}
+
+{% block title %}Test Notifications | Rally Admin{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    
+    <!-- Header -->
+    <div class="bg-white border-b border-gray-100">
+        <div class="flex items-center px-4 py-6">
+            <div class="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center shadow-sm">
+                <i class="fas fa-sms text-white text-lg"></i>
+            </div>
+            <div class="ml-4">
+                <h1 class="text-xl font-bold text-gray-900">Test Notifications</h1>
+                <p class="text-sm text-gray-500">Send and test SMS messages via Twilio</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content -->
+    <div class="px-4 py-6 space-y-6">
+        
+        <!-- Twilio Status Card -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-cog text-purple-500 mr-2"></i>
+                    Twilio Configuration
+                </h3>
+                <button onclick="checkTwilioStatus()" class="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                    <i class="fas fa-sync-alt mr-1"></i> Refresh
+                </button>
+            </div>
+            
+            <div id="twilioStatus" class="space-y-3">
+                <div class="flex items-center text-gray-500">
+                    <i class="fas fa-spinner fa-spin mr-2"></i>
+                    <span>Checking Twilio configuration...</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- SMS Test Form -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-paper-plane text-blue-500 mr-2"></i>
+                    Send Test SMS
+                </h2>
+            </div>
+            
+            <div class="p-6">
+                <form id="smsTestForm" class="space-y-6">
+                    <!-- Phone Number Input -->
+                    <div>
+                        <label for="phoneNumber" class="block text-sm font-medium text-gray-700 mb-2">
+                            Phone Number <span class="text-red-500">*</span>
+                        </label>
+                        <input 
+                            type="tel" 
+                            id="phoneNumber" 
+                            name="phoneNumber"
+                            placeholder="(555) 123-4567"
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors"
+                            required
+                        >
+                        <p class="text-sm text-gray-500 mt-1">
+                            Enter a valid US phone number (10 or 11 digits)
+                        </p>
+                    </div>
+                    
+                    <!-- Message Templates -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Quick Templates
+                        </label>
+                        <div class="grid grid-cols-1 gap-2" id="messageTemplates">
+                            <div class="text-center text-gray-500 py-2">
+                                <i class="fas fa-spinner fa-spin mr-2"></i>
+                                Loading templates...
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Message Content -->
+                    <div>
+                        <label for="messageContent" class="block text-sm font-medium text-gray-700 mb-2">
+                            Message Content <span class="text-red-500">*</span>
+                        </label>
+                        <textarea 
+                            id="messageContent" 
+                            name="messageContent"
+                            rows="4"
+                            placeholder="Enter your message here..."
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors resize-none"
+                            required
+                        ></textarea>
+                        <div class="flex justify-between items-center mt-2">
+                            <p class="text-sm text-gray-500">
+                                Maximum 1600 characters
+                            </p>
+                            <span id="characterCount" class="text-sm text-gray-500">0 / 1600</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Test Mode Toggle -->
+                    <div class="flex items-center space-x-3">
+                        <input 
+                            type="checkbox" 
+                            id="testMode" 
+                            name="testMode"
+                            class="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                        >
+                        <label for="testMode" class="text-sm font-medium text-gray-700">
+                            Test Mode (validate only, don't actually send)
+                        </label>
+                    </div>
+                    
+                    <!-- Submit Button -->
+                    <div class="flex space-x-3">
+                        <button 
+                            type="submit" 
+                            id="sendButton"
+                            class="flex-1 bg-purple-600 text-white py-3 px-6 rounded-lg hover:bg-purple-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <i class="fas fa-paper-plane mr-2"></i>
+                            Send SMS
+                        </button>
+                        <button 
+                            type="button" 
+                            onclick="clearForm()"
+                            class="px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                        >
+                            <i class="fas fa-eraser mr-1"></i>
+                            Clear
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Results Area -->
+        <div id="resultsArea" class="hidden bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <i class="fas fa-clipboard-list text-green-500 mr-2"></i>
+                Results
+            </h3>
+            <div id="resultsContent"></div>
+        </div>
+        
+        <!-- Recent Test History -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <i class="fas fa-history text-gray-500 mr-2"></i>
+                Test History
+            </h3>
+            <div id="testHistory" class="space-y-3">
+                <p class="text-gray-500 text-sm">Recent test messages will appear here...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let predefinedMessages = {};
+let testHistory = [];
+
+// Initialize page
+document.addEventListener('DOMContentLoaded', function() {
+    checkTwilioStatus();
+    loadPredefinedMessages();
+    setupFormHandlers();
+    loadTestHistory();
+});
+
+async function checkTwilioStatus() {
+    try {
+        const response = await fetch('/api/admin/notifications/status');
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+            displayTwilioStatus(data.twilio_status);
+        } else {
+            throw new Error(data.error || 'Failed to check status');
+        }
+    } catch (error) {
+        console.error('Error checking Twilio status:', error);
+        document.getElementById('twilioStatus').innerHTML = `
+            <div class="flex items-center text-red-600">
+                <i class="fas fa-exclamation-triangle mr-2"></i>
+                <span>Error checking configuration: ${escapeHtml(error.message)}</span>
+            </div>
+        `;
+    }
+}
+
+function displayTwilioStatus(status) {
+    const statusElement = document.getElementById('twilioStatus');
+    
+    const statusColor = status.status_color === 'green' ? 'text-green-600' : 'text-red-600';
+    const statusIcon = status.configured ? 'fa-check-circle' : 'fa-exclamation-triangle';
+    
+    statusElement.innerHTML = `
+        <div class="space-y-3">
+            <div class="flex items-center ${statusColor}">
+                <i class="fas ${statusIcon} mr-2"></i>
+                <span class="font-medium">${escapeHtml(status.status_message)}</span>
+            </div>
+            
+            ${status.configured ? `
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <span class="font-medium text-gray-700">Account SID:</span>
+                        <span class="text-gray-600 ml-2">${escapeHtml(status.account_sid)}</span>
+                    </div>
+                    <div>
+                        <span class="font-medium text-gray-700">Messaging Service:</span>
+                        <span class="text-gray-600 ml-2">${escapeHtml(status.messaging_service_sid)}</span>
+                    </div>
+                    <div>
+                        <span class="font-medium text-gray-700">Sender Phone:</span>
+                        <span class="text-gray-600 ml-2">${escapeHtml(status.sender_phone)}</span>
+                    </div>
+                </div>
+            ` : `
+                <div class="text-sm text-gray-600">
+                    <p>Missing environment variables: ${escapeHtml(status.missing_vars.join(', '))}</p>
+                    <p class="mt-2">Add these to your .env file to enable SMS notifications.</p>
+                </div>
+            `}
+        </div>
+    `;
+}
+
+async function loadPredefinedMessages() {
+    try {
+        const response = await fetch('/api/admin/notifications/predefined-messages');
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+            predefinedMessages = data.messages;
+            displayMessageTemplates();
+        } else {
+            throw new Error(data.error || 'Failed to load messages');
+        }
+    } catch (error) {
+        console.error('Error loading predefined messages:', error);
+        document.getElementById('messageTemplates').innerHTML = `
+            <div class="text-center text-red-500 py-2">
+                <i class="fas fa-exclamation-triangle mr-2"></i>
+                Error loading templates
+            </div>
+        `;
+    }
+}
+
+function displayMessageTemplates() {
+    const container = document.getElementById('messageTemplates');
+    
+    const templateButtons = Object.entries(predefinedMessages).map(([key, message]) => {
+        const displayName = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+        return `
+            <button 
+                type="button" 
+                onclick="useTemplate('${key}')"
+                class="text-left p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+                <div class="font-medium text-sm text-gray-900">${escapeHtml(displayName)}</div>
+                <div class="text-xs text-gray-500 mt-1 line-clamp-2">${escapeHtml(message.substring(0, 80))}${message.length > 80 ? '...' : ''}</div>
+            </button>
+        `;
+    }).join('');
+    
+    container.innerHTML = templateButtons;
+}
+
+function useTemplate(templateKey) {
+    const message = predefinedMessages[templateKey];
+    if (message) {
+        document.getElementById('messageContent').value = message;
+        updateCharacterCount();
+    }
+}
+
+function setupFormHandlers() {
+    const form = document.getElementById('smsTestForm');
+    const messageContent = document.getElementById('messageContent');
+    
+    // Character count
+    messageContent.addEventListener('input', updateCharacterCount);
+    
+    // Form submission
+    form.addEventListener('submit', handleFormSubmit);
+}
+
+function updateCharacterCount() {
+    const textarea = document.getElementById('messageContent');
+    const counter = document.getElementById('characterCount');
+    const length = textarea.value.length;
+    
+    counter.textContent = `${length} / 1600`;
+    
+    if (length > 1600) {
+        counter.classList.add('text-red-500');
+        counter.classList.remove('text-gray-500');
+    } else {
+        counter.classList.remove('text-red-500');
+        counter.classList.add('text-gray-500');
+    }
+}
+
+async function handleFormSubmit(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    const phoneNumber = formData.get('phoneNumber').trim();
+    const messageContent = formData.get('messageContent').trim();
+    const testMode = formData.has('testMode');
+    
+    // Validation
+    if (!phoneNumber || !messageContent) {
+        showResults({
+            success: false,
+            error: 'Phone number and message content are required'
+        });
+        return;
+    }
+    
+    if (messageContent.length > 1600) {
+        showResults({
+            success: false,
+            error: 'Message too long (max 1600 characters)'
+        });
+        return;
+    }
+    
+    // Disable form
+    const sendButton = document.getElementById('sendButton');
+    const originalText = sendButton.innerHTML;
+    sendButton.disabled = true;
+    sendButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Sending...';
+    
+    try {
+        const response = await fetch('/api/admin/notifications/send-sms', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                to_number: phoneNumber,
+                message: messageContent,
+                test_mode: testMode
+            })
+        });
+        
+        const result = await response.json();
+        
+        // Add to history
+        addToTestHistory({
+            timestamp: new Date().toISOString(),
+            phone: phoneNumber,
+            message: messageContent.substring(0, 50) + (messageContent.length > 50 ? '...' : ''),
+            testMode: testMode,
+            success: result.success,
+            result: result
+        });
+        
+        showResults(result);
+        
+        // Clear form on success
+        if (result.success && !testMode) {
+            clearForm();
+        }
+        
+    } catch (error) {
+        console.error('Error sending SMS:', error);
+        showResults({
+            success: false,
+            error: 'Network error: ' + error.message
+        });
+    } finally {
+        // Re-enable form
+        sendButton.disabled = false;
+        sendButton.innerHTML = originalText;
+    }
+}
+
+function showResults(result) {
+    const resultsArea = document.getElementById('resultsArea');
+    const resultsContent = document.getElementById('resultsContent');
+    
+    resultsArea.classList.remove('hidden');
+    
+    if (result.success) {
+        resultsContent.innerHTML = `
+            <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                <div class="flex items-center text-green-800 mb-3">
+                    <i class="fas fa-check-circle mr-2"></i>
+                    <span class="font-medium">${escapeHtml(result.message || 'SMS sent successfully!')}</span>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-green-700">
+                    ${result.message_sid ? `
+                        <div>
+                            <span class="font-medium">Message SID:</span>
+                            <span class="ml-2 font-mono">${escapeHtml(result.message_sid)}</span>
+                        </div>
+                    ` : ''}
+                    
+                    ${result.formatted_phone ? `
+                        <div>
+                            <span class="font-medium">To:</span>
+                            <span class="ml-2">${escapeHtml(result.formatted_phone)}</span>
+                        </div>
+                    ` : ''}
+                    
+                    ${result.message_length ? `
+                        <div>
+                            <span class="font-medium">Length:</span>
+                            <span class="ml-2">${result.message_length} characters</span>
+                        </div>
+                    ` : ''}
+                    
+                    ${result.price ? `
+                        <div>
+                            <span class="font-medium">Cost:</span>
+                            <span class="ml-2">${escapeHtml(result.price)}</span>
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+    } else {
+        resultsContent.innerHTML = `
+            <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                <div class="flex items-center text-red-800 mb-2">
+                    <i class="fas fa-exclamation-triangle mr-2"></i>
+                    <span class="font-medium">Error</span>
+                </div>
+                <p class="text-red-700 text-sm">${escapeHtml(result.error || 'Unknown error occurred')}</p>
+                
+                ${result.error_code ? `
+                    <p class="text-red-600 text-xs mt-2">Error Code: ${escapeHtml(result.error_code)}</p>
+                ` : ''}
+            </div>
+        `;
+    }
+    
+    // Scroll to results
+    resultsArea.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function addToTestHistory(historyItem) {
+    testHistory.unshift(historyItem);
+    
+    // Keep only last 10 items
+    if (testHistory.length > 10) {
+        testHistory = testHistory.slice(0, 10);
+    }
+    
+    updateTestHistoryDisplay();
+    
+    // Store in localStorage
+    try {
+        localStorage.setItem('rally_sms_test_history', JSON.stringify(testHistory));
+    } catch (e) {
+        console.warn('Could not save test history to localStorage');
+    }
+}
+
+function loadTestHistory() {
+    try {
+        const stored = localStorage.getItem('rally_sms_test_history');
+        if (stored) {
+            testHistory = JSON.parse(stored);
+            updateTestHistoryDisplay();
+        }
+    } catch (e) {
+        console.warn('Could not load test history from localStorage');
+    }
+}
+
+function updateTestHistoryDisplay() {
+    const container = document.getElementById('testHistory');
+    
+    if (testHistory.length === 0) {
+        container.innerHTML = '<p class="text-gray-500 text-sm">No recent test messages</p>';
+        return;
+    }
+    
+    const historyHTML = testHistory.map(item => {
+        const timestamp = new Date(item.timestamp).toLocaleString();
+        const statusClass = item.success ? 'text-green-600' : 'text-red-600';
+        const statusIcon = item.success ? 'fa-check' : 'fa-times';
+        
+        return `
+            <div class="border border-gray-200 rounded-lg p-3">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-sm font-medium text-gray-900">${escapeHtml(item.phone)}</span>
+                    <div class="flex items-center space-x-2">
+                        ${item.testMode ? '<span class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">TEST</span>' : ''}
+                        <span class="flex items-center ${statusClass} text-sm">
+                            <i class="fas ${statusIcon} mr-1"></i>
+                            ${item.success ? 'Sent' : 'Failed'}
+                        </span>
+                    </div>
+                </div>
+                <p class="text-sm text-gray-600 mb-1">${escapeHtml(item.message)}</p>
+                <p class="text-xs text-gray-500">${timestamp}</p>
+            </div>
+        `;
+    }).join('');
+    
+    container.innerHTML = historyHTML;
+}
+
+function clearForm() {
+    document.getElementById('smsTestForm').reset();
+    updateCharacterCount();
+    
+    // Hide results
+    const resultsArea = document.getElementById('resultsArea');
+    resultsArea.classList.add('hidden');
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const map = {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+    };
+    return text.toString().replace(/[&<>"']/g, function(m) { return map[m]; });
+}
+</script>
+
+<style>
+/* Additional styles for the notifications page */
+.line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Modern UI Styles to match the site */
+.min-h-screen { min-height: 100vh; }
+
+/* Background colors */
+.bg-gray-50 { background-color: #f9fafb; }
+.bg-gray-100 { background-color: #f3f4f6; }
+.bg-white { background-color: #ffffff; }
+.bg-purple-100 { background-color: #f3e8ff; }
+.bg-purple-600 { background-color: #9333ea; }
+.bg-purple-700 { background-color: #7c3aed; }
+.bg-blue-100 { background-color: #dbeafe; }
+.bg-green-50 { background-color: #f0fdf4; }
+.bg-red-50 { background-color: #fef2f2; }
+
+/* Text colors */
+.text-gray-900 { color: #111827; }
+.text-gray-700 { color: #374151; }
+.text-gray-600 { color: #4b5563; }
+.text-gray-500 { color: #6b7280; }
+.text-purple-500 { color: #a855f7; }
+.text-purple-600 { color: #9333ea; }
+.text-blue-500 { color: #3b82f6; }
+.text-green-600 { color: #059669; }
+.text-green-700 { color: #047857; }
+.text-green-800 { color: #065f46; }
+.text-red-500 { color: #ef4444; }
+.text-red-600 { color: #dc2626; }
+.text-red-700 { color: #b91c1c; }
+.text-red-800 { color: #991b1b; }
+.text-white { color: #ffffff; }
+
+/* Border colors */
+.border-gray-100 { border-color: #f3f4f6; }
+.border-gray-200 { border-color: #e5e7eb; }
+.border-gray-300 { border-color: #d1d5db; }
+.border-green-200 { border-color: #bbf7d0; }
+.border-red-200 { border-color: #fecaca; }
+
+/* Hover states */
+.hover\:bg-gray-50:hover { background-color: #f9fafb; }
+.hover\:bg-gray-200:hover { background-color: #e5e7eb; }
+.hover\:bg-purple-700:hover { background-color: #7c3aed; }
+
+/* Focus states */
+.focus\:ring-2:focus {
+    --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
+    --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
+    box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
+}
+.focus\:ring-purple-500:focus { --tw-ring-color: #a855f7; }
+.focus\:border-purple-500:focus { border-color: #a855f7; }
+
+/* Gradients */
+.bg-gradient-to-br { background-image: linear-gradient(to bottom right, var(--tw-gradient-stops)); }
+.from-purple-500 { --tw-gradient-from: #a855f7; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(168, 85, 247, 0)); }
+.to-purple-600 { --tw-gradient-to: #9333ea; }
+
+/* Utilities */
+.shadow-sm { box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); }
+.rounded-xl { border-radius: 0.75rem; }
+.rounded-lg { border-radius: 0.5rem; }
+.rounded-full { border-radius: 9999px; }
+.space-y-6 > * + * { margin-top: 1.5rem; }
+.space-y-4 > * + * { margin-top: 1rem; }
+.space-y-3 > * + * { margin-top: 0.75rem; }
+.grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+.grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.gap-2 { gap: 0.5rem; }
+.gap-3 { gap: 0.75rem; }
+.gap-4 { gap: 1rem; }
+.transition-colors { transition-property: color, background-color, border-color, text-decoration-color, fill, stroke; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); transition-duration: 150ms; }
+.hidden { display: none; }
+.resize-none { resize: none; }
+.font-medium { font-weight: 500; }
+.font-semibold { font-weight: 600; }
+.font-mono { font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace; }
+
+/* Disabled styles */
+.disabled\:opacity-50:disabled { opacity: 0.5; }
+.disabled\:cursor-not-allowed:disabled { cursor: not-allowed; }
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+    .md\:grid-cols-2 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+}
+</style>
+{% endblock %} 

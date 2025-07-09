@@ -651,8 +651,22 @@ def serve_mobile_analyze_me():
 
         session_data = {"user": session_user_for_template, "authenticated": True}
 
+        # Enhanced logging for analyze-me page visit
+        analyze_me_details = {
+            "page": "mobile_analyze_me",
+            "user_league": session["user"].get("league_id", "Unknown"),
+            "user_club": session["user"].get("club", "Unknown"),
+            "user_series": session["user"].get("series", "Unknown"),
+            "user_team_id": session["user"].get("team_id"),
+            "has_player_id": bool(session["user"].get("tenniscores_player_id")),
+            "has_matches": bool(len(analysis_data.get("current_season", {}).get("matches", [])) > 0)
+        }
+        
         log_user_activity(
-            session["user"]["email"], "page_visit", page="mobile_analyze_me"
+            session["user"]["email"], 
+            "page_visit", 
+            page="mobile_analyze_me",
+            details=analyze_me_details
         )
 
         return render_template(
@@ -1858,13 +1872,30 @@ def mobile_player_search():
     try:
         search_data = get_player_search_data(session["user"])
 
-        # Add logging for search activity if a search was attempted
+        # Enhanced logging for search activity with detailed information
         if search_data.get("search_attempted") and search_data.get("search_query"):
             matching_count = len(search_data.get("matching_players", []))
+            
+            # Create detailed search log
+            search_details = {
+                "search_query": search_data["search_query"],
+                "first_name": search_data.get("first_name", ""),
+                "last_name": search_data.get("last_name", ""),
+                "results_count": matching_count,
+                "user_league": session["user"].get("league_id", "Unknown"),
+                "user_club": session["user"].get("club", "Unknown")
+            }
+            
+            # Add details about the results if any found
+            if matching_count > 0:
+                result_names = [player.get("name", "Unknown") for player in search_data.get("matching_players", [])[:3]]
+                search_details["top_results"] = result_names
+            
             log_user_activity(
                 session["user"]["email"],
                 "player_search",
-                details=f'Searched for {search_data["search_query"]}, found {matching_count} matches',
+                action="search_executed",
+                details=search_details
             )
 
         session_data = {"user": session["user"], "authenticated": True}

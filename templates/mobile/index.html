@@ -9,6 +9,48 @@
   #main-content {
     background-color: white !important;
   }
+  
+  /* Custom button styles for each section with different shades of #085454 */
+  .act-button {
+    background-color: #085454 !important;
+    color: #c3db5b !important;
+  }
+  
+  .analyze-button {
+    background-color: #0a5f5f !important;
+    color: #c3db5b !important;
+  }
+  
+  .prepare-button {
+    background-color: #0c6a6a !important;
+    color: #c3db5b !important;
+  }
+  
+  .play-button {
+    background-color: #0e7575 !important;
+    color: #c3db5b !important;
+  }
+  
+  .improve-button {
+    background-color: #108080 !important;
+    color: #c3db5b !important;
+  }
+  
+  .captain-button {
+    background-color: #128b8b !important;
+    color: #c3db5b !important;
+  }
+  
+  .admin-button {
+    background-color: #054040 !important;
+    color: #c3db5b !important;
+  }
+  
+  /* Icon colors to match the text color */
+  .act-button i, .analyze-button i, .prepare-button i, .play-button i, 
+  .improve-button i, .captain-button i, .admin-button i {
+    color: #c3db5b !important;
+  }
 </style>
 <div class="container mx-auto px-4 py-6">
   <!-- Welcome Section with Club Logo and Info -->
@@ -56,21 +98,19 @@
         <!-- League Information -->
                  <div class="text-sm text-gray-600 space-y-1">
            <div class="flex items-center justify-center">
-             <span class="font-medium">{{ session_data.user.league_name }}</span>
+             <span class="font-medium text-gray-800">{{ session_data.user.league_name }}</span>
              <button id="leagueSwitcherTrigger" class="ml-2 text-blue-600 text-xs underline hidden" aria-label="Change League" style="font-size: 10px;">
                (change)
              </button>
            </div>
            
            <div class="flex items-center justify-center">
-             <span class="font-medium">{{ session_data.user.club }}</span>
+             <span id="seriesNameDisplay" class="font-medium text-gray-800" data-series="{{ session_data.user.series }}" data-club="{{ session_data.user.club }}">
+               {{ session_data.user.series }} @ {{ session_data.user.club }}
+             </span>
              <button id="clubSwitcherTrigger" class="ml-2 text-blue-600 text-xs underline hidden" onclick="showClubSwitcher()" style="font-size: 10px;">
                (change)
              </button>
-           </div>
-           
-           <div id="seriesNameDisplay" class="font-medium text-gray-800">
-             {{ session_data.user.series }}
            </div>
          </div>
          
@@ -79,12 +119,21 @@
            document.addEventListener('DOMContentLoaded', function() {
              const seriesElement = document.getElementById('seriesNameDisplay');
              if (seriesElement) {
-               const seriesName = seriesElement.textContent.trim();
-               const numberMatch = seriesName.match(/(\d+)(\s+\w+)*$/);
-               if (numberMatch) {
-                 const seriesNumber = numberMatch[1];
-                 const suffix = numberMatch[2] || '';
-                 seriesElement.textContent = `Series ${seriesNumber}${suffix}`;
+               const originalSeries = seriesElement.getAttribute('data-series');
+               const clubName = seriesElement.getAttribute('data-club');
+               
+               if (originalSeries && clubName) {
+                 // Transform the series name (e.g., "Chicago 22" -> "Series 22")
+                 let displaySeries = originalSeries;
+                 const numberMatch = originalSeries.match(/(\d+)(\s+\w+)*$/);
+                 if (numberMatch) {
+                   const seriesNumber = numberMatch[1];
+                   const suffix = numberMatch[2] || '';
+                   displaySeries = `Series ${seriesNumber}${suffix}`;
+                 }
+                 
+                 // Update the display with the format "Series X @ Club"
+                 seriesElement.textContent = `${displaySeries} @ ${clubName}`;
                }
              }
              
@@ -282,36 +331,36 @@
       <div class="flex-grow border-t-2 border-gray-400"></div>
     </div>
     <div class="icon-grid grid grid-cols-2 gap-4" aria-label="Act">
-      <a href="/mobile/availability" class="ios-card bg-blue-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-        <i class="fas fa-calendar text-white text-3xl mb-4 opacity-90"></i>
+      <a href="/mobile/availability" class="ios-card act-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+        <i class="fas fa-calendar text-3xl mb-4 opacity-90"></i>
         <div class="text-left">
           <span class="block text-lg font-semibold">View Schedule</span>
         </div>
       </a>
       
-      <a href="/mobile/availability-calendar" class="ios-card bg-blue-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-        <i class="fas fa-calendar-check text-white text-3xl mb-4 opacity-90"></i>
+      <a href="/mobile/availability-calendar" class="ios-card act-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+        <i class="fas fa-calendar-check text-3xl mb-4 opacity-90"></i>
         <div class="text-left">
           <span class="block text-lg font-semibold">Update Availability</span>
         </div>
       </a>
       
-      <a href="/mobile/track-byes-courts" class="ios-card bg-blue-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-        <i class="fas fa-clipboard-check text-white text-3xl mb-4 opacity-90"></i>
+      <a href="/mobile/track-byes-courts" class="ios-card act-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+        <i class="fas fa-clipboard-check text-3xl mb-4 opacity-90"></i>
         <div class="text-left">
           <span class="block text-lg font-semibold">Track Assignments</span>
         </div>
       </a>
       
-      <a href="/mobile/polls" class="ios-card bg-blue-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-        <i class="fas fa-poll text-white text-3xl mb-4 opacity-90"></i>
+      <a href="/mobile/polls" class="ios-card act-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+        <i class="fas fa-poll text-3xl mb-4 opacity-90"></i>
         <div class="text-left">
           <span class="block text-lg font-semibold">Respond to Polls</span>
         </div>
       </a>
       
-      <a href="/mobile/reserve-court" class="ios-card bg-blue-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-        <i class="fas fa-table-tennis text-white text-3xl mb-4 opacity-90"></i>
+      <a href="/mobile/reserve-court" class="ios-card act-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+        <i class="fas fa-table-tennis text-3xl mb-4 opacity-90"></i>
         <div class="text-left">
           <span class="block text-lg font-semibold">Reserve a Court</span>
         </div>
@@ -331,15 +380,15 @@
     <div class="space-y-4" aria-label="Analyze">
       <!-- First row - 2 items -->
       <div class="icon-grid grid grid-cols-2 gap-4">
-        <a href="/mobile/analyze-me" class="ios-card bg-indigo-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-          <i class="fas fa-user text-white text-3xl mb-4 opacity-90"></i>
+        <a href="/mobile/analyze-me" class="ios-card analyze-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+          <i class="fas fa-user text-3xl mb-4 opacity-90"></i>
           <div class="text-left">
             <span class="block text-lg font-semibold">Me</span>
           </div>
         </a>
         
-        <a href="/mobile/myteam" class="ios-card bg-indigo-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-          <i class="fas fa-users text-white text-3xl mb-4 opacity-90"></i>
+        <a href="/mobile/myteam" class="ios-card analyze-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+          <i class="fas fa-users text-3xl mb-4 opacity-90"></i>
           <div class="text-left">
             <span class="block text-lg font-semibold">My Team</span>
           </div>
@@ -348,15 +397,15 @@
       
       <!-- Second row - 2 items -->
       <div class="icon-grid grid grid-cols-2 gap-4">
-        <a href="/mobile/myseries" class="ios-card bg-indigo-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-          <i class="fas fa-trophy text-white text-3xl mb-4 opacity-90"></i>
+        <a href="/mobile/myseries" class="ios-card analyze-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+          <i class="fas fa-trophy text-3xl mb-4 opacity-90"></i>
           <div class="text-left">
             <span class="block text-lg font-semibold">My Series</span>
           </div>
         </a>
         
-        <a href="/mobile/my-club" class="ios-card bg-indigo-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-          <i class="fas fa-building text-white text-3xl mb-4 opacity-90"></i>
+        <a href="/mobile/my-club" class="ios-card analyze-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+          <i class="fas fa-building text-3xl mb-4 opacity-90"></i>
           <div class="text-left">
             <span class="block text-lg font-semibold">My Club</span>
           </div>
@@ -377,29 +426,29 @@
       <div class="flex-grow border-t-2 border-gray-400"></div>
     </div>
     <div class="icon-grid grid grid-cols-2 gap-4" aria-label="Prepare">
-      <a href="/mobile/player-search" class="ios-card bg-pink-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-        <i class="fas fa-search text-white text-3xl mb-4 opacity-90"></i>
+      <a href="/mobile/player-search" class="ios-card prepare-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+        <i class="fas fa-search text-3xl mb-4 opacity-90"></i>
         <div class="text-left">
           <span class="block text-lg font-semibold">Scout Competition</span>
         </div>
       </a>
       
-      <a href="/mobile/teams-players" class="ios-card bg-pink-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-        <i class="fas fa-users text-white text-3xl mb-4 opacity-90"></i>
+      <a href="/mobile/teams-players" class="ios-card prepare-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+        <i class="fas fa-users text-3xl mb-4 opacity-90"></i>
         <div class="text-left">
           <span class="block text-lg font-semibold">Research Opponent Teams</span>
         </div>
       </a>
       
-      <a href="/mobile/matchup-simulator" class="ios-card bg-pink-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-        <i class="fas fa-chart-line text-white text-3xl mb-4 opacity-90"></i>
+      <a href="/mobile/matchup-simulator" class="ios-card prepare-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+        <i class="fas fa-chart-line text-3xl mb-4 opacity-90"></i>
         <div class="text-left">
           <span class="block text-lg font-semibold">Matchup Simulator</span>
         </div>
       </a>
 
-      <a href="/pti-calculator" class="ios-card bg-pink-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-        <i class="fas fa-calculator text-white text-3xl mb-4 opacity-90"></i>
+      <a href="/pti-calculator" class="ios-card prepare-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+        <i class="fas fa-calculator text-3xl mb-4 opacity-90"></i>
         <div class="text-left">
           <span class="block text-lg font-semibold">PTI Calculator</span>
         </div>
@@ -417,22 +466,22 @@
       <div class="flex-grow border-t-2 border-gray-400"></div>
     </div>
     <div class="icon-grid grid grid-cols-2 gap-4" aria-label="Play">
-      <a href="/mobile/find-people-to-play" class="ios-card bg-purple-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-        <i class="fas fa-user-friends text-white text-3xl mb-4 opacity-90"></i>
+      <a href="/mobile/find-people-to-play" class="ios-card play-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+        <i class="fas fa-user-friends text-3xl mb-4 opacity-90"></i>
         <div class="text-left">
           <span class="block text-lg font-semibold">Find Players</span>
         </div>
       </a>
       
-      <a href="/mobile/pickup-games" class="ios-card bg-purple-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-        <i class="fas fa-calendar-plus text-white text-3xl mb-4 opacity-90"></i>
+      <a href="/mobile/pickup-games" class="ios-card play-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+        <i class="fas fa-calendar-plus text-3xl mb-4 opacity-90"></i>
         <div class="text-left">
           <span class="block text-lg font-semibold">Pickup Games</span>
         </div>
       </a>
       
-      <a href="/mobile/my-groups" class="ios-card bg-purple-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-        <i class="fas fa-users text-white text-3xl mb-4 opacity-90"></i>
+      <a href="/mobile/my-groups" class="ios-card play-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+        <i class="fas fa-users text-3xl mb-4 opacity-90"></i>
         <div class="text-left">
                           <span class="block text-lg font-semibold">Group Chats</span>
         </div>
@@ -450,15 +499,15 @@
       <div class="flex-grow border-t-2 border-gray-400"></div>
     </div>
     <div class="icon-grid grid grid-cols-2 gap-4" aria-label="Improve">
-      <a href="/mobile/improve" class="ios-card bg-emerald-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-        <i class="fas fa-chart-line text-white text-3xl mb-4 opacity-90"></i>
+      <a href="/mobile/improve" class="ios-card improve-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+        <i class="fas fa-chart-line text-3xl mb-4 opacity-90"></i>
         <div class="text-left">
           <span class="block text-lg font-semibold">Improve My Game</span>
         </div>
       </a>
       
-      <a href="/mobile/schedule-lesson" class="ios-card bg-emerald-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-        <i class="fas fa-user-graduate text-white text-3xl mb-4 opacity-90"></i>
+      <a href="/mobile/schedule-lesson" class="ios-card improve-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+        <i class="fas fa-user-graduate text-3xl mb-4 opacity-90"></i>
         <div class="text-left">
           <span class="block text-lg font-semibold">Schedule Lesson with Pro</span>
         </div>
@@ -487,57 +536,57 @@
     </div>
     
     <div class="icon-grid grid grid-cols-2 gap-4" aria-label="Captain's Corner">
-      <a href="/mobile/team-schedule" class="ios-card bg-sky-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-        <i class="fas fa-calendar text-white text-3xl mb-4 opacity-90"></i>
+      <a href="/mobile/team-schedule" class="ios-card captain-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+        <i class="fas fa-calendar text-3xl mb-4 opacity-90"></i>
         <div class="text-left">
           <span class="block text-lg font-semibold">Team Schedule</span>
         </div>
       </a>
       
-      <a href="/mobile/find-subs" class="ios-card bg-sky-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-        <i class="fas fa-user-plus text-white text-3xl mb-4 opacity-90"></i>
+      <a href="/mobile/find-subs" class="ios-card captain-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+        <i class="fas fa-user-plus text-3xl mb-4 opacity-90"></i>
         <div class="text-left">
           <span class="block text-lg font-semibold">Find Subs</span>
         </div>
       </a>
       
-      <a href="/mobile/lineup-selection" class="ios-card bg-sky-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-        <i class="fas fa-clipboard-list text-white text-3xl mb-4 opacity-90"></i>
+      <a href="/mobile/lineup-selection" class="ios-card captain-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+        <i class="fas fa-clipboard-list text-3xl mb-4 opacity-90"></i>
         <div class="text-left">
           <span class="block text-lg font-semibold">Create Lineup</span>
         </div>
       </a>
       
-      <a href="/mobile/lineup-escrow" class="ios-card bg-sky-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-        <i class="fas fa-lock text-white text-3xl mb-4 opacity-90"></i>
+      <a href="/mobile/lineup-escrow" class="ios-card captain-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+        <i class="fas fa-lock text-3xl mb-4 opacity-90"></i>
         <div class="text-left">
           <span class="block text-lg font-semibold">Lineup Escrow</span>
         </div>
       </a>
       
-      <a href="/mobile/polls" class="ios-card bg-sky-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-        <i class="fas fa-poll text-white text-3xl mb-4 opacity-90"></i>
+      <a href="/mobile/polls" class="ios-card captain-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+        <i class="fas fa-poll text-3xl mb-4 opacity-90"></i>
         <div class="text-left">
           <span class="block text-lg font-semibold">Team Polls</span>
         </div>
       </a>
       
-      <a href="/mobile/track-byes-courts" class="ios-card bg-sky-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-        <i class="fas fa-edit text-white text-3xl mb-4 opacity-90"></i>
+      <a href="/mobile/track-byes-courts" class="ios-card captain-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+        <i class="fas fa-edit text-3xl mb-4 opacity-90"></i>
         <div class="text-left">
           <span class="block text-lg font-semibold">Update Byes & Assignments</span>
         </div>
       </a>
       
-      <a href="/mobile/practice-times" class="ios-card bg-sky-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-        <i class="fas fa-clock text-white text-3xl mb-4 opacity-90"></i>
+      <a href="/mobile/practice-times" class="ios-card captain-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+        <i class="fas fa-clock text-3xl mb-4 opacity-90"></i>
         <div class="text-left">
           <span class="block text-lg font-semibold">Practice Times</span>
         </div>
       </a>
       
-      <a href="/create-team" class="ios-card bg-sky-600 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-        <i class="fas fa-users-cog text-white text-3xl mb-4 opacity-90"></i>
+      <a href="/create-team" class="ios-card captain-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+        <i class="fas fa-users-cog text-3xl mb-4 opacity-90"></i>
         <div class="text-left">
           <span class="block text-lg font-semibold">Create Team</span>
         </div>
@@ -556,8 +605,8 @@
       <div class="flex-grow border-t-2 border-gray-400"></div>
     </div>
     <div class="icon-grid grid grid-cols-1 gap-4" aria-label="Admin">
-      <a href="/admin" class="ios-card bg-gray-700 text-white rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-        <i class="fas fa-cog text-white text-3xl mb-4 opacity-90"></i>
+      <a href="/admin" class="ios-card admin-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+        <i class="fas fa-cog text-3xl mb-4 opacity-90"></i>
         <div class="text-left">
           <span class="block text-lg font-semibold">Admin Panel</span>
         </div>

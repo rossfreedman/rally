@@ -36,8 +36,13 @@ def _session_needs_refresh(session):
         user = session.get("user", {})
         
         # Check 1: Missing required fields that should always be present
-        required_fields = ["id", "email", "tenniscores_player_id"]
-        if not all(user.get(field) for field in required_fields):
+        # Note: tenniscores_player_id can be empty string for users without player associations
+        core_required_fields = ["id", "email"]
+        if not all(user.get(field) for field in core_required_fields):
+            return True
+        
+        # Check that tenniscores_player_id exists (can be empty string)
+        if "tenniscores_player_id" not in user:
             return True
             
         # Check 2: Check if session version exists and if ETL has run since
@@ -46,8 +51,8 @@ def _session_needs_refresh(session):
         if session_version < current_version:
             return True
             
-        # Check 3: Validate that player/team IDs still exist in database
-        if not _validate_session_data_exists(user):
+        # Check 3: Validate that player/team IDs still exist in database (only if player ID exists)
+        if user.get("tenniscores_player_id") and not _validate_session_data_exists(user):
             return True
             
         return False
@@ -88,8 +93,13 @@ def _validate_session_data_exists(user):
         tenniscores_player_id = user.get("tenniscores_player_id")
         league_id = user.get("league_id")
         
-        if not tenniscores_player_id or not league_id:
-            return False
+        # If no player ID, user doesn't have player associations - that's valid
+        if not tenniscores_player_id:
+            return True
+            
+        # If no league ID, skip database validation
+        if not league_id:
+            return True
             
         # Check if player still exists with this league
         result = execute_query_one(
@@ -107,7 +117,7 @@ def _validate_session_data_exists(user):
         
     except Exception as e:
         logger.warning(f"Error validating session data: {e}")
-        return False
+        return True  # Return True on error to avoid unnecessary session refresh
 
 def _get_current_session_version():
     """Get current session version from database or config"""

@@ -604,3 +604,56 @@ def get_all_users_with_player_contexts():
     except Exception as e:
         print(f"Error getting users with player contexts: {str(e)}")
         raise e
+
+
+def get_detailed_logging_notifications_setting():
+    """Get the current status of detailed logging notifications"""
+    try:
+        result = execute_query_one(
+            "SELECT value FROM system_settings WHERE key = 'detailed_logging_notifications'"
+        )
+        
+        if result:
+            # Return True if value is 'true', False otherwise
+            return result['value'].lower() == 'true'
+        else:
+            # If setting doesn't exist, return False (disabled by default)
+            return False
+            
+    except Exception as e:
+        print(f"Error getting detailed logging notifications setting: {str(e)}")
+        # Return False on error (fail safe - don't send notifications if there's a problem)
+        return False
+
+
+def set_detailed_logging_notifications_setting(enabled, admin_email):
+    """Enable or disable detailed logging notifications"""
+    try:
+        # Convert boolean to string for database storage
+        value = 'true' if enabled else 'false'
+        
+        # Update the setting
+        execute_update(
+            """
+            INSERT INTO system_settings (key, value, description)
+            VALUES ('detailed_logging_notifications', %s, 'Enable/disable SMS notifications to admin for every user activity logged')
+            ON CONFLICT (key) DO UPDATE SET 
+                value = EXCLUDED.value,
+                updated_at = CURRENT_TIMESTAMP
+            """,
+            [value]
+        )
+        
+        # Log the admin action
+        action_description = "enabled" if enabled else "disabled"
+        log_admin_action(
+            admin_email=admin_email,
+            action="toggle_detailed_logging_notifications",
+            details=f"Detailed logging notifications {action_description}"
+        )
+        
+        return True
+        
+    except Exception as e:
+        print(f"Error setting detailed logging notifications: {str(e)}")
+        raise e

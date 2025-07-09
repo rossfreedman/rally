@@ -594,12 +594,18 @@ document.addEventListener('DOMContentLoaded', function() {
             `<div class="text-sm text-gray-700">${line}</div>`
         ).join('');
         
-        // Create edit button HTML if user is creator
-        const editButtonHTML = isCreator && !isPast ? `
-            <button class="game-edit-btn w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors mb-2" 
-                    data-game-id="${game.id}">
-                <i class="fas fa-edit mr-2"></i>Edit Game
-            </button>
+        // Create creator buttons HTML if user is creator
+        const creatorButtonsHTML = isCreator && !isPast ? `
+            <div class="grid grid-cols-2 gap-2 mb-3">
+                <button class="game-edit-btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors" 
+                        data-game-id="${game.id}">
+                    <i class="fas fa-edit mr-2"></i>Edit Game
+                </button>
+                <button class="game-delete-btn bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors" 
+                        data-game-id="${game.id}" data-game-description="${game.description}" data-game-date="${game.formatted_date}" data-game-time="${game.formatted_time}">
+                    <i class="fas fa-trash mr-2"></i>Delete Game
+                </button>
+            </div>
         ` : '';
         
         return `
@@ -677,13 +683,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     ` : ''}
                 </div>
                 
-                ${editButtonHTML}
-                <button class="game-action-btn w-full ${buttonClass} text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors" 
+                <!-- Join/Leave Game Button -->
+                <button class="game-action-btn w-full ${buttonClass} text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors mb-3" 
                         data-game-id="${game.id}" 
                         data-action="${buttonAction}"
                         ${buttonDisabled ? 'disabled' : ''}>
                     ${buttonIcon ? `<i class="fas fa-${buttonIcon} mr-1"></i>` : ''}${buttonText}
                 </button>
+                
+                <!-- Creator Action Buttons (Edit & Delete) -->
+                ${creatorButtonsHTML}
             </div>
         `;
     }
@@ -700,6 +709,131 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('Error handling game edit:', error);
             showError('Failed to load game for editing');
         }
+    }
+    
+    // Handle game delete
+    async function handleGameDelete(gameId, gameDescription, gameDate, gameTime) {
+        try {
+            // Create confirmation dialog
+            const confirmed = await showConfirmDialog(
+                'Delete Pickup Game',
+                `Are you sure you want to delete "${gameDescription}" scheduled for ${gameDate} at ${gameTime}?`,
+                'This action cannot be undone and will remove all participants from the game.',
+                'Delete Game',
+                'Cancel'
+            );
+            
+            if (!confirmed) {
+                return; // User canceled
+            }
+            
+            // Show loading state
+            showInfo('Deleting pickup game...');
+            
+            const response = await fetch(`/api/pickup-games/${gameId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok && result.success) {
+                showDeleteSuccess(result.message);
+                // Reload games to remove the deleted game
+                setTimeout(() => loadPickupGames(), 1000);
+            } else {
+                showError(result.error || 'Failed to delete pickup game');
+            }
+        } catch (error) {
+            console.error('Error deleting pickup game:', error);
+            showError('Network error. Please try again.');
+        }
+    }
+    
+    // Show confirmation dialog
+    function showConfirmDialog(title, message, warning, confirmText, cancelText) {
+        return new Promise((resolve) => {
+            // Create modal backdrop
+            const backdrop = document.createElement('div');
+            backdrop.className = 'fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4';
+            backdrop.style.zIndex = '10000';
+            
+            // Create modal content
+            const modal = document.createElement('div');
+            modal.className = 'bg-white rounded-lg shadow-xl max-w-md w-full transform transition-all duration-300';
+            modal.style.transform = 'scale(0.9)';
+            modal.style.opacity = '0';
+            
+            modal.innerHTML = `
+                <div class="p-6">
+                    <div class="flex items-center mb-4">
+                        <div class="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center mr-3">
+                            <i class="fas fa-exclamation-triangle text-red-600 text-lg"></i>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-900">${title}</h3>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <p class="text-gray-700 mb-2">${message}</p>
+                        ${warning ? `<p class="text-sm text-red-600 font-medium">${warning}</p>` : ''}
+                    </div>
+                    
+                    <div class="flex gap-3 justify-end">
+                        <button id="confirmCancel" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors font-medium">
+                            ${cancelText}
+                        </button>
+                        <button id="confirmDelete" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium">
+                            <i class="fas fa-trash mr-2"></i>${confirmText}
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            backdrop.appendChild(modal);
+            document.body.appendChild(backdrop);
+            
+            // Animate in
+            setTimeout(() => {
+                modal.style.transform = 'scale(1)';
+                modal.style.opacity = '1';
+            }, 10);
+            
+            // Handle button clicks
+            const cancelBtn = modal.querySelector('#confirmCancel');
+            const deleteBtn = modal.querySelector('#confirmDelete');
+            
+            function cleanup(result) {
+                modal.style.transform = 'scale(0.9)';
+                modal.style.opacity = '0';
+                setTimeout(() => {
+                    if (backdrop.parentNode) {
+                        backdrop.parentNode.removeChild(backdrop);
+                    }
+                }, 300);
+                resolve(result);
+            }
+            
+            cancelBtn.addEventListener('click', () => cleanup(false));
+            deleteBtn.addEventListener('click', () => cleanup(true));
+            
+            // Close on backdrop click
+            backdrop.addEventListener('click', (e) => {
+                if (e.target === backdrop) {
+                    cleanup(false);
+                }
+            });
+            
+            // Close on escape key
+            const escapeHandler = (e) => {
+                if (e.key === 'Escape') {
+                    document.removeEventListener('keydown', escapeHandler);
+                    cleanup(false);
+                }
+            };
+            document.addEventListener('keydown', escapeHandler);
+        });
     }
     
     // Handle game action (join/leave)
@@ -951,6 +1085,52 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 4000);
     }
 
+    // Show success message for deleting games (orange background)
+    function showDeleteSuccess(message) {
+        const successDiv = document.createElement('div');
+        successDiv.className = 'fixed top-4 left-4 right-4 bg-orange-500 text-white p-6 rounded-lg shadow-xl z-50 transform transition-all duration-300';
+        successDiv.style.zIndex = '9999';
+        successDiv.style.position = 'fixed';
+        successDiv.style.top = '1rem';
+        successDiv.style.left = '1rem';
+        successDiv.style.right = '1rem';
+        successDiv.style.boxShadow = '0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.04)';
+        successDiv.innerHTML = `
+            <div class="flex items-center gap-3">
+                <i class="fas fa-trash text-2xl text-orange-200"></i>
+                <span class="font-semibold text-lg flex-1">${message}</span>
+                <button onclick="this.parentNode.parentNode.remove()" class="ml-2 text-orange-200 hover:text-white transition-colors">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+        `;
+        
+        // Add entrance animation
+        successDiv.style.transform = 'translateY(-50px) scale(0.9)';
+        successDiv.style.opacity = '0';
+        
+        document.body.appendChild(successDiv);
+        
+        // Trigger entrance animation
+        setTimeout(() => {
+            successDiv.style.transform = 'translateY(0) scale(1)';
+            successDiv.style.opacity = '1';
+        }, 10);
+        
+        // Auto-remove after 4 seconds
+        setTimeout(() => {
+            if (successDiv.parentNode) {
+                successDiv.style.transform = 'translateY(-50px) scale(0.9)';
+                successDiv.style.opacity = '0';
+                setTimeout(() => {
+                    if (successDiv.parentNode) {
+                        successDiv.parentNode.removeChild(successDiv);
+                    }
+                }, 300);
+            }
+        }, 4000);
+    }
+
     // Initialize page
     function initializePage() {
         setupEventListeners();
@@ -1001,6 +1181,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         });
+        
+        // Game delete buttons - use event delegation for dynamically created content
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('game-delete-btn') || e.target.closest('.game-delete-btn')) {
+                const button = e.target.classList.contains('game-delete-btn') ? e.target : e.target.closest('.game-delete-btn');
+                const gameId = parseInt(button.dataset.gameId);
+                const gameDescription = button.dataset.gameDescription;
+                const gameDate = button.dataset.gameDate;
+                const gameTime = button.dataset.gameTime;
+                
+                if (gameId && gameDescription) {
+                    handleGameDelete(gameId, gameDescription, gameDate, gameTime);
+                }
+            }
+        });
     }
 
     // Initialize the page
@@ -1023,9 +1218,14 @@ document.addEventListener('DOMContentLoaded', function() {
         showLeaveSuccess('🔴 Test Leave: You just left "Saturday Morning Game" at Saturday, Jul 13 8:00 AM');
     };
     
+    window.testDelete = function() {
+        showDeleteSuccess('🗑️ Test Delete: Successfully deleted pickup game "Saturday Morning Game" and removed 3 participant(s)');
+    };
+    
     console.log('🔧 Global test functions available:');
     console.log('   testSuccess() - Test green join message');
     console.log('   testLeave() - Test red leave message');
+    console.log('   testDelete() - Test orange delete message');
     console.log('   testError() - Test error message');
     console.log('   testInfo() - Test info message');
 });
