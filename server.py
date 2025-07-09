@@ -2694,6 +2694,15 @@ def debug_twilio_config():
         from config import TwilioConfig
         import os
         
+        # Also check detailed logging notifications setting
+        detailed_logging_enabled = False
+        detailed_logging_error = None
+        try:
+            from app.services.admin_service import get_detailed_logging_notifications_setting
+            detailed_logging_enabled = get_detailed_logging_notifications_setting()
+        except Exception as e:
+            detailed_logging_error = str(e)
+        
         return jsonify({
             "debug": "twilio_config",
             "environment_variables": {
@@ -2709,6 +2718,11 @@ def debug_twilio_config():
                 "SENDER_PHONE": TwilioConfig.SENDER_PHONE
             },
             "config_validation": TwilioConfig.validate_config(),
+            "detailed_logging": {
+                "enabled": detailed_logging_enabled,
+                "error": detailed_logging_error
+            },
+            "admin_phone_number": "773-213-8911",
             "timestamp": datetime.now().isoformat()
         })
         
