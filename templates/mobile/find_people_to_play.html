@@ -952,8 +952,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 player.full_name.toLowerCase() === playerName.toLowerCase()
             );
             
-            if (!exactMatch || !exactMatch.user_id) {
-                throw new Error('Player not found or not registered in the system');
+            if (!exactMatch) {
+                throw new Error('Player not found in the system');
+            }
+            
+            // Prepare request data based on whether player has an account
+            let requestData;
+            if (exactMatch.user_id) {
+                // Player has a registered account
+                requestData = {
+                    user_id: exactMatch.user_id
+                };
+            } else {
+                // Player exists but no account - use no_account flow
+                requestData = {
+                    tenniscores_player_id: exactMatch.tenniscores_player_id,
+                    first_name: exactMatch.first_name,
+                    last_name: exactMatch.last_name,
+                    no_account: true
+                };
             }
             
             // Add player to group
@@ -962,9 +979,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({
-                    user_id: exactMatch.user_id
-                })
+                body: JSON.stringify(requestData)
             });
             
             if (!addResponse.ok) {
@@ -974,8 +989,14 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const result = await addResponse.json();
             
-            // Show success message
-            showGroupSuccessMessage(`${playerName} has been added to ${groupName}!`);
+            // Show success message - customize based on whether player has account
+            let successMessage;
+            if (exactMatch.user_id) {
+                successMessage = `${playerName} has been added to ${groupName}!`;
+            } else {
+                successMessage = `${playerName} has been added to ${groupName}! They'll be able to receive group messages when they create a Rally account.`;
+            }
+            showGroupSuccessMessage(successMessage);
             
             // Close modal after delay
             setTimeout(() => {
