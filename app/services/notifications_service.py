@@ -146,9 +146,11 @@ def _send_sms_with_retry(formatted_phone: str, message: str, max_retries: int) -
     # Prepare API request
     url = f"https://api.twilio.com/2010-04-01/Accounts/{TwilioConfig.ACCOUNT_SID}/Messages.json"
     
+    # BYPASS MESSAGING SERVICE: Use direct From/To to avoid error 21704
+    # Original code used MessagingServiceSid which was causing A2P 10DLC issues
     data = {
         "To": formatted_phone,
-        "MessagingServiceSid": TwilioConfig.MESSAGING_SERVICE_SID,
+        "From": TwilioConfig.SENDER_PHONE,  # Use direct sender phone instead of messaging service
         "Body": message,
     }
     
@@ -165,7 +167,7 @@ def _send_sms_with_retry(formatted_phone: str, message: str, max_retries: int) -
                 logger.info(f"SMS retry {attempt}/{max_retries} in {delay}s (error 21704 recovery)")
                 time.sleep(delay)
             
-            logger.info(f"Sending SMS to {formatted_phone} via Twilio (attempt {attempt + 1}/{max_retries + 1})")
+            logger.info(f"Sending SMS to {formatted_phone} via Twilio (attempt {attempt + 1}/{max_retries + 1}) [DIRECT MODE]")
             
             response = requests.post(
                 url,
@@ -178,7 +180,7 @@ def _send_sms_with_retry(formatted_phone: str, message: str, max_retries: int) -
             last_response_data = response_data
             
             if response.status_code == 201:  # Twilio success status
-                success_msg = f"SMS sent successfully"
+                success_msg = f"SMS sent successfully [DIRECT MODE]"
                 if attempt > 0:
                     success_msg += f" (succeeded on retry {attempt})"
                 
@@ -193,7 +195,8 @@ def _send_sms_with_retry(formatted_phone: str, message: str, max_retries: int) -
                     "twilio_status": response_data.get("status"),
                     "price": response_data.get("price"),
                     "date_sent": response_data.get("date_sent"),
-                    "retry_attempt": attempt
+                    "retry_attempt": attempt,
+                    "sending_method": "direct_phone"  # Track that we used direct mode
                 }
             else:
                 error_message = response_data.get("message", "Unknown Twilio error")
@@ -201,7 +204,7 @@ def _send_sms_with_retry(formatted_phone: str, message: str, max_retries: int) -
                 
                 # Check if this is error 21704 (provider disruption) - retry if we have attempts left
                 if error_code == 21704 and attempt < max_retries:
-                    logger.warning(f"Error 21704 (provider disruption) on attempt {attempt + 1}, retrying...")
+                    logger.warning(f"Error 21704 (provider disruption) on attempt {attempt + 1}, retrying with direct phone...")
                     last_error = f"Twilio error 21704: {error_message}"
                     continue
                 
@@ -216,7 +219,8 @@ def _send_sms_with_retry(formatted_phone: str, message: str, max_retries: int) -
                     "message_sid": None,
                     "raw_response": response_data,
                     "final_attempt": attempt + 1,
-                    "max_retries": max_retries
+                    "max_retries": max_retries,
+                    "sending_method": "direct_phone"
                 }
                 
         except requests.exceptions.Timeout:
@@ -257,7 +261,8 @@ def _send_sms_with_retry(formatted_phone: str, message: str, max_retries: int) -
         "message_sid": None,
         "final_attempt": attempt + 1,
         "max_retries": max_retries,
-        "last_response": last_response_data
+        "last_response": last_response_data,
+        "sending_method": "direct_phone"
     }
 
 
