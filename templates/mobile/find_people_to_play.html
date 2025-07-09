@@ -998,10 +998,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             showGroupSuccessMessage(successMessage);
             
-            // Close modal after delay
-            setTimeout(() => {
-                hideAddToGroupModal();
-            }, 1500);
+            // Modal stays open until user clicks X to close
             
         } catch (error) {
             console.error('Error adding player to group:', error);
