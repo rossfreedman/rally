@@ -2685,6 +2685,41 @@ def check_twilio_delivery():
         }), 500
 
 
+@app.route("/debug/twilio-config")
+def debug_twilio_config():
+    """
+    Debug endpoint to check actual Twilio configuration in production
+    """
+    try:
+        from config import TwilioConfig
+        import os
+        
+        return jsonify({
+            "debug": "twilio_config",
+            "environment_variables": {
+                "TWILIO_ACCOUNT_SID_env": os.getenv("TWILIO_ACCOUNT_SID", "NOT_SET"),
+                "TWILIO_AUTH_TOKEN_env": "SET" if os.getenv("TWILIO_AUTH_TOKEN") else "NOT_SET",
+                "TWILIO_MESSAGING_SERVICE_SID_env": os.getenv("TWILIO_MESSAGING_SERVICE_SID", "NOT_SET"),
+                "TWILIO_SENDER_PHONE_env": os.getenv("TWILIO_SENDER_PHONE", "NOT_SET")
+            },
+            "effective_config": {
+                "ACCOUNT_SID": TwilioConfig.ACCOUNT_SID,
+                "AUTH_TOKEN": "SET" if TwilioConfig.AUTH_TOKEN else "NOT_SET", 
+                "MESSAGING_SERVICE_SID": TwilioConfig.MESSAGING_SERVICE_SID,
+                "SENDER_PHONE": TwilioConfig.SENDER_PHONE
+            },
+            "config_validation": TwilioConfig.validate_config(),
+            "timestamp": datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        import traceback
+        return jsonify({
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }), 500
+
+
 # ==========================================
 # SERVER STARTUP
 # ==========================================
