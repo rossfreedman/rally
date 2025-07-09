@@ -2734,6 +2734,41 @@ def debug_twilio_config():
         }), 500
 
 
+@app.route("/debug/enable-activity-logging-sms")
+def enable_activity_logging_sms():
+    """
+    Debug endpoint to enable detailed logging notifications in production
+    """
+    try:
+        from app.services.admin_service import set_detailed_logging_notifications_setting, get_detailed_logging_notifications_setting
+        
+        # Check current setting
+        current_setting = get_detailed_logging_notifications_setting()
+        
+        # Enable detailed logging notifications
+        set_detailed_logging_notifications_setting(enabled=True, admin_email="rossfreedman@gmail.com")
+        
+        # Verify it was set
+        new_setting = get_detailed_logging_notifications_setting()
+        
+        return jsonify({
+            "debug": "enable_activity_logging_sms",
+            "before": current_setting,
+            "after": new_setting,
+            "success": new_setting == True,
+            "message": "Detailed logging notifications enabled" if new_setting else "Failed to enable detailed logging notifications",
+            "admin_phone": "773-213-8911",
+            "timestamp": datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        import traceback
+        return jsonify({
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }), 500
+
+
 # ==========================================
 # SERVER STARTUP
 # ==========================================
