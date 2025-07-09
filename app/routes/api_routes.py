@@ -5659,6 +5659,7 @@ def add_group_member(group_id):
         user = session["user"]
         user_id = user.get("id")
         user_email = user.get("email")
+        user_club_id = user.get("club_id")  # Get user's current club ID
         
         if not user_id:
             return jsonify({"error": "User ID not found"}), 400
