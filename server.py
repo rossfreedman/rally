@@ -2553,15 +2553,21 @@ def check_twilio_delivery():
         import requests
         from requests.auth import HTTPBasicAuth
         
-        # Get Twilio credentials (same as notifications service)
-        account_sid = os.getenv('TWILIO_ACCOUNT_SID')
-        auth_token = os.getenv('TWILIO_AUTH_TOKEN')
+        # Get Twilio credentials using the same config as notifications service
+        from config import TwilioConfig
+        
+        account_sid = TwilioConfig.ACCOUNT_SID
+        auth_token = TwilioConfig.AUTH_TOKEN
         
         if not account_sid or not auth_token:
             return jsonify({
                 "error": "Twilio credentials not available",
                 "account_sid_available": bool(account_sid),
-                "auth_token_available": bool(auth_token)
+                "auth_token_available": bool(auth_token),
+                "config_details": {
+                    "account_sid": account_sid[:8] + "..." if account_sid else None,
+                    "auth_token_exists": bool(auth_token)
+                }
             }), 500
         
         # Check the specific message SIDs from recent logs
