@@ -132,7 +132,8 @@ def send_sms_notification(to_number: str, message: str, test_mode: bool = False,
 
 def _send_sms_with_retry(formatted_phone: str, message: str, max_retries: int) -> Dict:
     """
-    Send SMS with exponential backoff retry for error 21704
+    Send MMS with text content with exponential backoff retry for error 21704
+    Using MMS to bypass SMS connectivity issues (Twilio SMS currently degraded)
     
     Args:
         formatted_phone (str): Validated phone number
@@ -143,15 +144,18 @@ def _send_sms_with_retry(formatted_phone: str, message: str, max_retries: int) -
         Dict: Result with status, message_sid, and any errors
     """
     
-    # Prepare API request
+    # Prepare API request for MMS (bypasses SMS connectivity issues)
     url = f"https://api.twilio.com/2010-04-01/Accounts/{TwilioConfig.ACCOUNT_SID}/Messages.json"
     
-    # BYPASS MESSAGING SERVICE: Use direct From/To to avoid error 21704
-    # Original code used MessagingServiceSid which was causing A2P 10DLC issues
+    # USE MMS INSTEAD OF SMS to bypass current SMS connectivity issues
+    # MMS is fully operational while SMS has connectivity issues
     data = {
         "To": formatted_phone,
-        "From": TwilioConfig.SENDER_PHONE,  # Use direct sender phone instead of messaging service
+        "From": TwilioConfig.SENDER_PHONE,
         "Body": message,
+        # Adding MediaUrl makes this an MMS instead of SMS
+        # Using a 1x1 transparent pixel to make it valid MMS with minimal data
+        "MediaUrl": "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
     }
     
     auth = HTTPBasicAuth(TwilioConfig.ACCOUNT_SID, TwilioConfig.AUTH_TOKEN)
@@ -164,10 +168,10 @@ def _send_sms_with_retry(formatted_phone: str, message: str, max_retries: int) -
             if attempt > 0:
                 # Calculate exponential backoff delay
                 delay = min(2 ** attempt, 60)  # Max 60 seconds
-                logger.info(f"SMS retry {attempt}/{max_retries} in {delay}s (error 21704 recovery)")
+                logger.info(f"MMS retry {attempt}/{max_retries} in {delay}s (bypassing SMS connectivity issue)")
                 time.sleep(delay)
             
-            logger.info(f"Sending SMS to {formatted_phone} via Twilio (attempt {attempt + 1}/{max_retries + 1}) [DIRECT MODE]")
+            logger.info(f"Sending MMS to {formatted_phone} via Twilio (attempt {attempt + 1}/{max_retries + 1}) [MMS MODE - bypassing SMS issues]")
             
             response = requests.post(
                 url,
@@ -180,7 +184,7 @@ def _send_sms_with_retry(formatted_phone: str, message: str, max_retries: int) -
             last_response_data = response_data
             
             if response.status_code == 201:  # Twilio success status
-                success_msg = f"SMS sent successfully [DIRECT MODE]"
+                success_msg = f"MMS sent successfully [MMS MODE - bypassing SMS connectivity issues]"
                 if attempt > 0:
                     success_msg += f" (succeeded on retry {attempt})"
                 
@@ -196,7 +200,7 @@ def _send_sms_with_retry(formatted_phone: str, message: str, max_retries: int) -
                     "price": response_data.get("price"),
                     "date_sent": response_data.get("date_sent"),
                     "retry_attempt": attempt,
-                    "sending_method": "direct_phone"  # Track that we used direct mode
+                    "sending_method": "mms_bypass"  # Track that we used MMS to bypass SMS issues
                 }
             else:
                 error_message = response_data.get("message", "Unknown Twilio error")
@@ -204,7 +208,7 @@ def _send_sms_with_retry(formatted_phone: str, message: str, max_retries: int) -
                 
                 # Check if this is error 21704 (provider disruption) - retry if we have attempts left
                 if error_code == 21704 and attempt < max_retries:
-                    logger.warning(f"Error 21704 (provider disruption) on attempt {attempt + 1}, retrying with direct phone...")
+                    logger.warning(f"Error 21704 (provider disruption) on attempt {attempt + 1}, retrying with MMS...")
                     last_error = f"Twilio error 21704: {error_message}"
                     continue
                 
@@ -220,7 +224,7 @@ def _send_sms_with_retry(formatted_phone: str, message: str, max_retries: int) -
                     "raw_response": response_data,
                     "final_attempt": attempt + 1,
                     "max_retries": max_retries,
-                    "sending_method": "direct_phone"
+                    "sending_method": "mms_bypass"
                 }
                 
         except requests.exceptions.Timeout:
@@ -234,7 +238,7 @@ def _send_sms_with_retry(formatted_phone: str, message: str, max_retries: int) -
                 continue
             
         except requests.exceptions.RequestException as e:
-            error_msg = f"Network error sending SMS (attempt {attempt + 1}): {str(e)}"
+            error_msg = f"Network error sending MMS (attempt {attempt + 1}): {str(e)}"
             logger.error(error_msg)
             last_error = f"Network error: {str(e)}"
             
@@ -244,7 +248,7 @@ def _send_sms_with_retry(formatted_phone: str, message: str, max_retries: int) -
                 continue
             
         except Exception as e:
-            error_msg = f"Unexpected error sending SMS (attempt {attempt + 1}): {str(e)}"
+            error_msg = f"Unexpected error sending MMS (attempt {attempt + 1}): {str(e)}"
             logger.error(error_msg)
             last_error = f"Unexpected error: {str(e)}"
             # Don't retry unexpected errors
@@ -252,7 +256,7 @@ def _send_sms_with_retry(formatted_phone: str, message: str, max_retries: int) -
     
     # All retries exhausted
     final_error = last_error or "All retry attempts failed"
-    logger.error(f"SMS sending failed after {max_retries + 1} attempts: {final_error}")
+    logger.error(f"MMS sending failed after {max_retries + 1} attempts: {final_error}")
     
     return {
         "success": False,
@@ -262,7 +266,7 @@ def _send_sms_with_retry(formatted_phone: str, message: str, max_retries: int) -
         "final_attempt": attempt + 1,
         "max_retries": max_retries,
         "last_response": last_response_data,
-        "sending_method": "direct_phone"
+        "sending_method": "mms_bypass"
     }
 
 
