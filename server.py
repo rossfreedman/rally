@@ -352,6 +352,15 @@ def redirect_index_html():
     return redirect("/mobile")
 
 
+@app.route("/welcome")
+@login_required
+def serve_interstitial():
+    """Serve the interstitial welcome page shown after login/registration"""
+    session_data = {"user": session["user"], "authenticated": True}
+    log_user_activity(session["user"]["email"], "page_visit", page="interstitial_welcome")
+    return render_template("interstitial.html", session_data=session_data)
+
+
 @app.route("/contact-sub")
 @login_required
 def serve_contact_sub():

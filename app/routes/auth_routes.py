@@ -133,7 +133,7 @@ def handle_register():
                 {
                     "status": "success",
                     "message": "Registration successful",
-                    "redirect": "/mobile",
+                    "redirect": "/welcome",
                 }
             ),
             201,
@@ -229,7 +229,7 @@ def handle_login():
         series = user_data.get("series", "")
 
         # Check for redirect_after_login in session
-        redirect_url = session.pop("redirect_after_login", "/mobile")
+        redirect_url = session.pop("redirect_after_login", "/welcome")
 
         return jsonify(
             {

@@ -273,7 +273,7 @@ class TestRegistrationAPI:
         assert response.status_code == 201
         data = response.get_json()
         assert data["status"] == "success"
-        assert data["redirect"] == "/mobile"
+        assert data["redirect"] == "/welcome"
 
     def test_register_api_missing_fields(self, client):
         """Test registration API with missing fields"""
