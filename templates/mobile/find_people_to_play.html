@@ -247,6 +247,16 @@
                 </a>
             </div>
         </div>
+        
+        <!-- Modal Footer with Add Button -->
+        <div class="px-6 py-4 border-t border-gray-100 bg-gray-50">
+            <button id="addToGroupBtn" 
+                    class="w-full px-4 py-3 bg-gray-300 text-gray-500 rounded-lg font-semibold cursor-not-allowed transition-colors duration-200"
+                    disabled>
+                <i class="fas fa-plus mr-2"></i>
+                Select a group to add player
+            </button>
+        </div>
     </div>
 </div>
 
@@ -701,8 +711,16 @@ document.addEventListener('DOMContentLoaded', function() {
         // Group modal events
         const closeGroupModal = document.getElementById('closeGroupModal');
         const addToGroupModal = document.getElementById('addToGroupModal');
+        const addToGroupBtn = document.getElementById('addToGroupBtn');
         
         closeGroupModal.addEventListener('click', hideAddToGroupModal);
+        
+        // Add button click event
+        addToGroupBtn.addEventListener('click', function() {
+            if (window.selectedGroupForAdding && !this.disabled) {
+                addPlayerToGroup(window.selectedGroupForAdding.id, window.selectedGroupForAdding.name);
+            }
+        });
         
         // Close modal when clicking outside
         selectedPlayersModal.addEventListener('click', function(e) {
@@ -855,6 +873,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Store player info for later use
         window.currentSelectedPlayer = { name: playerName, firstName, lastName };
+        window.selectedGroupForAdding = null;
         
         // Show player info
         selectedPlayerInfo.innerHTML = `
@@ -875,6 +894,12 @@ document.addEventListener('DOMContentLoaded', function() {
         groupsList.innerHTML = '';
         noGroupsMessage.classList.add('hidden');
         
+        // Reset Add button to initial state
+        const addBtn = document.getElementById('addToGroupBtn');
+        addBtn.disabled = true;
+        addBtn.className = 'w-full px-4 py-3 bg-gray-300 text-gray-500 rounded-lg font-semibold cursor-not-allowed transition-colors duration-200';
+        addBtn.innerHTML = '<i class="fas fa-plus mr-2"></i>Select a group to add player';
+        
         try {
             // Load user's groups
             const response = await fetch('/api/groups');
@@ -894,6 +919,8 @@ document.addEventListener('DOMContentLoaded', function() {
             groups.forEach(group => {
                 const groupElement = document.createElement('div');
                 groupElement.className = 'group-item bg-white border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-sm transition-all duration-200 cursor-pointer';
+                groupElement.dataset.groupId = group.id;
+                groupElement.dataset.groupName = group.name;
                 groupElement.innerHTML = `
                     <div class="flex items-center justify-between">
                         <div class="flex-1">
@@ -903,12 +930,14 @@ document.addEventListener('DOMContentLoaded', function() {
                         </div>
                         <div class="flex items-center gap-2">
                             <i class="fas fa-users text-gray-400"></i>
-                            <i class="fas fa-chevron-right text-gray-300"></i>
+                            <div class="selected-indicator hidden">
+                                <i class="fas fa-check-circle text-blue-600"></i>
+                            </div>
                         </div>
                     </div>
                 `;
                 
-                groupElement.addEventListener('click', () => addPlayerToGroup(group.id, group.name));
+                groupElement.addEventListener('click', () => selectGroup(group.id, group.name, groupElement));
                 groupsList.appendChild(groupElement);
             });
             
@@ -924,6 +953,28 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             `;
         }
+    }
+    
+    // Select a group (highlight it and enable Add button)
+    function selectGroup(groupId, groupName, groupElement) {
+        // Clear previous selection
+        document.querySelectorAll('.group-item').forEach(item => {
+            item.classList.remove('border-blue-500', 'bg-blue-50');
+            item.querySelector('.selected-indicator').classList.add('hidden');
+        });
+        
+        // Select current group
+        groupElement.classList.add('border-blue-500', 'bg-blue-50');
+        groupElement.querySelector('.selected-indicator').classList.remove('hidden');
+        
+        // Store selection
+        window.selectedGroupForAdding = { id: groupId, name: groupName };
+        
+        // Enable Add button
+        const addBtn = document.getElementById('addToGroupBtn');
+        addBtn.disabled = false;
+        addBtn.className = 'w-full px-4 py-3 bg-blue-600 text-white rounded-lg font-semibold cursor-pointer hover:bg-blue-700 transition-colors duration-200';
+        addBtn.innerHTML = `<i class="fas fa-plus mr-2"></i>Add to ${groupName}`;
     }
     
     // Add player to selected group
@@ -1016,6 +1067,20 @@ document.addEventListener('DOMContentLoaded', function() {
         const modal = document.getElementById('addToGroupModal');
         modal.classList.add('hidden');
         window.currentSelectedPlayer = null;
+        window.selectedGroupForAdding = null;
+        
+        // Reset Add button
+        const addBtn = document.getElementById('addToGroupBtn');
+        addBtn.disabled = true;
+        addBtn.className = 'w-full px-4 py-3 bg-gray-300 text-gray-500 rounded-lg font-semibold cursor-not-allowed transition-colors duration-200';
+        addBtn.innerHTML = '<i class="fas fa-plus mr-2"></i>Select a group to add player';
+        
+        // Clear group selections
+        document.querySelectorAll('.group-item').forEach(item => {
+            item.classList.remove('border-blue-500', 'bg-blue-50');
+            const indicator = item.querySelector('.selected-indicator');
+            if (indicator) indicator.classList.add('hidden');
+        });
     }
     
     // Show success message in group modal
