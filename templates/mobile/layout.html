@@ -4,7 +4,28 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Rally{% endblock %}</title>
+    
+    <!-- Favicon -->
     <link rel="icon" type="image/png" href="/static/images/rallylogo.png">
+    <link rel="apple-touch-icon" href="/static/images/rallylogo.png">
+    
+    <!-- Open Graph Meta Tags for Social Media/iMessage Previews -->
+    <meta property="og:title" content="{% block og_title %}Rally - Platform Tennis League Management{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}Manage your platform tennis league, track matches, analyze performance, and connect with players.{% endblock %}">
+    <meta property="og:image" content="{{ url_for('static', filename='images/rallylogo.png', _external=True) }}">
+    <meta property="og:url" content="{{ request.url }}">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Rally">
+    
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="{% block twitter_title %}Rally - Platform Tennis League Management{% endblock %}">
+    <meta name="twitter:description" content="{% block twitter_description %}Manage your platform tennis league, track matches, analyze performance, and connect with players.{% endblock %}">
+    <meta name="twitter:image" content="{{ url_for('static', filename='images/rallylogo.png', _external=True) }}">
+    
+    <!-- Additional Meta Tags -->
+    <meta name="description" content="{% block meta_description %}Rally platform tennis league management system{% endblock %}">
+    <meta name="author" content="Rally">
     
     <!-- Tailwind CSS (compiled) & DaisyUI -->
     <link href="/static/css/output.css" rel="stylesheet">
