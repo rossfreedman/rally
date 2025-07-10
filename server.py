@@ -2951,6 +2951,194 @@ def test_activity_logging_sms():
         }), 500
 
 
+@app.route("/debug/investigate-victor-forman-production")
+def investigate_victor_forman_production():
+    """
+    Investigate Victor Forman multiple registration issue in production
+    """
+    railway_env = os.environ.get("RAILWAY_ENVIRONMENT", "not_set")
+    
+    if railway_env != "production":
+        return jsonify({
+            "error": "This endpoint only works on production",
+            "railway_env": railway_env
+        }), 403
+    
+    try:
+        from database_utils import execute_query, execute_query_one
+        
+        results = {
+            "railway_env": railway_env,
+            "timestamp": datetime.now().isoformat(),
+            "investigation": {}
+        }
+        
+        # 1. Find all users with Victor Forman name variations
+        users_query = """
+            SELECT 
+                id, email, first_name, last_name, 
+                created_at, last_login, league_context
+            FROM users 
+            WHERE (first_name ILIKE '%victor%' AND last_name ILIKE '%forman%')
+               OR email ILIKE '%victor%' OR email ILIKE '%forman%'
+            ORDER BY created_at ASC
+        """
+        
+        victor_users = execute_query(users_query)
+        results["investigation"]["victor_users"] = []
+        
+        for user in (victor_users or []):
+            user_info = {
+                "id": user['id'],
+                "email": user['email'],
+                "name": f"{user['first_name']} {user['last_name']}",
+                "created_at": str(user['created_at']),
+                "last_login": str(user['last_login']) if user['last_login'] else None,
+                "league_context": user['league_context'],
+                "associations": []
+            }
+            
+            # Check associations for each user
+            associations_query = """
+                SELECT 
+                    upa.tenniscores_player_id,
+                    p.first_name, p.last_name,
+                    l.league_name, c.name as club_name, s.name as series_name
+                FROM user_player_associations upa
+                JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+                LEFT JOIN leagues l ON p.league_id = l.id
+                LEFT JOIN clubs c ON p.club_id = c.id
+                LEFT JOIN series s ON p.series_id = s.id
+                WHERE upa.user_id = %s
+            """
+            
+            associations = execute_query(associations_query, [user['id']])
+            for assoc in (associations or []):
+                user_info["associations"].append({
+                    "player_name": f"{assoc['first_name']} {assoc['last_name']}",
+                    "player_id": assoc['tenniscores_player_id'],
+                    "league": assoc['league_name'],
+                    "club": assoc['club_name'], 
+                    "series": assoc['series_name']
+                })
+            
+            results["investigation"]["victor_users"].append(user_info)
+        
+        # 2. Find all Victor Forman player records
+        players_query = """
+            SELECT 
+                p.id, p.tenniscores_player_id, p.first_name, p.last_name,
+                l.league_name, c.name as club_name, s.name as series_name,
+                p.team_id, p.pti, p.wins, p.losses
+            FROM players p
+            LEFT JOIN leagues l ON p.league_id = l.id
+            LEFT JOIN clubs c ON p.club_id = c.id  
+            LEFT JOIN series s ON p.series_id = s.id
+            WHERE (p.first_name ILIKE '%victor%' AND p.last_name ILIKE '%forman%')
+            ORDER BY l.league_name, c.name, s.name
+        """
+        
+        victor_players = execute_query(players_query)
+        results["investigation"]["victor_players"] = []
+        
+        for player in (victor_players or []):
+            player_info = {
+                "id": player['id'],
+                "tenniscores_player_id": player['tenniscores_player_id'],
+                "name": f"{player['first_name']} {player['last_name']}",
+                "league": player['league_name'],
+                "club": player['club_name'],
+                "series": player['series_name'], 
+                "team_id": player['team_id'],
+                "stats": f"PTI: {player['pti']}, W-L: {player['wins']}-{player['losses']}",
+                "associated_users": []
+            }
+            
+            # Check which users are associated with this player
+            player_associations_query = """
+                SELECT 
+                    upa.user_id,
+                    u.email, u.first_name, u.last_name
+                FROM user_player_associations upa
+                JOIN users u ON upa.user_id = u.id
+                WHERE upa.tenniscores_player_id = %s
+            """
+            
+            player_assocs = execute_query(player_associations_query, [player['tenniscores_player_id']])
+            for assoc in (player_assocs or []):
+                player_info["associated_users"].append({
+                    "user_id": assoc['user_id'],
+                    "email": assoc['email'],
+                    "name": f"{assoc['first_name']} {assoc['last_name']}"
+                })
+            
+            results["investigation"]["victor_players"].append(player_info)
+        
+        # 3. Check for duplicate player ID associations (this is the core issue)
+        duplicate_associations_query = """
+            SELECT 
+                upa.tenniscores_player_id,
+                COUNT(*) as user_count,
+                ARRAY_AGG(upa.user_id) as user_ids,
+                ARRAY_AGG(u.email) as emails
+            FROM user_player_associations upa
+            JOIN users u ON upa.user_id = u.id
+            GROUP BY upa.tenniscores_player_id
+            HAVING COUNT(*) > 1
+            ORDER BY user_count DESC
+        """
+        
+        duplicates = execute_query(duplicate_associations_query)
+        results["investigation"]["duplicate_associations"] = []
+        
+        for dup in (duplicates or []):
+            dup_info = {
+                "player_id": dup['tenniscores_player_id'],
+                "user_count": dup['user_count'],
+                "affected_users": []
+            }
+            
+            for user_id, email in zip(dup['user_ids'], dup['emails']):
+                dup_info["affected_users"].append({
+                    "user_id": user_id,
+                    "email": email
+                })
+            
+            results["investigation"]["duplicate_associations"].append(dup_info)
+        
+        # 4. Summary analysis
+        results["summary"] = {
+            "victor_users_found": len(results["investigation"]["victor_users"]),
+            "victor_players_found": len(results["investigation"]["victor_players"]), 
+            "total_duplicate_associations": len(results["investigation"]["duplicate_associations"]),
+            "issue_confirmed": len(results["investigation"]["victor_users"]) > 1 or len(results["investigation"]["duplicate_associations"]) > 0
+        }
+        
+        # 5. Identify the specific problem
+        if results["summary"]["victor_users_found"] > 1:
+            results["problem_type"] = "MULTIPLE_USER_ACCOUNTS"
+            results["problem_description"] = f"Found {results['summary']['victor_users_found']} different user accounts for Victor Forman"
+        elif results["summary"]["total_duplicate_associations"] > 0:
+            results["problem_type"] = "DUPLICATE_PLAYER_ASSOCIATIONS"
+            results["problem_description"] = f"Found {results['summary']['total_duplicate_associations']} player IDs with multiple user associations"
+        else:
+            results["problem_type"] = "NO_ISSUE_DETECTED"
+            results["problem_description"] = "Victor Forman setup appears correct"
+        
+        return jsonify({
+            "debug": "investigate_victor_forman_production",
+            "results": results
+        })
+        
+    except Exception as e:
+        import traceback
+        return jsonify({
+            "error": str(e),
+            "traceback": traceback.format_exc(),
+            "railway_env": railway_env
+        }), 500
+
+
 @app.route("/debug/test-sms-direct")
 def test_sms_direct():
     """
@@ -3085,6 +3273,354 @@ def test_sms_direct():
         return jsonify({
             "error": str(e),
             "traceback": traceback.format_exc()
+        }), 500
+
+
+@app.route("/debug/fix-duplicate-player-associations-production")
+def fix_duplicate_player_associations_production():
+    """
+    Fix duplicate player associations in production
+    """
+    railway_env = os.environ.get("RAILWAY_ENVIRONMENT", "not_set")
+    
+    if railway_env != "production":
+        return jsonify({
+            "error": "This endpoint only works on production",
+            "railway_env": railway_env
+        }), 403
+    
+    try:
+        from database_utils import execute_query, execute_query_one, execute_update
+        
+        results = {
+            "railway_env": railway_env,
+            "timestamp": datetime.now().isoformat(),
+            "phase": "analysis",
+            "duplicate_analysis": [],
+            "fix_plan": [],
+            "fixes_applied": False
+        }
+        
+        # Phase 1: Analyze duplicates
+        duplicates_query = """
+            SELECT 
+                upa.tenniscores_player_id,
+                COUNT(*) as user_count,
+                ARRAY_AGG(upa.user_id ORDER BY u.created_at ASC) as user_ids,
+                ARRAY_AGG(u.email ORDER BY u.created_at ASC) as emails,
+                ARRAY_AGG(u.created_at ORDER BY u.created_at ASC) as created_dates,
+                ARRAY_AGG(u.last_login ORDER BY u.created_at ASC) as last_logins
+            FROM user_player_associations upa
+            JOIN users u ON upa.user_id = u.id
+            GROUP BY upa.tenniscores_player_id
+            HAVING COUNT(*) > 1
+            ORDER BY COUNT(*) DESC
+        """
+        
+        duplicates = execute_query(duplicates_query)
+        
+        if not duplicates:
+            results["message"] = "No duplicate player associations found"
+            return jsonify({
+                "debug": "fix_duplicate_player_associations_production",
+                "results": results
+            })
+        
+        results["duplicates_found"] = len(duplicates)
+        
+        # Analyze each duplicate
+        for dup in duplicates:
+            player_id = dup['tenniscores_player_id']
+            user_ids = dup['user_ids']
+            emails = dup['emails']
+            created_dates = dup['created_dates']
+            last_logins = dup['last_logins']
+            
+            # Get player info
+            player_info_query = """
+                SELECT DISTINCT p.first_name, p.last_name, l.league_name, c.name as club_name, s.name as series_name
+                FROM players p
+                LEFT JOIN leagues l ON p.league_id = l.id
+                LEFT JOIN clubs c ON p.club_id = c.id
+                LEFT JOIN series s ON p.series_id = s.id
+                WHERE p.tenniscores_player_id = %s
+                LIMIT 1
+            """
+            
+            player_info = execute_query_one(player_info_query, [player_id])
+            
+            user_details = []
+            for i, (user_id, email, created_date, last_login) in enumerate(zip(user_ids, emails, created_dates, last_logins)):
+                # Check user activity
+                activity_query = """
+                    SELECT 
+                        COUNT(DISTINCT upa2.tenniscores_player_id) as total_associations,
+                        u.first_name, u.last_name
+                    FROM users u
+                    LEFT JOIN user_player_associations upa2 ON u.id = upa2.user_id
+                    WHERE u.id = %s
+                    GROUP BY u.id, u.first_name, u.last_name
+                """
+                
+                activity = execute_query_one(activity_query, [user_id])
+                total_associations = activity['total_associations'] if activity else 0
+                user_name = f"{activity['first_name']} {activity['last_name']}" if activity else "Unknown"
+                
+                user_details.append({
+                    "user_id": user_id,
+                    "email": email,
+                    "name": user_name,
+                    "created_at": str(created_date),
+                    "last_login": str(last_login) if last_login else None,
+                    "total_associations": total_associations,
+                    "is_oldest": i == 0
+                })
+            
+            # Determine fix strategy
+            oldest_user = user_details[0]
+            most_recent_login = None
+            most_active_user = None
+            
+            for user in user_details:
+                if user['last_login'] and (not most_recent_login or user['last_login'] > most_recent_login):
+                    most_recent_login = user['last_login']
+                    most_active_user = user
+            
+            # Decision logic
+            if oldest_user['last_login']:
+                keep_user = oldest_user
+                reason = "Oldest user who has logged in"
+            elif most_active_user:
+                keep_user = most_active_user
+                reason = "Most recent active user (oldest never logged in)"
+            else:
+                keep_user = oldest_user
+                reason = "Oldest user (default - nobody has logged in)"
+            
+            remove_users = [u for u in user_details if u['user_id'] != keep_user['user_id']]
+            
+            duplicate_info = {
+                "player_id": player_id,
+                "player_info": {
+                    "name": f"{player_info['first_name']} {player_info['last_name']}" if player_info else "Unknown",
+                    "league": player_info['league_name'] if player_info else "Unknown",
+                    "club": player_info['club_name'] if player_info else "Unknown",
+                    "series": player_info['series_name'] if player_info else "Unknown"
+                },
+                "user_count": len(user_details),
+                "users": user_details,
+                "fix_strategy": {
+                    "keep_user": keep_user,
+                    "remove_users": remove_users,
+                    "reason": reason
+                }
+            }
+            
+            results["duplicate_analysis"].append(duplicate_info)
+        
+        # Check if user wants to apply fixes
+        apply_fixes = request.args.get('apply_fixes', 'false').lower() == 'true'
+        
+        if apply_fixes:
+            results["phase"] = "applying_fixes"
+            fixes_applied = 0
+            
+            for duplicate in results["duplicate_analysis"]:
+                player_id = duplicate["player_id"]
+                keep_user = duplicate["fix_strategy"]["keep_user"]
+                remove_users = duplicate["fix_strategy"]["remove_users"]
+                
+                for user in remove_users:
+                    try:
+                        rows_deleted = execute_update(
+                            "DELETE FROM user_player_associations WHERE user_id = %s AND tenniscores_player_id = %s",
+                            [user['user_id'], player_id]
+                        )
+                        
+                        if rows_deleted > 0:
+                            fixes_applied += 1
+                            
+                    except Exception as fix_error:
+                        results.setdefault("fix_errors", []).append({
+                            "player_id": player_id,
+                            "user_id": user['user_id'],
+                            "error": str(fix_error)
+                        })
+            
+            results["fixes_applied"] = True
+            results["total_fixes_applied"] = fixes_applied
+            
+            # Verify no duplicates remain
+            remaining_duplicates = execute_query("""
+                SELECT 
+                    upa.tenniscores_player_id,
+                    COUNT(*) as user_count
+                FROM user_player_associations upa
+                GROUP BY upa.tenniscores_player_id
+                HAVING COUNT(*) > 1
+            """)
+            
+            results["remaining_duplicates"] = len(remaining_duplicates) if remaining_duplicates else 0
+            results["success"] = results["remaining_duplicates"] == 0
+        
+        return jsonify({
+            "debug": "fix_duplicate_player_associations_production",
+            "results": results,
+            "instructions": {
+                "to_analyze_only": "Visit this endpoint normally",
+                "to_apply_fixes": "Add ?apply_fixes=true to the URL to actually fix the duplicates",
+                "warning": "Adding ?apply_fixes=true will make permanent changes to the database"
+            }
+        })
+        
+    except Exception as e:
+        import traceback
+        return jsonify({
+            "error": str(e),
+            "traceback": traceback.format_exc(),
+            "railway_env": railway_env
+        }), 500
+
+
+@app.route("/debug/add-unique-player-constraint-production")
+def add_unique_player_constraint_production():
+    """
+    Add unique constraint to prevent duplicate player associations in production
+    """
+    railway_env = os.environ.get("RAILWAY_ENVIRONMENT", "not_set")
+    
+    if railway_env != "production":
+        return jsonify({
+            "error": "This endpoint only works on production",
+            "railway_env": railway_env
+        }), 403
+    
+    try:
+        from database_utils import execute_query, execute_query_one, execute_update
+        
+        results = {
+            "railway_env": railway_env,
+            "timestamp": datetime.now().isoformat(),
+            "checks": {}
+        }
+        
+        # Check for existing violations
+        violations_query = """
+            SELECT 
+                upa.tenniscores_player_id,
+                COUNT(DISTINCT upa.user_id) as user_count,
+                STRING_AGG(u.email, ', ') as user_emails
+            FROM user_player_associations upa
+            JOIN users u ON upa.user_id = u.id
+            GROUP BY upa.tenniscores_player_id
+            HAVING COUNT(DISTINCT upa.user_id) > 1
+            ORDER BY user_count DESC
+        """
+        
+        violations = execute_query(violations_query)
+        results["checks"]["violations_found"] = len(violations) if violations else 0
+        
+        if violations:
+            results["checks"]["violation_details"] = []
+            for v in violations:
+                results["checks"]["violation_details"].append({
+                    "player_id": v['tenniscores_player_id'],
+                    "user_count": v['user_count'],
+                    "user_emails": v['user_emails']
+                })
+            
+            results["error"] = f"Cannot add constraint - {len(violations)} violations found"
+            results["recommendation"] = "Run /debug/fix-duplicate-player-associations-production?apply_fixes=true first"
+            
+            return jsonify({
+                "debug": "add_unique_player_constraint_production",
+                "results": results
+            }), 400
+        
+        # Check for existing constraint
+        constraint_query = """
+            SELECT constraint_name, constraint_type
+            FROM information_schema.table_constraints 
+            WHERE table_name = 'user_player_associations' 
+            AND constraint_type = 'UNIQUE'
+            AND constraint_name LIKE '%tenniscores_player_id%'
+        """
+        
+        existing_constraints = execute_query(constraint_query)
+        results["checks"]["existing_constraints"] = existing_constraints if existing_constraints else []
+        
+        if existing_constraints:
+            results["message"] = "Unique constraint already exists"
+            results["constraint_name"] = existing_constraints[0]["constraint_name"]
+            return jsonify({
+                "debug": "add_unique_player_constraint_production",
+                "results": results
+            })
+        
+        # Apply constraint
+        apply_constraint = request.args.get('apply_constraint', 'false').lower() == 'true'
+        
+        if apply_constraint:
+            results["phase"] = "applying_constraint"
+            
+            try:
+                # Add the unique constraint
+                constraint_sql = """
+                    ALTER TABLE user_player_associations
+                    ADD CONSTRAINT unique_tenniscores_player_id 
+                    UNIQUE (tenniscores_player_id)
+                """
+                
+                execute_update(constraint_sql)
+                results["constraint_added"] = True
+                
+                # Add performance index
+                index_sql = """
+                    CREATE INDEX IF NOT EXISTS idx_upa_unique_player_check 
+                    ON user_player_associations (tenniscores_player_id)
+                """
+                
+                execute_update(index_sql)
+                results["index_added"] = True
+                
+                # Verify constraint was added
+                verify_query = """
+                    SELECT constraint_name, constraint_type
+                    FROM information_schema.table_constraints 
+                    WHERE table_name = 'user_player_associations' 
+                    AND constraint_name = 'unique_tenniscores_player_id'
+                """
+                
+                verification = execute_query_one(verify_query)
+                results["verification"] = verification is not None
+                results["constraint_name"] = verification["constraint_name"] if verification else None
+                
+                results["success"] = results["verification"]
+                results["message"] = "Unique constraint successfully added" if results["success"] else "Constraint verification failed"
+                
+            except Exception as constraint_error:
+                results["constraint_error"] = str(constraint_error)
+                results["success"] = False
+        else:
+            results["message"] = "Constraint can be safely added"
+            results["recommendation"] = "Add ?apply_constraint=true to apply the constraint"
+        
+        return jsonify({
+            "debug": "add_unique_player_constraint_production",
+            "results": results,
+            "instructions": {
+                "to_check_only": "Visit this endpoint normally",
+                "to_apply_constraint": "Add ?apply_constraint=true to actually add the constraint",
+                "warning": "Adding ?apply_constraint=true will make permanent schema changes"
+            }
+        })
+        
+    except Exception as e:
+        import traceback
+        return jsonify({
+            "error": str(e),
+            "traceback": traceback.format_exc(),
+            "railway_env": railway_env
         }), 500
 
 
