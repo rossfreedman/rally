@@ -4043,6 +4043,10 @@ def delete_remaining_victor_forman_production():
         activity_count = execute_query_one(activity_count_query, [user_id])
         results["target_user"]["activity_log_entries"] = activity_count["count"] if activity_count else 0
         
+        polls_count_query = "SELECT COUNT(*) as count FROM polls WHERE created_by = %s"
+        polls_count = execute_query_one(polls_count_query, [user_id])
+        results["target_user"]["polls_created"] = polls_count["count"] if polls_count else 0
+        
         # Get associations details
         if target_user['association_count'] > 0:
             associations_query = """
@@ -4088,25 +4092,37 @@ def delete_remaining_victor_forman_production():
                     "status": "SUCCESS"
                 })
                 
-                # Step 2: Delete user associations
+                # Step 2: Delete polls created by user
+                polls_deleted = execute_update(
+                    "DELETE FROM polls WHERE created_by = %s",
+                    [user_id]
+                )
+                deletion_steps.append({
+                    "step": 2,
+                    "action": "Delete polls created by user",
+                    "rows_affected": polls_deleted,
+                    "status": "SUCCESS"
+                })
+                
+                # Step 3: Delete user associations
                 associations_deleted = execute_update(
                     "DELETE FROM user_player_associations WHERE user_id = %s",
                     [user_id]
                 )
                 deletion_steps.append({
-                    "step": 2,
+                    "step": 3,
                     "action": "Delete user player associations",
                     "rows_affected": associations_deleted,
                     "status": "SUCCESS"
                 })
                 
-                # Step 3: Delete the user
+                # Step 4: Delete the user
                 user_deleted = execute_update(
                     "DELETE FROM users WHERE id = %s",
                     [user_id]
                 )
                 deletion_steps.append({
-                    "step": 3,
+                    "step": 4,
                     "action": "Delete user account",
                     "rows_affected": user_deleted,
                     "status": "SUCCESS" if user_deleted > 0 else "FAILED"
@@ -4151,9 +4167,10 @@ def delete_remaining_victor_forman_production():
                 "warning": "Adding ?delete_user_49=true will permanently delete User ID 49 and ALL associated data",
                 "deletion_order": [
                     "1. Delete activity log entries (to satisfy foreign key constraints)",
-                    "2. Delete user player associations", 
-                    "3. Delete user account",
-                    "4. Verify no Victor Forman users remain"
+                    "2. Delete polls created by user (to satisfy foreign key constraints)",
+                    "3. Delete user player associations", 
+                    "4. Delete user account",
+                    "5. Verify no Victor Forman users remain"
                 ]
             }
         })
