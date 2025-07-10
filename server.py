@@ -3689,7 +3689,6 @@ def cleanup_orphaned_duplicate_users_production():
             if hasattr(created_date, 'date'):
                 created_date = created_date.date()
             elif isinstance(created_date, str):
-                from datetime import datetime
                 created_date = datetime.fromisoformat(created_date.replace('Z', '+00:00')).date()
             
             today = datetime.now().date()
@@ -3784,6 +3783,183 @@ def cleanup_orphaned_duplicate_users_production():
                     "Only deletes users created within last 7 days",
                     "Double-checks safety before deletion"
                 ]
+            }
+        })
+        
+    except Exception as e:
+        import traceback
+        return jsonify({
+            "error": str(e),
+            "traceback": traceback.format_exc(),
+            "railway_env": railway_env
+        }), 500
+
+
+@app.route("/debug/delete-all-victor-forman-users-production")
+def delete_all_victor_forman_users_production():
+    """
+    SIMPLE SOLUTION: Delete ALL Victor Forman users from production and start clean
+    """
+    railway_env = os.environ.get("RAILWAY_ENVIRONMENT", "not_set")
+    
+    if railway_env != "production":
+        return jsonify({
+            "error": "This endpoint only works on production",
+            "railway_env": railway_env
+        }), 403
+    
+    try:
+        from database_utils import execute_query, execute_query_one, execute_update
+        
+        results = {
+            "railway_env": railway_env,
+            "timestamp": datetime.now().isoformat(),
+            "phase": "analysis",
+            "victor_users": [],
+            "deletion_applied": False
+        }
+        
+        # Find ALL Victor Forman users
+        victor_query = """
+            SELECT 
+                u.id, u.email, u.first_name, u.last_name, u.created_at, u.last_login,
+                COUNT(upa.user_id) as association_count
+            FROM users u
+            LEFT JOIN user_player_associations upa ON u.id = upa.user_id
+            WHERE u.first_name = 'Victor' AND u.last_name = 'Forman'
+            GROUP BY u.id, u.email, u.first_name, u.last_name, u.created_at, u.last_login
+            ORDER BY u.created_at ASC
+        """
+        
+        victor_users = execute_query(victor_query)
+        
+        if not victor_users:
+            results["message"] = "No Victor Forman users found"
+            return jsonify({
+                "debug": "delete_all_victor_forman_users_production",
+                "results": results
+            })
+        
+        results["victor_users_found"] = len(victor_users)
+        
+        # Analyze each Victor user
+        for user in victor_users:
+            user_info = {
+                "user_id": user['id'],
+                "email": user['email'],
+                "name": f"{user['first_name']} {user['last_name']}",
+                "created_at": str(user['created_at']),
+                "last_login": str(user['last_login']) if user['last_login'] else None,
+                "association_count": user['association_count'],
+                "has_logged_in": user['last_login'] is not None
+            }
+            
+            # Get association details if any exist
+            if user['association_count'] > 0:
+                associations_query = """
+                    SELECT 
+                        upa.tenniscores_player_id,
+                        p.first_name, p.last_name,
+                        l.league_name, c.name as club_name
+                    FROM user_player_associations upa
+                    JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+                    LEFT JOIN leagues l ON p.league_id = l.id
+                    LEFT JOIN clubs c ON p.club_id = c.id
+                    WHERE upa.user_id = %s
+                """
+                
+                associations = execute_query(associations_query, [user['id']])
+                user_info["associations"] = []
+                
+                for assoc in (associations or []):
+                    user_info["associations"].append({
+                        "player_name": f"{assoc['first_name']} {assoc['last_name']}",
+                        "player_id": assoc['tenniscores_player_id'],
+                        "league": assoc['league_name'],
+                        "club": assoc['club_name']
+                    })
+            
+            results["victor_users"].append(user_info)
+        
+        # Check if user wants to apply deletion
+        apply_deletion = request.args.get('delete_all', 'false').lower() == 'true'
+        
+        if apply_deletion:
+            results["phase"] = "applying_deletion"
+            deleted_count = 0
+            deletion_details = []
+            
+            for user_info in results["victor_users"]:
+                user_id = user_info["user_id"]
+                user_email = user_info["email"]
+                
+                try:
+                    # Step 1: Delete user associations first (if any)
+                    associations_deleted = execute_update(
+                        "DELETE FROM user_player_associations WHERE user_id = %s",
+                        [user_id]
+                    )
+                    
+                    # Step 2: Delete the user
+                    user_deleted = execute_update(
+                        "DELETE FROM users WHERE id = %s",
+                        [user_id]
+                    )
+                    
+                    if user_deleted > 0:
+                        deleted_count += 1
+                        deletion_details.append({
+                            "user_id": user_id,
+                            "email": user_email,
+                            "associations_deleted": associations_deleted,
+                            "user_deleted": True,
+                            "status": "SUCCESS"
+                        })
+                    else:
+                        deletion_details.append({
+                            "user_id": user_id,
+                            "email": user_email,
+                            "associations_deleted": associations_deleted,
+                            "user_deleted": False,
+                            "status": "FAILED - User not found"
+                        })
+                        
+                except Exception as delete_error:
+                    deletion_details.append({
+                        "user_id": user_id,
+                        "email": user_email,
+                        "user_deleted": False,
+                        "status": f"ERROR: {str(delete_error)}"
+                    })
+            
+            results["deletion_applied"] = True
+            results["users_deleted"] = deleted_count
+            results["deletion_details"] = deletion_details
+            
+            # Verify no Victor Forman users remain
+            verification_query = """
+                SELECT COUNT(*) as remaining_count
+                FROM users 
+                WHERE first_name = 'Victor' AND last_name = 'Forman'
+            """
+            
+            verification = execute_query_one(verification_query)
+            results["remaining_victor_users"] = verification["remaining_count"] if verification else "unknown"
+            results["success"] = results["remaining_victor_users"] == 0
+            
+            if results["success"]:
+                results["message"] = f"SUCCESS: All {deleted_count} Victor Forman users deleted. Database is clean."
+            else:
+                results["message"] = f"PARTIAL SUCCESS: {deleted_count} users deleted, but {results['remaining_victor_users']} still remain."
+        
+        return jsonify({
+            "debug": "delete_all_victor_forman_users_production",
+            "results": results,
+            "instructions": {
+                "to_analyze_only": "Visit this endpoint normally to see all Victor Forman users",
+                "to_delete_all": "Add ?delete_all=true to permanently delete ALL Victor Forman users",
+                "warning": "Adding ?delete_all=true will permanently delete ALL Victor Forman user accounts AND their associations",
+                "simple_solution": "This endpoint takes the nuclear approach - deletes everything Victor Forman related and starts clean"
             }
         })
         
