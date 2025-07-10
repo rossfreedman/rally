@@ -3972,6 +3972,201 @@ def delete_all_victor_forman_users_production():
         }), 500
 
 
+@app.route("/debug/delete-remaining-victor-forman-production")
+def delete_remaining_victor_forman_production():
+    """
+    Delete the remaining Victor Forman user (ID 49) by handling foreign key constraints properly
+    """
+    railway_env = os.environ.get("RAILWAY_ENVIRONMENT", "not_set")
+    
+    if railway_env != "production":
+        return jsonify({
+            "error": "This endpoint only works on production",
+            "railway_env": railway_env
+        }), 403
+    
+    try:
+        from database_utils import execute_query, execute_query_one, execute_update
+        
+        results = {
+            "railway_env": railway_env,
+            "timestamp": datetime.now().isoformat(),
+            "phase": "analysis",
+            "target_user": None,
+            "deletion_applied": False
+        }
+        
+        # Find the remaining Victor Forman user
+        victor_query = """
+            SELECT 
+                u.id, u.email, u.first_name, u.last_name, u.created_at, u.last_login,
+                COUNT(upa.user_id) as association_count
+            FROM users u
+            LEFT JOIN user_player_associations upa ON u.id = upa.user_id
+            WHERE u.first_name = 'Victor' AND u.last_name = 'Forman'
+            GROUP BY u.id, u.email, u.first_name, u.last_name, u.created_at, u.last_login
+            ORDER BY u.created_at ASC
+        """
+        
+        victor_users = execute_query(victor_query)
+        
+        if not victor_users:
+            results["message"] = "No Victor Forman users found - all already deleted"
+            return jsonify({
+                "debug": "delete_remaining_victor_forman_production",
+                "results": results
+            })
+        
+        if len(victor_users) > 1:
+            results["error"] = f"Found {len(victor_users)} Victor Forman users - expected only 1 remaining"
+            results["users_found"] = [{"id": u["id"], "email": u["email"]} for u in victor_users]
+            return jsonify({
+                "debug": "delete_remaining_victor_forman_production",
+                "results": results
+            }), 400
+        
+        # Get the target user (should be ID 49)
+        target_user = victor_users[0]
+        user_id = target_user['id']
+        
+        results["target_user"] = {
+            "user_id": user_id,
+            "email": target_user['email'],
+            "name": f"{target_user['first_name']} {target_user['last_name']}",
+            "created_at": str(target_user['created_at']),
+            "last_login": str(target_user['last_login']) if target_user['last_login'] else None,
+            "association_count": target_user['association_count']
+        }
+        
+        # Check what will need to be deleted
+        activity_count_query = "SELECT COUNT(*) as count FROM activity_log WHERE user_id = %s"
+        activity_count = execute_query_one(activity_count_query, [user_id])
+        results["target_user"]["activity_log_entries"] = activity_count["count"] if activity_count else 0
+        
+        # Get associations details
+        if target_user['association_count'] > 0:
+            associations_query = """
+                SELECT 
+                    upa.tenniscores_player_id,
+                    p.first_name, p.last_name,
+                    l.league_name, c.name as club_name
+                FROM user_player_associations upa
+                JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+                LEFT JOIN leagues l ON p.league_id = l.id
+                LEFT JOIN clubs c ON p.club_id = c.id
+                WHERE upa.user_id = %s
+            """
+            
+            associations = execute_query(associations_query, [user_id])
+            results["target_user"]["associations"] = []
+            
+            for assoc in (associations or []):
+                results["target_user"]["associations"].append({
+                    "player_name": f"{assoc['first_name']} {assoc['last_name']}",
+                    "player_id": assoc['tenniscores_player_id'],
+                    "league": assoc['league_name'],
+                    "club": assoc['club_name']
+                })
+        
+        # Check if user wants to apply deletion
+        apply_deletion = request.args.get('delete_user_49', 'false').lower() == 'true'
+        
+        if apply_deletion:
+            results["phase"] = "applying_deletion"
+            deletion_steps = []
+            
+            try:
+                # Step 1: Delete activity log entries
+                activity_deleted = execute_update(
+                    "DELETE FROM activity_log WHERE user_id = %s",
+                    [user_id]
+                )
+                deletion_steps.append({
+                    "step": 1,
+                    "action": "Delete activity log entries",
+                    "rows_affected": activity_deleted,
+                    "status": "SUCCESS"
+                })
+                
+                # Step 2: Delete user associations
+                associations_deleted = execute_update(
+                    "DELETE FROM user_player_associations WHERE user_id = %s",
+                    [user_id]
+                )
+                deletion_steps.append({
+                    "step": 2,
+                    "action": "Delete user player associations",
+                    "rows_affected": associations_deleted,
+                    "status": "SUCCESS"
+                })
+                
+                # Step 3: Delete the user
+                user_deleted = execute_update(
+                    "DELETE FROM users WHERE id = %s",
+                    [user_id]
+                )
+                deletion_steps.append({
+                    "step": 3,
+                    "action": "Delete user account",
+                    "rows_affected": user_deleted,
+                    "status": "SUCCESS" if user_deleted > 0 else "FAILED"
+                })
+                
+                results["deletion_applied"] = True
+                results["deletion_steps"] = deletion_steps
+                results["success"] = user_deleted > 0
+                
+                # Verify no Victor Forman users remain
+                verification_query = """
+                    SELECT COUNT(*) as remaining_count
+                    FROM users 
+                    WHERE first_name = 'Victor' AND last_name = 'Forman'
+                """
+                
+                verification = execute_query_one(verification_query)
+                results["remaining_victor_users"] = verification["remaining_count"] if verification else "unknown"
+                
+                if results["success"] and results["remaining_victor_users"] == 0:
+                    results["message"] = f"SUCCESS: User ID {user_id} (vforman@gmail.com) completely deleted. No Victor Forman users remain."
+                else:
+                    results["message"] = f"FAILED: User deletion failed or users still remain."
+                    
+            except Exception as delete_error:
+                deletion_steps.append({
+                    "step": "error",
+                    "action": "Deletion process",
+                    "error": str(delete_error),
+                    "status": "ERROR"
+                })
+                results["deletion_steps"] = deletion_steps
+                results["success"] = False
+                results["message"] = f"ERROR during deletion: {str(delete_error)}"
+        
+        return jsonify({
+            "debug": "delete_remaining_victor_forman_production",
+            "results": results,
+            "instructions": {
+                "to_analyze_only": "Visit this endpoint normally to see what will be deleted",
+                "to_delete_user_49": "Add ?delete_user_49=true to permanently delete the remaining Victor Forman user",
+                "warning": "Adding ?delete_user_49=true will permanently delete User ID 49 and ALL associated data",
+                "deletion_order": [
+                    "1. Delete activity log entries (to satisfy foreign key constraints)",
+                    "2. Delete user player associations", 
+                    "3. Delete user account",
+                    "4. Verify no Victor Forman users remain"
+                ]
+            }
+        })
+        
+    except Exception as e:
+        import traceback
+        return jsonify({
+            "error": str(e),
+            "traceback": traceback.format_exc(),
+            "railway_env": railway_env
+        }), 500
+
+
 # ==========================================
 # SERVER STARTUP
 # ==========================================
