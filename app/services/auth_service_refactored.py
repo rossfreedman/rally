@@ -396,10 +396,17 @@ def register_user(email: str, password: str, first_name: str, last_name: str,
                                 
                                 db_session.flush()  # Apply deletes before creating new association
                             else:
-                                # Real user already associated - this is unusual but handle gracefully
-                                logger.warning(f"Registration: Player {player_id} already associated with real user {existing_user.email}")
-                                # Don't create duplicate association, but continue with registration
-                                association = None
+                                # Real user already associated - this is a security issue, prevent registration
+                                logger.warning(f"🚨 SECURITY: Player ID {player_id} already associated with real user {existing_user.email}")
+                                logger.warning(f"🚨 SECURITY: Preventing registration of {email} with existing player identity")
+                                
+                                # Rollback and return error - don't create the user account
+                                db_session.rollback()
+                                return {
+                                    "success": False, 
+                                    "error": "Player identity is already associated with another account. If this is your player record, please contact support.",
+                                    "security_issue": True
+                                }
                         
                         # Create new association if no conflicts
                         if not existing_association or (existing_association and existing_user and existing_user.email.endswith('@placeholder.rally')):
