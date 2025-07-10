@@ -545,7 +545,7 @@ function renderPolls() {
                         <i class="fas fa-sms"></i>
                         <span>Text Team</span>
                     </button>
-                    <button onclick="copyPollLink(${poll.id}, this)" class="flex items-center space-x-2 text-white px-2 py-1 rounded transition-colors text-xs flex-1" style="background-color: #ea580c;" title="Copy link">
+                    <button onclick="copyPollLink(${poll.id}, this)" class="flex items-center space-x-2 text-white px-2 py-1 rounded transition-colors text-xs flex-1" style="background-color: #059669;" title="Copy link">
                         <i class="fas fa-copy"></i>
                         <span>Copy Link</span>
                     </button>
@@ -728,7 +728,7 @@ async function copyPollLink(pollId, buttonElement) {
         setTimeout(() => {
             icon.className = originalIcon;
             textSpan.textContent = originalText;
-            buttonElement.style.backgroundColor = '#9333ea';
+            buttonElement.style.backgroundColor = '#059669';
             buttonElement.disabled = false;
         }, 2000);
         
@@ -753,7 +753,7 @@ async function copyPollLink(pollId, buttonElement) {
         setTimeout(() => {
             icon.className = originalIcon;
             textSpan.textContent = originalText;
-            buttonElement.style.backgroundColor = '#9333ea';
+            buttonElement.style.backgroundColor = '#059669';
             buttonElement.disabled = false;
         }, 2000);
     }
