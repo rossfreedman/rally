@@ -2769,6 +2769,324 @@ def enable_activity_logging_sms():
         }), 500
 
 
+@app.route("/debug/test-activity-logging-sms")
+def test_activity_logging_sms():
+    """
+    Debug endpoint to test the complete activity logging SMS flow step by step
+    """
+    try:
+        results = {
+            "debug": "test_activity_logging_sms",
+            "timestamp": datetime.now().isoformat(),
+            "tests": {},
+            "final_result": None
+        }
+        
+        # Test 1: Check if detailed logging notifications are enabled
+        try:
+            from app.services.admin_service import get_detailed_logging_notifications_setting
+            detailed_enabled = get_detailed_logging_notifications_setting()
+            results["tests"]["detailed_logging_enabled"] = {
+                "success": True,
+                "enabled": detailed_enabled,
+                "message": f"Detailed logging notifications: {'ENABLED' if detailed_enabled else 'DISABLED'}"
+            }
+        except Exception as e:
+            results["tests"]["detailed_logging_enabled"] = {
+                "success": False,
+                "error": str(e),
+                "message": "Failed to check detailed logging setting"
+            }
+        
+        # Test 2: Check Twilio configuration
+        try:
+            from config import TwilioConfig
+            config_status = TwilioConfig.validate_config()
+            results["tests"]["twilio_config"] = {
+                "success": config_status["is_valid"],
+                "config": config_status,
+                "message": f"Twilio config: {'VALID' if config_status['is_valid'] else 'INVALID'}"
+            }
+        except Exception as e:
+            results["tests"]["twilio_config"] = {
+                "success": False,
+                "error": str(e),
+                "message": "Failed to validate Twilio config"
+            }
+        
+        # Test 3: Test the activity SMS formatting function
+        try:
+            from utils.logging import _format_activity_for_sms
+            test_message = _format_activity_for_sms(
+                user_email="debug@test.com",
+                activity_type="page_visit",
+                page="mobile",
+                action="debug_test",
+                details={"test": "debug_data"},
+                is_impersonating=False
+            )
+            results["tests"]["sms_formatting"] = {
+                "success": True,
+                "formatted_message": test_message,
+                "message_length": len(test_message),
+                "message": "SMS formatting successful"
+            }
+        except Exception as e:
+            results["tests"]["sms_formatting"] = {
+                "success": False,
+                "error": str(e),
+                "message": "Failed to format SMS message"
+            }
+        
+        # Test 4: Test SMS sending directly with admin phone number
+        try:
+            from app.services.notifications_service import send_sms_notification
+            from utils.logging import ADMIN_PHONE_NUMBER
+            
+            test_sms_message = "🧪 DEBUG: Testing activity logging SMS pipeline - " + datetime.now().strftime("%H:%M:%S")
+            
+            sms_result = send_sms_notification(
+                to_number=ADMIN_PHONE_NUMBER,
+                message=test_sms_message,
+                test_mode=False
+            )
+            
+            results["tests"]["direct_sms"] = {
+                "success": sms_result["success"],
+                "admin_phone": ADMIN_PHONE_NUMBER,
+                "message_sid": sms_result.get("message_sid"),
+                "error": sms_result.get("error"),
+                "message": f"Direct SMS test: {'SUCCESS' if sms_result['success'] else 'FAILED'}"
+            }
+        except Exception as e:
+            results["tests"]["direct_sms"] = {
+                "success": False,
+                "error": str(e),
+                "message": "Failed to send direct SMS test"
+            }
+        
+        # Test 5: Test the complete activity logging notification function
+        try:
+            from utils.logging import _send_detailed_logging_notification
+            
+            _send_detailed_logging_notification(
+                user_email="debug@test.com",
+                activity_type="page_visit",
+                page="debug_test",
+                action="complete_test",
+                details={"debug": "complete_pipeline_test"},
+                is_impersonating=False
+            )
+            
+            results["tests"]["complete_pipeline"] = {
+                "success": True,
+                "message": "Complete activity logging pipeline test executed successfully"
+            }
+        except Exception as e:
+            results["tests"]["complete_pipeline"] = {
+                "success": False,
+                "error": str(e),
+                "message": "Complete activity logging pipeline test failed"
+            }
+        
+        # Test 6: Test database logging (just to verify it works)
+        try:
+            from utils.logging import _log_to_database
+            
+            _log_to_database(
+                user_email="debug@test.com",
+                activity_type="debug_test",
+                page="debug_page",
+                action="database_test",
+                details_json='{"debug": "database_test"}',
+                is_impersonating=False
+            )
+            
+            results["tests"]["database_logging"] = {
+                "success": True,
+                "message": "Database logging test successful"
+            }
+        except Exception as e:
+            results["tests"]["database_logging"] = {
+                "success": False,
+                "error": str(e),
+                "message": "Database logging test failed"
+            }
+        
+        # Determine overall success
+        all_tests_passed = all(test.get("success", False) for test in results["tests"].values())
+        critical_tests_passed = (
+            results["tests"].get("detailed_logging_enabled", {}).get("enabled", False) and
+            results["tests"].get("twilio_config", {}).get("success", False) and
+            results["tests"].get("direct_sms", {}).get("success", False)
+        )
+        
+        if all_tests_passed:
+            results["final_result"] = {
+                "status": "SUCCESS",
+                "message": "All tests passed! Activity logging SMS should work.",
+                "recommendation": "Check if you received the debug SMS messages"
+            }
+        elif critical_tests_passed:
+            results["final_result"] = {
+                "status": "PARTIAL",
+                "message": "Critical components work, but some tests failed",
+                "recommendation": "Check failed tests for specific issues"
+            }
+        else:
+            results["final_result"] = {
+                "status": "FAILURE", 
+                "message": "Critical components failed",
+                "recommendation": "Fix the failed critical tests first"
+            }
+        
+        return jsonify(results)
+        
+    except Exception as e:
+        import traceback
+        return jsonify({
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }), 500
+
+
+@app.route("/debug/test-sms-direct")
+def test_sms_direct():
+    """
+    Test SMS sending without Messaging Service to bypass potential A2P issues
+    """
+    try:
+        import requests
+        from requests.auth import HTTPBasicAuth
+        from config import TwilioConfig
+        
+        results = {
+            "debug": "test_sms_direct",
+            "timestamp": datetime.now().isoformat(),
+            "tests": {}
+        }
+        
+        # Test 1: Direct SMS without Messaging Service
+        try:
+            url = f"https://api.twilio.com/2010-04-01/Accounts/{TwilioConfig.ACCOUNT_SID}/Messages.json"
+            
+            # Use direct From/To without MessagingServiceSid
+            data = {
+                "To": "+17732138911",
+                "From": TwilioConfig.SENDER_PHONE,  # +13128001632
+                "Body": f"🔧 DIRECT SMS TEST (no messaging service) - {datetime.now().strftime('%H:%M:%S')}"
+            }
+            
+            auth = HTTPBasicAuth(TwilioConfig.ACCOUNT_SID, TwilioConfig.AUTH_TOKEN)
+            
+            response = requests.post(url, data=data, auth=auth, timeout=30)
+            response_data = response.json()
+            
+            if response.status_code == 201:
+                results["tests"]["direct_sms_no_service"] = {
+                    "success": True,
+                    "message_sid": response_data.get("sid"),
+                    "status": response_data.get("status"),
+                    "from_number": data["From"],
+                    "to_number": data["To"],
+                    "message": "Direct SMS sent successfully (without messaging service)"
+                }
+            else:
+                results["tests"]["direct_sms_no_service"] = {
+                    "success": False,
+                    "error": response_data.get("message", "Unknown error"),
+                    "error_code": response_data.get("code"),
+                    "status_code": response.status_code,
+                    "message": "Direct SMS failed"
+                }
+                
+        except Exception as e:
+            results["tests"]["direct_sms_no_service"] = {
+                "success": False,
+                "error": str(e),
+                "message": "Direct SMS test failed with exception"
+            }
+        
+        # Test 2: SMS with Messaging Service (current method)
+        try:
+            url = f"https://api.twilio.com/2010-04-01/Accounts/{TwilioConfig.ACCOUNT_SID}/Messages.json"
+            
+            # Use Messaging Service (current production method)
+            data = {
+                "To": "+17732138911", 
+                "MessagingServiceSid": TwilioConfig.MESSAGING_SERVICE_SID,
+                "Body": f"🏗️ MESSAGING SERVICE TEST - {datetime.now().strftime('%H:%M:%S')}"
+            }
+            
+            auth = HTTPBasicAuth(TwilioConfig.ACCOUNT_SID, TwilioConfig.AUTH_TOKEN)
+            
+            response = requests.post(url, data=data, auth=auth, timeout=30)
+            response_data = response.json()
+            
+            if response.status_code == 201:
+                results["tests"]["messaging_service_sms"] = {
+                    "success": True,
+                    "message_sid": response_data.get("sid"),
+                    "status": response_data.get("status"), 
+                    "messaging_service_sid": data["MessagingServiceSid"],
+                    "to_number": data["To"],
+                    "message": "Messaging Service SMS sent successfully"
+                }
+            else:
+                results["tests"]["messaging_service_sms"] = {
+                    "success": False,
+                    "error": response_data.get("message", "Unknown error"),
+                    "error_code": response_data.get("code"),
+                    "status_code": response.status_code,
+                    "message": "Messaging Service SMS failed"
+                }
+                
+        except Exception as e:
+            results["tests"]["messaging_service_sms"] = {
+                "success": False,
+                "error": str(e),
+                "message": "Messaging Service SMS test failed with exception"
+            }
+        
+        # Determine overall result
+        direct_success = results["tests"].get("direct_sms_no_service", {}).get("success", False)
+        service_success = results["tests"].get("messaging_service_sms", {}).get("success", False)
+        
+        if direct_success and service_success:
+            results["conclusion"] = {
+                "status": "BOTH_WORK",
+                "message": "Both direct SMS and messaging service work - issue might be elsewhere",
+                "recommendation": "Check message delivery status after a few minutes"
+            }
+        elif direct_success and not service_success:
+            results["conclusion"] = {
+                "status": "MESSAGING_SERVICE_ISSUE", 
+                "message": "Direct SMS works but messaging service fails - use direct SMS",
+                "recommendation": "Switch activity logging to use direct From/To instead of messaging service"
+            }
+        elif not direct_success and service_success:
+            results["conclusion"] = {
+                "status": "PHONE_NUMBER_ISSUE",
+                "message": "Messaging service works but direct from number fails",
+                "recommendation": "Check if sender phone number is properly configured"
+            }
+        else:
+            results["conclusion"] = {
+                "status": "BOTH_FAIL",
+                "message": "Both methods fail - likely account or infrastructure issue",
+                "recommendation": "Check Twilio account status and configuration"
+            }
+        
+        return jsonify(results)
+        
+    except Exception as e:
+        import traceback
+        return jsonify({
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }), 500
+
+
 # ==========================================
 # SERVER STARTUP
 # ==========================================
