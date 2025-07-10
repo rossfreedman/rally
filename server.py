@@ -4184,6 +4184,247 @@ def delete_remaining_victor_forman_production():
         }), 500
 
 
+@app.route("/debug/delete-user-complete-production")
+def delete_user_complete_production():
+    """
+    Delete any user completely from production by handling all foreign key constraints
+    """
+    railway_env = os.environ.get("RAILWAY_ENVIRONMENT", "not_set")
+    
+    if railway_env != "production":
+        return jsonify({
+            "error": "This endpoint only works on production",
+            "railway_env": railway_env
+        }), 403
+    
+    try:
+        from database_utils import execute_query, execute_query_one, execute_update
+        
+        # Get user identifier from query parameters
+        user_id = request.args.get('user_id')
+        user_email = request.args.get('user_email')
+        
+        if not user_id and not user_email:
+            return jsonify({
+                "error": "Must provide either user_id or user_email parameter",
+                "examples": [
+                    "?user_id=936",
+                    "?user_email=victorformantest@gmail.com",
+                    "?user_id=936&delete_user=true (to actually delete)"
+                ]
+            }), 400
+        
+        results = {
+            "railway_env": railway_env,
+            "timestamp": datetime.now().isoformat(),
+            "phase": "analysis",
+            "target_user": None,
+            "deletion_applied": False
+        }
+        
+        # Find the target user
+        if user_id:
+            user_query = """
+                SELECT 
+                    u.id, u.email, u.first_name, u.last_name, u.created_at, u.last_login,
+                    COUNT(upa.user_id) as association_count
+                FROM users u
+                LEFT JOIN user_player_associations upa ON u.id = upa.user_id
+                WHERE u.id = %s
+                GROUP BY u.id, u.email, u.first_name, u.last_name, u.created_at, u.last_login
+            """
+            user_param = [int(user_id)]
+        else:
+            user_query = """
+                SELECT 
+                    u.id, u.email, u.first_name, u.last_name, u.created_at, u.last_login,
+                    COUNT(upa.user_id) as association_count
+                FROM users u
+                LEFT JOIN user_player_associations upa ON u.id = upa.user_id
+                WHERE u.email = %s
+                GROUP BY u.id, u.email, u.first_name, u.last_name, u.created_at, u.last_login
+            """
+            user_param = [user_email]
+        
+        target_users = execute_query(user_query, user_param)
+        
+        if not target_users:
+            results["message"] = f"No user found with {'ID ' + user_id if user_id else 'email ' + user_email}"
+            return jsonify({
+                "debug": "delete_user_complete_production",
+                "results": results
+            }), 404
+        
+        if len(target_users) > 1:
+            results["error"] = f"Found {len(target_users)} users - query should return exactly 1"
+            return jsonify({
+                "debug": "delete_user_complete_production", 
+                "results": results
+            }), 400
+        
+        # Get the target user
+        target_user = target_users[0]
+        target_user_id = target_user['id']
+        
+        results["target_user"] = {
+            "user_id": target_user_id,
+            "email": target_user['email'],
+            "name": f"{target_user['first_name']} {target_user['last_name']}",
+            "created_at": str(target_user['created_at']),
+            "last_login": str(target_user['last_login']) if target_user['last_login'] else None,
+            "association_count": target_user['association_count']
+        }
+        
+        # Check all foreign key constraint tables
+        constraints_to_check = [
+            ("activity_log", "user_id", "activity log entries"),
+            ("polls", "created_by", "polls created"),
+            ("user_player_associations", "user_id", "player associations")
+        ]
+        
+        for table, column, description in constraints_to_check:
+            count_query = f"SELECT COUNT(*) as count FROM {table} WHERE {column} = %s"
+            try:
+                count_result = execute_query_one(count_query, [target_user_id])
+                results["target_user"][f"{table}_count"] = count_result["count"] if count_result else 0
+            except Exception as e:
+                results["target_user"][f"{table}_count"] = f"Error: {str(e)}"
+        
+        # Get association details if any exist
+        if target_user['association_count'] > 0:
+            associations_query = """
+                SELECT 
+                    upa.tenniscores_player_id,
+                    p.first_name, p.last_name,
+                    l.league_name, c.name as club_name, s.name as series_name
+                FROM user_player_associations upa
+                JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+                LEFT JOIN leagues l ON p.league_id = l.id
+                LEFT JOIN clubs c ON p.club_id = c.id
+                LEFT JOIN series s ON p.series_id = s.id
+                WHERE upa.user_id = %s
+            """
+            
+            associations = execute_query(associations_query, [target_user_id])
+            results["target_user"]["associations"] = []
+            
+            for assoc in (associations or []):
+                results["target_user"]["associations"].append({
+                    "player_name": f"{assoc['first_name']} {assoc['last_name']}",
+                    "player_id": assoc['tenniscores_player_id'],
+                    "league": assoc['league_name'],
+                    "club": assoc['club_name'],
+                    "series": assoc['series_name']
+                })
+        
+        # Check if user wants to apply deletion
+        apply_deletion = request.args.get('delete_user', 'false').lower() == 'true'
+        
+        if apply_deletion:
+            results["phase"] = "applying_deletion"
+            deletion_steps = []
+            
+            try:
+                # Step 1: Delete activity log entries
+                activity_deleted = execute_update(
+                    "DELETE FROM activity_log WHERE user_id = %s",
+                    [target_user_id]
+                )
+                deletion_steps.append({
+                    "step": 1,
+                    "action": "Delete activity log entries",
+                    "rows_affected": activity_deleted,
+                    "status": "SUCCESS"
+                })
+                
+                # Step 2: Delete polls created by user
+                polls_deleted = execute_update(
+                    "DELETE FROM polls WHERE created_by = %s",
+                    [target_user_id]
+                )
+                deletion_steps.append({
+                    "step": 2,
+                    "action": "Delete polls created by user",
+                    "rows_affected": polls_deleted,
+                    "status": "SUCCESS"
+                })
+                
+                # Step 3: Delete user associations
+                associations_deleted = execute_update(
+                    "DELETE FROM user_player_associations WHERE user_id = %s",
+                    [target_user_id]
+                )
+                deletion_steps.append({
+                    "step": 3,
+                    "action": "Delete user player associations",
+                    "rows_affected": associations_deleted,
+                    "status": "SUCCESS"
+                })
+                
+                # Step 4: Delete the user
+                user_deleted = execute_update(
+                    "DELETE FROM users WHERE id = %s",
+                    [target_user_id]
+                )
+                deletion_steps.append({
+                    "step": 4,
+                    "action": "Delete user account",
+                    "rows_affected": user_deleted,
+                    "status": "SUCCESS" if user_deleted > 0 else "FAILED"
+                })
+                
+                results["deletion_applied"] = True
+                results["deletion_steps"] = deletion_steps
+                results["success"] = user_deleted > 0
+                
+                if results["success"]:
+                    results["message"] = f"SUCCESS: User ID {target_user_id} ({target_user['email']}) completely deleted."
+                else:
+                    results["message"] = f"FAILED: User deletion failed."
+                    
+            except Exception as delete_error:
+                deletion_steps.append({
+                    "step": "error",
+                    "action": "Deletion process",
+                    "error": str(delete_error),
+                    "status": "ERROR"
+                })
+                results["deletion_steps"] = deletion_steps
+                results["success"] = False
+                results["message"] = f"ERROR during deletion: {str(delete_error)}"
+        
+        return jsonify({
+            "debug": "delete_user_complete_production",
+            "results": results,
+            "instructions": {
+                "to_analyze_only": "Visit this endpoint with user_id or user_email parameter to see what will be deleted",
+                "to_delete_user": "Add &delete_user=true to permanently delete the user and ALL associated data",
+                "warning": "Adding &delete_user=true will permanently delete the user account and ALL associated data",
+                "examples": [
+                    "?user_id=936 (analyze user ID 936)",
+                    "?user_email=victorformantest@gmail.com (analyze by email)",
+                    "?user_id=936&delete_user=true (delete user ID 936)",
+                    "?user_email=victorformantest@gmail.com&delete_user=true (delete by email)"
+                ],
+                "deletion_order": [
+                    "1. Delete activity log entries (foreign key constraint)",
+                    "2. Delete polls created by user (foreign key constraint)",
+                    "3. Delete user player associations",
+                    "4. Delete user account",
+                    "5. Verify deletion successful"
+                ]
+            }
+        })
+        
+    except Exception as e:
+        import traceback
+        return jsonify({
+            "error": str(e),
+            "traceback": traceback.format_exc(),
+            "railway_env": railway_env
+        }), 500
+
+
 # ==========================================
 # SERVER STARTUP
 # ==========================================
