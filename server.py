@@ -414,6 +414,7 @@ def serve_static(path):
         "favicon.ico",
         "login.css",
         "signup.css",
+        "preview.png",  # Allow public access for social media link previews
     }
 
     def is_public_file(file_path):
