@@ -3624,6 +3624,178 @@ def add_unique_player_constraint_production():
         }), 500
 
 
+@app.route("/debug/cleanup-orphaned-duplicate-users-production")
+def cleanup_orphaned_duplicate_users_production():
+    """
+    Clean up orphaned duplicate user accounts in production
+    """
+    railway_env = os.environ.get("RAILWAY_ENVIRONMENT", "not_set")
+    
+    if railway_env != "production":
+        return jsonify({
+            "error": "This endpoint only works on production",
+            "railway_env": railway_env
+        }), 403
+    
+    try:
+        from database_utils import execute_query, execute_query_one, execute_update
+        
+        results = {
+            "railway_env": railway_env,
+            "timestamp": datetime.now().isoformat(),
+            "phase": "analysis",
+            "orphaned_users": [],
+            "cleanup_applied": False
+        }
+        
+        # Find users with duplicate names but no associations and no login activity
+        orphaned_query = """
+            SELECT 
+                u.id, u.email, u.first_name, u.last_name, u.created_at, u.last_login,
+                COUNT(upa.user_id) as association_count
+            FROM users u
+            LEFT JOIN user_player_associations upa ON u.id = upa.user_id
+            WHERE u.first_name = 'Victor' AND u.last_name = 'Forman'
+            GROUP BY u.id, u.email, u.first_name, u.last_name, u.created_at, u.last_login
+            HAVING COUNT(upa.user_id) = 0 AND u.last_login IS NULL
+            ORDER BY u.created_at DESC
+        """
+        
+        orphaned_users = execute_query(orphaned_query)
+        
+        if not orphaned_users:
+            results["message"] = "No orphaned duplicate users found"
+            return jsonify({
+                "debug": "cleanup_orphaned_duplicate_users_production",
+                "results": results
+            })
+        
+        results["orphaned_count"] = len(orphaned_users)
+        
+        # Analyze each orphaned user
+        for user in orphaned_users:
+            user_info = {
+                "user_id": user['id'],
+                "email": user['email'],
+                "name": f"{user['first_name']} {user['last_name']}",
+                "created_at": str(user['created_at']),
+                "last_login": str(user['last_login']) if user['last_login'] else None,
+                "association_count": user['association_count'],
+                "is_orphaned": user['association_count'] == 0 and user['last_login'] is None
+            }
+            
+            # Additional safety checks
+            created_date = user['created_at']
+            if hasattr(created_date, 'date'):
+                created_date = created_date.date()
+            elif isinstance(created_date, str):
+                from datetime import datetime
+                created_date = datetime.fromisoformat(created_date.replace('Z', '+00:00')).date()
+            
+            today = datetime.now().date()
+            
+            # Only consider for cleanup if:
+            # 1. No associations
+            # 2. Never logged in  
+            # 3. Created recently (last 7 days) - safety measure
+            days_old = (today - created_date).days
+            user_info["days_old"] = days_old
+            user_info["safe_to_delete"] = (
+                user['association_count'] == 0 and 
+                user['last_login'] is None and 
+                days_old <= 7
+            )
+            
+            results["orphaned_users"].append(user_info)
+        
+        # Check if user wants to apply cleanup
+        apply_cleanup = request.args.get('apply_cleanup', 'false').lower() == 'true'
+        
+        if apply_cleanup:
+            results["phase"] = "applying_cleanup"
+            deleted_count = 0
+            
+            for user_info in results["orphaned_users"]:
+                if user_info["safe_to_delete"]:
+                    try:
+                        # Double-check no associations exist (safety)
+                        association_check = execute_query_one(
+                            "SELECT COUNT(*) as count FROM user_player_associations WHERE user_id = %s",
+                            [user_info["user_id"]]
+                        )
+                        
+                        if association_check["count"] == 0:
+                            # Delete the orphaned user
+                            rows_deleted = execute_update(
+                                "DELETE FROM users WHERE id = %s",
+                                [user_info["user_id"]]
+                            )
+                            
+                            if rows_deleted > 0:
+                                deleted_count += 1
+                                user_info["deleted"] = True
+                            else:
+                                user_info["deleted"] = False
+                                user_info["delete_error"] = "No rows affected"
+                        else:
+                            user_info["deleted"] = False
+                            user_info["delete_error"] = f"User has {association_check['count']} associations"
+                            
+                    except Exception as delete_error:
+                        user_info["deleted"] = False
+                        user_info["delete_error"] = str(delete_error)
+                else:
+                    user_info["deleted"] = False
+                    user_info["delete_error"] = "Not marked as safe to delete"
+            
+            results["cleanup_applied"] = True
+            results["users_deleted"] = deleted_count
+            
+            # Verify Victor Forman users remaining
+            remaining_query = """
+                SELECT id, email, first_name, last_name
+                FROM users 
+                WHERE first_name = 'Victor' AND last_name = 'Forman'
+                ORDER BY created_at ASC
+            """
+            
+            remaining_users = execute_query(remaining_query)
+            results["remaining_victor_users"] = []
+            
+            for user in remaining_users:
+                results["remaining_victor_users"].append({
+                    "user_id": user['id'],
+                    "email": user['email'],
+                    "name": f"{user['first_name']} {user['last_name']}"
+                })
+            
+            results["success"] = len(results["remaining_victor_users"]) == 1
+        
+        return jsonify({
+            "debug": "cleanup_orphaned_duplicate_users_production",
+            "results": results,
+            "instructions": {
+                "to_analyze_only": "Visit this endpoint normally",
+                "to_apply_cleanup": "Add ?apply_cleanup=true to actually delete orphaned users",
+                "warning": "Adding ?apply_cleanup=true will permanently delete user accounts",
+                "safety_notes": [
+                    "Only deletes users with no associations",
+                    "Only deletes users who never logged in", 
+                    "Only deletes users created within last 7 days",
+                    "Double-checks safety before deletion"
+                ]
+            }
+        })
+        
+    except Exception as e:
+        import traceback
+        return jsonify({
+            "error": str(e),
+            "traceback": traceback.format_exc(),
+            "railway_env": railway_env
+        }), 500
+
+
 # ==========================================
 # SERVER STARTUP
 # ==========================================
