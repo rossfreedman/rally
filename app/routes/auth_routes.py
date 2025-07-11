@@ -108,31 +108,67 @@ def handle_register():
 
         logger.info(f"Registration: Session created for user {email} with player_id: {result['user'].get('tenniscores_player_id', 'None')}")
 
-        # 🔍 ENHANCEMENT: Run association discovery after registration to find additional league connections
-        try:
-            user_id = result["user"]["id"]
-            discovery_result = AssociationDiscoveryService.discover_missing_associations(user_id, email)
-            
-            if discovery_result.get("success") and discovery_result.get("associations_created", 0) > 0:
-                logger.info(f"🎯 Registration discovery: Found {discovery_result['associations_created']} additional associations for {email}")
+        # 🔍 ENHANCED: Run association discovery after registration with proper error handling and retry
+        discovery_success = False
+        discovery_attempts = 0
+        max_attempts = 3
+        
+        while not discovery_success and discovery_attempts < max_attempts:
+            discovery_attempts += 1
+            try:
+                user_id = result["user"]["id"]
+                logger.info(f"🔍 Registration discovery attempt {discovery_attempts}/{max_attempts} for {email}")
                 
-                # Update session with any new associations found
-                try:
-                    # Rebuild session data to include new associations
-                    from app.services.session_service import get_session_data_for_user
-                    updated_session_data = get_session_data_for_user(email)
-                    if updated_session_data:
-                        session["user"] = updated_session_data
-                        logger.info(f"Registration: Updated session with new associations")
+                # Small delay to ensure primary registration is fully committed
+                import time
+                time.sleep(0.1)
+                
+                discovery_result = AssociationDiscoveryService.discover_missing_associations(user_id, email)
+                
+                if discovery_result.get("success"):
+                    discovery_success = True
+                    associations_created = discovery_result.get("associations_created", 0)
+                    
+                    if associations_created > 0:
+                        logger.info(f"🎯 Registration discovery SUCCESS: Found {associations_created} additional associations for {email}")
+                        
+                        # Update session with any new associations found
+                        try:
+                            # Rebuild session data to include new associations
+                            from app.services.session_service import get_session_data_for_user
+                            updated_session_data = get_session_data_for_user(email)
+                            if updated_session_data:
+                                session["user"] = updated_session_data
+                                logger.info(f"Registration: Updated session with new associations")
+                            else:
+                                logger.warning(f"Failed to rebuild session data after discovery")
+                        except Exception as session_update_error:
+                            logger.warning(f"Failed to update session with new associations: {session_update_error}")
+                            # Continue anyway - user will see new associations on next login
                     else:
-                        logger.warning(f"Failed to rebuild session data after discovery")
-                except Exception as session_update_error:
-                    logger.warning(f"Failed to update session with new associations: {session_update_error}")
-                    # Continue anyway - user will see new associations on next login
-            
-        except Exception as discovery_error:
-            logger.warning(f"Association discovery failed during registration for {email}: {discovery_error}")
-            # Don't fail registration if discovery fails - it's an enhancement, not critical
+                        logger.info(f"🔍 Registration discovery SUCCESS: No additional associations found for {email}")
+                else:
+                    logger.warning(f"🔍 Registration discovery FAILED (attempt {discovery_attempts}): {discovery_result.get('error', 'Unknown error')}")
+                    if discovery_attempts < max_attempts:
+                        logger.info(f"🔄 Retrying association discovery in 0.5 seconds...")
+                        time.sleep(0.5)
+                
+            except Exception as discovery_error:
+                logger.error(f"❌ Registration discovery ERROR (attempt {discovery_attempts}): {discovery_error}")
+                import traceback
+                logger.error(f"❌ Registration discovery TRACEBACK: {traceback.format_exc()}")
+                
+                if discovery_attempts < max_attempts:
+                    logger.info(f"🔄 Retrying association discovery after exception...")
+                    time.sleep(0.5)
+        
+        # If discovery failed completely, log it but don't fail registration
+        if not discovery_success:
+            logger.warning(f"⚠️  Registration discovery FAILED after {max_attempts} attempts for {email}")
+            logger.warning(f"⚠️  User will have associations discovered on next login")
+            logger.info(f"🔄 Association Discovery will run automatically on next login for {email}")
+        
+        # Don't fail registration if discovery fails - it's an enhancement, not critical
 
         return (
             jsonify(
@@ -213,18 +249,31 @@ def handle_login():
             logger.error(f"Session creation error: {session_error}")
             return jsonify({"error": "Session creation failed"}), 500
 
-        # 🔍 ENHANCEMENT: Run association discovery on login to find missing league connections
+        # 🔍 ENHANCED: Run association discovery on login to find missing league connections
         try:
             user_id = result["user"]["id"]
+            logger.info(f"🔍 Login discovery: Running association discovery for {email}")
+            
             discovery_result = AssociationDiscoveryService.discover_missing_associations(user_id, email)
             
-            if discovery_result.get("success") and discovery_result.get("associations_created", 0) > 0:
-                logger.info(f"🎯 Login discovery: Created {discovery_result['associations_created']} new associations for {email}")
-                # Note: We don't update the session here as it would require rebuilding session data
-                # The user will see the new associations on their next login or page refresh
+            if discovery_result.get("success"):
+                associations_created = discovery_result.get("associations_created", 0)
+                
+                if associations_created > 0:
+                    logger.info(f"🎯 Login discovery SUCCESS: Created {associations_created} new associations for {email}")
+                    
+                    # Log the new associations
+                    for assoc in discovery_result.get('new_associations', []):
+                        logger.info(f"   • {assoc['tenniscores_player_id']} - {assoc['league_name']} ({assoc['club_name']}, {assoc['series_name']})")
+                else:
+                    logger.info(f"🔍 Login discovery SUCCESS: No additional associations found for {email}")
+            else:
+                logger.warning(f"🔍 Login discovery FAILED: {discovery_result.get('error', 'Unknown error')}")
             
         except Exception as discovery_error:
             logger.warning(f"Association discovery failed during login for {email}: {discovery_error}")
+            import traceback
+            logger.error(f"Login discovery TRACEBACK: {traceback.format_exc()}")
             # Don't fail login if discovery fails - it's an enhancement, not critical
 
         # Get user data for response
