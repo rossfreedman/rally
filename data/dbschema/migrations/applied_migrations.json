@@ -6,5 +6,12 @@
       "staging",
       "production"
     ]
+  },
+  {
+    "filename": "20250112_120000_add_is_private_to_pickup_games.sql",
+    "applied_at": "2025-07-11T16:25:00.000000",
+    "applied_to": [
+      "production"
+    ]
   }
 ]

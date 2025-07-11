@@ -1,21 +1,10 @@
-{% extends "mobile/admin_base.html" %}
+{% extends "mobile/layout.html" %}
+{% set show_back_arrow = True %}
 
 {% block title %}Text Group - Rally{% endblock %}
 
 {% block content %}
 <div class="min-h-screen bg-gray-50">
-    <!-- Header -->
-    <div class="bg-white shadow-sm border-b">
-        <div class="px-4 py-3">
-            <div class="flex items-center">
-                <a href="/mobile/pickup-games" class="text-gray-600 hover:text-gray-800 transition-colors">
-                    <i class="fas fa-arrow-left text-xl"></i>
-                </a>
-                <h1 class="text-xl font-bold text-gray-900 ml-3">Text Group</h1>
-            </div>
-        </div>
-    </div>
-
     {% if error %}
     <!-- Error State -->
     <div class="px-4 py-8">
@@ -31,6 +20,19 @@
         </div>
     </div>
     {% elif group %}
+    <!-- Header -->
+    <div class="bg-white border-b border-gray-100">
+        <div class="flex items-center px-4 py-6">
+            <div class="w-12 h-12 rounded-full flex items-center justify-center shadow-sm" style="background-color: #085454 !important;">
+                <i class="fas fa-users text-white text-lg"></i>
+            </div>
+            <div class="ml-4">
+                <h1 class="text-xl font-bold text-gray-900">Text Group</h1>
+                <p class="text-sm text-gray-500">Send messages to your group</p>
+            </div>
+        </div>
+    </div>
+
     <!-- Main Content -->
     <div class="px-4 py-4">
         <!-- Group Info -->
