@@ -1661,6 +1661,67 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // Remove player from group
+    async function removePlayerFromGroup(groupId, memberUserId, memberName, buttonElement) {
+        // Show confirmation dialog
+        const confirmed = confirm(`Are you sure you want to remove ${memberName} from the group?`);
+        if (!confirmed) {
+            return;
+        }
+        
+        const originalHTML = buttonElement.innerHTML;
+        
+        try {
+            buttonElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            buttonElement.disabled = true;
+            
+            const response = await fetch(`/api/groups/${groupId}/members/${memberUserId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok && result.success) {
+                showSuccess(`${memberName} removed from group!`);
+                
+                // Remove the member from the UI
+                const memberElement = buttonElement.closest('.member-item');
+                if (memberElement) {
+                    memberElement.remove();
+                }
+                
+                // Update the member count if displayed
+                const memberCountElement = document.querySelector('.member-count');
+                if (memberCountElement) {
+                    const currentCount = parseInt(memberCountElement.textContent);
+                    memberCountElement.textContent = currentCount - 1;
+                }
+                
+                // Refresh the modal with updated member list after a short delay
+                setTimeout(() => {
+                    const modal = document.getElementById('editGroupModal');
+                    if (modal) {
+                        modal.remove();
+                        showEditGroupModal(groupId);
+                    }
+                }, 1500);
+                
+            } else {
+                showError(result.error || 'Failed to remove player from group');
+                buttonElement.innerHTML = originalHTML;
+                buttonElement.disabled = false;
+            }
+        } catch (error) {
+            console.error('Error removing player from group:', error);
+            showError('Network error. Please try again.');
+            buttonElement.innerHTML = originalHTML;
+            buttonElement.disabled = false;
+        }
+    }
+
     // Show edit group modal with ability to add members
     async function showEditGroupModal(groupId) {
         try {
@@ -1740,7 +1801,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <h4 class="text-sm font-semibold text-gray-900 mb-3">Current Members</h4>
                                 <div id="membersList" class="space-y-2 max-h-40 overflow-y-auto">
                                     ${group.members.map(member => `
-                                        <div class="flex items-center justify-between bg-gray-50 p-2 rounded-lg">
+                                        <div class="flex items-center justify-between bg-gray-50 p-2 rounded-lg member-item" data-member-user-id="${member.user_id}">
                                             <div class="flex items-center">
                                                 <div class="w-8 h-8 rounded-full flex items-center justify-center mr-3" style="background-color: #085454 !important;">
                                                     <i class="fas fa-user text-white text-sm"></i>
@@ -1750,6 +1811,13 @@ document.addEventListener('DOMContentLoaded', function() {
                                                     <div class="text-xs text-gray-500">Joined ${new Date(member.added_at).toLocaleDateString()}</div>
                                                 </div>
                                             </div>
+                                            <button class="delete-member-btn text-red-600 hover:text-red-800 p-1 rounded-full hover:bg-red-50 transition-colors" 
+                                                    data-group-id="${groupId}" 
+                                                    data-member-user-id="${member.user_id}" 
+                                                    data-member-name="${member.first_name} ${member.last_name}"
+                                                    title="Remove ${member.first_name} ${member.last_name} from group">
+                                                <i class="fas fa-trash text-xs"></i>
+                                            </button>
                                         </div>
                                     `).join('')}
                                 </div>
@@ -1963,6 +2031,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 if (groupId) {
                     showTextGroupModal(groupId);
+                }
+            }
+        });
+        
+        // Delete member buttons - use event delegation for dynamically created content
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('delete-member-btn') || e.target.closest('.delete-member-btn')) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const button = e.target.classList.contains('delete-member-btn') ? e.target : e.target.closest('.delete-member-btn');
+                const groupId = parseInt(button.dataset.groupId);
+                const memberUserId = parseInt(button.dataset.memberUserId);
+                const memberName = button.dataset.memberName;
+                
+                if (groupId && memberUserId && memberName) {
+                    removePlayerFromGroup(groupId, memberUserId, memberName, button);
                 }
             }
         });
