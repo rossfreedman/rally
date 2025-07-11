@@ -3947,4 +3947,63 @@ def debug_teams_check():
         return f"Error: {str(e)}"
 
 
+@mobile_bp.route("/mobile/text-group/<int:group_id>")
+@login_required
+def serve_text_group(group_id):
+    """Serve the mobile text group page for sending SMS to group members"""
+    try:
+        user = session["user"]
+        user_id = user.get("id")
+        
+        if not user_id:
+            return jsonify({"error": "User ID not found"}), 400
+        
+        # Get group details and verify user has access
+        from app.services.groups_service import GroupsService
+        from app.models.database_models import SessionLocal
+        
+        with SessionLocal() as db_session:
+            groups_service = GroupsService(db_session)
+            result = groups_service.get_group_details(group_id, user_id)
+            
+            if not result["success"]:
+                return render_template(
+                    "mobile/text_group.html",
+                    session_data={"user": user, "authenticated": True},
+                    error=result.get("error", "Group not found"),
+                    group=None
+                )
+            
+            group = result["group"]
+            
+        session_data = {"user": user, "authenticated": True}
+        
+        log_user_activity(
+            user["email"], "page_visit", 
+            page="text_group",
+            details=f"Group: {group['name']}"
+        )
+        
+        return render_template(
+            "mobile/text_group.html",
+            session_data=session_data,
+            group=group,
+            error=None
+        )
+        
+    except Exception as e:
+        print(f"Error serving text group page: {str(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
+        
+        session_data = {"user": session.get("user"), "authenticated": True}
+        
+        return render_template(
+            "mobile/text_group.html",
+            session_data=session_data,
+            error="Failed to load group details",
+            group=None
+        )
+
+
 
