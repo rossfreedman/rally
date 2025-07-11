@@ -35,7 +35,7 @@ class TestUserRegistration:
     """Test user registration functionality"""
 
     def test_register_valid_user_without_player(self, db_session):
-        """Test registering a user without player association"""
+        """Test that registration fails without required league/club/series information"""
         import time
         unique_email = f"newuser{int(time.time())}@example.com"
         
@@ -46,28 +46,14 @@ class TestUserRegistration:
             last_name="User",
         )
 
-        # Test the function's return value (main functionality)
-        assert isinstance(result, dict)
-        assert result["success"] is True
-        assert "registration successful" in result["message"].lower()
-        
-        # Verify user data in response
-        assert "user" in result
-        user_data = result["user"]
-        assert user_data["email"] == unique_email
-        assert user_data["first_name"] == "New"
-        assert user_data["last_name"] == "User"
-        assert user_data["is_admin"] is False
-        
-        # Verify user got an ID (proves creation)
-        assert "id" in user_data
-        assert isinstance(user_data["id"], int)
-        assert user_data["id"] > 0
+        # Should fail due to missing required league/club/series information
+        assert result["success"] is False
+        assert "Rally was unable to link your user account to a player ID" in result["error"]
 
     def test_register_user_with_player_link(
         self, db_session, test_league, test_club, test_series, test_team
     ):
-        """Test registering a user with successful player linking - simplified version"""
+        """Test registering a user with successful player linking"""
         import time
         unique_email = f"linkeduser{int(time.time())}@example.com"
         
@@ -85,12 +71,15 @@ class TestUserRegistration:
         db_session.add(player)
         db_session.commit()
 
-        # Test basic registration without specific league linking for now
+        # Test registration with required league/club/series parameters
         result = register_user(
             email=unique_email,
             password="password123",
             first_name="Link",
             last_name="TestPlayer",
+            league_id=test_league.league_id,
+            club_name=test_club.name,
+            series_name=test_series.name,
         )
 
         assert result["success"] is True
@@ -113,6 +102,9 @@ class TestUserRegistration:
             password="newpassword123",
             first_name="Duplicate",
             last_name="User",
+            league_id="TEST_LEAGUE",
+            club_name="Test Club",
+            series_name="Test Series",
         )
 
         assert result["success"] is False
@@ -125,6 +117,9 @@ class TestUserRegistration:
             ("password", ""),
             ("first_name", ""),
             ("last_name", ""),
+            ("league_id", ""),
+            ("club_name", ""),
+            ("series_name", ""),
         ],
     )
     def test_register_missing_required_fields(
@@ -136,28 +131,26 @@ class TestUserRegistration:
             "password": "password123",
             "first_name": "Test",
             "last_name": "User",
+            "league_id": "TEST_LEAGUE",
+            "club_name": "Test Club",
+            "series_name": "Test Series",
         }
         data[missing_field] = field_value
 
         result = register_user(**data)
 
-        # Current implementation may handle validation differently
-        # Document actual behavior rather than enforce specific validation
-        if result["success"]:
-            print(f"Note: Registration succeeded with missing/empty {missing_field}")
-        else:
-            assert (
-                "missing" in result["error"].lower()
-                or "required" in result["error"].lower()
-                or "already exists" in result["error"].lower()
-                or "registration failed" in result["error"].lower()
-            )
+        # Should fail for missing required fields
+        assert result["success"] is False
+        assert "Rally was unable to link your user account to a player ID" in result["error"]
 
     @pytest.mark.parametrize(
         "missing_field,field_value",
         [
             ("email", None),
             ("password", None),
+            ("league_id", None),
+            ("club_name", None),
+            ("series_name", None),
         ],
     )
     def test_register_null_required_fields(
@@ -169,6 +162,9 @@ class TestUserRegistration:
             "password": "password123",
             "first_name": "Test",
             "last_name": "User",
+            "league_id": "TEST_LEAGUE",
+            "club_name": "Test Club",
+            "series_name": "Test Series",
         }
         data[missing_field] = field_value
 
@@ -176,11 +172,7 @@ class TestUserRegistration:
 
         # Should fail for null values
         assert result["success"] is False
-        assert (
-            "missing" in result["error"].lower()
-            or "required" in result["error"].lower()
-            or "registration failed" in result["error"].lower()
-        )
+        assert "Rally was unable to link your user account to a player ID" in result["error"]
 
     def test_register_weak_password(self, db_session):
         """Test registration with weak password"""
@@ -192,6 +184,9 @@ class TestUserRegistration:
                 password=weak_password,
                 first_name="Weak",
                 last_name="Password",
+                league_id="TEST_LEAGUE",
+                club_name="Test Club",
+                series_name="Test Series",
             )
 
             # Note: Current implementation may not validate password strength
@@ -216,6 +211,9 @@ class TestUserRegistration:
                 password="password123",
                 first_name="Invalid",
                 last_name="Email",
+                league_id="TEST_LEAGUE",
+                club_name="Test Club",
+                series_name="Test Series",
             )
 
             # Note: Current implementation may not validate email format
@@ -233,6 +231,9 @@ class TestUserRegistration:
             password="password123",
             first_name="Case",
             last_name="Test1",
+            league_id="TEST_LEAGUE",
+            club_name="Test Club",
+            series_name="Test Series",
         )
         assert result1["success"] is True
 
@@ -242,6 +243,9 @@ class TestUserRegistration:
             password="password123",
             first_name="Case",
             last_name="Test2",
+            league_id="TEST_LEAGUE",
+            club_name="Test Club",
+            series_name="Test Series",
         )
         
         # Document current behavior: allows different cases
@@ -345,12 +349,15 @@ class TestPlayerLinking:
         db_session.add(player)
         db_session.commit()
 
-        # Test basic registration - linking happens via different mechanism now
+        # Test registration with required league/club/series parameters
         result = register_user(
             email=unique_email,
             password="password123",
             first_name=valid_player["first_name"],
             last_name=valid_player["last_name"],
+            league_id=test_league.league_id,
+            club_name=test_club.name,
+            series_name=test_series.name,
         )
 
         assert result["success"] is True
@@ -363,7 +370,7 @@ class TestPlayerLinking:
         assert user_data["last_name"] == valid_player["last_name"]
 
     def test_link_to_nonexistent_player(self, db_session, scraped_test_data):
-        """Test registration with player data that doesn't exist"""
+        """Test registration with player data that doesn't exist - should fail"""
         import time
         unique_email = f"nolink{int(time.time())}@example.com"
         
@@ -374,27 +381,37 @@ class TestPlayerLinking:
             password="password123",
             first_name=invalid_player["first_name"],
             last_name=invalid_player["last_name"],
+            league_id="NONEXISTENT_LEAGUE",
+            club_name="Nonexistent Club",
+            series_name="Nonexistent Series",
         )
 
-        # Should still succeed even without player link
-        assert result["success"] is True
-
-        # Verify user data in response
-        assert "user" in result
-        user_data = result["user"]
-        assert user_data["email"] == unique_email
-        assert user_data["first_name"] == invalid_player["first_name"]
-        assert user_data["last_name"] == invalid_player["last_name"]
+        # Should fail since no matching player exists
+        assert result["success"] is False
+        assert "Rally was unable to link your user account to a player ID" in result["error"]
 
 
 @pytest.mark.security
 class TestRegistrationSecurity:
     """Test registration security aspects"""
 
-    def test_password_hashing(self, db_session):
+    def test_password_hashing(self, db_session, test_league, test_club, test_series):
         """Test that passwords are properly hashed"""
         import time
         unique_email = f"hashtest{int(time.time())}@example.com"
+        
+        # Create a player to link to for successful registration
+        player = Player(
+            tenniscores_player_id="HASH_TEST_001",
+            first_name="Hash",
+            last_name="Test",
+            league_id=test_league.id,
+            club_id=test_club.id,
+            series_id=test_series.id,
+            pti=1400.00,
+        )
+        db_session.add(player)
+        db_session.commit()
         
         password = "securepassword123"
         result = register_user(
@@ -402,6 +419,9 @@ class TestRegistrationSecurity:
             password=password,
             first_name="Hash",
             last_name="Test",
+            league_id=test_league.league_id,
+            club_name=test_club.name,
+            series_name=test_series.name,
         )
 
         assert result["success"] is True
@@ -463,10 +483,33 @@ class TestRegistrationSecurity:
 class TestRegistrationRegression:
     """Regression tests for previously fixed registration bugs"""
 
-    def test_email_case_handling_regression(self, db_session):
+    def test_email_case_handling_regression(self, db_session, test_league, test_club, test_series):
         """Test email case handling behavior"""
         import time
         base_email = f"testcase{int(time.time())}"
+        
+        # Create players to link to for successful registration
+        player1 = Player(
+            tenniscores_player_id="CASE_TEST_001",
+            first_name="Test",
+            last_name="User1",
+            league_id=test_league.id,
+            club_id=test_club.id,
+            series_id=test_series.id,
+            pti=1400.00,
+        )
+        player2 = Player(
+            tenniscores_player_id="CASE_TEST_002",
+            first_name="Test",
+            last_name="User2",
+            league_id=test_league.id,
+            club_id=test_club.id,
+            series_id=test_series.id,
+            pti=1400.00,
+        )
+        db_session.add(player1)
+        db_session.add(player2)
+        db_session.commit()
         
         # Test case: different cases are currently treated as different emails
         emails = [
@@ -480,6 +523,9 @@ class TestRegistrationRegression:
             password="password123",
             first_name="Test",
             last_name="User1",
+            league_id=test_league.league_id,
+            club_name=test_club.name,
+            series_name=test_series.name,
         )
         assert result1["success"] is True
 
@@ -488,7 +534,10 @@ class TestRegistrationRegression:
             email=emails[1],
             password="password123", 
             first_name="Test",
-            last_name="User2"
+            last_name="User2",
+            league_id=test_league.league_id,
+            club_name=test_club.name,
+            series_name=test_series.name,
         )
         
         # Document current behavior
@@ -543,12 +592,15 @@ class TestRegistrationRegression:
         db_session.add(player)
         db_session.commit()
 
-        # Register user - player linking happens automatically via discovery service
+        # Register user with required parameters for player linking
         result = register_user(
             email=unique_email,
             password="password123",
             first_name="Integrity",
             last_name="Test",
+            league_id=test_league.league_id,
+            club_name=test_club.name,
+            series_name=test_series.name,
         )
 
         assert result["success"] is True

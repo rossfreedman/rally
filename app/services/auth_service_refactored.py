@@ -298,19 +298,19 @@ def get_or_create_series(series_name: str, db_session=None) -> Series:
 
 
 def register_user(email: str, password: str, first_name: str, last_name: str, 
-                  league_id: str = None, club_name: str = None, series_name: str = None,
+                  league_id: str, club_name: str, series_name: str,
                   ad_deuce_preference: str = None, dominant_hand: str = None) -> Dict[str, Any]:
     """
-    Register a new user with optional player association.
+    Register a new user with mandatory player association.
     
     Args:
         email: User's email address
         password: User's password
         first_name: User's first name
         last_name: User's last name
-        league_id: League identifier (optional)
-        club_name: Club name (optional)
-        series_name: Series name (optional)
+        league_id: League identifier (required)
+        club_name: Club name (required)
+        series_name: Series name (required)
         ad_deuce_preference: User's ad/deuce preference (optional)
         dominant_hand: User's dominant hand (optional)
         
@@ -324,6 +324,13 @@ def register_user(email: str, password: str, first_name: str, last_name: str,
         existing_user = db_session.query(User).filter(User.email == email).first()
         if existing_user:
             return {"success": False, "error": "User with this email already exists"}
+        
+        # Validate required fields for player association
+        if not league_id or not club_name or not series_name:
+            return {
+                "success": False, 
+                "error": "Registration was not successful. Rally was unable to link your user account to a player ID. Please contact support for assistance."
+            }
         
         # Create new user (but don't commit yet)
         password_hash = hash_password(password)
@@ -341,103 +348,119 @@ def register_user(email: str, password: str, first_name: str, last_name: str,
         
         logger.info(f"Created new user (pending commit): {email}")
         
-        # If league/club/series provided, try to find player and create association
-        if league_id and club_name and series_name:
-            try:
-                # Use our player lookup service to find the specific player they registered for
-                player_lookup_result = find_player_by_database_lookup(
-                    first_name=first_name,
-                    last_name=last_name,
-                    league_id=league_id,
-                    club_name=club_name,
-                    series_name=series_name
-                )
+        # Mandatory player lookup - registration fails if no player is found
+        try:
+            # Use our player lookup service to find the specific player they registered for
+            player_lookup_result = find_player_by_database_lookup(
+                first_name=first_name,
+                last_name=last_name,
+                league_id=league_id,
+                club_name=club_name,
+                series_name=series_name
+            )
+            
+            logger.info(f"Registration: Player lookup result for {email}: {player_lookup_result}")
+            
+            # Check if player was found
+            if not player_lookup_result or not player_lookup_result.get("player"):
+                logger.warning(f"Registration FAILED: No player found for {email} with provided details")
+                db_session.rollback()
+                return {
+                    "success": False, 
+                    "error": "Registration was not successful. Rally was unable to link your user account to a player ID. Please contact support for assistance."
+                }
+            
+            player_data = player_lookup_result["player"]
+            player_id = player_data["tenniscores_player_id"]
+            
+            # Get the full player record from database
+            player_record = db_session.query(Player).filter(
+                Player.tenniscores_player_id == player_id,
+                Player.is_active == True
+            ).first()
+            
+            if not player_record:
+                logger.warning(f"Registration FAILED: Player record not found in database for {email}, player_id: {player_id}")
+                db_session.rollback()
+                return {
+                    "success": False, 
+                    "error": "Registration was not successful. Rally was unable to link your user account to a player ID. Please contact support for assistance."
+                }
+            
+            # ENHANCEMENT: Handle existing placeholder associations
+            # Check if this player is already associated with a placeholder user
+            existing_association = db_session.query(UserPlayerAssociation).filter(
+                UserPlayerAssociation.tenniscores_player_id == player_id
+            ).first()
+            
+            if existing_association:
+                # Check if it's a placeholder user
+                existing_user = db_session.query(User).filter(
+                    User.id == existing_association.user_id
+                ).first()
                 
-                logger.info(f"Registration: Player lookup result for {email}: {player_lookup_result}")
-                
-                if player_lookup_result and player_lookup_result.get("player"):
-                    player_data = player_lookup_result["player"]
-                    player_id = player_data["tenniscores_player_id"]
+                if existing_user and existing_user.email.endswith('@placeholder.rally'):
+                    logger.info(f"Registration: Removing placeholder association for player {player_id}")
                     
-                    # Get the full player record from database
-                    player_record = db_session.query(Player).filter(
-                        Player.tenniscores_player_id == player_id,
-                        Player.is_active == True
-                    ).first()
+                    # Remove the placeholder association
+                    db_session.delete(existing_association)
                     
-                    if player_record:
-                        # ENHANCEMENT: Handle existing placeholder associations
-                        # Check if this player is already associated with a placeholder user
-                        existing_association = db_session.query(UserPlayerAssociation).filter(
-                            UserPlayerAssociation.tenniscores_player_id == player_id
-                        ).first()
-                        
-                        if existing_association:
-                            # Check if it's a placeholder user
-                            existing_user = db_session.query(User).filter(
-                                User.id == existing_association.user_id
-                            ).first()
-                            
-                            if existing_user and existing_user.email.endswith('@placeholder.rally'):
-                                logger.info(f"Registration: Removing placeholder association for player {player_id}")
-                                
-                                # Remove the placeholder association
-                                db_session.delete(existing_association)
-                                
-                                # If placeholder user has no other associations, remove the user too
-                                other_associations = db_session.query(UserPlayerAssociation).filter(
-                                    UserPlayerAssociation.user_id == existing_user.id,
-                                    UserPlayerAssociation.tenniscores_player_id != player_id
-                                ).count()
-                                
-                                if other_associations == 0:
-                                    logger.info(f"Registration: Removing empty placeholder user {existing_user.email}")
-                                    db_session.delete(existing_user)
-                                
-                                db_session.flush()  # Apply deletes before creating new association
-                            else:
-                                # Real user already associated - this is a security issue, prevent registration
-                                logger.warning(f"🚨 SECURITY: Player ID {player_id} already associated with real user {existing_user.email}")
-                                logger.warning(f"🚨 SECURITY: Preventing registration of {email} with existing player identity")
-                                
-                                # Rollback and return error - don't create the user account
-                                db_session.rollback()
-                                return {
-                                    "success": False, 
-                                    "error": "Player identity is already associated with another account. If this is your player record, please contact support.",
-                                    "security_issue": True
-                                }
-                        
-                        # Create new association if no conflicts
-                        if not existing_association or (existing_association and existing_user and existing_user.email.endswith('@placeholder.rally')):
-                            association = UserPlayerAssociation(
-                                user_id=new_user.id,
-                                tenniscores_player_id=player_id
-                            )
-                            db_session.add(association)
-                        
-                        # CRITICAL FIX: Set league_context based on the specific player they registered for
-                        # This ensures the session service will select the right team on login
-                        new_user.league_context = player_record.league_id
-                        
-                        logger.info(f"Registration: Set league_context to {player_record.league_id} for player {player_data['club_name']} - {player_data['series_name']}")
-                        
-                        # Assign player to team for polls functionality
-                        team_assigned = assign_player_to_team(player_record, db_session)
-                        if team_assigned:
-                            logger.info(f"Registration: Team assignment successful for {player_record.full_name}")
-                        
-                        # Log association creation (or existing association)
-                        if 'association' in locals() and association:
-                            logger.info(f"Registration: Created association between {email} and player {player_id} ({player_data['club_name']} - {player_data['series_name']})")
-                        else:
-                            logger.info(f"Registration: Using existing association for {email} and player {player_id} ({player_data['club_name']} - {player_data['series_name']})")
+                    # If placeholder user has no other associations, remove the user too
+                    other_associations = db_session.query(UserPlayerAssociation).filter(
+                        UserPlayerAssociation.user_id == existing_user.id,
+                        UserPlayerAssociation.tenniscores_player_id != player_id
+                    ).count()
+                    
+                    if other_associations == 0:
+                        logger.info(f"Registration: Removing empty placeholder user {existing_user.email}")
+                        db_session.delete(existing_user)
+                    
+                    db_session.flush()  # Apply deletes before creating new association
                 else:
-                    logger.info(f"Registration: No player found for {email} with provided details")
+                    # Real user already associated - this is a security issue, prevent registration
+                    logger.warning(f"🚨 SECURITY: Player ID {player_id} already associated with real user {existing_user.email}")
+                    logger.warning(f"🚨 SECURITY: Preventing registration of {email} with existing player identity")
                     
-            except Exception as e:
-                logger.warning(f"Registration: Player lookup error for {email}: {e}")
-                # Continue with registration even if player lookup fails
+                    # Rollback and return error - don't create the user account
+                    db_session.rollback()
+                    return {
+                        "success": False, 
+                        "error": "Player identity is already associated with another account. If this is your player record, please contact support.",
+                        "security_issue": True
+                    }
+            
+            # Create new association if no conflicts
+            if not existing_association or (existing_association and existing_user and existing_user.email.endswith('@placeholder.rally')):
+                association = UserPlayerAssociation(
+                    user_id=new_user.id,
+                    tenniscores_player_id=player_id
+                )
+                db_session.add(association)
+            
+            # CRITICAL FIX: Set league_context based on the specific player they registered for
+            # This ensures the session service will select the right team on login
+            new_user.league_context = player_record.league_id
+            
+            logger.info(f"Registration: Set league_context to {player_record.league_id} for player {player_data['club_name']} - {player_data['series_name']}")
+            
+            # Assign player to team for polls functionality
+            team_assigned = assign_player_to_team(player_record, db_session)
+            if team_assigned:
+                logger.info(f"Registration: Team assignment successful for {player_record.full_name}")
+            
+            # Log association creation (or existing association)
+            if 'association' in locals() and association:
+                logger.info(f"Registration: Created association between {email} and player {player_id} ({player_data['club_name']} - {player_data['series_name']})")
+            else:
+                logger.info(f"Registration: Using existing association for {email} and player {player_id} ({player_data['club_name']} - {player_data['series_name']})")
+            
+        except Exception as e:
+            logger.error(f"Registration FAILED: Player lookup error for {email}: {e}")
+            db_session.rollback()
+            return {
+                "success": False, 
+                "error": "Registration was not successful. Rally was unable to link your user account to a player ID. Please contact support for assistance."
+            }
         
         # Commit the transaction - this is where the user record is actually saved
         db_session.commit()
@@ -456,7 +479,10 @@ def register_user(email: str, password: str, first_name: str, last_name: str,
     except Exception as e:
         logger.error(f"Registration failed for {email}: {str(e)}")
         db_session.rollback()
-        return {"success": False, "error": "Registration failed. Please try again."}
+        return {
+            "success": False, 
+            "error": "Registration was not successful. Rally was unable to link your user account to a player ID. Please contact support for assistance."
+        }
     finally:
         db_session.close()
 

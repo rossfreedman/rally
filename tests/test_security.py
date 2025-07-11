@@ -170,15 +170,31 @@ class TestXSSPrevention:
 class TestAuthenticationSecurity:
     """Test authentication and authorization security"""
 
-    def test_password_hashing_strength(self, db_session):
+    def test_password_hashing_strength(self, db_session, test_league, test_club, test_series):
         """Test that passwords are hashed with strong algorithm"""
         password = "testpassword123"
+
+        # Create a player to link to for successful registration
+        player = Player(
+            tenniscores_player_id="HASH_SECURITY_TEST_001",
+            first_name="Hash",
+            last_name="Test",
+            league_id=test_league.id,
+            club_id=test_club.id,
+            series_id=test_series.id,
+            pti=1400.00,
+        )
+        db_session.add(player)
+        db_session.commit()
 
         result = register_user(
             email="hashtest@example.com",
             password=password,
             first_name="Hash",
             last_name="Test",
+            league_id=test_league.league_id,
+            club_name=test_club.name,
+            series_name=test_series.name,
         )
 
         # Check if registration was successful or if user already exists
