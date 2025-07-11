@@ -105,7 +105,7 @@
         <!-- Activity Timeline -->
         <div class="timeline-section bg-white rounded-lg shadow">
           <div class="p-4 border-b border-gray-200">
-            <div class="flex items-center justify-between">
+            <div class="flex items-center justify-between mb-3">
               <h2 class="text-lg font-semibold text-gray-900">
                 <i class="fas fa-clock mr-2 text-blue-600"></i>Recent Activity
               </h2>
@@ -115,6 +115,19 @@
                 </button>
                 <span class="text-sm text-gray-500" id="timeline-status">Loading...</span>
               </div>
+            </div>
+            
+            <!-- Activity Filter Buttons -->
+            <div class="flex space-x-2">
+              <button onclick="setActivityFilter('day')" id="filter-day" class="activity-filter-btn active px-3 py-1.5 text-sm font-medium rounded-lg transition-colors bg-blue-600 text-white">
+                Day
+              </button>
+              <button onclick="setActivityFilter('week')" id="filter-week" class="activity-filter-btn px-3 py-1.5 text-sm font-medium rounded-lg transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300">
+                Week
+              </button>
+              <button onclick="setActivityFilter('month')" id="filter-month" class="activity-filter-btn px-3 py-1.5 text-sm font-medium rounded-lg transition-colors bg-gray-200 text-gray-700 hover:bg-gray-300">
+                Month
+              </button>
             </div>
           </div>
           
@@ -325,13 +338,31 @@
   </div>
 </div>
 
+<style>
+/* Custom styles for activity filter buttons */
+.activity-filter-btn {
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+}
+
+.activity-filter-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.activity-filter-btn.active {
+  border-color: rgba(59, 130, 246, 0.3);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.2);
+}
+</style>
+
 <script>
 // Dashboard and Impersonation JavaScript
 let dashboardData = {
   activities: [],
   stats: {},
   topPlayers: [],
-  currentFilter: 'today',
+  currentFilter: 'day',
   emptyText: 'No activities today'
 };
 
@@ -368,18 +399,44 @@ async function loadDashboardStats() {
   }
 }
 
-async function loadTimelineActivities() {
+async function loadTimelineActivities(filter = null) {
   try {
     document.getElementById('timeline-status').textContent = 'Loading...';
     
-    // Filter out admin activities for cleaner overview consistent with other sections
-    const response = await fetch('/api/admin/dashboard/activities?limit=10&exclude_admin=true&exclude_impersonated=false');
+    // Use provided filter or current filter
+    const activeFilter = filter || dashboardData.currentFilter;
+    
+    // Calculate date range based on filter
+    const { dateFrom, dateTo } = getDateRangeForFilter(activeFilter);
+    
+    // Build query parameters
+    const params = new URLSearchParams({
+      limit: '15',
+      exclude_admin: 'true',
+      exclude_impersonated: 'false'
+    });
+    
+    if (dateFrom) {
+      params.append('date_from', dateFrom);
+    }
+    if (dateTo) {
+      params.append('date_to', dateTo);
+    }
+    
+    const response = await fetch(`/api/admin/dashboard/activities?${params}`);
     const data = await response.json();
     
     if (data.status === 'success') {
       dashboardData.activities = data.activities;
       renderTimeline();
-      document.getElementById('timeline-status').textContent = 'Updated just now';
+      const filterText = {
+        'day': 'today',
+        'week': 'this week', 
+        'month': 'this month'
+      };
+      const period = filterText[activeFilter] || 'selected period';
+      const count = data.activities.length;
+      document.getElementById('timeline-status').textContent = `${count} activities ${period}`;
     }
   } catch (error) {
     console.error('Error loading timeline activities:', error);
@@ -419,7 +476,13 @@ function renderTimeline() {
   const activities = dashboardData.activities;
   
   if (activities.length === 0) {
-    container.innerHTML = '<p class="text-gray-500 text-center py-4">No recent activities</p>';
+    const filterText = {
+      'day': 'today',
+      'week': 'this week',
+      'month': 'this month'
+    };
+    const emptyMessage = `No activities ${filterText[dashboardData.currentFilter] || 'in selected period'}`;
+    container.innerHTML = `<p class="text-gray-500 text-center py-4">${emptyMessage}</p>`;
     return;
   }
   
@@ -497,9 +560,59 @@ function renderTopPlayers() {
 
 function refreshDashboardData() {
   loadDashboardStats();
-  const currentFilter = dashboardData.currentFilter || 'today';
-  loadTimelineActivities(currentFilter);
+  loadTimelineActivities(dashboardData.currentFilter);
   loadTopPlayers();
+}
+
+// Activity filter functions
+function setActivityFilter(filter) {
+  // Update current filter
+  dashboardData.currentFilter = filter;
+  
+  // Update button states
+  document.querySelectorAll('.activity-filter-btn').forEach(btn => {
+    btn.classList.remove('active', 'bg-blue-600', 'text-white');
+    btn.classList.add('bg-gray-200', 'text-gray-700', 'hover:bg-gray-300');
+  });
+  
+  const activeBtn = document.getElementById(`filter-${filter}`);
+  activeBtn.classList.remove('bg-gray-200', 'text-gray-700', 'hover:bg-gray-300');
+  activeBtn.classList.add('active', 'bg-blue-600', 'text-white');
+  
+  // Load activities with new filter
+  loadTimelineActivities(filter);
+}
+
+function getDateRangeForFilter(filter) {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  
+  switch (filter) {
+    case 'day':
+      return {
+        dateFrom: today.toISOString().split('T')[0],
+        dateTo: null // No end date for today - include all of today
+      };
+    case 'week':
+      const weekAgo = new Date(today);
+      weekAgo.setDate(today.getDate() - 7);
+      return {
+        dateFrom: weekAgo.toISOString().split('T')[0],
+        dateTo: null
+      };
+    case 'month':
+      const monthAgo = new Date(today);
+      monthAgo.setDate(today.getDate() - 30);
+      return {
+        dateFrom: monthAgo.toISOString().split('T')[0],
+        dateTo: null
+      };
+    default:
+      return {
+        dateFrom: today.toISOString().split('T')[0],
+        dateTo: null
+      };
+  }
 }
 
 // Event handlers
