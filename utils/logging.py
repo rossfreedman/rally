@@ -101,6 +101,12 @@ def _send_detailed_logging_notification(user_email, activity_type, page, action,
         if not get_detailed_logging_notifications_setting():
             return  # Feature is disabled, don't send SMS
 
+        # Check if the user whose activity is being logged is an admin
+        # Do not send activity tracking SMS for admin users
+        if _is_user_admin(user_email):
+            logger.info(f"Skipping activity tracking SMS for admin user: {user_email}")
+            return
+
         # Import SMS service
         from app.services.notifications_service import send_sms_notification
 
@@ -115,6 +121,39 @@ def _send_detailed_logging_notification(user_email, activity_type, page, action,
     except Exception as e:
         logger.error(f"Failed to send detailed logging SMS: {str(e)}")
         raise
+
+
+def _is_user_admin(user_email):
+    """Check if a user is an admin based on their email"""
+    try:
+        # Use the same database connection method as the rest of the app
+        import psycopg2
+        from database_config import get_db_url, parse_db_url
+        
+        params = parse_db_url(get_db_url())
+        conn = psycopg2.connect(**params)
+        cursor = conn.cursor()
+
+        # Check if user is admin
+        cursor.execute(
+            "SELECT is_admin FROM users WHERE email = %s",
+            (user_email,)
+        )
+        
+        result = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        
+        if result:
+            return bool(result[0])  # result[0] is the is_admin column value
+        else:
+            # User not found, not an admin
+            return False
+            
+    except Exception as e:
+        logger.error(f"Error checking admin status for {user_email}: {str(e)}")
+        # On error, assume not admin to err on the side of sending notifications
+        return False
 
 
 def _format_activity_for_sms(user_email, activity_type, page, action, details, is_impersonating):
