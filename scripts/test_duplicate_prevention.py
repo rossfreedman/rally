@@ -140,21 +140,37 @@ def test_association_prevention(test_data):
     test_email = f"association_test_{datetime.now().strftime('%Y%m%d_%H%M%S')}@test.rally"
     
     try:
-        # First create a user without player association
+        # Create a test user without player association for testing
+        # Since player association is now mandatory, we'll use fake data that won't match any player
         user_result = register_user(
             email=test_email,
             password="testpassword123",
             first_name="Test",
-            last_name="User"
-            # No league/club/series - should create user without association
+            last_name="User",
+            league_id="FAKE_LEAGUE_FOR_TEST",
+            club_name="Fake Club For Test",
+            series_name="Fake Series For Test"
         )
         
         if not user_result["success"]:
-            print(f"❌ Failed to create test user: {user_result['error']}")
-            return False
-        
-        test_user_id = user_result["user"]["id"]
-        print(f"✅ Created test user {test_user_id} ({test_email})")
+            # Expected behavior - registration should fail with fake data
+            # For this test, we need to create a user directly in the database
+            print(f"ℹ️  Registration failed as expected with fake data: {user_result['error']}")
+            print(f"ℹ️  Creating test user directly in database for association test")
+            
+            # Create user directly in database for testing
+            user_creation_result = execute_query_one("""
+                INSERT INTO users (email, password_hash, first_name, last_name)
+                VALUES (%s, 'test_hash', 'Test', 'User')
+                RETURNING id
+            """, [test_email])
+            
+            test_user_id = user_creation_result['id']
+            print(f"✅ Created test user {test_user_id} ({test_email}) directly in database")
+        else:
+            # This shouldn't happen with fake data, but handle it
+            test_user_id = user_result["user"]["id"]
+            print(f"✅ Created test user {test_user_id} ({test_email}) via registration")
         
         # Find the player record ID for the existing association
         player_record = execute_query_one("""

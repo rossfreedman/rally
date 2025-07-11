@@ -1313,13 +1313,35 @@ def get_mobile_availability_data(user):
                 # raw_time is a time object, format it
                 formatted_time = raw_time.strftime("%I:%M %p").lstrip('0')
             
+            # Check if this is a home match by comparing location with user's club
+            # Get current team's club name to compare with match location
+            team_club_query = """
+                SELECT c.name as club_name 
+                FROM teams t 
+                JOIN clubs c ON t.club_id = c.id 
+                WHERE t.id = %s
+            """
+            team_club_info = execute_query_one(team_club_query, [team_id])
+            current_club_name = team_club_info["club_name"] if team_club_info else ""
+            
+            # A match is "home" if the location matches the user's club
+            match_location = match.get("location", "").strip()
+            is_home_match = (match_location == current_club_name)
+            
+            # If it's a home match, get other teams at the same club with home matches on this date
+            other_home_teams = []
+            if is_home_match and raw_date and match.get("type") == "match":  # Only for actual matches, not practices
+                other_home_teams = get_other_home_teams_at_club_on_date(team_id, raw_date, user_email)
+            
             match_data = {
                 "date": formatted_date,
                 "time": formatted_time,
                 "location": match.get("location", ""),
                 "home_team": match.get("home_team", ""),
                 "away_team": match.get("away_team", ""),
-                "type": match.get("type", "match")
+                "type": match.get("type", "match"),
+                "is_home_match": is_home_match,
+                "other_home_teams": other_home_teams
             }
             formatted_matches.append(match_data)
             
@@ -5289,3 +5311,66 @@ def _generate_schedule_recommendation(difficulty_assessment, sos_difference, ran
         return "Your remaining schedule is more challenging. Use this as motivation to elevate your game."
     else:
         return "Your remaining schedule difficulty is consistent with what you've faced. Continue your current approach."
+
+
+def get_other_home_teams_at_club_on_date(team_id, match_date, user_email):
+    """
+    Find other teams at the same club who have home matches on the specified date.
+    
+    Args:
+        team_id: Current user's team ID
+        match_date: Date object to check for other home matches
+        user_email: User's email for logging
+        
+    Returns:
+        List of series names (e.g., ["Series 7", "Series 23", "Series 38"])
+    """
+    try:
+        from database_utils import execute_query, execute_query_one
+        
+        # Get current team's club_id and league_id
+        team_info_query = """
+            SELECT club_id, league_id 
+            FROM teams 
+            WHERE id = %s
+        """
+        team_info = execute_query_one(team_info_query, [team_id])
+        
+        if not team_info:
+            print(f"[DEBUG] get_other_home_teams_at_club_on_date: No team info found for team_id {team_id}")
+            return []
+            
+        club_id = team_info["club_id"]
+        league_id = team_info["league_id"]
+        
+        print(f"[DEBUG] get_other_home_teams_at_club_on_date: Looking for other teams at club_id {club_id}, league_id {league_id} on {match_date}")
+        
+        # Find other teams at the same club/league with home matches on this date
+        other_teams_query = """
+            SELECT DISTINCT s.display_name as series_name
+            FROM schedule sc
+            JOIN teams t ON sc.home_team_id = t.id
+            JOIN series s ON t.series_id = s.id
+            WHERE t.club_id = %s 
+                AND t.league_id = %s
+                AND t.id != %s
+                AND sc.match_date = %s
+                AND t.is_active = TRUE
+            ORDER BY s.display_name
+        """
+        
+        other_teams = execute_query(other_teams_query, [club_id, league_id, team_id, match_date])
+        
+        if other_teams:
+            series_names = [team["series_name"] for team in other_teams]
+            print(f"[DEBUG] get_other_home_teams_at_club_on_date: Found {len(series_names)} other teams with home matches: {series_names}")
+            return series_names
+        else:
+            print(f"[DEBUG] get_other_home_teams_at_club_on_date: No other teams found with home matches on {match_date}")
+            return []
+            
+    except Exception as e:
+        print(f"[ERROR] get_other_home_teams_at_club_on_date: {str(e)}")
+        import traceback
+        print(f"[ERROR] Full traceback: {traceback.format_exc()}")
+        return []
