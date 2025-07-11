@@ -11,87 +11,141 @@
                 <i class="fas fa-table-tennis text-white text-lg"></i>
             </div>
             <div class="ml-4">
-                <h1 class="text-xl font-bold text-gray-900">View Pickup Games</h1>
-                <p class="text-sm text-gray-500">Find pickup games to join</p>
+                <h1 class="text-xl font-bold text-gray-900">Pickup Games</h1>
+                <p class="text-sm text-gray-500">Find and organize games to play</p>
             </div>
         </div>
     </div>
 
-    <!-- Content -->
-    <div class="px-4 py-6 space-y-6">
-
-        <!-- Action Buttons -->
-        <div class="flex gap-3">
-            <a href="/mobile/create-pickup-game" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center gap-2 shadow-sm">
-                <i class="fas fa-plus"></i>
-                <span>Create new game</span>
-            </a>
-            <button id="notificationToggle" class="flex-1 text-white px-6 py-3 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center gap-2 shadow-sm" style="background-color: #2563eb !important;" data-state="disabled">
-                <i class="fas fa-bell-slash" id="notificationIcon"></i>
-                <span id="notificationText">Get notified about games</span>
+    <!-- Tab Navigation -->
+    <div class="bg-white border-b border-gray-200">
+        <div class="flex">
+            <button id="publicGamesTab" class="flex-1 px-4 py-3 text-sm font-medium text-center border-b-2 border-blue-500 text-blue-600 tab-active">
+                <i class="fas fa-globe mr-2"></i>Public Games
+            </button>
+            <button id="privateGamesTab" class="flex-1 px-4 py-3 text-sm font-medium text-center border-b-2 border-transparent text-gray-500 hover:text-gray-700">
+                <i class="fas fa-users mr-2"></i>My Private Groups
             </button>
         </div>
+    </div>
 
-        <!-- Upcoming Pickup Games Section -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="px-6 py-4 border-b border-gray-50">
-                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-                    <i class="fas fa-calendar-alt text-green-500 mr-2"></i>
-                    Upcoming Pickup Games
-                </h2>
-                <p class="text-sm text-gray-600 mt-2">Players who meet the criteria set by the organizer will be notified by text about upcoming games and can choose to join.</p>
+    <!-- Tab Content -->
+    <div class="px-4 py-6 space-y-6">
+
+        <!-- Public Games Tab Panel -->
+        <div id="publicGamesPanel" class="tab-panel">
+            <!-- Create Public Game Button -->
+            <div class="mb-6">
+                <a href="/mobile/create-pickup-game?type=public" class="w-full text-white px-6 py-3 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center gap-2 shadow-sm" style="background-color: #085454 !important;">
+                    <i class="fas fa-plus"></i>
+                    <span>Create Public Game</span>
+                </a>
             </div>
-            
-            <div id="upcomingGamesContainer" class="p-4">
-                <!-- Loading state -->
-                <div id="upcomingGamesLoading" class="text-center py-8">
-                    <div class="loading-spinner loading-lg mx-auto mb-4"></div>
-                    <p class="text-gray-500">Loading upcoming games...</p>
+
+            <!-- Upcoming Public Games Section -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-50">
+                    <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                        <i class="fas fa-calendar-alt text-green-500 mr-2"></i>
+                        Upcoming Public Games
+                    </h2>
+                    <p class="text-sm text-gray-600 mt-2">Open pickup games anyone can join. Players who meet the criteria will be notified by text.</p>
                 </div>
                 
-                <!-- Empty state -->
-                <div id="upcomingGamesEmpty" class="text-center py-8 hidden">
-                    <i class="fas fa-calendar-plus text-gray-400 text-4xl mb-4"></i>
-                    <p class="text-gray-500 mb-4">No upcoming pickup games found</p>
-                    <a href="/mobile/create-pickup-game" class="inline-block bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
-                        <i class="fas fa-plus mr-2"></i>Create the First Game
-                    </a>
+                <div id="upcomingPublicGamesContainer" class="p-4">
+                    <!-- Loading state -->
+                    <div id="upcomingPublicGamesLoading" class="text-center py-8">
+                        <div class="loading-spinner loading-lg mx-auto mb-4"></div>
+                        <p class="text-gray-500">Loading upcoming games...</p>
+                    </div>
+                    
+                    <!-- Empty state -->
+                    <div id="upcomingPublicGamesEmpty" class="text-center py-8 hidden">
+                        <i class="fas fa-calendar-plus text-gray-400 text-4xl mb-4"></i>
+                        <p class="text-gray-500 mb-4">No upcoming public games found</p>
+                        <a href="/mobile/create-pickup-game?type=public" class="inline-block bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors">
+                            <i class="fas fa-plus mr-2"></i>Create the First Public Game
+                        </a>
+                    </div>
+                    
+                    <!-- Games will be populated here -->
+                    <div id="upcomingPublicGamesList" class="space-y-4 hidden"></div>
+                </div>
+            </div>
+
+            <!-- Past Public Games Section -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-50">
+                    <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                        <i class="fas fa-history text-blue-500 mr-2"></i>
+                        Past Public Games
+                    </h2>
+                    <p class="text-sm text-gray-600 mt-2">View previous public pickup games and their results.</p>
                 </div>
                 
-                <!-- Games will be populated here -->
-                <div id="upcomingGamesList" class="space-y-4 hidden"></div>
+                <div id="pastPublicGamesContainer" class="p-4">
+                    <!-- Loading state -->
+                    <div id="pastPublicGamesLoading" class="text-center py-8">
+                        <div class="loading-spinner loading-lg mx-auto mb-4"></div>
+                        <p class="text-gray-500">Loading past games...</p>
+                    </div>
+                    
+                    <!-- Empty state -->
+                    <div id="pastPublicGamesEmpty" class="text-center py-8 hidden">
+                        <i class="fas fa-calendar-times text-gray-400 text-4xl mb-4"></i>
+                        <p class="text-gray-500">No past public games found</p>
+                    </div>
+                    
+                    <!-- Games will be populated here -->
+                    <div id="pastPublicGamesList" class="space-y-4 hidden"></div>
+                </div>
             </div>
         </div>
 
-        <!-- Past Pickup Games Section -->
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="px-6 py-4 border-b border-gray-50">
-                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-                    <i class="fas fa-history text-blue-500 mr-2"></i>
-                    Past Pickup Games
-                </h2>
-                <p class="text-sm text-gray-600 mt-2">View previous pickup games and their results.</p>
+        <!-- Private Games Tab Panel -->
+        <div id="privateGamesPanel" class="tab-panel hidden">
+            <!-- Create Private Game Button -->
+            <div class="mb-6" style="margin-top: -15px;">
+                <a href="/mobile/create-pickup-game?type=private" class="w-full text-white px-6 py-3 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center gap-2 shadow-sm" style="background-color: #085454 !important;">
+                    <i class="fas fa-plus"></i>
+                    <span>Create Private Game</span>
+                </a>
             </div>
-            
-            <div id="pastGamesContainer" class="p-4">
-                <!-- Loading state -->
-                <div id="pastGamesLoading" class="text-center py-8">
-                    <div class="loading-spinner loading-lg mx-auto mb-4"></div>
-                    <p class="text-gray-500">Loading past games...</p>
+
+            <!-- Private Games (Groups) Section -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-50">
+                    <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                        <i class="fas fa-users mr-2" style="color: #085454 !important;"></i>
+                        Private Groups
+                    </h2>
+                    <p class="text-sm text-gray-600 mt-2">Invite-only games and groups for organizing your regular playing partners.</p>
                 </div>
                 
-                <!-- Empty state -->
-                <div id="pastGamesEmpty" class="text-center py-8 hidden">
-                    <i class="fas fa-calendar-times text-gray-400 text-4xl mb-4"></i>
-                    <p class="text-gray-500">No past pickup games found</p>
+                <div id="privateGamesContainer" class="p-4">
+                    <!-- Loading state -->
+                    <div id="privateGamesLoading" class="text-center py-8">
+                        <div class="loading-spinner loading-lg mx-auto mb-4" style="border-top-color: #9333ea;"></div>
+                        <p class="text-gray-500">Loading private games...</p>
+                    </div>
+                    
+                    <!-- Empty state -->
+                    <div id="privateGamesEmpty" class="text-center py-8 hidden">
+                        <i class="fas fa-users text-gray-400 text-4xl mb-4"></i>
+                        <h3 class="text-lg font-semibold text-gray-700 mb-2">No Private Games Yet</h3>
+                        <p class="text-gray-500 mb-4">Create your first private game or group to organize players!</p>
+                        <div class="flex gap-2 justify-center">
+                            <a href="/mobile/create-pickup-game?type=private" class="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors shadow-sm">
+                                <i class="fas fa-plus mr-2"></i>Create Private Game
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <!-- Private games and groups will be populated here -->
+                    <div id="privateGamesList" class="space-y-4 hidden"></div>
                 </div>
-                
-                <!-- Games will be populated here -->
-                <div id="pastGamesList" class="space-y-4 hidden"></div>
             </div>
         </div>
-
-
 
     </div>
 </div>
@@ -332,6 +386,20 @@
     display: none;
 }
 
+/* Tab styles */
+.tab-active {
+    color: #2563eb !important;
+    border-bottom-color: #2563eb !important;
+}
+
+.tab-panel {
+    display: block;
+}
+
+.tab-panel.hidden {
+    display: none;
+}
+
 /* Date and time input styling */
 input[type="date"], input[type="time"] {
     /* Allow native date/time picker appearance */
@@ -358,154 +426,114 @@ document.addEventListener('DOMContentLoaded', function() {
     // Get current user ID for creator comparison
     const currentUserId = {{ session_data.user.id if session_data and session_data.user and session_data.user.id else 'null' }};
 
-    // Initialize notification toggle
-    function initializeNotificationToggle() {
-        const toggle = document.getElementById('notificationToggle');
-        const icon = document.getElementById('notificationIcon');
-        const text = document.getElementById('notificationText');
+    // Initialize tab functionality
+    function initializeTabs() {
+        const publicTab = document.getElementById('publicGamesTab');
+        const privateTab = document.getElementById('privateGamesTab');
+        const publicPanel = document.getElementById('publicGamesPanel');
+        const privatePanel = document.getElementById('privateGamesPanel');
         
-        if (toggle) {
-            // Always start with disabled state (red button) - ignore localStorage for now
-            const isEnabled = false;
-            localStorage.setItem('pickupGameNotifications', 'false');
+        // Tab click handlers
+        publicTab.addEventListener('click', () => switchTab('public'));
+        privateTab.addEventListener('click', () => switchTab('private'));
+        
+        // Initialize with public tab active
+        switchTab('public');
+    }
+    
+    // Switch between tabs
+    function switchTab(tabType) {
+        const publicTab = document.getElementById('publicGamesTab');
+        const privateTab = document.getElementById('privateGamesTab');
+        const publicPanel = document.getElementById('publicGamesPanel');
+        const privatePanel = document.getElementById('privateGamesPanel');
+        
+        if (tabType === 'public') {
+            // Activate public tab
+            publicTab.classList.add('tab-active', 'text-blue-600', 'border-blue-500');
+            publicTab.classList.remove('text-gray-500', 'border-transparent');
+            privateTab.classList.remove('tab-active', 'text-blue-600', 'border-blue-500');
+            privateTab.classList.add('text-gray-500', 'border-transparent');
             
-            // Set initial button state
-            updateToggleAppearance(isEnabled);
+            // Show public panel, hide private panel
+            publicPanel.classList.remove('hidden');
+            privatePanel.classList.add('hidden');
             
-            // Add event listener for button clicks
-            toggle.addEventListener('click', handleNotificationToggle);
+            // Load public games
+            loadPublicGames();
+        } else if (tabType === 'private') {
+            // Activate private tab
+            privateTab.classList.add('tab-active', 'text-blue-600', 'border-blue-500');
+            privateTab.classList.remove('text-gray-500', 'border-transparent');
+            publicTab.classList.remove('tab-active', 'text-blue-600', 'border-blue-500');
+            publicTab.classList.add('text-gray-500', 'border-transparent');
             
-            // Add hover effects
-            toggle.addEventListener('mouseenter', handleToggleHover);
-            toggle.addEventListener('mouseleave', handleToggleHoverOut);
+            // Show private panel, hide public panel
+            privatePanel.classList.remove('hidden');
+            publicPanel.classList.add('hidden');
+            
+            // Load private games and groups
+            loadPrivateGames();
         }
     }
 
-    // Update toggle button appearance based on state
-    function updateToggleAppearance(isEnabled) {
-        const toggle = document.getElementById('notificationToggle');
-        const icon = document.getElementById('notificationIcon');
-        const text = document.getElementById('notificationText');
-        
-        console.log('updateToggleAppearance called with isEnabled:', isEnabled);
-        
-        if (isEnabled) {
-            // Enabled state - GREEN button
-            toggle.className = 'flex-1 text-white px-6 py-3 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center gap-2 shadow-sm';
-            toggle.style.setProperty('background-color', '#16a34a', 'important');
-            toggle.style.setProperty('background', '#16a34a', 'important');
-            toggle.dataset.state = 'enabled';
-            icon.className = 'fas fa-bell';
-            text.textContent = 'Notifications: ON';
-            console.log('Set to GREEN - Notifications: ON');
-        } else {
-            // Disabled state - BLUE button
-            toggle.className = 'flex-1 text-white px-6 py-3 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center gap-2 shadow-sm';
-            toggle.style.setProperty('background-color', '#2563eb', 'important');
-            toggle.style.setProperty('background', '#2563eb', 'important');
-            toggle.dataset.state = 'disabled';
-            icon.className = 'fas fa-bell-slash';
-            text.textContent = 'Get notified about games';
-            console.log('Set to BLUE - Get notified about games');
-        }
-    }
 
-    // Handle hover effects
-    function handleToggleHover(event) {
-        const toggle = event.target;
-        const state = toggle.dataset.state;
-        
-        if (state === 'enabled') {
-            toggle.style.backgroundColor = '#15803d !important'; // darker green
-        } else {
-            toggle.style.backgroundColor = '#1d4ed8 !important'; // darker blue
-        }
-    }
 
-    function handleToggleHoverOut(event) {
-        const toggle = event.target;
-        const state = toggle.dataset.state;
-        
-        if (state === 'enabled') {
-            toggle.style.backgroundColor = '#16a34a !important'; // green
-        } else {
-            toggle.style.backgroundColor = '#2563eb !important'; // blue
-        }
-    }
-
-    // Handle notification toggle changes
-    function handleNotificationToggle(event) {
-        event.preventDefault();
-        
-        // Get current state and flip it
-        const currentState = localStorage.getItem('pickupGameNotifications');
-        const isEnabled = currentState !== 'true'; // Flip the state
-        
-        // Save new state to localStorage
-        localStorage.setItem('pickupGameNotifications', isEnabled.toString());
-        
-        // Update button appearance
-        updateToggleAppearance(isEnabled);
-        
-        // Show user feedback
-        showNotificationFeedback(isEnabled);
-        
-        console.log('Pickup game notifications:', isEnabled ? 'enabled' : 'disabled');
-    }
-
-    // Show user feedback for toggle changes
-    function showNotificationFeedback(isEnabled) {
-        // Create feedback message
-        const message = isEnabled ? 
-            'Game notifications enabled! You\'ll be notified about new pickup games.' : 
-            'Game notifications disabled. You won\'t receive notifications about new games.';
-        
-        // Create temporary feedback element
-        const feedback = document.createElement('div');
-        feedback.className = `fixed top-4 left-4 right-4 p-4 rounded-lg shadow-lg z-50 transition-all duration-300 ${
-            isEnabled ? 'bg-green-500 text-white' : 'bg-blue-600 text-white'
-        }`;
-        feedback.innerHTML = `
-            <div class="flex items-center gap-2">
-                <i class="fas fa-${isEnabled ? 'bell' : 'bell-slash'}"></i>
-                <span class="text-sm font-medium">${message}</span>
-            </div>
-        `;
-        
-        document.body.appendChild(feedback);
-        
-        // Remove feedback after 3 seconds
-        setTimeout(() => {
-            feedback.style.opacity = '0';
-            feedback.style.transform = 'translateY(-10px)';
-            setTimeout(() => {
-                document.body.removeChild(feedback);
-            }, 300);
-        }, 3000);
-    }
-
-    // Load pickup games from API
-    async function loadPickupGames() {
+    // Load public pickup games from API
+    async function loadPublicGames() {
         try {
-            const response = await fetch('/api/pickup-games');
+            const response = await fetch('/api/pickup-games?type=public');
             if (response.ok) {
                 const data = await response.json();
-                renderUpcomingGames(data.upcoming_games || []);
-                renderPastGames(data.past_games || []);
+                renderUpcomingPublicGames(data.upcoming_games || []);
+                renderPastPublicGames(data.past_games || []);
             } else {
-                showError('Failed to load pickup games');
+                showError('Failed to load public pickup games');
             }
         } catch (error) {
-            console.error('Error loading pickup games:', error);
-            showError('Network error loading pickup games');
+            console.error('Error loading public pickup games:', error);
+            showError('Network error loading public pickup games');
         }
     }
     
-    // Render upcoming games
-    function renderUpcomingGames(games) {
-        const loadingEl = document.getElementById('upcomingGamesLoading');
-        const emptyEl = document.getElementById('upcomingGamesEmpty');
-        const listEl = document.getElementById('upcomingGamesList');
+    // Load private games and groups from API
+    async function loadPrivateGames() {
+        try {
+            // Load private pickup games
+            const gamesResponse = await fetch('/api/pickup-games?type=private');
+            let privateGames = [];
+            if (gamesResponse.ok) {
+                const gamesData = await gamesResponse.json();
+                privateGames = [...(gamesData.upcoming_games || []), ...(gamesData.past_games || [])];
+            }
+            
+            // Load groups (existing group functionality)
+            const groupsResponse = await fetch('/api/groups');
+            let groups = [];
+            if (groupsResponse.ok) {
+                const groupsData = await groupsResponse.json();
+                groups = groupsData.groups || [];
+            }
+            
+            // Render combined private games and groups
+            renderPrivateGamesAndGroups(privateGames, groups);
+            
+        } catch (error) {
+            console.error('Error loading private games:', error);
+            showError('Network error loading private games');
+        }
+    }
+    
+    // Legacy function for compatibility - now loads public games
+    async function loadPickupGames() {
+        await loadPublicGames();
+    }
+    
+    // Render upcoming public games
+    function renderUpcomingPublicGames(games) {
+        const loadingEl = document.getElementById('upcomingPublicGamesLoading');
+        const emptyEl = document.getElementById('upcomingPublicGamesEmpty');
+        const listEl = document.getElementById('upcomingPublicGamesList');
         
         // Hide loading
         loadingEl.classList.add('hidden');
@@ -521,11 +549,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // Render past games
-    function renderPastGames(games) {
-        const loadingEl = document.getElementById('pastGamesLoading');
-        const emptyEl = document.getElementById('pastGamesEmpty');
-        const listEl = document.getElementById('pastGamesList');
+    // Render past public games
+    function renderPastPublicGames(games) {
+        const loadingEl = document.getElementById('pastPublicGamesLoading');
+        const emptyEl = document.getElementById('pastPublicGamesEmpty');
+        const listEl = document.getElementById('pastPublicGamesList');
         
         // Hide loading
         loadingEl.classList.add('hidden');
@@ -539,6 +567,122 @@ document.addEventListener('DOMContentLoaded', function() {
             
             listEl.innerHTML = games.map(game => createGameHTML(game, true)).join('');
         }
+    }
+    
+    // Render private games and groups
+    function renderPrivateGamesAndGroups(privateGames, groups) {
+        const loadingEl = document.getElementById('privateGamesLoading');
+        const emptyEl = document.getElementById('privateGamesEmpty');
+        const listEl = document.getElementById('privateGamesList');
+        
+        // Hide loading
+        loadingEl.classList.add('hidden');
+        
+        const totalItems = privateGames.length + groups.length;
+        
+        if (totalItems === 0) {
+            emptyEl.classList.remove('hidden');
+            listEl.classList.add('hidden');
+        } else {
+            emptyEl.classList.add('hidden');
+            listEl.classList.remove('hidden');
+            
+            // Combine private games and groups HTML
+            const privateGamesHTML = privateGames.map(game => createPrivateGameHTML(game)).join('');
+            const groupsHTML = groups.map(group => createGroupHTML(group)).join('');
+            
+            listEl.innerHTML = privateGamesHTML + groupsHTML;
+        }
+    }
+    
+    // Create HTML for a private game
+    function createPrivateGameHTML(game) {
+        const isPast = new Date(game.date + ' ' + game.time) < new Date();
+        
+        return `
+            <div class="bg-purple-50 rounded-lg p-4 border border-purple-200" data-game-id="${game.id}">
+                <div class="flex justify-between items-start mb-3">
+                    <div class="flex-1">
+                        <h3 class="text-lg font-semibold text-gray-900">
+                            <i class="fas fa-lock text-purple-500 mr-2"></i>${game.description}
+                        </h3>
+                        <p class="text-sm text-gray-600">${game.formatted_date} at ${game.formatted_time}</p>
+                        <p class="text-xs text-purple-600 font-medium mt-1">Private Game</p>
+                    </div>
+                    <span class="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded-full">
+                        ${isPast ? 'Past' : 'Upcoming'}
+                    </span>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4 mb-3">
+                    <div class="text-center">
+                        <div class="text-xl font-bold text-gray-900">${game.players_requested}</div>
+                        <div class="text-xs text-gray-500">Players Requested</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-xl font-bold text-purple-600">${game.players_committed}</div>
+                        <div class="text-xs text-gray-500">Committed Players</div>
+                    </div>
+                </div>
+                
+                <button class="w-full bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors" 
+                        data-game-id="${game.id}">
+                    ${isPast ? 'View Details' : game.user_has_joined ? 'Leave Game' : 'Join Game'}
+                </button>
+            </div>
+        `;
+    }
+    
+    // Create HTML for a group (adapted from groups functionality)
+    function createGroupHTML(group) {
+        const memberText = group.member_count === 1 ? 'member' : 'members';
+        const createdDate = new Date(group.created_at).toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric' 
+        });
+        
+        return `
+            <div class="bg-green-50 rounded-lg p-4 border border-green-200" data-group-id="${group.id}">
+                <div class="flex justify-between items-start mb-3">
+                    <div class="flex-1">
+                        <h3 class="text-lg font-semibold text-gray-900">
+                            <i class="fas fa-users mr-2" style="color: #085454 !important;"></i>${group.name}
+                        </h3>
+                        ${group.description ? `<p class="text-sm text-gray-600 mt-1">${group.description}</p>` : ''}
+                        <p class="text-xs text-green-600 font-medium mt-1">Group Chat</p>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-sm font-bold text-gray-900">${group.member_count}</div>
+                        <div class="text-xs text-gray-500">${memberText}</div>
+                    </div>
+                </div>
+                
+                <div class="text-xs text-gray-500 mb-3">
+                    Created ${createdDate}${group.is_creator ? '' : ` by ${group.creator_name}`}
+                </div>
+                
+                <div class="grid grid-cols-2 gap-2">
+                    <button class="edit-group-btn bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors" 
+                            data-group-id="${group.id}">
+                        <i class="fas fa-edit mr-1"></i>Edit Group
+                    </button>
+                    <button class="text-group-btn text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors" 
+                            data-group-id="${group.id}" style="background-color: #085454 !important;">
+                        <i class="fas fa-comments mr-1"></i>Text Group
+                    </button>
+                </div>
+            </div>
+        `;
+    }
+    
+    // Legacy rendering functions for backward compatibility
+    function renderUpcomingGames(games) {
+        renderUpcomingPublicGames(games);
+    }
+    
+    function renderPastGames(games) {
+        renderPastPublicGames(games);
     }
     
     // Create HTML for a single game
@@ -1131,12 +1275,555 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 4000);
     }
 
+    // Group functionality (simplified for pickup games integration)
+    
+    // Show create group modal
+    function showCreateGroupModal() {
+        const groupName = prompt("Enter group name:");
+        if (groupName && groupName.trim()) {
+            const groupDescription = prompt("Enter group description (optional):");
+            createGroup(groupName.trim(), groupDescription ? groupDescription.trim() : '');
+        }
+    }
+    
+    // Create a new group
+    async function createGroup(name, description = '') {
+        try {
+            showInfo('Creating group...');
+            
+            const response = await fetch('/api/groups', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    name: name,
+                    description: description
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok && result.success) {
+                showSuccess(`Group "${name}" created successfully!`);
+                // Reload private games to show the new group
+                setTimeout(() => loadPrivateGames(), 1000);
+            } else {
+                showError(result.error || 'Failed to create group');
+            }
+        } catch (error) {
+            console.error('Error creating group:', error);
+            showError('Network error. Please try again.');
+        }
+    }
+    
+    // Show text group modal
+    function showTextGroupModal(groupId) {
+        const message = prompt("Enter your message to send to the group:");
+        if (message && message.trim()) {
+            sendGroupMessage(groupId, message.trim());
+        }
+    }
+    
+    // Send message to group
+    async function sendGroupMessage(groupId, message) {
+        try {
+            showInfo('Sending message...');
+            
+            const response = await fetch('/api/groups/send-message', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    group_id: groupId,
+                    message: message
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok && result.success) {
+                showSuccess('Message sent successfully!');
+            } else {
+                showError(result.error || 'Failed to send message');
+            }
+        } catch (error) {
+            console.error('Error sending group message:', error);
+            showError('Network error. Please try again.');
+        }
+    }
+    
+    // Show group details modal
+    async function showGroupDetailsModal(groupId) {
+        try {
+            showInfo('Loading group details...');
+            
+            const response = await fetch(`/api/groups/${groupId}`);
+            if (!response.ok) {
+                throw new Error('Failed to load group details');
+            }
+            
+            const result = await response.json();
+            if (!result.success) {
+                throw new Error(result.error || 'Failed to load group details');
+            }
+            
+            const group = result.group;
+            
+            // Create modal HTML
+            const modalHTML = `
+                <div id="groupDetailsModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                    <div class="bg-white rounded-xl max-w-md w-full max-h-[80vh] overflow-hidden shadow-xl">
+                        <!-- Modal Header -->
+                        <div class="px-6 py-4 border-b border-gray-100 bg-green-50">
+                            <div class="flex justify-between items-center">
+                                <div class="flex items-center">
+                                    <i class="fas fa-users text-green-600 mr-2"></i>
+                                    <h3 class="text-lg font-semibold text-gray-900">${group.name}</h3>
+                                </div>
+                                <button id="closeGroupDetailsModal" class="text-gray-400 hover:text-gray-600 focus:outline-none">
+                                    <i class="fas fa-times text-xl"></i>
+                                </button>
+                            </div>
+                            ${group.description ? `<p class="text-sm text-gray-600 mt-1">${group.description}</p>` : ''}
+                        </div>
+                        
+                        <!-- Modal Body -->
+                        <div class="p-6 overflow-y-auto max-h-96">
+                            <div class="mb-4">
+                                <div class="text-sm text-gray-600">
+                                    <div class="flex items-center mb-2">
+                                        <i class="fas fa-users text-green-600 mr-2"></i>
+                                        <span><strong>${group.member_count}</strong> ${group.member_count === 1 ? 'member' : 'members'}</span>
+                                    </div>
+                                    <div class="flex items-center mb-2">
+                                        <i class="fas fa-calendar text-green-600 mr-2"></i>
+                                        <span>Created ${new Date(group.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                                    </div>
+                                    ${!group.is_creator ? `<div class="flex items-center">
+                                        <i class="fas fa-user text-green-600 mr-2"></i>
+                                        <span>Created by ${group.creator_name}</span>
+                                    </div>` : ''}
+                                </div>
+                            </div>
+                            
+                            <!-- Members List -->
+                            <div class="mb-4">
+                                <h4 class="text-sm font-semibold text-gray-900 mb-3">Group Members</h4>
+                                <div class="space-y-2 max-h-40 overflow-y-auto">
+                                    ${group.members.map(member => `
+                                        <div class="flex items-center justify-between bg-gray-50 p-2 rounded-lg">
+                                            <div class="flex items-center">
+                                                <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-3">
+                                                    <i class="fas fa-user text-green-600 text-sm"></i>
+                                                </div>
+                                                <div>
+                                                    <div class="text-sm font-medium text-gray-900">${member.first_name} ${member.last_name}</div>
+                                                    <div class="text-xs text-gray-500">Joined ${new Date(member.added_at).toLocaleDateString()}</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Modal Footer -->
+                        <div class="px-6 py-4 border-t border-gray-100 bg-gray-50">
+                            <div class="flex gap-3">
+                                <button id="textGroupFromModal" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors" data-group-id="${groupId}">
+                                    <i class="fas fa-comments mr-2"></i>Text Group
+                                </button>
+                                <button id="closeGroupDetailsModalBtn" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                                    Close
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Remove any existing modal
+            const existingModal = document.getElementById('groupDetailsModal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+            
+            // Add modal to DOM
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+            
+            // Add event listeners
+            const modal = document.getElementById('groupDetailsModal');
+            const closeBtn = document.getElementById('closeGroupDetailsModal');
+            const closeBtnBottom = document.getElementById('closeGroupDetailsModalBtn');
+            const textBtn = document.getElementById('textGroupFromModal');
+            
+            // Close modal handlers
+            closeBtn.addEventListener('click', () => modal.remove());
+            closeBtnBottom.addEventListener('click', () => modal.remove());
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) modal.remove();
+            });
+            
+            // Text group handler
+            textBtn.addEventListener('click', () => {
+                modal.remove();
+                showTextGroupModal(groupId);
+            });
+            
+        } catch (error) {
+            console.error('Error showing group details:', error);
+            showError('Failed to load group details');
+        }
+    }
+
+    // Display member search results
+    function displayMemberSearchResults(players, groupId, modal) {
+        const resultsContainer = document.getElementById('memberSearchResults');
+        const resultsList = document.getElementById('memberSearchResultsList');
+        
+        if (!players || players.length === 0) {
+            resultsList.innerHTML = `
+                <div class="p-3 text-center text-gray-500 text-sm">
+                    <i class="fas fa-user-slash mr-2"></i>
+                    No players found matching that name
+                </div>
+            `;
+            resultsContainer.classList.remove('hidden');
+            return;
+        }
+        
+        // Filter out players who are already in the group
+        const existingMembers = window.currentGroupMembers || [];
+        const availablePlayers = players.filter(player => {
+            return !existingMembers.some(member => 
+                member.user_id === player.user_id || 
+                member.tenniscores_player_id === player.tenniscores_player_id
+            );
+        });
+        
+        if (availablePlayers.length === 0) {
+            resultsList.innerHTML = `
+                <div class="p-3 text-center text-gray-500 text-sm">
+                    <i class="fas fa-info-circle mr-2"></i>
+                    All matching players are already in this group
+                </div>
+            `;
+            resultsContainer.classList.remove('hidden');
+            return;
+        }
+        
+        resultsList.innerHTML = availablePlayers.map(player => `
+            <div class="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0 player-search-result" 
+                 data-player='${JSON.stringify(player)}'>
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <div class="w-8 h-8 rounded-full flex items-center justify-center mr-3" style="background-color: #085454 !important;">
+                            <i class="fas fa-user text-white text-sm"></i>
+                        </div>
+                        <div>
+                            <div class="text-sm font-medium text-gray-900">${player.full_name || `${player.first_name} ${player.last_name}`}</div>
+                            <div class="text-xs text-gray-500">
+                                ${player.club || 'Unknown Club'} • ${player.league || 'Unknown League'}
+                            </div>
+                        </div>
+                    </div>
+                    <button class="text-white px-3 py-1 rounded text-xs font-medium hover:opacity-80 transition-opacity" 
+                            style="background-color: #085454 !important;"
+                            onclick="addPlayerToGroup(${groupId}, ${JSON.stringify(player).replace(/"/g, '&quot;')}, this)">
+                        <i class="fas fa-plus mr-1"></i>Add
+                    </button>
+                </div>
+            </div>
+        `).join('');
+        
+        resultsContainer.classList.remove('hidden');
+    }
+    
+    // Add player to group
+    async function addPlayerToGroup(groupId, player, buttonElement) {
+        const originalText = buttonElement.innerHTML;
+        
+        try {
+            buttonElement.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Adding...';
+            buttonElement.disabled = true;
+            
+            // Prepare the request data
+            let requestData;
+            if (player.user_id) {
+                // Player has a user account
+                requestData = {
+                    user_id: player.user_id
+                };
+            } else {
+                // Player exists but no account - use no_account flow
+                requestData = {
+                    tenniscores_player_id: player.tenniscores_player_id,
+                    first_name: player.first_name,
+                    last_name: player.last_name,
+                    no_account: true
+                };
+            }
+            
+            const response = await fetch(`/api/groups/${groupId}/members`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(requestData)
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok && result.success) {
+                showSuccess(`${player.full_name || `${player.first_name} ${player.last_name}`} added to group!`);
+                
+                // Remove the player from search results
+                buttonElement.closest('.player-search-result').remove();
+                
+                // If no more results, hide the results container
+                const remainingResults = document.querySelectorAll('.player-search-result');
+                if (remainingResults.length === 0) {
+                    document.getElementById('memberSearchResults').classList.add('hidden');
+                }
+                
+                // Clear search inputs
+                document.getElementById('memberFirstName').value = '';
+                document.getElementById('memberLastName').value = '';
+                
+                // Refresh the modal with updated member list after a short delay
+                setTimeout(() => {
+                    const modal = document.getElementById('editGroupModal');
+                    if (modal) {
+                        modal.remove();
+                        showEditGroupModal(groupId);
+                    }
+                }, 1500);
+                
+            } else {
+                showError(result.error || 'Failed to add player to group');
+                buttonElement.innerHTML = originalText;
+                buttonElement.disabled = false;
+            }
+        } catch (error) {
+            console.error('Error adding player to group:', error);
+            showError('Network error. Please try again.');
+            buttonElement.innerHTML = originalText;
+            buttonElement.disabled = false;
+        }
+    }
+
+    // Show edit group modal with ability to add members
+    async function showEditGroupModal(groupId) {
+        try {
+            showInfo('Loading group details...');
+            
+            const response = await fetch(`/api/groups/${groupId}`);
+            if (!response.ok) {
+                throw new Error('Failed to load group details');
+            }
+            
+            const result = await response.json();
+            if (!result.success) {
+                throw new Error(result.error || 'Failed to load group details');
+            }
+            
+            const group = result.group;
+            
+            // Store current group members globally for filtering search results
+            window.currentGroupMembers = group.members || [];
+            
+            // Create modal HTML with edit functionality
+            const modalHTML = `
+                <div id="editGroupModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+                    <div class="bg-white rounded-xl max-w-md w-full max-h-[80vh] overflow-hidden shadow-xl">
+                        <!-- Modal Header -->
+                        <div class="px-6 py-4 border-b border-gray-100" style="background-color: #085454 !important;">
+                            <div class="flex justify-between items-center">
+                                <div class="flex items-center">
+                                    <i class="fas fa-edit text-white mr-2"></i>
+                                    <h3 class="text-lg font-semibold text-white">Edit Group: ${group.name}</h3>
+                                </div>
+                                <button id="closeEditGroupModal" class="text-white hover:text-gray-200 focus:outline-none">
+                                    <i class="fas fa-times text-xl"></i>
+                                </button>
+                            </div>
+                            ${group.description ? `<p class="text-sm text-gray-200 mt-1">${group.description}</p>` : ''}
+                        </div>
+                        
+                        <!-- Modal Body -->
+                        <div class="p-6 overflow-y-auto max-h-96">
+                            <!-- Add Member Section -->
+                            <div class="mb-6">
+                                <h4 class="text-sm font-semibold text-gray-900 mb-3">Add New Member</h4>
+                                <div class="space-y-3">
+                                    <div>
+                                        <label for="memberFirstName" class="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+                                        <input type="text" id="memberFirstName" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Enter first name">
+                                    </div>
+                                    <div>
+                                        <label for="memberLastName" class="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                                        <input type="text" id="memberLastName" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Enter last name">
+                                    </div>
+                                    <button id="searchMemberBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                                        <i class="fas fa-search mr-2"></i>Search Player
+                                    </button>
+                                    
+                                    <!-- Search Results -->
+                                    <div id="memberSearchResults" class="hidden">
+                                        <div class="max-h-32 overflow-y-auto border border-gray-200 rounded-lg bg-white shadow-sm">
+                                            <div id="memberSearchResultsList" class="divide-y divide-gray-100">
+                                                <!-- Search results will be populated here -->
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Current Members Section -->
+                            <div class="mb-4">
+                                <div class="text-sm text-gray-600 mb-3">
+                                    <div class="flex items-center mb-2">
+                                        <i class="fas fa-users mr-2" style="color: #085454 !important;"></i>
+                                        <span><strong>${group.member_count}</strong> ${group.member_count === 1 ? 'member' : 'members'}</span>
+                                    </div>
+                                    <div class="flex items-center mb-2">
+                                        <i class="fas fa-calendar mr-2" style="color: #085454 !important;"></i>
+                                        <span>Created ${new Date(group.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Members List -->
+                            <div class="mb-4">
+                                <h4 class="text-sm font-semibold text-gray-900 mb-3">Current Members</h4>
+                                <div id="membersList" class="space-y-2 max-h-40 overflow-y-auto">
+                                    ${group.members.map(member => `
+                                        <div class="flex items-center justify-between bg-gray-50 p-2 rounded-lg">
+                                            <div class="flex items-center">
+                                                <div class="w-8 h-8 rounded-full flex items-center justify-center mr-3" style="background-color: #085454 !important;">
+                                                    <i class="fas fa-user text-white text-sm"></i>
+                                                </div>
+                                                <div>
+                                                    <div class="text-sm font-medium text-gray-900">${member.first_name} ${member.last_name}</div>
+                                                    <div class="text-xs text-gray-500">Joined ${new Date(member.added_at).toLocaleDateString()}</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Modal Footer -->
+                        <div class="px-6 py-4 border-t border-gray-100 bg-gray-50">
+                            <div class="flex gap-3">
+                                <button id="textGroupFromEditModal" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors" data-group-id="${groupId}">
+                                    <i class="fas fa-comments mr-2"></i>Text Group
+                                </button>
+                                <button id="closeEditGroupModalBtn" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+                                    Close
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Remove any existing modal
+            const existingModal = document.getElementById('editGroupModal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+            
+            // Add modal to DOM
+            document.body.insertAdjacentHTML('beforeend', modalHTML);
+            
+            // Add event listeners
+            const modal = document.getElementById('editGroupModal');
+            const closeBtn = document.getElementById('closeEditGroupModal');
+            const closeBtnBottom = document.getElementById('closeEditGroupModalBtn');
+            const textBtn = document.getElementById('textGroupFromEditModal');
+            const searchMemberBtn = document.getElementById('searchMemberBtn');
+            const firstNameInput = document.getElementById('memberFirstName');
+            const lastNameInput = document.getElementById('memberLastName');
+            
+            // Close modal handlers
+            closeBtn.addEventListener('click', () => modal.remove());
+            closeBtnBottom.addEventListener('click', () => modal.remove());
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) modal.remove();
+            });
+            
+            // Text group handler
+            textBtn.addEventListener('click', () => {
+                modal.remove();
+                showTextGroupModal(groupId);
+            });
+            
+            // Search member handler
+            searchMemberBtn.addEventListener('click', async () => {
+                const firstName = firstNameInput.value.trim();
+                const lastName = lastNameInput.value.trim();
+                
+                if (!firstName || !lastName) {
+                    showError('Both first name and last name are required to search');
+                    return;
+                }
+                
+                try {
+                    showInfo('Searching for players...');
+                    
+                    // Search for players using the same API as other player search functionality
+                    const response = await fetch('/api/player-search', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            query: `${firstName} ${lastName}`,
+                            league_id: null  // Search across all leagues
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (response.ok && result.success) {
+                        displayMemberSearchResults(result.players || [], groupId, modal);
+                    } else {
+                        showError(result.error || 'Search failed');
+                    }
+                } catch (error) {
+                    console.error('Error searching for players:', error);
+                    showError('Network error. Please try again.');
+                }
+            });
+            
+            // Enter key support for search inputs
+            firstNameInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    searchMemberBtn.click();
+                }
+            });
+            
+            lastNameInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    searchMemberBtn.click();
+                }
+            });
+            
+        } catch (error) {
+            console.error('Error showing edit group modal:', error);
+            showError('Failed to load group details');
+        }
+    }
+
     // Initialize page
     function initializePage() {
         setupEventListeners();
-        initializeNotificationToggle();
-        loadPickupGames();
-        console.log('Pickup games page initialized');
+        initializeTabs();
+        console.log('Pickup games page initialized with tabs');
     }
 
     // Setup event listeners
@@ -1193,6 +1880,39 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 if (gameId && gameDescription) {
                     handleGameDelete(gameId, gameDescription, gameDate, gameTime);
+                }
+            }
+        });
+        
+        // Create Group buttons - handle both main button and empty state button
+        document.addEventListener('click', function(e) {
+            if (e.target.id === 'createGroupBtn' || e.target.id === 'emptyStateCreateGroupBtn' || 
+                e.target.closest('#createGroupBtn') || e.target.closest('#emptyStateCreateGroupBtn')) {
+                e.preventDefault();
+                showCreateGroupModal();
+            }
+        });
+        
+        // Edit Group buttons - use event delegation for dynamically created content
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('edit-group-btn') || e.target.closest('.edit-group-btn')) {
+                const button = e.target.classList.contains('edit-group-btn') ? e.target : e.target.closest('.edit-group-btn');
+                const groupId = parseInt(button.dataset.groupId);
+                
+                if (groupId) {
+                    showEditGroupModal(groupId);
+                }
+            }
+        });
+        
+        // Text Group buttons - use event delegation for dynamically created content
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('text-group-btn') || e.target.closest('.text-group-btn')) {
+                const button = e.target.classList.contains('text-group-btn') ? e.target : e.target.closest('.text-group-btn');
+                const groupId = parseInt(button.dataset.groupId);
+                
+                if (groupId) {
+                    showTextGroupModal(groupId);
                 }
             }
         });

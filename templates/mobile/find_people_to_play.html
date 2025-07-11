@@ -212,9 +212,9 @@
 <div id="addToGroupModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
     <div class="bg-white rounded-xl max-w-md w-full max-h-[80vh] overflow-hidden shadow-xl">
         <!-- Modal Header -->
-        <div class="px-6 py-4 border-b border-gray-100 bg-black">
+        <div class="px-6 py-4 border-b border-gray-100" style="background-color: #085454;">
             <div class="flex justify-between items-center">
-                <h3 class="text-lg font-semibold text-white">Add to Group Chat</h3>
+                <h3 class="text-lg font-semibold text-white">Add to Pickup Game</h3>
                 <button id="closeGroupModal" class="text-white hover:text-gray-300 focus:outline-none">
                     <i class="fas fa-times text-xl"></i>
                 </button>
@@ -229,7 +229,7 @@
             
             <div id="groupsLoading" class="text-center py-4 hidden">
                 <div class="loading loading-spinner loading-md text-blue-500 mb-2"></div>
-                <p class="text-gray-500 text-sm">Loading your groups...</p>
+                <p class="text-gray-500 text-sm">Loading your pickup games...</p>
             </div>
             
             <div id="groupsList" class="space-y-3">
@@ -238,24 +238,21 @@
             
             <div id="noGroupsMessage" class="text-center py-6 hidden">
                 <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <i class="fas fa-users text-gray-400 text-2xl"></i>
+                    <i class="fas fa-calendar text-gray-400 text-2xl"></i>
                 </div>
-                <p class="text-gray-600 text-sm mb-4">You don't have any group chats yet.</p>
-                <a href="/mobile/my-groups" class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200">
+                <p class="text-gray-600 text-sm mb-4">No pickup games available at the moment.</p>
+                <a href="/mobile/pickup-games" class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200">
                     <i class="fas fa-plus"></i>
-                    Create Group Chat
+                    Create Pickup Game
                 </a>
             </div>
         </div>
         
-        <!-- Modal Footer with Add Button -->
+        <!-- Modal Footer -->
         <div class="px-6 py-4 border-t border-gray-100 bg-gray-50">
-            <button id="addToGroupBtn" 
-                    class="w-full px-4 py-3 bg-gray-300 text-gray-500 rounded-lg font-semibold cursor-not-allowed transition-colors duration-200"
-                    disabled>
-                <i class="fas fa-plus mr-2"></i>
-                Select a group to add player
-            </button>
+            <div class="text-center">
+                <p class="text-sm text-gray-600">Select any item above to add this player</p>
+            </div>
         </div>
     </div>
 </div>
@@ -711,16 +708,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // Group modal events
         const closeGroupModal = document.getElementById('closeGroupModal');
         const addToGroupModal = document.getElementById('addToGroupModal');
-        const addToGroupBtn = document.getElementById('addToGroupBtn');
         
         closeGroupModal.addEventListener('click', hideAddToGroupModal);
-        
-        // Add button click event
-        addToGroupBtn.addEventListener('click', function() {
-            if (window.selectedGroupForAdding && !this.disabled) {
-                addPlayerToGroup(window.selectedGroupForAdding.id, window.selectedGroupForAdding.name);
-            }
-        });
         
         // Close modal when clicking outside
         selectedPlayersModal.addEventListener('click', function(e) {
@@ -883,7 +872,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
                 <div>
                     <div class="font-semibold text-gray-900">${playerName}</div>
-                    <div class="text-sm text-gray-600">Select a group to add this player to</div>
+                    <div class="text-sm text-gray-600">Select a pickup game to add ${firstName} ${lastName}</div>
                 </div>
             </div>
         `;
@@ -894,102 +883,248 @@ document.addEventListener('DOMContentLoaded', function() {
         groupsList.innerHTML = '';
         noGroupsMessage.classList.add('hidden');
         
-        // Reset Add button to initial state
-        const addBtn = document.getElementById('addToGroupBtn');
-        addBtn.disabled = true;
-        addBtn.className = 'w-full px-4 py-3 bg-gray-300 text-gray-500 rounded-lg font-semibold cursor-not-allowed transition-colors duration-200';
-        addBtn.innerHTML = '<i class="fas fa-plus mr-2"></i>Select a group to add player';
+
         
         try {
-            // Load user's groups
-            const response = await fetch('/api/groups');
-            if (!response.ok) throw new Error('Failed to fetch groups');
+            // Load user's pickup games (both public and private) and groups
+            const [publicResponse, privateResponse, groupsResponse] = await Promise.all([
+                fetch('/api/pickup-games?type=public'),
+                fetch('/api/pickup-games?type=private'),
+                fetch('/api/groups')
+            ]);
             
-            const data = await response.json();
-            const groups = data.groups || [];
+            if (!publicResponse.ok || !privateResponse.ok || !groupsResponse.ok) {
+                throw new Error('Failed to fetch data');
+            }
+            
+            const publicData = await publicResponse.json();
+            const privateData = await privateResponse.json();
+            const groupsData = await groupsResponse.json();
+            
+            const publicGames = [...(publicData.upcoming_games || []), ...(publicData.past_games || [])];
+            const privateGames = [...(privateData.upcoming_games || []), ...(privateData.past_games || [])];
+            const groups = groupsData.groups || [];
             
             groupsLoading.classList.add('hidden');
             
-            if (groups.length === 0) {
+            if (publicGames.length === 0 && privateGames.length === 0 && groups.length === 0) {
                 noGroupsMessage.classList.remove('hidden');
                 return;
             }
             
-            // Display groups
-            groups.forEach(group => {
-                const groupElement = document.createElement('div');
-                groupElement.className = 'group-item bg-white border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-sm transition-all duration-200 cursor-pointer';
-                groupElement.dataset.groupId = group.id;
-                groupElement.dataset.groupName = group.name;
-                groupElement.innerHTML = `
-                    <div class="flex items-center justify-between">
-                        <div class="flex-1">
-                            <div class="font-semibold text-gray-900">${group.name}</div>
-                            <div class="text-sm text-gray-600">${group.member_count} members</div>
-                            ${group.description ? `<div class="text-xs text-gray-500 mt-1">${group.description}</div>` : ''}
-                        </div>
-                        <div class="flex items-center gap-2">
-                            <i class="fas fa-users text-gray-400"></i>
-                            <div class="selected-indicator hidden">
-                                <i class="fas fa-check-circle text-blue-600"></i>
+            // Create sections for public games, private games, and groups
+            let sectionsHTML = '';
+            
+            if (publicGames.length > 0) {
+                sectionsHTML += `
+                    <div class="mb-6">
+                        <h4 class="text-sm font-semibold text-gray-700 mb-3 flex items-center">
+                            <i class="fas fa-globe mr-2 text-blue-500"></i>
+                            Public Pickup Games
+                        </h4>
+                        <div class="space-y-2">
+                `;
+                
+                publicGames.forEach(game => {
+                    const gameDate = new Date(game.date).toLocaleDateString();
+                    const gameTime = game.formatted_time || game.time;
+                    
+                    sectionsHTML += `
+                        <div class="bg-white border border-gray-200 rounded-lg p-3 hover:border-blue-300 hover:shadow-sm transition-all duration-200">
+                            <div class="flex items-center justify-between">
+                                <div class="flex-1">
+                                    <div class="font-semibold text-gray-900">${game.description}</div>
+                                    <div class="text-sm text-gray-600">${gameDate} at ${gameTime}</div>
+                                    <div class="text-xs text-gray-500">${game.slots_filled}/${game.players_requested} players</div>
+                                </div>
+                                <button class="add-to-pickup-btn px-4 py-2 text-white rounded-lg font-semibold text-sm hover:opacity-90 transition-colors duration-200" 
+                                        style="background-color: #085454;"
+                                        data-game-id="${game.id}" data-game-name="${game.description}" data-type="pickup">
+                                    Add
+                                </button>
                             </div>
+                        </div>
+                    `;
+                });
+                
+                sectionsHTML += `
                         </div>
                     </div>
                 `;
+            }
+            
+            if (privateGames.length > 0) {
+                sectionsHTML += `
+                    <div class="mb-6">
+                        <h4 class="text-sm font-semibold text-gray-700 mb-3 flex items-center">
+                            <i class="fas fa-lock mr-2 text-green-500"></i>
+                            Private Pickup Games
+                        </h4>
+                        <div class="space-y-2">
+                `;
                 
-                groupElement.addEventListener('click', () => selectGroup(group.id, group.name, groupElement));
-                groupsList.appendChild(groupElement);
+                privateGames.forEach(game => {
+                    const gameDate = new Date(game.date).toLocaleDateString();
+                    const gameTime = game.formatted_time || game.time;
+                    
+                    sectionsHTML += `
+                        <div class="bg-white border border-gray-200 rounded-lg p-3 hover:border-blue-300 hover:shadow-sm transition-all duration-200">
+                            <div class="flex items-center justify-between">
+                                <div class="flex-1">
+                                    <div class="font-semibold text-gray-900">${game.description}</div>
+                                    <div class="text-sm text-gray-600">${gameDate} at ${gameTime}</div>
+                                    <div class="text-xs text-gray-500">${game.slots_filled}/${game.players_requested} players</div>
+                                </div>
+                                <button class="add-to-pickup-btn px-4 py-2 text-white rounded-lg font-semibold text-sm hover:opacity-90 transition-colors duration-200" 
+                                        style="background-color: #085454;"
+                                        data-game-id="${game.id}" data-game-name="${game.description}" data-type="pickup">
+                                    Add
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                sectionsHTML += `
+                        </div>
+                    </div>
+                `;
+            }
+            
+            if (groups.length > 0) {
+                sectionsHTML += `
+                    <div class="mb-4">
+                        <h4 class="text-sm font-semibold text-gray-700 mb-3 flex items-center">
+                            <i class="fas fa-users mr-2" style="color: #085454;"></i>
+                            My Private Groups
+                        </h4>
+                        <div class="space-y-2">
+                `;
+                
+                groups.forEach(group => {
+                    sectionsHTML += `
+                        <div class="bg-white border border-gray-200 rounded-lg p-3 hover:border-blue-300 hover:shadow-sm transition-all duration-200">
+                            <div class="flex items-center justify-between">
+                                <div class="flex-1">
+                                    <div class="font-semibold text-gray-900">${group.name}</div>
+                                    <div class="text-sm text-gray-600">${group.member_count} members</div>
+                                    ${group.description ? `<div class="text-xs text-gray-500 mt-1">${group.description}</div>` : ''}
+                                </div>
+                                <button class="add-to-group-btn px-4 py-2 text-white rounded-lg font-semibold text-sm hover:opacity-90 transition-colors duration-200" 
+                                        style="background-color: #085454;"
+                                        data-group-id="${group.id}" data-group-name="${group.name}" data-type="group">
+                                    Add
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                sectionsHTML += `
+                        </div>
+                    </div>
+                `;
+            }
+            
+            groupsList.innerHTML = sectionsHTML;
+            
+            // Add click handlers to all Add buttons
+            document.querySelectorAll('.add-to-pickup-btn').forEach(button => {
+                button.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    const gameId = button.dataset.gameId;
+                    const gameName = button.dataset.gameName;
+                    await addPlayerToPickupGame(gameId, gameName, button);
+                });
+            });
+            
+            document.querySelectorAll('.add-to-group-btn').forEach(button => {
+                button.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    const groupId = button.dataset.groupId;
+                    const groupName = button.dataset.groupName;
+                    await addPlayerToGroup(groupId, groupName, button);
+                });
             });
             
         } catch (error) {
-            console.error('Error loading groups:', error);
+            console.error('Error loading pickup games:', error);
             groupsLoading.classList.add('hidden');
             groupsList.innerHTML = `
                 <div class="text-center py-4">
                     <div class="text-red-600 mb-2">
                         <i class="fas fa-exclamation-triangle"></i>
                     </div>
-                    <p class="text-red-600 text-sm">Failed to load groups. Please try again.</p>
+                    <p class="text-red-600 text-sm">Failed to load pickup games. Please try again.</p>
                 </div>
             `;
         }
     }
     
-    // Select a group (highlight it and enable Add button)
-    function selectGroup(groupId, groupName, groupElement) {
-        // Clear previous selection
-        document.querySelectorAll('.group-item').forEach(item => {
-            item.classList.remove('border-blue-500', 'bg-blue-50');
-            item.querySelector('.selected-indicator').classList.add('hidden');
-        });
-        
-        // Select current group
-        groupElement.classList.add('border-blue-500', 'bg-blue-50');
-        groupElement.querySelector('.selected-indicator').classList.remove('hidden');
-        
-        // Store selection
-        window.selectedGroupForAdding = { id: groupId, name: groupName };
-        
-        // Enable Add button
-        const addBtn = document.getElementById('addToGroupBtn');
-        addBtn.disabled = false;
-        addBtn.className = 'w-full px-4 py-3 bg-blue-600 text-white rounded-lg font-semibold cursor-pointer hover:bg-blue-700 transition-colors duration-200';
-        addBtn.innerHTML = `<i class="fas fa-plus mr-2"></i>Add to ${groupName}`;
-    }
+
     
-    // Add player to selected group
-    async function addPlayerToGroup(groupId, groupName) {
+    // Add player to pickup game
+    async function addPlayerToPickupGame(gameId, gameName, buttonElement) {
         const { name: playerName, firstName, lastName } = window.currentSelectedPlayer;
         
         try {
-            // Show loading state
-            const groupsList = document.getElementById('groupsList');
-            groupsList.innerHTML = `
-                <div class="text-center py-6">
-                    <div class="loading loading-spinner loading-lg text-blue-500 mb-3"></div>
-                    <p class="text-gray-600 text-sm">Adding ${playerName} to ${groupName}...</p>
-                </div>
-            `;
+            // Show loading state on button
+            const originalText = buttonElement.innerHTML;
+            buttonElement.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Adding...';
+            buttonElement.disabled = true;
+            
+            // Make API call to add player to pickup game
+            const response = await fetch(`/api/pickup-games/${gameId}/add-player`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    player_name: playerName,
+                    first_name: firstName,
+                    last_name: lastName
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok && data.success) {
+                // Show success state on button
+                buttonElement.innerHTML = '<i class="fas fa-check mr-1"></i>Added!';
+                buttonElement.style.backgroundColor = '#16a34a';
+                
+                showGroupSuccessMessage(`${playerName} has been added to "${gameName}"!`);
+                
+                // Reset button after 2 seconds
+                setTimeout(() => {
+                    buttonElement.innerHTML = originalText;
+                    buttonElement.style.backgroundColor = '#085454';
+                    buttonElement.disabled = false;
+                }, 2000);
+            } else {
+                // Handle error from API
+                const errorMessage = data.error || 'Failed to add player to pickup game';
+                console.error('API Error:', errorMessage);
+                buttonElement.innerHTML = originalText;
+                buttonElement.disabled = false;
+                showGroupErrorMessage(errorMessage);
+            }
+            
+        } catch (error) {
+            console.error('Error adding player to pickup game:', error);
+            buttonElement.innerHTML = originalText;
+            buttonElement.disabled = false;
+            showGroupErrorMessage('Failed to add player to pickup game. Please try again.');
+        }
+    }
+
+    // Add player to selected group
+    async function addPlayerToGroup(groupId, groupName, buttonElement) {
+        const { name: playerName, firstName, lastName } = window.currentSelectedPlayer;
+        
+        try {
+            // Show loading state on button
+            const originalText = buttonElement.innerHTML;
+            buttonElement.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Adding...';
+            buttonElement.disabled = true;
             
             // Find the player by name to get their user ID
             const searchResponse = await fetch(`/api/groups/search-players?q=${encodeURIComponent(playerName)}`);
@@ -1040,6 +1175,10 @@ document.addEventListener('DOMContentLoaded', function() {
             
             const result = await addResponse.json();
             
+            // Show success state on button
+            buttonElement.innerHTML = '<i class="fas fa-check mr-1"></i>Added!';
+            buttonElement.style.backgroundColor = '#16a34a';
+            
             // Show success message - customize based on whether player has account
             let successMessage;
             if (exactMatch.user_id) {
@@ -1049,16 +1188,18 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             showGroupSuccessMessage(successMessage);
             
-            // Modal stays open until user clicks X to close
+            // Reset button after 2 seconds
+            setTimeout(() => {
+                buttonElement.innerHTML = originalText;
+                buttonElement.style.backgroundColor = '#085454';
+                buttonElement.disabled = false;
+            }, 2000);
             
         } catch (error) {
             console.error('Error adding player to group:', error);
+            buttonElement.innerHTML = originalText;
+            buttonElement.disabled = false;
             showGroupErrorMessage(error.message);
-            
-            // Re-show groups list after error
-            setTimeout(() => {
-                showAddToGroupModal(playerName, firstName, lastName);
-            }, 2000);
         }
     }
     
@@ -1068,19 +1209,6 @@ document.addEventListener('DOMContentLoaded', function() {
         modal.classList.add('hidden');
         window.currentSelectedPlayer = null;
         window.selectedGroupForAdding = null;
-        
-        // Reset Add button
-        const addBtn = document.getElementById('addToGroupBtn');
-        addBtn.disabled = true;
-        addBtn.className = 'w-full px-4 py-3 bg-gray-300 text-gray-500 rounded-lg font-semibold cursor-not-allowed transition-colors duration-200';
-        addBtn.innerHTML = '<i class="fas fa-plus mr-2"></i>Select a group to add player';
-        
-        // Clear group selections
-        document.querySelectorAll('.group-item').forEach(item => {
-            item.classList.remove('border-blue-500', 'bg-blue-50');
-            const indicator = item.querySelector('.selected-indicator');
-            if (indicator) indicator.classList.add('hidden');
-        });
     }
     
     // Show success message in group modal
@@ -1219,7 +1347,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 visibility: visible !important;
                                 min-height: 44px !important;
                             ">
-                        Add to Group Text
+                        Add to Pickup Game
                     </button>
                 </div>
             </div>
