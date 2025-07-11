@@ -132,8 +132,8 @@ def send_sms_notification(to_number: str, message: str, test_mode: bool = False,
 
 def _send_sms_with_retry(formatted_phone: str, message: str, max_retries: int) -> Dict:
     """
-    Send SMS with exponential backoff retry for error 21704
-    Enhanced to try MMS first with publicly accessible media URL, then fallback to SMS
+    Send SMS with exponential backoff retry for error 21704, with MMS as fallback
+    Tries SMS first (more reliable), then MMS if SMS fails
     
     Args:
         formatted_phone (str): Validated phone number
@@ -148,20 +148,20 @@ def _send_sms_with_retry(formatted_phone: str, message: str, max_retries: int) -
     url = f"https://api.twilio.com/2010-04-01/Accounts/{TwilioConfig.ACCOUNT_SID}/Messages.json"
     auth = HTTPBasicAuth(TwilioConfig.ACCOUNT_SID, TwilioConfig.AUTH_TOKEN)
     
-    # Try MMS first with publicly accessible media URL
+    # SMS data (no media) - primary method
+    sms_data = {
+        "To": formatted_phone,
+        "From": TwilioConfig.SENDER_PHONE,  # Use direct phone number instead of invalid messaging service
+        "Body": message
+    }
+    
+    # MMS data (with media) - fallback method
     mms_data = {
         "To": formatted_phone,
         "From": TwilioConfig.SENDER_PHONE,  # Use direct phone number instead of invalid messaging service
         "Body": message,
         # Use publicly accessible Rally logo for MMS
         "MediaUrl": "https://www.lovetorally.com/static/rallylogo.png"
-    }
-    
-    # SMS fallback data (no media)
-    sms_data = {
-        "To": formatted_phone,
-        "From": TwilioConfig.SENDER_PHONE,  # Use direct phone number instead of invalid messaging service
-        "Body": message
     }
     
     last_error = None
@@ -175,8 +175,8 @@ def _send_sms_with_retry(formatted_phone: str, message: str, max_retries: int) -
                 logger.info(f"Retry {attempt}/{max_retries} in {delay}s")
                 time.sleep(delay)
             
-            # Try MMS first, then fallback to SMS
-            for method, data in [("MMS", mms_data), ("SMS", sms_data)]:
+            # Try SMS first, then MMS as fallback
+            for method, data in [("SMS", sms_data), ("MMS", mms_data)]:
                 try:
                     logger.info(f"Sending {method} to {formatted_phone} via Twilio (attempt {attempt + 1}/{max_retries + 1})")
                     
@@ -194,6 +194,8 @@ def _send_sms_with_retry(formatted_phone: str, message: str, max_retries: int) -
                         success_msg = f"{method} sent successfully"
                         if attempt > 0:
                             success_msg += f" (succeeded on retry {attempt})"
+                        if method == "MMS":
+                            success_msg += " (SMS fallback)"
                         
                         logger.info(f"{success_msg}. Message SID: {response_data.get('sid')}")
                         return {
@@ -213,56 +215,52 @@ def _send_sms_with_retry(formatted_phone: str, message: str, max_retries: int) -
                         error_message = response_data.get("message", "Unknown Twilio error")
                         error_code = response_data.get("code")
                         
-                        # If MMS failed with media URL error, continue to SMS fallback
-                        if method == "MMS" and error_code == 21620:
-                            logger.warning(f"MMS failed with error 21620 (invalid media URL), trying SMS fallback...")
-                            continue
-                        
                         # Check if this is error 21704 (provider disruption) - retry if we have attempts left
                         if error_code == 21704 and attempt < max_retries:
                             logger.warning(f"Error 21704 (provider disruption) on attempt {attempt + 1}, will retry...")
                             last_error = f"Twilio error 21704: {error_message}"
                             break  # Break from method loop, continue to next attempt
                         
-                        # For other errors, try next method or fail
-                        logger.error(f"Twilio API error {response.status_code}: {error_message} (Code: {error_code})")
-                        
-                        # If this was SMS (last fallback), return failure
+                        # For SMS errors, try MMS fallback
                         if method == "SMS":
-                            return {
-                                "success": False,
-                                "error": f"Twilio error: {error_message}",
-                                "error_code": error_code,
-                                "status_code": response.status_code,
-                                "message_sid": None,
-                                "raw_response": response_data,
-                                "final_attempt": attempt + 1,
-                                "max_retries": max_retries,
-                                "sending_method": method.lower()
-                            }
+                            logger.warning(f"SMS failed with error {error_code}: {error_message}, trying MMS fallback...")
+                            continue
                         
-                        # If MMS failed with non-media error, continue to SMS
-                        continue
+                        # If MMS also failed, return failure
+                        logger.error(f"Twilio API error {response.status_code}: {error_message} (Code: {error_code})")
+                        return {
+                            "success": False,
+                            "error": f"Twilio error: {error_message}",
+                            "error_code": error_code,
+                            "status_code": response.status_code,
+                            "message_sid": None,
+                            "raw_response": response_data,
+                            "final_attempt": attempt + 1,
+                            "max_retries": max_retries,
+                            "sending_method": method.lower()
+                        }
                         
                 except requests.exceptions.Timeout:
                     logger.error(f"{method} request timed out (attempt {attempt + 1})")
-                    if method == "SMS":  # Last fallback
+                    if method == "SMS":  # Try MMS fallback
+                        continue
+                    else:  # MMS also timed out
                         last_error = "Request timed out"
                         break
-                    continue
-                    
+                        
                 except requests.exceptions.RequestException as e:
                     logger.error(f"Network error sending {method} (attempt {attempt + 1}): {str(e)}")
-                    if method == "SMS":  # Last fallback
+                    if method == "SMS":  # Try MMS fallback
+                        continue
+                    else:  # MMS also failed
                         last_error = f"Network error: {str(e)}"
                         break
-                    continue
-                    
+                        
             # If we get here, all methods failed for this attempt
             if attempt < max_retries and last_error:
                 logger.info("Retrying after failures...")
                 continue
-            
+                    
         except Exception as e:
             error_msg = f"Unexpected error (attempt {attempt + 1}): {str(e)}"
             logger.error(error_msg)
