@@ -36,6 +36,12 @@ def register():
     return render_template("login.html", default_tab="register")
 
 
+@auth_bp.route("/forgot-password", methods=["GET"])
+def forgot_password():
+    """Serve the forgot password page"""
+    return render_template("forgot_password.html")
+
+
 @auth_bp.route("/api/register", methods=["POST"])
 def handle_register():
     """Handle user registration"""
@@ -253,6 +259,58 @@ def handle_login():
         logger.error(f"Request method: {request.method}")
         logger.error(f"Request headers: {dict(request.headers)}")
         return jsonify({"error": "Login failed - server error"}), 500
+
+
+@auth_bp.route("/api/forgot-password", methods=["POST"])
+def handle_forgot_password():
+    """Handle password reset request via SMS"""
+    try:
+        logger.info("Password reset attempt started")
+
+        # Parse request data
+        try:
+            data = request.get_json()
+            logger.info("Successfully parsed JSON data for password reset")
+        except Exception as json_error:
+            logger.error(f"Failed to parse JSON in password reset: {json_error}")
+            return jsonify({"error": "Invalid JSON data"}), 400
+
+        if not data:
+            logger.error("No JSON data received for password reset")
+            return jsonify({"error": "No data received"}), 400
+
+        email = data.get("email", "").strip().lower()
+        
+        if not email:
+            logger.warning("Missing email in password reset request")
+            return jsonify({"error": "Email address is required"}), 400
+
+        logger.info(f"Password reset attempt for email: {email}")
+
+        # Import password reset service
+        from app.services.password_reset_service import send_password_via_sms
+        
+        # Attempt to send password via SMS
+        result = send_password_via_sms(email)
+        
+        if result["success"]:
+            logger.info(f"Password reset successful for {email}")
+            return jsonify({
+                "success": True,
+                "message": result["message"]
+            })
+        else:
+            logger.warning(f"Password reset failed for {email}: {result['error']}")
+            return jsonify({
+                "success": False,
+                "error": result["error"]
+            }), 400
+
+    except Exception as e:
+        logger.error(f"Password reset endpoint error: {str(e)}")
+        import traceback
+        logger.error(f"Password reset traceback: {traceback.format_exc()}")
+        return jsonify({"error": "Password reset failed - server error"}), 500
 
 
 @auth_bp.route("/api/logout", methods=["POST"])
