@@ -37,19 +37,10 @@
     <div class="px-4 py-4">
         <!-- Group Info -->
         <div class="bg-white rounded-lg shadow-sm border p-6 mb-6">
-            <div class="flex items-center mb-4">
-                <div class="w-12 h-12 rounded-full flex items-center justify-center mr-4" style="background-color: #085454 !important;">
-                    <i class="fas fa-users text-white text-xl"></i>
-                </div>
-                <div>
-                    <h2 class="text-xl font-semibold text-gray-900">{{ group.name }}</h2>
-                    <p class="text-sm text-gray-600">{{ group.member_count }} member{{ 's' if group.member_count != 1 else '' }}</p>
-                </div>
+            <div class="mb-4">
+                <h2 class="text-xl font-semibold text-gray-900">{{ group.name }}</h2>
+                <p class="text-sm text-gray-600">{{ group.member_count }} member{{ 's' if group.member_count != 1 else '' }}</p>
             </div>
-            
-            {% if group.description %}
-            <p class="text-gray-700 mb-4">{{ group.description }}</p>
-            {% endif %}
             
             <div class="text-sm text-gray-500">
                 Created {{ group.created_at.strftime('%B %d, %Y') if group.created_at else 'Unknown' }}
@@ -115,25 +106,91 @@
                 Compose Message
             </h3>
             
+            <!-- Message Type Tabs -->
+            <div class="flex border-b border-gray-200 mb-6">
+                <button 
+                    id="generalTab" 
+                    class="flex-1 py-2 px-4 text-sm font-medium text-center border-b-2 border-transparent hover:text-gray-700 hover:border-gray-300 focus:outline-none tab-button active"
+                    onclick="switchTab('general')">
+                    <i class="fas fa-comment mr-2"></i>
+                    General Text
+                </button>
+                <button 
+                    id="pickupGameTab" 
+                    class="flex-1 py-2 px-4 text-sm font-medium text-center border-b-2 border-transparent hover:text-gray-700 hover:border-gray-300 focus:outline-none tab-button"
+                    onclick="switchTab('pickupGame')">
+                    <i class="fas fa-calendar-plus mr-2"></i>
+                    Pickup Game
+                </button>
+            </div>
+            
             <form id="textGroupForm">
-                <div class="mb-4">
-                    <label for="messageText" class="block text-sm font-medium text-gray-700 mb-2">Message</label>
-                    <textarea 
-                        id="messageText" 
-                        name="message" 
-                        rows="4" 
-                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                        placeholder="Type your message to the group..."
-                        maxlength="800"
-                        required></textarea>
-                    
-                    <!-- Character Count -->
-                    <div class="flex justify-between items-center mt-2">
-                        <div class="text-xs text-gray-500">
-                            Messages over 160 characters may be split into multiple texts
+                <!-- General Text Tab Content -->
+                <div id="generalTabContent" class="tab-content">
+                    <div class="mb-4">
+                        <label for="messageText" class="block text-sm font-medium text-gray-700 mb-2">Message</label>
+                        <textarea 
+                            id="messageText" 
+                            name="message" 
+                            rows="4" 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                            placeholder="Type your message to the group..."
+                            maxlength="800"
+                            required></textarea>
+                        
+                        <!-- Character Count -->
+                        <div class="flex justify-between items-center mt-2">
+                            <div class="text-xs text-gray-500">
+                                Messages over 160 characters may be split into multiple texts
+                            </div>
+                            <div class="text-sm font-medium" id="charCount">
+                                <span id="charCountNumber">0</span>/800
+                            </div>
                         </div>
-                        <div class="text-sm font-medium" id="charCount">
-                            <span id="charCountNumber">0</span>/800
+                    </div>
+                </div>
+
+                <!-- Pickup Game Tab Content -->
+                <div id="pickupGameTabContent" class="tab-content hidden">
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label for="gameDate" class="block text-sm font-medium text-gray-700 mb-2">Date</label>
+                                <input 
+                                    type="date" 
+                                    id="gameDate" 
+                                    name="gameDate" 
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            </div>
+                            <div>
+                                <label for="gameTime" class="block text-sm font-medium text-gray-700 mb-2">Time</label>
+                                <input 
+                                    type="time" 
+                                    id="gameTime" 
+                                    name="gameTime" 
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label for="pickupGameMessage" class="block text-sm font-medium text-gray-700 mb-2">Additional Message</label>
+                            <textarea 
+                                id="pickupGameMessage" 
+                                name="pickupGameMessage" 
+                                rows="3" 
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                                placeholder="Add any additional details about the pickup game..."
+                                maxlength="600"></textarea>
+                            
+                            <!-- Character Count for pickup game message -->
+                            <div class="flex justify-between items-center mt-2">
+                                <div class="text-xs text-gray-500">
+                                    Date and time info will be added automatically
+                                </div>
+                                <div class="text-sm font-medium" id="pickupCharCount">
+                                    <span id="pickupCharCountNumber">0</span>/600
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -142,7 +199,8 @@
                 <button 
                     type="submit" 
                     id="sendButton"
-                    class="w-full bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold text-lg transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed">
+                    class="w-full text-white px-6 py-3 rounded-lg font-semibold text-lg transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    style="background-color: #085454 !important; hover:background-color: #064040 !important;">
                     <i class="fas fa-paper-plane mr-2"></i>
                     Send Message to {{ members_with_phones | length }} Member{{ 's' if members_with_phones | length != 1 else '' }}
                 </button>
@@ -188,18 +246,60 @@
     </div>
 </div>
 
+<style>
+.tab-button.active {
+    color: #085454 !important;
+    border-bottom-color: #085454 !important;
+}
+
+.tab-content {
+    display: block;
+}
+
+.tab-content.hidden {
+    display: none;
+}
+
+#sendButton:hover {
+    background-color: #064040 !important;
+}
+</style>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const messageText = document.getElementById('messageText');
+    const pickupGameMessage = document.getElementById('pickupGameMessage');
     const charCountNumber = document.getElementById('charCountNumber');
+    const pickupCharCountNumber = document.getElementById('pickupCharCountNumber');
     const charCount = document.getElementById('charCount');
+    const pickupCharCount = document.getElementById('pickupCharCount');
     const sendButton = document.getElementById('sendButton');
     const textGroupForm = document.getElementById('textGroupForm');
     const successModal = document.getElementById('successModal');
     const loadingModal = document.getElementById('loadingModal');
     const closeSuccessModal = document.getElementById('closeSuccessModal');
     
-    // Character count functionality
+    // Tab switching functionality
+    window.switchTab = function(tabName) {
+        const generalTab = document.getElementById('generalTab');
+        const pickupGameTab = document.getElementById('pickupGameTab');
+        const generalTabContent = document.getElementById('generalTabContent');
+        const pickupGameTabContent = document.getElementById('pickupGameTabContent');
+        
+        if (tabName === 'general') {
+            generalTab.classList.add('active');
+            pickupGameTab.classList.remove('active');
+            generalTabContent.classList.remove('hidden');
+            pickupGameTabContent.classList.add('hidden');
+        } else if (tabName === 'pickupGame') {
+            generalTab.classList.remove('active');
+            pickupGameTab.classList.add('active');
+            generalTabContent.classList.add('hidden');
+            pickupGameTabContent.classList.remove('hidden');
+        }
+    };
+    
+    // Character count functionality for general text
     if (messageText && charCountNumber) {
         messageText.addEventListener('input', function() {
             const length = this.value.length;
@@ -216,20 +316,82 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    // Character count functionality for pickup game message
+    if (pickupGameMessage && pickupCharCountNumber) {
+        pickupGameMessage.addEventListener('input', function() {
+            const length = this.value.length;
+            pickupCharCountNumber.textContent = length;
+            
+            // Color coding for character count
+            if (length > 600) {
+                pickupCharCount.className = 'text-sm font-medium text-red-600';
+            } else if (length > 500) {
+                pickupCharCount.className = 'text-sm font-medium text-orange-600';
+            } else {
+                pickupCharCount.className = 'text-sm font-medium text-gray-600';
+            }
+        });
+    }
+    
     // Form submission
     if (textGroupForm) {
         textGroupForm.addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            const message = messageText.value.trim();
-            if (!message) {
-                showError('Please enter a message');
-                return;
-            }
+            const generalTabContent = document.getElementById('generalTabContent');
+            const pickupGameTabContent = document.getElementById('pickupGameTabContent');
+            const isGeneralTab = !generalTabContent.classList.contains('hidden');
             
-            if (message.length > 800) {
-                showError('Message is too long. Please keep it under 800 characters.');
-                return;
+            let message = '';
+            
+            if (isGeneralTab) {
+                message = messageText.value.trim();
+                if (!message) {
+                    showError('Please enter a message');
+                    return;
+                }
+                
+                if (message.length > 800) {
+                    showError('Message is too long. Please keep it under 800 characters.');
+                    return;
+                }
+            } else {
+                // Pickup game tab
+                const gameDate = document.getElementById('gameDate').value;
+                const gameTime = document.getElementById('gameTime').value;
+                const additionalMessage = pickupGameMessage.value.trim();
+                
+                if (!gameDate || !gameTime) {
+                    showError('Please select both date and time for the pickup game');
+                    return;
+                }
+                
+                if (additionalMessage.length > 600) {
+                    showError('Additional message is too long. Please keep it under 600 characters.');
+                    return;
+                }
+                
+                // Format the pickup game message
+                const formattedDate = new Date(gameDate).toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+                
+                const formattedTime = new Date(`1970-01-01T${gameTime}`).toLocaleTimeString('en-US', {
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    hour12: true
+                });
+                
+                message = `🏓 Pickup Game Alert!\n\n📅 Date: ${formattedDate}\n🕐 Time: ${formattedTime}`;
+                
+                if (additionalMessage) {
+                    message += `\n\n📝 Details: ${additionalMessage}`;
+                }
+                
+                message += `\n\nSee you on the courts! 🎾`;
             }
             
             try {
@@ -244,7 +406,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     body: JSON.stringify({
                         group_id: {{ group.id if group else 'null' }},
                         message: message,
-                        subject: 'Group Message'
+                        subject: isGeneralTab ? 'Group Message' : 'Pickup Game Alert'
                     })
                 });
                 
@@ -261,9 +423,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     successModal.classList.remove('hidden');
                     
                     // Clear the form
-                    messageText.value = '';
-                    charCountNumber.textContent = '0';
-                    charCount.className = 'text-sm font-medium text-gray-600';
+                    if (isGeneralTab) {
+                        messageText.value = '';
+                        charCountNumber.textContent = '0';
+                        charCount.className = 'text-sm font-medium text-gray-600';
+                    } else {
+                        document.getElementById('gameDate').value = '';
+                        document.getElementById('gameTime').value = '';
+                        pickupGameMessage.value = '';
+                        pickupCharCountNumber.textContent = '0';
+                        pickupCharCount.className = 'text-sm font-medium text-gray-600';
+                    }
                 } else {
                     showError(result.error || 'Failed to send message');
                 }

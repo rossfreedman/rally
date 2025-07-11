@@ -45,6 +45,7 @@ class GroupsService:
                 'description': group.description,
                 'member_count': group.get_member_count(self.session),
                 'created_at': group.created_at,
+                'creator_user_id': group.creator_user_id,
                 'is_creator': True,
                 'creator_name': f"{group.creator.first_name} {group.creator.last_name}" if group.creator else "Unknown"
             })
