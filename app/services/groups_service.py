@@ -18,7 +18,7 @@ class GroupsService:
 
     def get_user_groups(self, user_id: int) -> List[Dict[str, Any]]:
         """
-        Get all groups that a user has created or is a member of
+        Get all groups that a user has created
         
         Args:
             user_id: ID of the user
@@ -26,27 +26,15 @@ class GroupsService:
         Returns:
             List of group dictionaries with member counts and metadata
         """
-        # Get groups created by user
+        # Only get groups created by user (not groups where they are members)
         created_groups = (
             self.session.query(Group)
             .filter(Group.creator_user_id == user_id)
+            .order_by(Group.created_at.desc())  # Newest first
             .all()
         )
 
-        # Get groups where user is a member (but not creator)
-        member_groups = (
-            self.session.query(Group)
-            .join(GroupMember, Group.id == GroupMember.group_id)
-            .filter(
-                and_(
-                    GroupMember.user_id == user_id,
-                    Group.creator_user_id != user_id
-                )
-            )
-            .all()
-        )
-
-        # Combine and format results
+        # Format results
         all_groups = []
         
         # Add created groups
@@ -60,21 +48,6 @@ class GroupsService:
                 'is_creator': True,
                 'creator_name': f"{group.creator.first_name} {group.creator.last_name}" if group.creator else "Unknown"
             })
-
-        # Add member groups
-        for group in member_groups:
-            all_groups.append({
-                'id': group.id,
-                'name': group.name,
-                'description': group.description,
-                'member_count': group.get_member_count(self.session),
-                'created_at': group.created_at,
-                'is_creator': False,
-                'creator_name': f"{group.creator.first_name} {group.creator.last_name}" if group.creator else "Unknown"
-            })
-
-        # Sort by creation date (newest first)
-        all_groups.sort(key=lambda x: x['created_at'], reverse=True)
         
         return all_groups
 

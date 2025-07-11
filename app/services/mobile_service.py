@@ -5330,9 +5330,10 @@ def get_other_home_teams_at_club_on_date(team_id, match_date, user_email):
         
         # Get current team's club_id and league_id
         team_info_query = """
-            SELECT club_id, league_id 
-            FROM teams 
-            WHERE id = %s
+            SELECT club_id, league_id, c.name as club_name
+            FROM teams t
+            JOIN clubs c ON t.club_id = c.id
+            WHERE t.id = %s
         """
         team_info = execute_query_one(team_info_query, [team_id])
         
@@ -5342,31 +5343,63 @@ def get_other_home_teams_at_club_on_date(team_id, match_date, user_email):
             
         club_id = team_info["club_id"]
         league_id = team_info["league_id"]
+        club_name = team_info["club_name"]
         
-        print(f"[DEBUG] get_other_home_teams_at_club_on_date: Looking for other teams at club_id {club_id}, league_id {league_id} on {match_date}")
+        print(f"[DEBUG] get_other_home_teams_at_club_on_date: Looking for other teams at {club_name} (club_id {club_id}), league_id {league_id} on {match_date}")
         
-        # Find other teams at the same club/league with home matches on this date
-        other_teams_query = """
+        # ENHANCED DEBUG: Let's see ALL matches on this date at this club first
+        debug_query = """
+            SELECT 
+                sc.match_date,
+                sc.home_team,
+                sc.away_team,
+                sc.location,
+                t_home.id as home_team_id,
+                t_away.id as away_team_id,
+                s_home.display_name as home_series,
+                s_away.display_name as away_series
+            FROM schedule sc
+            LEFT JOIN teams t_home ON sc.home_team_id = t_home.id
+            LEFT JOIN teams t_away ON sc.away_team_id = t_away.id
+            LEFT JOIN series s_home ON t_home.series_id = s_home.id
+            LEFT JOIN series s_away ON t_away.series_id = s_away.id
+            WHERE sc.match_date = %s 
+                AND (sc.location = %s OR sc.home_team LIKE %s OR sc.away_team LIKE %s)
+            ORDER BY sc.home_team, sc.away_team
+        """
+        
+        club_pattern = f"%{club_name}%"
+        all_matches = execute_query(debug_query, [match_date, club_name, club_pattern, club_pattern])
+        
+        print(f"[DEBUG] ALL matches on {match_date} involving {club_name}:")
+        for match in all_matches:
+            print(f"  {match['home_team']} vs {match['away_team']} at {match['location']} (Home: {match['home_series']}, Away: {match['away_series']})")
+        
+        # Now find ONLY teams that are playing AT HOME (location matches club name)
+        # This is more accurate than relying on home_team_id which might be inconsistent
+        home_matches_query = """
             SELECT DISTINCT s.display_name as series_name
             FROM schedule sc
-            JOIN teams t ON sc.home_team_id = t.id
+            JOIN teams t ON (sc.home_team_id = t.id OR sc.away_team_id = t.id)
             JOIN series s ON t.series_id = s.id
-            WHERE t.club_id = %s 
+            JOIN clubs c ON t.club_id = c.id
+            WHERE sc.match_date = %s 
+                AND sc.location = %s
+                AND t.club_id = %s
                 AND t.league_id = %s
                 AND t.id != %s
-                AND sc.match_date = %s
                 AND t.is_active = TRUE
             ORDER BY s.display_name
         """
         
-        other_teams = execute_query(other_teams_query, [club_id, league_id, team_id, match_date])
+        other_teams = execute_query(home_matches_query, [match_date, club_name, club_id, league_id, team_id])
         
         if other_teams:
             series_names = [team["series_name"] for team in other_teams]
-            print(f"[DEBUG] get_other_home_teams_at_club_on_date: Found {len(series_names)} other teams with home matches: {series_names}")
+            print(f"[DEBUG] get_other_home_teams_at_club_on_date: Found {len(series_names)} other teams playing at home at {club_name}: {series_names}")
             return series_names
         else:
-            print(f"[DEBUG] get_other_home_teams_at_club_on_date: No other teams found with home matches on {match_date}")
+            print(f"[DEBUG] get_other_home_teams_at_club_on_date: No other teams found playing at home at {club_name} on {match_date}")
             return []
             
     except Exception as e:
