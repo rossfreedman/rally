@@ -22,13 +22,6 @@
 
         <!-- Filter Section -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-            <div class="px-6 py-4 border-b border-gray-50">
-                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-                    <i class="fas fa-filter text-blue-500 mr-2"></i>
-                    Filter Players
-                </h2>
-            </div>
-            
             <div class="p-6 space-y-4">
     
                 <!-- Name Filters (First) -->
@@ -105,8 +98,8 @@
 
                 <!-- Filter Buttons -->
                 <div class="flex gap-3 pt-2">
-                    <button id="applyFilters" class="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200 font-medium">
-                        <i class="fas fa-search mr-2"></i>Apply Filters
+                    <button id="applyFilters" class="flex-1 px-4 py-3 text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors duration-200 font-medium" style="background-color: #085454;">
+                        <i class="fas fa-search mr-2"></i>Search Players
                     </button>
                     <button id="resetFilters" class="px-4 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors duration-200 font-medium">
                         <i class="fas fa-undo-alt mr-2"></i>Reset
@@ -264,6 +257,11 @@
 /* Custom styles for modern mobile design */
 .min-h-screen {
     min-height: 100vh;
+}
+
+/* Custom button styling */
+#applyFilters:hover {
+    background-color: #064040 !important;
 }
 
 /* Grid responsive */

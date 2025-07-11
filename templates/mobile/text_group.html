@@ -1,0 +1,318 @@
+{% extends "mobile/admin_base.html" %}
+
+{% block title %}Text Group - Rally{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="px-4 py-3">
+            <div class="flex items-center">
+                <a href="/mobile/pickup-games" class="text-gray-600 hover:text-gray-800 transition-colors">
+                    <i class="fas fa-arrow-left text-xl"></i>
+                </a>
+                <h1 class="text-xl font-bold text-gray-900 ml-3">Text Group</h1>
+            </div>
+        </div>
+    </div>
+
+    {% if error %}
+    <!-- Error State -->
+    <div class="px-4 py-8">
+        <div class="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+            <div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i class="fas fa-exclamation-triangle text-red-600 text-2xl"></i>
+            </div>
+            <h3 class="text-lg font-semibold text-red-800 mb-2">Error Loading Group</h3>
+            <p class="text-red-600">{{ error }}</p>
+            <a href="/mobile/pickup-games" class="inline-block mt-4 bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-colors">
+                <i class="fas fa-arrow-left mr-2"></i>Back to Pickup Games
+            </a>
+        </div>
+    </div>
+    {% elif group %}
+    <!-- Main Content -->
+    <div class="px-4 py-4">
+        <!-- Group Info -->
+        <div class="bg-white rounded-lg shadow-sm border p-6 mb-6">
+            <div class="flex items-center mb-4">
+                <div class="w-12 h-12 rounded-full flex items-center justify-center mr-4" style="background-color: #085454 !important;">
+                    <i class="fas fa-users text-white text-xl"></i>
+                </div>
+                <div>
+                    <h2 class="text-xl font-semibold text-gray-900">{{ group.name }}</h2>
+                    <p class="text-sm text-gray-600">{{ group.member_count }} member{{ 's' if group.member_count != 1 else '' }}</p>
+                </div>
+            </div>
+            
+            {% if group.description %}
+            <p class="text-gray-700 mb-4">{{ group.description }}</p>
+            {% endif %}
+            
+            <div class="text-sm text-gray-500">
+                Created {{ group.created_at.strftime('%B %d, %Y') if group.created_at else 'Unknown' }}
+            </div>
+        </div>
+
+        <!-- Recipients -->
+        <div class="bg-white rounded-lg shadow-sm border p-6 mb-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                <i class="fas fa-users mr-2" style="color: #085454 !important;"></i>
+                Recipients
+            </h3>
+            
+            <div class="space-y-3">
+                {% for member in group.members %}
+                <div class="flex items-center justify-between bg-gray-50 p-3 rounded-lg">
+                    <div class="flex items-center">
+                        <div class="w-10 h-10 rounded-full flex items-center justify-center mr-3" style="background-color: #085454 !important;">
+                            <i class="fas fa-user text-white"></i>
+                        </div>
+                        <div>
+                            <div class="font-medium text-gray-900">{{ member.first_name }} {{ member.last_name }}</div>
+                            {% if member.phone_number %}
+                            <div class="text-sm text-gray-600">{{ member.phone_number }}</div>
+                            {% else %}
+                            <div class="text-sm text-orange-600">
+                                <i class="fas fa-exclamation-triangle mr-1"></i>No phone number
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    {% if member.phone_number %}
+                    <div class="text-green-600">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    {% else %}
+                    <div class="text-orange-500">
+                        <i class="fas fa-exclamation-circle"></i>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            
+            {% set members_with_phones = group.members | selectattr("phone_number") | list %}
+            
+            <div class="mt-4 p-3 bg-blue-50 rounded-lg">
+                <div class="text-sm text-blue-800">
+                    <i class="fas fa-info-circle mr-2"></i>
+                    <strong>{{ members_with_phones | length }}</strong> of <strong>{{ group.member_count }}</strong> members will receive the text message
+                    {% if members_with_phones | length < group.member_count %}
+                    <br><span class="text-orange-600 font-medium">{{ group.member_count - (members_with_phones | length) }} member{{ 's' if (group.member_count - (members_with_phones | length)) != 1 else '' }} need to add phone numbers in Profile Settings</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Message Composition -->
+        <div class="bg-white rounded-lg shadow-sm border p-6 mb-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                <i class="fas fa-edit mr-2" style="color: #085454 !important;"></i>
+                Compose Message
+            </h3>
+            
+            <form id="textGroupForm">
+                <div class="mb-4">
+                    <label for="messageText" class="block text-sm font-medium text-gray-700 mb-2">Message</label>
+                    <textarea 
+                        id="messageText" 
+                        name="message" 
+                        rows="4" 
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                        placeholder="Type your message to the group..."
+                        maxlength="800"
+                        required></textarea>
+                    
+                    <!-- Character Count -->
+                    <div class="flex justify-between items-center mt-2">
+                        <div class="text-xs text-gray-500">
+                            Messages over 160 characters may be split into multiple texts
+                        </div>
+                        <div class="text-sm font-medium" id="charCount">
+                            <span id="charCountNumber">0</span>/800
+                        </div>
+                    </div>
+                </div>
+
+                {% if members_with_phones | length > 0 %}
+                <button 
+                    type="submit" 
+                    id="sendButton"
+                    class="w-full bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-semibold text-lg transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed">
+                    <i class="fas fa-paper-plane mr-2"></i>
+                    Send Message to {{ members_with_phones | length }} Member{{ 's' if members_with_phones | length != 1 else '' }}
+                </button>
+                {% else %}
+                <div class="text-center p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                    <i class="fas fa-exclamation-triangle text-orange-600 text-2xl mb-2"></i>
+                    <h4 class="font-semibold text-orange-800 mb-1">Cannot Send Messages</h4>
+                    <p class="text-sm text-orange-700">No group members have phone numbers set up. Members need to add phone numbers in their Profile Settings.</p>
+                </div>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Success Modal -->
+    <div id="successModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-xl max-w-md w-full shadow-xl">
+            <div class="p-6 text-center">
+                <div class="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-check text-green-600 text-2xl"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-2">Message Sent!</h3>
+                <p id="successMessage" class="text-gray-600 mb-6"></p>
+                <button id="closeSuccessModal" class="w-full bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
+                    <i class="fas fa-arrow-left mr-2"></i>Back to Pickup Games
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading Modal -->
+    <div id="loadingModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-xl max-w-sm w-full shadow-xl">
+            <div class="p-6 text-center">
+                <div class="w-16 h-16 mx-auto mb-4">
+                    <div class="loading loading-spinner loading-lg text-blue-500"></div>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900 mb-2">Sending Messages...</h3>
+                <p class="text-gray-600">Please wait while we send your message to the group.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const messageText = document.getElementById('messageText');
+    const charCountNumber = document.getElementById('charCountNumber');
+    const charCount = document.getElementById('charCount');
+    const sendButton = document.getElementById('sendButton');
+    const textGroupForm = document.getElementById('textGroupForm');
+    const successModal = document.getElementById('successModal');
+    const loadingModal = document.getElementById('loadingModal');
+    const closeSuccessModal = document.getElementById('closeSuccessModal');
+    
+    // Character count functionality
+    if (messageText && charCountNumber) {
+        messageText.addEventListener('input', function() {
+            const length = this.value.length;
+            charCountNumber.textContent = length;
+            
+            // Color coding for character count
+            if (length > 800) {
+                charCount.className = 'text-sm font-medium text-red-600';
+            } else if (length > 700) {
+                charCount.className = 'text-sm font-medium text-orange-600';
+            } else {
+                charCount.className = 'text-sm font-medium text-gray-600';
+            }
+        });
+    }
+    
+    // Form submission
+    if (textGroupForm) {
+        textGroupForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const message = messageText.value.trim();
+            if (!message) {
+                showError('Please enter a message');
+                return;
+            }
+            
+            if (message.length > 800) {
+                showError('Message is too long. Please keep it under 800 characters.');
+                return;
+            }
+            
+            try {
+                // Show loading modal
+                loadingModal.classList.remove('hidden');
+                
+                const response = await fetch('/api/groups/send-message', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        group_id: {{ group.id if group else 'null' }},
+                        message: message,
+                        subject: 'Group Message'
+                    })
+                });
+                
+                const result = await response.json();
+                
+                // Hide loading modal
+                loadingModal.classList.add('hidden');
+                
+                if (response.ok && result.success) {
+                    // Show success modal
+                    const details = result.details || {};
+                    const successMessage = `Successfully sent message to ${details.successful_sends || 0} member${(details.successful_sends || 0) === 1 ? '' : 's'}!`;
+                    document.getElementById('successMessage').textContent = successMessage;
+                    successModal.classList.remove('hidden');
+                    
+                    // Clear the form
+                    messageText.value = '';
+                    charCountNumber.textContent = '0';
+                    charCount.className = 'text-sm font-medium text-gray-600';
+                } else {
+                    showError(result.error || 'Failed to send message');
+                }
+            } catch (error) {
+                console.error('Error sending message:', error);
+                loadingModal.classList.add('hidden');
+                showError('Network error. Please try again.');
+            }
+        });
+    }
+    
+    // Close success modal
+    if (closeSuccessModal) {
+        closeSuccessModal.addEventListener('click', function() {
+            window.location.href = '/mobile/pickup-games';
+        });
+    }
+    
+    // Close success modal on backdrop click
+    if (successModal) {
+        successModal.addEventListener('click', function(e) {
+            if (e.target === successModal) {
+                window.location.href = '/mobile/pickup-games';
+            }
+        });
+    }
+    
+    // Show error message
+    function showError(message) {
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'fixed top-4 left-4 right-4 bg-red-500 text-white p-4 rounded-lg shadow-lg z-50 transform transition-all duration-300';
+        errorDiv.style.zIndex = '1000';
+        errorDiv.innerHTML = `
+            <div class="flex items-center gap-2">
+                <i class="fas fa-exclamation-triangle"></i>
+                <span class="font-medium">${message}</span>
+                <button onclick="this.parentNode.parentNode.remove()" class="ml-auto">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `;
+        
+        document.body.appendChild(errorDiv);
+        
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            if (errorDiv.parentNode) {
+                errorDiv.parentNode.removeChild(errorDiv);
+            }
+        }, 5000);
+    }
+});
+</script>
+{% endblock %} 
