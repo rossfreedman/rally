@@ -1739,20 +1739,41 @@ def update_settings():
                    f"settings_changed={settings_changed}")
 
         # Update basic user data first
-        execute_query("""
-            UPDATE users 
-            SET first_name = %s, last_name = %s, email = %s,
-                ad_deuce_preference = %s, dominant_hand = %s, phone_number = %s
-            WHERE email = %s
-        """, [
+        update_fields = []
+        update_values = []
+        
+        # Standard fields
+        update_fields.extend([
+            "first_name = %s", "last_name = %s", "email = %s",
+            "ad_deuce_preference = %s", "dominant_hand = %s", "phone_number = %s"
+        ])
+        update_values.extend([
             data.get("firstName"),
             data.get("lastName"), 
             data.get("email"),
             data.get("adDeuce", ""),
             data.get("dominantHand", ""),
-            data.get("phoneNumber", ""),
-            user_email
+            data.get("phoneNumber", "")
         ])
+        
+        # Handle password update if provided
+        current_password = data.get("currentPassword", "").strip()
+        if current_password:
+            from werkzeug.security import generate_password_hash
+            password_hash = generate_password_hash(current_password, method='pbkdf2:sha256')
+            update_fields.append("password_hash = %s")
+            update_values.append(password_hash)
+            logger.info(f"Password update requested for user {user_email}")
+        
+        # Build and execute the update query
+        update_query = f"""
+            UPDATE users 
+            SET {', '.join(update_fields)}
+            WHERE email = %s
+        """
+        update_values.append(user_email)
+        
+        execute_query(update_query, update_values)
 
         # Handle league switching if league changed
         if new_league_id and new_league_id != current_league_id:
@@ -1934,7 +1955,8 @@ def update_settings():
                     "last_name": data.get("lastName"),
                     "phone_updated": bool(data.get("phoneNumber")),
                     "dominant_hand": data.get("dominantHand", ""),
-                    "ad_deuce_preference": data.get("adDeuce", "")
+                    "ad_deuce_preference": data.get("adDeuce", ""),
+                    "password_changed": bool(current_password)
                 }
             }
             
@@ -1945,8 +1967,10 @@ def update_settings():
                 details=settings_update_details
             )
             
-            # Add player lookup status to response
+            # Add player lookup status and password update to response
             success_message = "Settings updated successfully"
+            if current_password:
+                success_message += " and password changed"
             if player_lookup_success:
                 success_message += f" and player ID found: {fresh_session_data.get('tenniscores_player_id', 'Unknown')}"
             elif should_perform_player_lookup:
