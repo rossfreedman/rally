@@ -24,7 +24,7 @@
                 <i class="fas fa-globe mr-2"></i>Public Games
             </button>
             <button id="privateGamesTab" class="flex-1 px-4 py-3 text-sm font-medium text-center border-b-2 border-transparent text-gray-500 hover:text-gray-700">
-                <i class="fas fa-users mr-2"></i>My Peeps
+                <i class="fas fa-users mr-2"></i>Private Groups
             </button>
         </div>
     </div>
@@ -117,7 +117,7 @@
                 <div class="px-6 py-4 border-b border-gray-50">
                     <h2 class="text-lg font-semibold text-gray-900 flex items-center">
                         <i class="fas fa-users mr-2" style="color: #085454 !important;"></i>
-                        My Peeps
+                        My Private Groups
                     </h2>
                     <p class="text-sm text-gray-600 mt-2">Invite-only games and groups for organizing with your peeps.</p>
                 </div>
@@ -1821,8 +1821,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 
                 try {
-                    // Use the correct API endpoint with GET method
-                    const response = await fetch(`/api/groups/search-players?q=${encodeURIComponent(query)}`);
+                    // Get user's league_id from session data to filter results
+                    const userLeagueId = {{ session_data.user.league_id if session_data and session_data.user and session_data.user.league_id else 'null' }};
+                    
+                    // Build URL with league filter
+                    let searchUrl = `/api/groups/search-players?q=${encodeURIComponent(query)}`;
+                    if (userLeagueId) {
+                        searchUrl += `&league_id=${userLeagueId}`;
+                    }
+                    
+                    const response = await fetch(searchUrl);
                     
                     const result = await response.json();
                     
