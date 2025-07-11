@@ -437,8 +437,16 @@ document.addEventListener('DOMContentLoaded', function() {
         publicTab.addEventListener('click', () => switchTab('public'));
         privateTab.addEventListener('click', () => switchTab('private'));
         
-        // Initialize with public tab active
-        switchTab('public');
+        // Check URL parameters to determine which tab to activate
+        const urlParams = new URLSearchParams(window.location.search);
+        const tabParam = urlParams.get('tab');
+        
+        // Initialize with the requested tab or default to public
+        if (tabParam === 'private') {
+            switchTab('private');
+        } else {
+            switchTab('public');
+        }
     }
     
     // Switch between tabs
@@ -1265,7 +1273,8 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (response.ok && result.success) {
                 showSuccess(`Group "${name}" created successfully!`);
-                // Reload private games to show the new group
+                // Switch to private tab and reload private games to show the new group
+                switchTab('private');
                 setTimeout(() => loadPrivateGames(), 1000);
             } else {
                 showError(result.error || 'Failed to create group');

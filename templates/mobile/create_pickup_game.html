@@ -896,7 +896,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Redirect to pickup games page after 2 seconds
                 setTimeout(() => {
                     console.log('🚀 CREATE GAME: Redirecting to pickup games page');
-                    window.location.href = '/mobile/pickup-games';
+                    if (isPrivateMode) {
+                        // Redirect to pickup games with private tab activated for private groups
+                        window.location.href = '/mobile/pickup-games?tab=private';
+                    } else {
+                        // Regular redirect for public games
+                        window.location.href = '/mobile/pickup-games';
+                    }
                 }, 2000);
                 
             } else {
