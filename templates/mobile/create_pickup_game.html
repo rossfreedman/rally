@@ -27,7 +27,7 @@
                     <i id="formIcon" class="fas fa-plus text-blue-500 mr-2"></i>
                     <span id="formTitleText">Create a New Pickup Game</span>
                 </h2>
-                <p class="text-sm text-gray-600 mt-2">Set a date and time for a pickup game and choose your criteria for the types of players you wish to include. Players will be notified by Rally via text.</p>
+                <p id="formDescription" class="text-sm text-gray-600 mt-2">Set a date and time for a pickup game and choose your criteria for the types of players you wish to include. Players will be notified by Rally via text.</p>
             </div>
             
             <div class="p-6 space-y-4">
@@ -69,7 +69,7 @@
                 </div>
 
                 <!-- PTI Range Filter -->
-                <div>
+                <div id="ptiRangeSection">
                     <label class="block text-sm font-medium text-gray-700 mb-3">PTI Range</label>
                     <div class="bg-gray-50 rounded-lg p-4 space-y-4">
                         <div>
@@ -91,7 +91,7 @@
                 </div>
 
                 <!-- Series Filter -->
-                <div>
+                <div id="seriesFilterSection">
                     <label for="seriesMaxFilter" class="block text-sm font-medium text-gray-700 mb-2">Only include players below Series #:</label>
                     <select id="seriesMaxFilter" class="w-full p-3 border border-gray-300 rounded-lg bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                         <option value="">All Series</option>
@@ -99,7 +99,7 @@
                 </div>
 
                 <!-- Club Filter Checkbox -->
-                <div>
+                <div id="clubFilterSection">
                     <label class="flex items-center cursor-pointer">
                         <input type="checkbox" id="clubOnlyFilter" checked 
                                class="w-5 h-5 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 focus:ring-2">
@@ -269,6 +269,11 @@ input.border-red-500:focus {
 input.border-green-500:focus {
     box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
 }
+
+/* Hide sections for private groups */
+.hidden {
+    display: none !important;
+}
 </style>
 
 <script>
@@ -278,11 +283,13 @@ document.addEventListener('DOMContentLoaded', function() {
     let validationTimeout = null;
     let editingGameId = null;
     let isEditMode = false;
+    let isPrivateMode = false;
     
-    // Check if we're in edit mode
+    // Check URL parameters
     const urlParams = new URLSearchParams(window.location.search);
     editingGameId = urlParams.get('edit');
     isEditMode = editingGameId !== null;
+    isPrivateMode = urlParams.get('type') === 'private';
     
     // UI Elements
     const descriptionField = document.getElementById('descriptionField');
@@ -307,6 +314,84 @@ document.addEventListener('DOMContentLoaded', function() {
     const playersError = document.getElementById('playersError');
     const descriptionLength = document.getElementById('descriptionLength');
     
+    // Initialize mode-specific UI after elements are defined
+    if (isPrivateMode) {
+        initializePrivateMode();
+    } else {
+        initializePublicMode();
+    }
+    
+    // Function to initialize private mode UI
+    function initializePrivateMode() {
+        console.log('🔥 Initializing private mode UI');
+        
+        // Update page title and subtitle
+        document.getElementById('pageTitle').textContent = 'Create a New Private Group';
+        document.getElementById('pageSubtitle').textContent = 'Create a private group for pickup games to communicate pickup games with your "regulars."';
+        
+        // Update label and placeholder text for private groups
+        const descriptionLabel = document.querySelector('label[for="descriptionField"]');
+        if (descriptionLabel) {
+            descriptionLabel.textContent = 'Group Name *';
+        }
+        if (descriptionField) {
+            descriptionField.placeholder = 'My Peeps';
+        }
+        
+        // Hide the form title section for private groups
+        const formTitleSection = document.querySelector('.px-6.py-4.border-b.border-gray-50');
+        if (formTitleSection) {
+            formTitleSection.style.display = 'none';
+        }
+        
+        // Hide date, time, and players requested fields for private groups
+        const dateTimeSection = document.querySelector('.grid.grid-cols-2.gap-3');
+        if (dateTimeSection) {
+            dateTimeSection.style.display = 'none';
+        }
+        
+        const playersSection = document.querySelector('#playersRequestedField').closest('div');
+        if (playersSection) {
+            playersSection.style.display = 'none';
+        }
+        
+        // Hide sections that shouldn't be shown for private groups
+        document.getElementById('ptiRangeSection').classList.add('hidden');
+        document.getElementById('seriesFilterSection').classList.add('hidden');
+        document.getElementById('clubFilterSection').classList.add('hidden');
+        
+        // Change button color to #085454 for private groups
+        const createButton = document.getElementById('createGame');
+        createButton.classList.remove('bg-blue-600', 'hover:bg-blue-700', 'focus:ring-blue-500');
+        createButton.classList.remove('bg-purple-600', 'hover:bg-purple-700', 'focus:ring-purple-500');
+        createButton.style.backgroundColor = '#085454';
+        createButton.style.borderColor = '#085454';
+        
+        // Update hover state
+        createButton.onmouseover = function() {
+            this.style.backgroundColor = '#073d3d';
+        };
+        createButton.onmouseout = function() {
+            this.style.backgroundColor = '#085454';
+        };
+        
+        // Update button text and icon
+        document.getElementById('createButtonIcon').className = 'fas fa-users mr-2';
+        document.getElementById('createButtonText').textContent = 'Create new Private Group';
+        
+        console.log('✅ Private mode UI initialized');
+    }
+    
+    // Function to initialize public mode UI (pickup games)
+    function initializePublicMode() {
+        // Set appropriate label and placeholder for pickup games
+        const descriptionLabel = document.querySelector('label[for="descriptionField"]');
+        if (descriptionLabel) {
+            descriptionLabel.textContent = 'Description *';
+        }
+        // Placeholder is already set in HTML for pickup games
+    }
+    
     // Field validation functions
     function showFieldError(field, errorElement, message) {
         field.classList.remove('border-gray-300', 'focus:border-blue-500');
@@ -330,17 +415,18 @@ document.addEventListener('DOMContentLoaded', function() {
     function validateDescription() {
         const value = descriptionField.value.trim();
         const length = value.length;
+        const fieldName = isPrivateMode ? 'Group name' : 'Description';
         
         descriptionLength.textContent = length;
         
         if (length === 0) {
-            showFieldError(descriptionField, descriptionError, 'Description is required');
+            showFieldError(descriptionField, descriptionError, `${fieldName} is required`);
             return false;
         } else if (length < 5) {
-            showFieldError(descriptionField, descriptionError, 'Description must be at least 5 characters long');
+            showFieldError(descriptionField, descriptionError, `${fieldName} must be at least 5 characters long`);
             return false;
         } else if (length > 200) {
-            showFieldError(descriptionField, descriptionError, 'Description must be 200 characters or less');
+            showFieldError(descriptionField, descriptionError, `${fieldName} must be 200 characters or less`);
             return false;
         } else {
             hideFieldError(descriptionField, descriptionError);
@@ -482,7 +568,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Initialize PTI sliders
     function initializePTISliders() {
-        if (ptiMinSlider && ptiMaxSlider) {
+        if (ptiMinSlider && ptiMaxSlider && !isPrivateMode) {
             ptiMinSlider.addEventListener('input', function() {
                 const minVal = parseFloat(this.value);
                 const maxVal = parseFloat(ptiMaxSlider.value);
@@ -510,7 +596,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function updatePTIRangeDisplay() {
-        if (ptiRangeDisplay) {
+        if (ptiRangeDisplay && !isPrivateMode) {
             const min = parseFloat(ptiMinSlider.value).toFixed(1);
             const max = parseFloat(ptiMaxSlider.value).toFixed(1);
             ptiRangeDisplay.textContent = `${min} - ${max}`;
@@ -519,6 +605,8 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Load series options from API
     async function loadSeriesOptions() {
+        if (isPrivateMode) return; // Skip for private mode
+        
         try {
             const response = await fetch('/api/series-options');
             if (response.ok) {
@@ -556,19 +644,22 @@ document.addEventListener('DOMContentLoaded', function() {
                 dateFilter.value = gameData.game_date || '';
                 timeFilter.value = gameData.game_time || '';
                 playersRequestedField.value = gameData.players_requested || 8;
-                ptiMinSlider.value = gameData.pti_low || -30;
-                ptiMaxSlider.value = gameData.pti_high || 100;
-                clubOnlyFilter.checked = gameData.club_only === true;
                 
-                // Set series dropdown if available
-                if (gameData.series_high) {
-                    seriesMaxFilter.value = gameData.series_high;
+                if (!isPrivateMode) {
+                    ptiMinSlider.value = gameData.pti_low || -30;
+                    ptiMaxSlider.value = gameData.pti_high || 100;
+                    clubOnlyFilter.checked = gameData.club_only === true;
+                    
+                    // Set series dropdown if available
+                    if (gameData.series_high) {
+                        seriesMaxFilter.value = gameData.series_high;
+                    }
+                    
+                    // Update PTI display
+                    ptiMinValue.textContent = parseFloat(ptiMinSlider.value).toFixed(1);
+                    ptiMaxValue.textContent = parseFloat(ptiMaxSlider.value).toFixed(1);
+                    updatePTIRangeDisplay();
                 }
-                
-                // Update PTI display
-                ptiMinValue.textContent = parseFloat(ptiMinSlider.value).toFixed(1);
-                ptiMaxValue.textContent = parseFloat(ptiMaxSlider.value).toFixed(1);
-                updatePTIRangeDisplay();
                 
                 // Update character counter
                 descriptionLength.textContent = descriptionField.value.length;
@@ -593,12 +684,13 @@ document.addEventListener('DOMContentLoaded', function() {
     function updateUIForEditMode() {
         if (isEditMode) {
             // Update page title and subtitle
-            document.getElementById('pageTitle').textContent = 'Edit Pickup Game';
-            document.getElementById('pageSubtitle').textContent = 'Modify your pickup game details and criteria';
+            const gameType = isPrivateMode ? 'Private Group' : 'Pickup Game';
+            document.getElementById('pageTitle').textContent = `Edit ${gameType}`;
+            document.getElementById('pageSubtitle').textContent = `Modify your ${gameType.toLowerCase()} details and criteria`;
             
             // Update form title and icon
             document.getElementById('formIcon').className = 'fas fa-edit text-blue-500 mr-2';
-            document.getElementById('formTitleText').textContent = 'Edit Pickup Game';
+            document.getElementById('formTitleText').textContent = `Edit ${gameType}`;
             
             // Update button text and icon
             document.getElementById('createButtonIcon').className = 'fas fa-save mr-2';
@@ -612,12 +704,16 @@ document.addEventListener('DOMContentLoaded', function() {
     function validateFormComprehensive() {
         let isValid = true;
         
-        // Validate all fields
+        // Always validate description
         if (!validateDescription()) isValid = false;
-        if (!validateDate()) isValid = false;
-        if (!validateTime()) isValid = false;
-        if (!validatePlayers()) isValid = false;
-        if (!validateDateTime()) isValid = false;
+        
+        // Skip date/time/players validation for private groups since fields are hidden
+        if (!isPrivateMode) {
+            if (!validateDate()) isValid = false;
+            if (!validateTime()) isValid = false;
+            if (!validatePlayers()) isValid = false;
+            if (!validateDateTime()) isValid = false;
+        }
         
         return isValid;
     }
@@ -682,108 +778,22 @@ document.addEventListener('DOMContentLoaded', function() {
         if (createGameBtn) {
             if (isLoading) {
                 createGameBtn.disabled = true;
-                const loadingText = isEditMode ? 'Updating Game...' : 'Creating Game...';
+                const loadingText = isEditMode ? 'Updating...' : (isPrivateMode ? 'Creating Group...' : 'Creating Game...');
                 createGameBtn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i>${loadingText}`;
                 createGameBtn.classList.add('cursor-not-allowed', 'opacity-75');
             } else {
                 createGameBtn.disabled = false;
-                const buttonIcon = isEditMode ? 'fas fa-save' : 'fas fa-plus';
-                const buttonText = isEditMode ? 'Update Pickup Game' : 'Create New Pickup Game';
+                const buttonIcon = isEditMode ? 'fas fa-save' : (isPrivateMode ? 'fas fa-users' : 'fas fa-plus');
+                const buttonText = isEditMode ? 'Save Changes' : (isPrivateMode ? 'Create new Private Group' : 'Create New Pickup Game');
                 createGameBtn.innerHTML = `<i class="${buttonIcon} mr-2"></i>${buttonText}`;
                 createGameBtn.classList.remove('cursor-not-allowed', 'opacity-75');
+                
+                // Restore correct background color for private groups
+                if (isPrivateMode) {
+                    createGameBtn.style.backgroundColor = '#085454';
+                    createGameBtn.style.borderColor = '#085454';
+                }
             }
-        }
-    }
-    
-    // Update UI elements for edit mode
-    function updateUIForEditMode() {
-        // Update page title
-        const pageTitle = document.getElementById('pageTitle');
-        const pageSubtitle = document.getElementById('pageSubtitle');
-        const formIcon = document.getElementById('formIcon');
-        const formTitleText = document.getElementById('formTitleText');
-        const createButtonIcon = document.getElementById('createButtonIcon');
-        const createButtonText = document.getElementById('createButtonText');
-        
-        if (pageTitle) pageTitle.textContent = 'Edit Pickup Game';
-        if (pageSubtitle) pageSubtitle.textContent = 'Update your pickup game details and criteria';
-        if (formIcon) {
-            formIcon.className = 'fas fa-edit text-blue-500 mr-2';
-        }
-        if (formTitleText) formTitleText.textContent = 'Edit Pickup Game';
-        if (createButtonIcon) createButtonIcon.className = 'fas fa-save mr-2';
-        if (createButtonText) createButtonText.textContent = 'Update Pickup Game';
-    }
-    
-    // Load existing game data for editing
-    async function loadGameDataForEdit(gameId) {
-        try {
-            showToast('Loading game data...', 'info', 3000);
-            
-            const response = await fetch(`/api/pickup-games/${gameId}`);
-            if (!response.ok) {
-                throw new Error(`Failed to load game: ${response.status}`);
-            }
-            
-            const gameData = await response.json();
-            console.log('Loaded game data for editing:', gameData);
-            
-            // Populate form fields
-            if (descriptionField) descriptionField.value = gameData.description || '';
-            if (dateFilter) dateFilter.value = gameData.game_date || '';
-            if (timeFilter) timeFilter.value = gameData.game_time || '';
-            if (playersRequestedField) playersRequestedField.value = gameData.players_requested || 8;
-            if (clubOnlyFilter) clubOnlyFilter.checked = gameData.club_only || false;
-            
-            // Set PTI sliders
-            if (ptiMinSlider && gameData.pti_low !== undefined) {
-                ptiMinSlider.value = gameData.pti_low;
-                ptiMinValue.textContent = parseFloat(gameData.pti_low).toFixed(1);
-            }
-            if (ptiMaxSlider && gameData.pti_high !== undefined) {
-                ptiMaxSlider.value = gameData.pti_high;
-                ptiMaxValue.textContent = parseFloat(gameData.pti_high).toFixed(1);
-            }
-            updatePTIRangeDisplay();
-            
-            // Set series filter (wait for options to load first)
-            if (gameData.series_high) {
-                // Wait for series options to be loaded
-                setTimeout(() => {
-                    if (seriesMaxFilter) {
-                        seriesMaxFilter.value = gameData.series_high;
-                    }
-                }, 1000);
-            }
-            
-            // Update character counter
-            if (descriptionLength) {
-                descriptionLength.textContent = (gameData.description || '').length;
-            }
-            
-            showToast('Game data loaded successfully', 'success', 3000);
-            
-        } catch (error) {
-            console.error('Error loading game data:', error);
-            showToast('Failed to load game data. Please try again.', 'error');
-            
-            // Redirect back to games list after error
-            setTimeout(() => {
-                window.location.href = '/mobile/pickup-games';
-            }, 3000);
-        }
-    }
-    
-    // Network connectivity check
-    async function checkNetworkConnectivity() {
-        try {
-            const response = await fetch('/health', { 
-                method: 'GET',
-                timeout: 5000 
-            });
-            return response.ok;
-        } catch {
-            return false;
         }
     }
     
@@ -808,26 +818,38 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('🚀 CREATE GAME: Loading state set');
         
         try {
-            const gameData = {
-                description: descriptionField.value.trim(),
-                game_date: dateFilter.value,
-                game_time: timeFilter.value,
-                players_requested: parseInt(playersRequestedField.value),
-                pti_low: parseFloat(ptiMinSlider.value),
-                pti_high: parseFloat(ptiMaxSlider.value),
-                series_high: seriesMaxFilter.value || null,
-                club_only: clubOnlyFilter.checked
-            };
+            let gameData, url, method;
+            
+            if (isPrivateMode) {
+                // For private groups, create a group instead of a pickup game
+                gameData = {
+                    name: descriptionField.value.trim(),
+                    description: ""  // Optional, can be empty for private groups
+                };
+                url = isEditMode ? `/api/groups/${editingGameId}` : '/api/groups';
+                method = isEditMode ? 'PUT' : 'POST';
+            } else {
+                // For public games, create a pickup game
+                gameData = {
+                    description: descriptionField.value.trim(),
+                    game_date: dateFilter.value,
+                    game_time: timeFilter.value,
+                    players_requested: parseInt(playersRequestedField.value),
+                    is_private: false,
+                    pti_low: parseFloat(ptiMinSlider.value),
+                    pti_high: parseFloat(ptiMaxSlider.value),
+                    series_high: seriesMaxFilter.value || null,
+                    club_only: clubOnlyFilter.checked
+                };
+                url = isEditMode ? `/api/pickup-games/${editingGameId}` : '/api/pickup-games';
+                method = isEditMode ? 'PUT' : 'POST';
+            }
             
             console.log('🚀 CREATE GAME: Sending game data:', gameData);
             
             // Add timeout to fetch request
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
-            
-            // Determine URL and method based on edit mode
-            const url = isEditMode ? `/api/pickup-games/${editingGameId}` : '/api/pickup-games';
-            const method = isEditMode ? 'PUT' : 'POST';
             
             console.log(`🚀 CREATE GAME: Making ${method} request to ${url}...`);
             const response = await fetch(url, {
@@ -856,12 +878,19 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             if (response.ok && result.success) {
-                console.log('🚀 CREATE GAME: Success! Game ID:', result.pickup_game_id || editingGameId);
+                console.log('🚀 CREATE GAME: Success!');
+                
+                // Log the ID from the appropriate field (groups vs pickup games)
+                const createdId = result.group_id || result.pickup_game_id || editingGameId;
+                if (createdId) {
+                    console.log('🚀 CREATE GAME: Created ID:', createdId);
+                }
                 
                 // Show success message with redirect animation
+                const successType = isPrivateMode ? 'Private group' : 'Pickup game';
                 const successMessage = isEditMode ? 
-                    'Pickup game updated successfully! Redirecting...' : 
-                    'Pickup game created successfully! Redirecting...';
+                    `${successType} updated successfully! Redirecting...` : 
+                    `${successType} created successfully! Redirecting...`;
                 showToast(successMessage, 'success', 2000);
                 
                 // Redirect to pickup games page after 2 seconds
@@ -874,7 +903,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.log('🚀 CREATE GAME: Request failed. Response OK:', response.ok, 'Result success:', result.success);
                 
                 // Handle specific error cases
-                let errorMessage = 'Failed to create pickup game';
+                const gameType = isPrivateMode ? 'private group' : 'pickup game';
+                let errorMessage = `Failed to create ${gameType}`;
                 
                 if (result && result.error) {
                     errorMessage = result.error;
@@ -944,18 +974,21 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         if (timeFilter) timeFilter.value = '18:00';
         if (playersRequestedField) playersRequestedField.value = 8;
-        if (seriesMaxFilter) seriesMaxFilter.value = '';
-        if (clubOnlyFilter) clubOnlyFilter.checked = true;
         
-        if (ptiMinSlider) {
-            ptiMinSlider.value = -30;
-            ptiMinValue.textContent = '-30.0';
+        if (!isPrivateMode) {
+            if (seriesMaxFilter) seriesMaxFilter.value = '';
+            if (clubOnlyFilter) clubOnlyFilter.checked = true;
+            
+            if (ptiMinSlider) {
+                ptiMinSlider.value = -30;
+                ptiMinValue.textContent = '-30.0';
+            }
+            if (ptiMaxSlider) {
+                ptiMaxSlider.value = 100;
+                ptiMaxValue.textContent = '100.0';
+            }
+            updatePTIRangeDisplay();
         }
-        if (ptiMaxSlider) {
-            ptiMaxSlider.value = 100;
-            ptiMaxValue.textContent = '100.0';
-        }
-        updatePTIRangeDisplay();
         
         // Clear all validation states
         clearValidationStates();
@@ -974,42 +1007,10 @@ document.addEventListener('DOMContentLoaded', function() {
         createGameBtn.addEventListener('click', createGame);
     }
     
-    // Test API connectivity
-    async function testAPIConnectivity() {
-        try {
-            console.log('🔧 Testing API connectivity...');
-            const response = await fetch('/api/pickup-games', {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                }
-            });
-            console.log('🔧 API test response:', response.status, response.ok);
-            if (response.ok) {
-                console.log('✅ API is reachable');
-                return true;
-            } else {
-                console.log('❌ API returned error status:', response.status);
-                return false;
-            }
-        } catch (error) {
-            console.error('❌ API connectivity test failed:', error);
-            return false;
-        }
-    }
-    
-    // Add global test functions for debugging
-    window.testAPI = testAPIConnectivity;
-    window.testCreateGame = createGame;
-    
-    console.log('🔧 Debug functions available:');
-    console.log('   testAPI() - Test API connectivity');
-    console.log('   testCreateGame() - Test create game function');
-    
     // Update UI for edit mode if needed
     if (isEditMode) {
         updateUIForEditMode();
-        loadGameDataForEdit(editingGameId);
+        loadGameForEdit(editingGameId);
     }
     
     // Initialize everything
@@ -1018,8 +1019,7 @@ document.addEventListener('DOMContentLoaded', function() {
     loadSeriesOptions();
     setupRealTimeValidation();
     
-    // Test API connectivity on page load
-    setTimeout(testAPIConnectivity, 1000);
+    console.log('🎯 Page initialized with mode:', { isPrivateMode, isEditMode });
 });
 </script>
 
