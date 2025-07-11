@@ -251,7 +251,10 @@
         <!-- Modal Footer -->
         <div class="px-6 py-4 border-t border-gray-100 bg-gray-50">
             <div class="text-center">
-                <p class="text-sm text-gray-600">Select any item above to add this player</p>
+                <a href="/mobile/pickup-games" class="inline-flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 font-semibold">
+                    <i class="fas fa-calendar-alt"></i>
+                    View Pickup Games
+                </a>
             </div>
         </div>
     </div>
@@ -1091,7 +1094,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 buttonElement.innerHTML = '<i class="fas fa-check mr-1"></i>Added!';
                 buttonElement.style.backgroundColor = '#16a34a';
                 
-                showGroupSuccessMessage(`${playerName} has been added to "${gameName}"!`);
+                showGroupSuccessMessage(`${playerName} has been added to<br>"${gameName}"!`);
                 
                 // Reset button after 2 seconds
                 setTimeout(() => {
