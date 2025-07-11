@@ -108,7 +108,7 @@
             <div class="mb-6" style="margin-top: -15px;">
                 <a href="/mobile/create-pickup-game?type=private" class="w-full text-white px-6 py-3 rounded-lg text-sm font-medium transition-colors duration-200 flex items-center justify-center gap-2 shadow-sm" style="background-color: #085454 !important;">
                     <i class="fas fa-plus"></i>
-                    <span>Create Private Game</span>
+                    <span>Create Private Group</span>
                 </a>
             </div>
 
@@ -119,7 +119,7 @@
                         <i class="fas fa-users mr-2" style="color: #085454 !important;"></i>
                         My Peeps
                     </h2>
-                    <p class="text-sm text-gray-600 mt-2">Invite-only games and groups for organizing your regular playing partners.</p>
+                    <p class="text-sm text-gray-600 mt-2">Invite-only games and groups for organizing with your peeps.</p>
                 </div>
                 
                 <div id="privateGamesContainer" class="p-4">
@@ -136,7 +136,7 @@
                         <p class="text-gray-500 mb-4">Create your first private game or group to organize players!</p>
                         <div class="flex gap-2 justify-center">
                             <a href="/mobile/create-pickup-game?type=private" class="bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors shadow-sm">
-                                <i class="fas fa-plus mr-2"></i>Create Private Game
+                                <i class="fas fa-plus mr-2"></i>Create Private Group
                             </a>
                         </div>
                     </div>
@@ -1494,9 +1494,20 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
+        // Deduplicate players by tenniscores_player_id
+        const uniquePlayers = [];
+        const seenPlayerIds = new Set();
+        
+        for (const player of players) {
+            if (player.tenniscores_player_id && !seenPlayerIds.has(player.tenniscores_player_id)) {
+                seenPlayerIds.add(player.tenniscores_player_id);
+                uniquePlayers.push(player);
+            }
+        }
+        
         // Filter out players who are already in the group
         const existingMembers = window.currentGroupMembers || [];
-        const availablePlayers = players.filter(player => {
+        const availablePlayers = uniquePlayers.filter(player => {
             return !existingMembers.some(member => 
                 member.user_id === player.user_id || 
                 member.tenniscores_player_id === player.tenniscores_player_id
@@ -1514,31 +1525,69 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        resultsList.innerHTML = availablePlayers.map(player => `
-            <div class="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0 player-search-result" 
-                 data-player='${JSON.stringify(player)}'>
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center">
-                        <div class="w-8 h-8 rounded-full flex items-center justify-center mr-3" style="background-color: #085454 !important;">
-                            <i class="fas fa-user text-white text-sm"></i>
-                        </div>
-                        <div>
-                            <div class="text-sm font-medium text-gray-900">${player.full_name || `${player.first_name} ${player.last_name}`}</div>
-                            <div class="text-xs text-gray-500">
-                                ${player.club || 'Unknown Club'} • ${player.league || 'Unknown League'}
+        // Store players globally for the add function to access
+        window.searchResultPlayers = {};
+        
+        resultsList.innerHTML = availablePlayers.map((player, index) => {
+            // Store player data with a simple index key
+            const playerKey = `player_${index}`;
+            window.searchResultPlayers[playerKey] = player;
+            
+            // Create club/league info, hiding Unknown values
+            let locationInfo = '';
+            const club = player.club && player.club !== 'Unknown Club' ? player.club : null;
+            const league = player.league && player.league !== 'Unknown League' ? player.league : null;
+            
+            if (club && league) {
+                locationInfo = `${club} • ${league}`;
+            } else if (club) {
+                locationInfo = club;
+            } else if (league) {
+                locationInfo = league;
+            } else {
+                locationInfo = 'Platform Tennis Player';
+            }
+            
+            return `
+                <div class="p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0 player-search-result" 
+                     data-player-key="${playerKey}">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <div class="w-8 h-8 rounded-full flex items-center justify-center mr-3" style="background-color: #085454 !important;">
+                                <i class="fas fa-user text-white text-sm"></i>
+                            </div>
+                            <div>
+                                <div class="text-sm font-medium text-gray-900">${player.full_name || `${player.first_name} ${player.last_name}`}</div>
+                                <div class="text-xs text-gray-500">${locationInfo}</div>
                             </div>
                         </div>
+                        <button class="add-player-btn text-white px-3 py-1 rounded text-xs font-medium hover:opacity-80 transition-opacity" 
+                                style="background-color: #085454 !important;"
+                                data-group-id="${groupId}" data-player-key="${playerKey}">
+                            <i class="fas fa-plus mr-1"></i>Add
+                        </button>
                     </div>
-                    <button class="text-white px-3 py-1 rounded text-xs font-medium hover:opacity-80 transition-opacity" 
-                            style="background-color: #085454 !important;"
-                            onclick="addPlayerToGroup(${groupId}, ${JSON.stringify(player).replace(/"/g, '&quot;')}, this)">
-                        <i class="fas fa-plus mr-1"></i>Add
-                    </button>
                 </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
         
         resultsContainer.classList.remove('hidden');
+        
+        // Add event listeners for the add buttons
+        document.querySelectorAll('.add-player-btn').forEach(button => {
+            button.addEventListener('click', async function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const groupId = parseInt(this.dataset.groupId);
+                const playerKey = this.dataset.playerKey;
+                const player = window.searchResultPlayers[playerKey];
+                
+                if (player && groupId) {
+                    await addPlayerToGroup(groupId, player, this);
+                }
+            });
+        });
     }
     
     // Add player to group
@@ -1588,9 +1637,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     document.getElementById('memberSearchResults').classList.add('hidden');
                 }
                 
-                // Clear search inputs
-                document.getElementById('memberFirstName').value = '';
-                document.getElementById('memberLastName').value = '';
+                // Clear search input
+                document.getElementById('memberSearch').value = '';
                 
                 // Refresh the modal with updated member list after a short delay
                 setTimeout(() => {
@@ -1658,12 +1706,8 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <h4 class="text-sm font-semibold text-gray-900 mb-3">Add New Member</h4>
                                 <div class="space-y-3">
                                     <div>
-                                        <label for="memberFirstName" class="block text-sm font-medium text-gray-700 mb-1">First Name</label>
-                                        <input type="text" id="memberFirstName" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Enter first name">
-                                    </div>
-                                    <div>
-                                        <label for="memberLastName" class="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
-                                        <input type="text" id="memberLastName" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Enter last name">
+                                        <label for="memberSearch" class="block text-sm font-medium text-gray-700 mb-1">Search Player</label>
+                                        <input type="text" id="memberSearch" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Enter first name, last name, or full name">
                                     </div>
 
                                     
@@ -1742,8 +1786,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const closeBtn = document.getElementById('closeEditGroupModal');
             const closeBtnBottom = document.getElementById('closeEditGroupModalBtn');
             const textBtn = document.getElementById('textGroupFromEditModal');
-            const firstNameInput = document.getElementById('memberFirstName');
-            const lastNameInput = document.getElementById('memberLastName');
+            const searchInput = document.getElementById('memberSearch');
             
             // Type-ahead search variables
             let searchTimeout = null;
@@ -1763,42 +1806,23 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Type-ahead search function
             async function performTypeAheadSearch() {
-                const firstName = firstNameInput.value.trim();
-                const lastName = lastNameInput.value.trim();
+                const query = searchInput.value.trim();
                 
-                // Hide results if both fields are empty
-                if (!firstName && !lastName) {
+                // Hide results if field is empty
+                if (!query) {
                     document.getElementById('memberSearchResults').classList.add('hidden');
                     return;
                 }
                 
-                // Need at least 2 characters in one of the fields to search
-                if ((firstName && firstName.length < 2) && (lastName && lastName.length < 2)) {
+                // Need at least 2 characters to search
+                if (query.length < 2) {
                     document.getElementById('memberSearchResults').classList.add('hidden');
                     return;
                 }
                 
                 try {
-                    // Build search query - use either firstName, lastName, or both
-                    let query = '';
-                    if (firstName && lastName) {
-                        query = `${firstName} ${lastName}`;
-                    } else if (firstName) {
-                        query = firstName;
-                    } else if (lastName) {
-                        query = lastName;
-                    }
-                    
-                    const response = await fetch('/api/player-search', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            query: query,
-                            league_id: null  // Search across all leagues
-                        })
-                    });
+                    // Use the correct API endpoint with GET method
+                    const response = await fetch(`/api/groups/search-players?q=${encodeURIComponent(query)}`);
                     
                     const result = await response.json();
                     
@@ -1816,30 +1840,16 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             // Type-ahead event handlers with debouncing
-            firstNameInput.addEventListener('input', () => {
+            searchInput.addEventListener('input', () => {
                 clearTimeout(searchTimeout);
                 searchTimeout = setTimeout(performTypeAheadSearch, 300); // 300ms debounce
             });
             
-            lastNameInput.addEventListener('input', () => {
-                clearTimeout(searchTimeout);
-                searchTimeout = setTimeout(performTypeAheadSearch, 300); // 300ms debounce
-            });
-            
-            // Clear results when inputs lose focus (optional - keeps UI clean)
-            firstNameInput.addEventListener('blur', () => {
+            // Clear results when input loses focus (optional - keeps UI clean)
+            searchInput.addEventListener('blur', () => {
                 setTimeout(() => {
-                    // Only hide if both fields are empty
-                    if (!firstNameInput.value.trim() && !lastNameInput.value.trim()) {
-                        document.getElementById('memberSearchResults').classList.add('hidden');
-                    }
-                }, 200); // Small delay to allow for clicking on results
-            });
-            
-            lastNameInput.addEventListener('blur', () => {
-                setTimeout(() => {
-                    // Only hide if both fields are empty
-                    if (!firstNameInput.value.trim() && !lastNameInput.value.trim()) {
+                    // Only hide if field is empty
+                    if (!searchInput.value.trim()) {
                         document.getElementById('memberSearchResults').classList.add('hidden');
                     }
                 }, 200); // Small delay to allow for clicking on results
