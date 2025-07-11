@@ -4597,13 +4597,22 @@ def test_mobile_service_public():
 def get_pickup_games():
     """Get all pickup games (upcoming and past) with participant details"""
     try:
+        # Get filter type from query parameters
+        game_type = request.args.get('type', 'public')  # default to public
+        
+        # Determine is_private filter based on type
+        if game_type == 'private':
+            is_private_filter = "AND pg.is_private = true"
+        else:  # public or no type specified
+            is_private_filter = "AND pg.is_private = false"
+        
         # Get current date/time for determining upcoming vs past
         now = datetime.now()
         current_date = now.date()
         current_time = now.time()
         
         # Query for upcoming games (future date or today but future time)
-        upcoming_query = """
+        upcoming_query = f"""
             SELECT 
                 pg.id,
                 pg.description,
@@ -4616,18 +4625,20 @@ def get_pickup_games():
                 pg.series_low,
                 pg.series_high,
                 pg.club_only,
+                pg.is_private,
                 pg.creator_user_id,
                 pg.created_at,
                 COUNT(pgp.id) as actual_participants
             FROM pickup_games pg
             LEFT JOIN pickup_game_participants pgp ON pg.id = pgp.pickup_game_id
-            WHERE (pg.game_date > %s) OR (pg.game_date = %s AND pg.game_time > %s)
+            WHERE ((pg.game_date > %s) OR (pg.game_date = %s AND pg.game_time > %s))
+            {is_private_filter}
             GROUP BY pg.id
             ORDER BY pg.game_date ASC, pg.game_time ASC
         """
         
         # Query for past games
-        past_query = """
+        past_query = f"""
             SELECT 
                 pg.id,
                 pg.description,
@@ -4640,12 +4651,14 @@ def get_pickup_games():
                 pg.series_low,
                 pg.series_high,
                 pg.club_only,
+                pg.is_private,
                 pg.creator_user_id,
                 pg.created_at,
                 COUNT(pgp.id) as actual_participants
             FROM pickup_games pg
             LEFT JOIN pickup_game_participants pgp ON pg.id = pgp.pickup_game_id
-            WHERE (pg.game_date < %s) OR (pg.game_date = %s AND pg.game_time <= %s)
+            WHERE ((pg.game_date < %s) OR (pg.game_date = %s AND pg.game_time <= %s))
+            {is_private_filter}
             GROUP BY pg.id
             ORDER BY pg.game_date DESC, pg.game_time DESC
         """
@@ -4838,6 +4851,7 @@ def create_pickup_game():
         series_low = data.get("series_low")
         series_high = data.get("series_high")
         club_only = data.get("club_only", False)
+        is_private = data.get("is_private", False)
         
         # Convert series names to series IDs if provided
         series_low_id = None
@@ -4875,14 +4889,14 @@ def create_pickup_game():
         insert_query = """
             INSERT INTO pickup_games 
             (description, game_date, game_time, players_requested, pti_low, pti_high, 
-             series_low, series_high, club_only, creator_user_id)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+             series_low, series_high, club_only, is_private, creator_user_id)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             RETURNING id
         """
         
         insert_params = [
             data["description"], game_date_obj, game_time_obj, players_requested,
-            pti_low, pti_high, series_low_id, series_high_id, club_only, user_id
+            pti_low, pti_high, series_low_id, series_high_id, club_only, is_private, user_id
         ]
         
         print(f"[CREATE_PICKUP_GAME] Executing insert with params: {insert_params}")
@@ -5003,6 +5017,172 @@ def join_pickup_game(game_id):
         return jsonify({"error": "Failed to join pickup game"}), 500
 
 
+@api_bp.route("/api/pickup-games/<int:game_id>/add-player", methods=["POST"])
+@login_required
+def add_player_to_pickup_game(game_id):
+    """Add another player to a pickup game"""
+    try:
+        user = session["user"]
+        user_email = user.get("email")
+        user_id = user.get("id")
+        
+        print(f"[ADD_PLAYER_TO_PICKUP_GAME] User {user_email} attempting to add player to game {game_id}")
+        
+        # If user_id is not in session, try to get it from database
+        if not user_id and user_email:
+            user_record = execute_query_one("SELECT id FROM users WHERE email = %s", [user_email])
+            if user_record:
+                user_id = user_record["id"]
+                print(f"[ADD_PLAYER_TO_PICKUP_GAME] Retrieved user_id from database: {user_id}")
+        
+        if not user_id:
+            print(f"[ADD_PLAYER_TO_PICKUP_GAME] User ID not found for {user_email}")
+            return jsonify({"error": "User ID not found. Please log out and log back in."}), 400
+        
+        # Get the player data from request
+        data = request.get_json()
+        player_name = data.get("player_name")
+        first_name = data.get("first_name")
+        last_name = data.get("last_name")
+        
+        if not player_name or not first_name or not last_name:
+            return jsonify({"error": "Player name information is required"}), 400
+        
+        print(f"[ADD_PLAYER_TO_PICKUP_GAME] Adding player: {player_name} ({first_name} {last_name})")
+        
+        # Check if game exists and is not full
+        game_query = """
+            SELECT pg.*, COUNT(pgp.id) as current_participants
+            FROM pickup_games pg
+            LEFT JOIN pickup_game_participants pgp ON pg.id = pgp.pickup_game_id
+            WHERE pg.id = %s
+            GROUP BY pg.id
+        """
+        
+        game = execute_query_one(game_query, [game_id])
+        
+        if not game:
+            return jsonify({"error": "Pickup game not found"}), 404
+            
+        if game["current_participants"] >= game["players_requested"]:
+            return jsonify({"error": "Pickup game is full"}), 400
+        
+        # Find the player in the system by searching for their name
+        # First try to find an exact match with a user account
+        player_search_query = """
+            SELECT DISTINCT p.*, u.id as user_id, u.email
+            FROM players p
+            LEFT JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
+            LEFT JOIN users u ON upa.user_id = u.id
+            WHERE LOWER(p.first_name) = LOWER(%s) 
+            AND LOWER(p.last_name) = LOWER(%s)
+            AND p.is_active = true
+            ORDER BY u.id DESC NULLS LAST
+            LIMIT 1
+        """
+        
+        player_record = execute_query_one(player_search_query, [first_name, last_name])
+        
+        if not player_record:
+            return jsonify({"error": f"Player {player_name} not found in the system"}), 404
+        
+        target_user_id = player_record["user_id"]
+        
+        # If player doesn't have a user account, create a placeholder for them
+        if not target_user_id:
+            # Create or find placeholder user
+            placeholder_email = f"{player_record['tenniscores_player_id']}@placeholder.rally"
+            
+            # Check if placeholder already exists
+            existing_placeholder = execute_query_one(
+                "SELECT id FROM users WHERE email = %s", [placeholder_email]
+            )
+            
+            if existing_placeholder:
+                target_user_id = existing_placeholder["id"]
+                print(f"[ADD_PLAYER_TO_PICKUP_GAME] Using existing placeholder user {target_user_id}")
+            else:
+                # Create new placeholder user
+                create_user_query = """
+                    INSERT INTO users (first_name, last_name, email, password_hash)
+                    VALUES (%s, %s, %s, %s)
+                    RETURNING id
+                """
+                
+                new_user_result = execute_query_one(create_user_query, [
+                    player_record["first_name"],
+                    player_record["last_name"],
+                    placeholder_email,
+                    "placeholder"
+                ])
+                
+                if new_user_result:
+                    target_user_id = new_user_result["id"]
+                    print(f"[ADD_PLAYER_TO_PICKUP_GAME] Created placeholder user {target_user_id}")
+                    
+                    # Create the player association
+                    create_association_query = """
+                        INSERT INTO user_player_associations (user_id, tenniscores_player_id)
+                        VALUES (%s, %s)
+                    """
+                    
+                    execute_update(create_association_query, [target_user_id, player_record["tenniscores_player_id"]])
+                    print(f"[ADD_PLAYER_TO_PICKUP_GAME] Created player association for placeholder user")
+                else:
+                    return jsonify({"error": "Failed to create user record for player"}), 500
+        
+        # Check if player is already in this game
+        existing_query = """
+            SELECT id FROM pickup_game_participants 
+            WHERE pickup_game_id = %s AND user_id = %s
+        """
+        
+        existing = execute_query_one(existing_query, [game_id, target_user_id])
+        
+        if existing:
+            return jsonify({"error": f"{player_name} is already in this pickup game"}), 400
+        
+        # Add player to the game
+        add_query = """
+            INSERT INTO pickup_game_participants (pickup_game_id, user_id)
+            VALUES (%s, %s)
+            RETURNING id
+        """
+        
+        result = execute_query_one(add_query, [game_id, target_user_id])
+        
+        if result:
+            # Update the players_committed count
+            update_query = """
+                UPDATE pickup_games 
+                SET players_committed = (
+                    SELECT COUNT(*) FROM pickup_game_participants 
+                    WHERE pickup_game_id = %s
+                )
+                WHERE id = %s
+            """
+            execute_update(update_query, [game_id, game_id])
+            
+            print(f"[ADD_PLAYER_TO_PICKUP_GAME] Successfully added {player_name} to game {game_id}")
+            
+            log_user_activity(user_email, "pickup_game_player_added", 
+                            details=f"Added {player_name} to pickup game ID: {game_id}")
+            
+            return jsonify({
+                "success": True,
+                "message": f"Successfully added {player_name} to pickup game"
+            })
+        else:
+            print(f"[ADD_PLAYER_TO_PICKUP_GAME] Failed to insert participant record for {player_name} and game {game_id}")
+            return jsonify({"error": "Failed to add player to pickup game - database insert failed"}), 500
+            
+    except Exception as e:
+        print(f"Error adding player to pickup game: {str(e)}")
+        import traceback
+        print(f"Full traceback: {traceback.format_exc()}")
+        return jsonify({"error": "Failed to add player to pickup game"}), 500
+
+
 @api_bp.route("/api/pickup-games/<int:game_id>", methods=["PUT"])
 @login_required
 def update_pickup_game(game_id):
@@ -5070,6 +5250,7 @@ def update_pickup_game(game_id):
         series_low = data.get("series_low")
         series_high = data.get("series_high")
         club_only = data.get("club_only", False)
+        is_private = data.get("is_private", False)
         
         # Convert series names to series IDs if provided
         series_low_id = None
@@ -5099,13 +5280,13 @@ def update_pickup_game(game_id):
         update_query = """
             UPDATE pickup_games 
             SET description = %s, game_date = %s, game_time = %s, players_requested = %s,
-                pti_low = %s, pti_high = %s, series_low = %s, series_high = %s, club_only = %s
+                pti_low = %s, pti_high = %s, series_low = %s, series_high = %s, club_only = %s, is_private = %s
             WHERE id = %s
         """
         
         update_params = [
             data["description"], game_date_obj, game_time_obj, players_requested,
-            pti_low, pti_high, series_low_id, series_high_id, club_only, game_id
+            pti_low, pti_high, series_low_id, series_high_id, club_only, is_private, game_id
         ]
         
         print(f"[UPDATE_PICKUP_GAME] Executing update with params: {update_params}")
@@ -5164,6 +5345,7 @@ def get_pickup_game(game_id):
                 pg.series_low,
                 pg.series_high,
                 pg.club_only,
+                pg.is_private,
                 pg.creator_user_id,
                 s_low.name as series_low_name,
                 s_high.name as series_high_name
@@ -5194,6 +5376,7 @@ def get_pickup_game(game_id):
             "series_low": game["series_low_name"],
             "series_high": game["series_high_name"],
             "club_only": game["club_only"],
+            "is_private": game["is_private"],
             "creator_user_id": game["creator_user_id"]
         }
         

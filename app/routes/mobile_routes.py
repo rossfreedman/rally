@@ -2580,19 +2580,16 @@ def serve_mobile_pickup_games():
 @mobile_bp.route("/mobile/my-groups")
 @login_required
 def serve_mobile_my_groups():
-    """Serve the mobile My Groups page"""
-    try:
-        session_data = {"user": session["user"], "authenticated": True}
-
-        log_user_activity(
-            session["user"]["email"], "page_visit", page="mobile_my_groups"
-        )
-
-        return render_template("mobile/my_groups.html", session_data=session_data)
-
-    except Exception as e:
-        print(f"Error serving my groups page: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+    """Redirect to pickup games page - Groups functionality has been merged into Private Games tab"""
+    from flask import redirect
+    
+    log_user_activity(
+        session["user"]["email"], "page_redirect", 
+        details="my-groups redirected to pickup-games (merged functionality)"
+    )
+    
+    # Redirect to pickup games page where groups are now shown in Private Games tab
+    return redirect("/mobile/pickup-games")
 
 
 @mobile_bp.route("/mobile/create-pickup-game")
