@@ -448,7 +448,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Close success modal
     if (closeSuccessModal) {
         closeSuccessModal.addEventListener('click', function() {
-            window.location.href = '/mobile/pickup-games';
+            window.location.href = '/mobile/pickup-games?tab=private';
         });
     }
     
@@ -456,7 +456,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (successModal) {
         successModal.addEventListener('click', function(e) {
             if (e.target === successModal) {
-                window.location.href = '/mobile/pickup-games';
+                window.location.href = '/mobile/pickup-games?tab=private';
             }
         });
     }
