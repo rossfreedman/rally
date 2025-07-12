@@ -198,11 +198,9 @@ def generate_descriptive_commit_message(environment):
         
         # Build descriptive message with priority features
         priority_features = []
-        
         # Check for critical changes first (these take precedence)
         if critical_changes:
             priority_features.extend(critical_changes)
-        
         # Check for high-impact changes
         if important_files["auth"]:
             priority_features.append("auth")
@@ -218,10 +216,8 @@ def generate_descriptive_commit_message(environment):
             priority_features.append("database")
         if important_files["security"]:
             priority_features.append("security")
-        
         # Build category summary
         parts = []
-        
         if file_categories["routes"]:
             parts.append(f"routes({len(file_categories['routes'])})")
         if file_categories["templates"]:
@@ -244,7 +240,6 @@ def generate_descriptive_commit_message(environment):
             parts.append(f"docs({len(file_categories['docs'])})")
         if file_categories["other"]:
             parts.append(f"other({len(file_categories['other'])})")
-        
         # Construct the commit message with change analysis
         change_summary = []
         if change_analysis["additions"] > 0:
@@ -253,33 +248,28 @@ def generate_descriptive_commit_message(environment):
             change_summary.append(f"~{change_analysis['modifications']}")
         if change_analysis["deletions"] > 0:
             change_summary.append(f"-{change_analysis['deletions']}")
-        
         change_info = f"[{', '.join(change_summary)}]" if change_summary else ""
-        
+        # --- Move priority features to the start ---
         if priority_features:
-            # Use priority features in the main message
             feature_summary = ", ".join(priority_features)
             if parts:
                 changes_summary = ", ".join(parts)
-                commit_message = f"Deploy to {environment} from {current_branch}: {feature_summary} updates {change_info} - {changes_summary} - {timestamp}"
+                commit_message = f"{feature_summary} | Deploy to {environment} from {current_branch}: {changes_summary} {change_info} - {timestamp}"
             else:
-                commit_message = f"Deploy to {environment} from {current_branch}: {feature_summary} updates {change_info} - {timestamp}"
+                commit_message = f"{feature_summary} | Deploy to {environment} from {current_branch} {change_info} - {timestamp}"
         elif parts:
             changes_summary = ", ".join(parts)
             commit_message = f"Deploy to {environment} from {current_branch}: {changes_summary} {change_info} - {timestamp}"
         else:
             commit_message = f"Deploy to {environment} from {current_branch} - {len(changed_files)} files {change_info} - {timestamp}"
-        
         # Keep message under reasonable length (increased to 120 for more descriptive messages)
         if len(commit_message) > 120:
             if priority_features:
                 feature_summary = ", ".join(priority_features)
-                commit_message = f"Deploy to {environment} from {current_branch}: {feature_summary} updates {change_info} - {len(changed_files)} files - {timestamp}"
+                commit_message = f"{feature_summary} | Deploy to {environment} from {current_branch} {change_info} - {len(changed_files)} files - {timestamp}"
             else:
                 commit_message = f"Deploy to {environment} from {current_branch}: {len(changed_files)} files {change_info} - {timestamp}"
-        
         return commit_message
-        
     except Exception as e:
         print(f"⚠️  Could not analyze changes: {e}")
         return f"Deploy to {environment} from {current_branch} - {timestamp}"
