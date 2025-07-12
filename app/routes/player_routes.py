@@ -526,11 +526,16 @@ def serve_player_detail(player_name):
 
     session_data = {"user": session["user"], "authenticated": True}
 
+    # Try to get player_id from analyze_data if available
+    player_id = None
+    if isinstance(analyze_data, dict):
+        player_id = analyze_data.get("tenniscores_player_id")
+
     log_user_activity(
         session["user"]["email"],
         "page_visit",
         page="player_detail",
-        details=f"Viewed player {player_name}",
+        details=f"Viewed player {player_name} (ID: {player_id if player_id else 'unknown'})",
     )
     return render_template(
         "player_detail.html",

@@ -85,8 +85,8 @@ def client():
 
 
 @pytest.fixture(scope="function")
-def authenticated_client(client, test_user):
-    """Create an authenticated test client with a logged-in user"""
+def authenticated_client(client, test_user, test_team, test_league, test_player):
+    """Create an authenticated test client with a logged-in user and full context"""
     with client.session_transaction() as sess:
         sess["user"] = {
             "id": test_user.id,
@@ -94,6 +94,9 @@ def authenticated_client(client, test_user):
             "first_name": test_user.first_name,
             "last_name": test_user.last_name,
             "is_admin": test_user.is_admin,
+            "team_id": test_team.id,
+            "league_id": test_league.id,
+            "tenniscores_player_id": test_player.tenniscores_player_id,
         }
     return client
 
