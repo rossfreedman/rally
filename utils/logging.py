@@ -171,7 +171,10 @@ def _format_activity_for_sms(user_email, activity_type, page, action, details, i
         if action == "search_executed":
             query = details.get("search_query", "Unknown")
             results = details.get("results_count", 0)
+            filters_applied = details.get("filters_applied", "")
             base_message += f"🔍 Searched: '{query}' → {results} results"
+            if filters_applied:
+                base_message += f"\n🧩 Filters: {filters_applied}"
             
             # Add top results if available
             if details.get("top_results"):

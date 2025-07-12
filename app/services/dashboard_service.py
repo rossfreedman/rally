@@ -973,8 +973,19 @@ def create_activity_description(
 
     # Handle player search
     elif activity_type == "player_search":
-        if details and "searched for" in details:
-            return details
+        import json
+        try:
+            details_obj = json.loads(details) if details and details.strip().startswith('{') else details
+        except Exception:
+            details_obj = details
+        if details_obj:
+            filters_applied = None
+            if isinstance(details_obj, dict):
+                filters_applied = details_obj.get('filters_applied')
+            if filters_applied:
+                return f"Player search ({filters_applied})"
+            if isinstance(details_obj, str) and details_obj.strip():
+                return details_obj
         return "Searched for players"
 
     # Handle season tracking

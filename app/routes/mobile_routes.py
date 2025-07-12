@@ -1914,6 +1914,21 @@ def mobile_player_search():
                 "user_league": session["user"].get("league_id", "Unknown"),
                 "user_club": session["user"].get("club", "Unknown")
             }
+            # Add filters_applied summary
+            filters = []
+            first = search_data.get("first_name")
+            last = search_data.get("last_name")
+            if first and last:
+                filters.append(f"name: {first} {last}")
+            elif first:
+                filters.append(f"name: {first}")
+            elif last:
+                filters.append(f"name: {last}")
+            if search_data.get("series"): filters.append(f"series: {search_data['series']}")
+            if search_data.get("pti_min"): filters.append(f"PTI min: {search_data['pti_min']}")
+            if search_data.get("pti_max"): filters.append(f"PTI max: {search_data['pti_max']}")
+            filters_applied = ", ".join(filters) if filters else "no filters"
+            search_details["filters_applied"] = filters_applied
             
             # Add details about the results if any found
             if matching_count > 0:

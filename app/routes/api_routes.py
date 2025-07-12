@@ -2718,6 +2718,20 @@ def get_club_players():
             "user_club": session["user"].get("club", "Unknown"),
             "user_series": session["user"].get("series", "Unknown")
         }
+        # Add filters_applied summary
+        filters = []
+        if first_name_filter and last_name_filter:
+            filters.append(f"name: {first_name_filter} {last_name_filter}")
+        elif first_name_filter:
+            filters.append(f"name: {first_name_filter}")
+        elif last_name_filter:
+            filters.append(f"name: {last_name_filter}")
+        if series_filter: filters.append(f"series: {series_filter}")
+        if pti_min is not None: filters.append(f"PTI min: {pti_min}")
+        if pti_max is not None: filters.append(f"PTI max: {pti_max}")
+        if club_only: filters.append("club only: true")
+        filters_applied = ", ".join(filters) if filters else "no filters"
+        search_details["filters_applied"] = filters_applied
         
         # Add top results if any found
         if result.get("players"):
@@ -5831,11 +5845,16 @@ def search_players_for_groups():
             "user_league": user.get("league_id", "Unknown"),
             "user_club": user.get("club", "Unknown")
         }
-        
-        # Add top results if any found
-        if matching_players:
-            result_names = [player.get("full_name", "Unknown") for player in matching_players[:3]]
-            search_details["top_results"] = result_names
+        # Add filters_applied summary
+        filters = []
+        if query:
+            filters.append(f"name: {query}")
+        if league_id:
+            filters.append(f"league: {league_id}")
+        if user_club_id:
+            filters.append(f"club: {user_club_id}")
+        filters_applied = ", ".join(filters) if filters else "no filters"
+        search_details["filters_applied"] = filters_applied
         
         log_user_activity(
             user["email"],
