@@ -146,7 +146,7 @@ jobs:
         fail_ci_if_error: false
 
     - name: Upload test results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: test-results
@@ -157,7 +157,7 @@ jobs:
           htmlcov/
 
     - name: Upload coverage report
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: coverage-report
@@ -231,7 +231,7 @@ jobs:
         python run_ui_tests.py --all --browser chromium --html-report ui_test_report.html --junit-xml ui_test_results.xml
 
     - name: Upload UI test results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: ui-test-results
@@ -241,7 +241,7 @@ jobs:
           ui_tests/screenshots/
 
     - name: Upload UI test screenshots
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: failure()
       with:
         name: ui-test-screenshots
@@ -332,7 +332,7 @@ jobs:
         echo "Basic load test completed"
 
     - name: Upload performance results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: performance-results
@@ -376,7 +376,7 @@ jobs:
         pip-audit
 
     - name: Upload security reports
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: security-reports
@@ -461,7 +461,7 @@ jobs:
           --maxfail=5
 
     - name: Upload regression results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: always()
       with:
         name: regression-results
@@ -523,7 +523,7 @@ jobs:
         echo "- Address any failing tests before deployment" >> test_report.md
 
     - name: Upload test report
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: test-report
         path: test_report.md
