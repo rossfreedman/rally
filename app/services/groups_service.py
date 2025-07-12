@@ -3,6 +3,8 @@ Groups Service
 Handles all group management functionality including creation, member management, and search
 """
 
+import csv
+import os
 from typing import List, Dict, Any, Optional
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, or_, func
@@ -15,6 +17,68 @@ class GroupsService:
 
     def __init__(self, session: Session):
         self.session = session
+
+    def _lookup_phone_from_club_directory(self, first_name: str, last_name: str, user_league_string_id: str = None) -> Optional[str]:
+        """
+        Look up phone number from club directory CSV file
+        
+        Args:
+            first_name: Player's first name
+            last_name: Player's last name
+            user_league_string_id: User's league string ID for determining CSV path
+            
+        Returns:
+            Phone number if found, None otherwise
+        """
+        try:
+            # Use dynamic path based on league (similar to /api/player-contact)
+            if user_league_string_id and not user_league_string_id.startswith("APTA"):
+                # For non-APTA leagues, use league-specific path
+                csv_path = os.path.join(
+                    "data",
+                    "leagues",
+                    user_league_string_id,
+                    "club_directories",
+                    "directory_tennaqua.csv",
+                )
+            else:
+                # For APTA leagues, use the main directory
+                csv_path = os.path.join(
+                    "data",
+                    "leagues",
+                    "all",
+                    "club_directories",
+                    "directory_tennaqua.csv",
+                )
+
+            print(f"Looking for phone number in CSV file at: {csv_path}")
+            
+            if not os.path.exists(csv_path):
+                print(f"CSV file not found at: {csv_path}")
+                return None
+
+            with open(csv_path, "r") as file:
+                reader = csv.DictReader(file)
+                for row in reader:
+                    # Match by first and last name (case insensitive)
+                    if (
+                        row["First"].strip().lower() == first_name.lower()
+                        and row["Last Name"].strip().lower() == last_name.lower()
+                    ):
+                        phone = row["Phone"].strip()
+                        if phone:
+                            print(f"Found phone number for {first_name} {last_name} in club directory: {phone}")
+                            return phone
+                        else:
+                            print(f"Found {first_name} {last_name} in club directory but no phone number")
+                            return None
+
+            print(f"Player {first_name} {last_name} not found in club directory")
+            return None
+
+        except Exception as e:
+            print(f"Error looking up phone number in club directory: {str(e)}")
+            return None
 
     def get_user_groups(self, user_id: int) -> List[Dict[str, Any]]:
         """
@@ -150,17 +214,55 @@ class GroupsService:
             .all()
         )
 
+        # Get requesting user's league string ID for club directory lookup
+        requesting_user_league_string_id = None
+        requesting_user = self.session.query(User).filter(User.id == user_id).first()
+        if requesting_user:
+            # Look up the league string ID from the requesting user's associations
+            requesting_user_league_query = """
+                SELECT DISTINCT l.league_id 
+                FROM users u
+                JOIN user_player_associations upa ON u.id = upa.user_id
+                JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+                JOIN leagues l ON p.league_id = l.id
+                WHERE u.id = %s
+                ORDER BY l.league_id
+                LIMIT 1
+            """
+            from database_utils import execute_query_one
+            user_league_result = execute_query_one(requesting_user_league_query, [user_id])
+            if user_league_result:
+                requesting_user_league_string_id = user_league_result['league_id']
+                print(f"Found requesting user's league string ID: {requesting_user_league_string_id}")
+
         members_list = []
         for user, membership in members:
             # Get player info for this user
             player_info = self._get_user_player_info(user.id)
+            
+            # Check for phone number in user profile, with club directory fallback
+            phone_number = user.phone_number
+            phone_source = 'user_profile'
+            
+            if not phone_number or not phone_number.strip():
+                # Try club directory fallback
+                directory_phone = self._lookup_phone_from_club_directory(
+                    user.first_name, 
+                    user.last_name, 
+                    requesting_user_league_string_id
+                )
+                if directory_phone:
+                    phone_number = directory_phone
+                    phone_source = 'club_directory'
+                    print(f"Found phone number for {user.first_name} {user.last_name} in club directory for UI display: {directory_phone}")
             
             members_list.append({
                 'user_id': user.id,
                 'first_name': user.first_name,
                 'last_name': user.last_name,
                 'email': user.email,
-                'phone_number': user.phone_number,  # Add phone number
+                'phone_number': phone_number,  # Now includes club directory fallback
+                'phone_source': phone_source,  # Track source for UI display
                 'added_at': membership.added_at,
                 'player_info': player_info,
                 'can_remove': is_creator  # Only creator can remove members
@@ -729,9 +831,29 @@ class GroupsService:
                 .all()
             )
 
-            # Get sender info
+            # Get sender info and league context for club directory lookup
             sender = self.session.query(User).filter(User.id == user_id).first()
             sender_name = f"{sender.first_name} {sender.last_name}" if sender else "Unknown"
+            
+            # Get sender's league string ID for club directory lookup
+            sender_league_string_id = None
+            if sender:
+                # Look up the league string ID from the sender's associations
+                sender_league_query = """
+                    SELECT DISTINCT l.league_id 
+                    FROM users u
+                    JOIN user_player_associations upa ON u.id = upa.user_id
+                    JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+                    JOIN leagues l ON p.league_id = l.id
+                    WHERE u.id = %s
+                    ORDER BY l.league_id
+                    LIMIT 1
+                """
+                from database_utils import execute_query_one
+                sender_league_result = execute_query_one(sender_league_query, [user_id])
+                if sender_league_result:
+                    sender_league_string_id = sender_league_result['league_id']
+                    print(f"Found sender's league string ID: {sender_league_string_id}")
 
             # Get admin users with phone numbers for testing (they'll receive all group messages)
             admin_users = (
@@ -742,15 +864,36 @@ class GroupsService:
                 .all()
             )
 
-            # Separate members with and without phone numbers
+            # Separate members with and without phone numbers, with club directory fallback
             members_with_phones = []
             members_without_phones = []
+            members_with_directory_phones = []
             
             for member in members:
                 if member.phone_number and member.phone_number.strip():
+                    # Has phone number in user table
                     members_with_phones.append(member)
                 else:
-                    members_without_phones.append(member)
+                    # No phone number in user table - try club directory fallback
+                    directory_phone = self._lookup_phone_from_club_directory(
+                        member.first_name, 
+                        member.last_name, 
+                        sender_league_string_id
+                    )
+                    
+                    if directory_phone:
+                        # Found phone number in club directory
+                        # Create a temporary member object with the directory phone
+                        member_with_directory_phone = {
+                            'user': member,
+                            'phone_number': directory_phone,
+                            'source': 'club_directory'
+                        }
+                        members_with_directory_phones.append(member_with_directory_phone)
+                        print(f"Using club directory phone for {member.first_name} {member.last_name}: {directory_phone}")
+                    else:
+                        # No phone number found anywhere
+                        members_without_phones.append(member)
 
             # Add admin users to recipients (but don't count them as group members)
             admin_recipients = []
@@ -760,15 +903,17 @@ class GroupsService:
                     admin_recipients.append(admin)
 
             # Check if anyone has phone numbers (members or admins)
-            total_recipients = len(members_with_phones) + len(admin_recipients)
+            total_members_with_phones = len(members_with_phones) + len(members_with_directory_phones)
+            total_recipients = total_members_with_phones + len(admin_recipients)
             if total_recipients == 0:
                 return {
                     'success': False,
-                    'error': f'No group members have phone numbers set up. Ask members to add their phone numbers in Settings.',
+                    'error': f'No group members have phone numbers available. Please ask members to add their phone numbers in Settings or ensure they are listed in the club directory.',
                     'details': {
                         'total_members': len(members),
                         'members_without_phones': len(members_without_phones),
                         'members_with_phones': 0,
+                        'members_with_directory_phones': 0,
                         'admin_recipients': 0
                     }
                 }
@@ -786,7 +931,7 @@ class GroupsService:
             admin_successful_sends = []
             admin_failed_sends = []
             
-            # Send to group members
+            # Send to group members with phone numbers in user table
             for member in members_with_phones:
                 try:
                     result = send_sms_notification(
@@ -800,14 +945,16 @@ class GroupsService:
                             'name': f"{member.first_name} {member.last_name}",
                             'phone': member.phone_number,
                             'message_sid': result.get('message_sid'),
-                            'status': 'sent'
+                            'status': 'sent',
+                            'source': 'user_table'
                         })
                     else:
                         failed_sends.append({
                             'name': f"{member.first_name} {member.last_name}",
                             'phone': member.phone_number,
                             'error': result.get('error'),
-                            'status': 'failed'
+                            'status': 'failed',
+                            'source': 'user_table'
                         })
                         
                 except Exception as e:
@@ -815,7 +962,45 @@ class GroupsService:
                         'name': f"{member.first_name} {member.last_name}",
                         'phone': member.phone_number,
                         'error': f'Unexpected error: {str(e)}',
-                        'status': 'failed'
+                        'status': 'failed',
+                        'source': 'user_table'
+                    })
+            
+            # Send to group members with phone numbers from club directory
+            for member_data in members_with_directory_phones:
+                member = member_data['user']
+                phone = member_data['phone_number']
+                try:
+                    result = send_sms_notification(
+                        to_number=phone,
+                        message=formatted_message,
+                        test_mode=False
+                    )
+                    
+                    if result["success"]:
+                        successful_sends.append({
+                            'name': f"{member.first_name} {member.last_name}",
+                            'phone': phone,
+                            'message_sid': result.get('message_sid'),
+                            'status': 'sent',
+                            'source': 'club_directory'
+                        })
+                    else:
+                        failed_sends.append({
+                            'name': f"{member.first_name} {member.last_name}",
+                            'phone': phone,
+                            'error': result.get('error'),
+                            'status': 'failed',
+                            'source': 'club_directory'
+                        })
+                        
+                except Exception as e:
+                    failed_sends.append({
+                        'name': f"{member.first_name} {member.last_name}",
+                        'phone': phone,
+                        'error': f'Unexpected error: {str(e)}',
+                        'status': 'failed',
+                        'source': 'club_directory'
                     })
 
             # Send to admin users for testing
@@ -853,7 +1038,7 @@ class GroupsService:
                     })
 
             # Determine overall success
-            total_attempted = len(members_with_phones)
+            total_attempted = len(members_with_phones) + len(members_with_directory_phones)
             total_successful = len(successful_sends)
             total_failed = len(failed_sends)
             
@@ -864,11 +1049,16 @@ class GroupsService:
             # Consider it successful if at least one message was sent (to members or admins)
             overall_success = (total_successful + admin_successful) > 0
             
-            # Create response message
+            # Create response message with directory fallback info
+            directory_count = len(members_with_directory_phones)
             if total_successful == total_attempted and total_attempted > 0:
                 response_message = f"✅ Message sent successfully to all {total_successful} group members!"
+                if directory_count > 0:
+                    response_message += f" ({directory_count} phone number{'s' if directory_count != 1 else ''} found in club directory)"
             elif total_successful > 0:
                 response_message = f"⚠️ Message sent to {total_successful} of {total_attempted} members with phone numbers. {total_failed} failed to send."
+                if directory_count > 0:
+                    response_message += f" ({directory_count} phone number{'s' if directory_count != 1 else ''} found in club directory)"
             else:
                 response_message = f"❌ Failed to send message to any group members. Check phone numbers and try again."
             
@@ -886,6 +1076,7 @@ class GroupsService:
                     'group_name': group.name,
                     'total_members': len(members),
                     'members_with_phones': len(members_with_phones),
+                    'members_with_directory_phones': len(members_with_directory_phones),
                     'members_without_phones': len(members_without_phones),
                     'successful_sends': total_successful,
                     'failed_sends': total_failed,
@@ -899,7 +1090,8 @@ class GroupsService:
                     'admin_failed_sends': admin_failed,
                     'admin_successful_recipients': admin_successful_sends,
                     'admin_failed_recipients': admin_failed_sends,
-                    'testing_note': 'Admin users automatically receive copies of all group messages for testing purposes.'
+                    'testing_note': 'Admin users automatically receive copies of all group messages for testing purposes.',
+                    'fallback_note': f'Phone numbers for {directory_count} member{"" if directory_count == 1 else "s"} were found in the club directory.' if directory_count > 0 else None
                 }
             }
             

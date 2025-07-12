@@ -353,7 +353,7 @@
                     <div class="form-section mb-4" style="background-color: #f8f9fa; border-radius: 8px; padding: 20px; border-left: 3px solid #007bff;">
                         <h6 class="section-title mb-3" style="color: #495057; font-weight: 600; font-size: 0.9rem; margin-bottom: 1rem;">About you</h6>
                         
-                        <div class="form-row">
+                        <div class="form-row" style="margin-bottom: 0;">
                             <div class="form-floating">
                                 <input type="text" class="form-control" id="firstName" placeholder="First Name" required>
                                 <label for="firstName">First Name</label>
@@ -368,6 +368,11 @@
                         <div class="form-floating mb-3">
                             <input type="email" class="form-control" id="registerEmail" placeholder="name@example.com" required>
                             <label for="registerEmail">Email address</label>
+                        </div>
+                        
+                        <div class="form-floating mb-3">
+                            <input type="tel" class="form-control" id="phoneNumber" placeholder="(555) 123-4567" required>
+                            <label for="phoneNumber">Phone Number</label>
                         </div>
                         
                         <div class="form-floating mb-3">
@@ -805,6 +810,7 @@
             e.preventDefault();
             
             const email = document.getElementById('registerEmail').value;
+            const phoneNumber = document.getElementById('phoneNumber').value;
             const password = document.getElementById('registerPassword').value;
             const confirmPassword = document.getElementById('confirmPassword').value;
             const firstName = document.getElementById('firstName').value;
@@ -866,6 +872,7 @@
                     credentials: 'include',
                     body: JSON.stringify({
                         email,
+                        phoneNumber,
                         password,
                         firstName,
                         lastName,
@@ -906,6 +913,27 @@
                 errorMessage.style.display = 'none';
                 scrollToTop();
             }
+        });
+        
+        // Auto-scroll functionality for registration form
+        function addAutoScrollOnSelect(selectId, scrollAmount) {
+            var el = document.getElementById(selectId);
+            if (el) {
+                el.addEventListener('change', function() {
+                    window.scrollBy({ top: scrollAmount, behavior: 'smooth' });
+                });
+            }
+        }
+        
+        // Auto-scroll for specific fields
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add auto-scroll for registration form fields
+            addAutoScrollOnSelect('confirmPassword', 75);
+            addAutoScrollOnSelect('league', 75);
+            addAutoScrollOnSelect('club', 75);
+            addAutoScrollOnSelect('series', 100);
+            addAutoScrollOnSelect('adDeuce', 75);
+            addAutoScrollOnSelect('dominantHand', 75);
         });
     </script>
     <!-- Footer for branding -->

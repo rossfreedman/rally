@@ -61,6 +61,7 @@ def handle_register():
         password = (data.get("password", "") if data else "").strip()
         first_name = (data.get("firstName", "") if data else "").strip()
         last_name = (data.get("lastName", "") if data else "").strip()
+        phone_number = (data.get("phoneNumber", "") if data else "").strip()
         league_id = (data.get("league", "") if data else "").strip()
         club_name = (data.get("club", "") if data else "").strip()
         series_name = (data.get("series", "") if data else "").strip()
@@ -77,6 +78,8 @@ def handle_register():
             missing_fields.append("firstName")
         if not last_name:
             missing_fields.append("lastName")
+        if not phone_number:
+            missing_fields.append("phoneNumber")
         if not league_id:
             missing_fields.append("league")
         if not club_name:
@@ -93,7 +96,7 @@ def handle_register():
         # Use service to register user with mandatory player association
         result = register_user(
             email, password, first_name, last_name, league_id, club_name, series_name, 
-            ad_deuce_preference=ad_deuce_preference, dominant_hand=dominant_hand
+            ad_deuce_preference=ad_deuce_preference, dominant_hand=dominant_hand, phone_number=phone_number
         )
 
         if not result["success"]:

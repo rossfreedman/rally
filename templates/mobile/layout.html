@@ -480,6 +480,26 @@
         {% block content %}{% endblock %}
     </main>
 
+    <!-- Share Rally Floating Chip -->
+    <div style="position: fixed; bottom: 85px; left: 16px; z-index: 50;">
+        <a href="/mobile/share-rally" style="
+            display: flex; 
+            align-items: center; 
+            padding: 8px 12px; 
+            border-radius: 25px; 
+            background: linear-gradient(135deg, #c4ff60 0%, #a8e550 100%); 
+            color: #085454; 
+            text-decoration: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+            <i class="fas fa-share-alt" style="margin-right: 6px; font-size: 14px;"></i>
+            <span>Share Rally</span>
+        </a>
+    </div>
+
     <!-- Bottom Navigation Dock -->
     <nav class="bottom-dock fixed bottom-0 left-0 right-0 border-t border-gray-700 z-40" style="height: 72px; box-shadow: 0 -2px 8px rgba(0,0,0,0.08); background-color: #085454;">
         <div class="flex items-center justify-around h-full px-2">
