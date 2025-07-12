@@ -64,7 +64,7 @@
                             name="customMessage" 
                             rows="4" 
                             class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-colors resize-none"
-                        >Hey [Friend's Name], you should check out this new app for racquet sports. It's called Rally. Check it out at https://lovetorally.com</textarea>
+                        >Hey [Friend's Name], you should check out this new app for paddle, tennis and pickleball. It's called Rally. Click the link below to check it out....</textarea>
                         <p class="text-xs text-gray-500 mt-1">Leave blank to use default message. Custom message replaces the entire default message.</p>
                     </div>
 
@@ -141,8 +141,8 @@ function updateMessageWithFriendName() {
     const currentMessage = messageTextarea.value;
     
     // Check if this is still the default message format
-    if (currentMessage.includes('[Friend\'s Name]') || currentMessage.startsWith('Hey ') && currentMessage.includes(', you should check out this new app for racquet sports')) {
-        messageTextarea.value = `Hey ${friendName}, you should check out this new app for racquet sports. It's called Rally. Check it out at https://lovetorally.com`;
+    if (currentMessage.includes('[Friend\'s Name]') || currentMessage.startsWith('Hey ') && currentMessage.includes(', you should check out this new app for paddle, tennis and pickleball')) {
+        messageTextarea.value = `Hey ${friendName}, you should check out this new app for paddle, tennis and pickleball. It's called Rally. Click the link below to check it out....`;
     }
 }
 
@@ -212,7 +212,7 @@ async function sendShareRallyInvitation(event) {
             showSuccessModal(data.message);
             form.reset();
             // Reset message to default
-            document.getElementById('customMessage').value = 'Hey [Friend\'s Name], you should check out this new app for racquet sports. It\'s called Rally. Check it out at https://lovetorally.com';
+            document.getElementById('customMessage').value = 'Hey [Friend\'s Name], you should check out this new app for paddle, tennis and pickleball. It\'s called Rally. Click the link below to check it out....';
         } else {
             showMessage(data.error || 'Failed to send invitation', 'error');
         }

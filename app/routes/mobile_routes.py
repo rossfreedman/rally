@@ -2709,7 +2709,7 @@ def send_share_rally_sms():
             message = custom_message
         else:
             # Use default message
-            message = f"Hey {friend_name}, you should check out this new app for racquet sports. It's called Rally. Check it out at https://lovetorally.com"
+            message = f"Hey {friend_name}, you should check out this new app for paddle, tennis and pickleball. It's called Rally. Click the link below to check it out...."
         
         # Get sender's name for logging
         sender_name = f"{session['user'].get('first_name', '')} {session['user'].get('last_name', '')}"
