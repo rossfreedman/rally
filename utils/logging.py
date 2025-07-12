@@ -221,22 +221,19 @@ def _format_activity_for_sms(user_email, activity_type, page, action, details, i
             base_message += f"⚙️ Settings: personal info updated"
     
     elif activity_type == "page_visit":
-        page_name = page or "unknown"
-        
-        # Add context for key pages
-        if page == "mobile_analyze_me":
-            has_matches = details.get("has_matches", False) if details else False
-            match_status = "with matches" if has_matches else "no matches"
-            base_message += f"📊 Analyze Me: {match_status}"
-            
-        elif page == "mobile_my_club":
-            club = details.get("user_club", "Unknown") if details else "Unknown"
-            base_message += f"🏛️ My Club: {club}"
-            
+        if details:
+            # If details is a dict, try to get a summary string
+            if isinstance(details, dict):
+                # Try to use a 'summary' or similar field, else fallback to str(details)
+                summary = details.get('summary') or str(details)
+                base_message += f"\U0001F4F1 {summary}"
+            else:
+                base_message += f"\U0001F4F1 {details}"
         else:
+            page_name = page or "unknown"
             # Clean up page name for display
             clean_page = page_name.replace("mobile_", "").replace("_", " ").title()
-            base_message += f"📱 Visited: {clean_page}"
+            base_message += f"\U0001F4F1 Visited: {clean_page}"
     
     else:
         # Generic format for other activity types
