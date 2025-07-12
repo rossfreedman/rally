@@ -1843,7 +1843,24 @@ def mobile_teams_players():
         }
 
         selected_team = data.get("selected_team")
-        team_name = selected_team["team_name"] if selected_team and "team_name" in selected_team else "Unknown"
+        selected_team_id = data.get("selected_team_id")
+        all_teams_data = data.get("all_teams_data", [])
+        print(f"[DEBUG] selected_team: {selected_team}")
+        print(f"[DEBUG] selected_team_id: {selected_team_id}")
+        team_name = None
+        if selected_team:
+            if isinstance(selected_team, dict) and "team_name" in selected_team:
+                team_name = selected_team["team_name"]
+            elif isinstance(selected_team, str):
+                team_name = selected_team
+        elif selected_team_id and all_teams_data:
+            # Try to find the team in all_teams_data
+            for team in all_teams_data:
+                if team.get("id") == selected_team_id and "team_name" in team:
+                    team_name = team["team_name"]
+                    break
+        if not team_name:
+            team_name = session["user"].get("club", "Unknown")
         log_user_activity(
             session["user"]["email"],
             "page_visit",
