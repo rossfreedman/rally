@@ -438,11 +438,12 @@ def serve_mobile_player_detail(player_id):
     # PTI data is now handled within the service function with proper league filtering
 
     session_data = {"user": session["user"], "authenticated": True}
+    team_or_club = player_info.get("team_name") or player_info.get("club") or "Unknown"
     log_user_activity(
         session["user"]["email"],
         "page_visit",
         page="mobile_player_detail",
-        details=f"Viewed player {player_name} (ID: {actual_player_id})"
+        details=f"Player Detail: {player_name} ({team_or_club})"
     )
     return render_template(
         "mobile/player_detail.html",
@@ -1841,11 +1842,13 @@ def mobile_teams_players():
             "error": data.get("error")
         }
 
+        selected_team = data.get("selected_team")
+        team_name = selected_team["team_name"] if selected_team and "team_name" in selected_team else "Unknown"
         log_user_activity(
             session["user"]["email"],
             "page_visit",
             page="mobile_teams_players",
-            details="Visited Teams & Players page"
+            details=f"Visited Competitive Teams Page: {team_name}"
         )
 
         return render_template("mobile/teams_players.html", **template_data)
