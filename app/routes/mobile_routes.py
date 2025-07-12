@@ -2628,6 +2628,92 @@ def serve_mobile_reserve_court():
         return jsonify({"error": str(e)}), 500
 
 
+@mobile_bp.route("/mobile/share-rally")
+@login_required
+def serve_mobile_share_rally():
+    """Serve the mobile Share Rally page"""
+    try:
+        session_data = {"user": session["user"], "authenticated": True}
+
+        log_user_activity(
+            session["user"]["email"], "page_visit", page="mobile_share_rally"
+        )
+
+        return render_template("mobile/share_rally.html", session_data=session_data)
+
+    except Exception as e:
+        print(f"Error serving share rally page: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+@mobile_bp.route("/api/share-rally", methods=["POST"])
+@login_required
+def send_share_rally_sms():
+    """Send SMS invitation to share Rally with friends"""
+    try:
+        from app.services.notifications_service import send_sms_notification
+        
+        data = request.get_json()
+        friend_name = data.get("friend_name", "").strip()
+        phone_number = data.get("phone_number", "").strip()
+        custom_message = data.get("message", "").strip()
+        
+        # Validate required fields
+        if not friend_name:
+            return jsonify({"success": False, "error": "Friend's name is required"}), 400
+        
+        if not phone_number:
+            return jsonify({"success": False, "error": "Phone number is required"}), 400
+        
+        # Create the SMS message
+        if custom_message:
+            # Use custom message as-is (user provides the full message including name)
+            message = custom_message
+        else:
+            # Use default message
+            message = f"Hey {friend_name}, you should check out this new app for racquet sports. It's called Rally. Check it out at https://lovetorally.com"
+        
+        # Get sender's name for logging
+        sender_name = f"{session['user'].get('first_name', '')} {session['user'].get('last_name', '')}"
+        sender_email = session['user']['email']
+        
+        # Log the sharing activity
+        log_user_activity(
+            sender_email, 
+            "share_rally_sms", 
+            page="mobile_share_rally", 
+            details={
+                "friend_name": friend_name,
+                "phone_number": phone_number[-4:] if len(phone_number) > 4 else "****",  # Only log last 4 digits
+                "message_length": len(message),
+                "has_custom_message": bool(custom_message)
+            }
+        )
+        
+        # Send the SMS
+        result = send_sms_notification(
+            to_number=phone_number,
+            message=message,
+            test_mode=False
+        )
+        
+        if result["success"]:
+            return jsonify({
+                "success": True,
+                "message": f"Rally invitation sent to {friend_name}!",
+                "message_sid": result.get("message_sid")
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "error": result.get("error", "Failed to send SMS")
+            }), 400
+    
+    except Exception as e:
+        print(f"Error sending share rally SMS: {str(e)}")
+        return jsonify({"success": False, "error": "An error occurred while sending the invitation"}), 500
+
+
 # @mobile_bp.route("/mobile/create-team")
 # @login_required
 # def serve_mobile_create_team():

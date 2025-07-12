@@ -3289,35 +3289,35 @@ def switch_team_context():
         }), 500
 
 
-@api_bp.route("/api/user-context-info", methods=["GET"])
-@login_required
-def get_user_context_info():
-    """Get current user context information"""
-    try:
-        from app.services.context_service import ContextService
-        
-        user_id = session["user"]["id"]
-        
-        # Get context info
-        context_info = ContextService.get_context_info(user_id)
-        user_leagues = ContextService.get_user_leagues(user_id)
-        user_teams = ContextService.get_user_teams(user_id)
-        
-        return jsonify({
-            "success": True,
-            "context": context_info,
-            "leagues": user_leagues,
-            "teams": user_teams,
-            "is_multi_league": len(user_leagues) > 1,
-            "is_multi_team": len(user_teams) > 1
-        })
-        
-    except Exception as e:
-        logger.error(f"Error getting user context info: {e}")
-        return jsonify({
-            "success": False,
-            "error": "Failed to get context info"
-        }), 500
+# @api_bp.route("/api/user-context-info", methods=["GET"])
+# @login_required
+# def get_user_context_info():
+#     """Get current user context information - DISABLED: Uses ContextService"""
+#     try:
+#         from app.services.context_service import ContextService
+#         
+#         user_id = session["user"]["id"]
+#         
+#         # Get context info
+#         context_info = ContextService.get_context_info(user_id)
+#         user_leagues = ContextService.get_user_leagues(user_id)
+#         user_teams = ContextService.get_user_teams(user_id)
+#         
+#         return jsonify({
+#             "success": True,
+#             "context": context_info,
+#             "leagues": user_leagues,
+#             "teams": user_teams,
+#             "is_multi_league": len(user_leagues) > 1,
+#             "is_multi_team": len(user_teams) > 1
+#         })
+#         
+#     except Exception as e:
+#         logger.error(f"Error getting user context info: {e}")
+#         return jsonify({
+#             "success": False,
+#             "error": "Failed to get context info"
+#         }), 500
 
 
 @api_bp.route("/api/switch-league", methods=["POST"])

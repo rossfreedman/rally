@@ -299,7 +299,7 @@ def get_or_create_series(series_name: str, db_session=None) -> Series:
 
 def register_user(email: str, password: str, first_name: str, last_name: str, 
                   league_id: str, club_name: str, series_name: str,
-                  ad_deuce_preference: str = None, dominant_hand: str = None) -> Dict[str, Any]:
+                  ad_deuce_preference: str = None, dominant_hand: str = None, phone_number: str = None) -> Dict[str, Any]:
     """
     Register a new user with mandatory player association.
     
@@ -313,6 +313,7 @@ def register_user(email: str, password: str, first_name: str, last_name: str,
         series_name: Series name (required)
         ad_deuce_preference: User's ad/deuce preference (optional)
         dominant_hand: User's dominant hand (optional)
+        phone_number: User's phone number for SMS notifications (optional)
         
     Returns:
         Dict with success status and user data or error message
@@ -339,6 +340,7 @@ def register_user(email: str, password: str, first_name: str, last_name: str,
             password_hash=password_hash,
             first_name=first_name,
             last_name=last_name,
+            phone_number=phone_number,
             ad_deuce_preference=ad_deuce_preference,
             dominant_hand=dominant_hand
         )
@@ -413,7 +415,37 @@ def register_user(email: str, password: str, first_name: str, last_name: str,
                     
                     if other_associations == 0:
                         logger.info(f"Registration: Removing empty placeholder user {existing_user.email}")
-                        db_session.delete(existing_user)
+                        
+                        # Handle foreign key constraints by deleting related records first
+                        try:
+                            # Delete group memberships for this user
+                            from app.models.database_models import GroupMember
+                            group_memberships = db_session.query(GroupMember).filter(
+                                GroupMember.user_id == existing_user.id
+                            ).all()
+                            
+                            for membership in group_memberships:
+                                db_session.delete(membership)
+                                logger.info(f"Registration: Deleted group membership {membership.id} for placeholder user")
+                            
+                            # Delete activity log entries for this user
+                            from app.models.database_models import ActivityLog
+                            activity_logs = db_session.query(ActivityLog).filter(
+                                ActivityLog.user_id == existing_user.id
+                            ).all()
+                            
+                            for log in activity_logs:
+                                db_session.delete(log)
+                                logger.info(f"Registration: Deleted activity log {log.id} for placeholder user")
+                            
+                            # Now delete the user
+                            db_session.delete(existing_user)
+                            logger.info(f"Registration: Successfully deleted placeholder user {existing_user.email}")
+                            
+                        except Exception as cleanup_error:
+                            logger.error(f"Registration: Error during placeholder user cleanup: {cleanup_error}")
+                            # Continue with registration even if cleanup fails
+                            # The placeholder user will remain but won't interfere with new user
                     
                     db_session.flush()  # Apply deletes before creating new association
                 else:
@@ -469,6 +501,28 @@ def register_user(email: str, password: str, first_name: str, last_name: str,
         # Build session data using our simple service
         from app.services.session_service import get_session_data_for_user
         session_data = get_session_data_for_user(email)
+        
+        # Send welcome SMS notification if phone number is provided
+        if phone_number:
+            try:
+                from app.services.notifications_service import send_sms_notification
+                
+                welcome_message = "You're in! Your Rally registration was successful. We'll keep you posted on pickup games, team polls, match lineups, and more. Let's go!"
+                
+                sms_result = send_sms_notification(
+                    to_number=phone_number,
+                    message=welcome_message,
+                    test_mode=False
+                )
+                
+                if sms_result["success"]:
+                    logger.info(f"Registration: Welcome SMS sent successfully to {phone_number}")
+                else:
+                    logger.warning(f"Registration: Failed to send welcome SMS to {phone_number}: {sms_result.get('error', 'Unknown error')}")
+                    
+            except Exception as sms_error:
+                logger.error(f"Registration: Error sending welcome SMS to {phone_number}: {str(sms_error)}")
+                # Don't fail registration if SMS fails - just log the error
         
         return {
             "success": True,
@@ -833,15 +887,13 @@ def get_series_list(league_id: str = None) -> List[str]:
 
 def create_session_data(user_data: Dict[str, Any], preserve_context: bool = False) -> Dict[str, Any]:
     """
-    Create enhanced session data with context support
-    Uses the new ContextService for multi-league/multi-team support
+    Create simple session data using users.league_context
+    Simplified version that works with the current registration system
     
     Args:
         user_data: User data dictionary
-        preserve_context: If True, don't auto-detect context (preserves manual selections)
+        preserve_context: Ignored (kept for compatibility)
     """
-    from app.services.context_service import ContextService
-    
     # Handle both direct user dict and the response format
     if "user" in user_data:
         user = user_data["user"]
@@ -857,23 +909,20 @@ def create_session_data(user_data: Dict[str, Any], preserve_context: bool = Fals
         return _create_legacy_session_data(user_data)
     
     try:
-        # Create enhanced session data with context information
-        enhanced_session = ContextService.create_enhanced_session_data(user, user_id, preserve_context=preserve_context)
+        # Use the legacy session data creation (which works)
+        session_data = _create_legacy_session_data(user_data)
         
-        # Add legacy fields for backwards compatibility
-        enhanced_session.update({
-            "settings": "{}",  # Default empty settings
-            "club_automation_password": "",  # Legacy field, empty for security
-        })
+        # Add league_context from user data if available
+        if user.get("league_context"):
+            session_data["league_context"] = user.get("league_context")
         
-        logger.info(f"Enhanced session created for user {user_id}: "
-                   f"League: {enhanced_session.get('league_name', 'None')}, "
-                   f"Team: {enhanced_session.get('context', {}).get('team_name', 'None')}")
+        logger.info(f"Simple session created for user {user_id}: "
+                   f"League: {session_data.get('league_name', 'None')}")
         
-        return enhanced_session
+        return session_data
         
     except Exception as e:
-        logger.error(f"Error creating enhanced session data for user {user_id}: {e}")
+        logger.error(f"Error creating session data for user {user_id}: {e}")
         # Fallback to legacy format
         return _create_legacy_session_data(user_data)
 

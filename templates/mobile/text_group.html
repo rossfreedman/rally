@@ -64,10 +64,17 @@
                         <div>
                             <div class="font-medium text-gray-900">{{ member.first_name }} {{ member.last_name }}</div>
                             {% if member.phone_number %}
-                            <div class="text-sm text-gray-600">{{ member.phone_number }}</div>
+                            <div class="text-sm text-gray-600">
+                                {{ member.phone_number }}
+                                {% if member.phone_source == 'club_directory' %}
+                                <span class="text-xs text-blue-600 ml-1">
+                                    <i class="fas fa-address-book"></i> from directory
+                                </span>
+                                {% endif %}
+                            </div>
                             {% else %}
                             <div class="text-sm text-orange-600">
-                                <i class="fas fa-exclamation-triangle mr-1"></i>No phone number
+                                <i class="fas fa-exclamation-triangle mr-1"></i>No phone number found
                             </div>
                             {% endif %}
                         </div>
@@ -87,13 +94,24 @@
             </div>
             
             {% set members_with_phones = group.members | selectattr("phone_number") | list %}
+            {% set members_with_directory_phones = group.members | selectattr("phone_source", "equalto", "club_directory") | list %}
+            {% set total_members_with_phones = members_with_phones | length %}
             
             <div class="mt-4 p-3 bg-blue-50 rounded-lg">
                 <div class="text-sm text-blue-800">
                     <i class="fas fa-info-circle mr-2"></i>
-                    <strong>{{ members_with_phones | length }}</strong> of <strong>{{ group.member_count }}</strong> members will receive the text message
-                    {% if members_with_phones | length < group.member_count %}
-                    <br><span class="text-orange-600 font-medium">{{ group.member_count - (members_with_phones | length) }} member{{ 's' if (group.member_count - (members_with_phones | length)) != 1 else '' }} need to add phone numbers in Profile Settings</span>
+                    <strong>{{ total_members_with_phones }}</strong> of <strong>{{ group.member_count }}</strong> members have phone numbers available
+                    {% if members_with_directory_phones | length > 0 %}
+                    <br><span class="text-green-600 font-medium">
+                        <i class="fas fa-address-book mr-1"></i>
+                        {{ members_with_directory_phones | length }} phone number{{ 's' if members_with_directory_phones | length != 1 else '' }} found in club directory
+                    </span>
+                    {% endif %}
+                    {% if total_members_with_phones < group.member_count %}
+                    <br><span class="text-blue-600 font-medium">
+                        <i class="fas fa-search mr-1"></i>
+                        The system will check the club directory for any remaining members
+                    </span>
                     {% endif %}
                 </div>
             </div>
@@ -135,8 +153,7 @@
                             rows="4" 
                             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                             placeholder="Type your message to the group..."
-                            maxlength="800"
-                            required></textarea>
+                            maxlength="800"></textarea>
                         
                         <!-- Character Count -->
                         <div class="flex justify-between items-center mt-2">
@@ -195,20 +212,21 @@
                     </div>
                 </div>
 
-                {% if members_with_phones | length > 0 %}
                 <button 
                     type="submit" 
                     id="sendButton"
                     class="w-full text-white px-6 py-3 rounded-lg font-semibold text-lg transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
                     style="background-color: #085454 !important; hover:background-color: #064040 !important;">
                     <i class="fas fa-paper-plane mr-2"></i>
-                    Send Message to {{ members_with_phones | length }} Member{{ 's' if members_with_phones | length != 1 else '' }}
+                    Send Message to Group ({{ group.member_count }} Member{{ 's' if group.member_count != 1 else '' }})
                 </button>
-                {% else %}
-                <div class="text-center p-4 bg-orange-50 border border-orange-200 rounded-lg">
-                    <i class="fas fa-exclamation-triangle text-orange-600 text-2xl mb-2"></i>
-                    <h4 class="font-semibold text-orange-800 mb-1">Cannot Send Messages</h4>
-                    <p class="text-sm text-orange-700">No group members have phone numbers set up. Members need to add phone numbers in their Profile Settings.</p>
+                
+                {% if members_with_phones | length == 0 %}
+                <div class="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                    <div class="text-sm text-amber-800">
+                        <i class="fas fa-info-circle mr-2"></i>
+                        <strong>Note:</strong> No members have phone numbers in their profiles. The system will automatically check the club directory for phone numbers when sending.
+                    </div>
                 </div>
                 {% endif %}
             </form>
@@ -342,9 +360,14 @@ document.addEventListener('DOMContentLoaded', function() {
             const pickupGameTabContent = document.getElementById('pickupGameTabContent');
             const isGeneralTab = !generalTabContent.classList.contains('hidden');
             
+            console.log('Form submission - isGeneralTab:', isGeneralTab);
+            console.log('General tab hidden:', generalTabContent.classList.contains('hidden'));
+            console.log('Pickup tab hidden:', pickupGameTabContent.classList.contains('hidden'));
+            
             let message = '';
             
             if (isGeneralTab) {
+                console.log('Processing general message...');
                 message = messageText.value.trim();
                 if (!message) {
                     showError('Please enter a message');
@@ -357,21 +380,29 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             } else {
                 // Pickup game tab
+                console.log('Processing pickup game submission...');
                 const gameDate = document.getElementById('gameDate').value;
                 const gameTime = document.getElementById('gameTime').value;
                 const additionalMessage = pickupGameMessage.value.trim();
                 
+                console.log('Game date:', gameDate);
+                console.log('Game time:', gameTime);
+                console.log('Additional message:', additionalMessage);
+                
                 if (!gameDate || !gameTime) {
+                    console.log('Validation failed: missing date or time');
                     showError('Please select both date and time for the pickup game');
                     return;
                 }
                 
                 if (additionalMessage.length > 600) {
+                    console.log('Validation failed: message too long');
                     showError('Additional message is too long. Please keep it under 600 characters.');
                     return;
                 }
                 
                 // Format the pickup game message
+                console.log('Formatting pickup game message...');
                 const formattedDate = new Date(gameDate).toLocaleDateString('en-US', {
                     weekday: 'long',
                     year: 'numeric',
@@ -392,6 +423,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 
                 message += `\n\nSee you on the courts! 🎾`;
+                console.log('Final pickup game message:', message);
             }
             
             try {
@@ -418,7 +450,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (response.ok && result.success) {
                     // Show success modal
                     const details = result.details || {};
-                    const successMessage = `Successfully sent message to ${details.successful_sends || 0} member${(details.successful_sends || 0) === 1 ? '' : 's'}!`;
+                    let successMessage = `Successfully sent message to ${details.successful_sends || 0} member${(details.successful_sends || 0) === 1 ? '' : 's'}!`;
+                    
+                    // Add fallback information if any phone numbers were found in club directory
+                    if (details.members_with_directory_phones > 0) {
+                        successMessage += ` (${details.members_with_directory_phones} phone number${details.members_with_directory_phones === 1 ? '' : 's'} found in club directory)`;
+                    }
+                    
                     document.getElementById('successMessage').textContent = successMessage;
                     successModal.classList.remove('hidden');
                     
