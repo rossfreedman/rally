@@ -24,13 +24,18 @@ def check_prerequisites():
     # Check git status and auto-commit changes if any
     result = subprocess.run(['git', 'status', '--porcelain'], capture_output=True, text=True)
     if result.stdout.strip():
-        print("📝 Uncommitted changes detected. Auto-committing for staging deployment...")
+        print("📝 Uncommitted changes detected. Preparing to commit for staging deployment...")
         try:
             # Add all changes
             subprocess.run(['git', 'add', '.'], check=True)
             
-            # Generate descriptive commit message
-            commit_message = generate_descriptive_commit_message("staging")
+            # Prompt for a custom commit message
+            print("\nPlease enter a short commit message for this deployment (leave blank to auto-generate):")
+            user_message = input('> ').strip()
+            if user_message:
+                commit_message = user_message
+            else:
+                commit_message = generate_descriptive_commit_message("staging")
             subprocess.run(['git', 'commit', '-m', commit_message], check=True)
             
             print("✅ Changes committed automatically")
@@ -141,7 +146,6 @@ def generate_descriptive_commit_message(environment):
             if len(line) >= 3:
                 filename = line[3:].strip()
                 changed_files.append(filename)
-                
                 # Categorize file
                 if filename.startswith('templates/'):
                     file_categories["templates"].append(filename)
@@ -249,24 +253,30 @@ def generate_descriptive_commit_message(environment):
         if change_analysis["deletions"] > 0:
             change_summary.append(f"-{change_analysis['deletions']}")
         change_info = f"[{', '.join(change_summary)}]" if change_summary else ""
-        # --- Move priority features to the start ---
+        # --- Always show a prefix ---
+        prefix = None
         if priority_features:
-            feature_summary = ", ".join(priority_features)
+            prefix = ", ".join(priority_features)
+        else:
+            # Use the first non-empty category as prefix
+            for part in parts:
+                # Extract the category name (before '(')
+                cat = part.split('(')[0]
+                if cat:
+                    prefix = cat.strip()
+                    break
+        if prefix:
             if parts:
                 changes_summary = ", ".join(parts)
-                commit_message = f"{feature_summary} | Deploy to {environment} from {current_branch}: {changes_summary} {change_info} - {timestamp}"
+                commit_message = f"{prefix} | Deploy to {environment} from {current_branch}: {changes_summary} {change_info} - {timestamp}"
             else:
-                commit_message = f"{feature_summary} | Deploy to {environment} from {current_branch} {change_info} - {timestamp}"
-        elif parts:
-            changes_summary = ", ".join(parts)
-            commit_message = f"Deploy to {environment} from {current_branch}: {changes_summary} {change_info} - {timestamp}"
+                commit_message = f"{prefix} | Deploy to {environment} from {current_branch} {change_info} - {timestamp}"
         else:
             commit_message = f"Deploy to {environment} from {current_branch} - {len(changed_files)} files {change_info} - {timestamp}"
         # Keep message under reasonable length (increased to 120 for more descriptive messages)
         if len(commit_message) > 120:
-            if priority_features:
-                feature_summary = ", ".join(priority_features)
-                commit_message = f"{feature_summary} | Deploy to {environment} from {current_branch} {change_info} - {len(changed_files)} files - {timestamp}"
+            if prefix:
+                commit_message = f"{prefix} | Deploy to {environment} from {current_branch} {change_info} - {len(changed_files)} files - {timestamp}"
             else:
                 commit_message = f"Deploy to {environment} from {current_branch}: {len(changed_files)} files {change_info} - {timestamp}"
         return commit_message
