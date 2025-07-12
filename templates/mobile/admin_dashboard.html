@@ -780,6 +780,34 @@ function renderTimeline() {
               </p>
             ` : ''}
             
+            ${activity.player_name ? `
+              <p class="text-xs text-indigo-600 mt-1">
+                <i class="fas fa-user-circle mr-1"></i>
+                Player: ${activity.player_name}
+              </p>
+            ` : ''}
+            ${activity.team_name ? `
+              <p class="text-xs text-orange-600 mt-1">
+                <i class="fas fa-users mr-1"></i>
+                Team: ${activity.team_name}
+              </p>
+            ` : ''}
+            ${activity.club_name ? `
+              <p class="text-xs text-green-600 mt-1">
+                <i class="fas fa-building mr-1"></i>
+                Club: ${activity.club_name}
+              </p>
+            ` : ''}
+            ${activity.extra_data ? `
+              <details class="cursor-pointer mt-1">
+                <summary class="text-blue-600 hover:text-blue-800 text-xs font-medium flex items-center">
+                  <i class="fas fa-code text-xs mr-2"></i>
+                  View Extra Data
+                </summary>
+                <pre class="structured-data-display">${JSON.stringify(activity.extra_data, null, 2)}</pre>
+              </details>
+            ` : ''}
+            
             ${activity.player ? `
               <p class="text-xs text-gray-600 mt-1">
                 <i class="fas fa-user-circle mr-1"></i>

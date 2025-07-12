@@ -212,6 +212,9 @@ def get_recent_activities(
                     if activity["extra_data"]
                     else None
                 ),
+                "player_name": None,
+                "team_name": None,
+                "club_name": None,
             }
 
             # Add user info if available
@@ -228,6 +231,7 @@ def get_recent_activities(
                     "first_name": activity["player_first_name"],
                     "last_name": activity["player_last_name"],
                 }
+                formatted_activity["player_name"] = f"{activity['player_first_name']} {activity['player_last_name']}"
 
             # Add team info if available
             if activity["team_name"]:
@@ -236,6 +240,8 @@ def get_recent_activities(
                     "club_name": activity["club_name"],
                     "series_name": activity["series_name"],
                 }
+                formatted_activity["team_name"] = activity["team_name"]
+                formatted_activity["club_name"] = activity["club_name"]
 
             formatted_activities.append(formatted_activity)
 
@@ -882,6 +888,25 @@ def create_activity_description(
 
     # Handle page visits
     if activity_type == "page_visit":
+        # If details is a dict, try to extract a summary or join key fields
+        import json
+        try:
+            details_obj = json.loads(details) if details and details.strip().startswith('{') else details
+        except Exception:
+            details_obj = details
+        if details_obj:
+            if isinstance(details_obj, dict):
+                # Try to use a 'summary' or join key fields
+                summary = details_obj.get('summary')
+                if summary:
+                    return summary
+                # Join key fields for display
+                key_fields = [str(v) for k, v in details_obj.items() if v and k not in ('is_impersonating', 'page', 'page_category')]
+                if key_fields:
+                    return ", ".join(key_fields)
+            elif isinstance(details_obj, str) and details_obj.strip() and not details_obj.lower().startswith('visited'):
+                return details_obj
+        # Fallback to page name
         if page:
             page_name = format_page_name(page)
             return f"Visited {page_name}"
