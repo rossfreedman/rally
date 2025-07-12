@@ -442,7 +442,7 @@ def serve_mobile_player_detail(player_id):
         session["user"]["email"],
         "page_visit",
         page="mobile_player_detail",
-        details=f"Viewed player {player_name}",
+        details=f"Viewed player {player_name} (ID: {actual_player_id})"
     )
     return render_template(
         "mobile/player_detail.html",
@@ -1842,7 +1842,10 @@ def mobile_teams_players():
         }
 
         log_user_activity(
-            session["user"]["email"], "page_visit", page="mobile_teams_players"
+            session["user"]["email"],
+            "page_visit",
+            page="mobile_teams_players",
+            details="Visited Teams & Players page"
         )
 
         return render_template("mobile/teams_players.html", **template_data)

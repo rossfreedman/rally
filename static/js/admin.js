@@ -268,13 +268,19 @@ async function viewUserActivity(email) {
 
         // Populate desktop table view
         activities.forEach(activity => {
+            let detailsDisplay = activity.details || '-';
+            if ((activity.page === 'player_detail' || activity.page === 'mobile_player_detail') && activity.details) {
+                detailsDisplay = `Visited Player Detail: ${activity.details}`;
+            } else if (activity.page === 'mobile_teams_players') {
+                detailsDisplay = 'Visited Teams & Players';
+            }
             const row = document.createElement('tr');
             row.innerHTML = `
                 <td class="py-2">${new Date(activity.timestamp).toLocaleString()}</td>
                 <td class="py-2">${activity.activity_type || '-'}</td>
                 <td class="py-2">${activity.page || '-'}</td>
                 <td class="py-2">${activity.action || '-'}</td>
-                <td class="py-2">${activity.details || '-'}</td>
+                <td class="py-2">${detailsDisplay}</td>
                 <td class="py-2">${activity.ip_address || '-'}</td>
             `;
             tableBody.appendChild(row);
@@ -282,6 +288,12 @@ async function viewUserActivity(email) {
 
         // Populate mobile view
         activities.forEach(activity => {
+            let detailsDisplay = activity.details || '-';
+            if ((activity.page === 'player_detail' || activity.page === 'mobile_player_detail') && activity.details) {
+                detailsDisplay = `Visited Player Detail: ${activity.details}`;
+            } else if (activity.page === 'mobile_teams_players') {
+                detailsDisplay = 'Visited Teams & Players';
+            }
             const card = document.createElement('div');
             card.className = 'bg-white p-4 rounded-lg shadow-sm border';
             card.innerHTML = `
@@ -293,7 +305,7 @@ async function viewUserActivity(email) {
                     <div class="space-y-1">
                         <p class="text-sm"><span class="font-medium">Page:</span> ${activity.page || '-'}</p>
                         <p class="text-sm"><span class="font-medium">Action:</span> ${activity.action || '-'}</p>
-                        <p class="text-sm"><span class="font-medium">Details:</span> ${activity.details || '-'}</p>
+                        <p class="text-sm"><span class="font-medium">Details:</span> ${detailsDisplay}</p>
                         <p class="text-sm"><span class="font-medium">IP:</span> ${activity.ip_address || '-'}</p>
                     </div>
                 </div>
