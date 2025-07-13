@@ -1,0 +1,483 @@
+{% extends "mobile/layout.html" %}
+{% set show_back_arrow = True %}
+
+{% block title %}Team Notifications | Rally{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    
+    <!-- Header -->
+    <div class="bg-white border-b border-gray-100">
+        <div class="flex items-center px-4 py-6">
+            <div class="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center shadow-sm">
+                <i class="fas fa-bell text-white text-lg"></i>
+            </div>
+            <div class="ml-4">
+                <h1 class="text-xl font-bold text-gray-900">Team Notifications</h1>
+                <p class="text-sm text-gray-500">Send notifications to your team members</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content -->
+    <div class="px-4 py-6 space-y-6">
+        
+        <!-- Team Info Card -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-users text-blue-500 mr-2"></i>
+                    Team Information
+                </h3>
+                <button onclick="refreshTeamInfo()" class="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                    <i class="fas fa-sync-alt mr-1"></i> Refresh
+                </button>
+            </div>
+            
+            <div id="teamInfo" class="space-y-3">
+                <div class="flex items-center text-gray-500">
+                    <i class="fas fa-spinner fa-spin mr-2"></i>
+                    <span>Loading team information...</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Notification Templates -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-list text-green-500 mr-2"></i>
+                    Notification Templates
+                </h2>
+            </div>
+            
+            <div class="p-6">
+                <div class="grid grid-cols-1 gap-4" id="notificationTemplates">
+                    <div class="text-center text-gray-500 py-4">
+                        <i class="fas fa-spinner fa-spin mr-2"></i>
+                        Loading templates...
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Custom Message Form -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-edit text-purple-500 mr-2"></i>
+                    Custom Message
+                </h2>
+            </div>
+            
+            <div class="p-6">
+                <form id="customMessageForm" class="space-y-6">
+                    <!-- Message Content -->
+                    <div>
+                        <label for="messageContent" class="block text-sm font-medium text-gray-700 mb-2">
+                            Message Content <span class="text-red-500">*</span>
+                        </label>
+                        <textarea 
+                            id="messageContent" 
+                            name="messageContent"
+                            rows="4"
+                            placeholder="Enter your custom message here..."
+                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors resize-none"
+                            required
+                        ></textarea>
+                        <div class="flex justify-between items-center mt-2">
+                            <p class="text-sm text-gray-500">
+                                Maximum 1600 characters
+                            </p>
+                            <span id="characterCount" class="text-sm text-gray-500">0 / 1600</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Test Mode Toggle -->
+                    <div class="flex items-center space-x-3">
+                        <input 
+                            type="checkbox" 
+                            id="testMode" 
+                            name="testMode"
+                            class="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+                        >
+                        <label for="testMode" class="text-sm font-medium text-gray-700">
+                            Test Mode (validate only, don't actually send)
+                        </label>
+                    </div>
+                    
+                    <!-- Submit Button -->
+                    <div class="flex space-x-3">
+                        <button 
+                            type="submit" 
+                            id="sendButton"
+                            class="flex-1 bg-purple-600 text-white py-3 px-6 rounded-lg hover:bg-purple-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <i class="fas fa-paper-plane mr-2"></i>
+                            Send to Team
+                        </button>
+                        <button 
+                            type="button" 
+                            onclick="clearForm()"
+                            class="px-4 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                        >
+                            <i class="fas fa-eraser mr-1"></i>
+                            Clear
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Results Area -->
+        <div id="resultsArea" class="hidden bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <i class="fas fa-clipboard-list text-green-500 mr-2"></i>
+                Results
+            </h3>
+            <div id="resultsContent"></div>
+        </div>
+        
+        <!-- Recent Notifications History -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <i class="fas fa-history text-gray-500 mr-2"></i>
+                Recent Notifications
+            </h3>
+            <div id="notificationHistory" class="space-y-3">
+                <p class="text-gray-500 text-sm">Recent team notifications will appear here...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let teamInfo = {};
+let notificationTemplates = {};
+let notificationHistory = [];
+
+// Initialize page
+document.addEventListener('DOMContentLoaded', function() {
+    loadTeamInfo();
+    loadNotificationTemplates();
+    setupFormHandlers();
+    loadNotificationHistory();
+});
+
+async function loadTeamInfo() {
+    try {
+        const response = await fetch('/api/team-notifications/team-info');
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+            teamInfo = data.team_info;
+            displayTeamInfo(data.team_info);
+        } else {
+            throw new Error(data.error || 'Failed to load team info');
+        }
+    } catch (error) {
+        console.error('Error loading team info:', error);
+        document.getElementById('teamInfo').innerHTML = `
+            <div class="flex items-center text-red-600">
+                <i class="fas fa-exclamation-triangle mr-2"></i>
+                <span>Error loading team information: ${escapeHtml(error.message)}</span>
+            </div>
+        `;
+    }
+}
+
+function displayTeamInfo(info) {
+    const teamInfoElement = document.getElementById('teamInfo');
+    
+    teamInfoElement.innerHTML = `
+        <div class="space-y-3">
+            <div class="flex items-center text-green-600">
+                <i class="fas fa-check-circle mr-2"></i>
+                <span class="font-medium">Team loaded successfully</span>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div>
+                    <span class="font-medium text-gray-700">Team:</span>
+                    <span class="text-gray-600 ml-2">${escapeHtml(info.team_name)}</span>
+                </div>
+                <div>
+                    <span class="font-medium text-gray-700">League:</span>
+                    <span class="text-gray-600 ml-2">${escapeHtml(info.league_name)}</span>
+                </div>
+                <div>
+                    <span class="font-medium text-gray-700">Series:</span>
+                    <span class="text-gray-600 ml-2">${escapeHtml(info.series_name)}</span>
+                </div>
+                <div>
+                    <span class="font-medium text-gray-700">Members:</span>
+                    <span class="text-gray-600 ml-2">${info.member_count} players</span>
+                </div>
+            </div>
+            
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <div class="text-sm text-blue-800">
+                    <p class="font-medium mb-1">📱 SMS Recipients:</p>
+                    <p>${info.members_with_phones} members have phone numbers</p>
+                    <p class="text-xs mt-1">Only members with phone numbers will receive SMS notifications</p>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+async function loadNotificationTemplates() {
+    try {
+        const response = await fetch('/api/team-notifications/templates');
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+            notificationTemplates = data.templates;
+            displayNotificationTemplates();
+        } else {
+            throw new Error(data.error || 'Failed to load templates');
+        }
+    } catch (error) {
+        console.error('Error loading notification templates:', error);
+        document.getElementById('notificationTemplates').innerHTML = `
+            <div class="text-center text-red-500 py-4">
+                <i class="fas fa-exclamation-triangle mr-2"></i>
+                Error loading templates
+            </div>
+        `;
+    }
+}
+
+function displayNotificationTemplates() {
+    const container = document.getElementById('notificationTemplates');
+    
+    const templateButtons = Object.entries(notificationTemplates).map(([key, template]) => {
+        return `
+            <button 
+                type="button" 
+                onclick="useTemplate('${key}')"
+                class="text-left p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors w-full"
+            >
+                <div class="flex items-start justify-between">
+                    <div class="flex-1">
+                        <div class="font-medium text-sm text-gray-900 mb-1">${escapeHtml(template.title)}</div>
+                        <div class="text-xs text-gray-500 mb-2">${escapeHtml(template.description)}</div>
+                        <div class="text-xs text-gray-600 line-clamp-2">${escapeHtml(template.message.substring(0, 100))}${template.message.length > 100 ? '...' : ''}</div>
+                    </div>
+                    <div class="ml-3">
+                        <i class="fas fa-chevron-right text-gray-400"></i>
+                    </div>
+                </div>
+            </button>
+        `;
+    }).join('');
+    
+    container.innerHTML = templateButtons;
+}
+
+function useTemplate(templateKey) {
+    const template = notificationTemplates[templateKey];
+    if (template) {
+        document.getElementById('messageContent').value = template.message;
+        updateCharacterCount();
+        
+        // Scroll to the custom message form
+        document.getElementById('messageContent').scrollIntoView({ behavior: 'smooth' });
+    }
+}
+
+function setupFormHandlers() {
+    const form = document.getElementById('customMessageForm');
+    const messageContent = document.getElementById('messageContent');
+    
+    // Character count
+    messageContent.addEventListener('input', updateCharacterCount);
+    
+    // Form submission
+    form.addEventListener('submit', handleFormSubmit);
+}
+
+function updateCharacterCount() {
+    const textarea = document.getElementById('messageContent');
+    const counter = document.getElementById('characterCount');
+    const length = textarea.value.length;
+    
+    counter.textContent = `${length} / 1600`;
+    
+    if (length > 1600) {
+        counter.classList.add('text-red-500');
+        counter.classList.remove('text-gray-500');
+    } else {
+        counter.classList.remove('text-red-500');
+        counter.classList.add('text-gray-500');
+    }
+}
+
+async function handleFormSubmit(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    const messageContent = formData.get('messageContent').trim();
+    const testMode = formData.has('testMode');
+    
+    // Validation
+    if (!messageContent) {
+        showResults({
+            success: false,
+            error: 'Message content is required'
+        });
+        return;
+    }
+    
+    if (messageContent.length > 1600) {
+        showResults({
+            success: false,
+            error: 'Message too long (max 1600 characters)'
+        });
+        return;
+    }
+    
+    // Disable form
+    const sendButton = document.getElementById('sendButton');
+    const originalText = sendButton.innerHTML;
+    sendButton.disabled = true;
+    sendButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Sending...';
+    
+    try {
+        const response = await fetch('/api/team-notifications/send', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                message: messageContent,
+                test_mode: testMode
+            })
+        });
+        
+        const result = await response.json();
+        
+        // Add to history
+        addToNotificationHistory({
+            timestamp: new Date().toISOString(),
+            message: messageContent.substring(0, 50) + (messageContent.length > 50 ? '...' : ''),
+            testMode: testMode,
+            success: result.success,
+            result: result
+        });
+        
+        showResults(result);
+        
+        // Clear form on success
+        if (result.success && !testMode) {
+            clearForm();
+        }
+        
+    } catch (error) {
+        console.error('Error sending team notification:', error);
+        showResults({
+            success: false,
+            error: 'Network error: ' + error.message
+        });
+    } finally {
+        // Re-enable form
+        sendButton.disabled = false;
+        sendButton.innerHTML = originalText;
+    }
+}
+
+function showResults(result) {
+    const resultsArea = document.getElementById('resultsArea');
+    const resultsContent = document.getElementById('resultsContent');
+    
+    resultsArea.classList.remove('hidden');
+    
+    if (result.success) {
+        resultsContent.innerHTML = `
+            <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                <div class="flex items-center text-green-800 mb-3">
+                    <i class="fas fa-check-circle mr-2"></i>
+                    <span class="font-medium">Notification sent successfully!</span>
+                </div>
+                <div class="text-sm text-green-700 space-y-1">
+                    <p><strong>Message:</strong> ${escapeHtml(result.message)}</p>
+                    <p><strong>Recipients:</strong> ${result.recipients_sent || 0} team members</p>
+                    <p><strong>Failed:</strong> ${result.recipients_failed || 0} team members</p>
+                    ${result.test_mode ? '<p><strong>Mode:</strong> Test mode (not actually sent)</p>' : ''}
+                </div>
+            </div>
+        `;
+    } else {
+        resultsContent.innerHTML = `
+            <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                <div class="flex items-center text-red-800 mb-3">
+                    <i class="fas fa-exclamation-triangle mr-2"></i>
+                    <span class="font-medium">Failed to send notification</span>
+                </div>
+                <div class="text-sm text-red-700">
+                    <p><strong>Error:</strong> ${escapeHtml(result.error)}</p>
+                </div>
+            </div>
+        `;
+    }
+}
+
+function clearForm() {
+    document.getElementById('customMessageForm').reset();
+    document.getElementById('messageContent').value = '';
+    updateCharacterCount();
+    document.getElementById('resultsArea').classList.add('hidden');
+}
+
+function refreshTeamInfo() {
+    loadTeamInfo();
+}
+
+function loadNotificationHistory() {
+    // For now, just show a placeholder
+    // In the future, this could load from a database
+    document.getElementById('notificationHistory').innerHTML = `
+        <p class="text-gray-500 text-sm">No recent notifications yet.</p>
+    `;
+}
+
+function addToNotificationHistory(notification) {
+    notificationHistory.unshift(notification);
+    
+    // Keep only last 10 notifications
+    if (notificationHistory.length > 10) {
+        notificationHistory = notificationHistory.slice(0, 10);
+    }
+    
+    // Update display
+    const historyContainer = document.getElementById('notificationHistory');
+    if (notificationHistory.length === 1) {
+        // First notification, replace placeholder
+        historyContainer.innerHTML = '';
+    }
+    
+    const notificationElement = document.createElement('div');
+    notificationElement.className = 'flex items-center justify-between p-3 bg-gray-50 rounded-lg';
+    notificationElement.innerHTML = `
+        <div class="flex-1">
+            <div class="text-sm font-medium text-gray-900">${escapeHtml(notification.message)}</div>
+            <div class="text-xs text-gray-500">${new Date(notification.timestamp).toLocaleString()}</div>
+        </div>
+        <div class="ml-3">
+            ${notification.success ? 
+                '<i class="fas fa-check-circle text-green-500"></i>' : 
+                '<i class="fas fa-times-circle text-red-500"></i>'
+            }
+        </div>
+    `;
+    
+    historyContainer.insertBefore(notificationElement, historyContainer.firstChild);
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+</script>
+{% endblock %} 

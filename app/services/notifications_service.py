@@ -284,6 +284,205 @@ def _send_sms_with_retry(formatted_phone: str, message: str, max_retries: int) -
     }
 
 
+def send_mms_notification(to_number: str, message: str, test_mode: bool = False, max_retries: int = 3) -> Dict:
+    """
+    Send an MMS using Twilio's API with retry logic for error 21704
+    
+    Args:
+        to_number (str): Recipient phone number
+        message (str): Message content
+        test_mode (bool): If True, validates but doesn't actually send
+        max_retries (int): Maximum number of retry attempts for error 21704
+        
+    Returns:
+        Dict: Result with status, message_sid, and any errors
+    """
+    
+    # Validate configuration
+    config_status = TwilioConfig.validate_config()
+    if not config_status["is_valid"]:
+        return {
+            "success": False,
+            "error": f"Twilio not configured. Missing: {', '.join(config_status['missing_vars'])}",
+            "status_code": None,
+            "message_sid": None
+        }
+    
+    # Validate phone number
+    is_valid_phone, phone_result = validate_phone_number(to_number)
+    if not is_valid_phone:
+        return {
+            "success": False,
+            "error": phone_result,
+            "status_code": None,
+            "message_sid": None
+        }
+    
+    formatted_phone = phone_result
+    
+    # Validate message
+    if not message or not message.strip():
+        return {
+            "success": False,
+            "error": "Message content is required",
+            "status_code": None,
+            "message_sid": None
+        }
+    
+    if len(message) > 1600:  # Twilio's MMS limit
+        return {
+            "success": False,
+            "error": "Message too long (max 1600 characters)",
+            "status_code": None,
+            "message_sid": None
+        }
+    
+    # Test mode - validate but don't send
+    if test_mode:
+        return {
+            "success": True,
+            "message": "Test mode - MMS validated successfully",
+            "formatted_phone": formatted_phone,
+            "message_length": len(message),
+            "status_code": 200,
+            "message_sid": "test_mms_id"
+        }
+    
+    # Send MMS with retry logic for error 21704
+    return _send_mms_with_retry(formatted_phone, message, max_retries)
+
+
+def _send_mms_with_retry(formatted_phone: str, message: str, max_retries: int) -> Dict:
+    """
+    Send MMS with exponential backoff retry for error 21704
+    
+    Args:
+        formatted_phone (str): Validated phone number
+        message (str): Message content
+        max_retries (int): Maximum retry attempts
+        
+    Returns:
+        Dict: Result with status, message_sid, and any errors
+    """
+    
+    # Prepare API request
+    url = f"https://api.twilio.com/2010-04-01/Accounts/{TwilioConfig.ACCOUNT_SID}/Messages.json"
+    auth = HTTPBasicAuth(TwilioConfig.ACCOUNT_SID, TwilioConfig.AUTH_TOKEN)
+    
+    # MMS data (with media)
+    mms_data = {
+        "To": formatted_phone,
+        "From": TwilioConfig.SENDER_PHONE,
+        "Body": message,
+        # Use publicly accessible Rally logo for MMS
+        "MediaUrl": "https://www.lovetorally.com/static/rallylogo.png"
+    }
+    
+    last_error = None
+    last_response_data = None
+    
+    for attempt in range(max_retries + 1):  # +1 for initial attempt
+        try:
+            if attempt > 0:
+                # Calculate exponential backoff delay
+                delay = min(2 ** attempt, 60)  # Max 60 seconds
+                logger.info(f"MMS retry {attempt}/{max_retries} in {delay}s")
+                time.sleep(delay)
+            
+            logger.info(f"Sending MMS to {formatted_phone} via Twilio (attempt {attempt + 1}/{max_retries + 1})")
+            
+            response = requests.post(
+                url,
+                data=mms_data,
+                auth=auth,
+                timeout=30
+            )
+            
+            response_data = response.json()
+            last_response_data = response_data
+            
+            if response.status_code == 201:  # Twilio success status
+                success_msg = "MMS sent successfully"
+                if attempt > 0:
+                    success_msg += f" (succeeded on retry {attempt})"
+                
+                logger.info(f"{success_msg}. Message SID: {response_data.get('sid')}")
+                return {
+                    "success": True,
+                    "message": success_msg,
+                    "status_code": response.status_code,
+                    "message_sid": response_data.get("sid"),
+                    "formatted_phone": formatted_phone,
+                    "message_length": len(message),
+                    "twilio_status": response_data.get("status"),
+                    "price": response_data.get("price"),
+                    "date_sent": response_data.get("date_sent"),
+                    "retry_attempt": attempt,
+                    "sending_method": "mms"
+                }
+            else:
+                error_message = response_data.get("message", "Unknown Twilio error")
+                error_code = response_data.get("code")
+                
+                # Check if this is error 21704 (provider disruption) - retry if we have attempts left
+                if error_code == 21704 and attempt < max_retries:
+                    logger.warning(f"Error 21704 (provider disruption) on attempt {attempt + 1}, will retry...")
+                    last_error = f"Twilio error 21704: {error_message}"
+                    continue
+                
+                # If not 21704, don't retry
+                logger.error(f"Twilio API error {response.status_code}: {error_message} (Code: {error_code})")
+                return {
+                    "success": False,
+                    "error": f"Twilio error: {error_message}",
+                    "error_code": error_code,
+                    "status_code": response.status_code,
+                    "message_sid": None,
+                    "raw_response": response_data,
+                    "final_attempt": attempt + 1,
+                    "max_retries": max_retries,
+                    "sending_method": "mms"
+                }
+                    
+        except requests.exceptions.Timeout:
+            logger.error(f"MMS request timed out (attempt {attempt + 1})")
+            last_error = "Request timed out"
+            if attempt < max_retries:
+                continue
+            else:
+                break
+                
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Network error sending MMS (attempt {attempt + 1}): {str(e)}")
+            last_error = f"Network error: {str(e)}"
+            if attempt < max_retries:
+                continue
+            else:
+                break
+                
+        except Exception as e:
+            error_msg = f"Unexpected error (attempt {attempt + 1}): {str(e)}"
+            logger.error(error_msg)
+            last_error = f"Unexpected error: {str(e)}"
+            # Don't retry unexpected errors
+            break
+    
+    # All retries exhausted
+    final_error = last_error or "All retry attempts failed"
+    logger.error(f"MMS sending failed after {max_retries + 1} attempts: {final_error}")
+    
+    return {
+        "success": False,
+        "error": f"Failed after {max_retries + 1} attempts: {final_error}",
+        "status_code": None,
+        "message_sid": None,
+        "final_attempt": attempt + 1,
+        "max_retries": max_retries,
+        "last_response": last_response_data,
+        "sending_method": "mms"
+    }
+
+
 def get_predefined_messages() -> Dict[str, str]:
     """
     Get predefined test messages for the admin interface
@@ -299,6 +498,42 @@ def get_predefined_messages() -> Dict[str, str]:
         "league_update": "League standings have been updated! Check your team's position: https://rally.link/standings",
         "weather_alert": "Weather alert: Tonight's outdoor matches may be delayed due to rain. Stay tuned for updates.",
         "tournament_announcement": "Tournament registration is now open! Sign up before spots fill: https://rally.link/tournament"
+    }
+
+
+def get_team_notification_templates() -> Dict[str, Dict[str, str]]:
+    """
+    Get predefined team notification templates for captains
+    
+    Returns:
+        Dict[str, Dict[str, str]]: Dictionary of template objects with title, description, and message
+    """
+    return {
+        "match_reminder": {
+            "title": "Match Reminder",
+            "description": "Remind team about upcoming match",
+            "message": "🏓 Match Reminder: Don't forget about tonight's match! Please arrive 15 minutes early. Let me know if you can't make it."
+        },
+        "practice_reminder": {
+            "title": "Practice Reminder", 
+            "description": "Remind team about practice session",
+            "message": "🏓 Practice Reminder: Practice tonight at 7:00pm. Please bring your paddle and water. See you there!"
+        },
+        "availability_update": {
+            "title": "Update Availability",
+            "description": "Ask team to update their availability",
+            "message": "📅 Please update your availability for this week's matches. Go to Rally app and mark your availability. Thanks!"
+        },
+        "team_poll": {
+            "title": "Send a Poll",
+            "description": "Create a quick team poll",
+            "message": "📊 Quick Poll: What time works best for practice this week? Reply with your preference: 6pm, 7pm, or 8pm."
+        },
+        "court_assignments": {
+            "title": "Court Assignments",
+            "description": "Share court assignments with team",
+            "message": "🎾 Court Assignments: Check the Rally app for your court assignments for tonight's match. Good luck everyone!"
+        }
     }
 
 

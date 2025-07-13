@@ -1,0 +1,174 @@
+{% extends "mobile/layout.html" %}
+{% set show_back_arrow = False %}
+
+{% block title %}Lineup Escrow™ Access | Rally{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 flex items-center justify-center px-4">
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden max-w-md w-full">
+        <div class="p-8">
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-lock text-blue-500 text-2xl"></i>
+                </div>
+                
+                <h1 class="text-xl font-bold text-gray-900 mb-2">
+                    Lineup Escrow<span class="align-super text-xs ml-1">™</span> Access
+                </h1>
+                
+                <p class="text-sm text-gray-600">
+                    {% if error %}
+                        {{ error }}
+                    {% else %}
+                        Contact information is required to view this lineup escrow.
+                    {% endif %}
+                </p>
+            </div>
+            
+            <!-- Contact Form -->
+            <form id="contact-form" class="space-y-4">
+                <div>
+                    <label for="contact-info" class="block text-sm font-medium text-gray-700 mb-2">
+                        Your Contact Information
+                    </label>
+                    <input 
+                        type="text" 
+                        id="contact-info"
+                        class="w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                        placeholder="Enter your email or phone number"
+                        required
+                    />
+                    <p class="text-xs text-gray-500 mt-1">
+                        Use the same contact information that was used to send you this escrow.
+                    </p>
+                </div>
+                
+                <button 
+                    type="submit"
+                    class="w-full bg-blue-600 text-white rounded-lg px-6 py-3 shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-102 font-semibold"
+                >
+                    Access Escrow
+                </button>
+            </form>
+            
+            <!-- Alternative Actions -->
+            <div class="mt-6 space-y-3">
+                <a href="/mobile" class="w-full bg-gray-600 text-white rounded-lg px-6 py-3 shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-102 inline-flex items-center justify-center">
+                    <i class="fas fa-home text-white text-base mr-2 opacity-90"></i>
+                    <span class="text-lg font-semibold">Go to Rally</span>
+                </a>
+                
+                <button onclick="window.history.back()" class="w-full bg-gray-500 text-white rounded-lg px-6 py-3 shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-102 inline-flex items-center justify-center">
+                    <i class="fas fa-arrow-left text-white text-base mr-2 opacity-90"></i>
+                    <span class="text-lg font-semibold">Go Back</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Custom styles for modern mobile design */
+.min-h-screen {
+    min-height: 100vh;
+}
+
+/* iOS-style card enhancements */
+.ios-card {
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+/* Hover effects */
+.hover\:scale-102:hover {
+    transform: scale(1.02);
+}
+
+/* Transitions */
+.transition-all {
+    transition: all 0.2s ease-in-out;
+}
+
+/* Colors */
+.bg-blue-600 { background-color: #2563eb !important; }
+.bg-gray-600 { background-color: #4b5563 !important; }
+.bg-gray-500 { background-color: #6b7280 !important; }
+
+.text-blue-600 { color: #2563eb !important; }
+.text-blue-500 { color: #3b82f6 !important; }
+
+.bg-blue-100 { background-color: #dbeafe !important; }
+
+/* Typography */
+.font-semibold { font-weight: 600 !important; }
+.font-bold { font-weight: 700 !important; }
+
+/* Layout */
+.flex { display: flex !important; }
+.items-center { align-items: center !important; }
+.justify-center { justify-content: center !important; }
+.inline-flex { display: inline-flex !important; }
+
+/* Spacing */
+.px-4 { padding-left: 1rem; padding-right: 1rem; }
+.px-6 { padding-left: 1.5rem; padding-right: 1.5rem; }
+.px-3 { padding-left: 0.75rem; padding-right: 0.75rem; }
+.py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+.p-8 { padding: 2rem; }
+.mb-2 { margin-bottom: 0.5rem; }
+.mb-4 { margin-bottom: 1rem; }
+.mb-6 { margin-bottom: 1.5rem; }
+.mt-1 { margin-top: 0.25rem; }
+.mt-6 { margin-top: 1.5rem; }
+.mr-2 { margin-right: 0.5rem; }
+
+/* Opacity */
+.opacity-75 { opacity: 0.75; }
+.opacity-90 { opacity: 0.9; }
+
+/* Font Awesome icons */
+.fas, .fa {
+    font-family: "Font Awesome 6 Free" !important;
+    font-weight: 900 !important;
+    font-style: normal !important;
+    display: inline-block !important;
+}
+
+/* Responsive design */
+@media (max-width: 640px) {
+    .px-6 { padding-left: 1rem; padding-right: 1rem; }
+    .py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+    .text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+    .text-lg { font-size: 1.125rem; line-height: 1.75rem; }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const form = document.getElementById('contact-form');
+    if (!form) return;
+    
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        
+        const contactInfo = document.getElementById('contact-info').value.trim();
+        
+        if (!contactInfo) {
+            alert('Please enter your contact information.');
+            return;
+        }
+        
+        // Get the escrow token from the URL
+        const escrowToken = window.location.pathname.split('/').pop();
+        
+        // Construct the correct URL with contact parameter
+        const correctUrl = `/mobile/lineup-escrow-view/${escrowToken}?contact=${encodeURIComponent(contactInfo)}`;
+        
+        // Redirect to the correct URL
+        window.location.href = correctUrl;
+    });
+});
+</script>
+
+{% endblock %} 

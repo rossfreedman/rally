@@ -657,3 +657,68 @@ def set_detailed_logging_notifications_setting(enabled, admin_email):
     except Exception as e:
         print(f"Error setting detailed logging notifications: {str(e)}")
         raise e
+
+
+    def get_lineup_escrow_analytics(self):
+        """Get analytics for lineup escrow usage."""
+        try:
+            # Get total escrow sessions
+            total_sessions = self.db.execute("""
+                SELECT COUNT(*) as total_sessions,
+                       COUNT(CASE WHEN status = 'completed' THEN 1 END) as completed_sessions,
+                       COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_sessions,
+                       COUNT(CASE WHEN status = 'expired' THEN 1 END) as expired_sessions
+                FROM lineup_escrow_sessions
+            """).fetchone()
+            
+            # Get usage by team
+            team_usage = self.db.execute("""
+                SELECT t.name as team_name, l.name as league_name,
+                       COUNT(*) as sessions_created,
+                       COUNT(CASE WHEN les.status = 'completed' THEN 1 END) as completed_sessions
+                FROM lineup_escrow_sessions les
+                JOIN teams t ON les.team_id = t.id
+                JOIN leagues l ON t.league_id = l.id
+                GROUP BY t.id, t.name, l.name
+                ORDER BY sessions_created DESC
+                LIMIT 20
+            """).fetchall()
+            
+            # Get recent activity
+            recent_activity = self.db.execute("""
+                SELECT les.id, les.created_at, les.status,
+                       t.name as team_name, l.name as league_name,
+                       u.email as created_by
+                FROM lineup_escrow_sessions les
+                JOIN teams t ON les.team_id = t.id
+                JOIN leagues l ON t.league_id = l.id
+                JOIN users u ON les.created_by_user_id = u.id
+                ORDER BY les.created_at DESC
+                LIMIT 50
+            """).fetchall()
+            
+            # Get saved lineups stats
+            saved_lineups_stats = self.db.execute("""
+                SELECT COUNT(*) as total_saved,
+                       COUNT(DISTINCT user_id) as users_with_saved,
+                       COUNT(DISTINCT team_id) as teams_with_saved
+                FROM saved_lineups
+            """).fetchone()
+            
+            return {
+                'total_sessions': total_sessions['total_sessions'],
+                'completed_sessions': total_sessions['completed_sessions'],
+                'pending_sessions': total_sessions['pending_sessions'],
+                'expired_sessions': total_sessions['expired_sessions'],
+                'completion_rate': (total_sessions['completed_sessions'] / total_sessions['total_sessions'] * 100) if total_sessions['total_sessions'] > 0 else 0,
+                'team_usage': team_usage,
+                'recent_activity': recent_activity,
+                'saved_lineups': {
+                    'total_saved': saved_lineups_stats['total_saved'],
+                    'users_with_saved': saved_lineups_stats['users_with_saved'],
+                    'teams_with_saved': saved_lineups_stats['teams_with_saved']
+                }
+            }
+        except Exception as e:
+            logger.error(f"Error getting lineup escrow analytics: {e}")
+            return None

@@ -133,6 +133,9 @@ def run_ui_tests(args):
         cmd.extend(["-m", "critical"])
     elif args.marker:
         cmd.extend(["-m", args.marker])
+    else:
+        # Default to running all UI tests
+        cmd.extend(["-m", "ui"])
 
     # Add specific test files
     if args.registration:
@@ -141,6 +144,13 @@ def run_ui_tests(args):
         cmd.append("ui_tests/test_schedule_ui.py")
     elif args.polls:
         cmd.append("ui_tests/test_poll_ui.py")
+    elif args.availability:
+        cmd.append("ui_tests/test_availability_ui.py")
+    elif args.pickup_games:
+        cmd.append("ui_tests/test_pickup_games_ui.py")
+    elif args.mass_user:
+        # Run mass user testing directly
+        return run_mass_user_testing(args)
 
     # Add reporting options
     if args.html_report:
@@ -249,6 +259,45 @@ def debug_ui_test(args):
         print_warning("Debug session interrupted")
 
 
+def run_mass_user_testing(args):
+    """Run mass user testing with APTA_CHICAGO players data"""
+    print_status("Running mass user testing...")
+    
+    try:
+        # Import and run mass user testing
+        from ui_tests.test_mass_user_ui import MassUserTestRunner
+        
+        # Create test runner with specified number of users
+        runner = MassUserTestRunner(
+            num_users=args.num_users, 
+            test_types=['registration', 'availability', 'pickup_games']
+        )
+        
+        # Load and select users
+        runner.load_players_data()
+        runner.select_test_users()
+        
+        # Run tests
+        runner.run_all_tests()
+        
+        # Generate and save report
+        report = runner.generate_report()
+        report_filename = runner.save_report(report)
+        
+        print_success(f"Mass user testing completed!")
+        print_status(f"Report saved to: {report_filename}")
+        
+        # Calculate and display success rate
+        success_rate = sum(1 for r in runner.results if r.success) / len(runner.results) * 100
+        print_status(f"Success rate: {success_rate:.1f}%")
+        
+        return success_rate >= 85  # Consider successful if 85%+ tests pass
+        
+    except Exception as e:
+        print_error(f"Mass user testing failed: {e}")
+        return False
+
+
 def generate_test_report(args):
     """Generate a comprehensive UI test report"""
     print_status("Generating UI test report...")
@@ -342,6 +391,15 @@ Examples:
     )
     test_group.add_argument("--polls", action="store_true", help="Run polls UI tests")
     test_group.add_argument(
+        "--availability", action="store_true", help="Run availability UI tests"
+    )
+    test_group.add_argument(
+        "--pickup-games", action="store_true", help="Run pickup games UI tests"
+    )
+    test_group.add_argument(
+        "--mass-user", action="store_true", help="Run mass user testing with 100 APTA_CHICAGO users"
+    )
+    test_group.add_argument(
         "--debug",
         action="store_true",
         help="Run in debug mode (headed browser, verbose output)",
@@ -389,6 +447,9 @@ Examples:
     )
     parser.add_argument(
         "--timeout", type=int, default=300, help="Test timeout in seconds"
+    )
+    parser.add_argument(
+        "--num-users", type=int, default=100, help="Number of users for mass user testing (default: 100)"
     )
 
     # Output options
@@ -472,9 +533,11 @@ Examples:
         return  # Debug mode doesn't return success/failure
     elif args.report:
         success = generate_test_report(args)
+    elif args.mass_user:
+        success = run_mass_user_testing(args)
     else:
         # Default to running all tests if no specific selection
-        if not any([args.registration, args.schedule, args.polls]):
+        if not any([args.registration, args.schedule, args.polls, args.availability, args.pickup_games]):
             args.all = True
         success = run_ui_tests(args)
 

@@ -1,0 +1,122 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Lineup Escrow Analytics{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold mb-8">Lineup Escrow Analytics</h1>
+    
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-lg font-semibold text-gray-700">Total Sessions</h3>
+            <p class="text-3xl font-bold text-blue-600">{{ analytics.total_sessions }}</p>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-lg font-semibold text-gray-700">Completed</h3>
+            <p class="text-3xl font-bold text-green-600">{{ analytics.completed_sessions }}</p>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-lg font-semibold text-gray-700">Pending</h3>
+            <p class="text-3xl font-bold text-yellow-600">{{ analytics.pending_sessions }}</p>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow p-6">
+            <h3 class="text-lg font-semibold text-gray-700">Completion Rate</h3>
+            <p class="text-3xl font-bold text-purple-600">{{ "%.1f"|format(analytics.completion_rate) }}%</p>
+        </div>
+    </div>
+    
+    <!-- Saved Lineups Stats -->
+    <div class="bg-white rounded-lg shadow p-6 mb-8">
+        <h2 class="text-xl font-bold mb-4">Saved Lineups Statistics</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="text-center">
+                <p class="text-2xl font-bold text-blue-600">{{ analytics.saved_lineups.total_saved }}</p>
+                <p class="text-gray-600">Total Saved</p>
+            </div>
+            <div class="text-center">
+                <p class="text-2xl font-bold text-green-600">{{ analytics.saved_lineups.users_with_saved }}</p>
+                <p class="text-gray-600">Users with Saved</p>
+            </div>
+            <div class="text-center">
+                <p class="text-2xl font-bold text-purple-600">{{ analytics.saved_lineups.teams_with_saved }}</p>
+                <p class="text-gray-600">Teams with Saved</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Team Usage -->
+    <div class="bg-white rounded-lg shadow p-6 mb-8">
+        <h2 class="text-xl font-bold mb-4">Usage by Team</h2>
+        <div class="overflow-x-auto">
+            <table class="min-w-full table-auto">
+                <thead>
+                    <tr class="bg-gray-50">
+                        <th class="px-4 py-2 text-left">Team</th>
+                        <th class="px-4 py-2 text-left">League</th>
+                        <th class="px-4 py-2 text-center">Sessions Created</th>
+                        <th class="px-4 py-2 text-center">Completed</th>
+                        <th class="px-4 py-2 text-center">Success Rate</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for team in analytics.team_usage %}
+                    <tr class="border-b">
+                        <td class="px-4 py-2">{{ team.team_name }}</td>
+                        <td class="px-4 py-2">{{ team.league_name }}</td>
+                        <td class="px-4 py-2 text-center">{{ team.sessions_created }}</td>
+                        <td class="px-4 py-2 text-center">{{ team.completed_sessions }}</td>
+                        <td class="px-4 py-2 text-center">
+                            {% if team.sessions_created > 0 %}
+                                {{ "%.1f"|format(team.completed_sessions / team.sessions_created * 100) }}%
+                            {% else %}
+                                0%
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Recent Activity -->
+    <div class="bg-white rounded-lg shadow p-6">
+        <h2 class="text-xl font-bold mb-4">Recent Activity</h2>
+        <div class="overflow-x-auto">
+            <table class="min-w-full table-auto">
+                <thead>
+                    <tr class="bg-gray-50">
+                        <th class="px-4 py-2 text-left">Date</th>
+                        <th class="px-4 py-2 text-left">Team</th>
+                        <th class="px-4 py-2 text-left">League</th>
+                        <th class="px-4 py-2 text-left">Status</th>
+                        <th class="px-4 py-2 text-left">Created By</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for activity in analytics.recent_activity %}
+                    <tr class="border-b">
+                        <td class="px-4 py-2">{{ activity.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td class="px-4 py-2">{{ activity.team_name }}</td>
+                        <td class="px-4 py-2">{{ activity.league_name }}</td>
+                        <td class="px-4 py-2">
+                            <span class="px-2 py-1 rounded text-sm font-medium
+                                {% if activity.status == 'completed' %}bg-green-100 text-green-800
+                                {% elif activity.status == 'pending' %}bg-yellow-100 text-yellow-800
+                                {% else %}bg-red-100 text-red-800{% endif %}">
+                                {{ activity.status.title() }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-2">{{ activity.created_by }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -5,12 +5,15 @@ import time
 from datetime import datetime, timedelta
 
 from flask import jsonify, render_template, request, session
+from flask_login import login_required
 
+from app.models.database_models import SessionLocal
+from app.services.lineup_escrow_service import LineupEscrowService
 from utils.ai import client, get_or_create_assistant
 from utils.auth import login_required
 from utils.db import execute_query, execute_query_one, execute_update
 from utils.logging import log_user_activity
-from utils.series_matcher import normalize_series_for_display
+from utils.series_mapping_service import get_display_name
 
 # Simple in-memory cache for lineup suggestions
 LINEUP_CACHE = {}
@@ -736,7 +739,7 @@ def init_lineup_routes(app):
                 return jsonify({"error": "No players selected"}), 400
 
             user_series = session["user"].get("series", "")
-            display_series = normalize_series_for_display(user_series)
+            display_series = get_display_name(user_series)
 
             start_time = time.time()
 
@@ -774,3 +777,267 @@ def init_lineup_routes(app):
         except Exception as e:
             print(f"Error generating lineup: {str(e)}")
             return jsonify({"error": str(e)}), 500
+
+    # Lineup Escrow API Endpoints
+    @app.route("/api/lineup-escrow/create", methods=["POST"])
+    @login_required
+    def create_lineup_escrow():
+        """Create a new lineup escrow session"""
+        try:
+            data = request.json
+            user = session["user"]
+            
+            # Validate required fields
+            required_fields = ["recipient_name", "recipient_contact", "contact_type", "initiator_lineup", "message_body"]
+            for field in required_fields:
+                if not data.get(field):
+                    return jsonify({"error": f"{field} is required"}), 400
+            
+            # Validate contact type
+            if data["contact_type"] not in ["email", "sms"]:
+                return jsonify({"error": "contact_type must be 'email' or 'sms'"}), 400
+            
+            with SessionLocal() as db_session:
+                escrow_service = LineupEscrowService(db_session)
+                
+                result = escrow_service.create_escrow_session(
+                    initiator_user_id=user["id"],
+                    recipient_name=data["recipient_name"],
+                    recipient_contact=data["recipient_contact"],
+                    contact_type=data["contact_type"],
+                    initiator_lineup=data["initiator_lineup"],
+                    subject=data.get("subject", "Lineup Escrow™"),
+                    message_body=data["message_body"],
+                    initiator_team_id=data.get("initiator_team_id"),
+                    recipient_team_id=data.get("recipient_team_id"),
+                    expires_in_hours=data.get("expires_in_hours", 48)
+                )
+                
+                if result["success"]:
+                    # Send notification to recipient
+                    if data["contact_type"] == "email":
+                        escrow_service.notify_recipient_team(
+                            escrow_id=result["escrow_id"],
+                            recipient_team_name=data["recipient_name"],
+                            recipient_captain_email=data["recipient_contact"]
+                        )
+                    
+                    return jsonify(result)
+                else:
+                    return jsonify(result), 400
+                    
+        except Exception as e:
+            print(f"Error creating lineup escrow: {str(e)}")
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/lineup-escrow/submit", methods=["POST"])
+    def submit_recipient_lineup():
+        """Submit recipient lineup to complete escrow (no login required)"""
+        try:
+            data = request.json
+            
+            # Validate required fields
+            required_fields = ["escrow_token", "recipient_contact", "recipient_lineup"]
+            for field in required_fields:
+                if not data.get(field):
+                    return jsonify({"error": f"{field} is required"}), 400
+            
+            with SessionLocal() as db_session:
+                escrow_service = LineupEscrowService(db_session)
+                
+                result = escrow_service.submit_recipient_lineup(
+                    escrow_token=data["escrow_token"],
+                    recipient_contact=data["recipient_contact"],
+                    recipient_lineup=data["recipient_lineup"]
+                )
+                
+                if result["success"]:
+                    # Check if escrow is now complete and send completion notification
+                    escrow_details = escrow_service.get_escrow_details(data["escrow_token"], data["recipient_contact"])
+                    if escrow_details["success"] and escrow_details["both_lineups_visible"]:
+                        escrow_service.notify_escrow_completion(result["escrow_id"])
+                    
+                    return jsonify(result)
+                else:
+                    return jsonify(result), 400
+                    
+        except Exception as e:
+            print(f"Error submitting recipient lineup: {str(e)}")
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/lineup-escrow/view/<escrow_token>", methods=["GET"])
+    def view_lineup_escrow(escrow_token):
+        """View lineup escrow details (no login required)"""
+        try:
+            viewer_contact = request.args.get("contact", "")
+            
+            if not viewer_contact:
+                return jsonify({"error": "contact parameter is required"}), 400
+            
+            with SessionLocal() as db_session:
+                escrow_service = LineupEscrowService(db_session)
+                
+                result = escrow_service.get_escrow_details(escrow_token, viewer_contact)
+                
+                if result["success"]:
+                    return jsonify(result)
+                else:
+                    return jsonify(result), 400
+                    
+        except Exception as e:
+            print(f"Error viewing lineup escrow: {str(e)}")
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/lineup-escrow/search-player", methods=["POST"])
+    @login_required
+    def search_player_for_escrow():
+        """Search for a player by name to get their teams for escrow"""
+        try:
+            data = request.json
+            player_name = data.get("player_name", "").strip()
+            
+            if not player_name:
+                return jsonify({"error": "player_name is required"}), 400
+            
+            with SessionLocal() as db_session:
+                # Search for players by name (first name, last name, or full name)
+                from app.models.database_models import Player, Team, League, Club, Series
+                
+                # Split name into parts for flexible search
+                name_parts = player_name.split()
+                if len(name_parts) >= 2:
+                    first_name = name_parts[0]
+                    last_name = name_parts[-1]
+                    
+                    # Search for exact matches first
+                    players = db_session.query(Player).filter(
+                        (Player.first_name.ilike(f"%{first_name}%") & Player.last_name.ilike(f"%{last_name}%")) |
+                        (Player.first_name.ilike(f"%{last_name}%") & Player.last_name.ilike(f"%{first_name}%"))
+                    ).all()
+                else:
+                    # Single name search
+                    players = db_session.query(Player).filter(
+                        (Player.first_name.ilike(f"%{player_name}%")) |
+                        (Player.last_name.ilike(f"%{player_name}%"))
+                    ).all()
+                
+                if not players:
+                    return jsonify({"error": "No players found with that name"}), 404
+                
+                # Get unique teams for these players
+                team_data = []
+                seen_teams = set()
+                
+                for player in players:
+                    if player.team_id and player.team_id not in seen_teams:
+                        team = db_session.query(Team).filter(Team.id == player.team_id).first()
+                        if team:
+                            league = db_session.query(League).filter(League.id == team.league_id).first()
+                            club = db_session.query(Club).filter(Club.id == team.club_id).first()
+                            series = db_session.query(Series).filter(Series.id == team.series_id).first()
+                            
+                            team_data.append({
+                                "team_id": team.id,
+                                "team_name": team.display_name,
+                                "league_name": league.league_name if league else "Unknown League",
+                                "club_name": club.name if club else "Unknown Club",
+                                "series_name": series.name if series else "Unknown Series",
+                                "player_name": f"{player.first_name} {player.last_name}",
+                                "player_id": player.id
+                            })
+                            seen_teams.add(team.id)
+                
+                return jsonify({
+                    "success": True,
+                    "teams": team_data
+                })
+                
+        except Exception as e:
+            print(f"Error searching for player: {str(e)}")
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/api/saved-lineups", methods=["GET", "POST", "DELETE"])
+    @login_required
+    def saved_lineups():
+        """Handle saved lineups"""
+        try:
+            user = session["user"]
+            team_id = request.args.get("team_id") or request.json.get("team_id")
+            
+            if not team_id:
+                return jsonify({"error": "team_id is required"}), 400
+            
+            with SessionLocal() as db_session:
+                escrow_service = LineupEscrowService(db_session)
+                
+                if request.method == "GET":
+                    result = escrow_service.get_saved_lineups(user["id"], int(team_id))
+                    return jsonify(result)
+                    
+                elif request.method == "POST":
+                    data = request.json
+                    required_fields = ["lineup_name", "lineup_data"]
+                    for field in required_fields:
+                        if not data.get(field):
+                            return jsonify({"error": f"{field} is required"}), 400
+                    
+                    result = escrow_service.save_lineup(
+                        user_id=user["id"],
+                        team_id=int(team_id),
+                        lineup_name=data["lineup_name"],
+                        lineup_data=data["lineup_data"]
+                    )
+                    
+                    if result["success"]:
+                        return jsonify(result)
+                    else:
+                        return jsonify(result), 400
+                        
+                elif request.method == "DELETE":
+                    data = request.json
+                    lineup_id = data.get("lineup_id")
+                    
+                    if not lineup_id:
+                        return jsonify({"error": "lineup_id is required"}), 400
+                    
+                    result = escrow_service.delete_saved_lineup(int(lineup_id), user["id"])
+                    
+                    if result["success"]:
+                        return jsonify(result)
+                    else:
+                        return jsonify(result), 400
+                        
+        except Exception as e:
+            print(f"Error handling saved lineups: {str(e)}")
+            return jsonify({"error": str(e)}), 500
+
+    @app.route("/mobile/lineup-escrow-view/<escrow_token>")
+    def serve_lineup_escrow_view(escrow_token):
+        """Serve the lineup escrow view page"""
+        try:
+            # Get viewer contact from query parameter
+            viewer_contact = request.args.get("contact", "")
+            
+            if not viewer_contact:
+                return render_template("mobile/lineup_escrow_error.html", 
+                                     error="Contact information is required to view this lineup escrow.")
+            
+            with SessionLocal() as db_session:
+                escrow_service = LineupEscrowService(db_session)
+                result = escrow_service.get_escrow_details(escrow_token, viewer_contact)
+                
+                if not result["success"]:
+                    return render_template("mobile/lineup_escrow_error.html", 
+                                         error=result.get("error", "Escrow session not found."))
+                
+                # Pass escrow data to template
+                session_data = {"user": None, "authenticated": False}  # No login required
+                return render_template("mobile/lineup_escrow_view.html", 
+                                     session_data=session_data,
+                                     escrow_data=result["escrow"],
+                                     both_lineups_visible=result["both_lineups_visible"])
+                                     
+        except Exception as e:
+            print(f"Error serving lineup escrow view: {str(e)}")
+            return render_template("mobile/lineup_escrow_error.html", 
+                                 error="An error occurred while loading the lineup escrow.")

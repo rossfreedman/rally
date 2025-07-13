@@ -73,17 +73,46 @@
             </div>
             
             <div class="p-6 space-y-4">
-                <!-- Captain Name -->
+                <!-- Player Search -->
                 <div>
-                    <label for="captain-name" class="block text-sm font-medium text-gray-700 mb-2">
-                        Captain Name
+                    <label for="player-search" class="block text-sm font-medium text-gray-700 mb-2">
+                        Search for Captain
                     </label>
-                    <input 
-                        type="text" 
-                        id="captain-name"
-                        class="w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
-                        placeholder="Enter captain's name"
-                    />
+                    <div class="relative">
+                        <input 
+                            type="text" 
+                            id="player-search"
+                            class="w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                            placeholder="Enter captain's first and last name"
+                        />
+                        <button 
+                            id="search-btn"
+                            class="absolute right-2 top-1/2 transform -translate-y-1/2 bg-blue-600 text-white px-3 py-1 rounded-md text-sm hover:bg-blue-700 transition-colors"
+                        >
+                            Search
+                        </button>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">Search by first and last name to find the captain's teams</p>
+                </div>
+
+                <!-- Search Results -->
+                <div id="search-results" class="hidden">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Select Team
+                    </label>
+                    <div id="teams-list" class="space-y-2">
+                        <!-- Teams will be populated here -->
+                    </div>
+                </div>
+
+                <!-- Selected Team Info -->
+                <div id="selected-team-info" class="hidden">
+                    <div class="bg-blue-50 rounded-lg p-4">
+                        <h4 class="text-sm font-medium text-gray-700 mb-2">Selected Team</h4>
+                        <div id="team-details" class="text-sm text-gray-600">
+                            <!-- Team details will be shown here -->
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Captain Contact -->
@@ -360,6 +389,9 @@ window.sessionData = {{ session_data | tojson | safe }};
 // Message state
 let isEmailMode = true; // Default to email for escrow
 let lineupText = '';
+let selectedTeamId = null;
+let selectedTeamName = '';
+let selectedCaptainName = '';
 
 // Load and setup the page
 document.addEventListener('DOMContentLoaded', () => {
@@ -391,6 +423,14 @@ function setupEventListeners() {
     // Message body changes
     document.getElementById('lineup-message').oninput = updatePreviewAndCount;
     document.getElementById('subject-input').oninput = updatePreview;
+    
+    // Player search
+    document.getElementById('search-btn').onclick = searchPlayer;
+    document.getElementById('player-search').onkeypress = (e) => {
+        if (e.key === 'Enter') {
+            searchPlayer();
+        }
+    };
     
     // Actions
     document.getElementById('send-message-btn').onclick = sendMessage;
@@ -457,29 +497,27 @@ function updateUIForMessageType() {
 
 function updateMessageBody() {
     const messageBody = document.getElementById('lineup-message');
-    
-    if (isEmailMode) {
-        messageBody.value = `Dear [Captain Name],
-
-Lineup Escrow™ is designed for each captain to send their lineup to the opposing captain before a match, with both lineups being disclosed at the exact same time. This ensures fairness and transparency for both teams.
-
-Here is our lineup for tomorrow's match:
-
-${lineupText}
-
-Please reply with your lineup when ready. Both lineups will be disclosed simultaneously once both captains have submitted.
-
-Best regards,
-[Your Name]`;
-    } else {
-        messageBody.value = `Lineup Escrow™ 
-
-Our lineup:
-${lineupText}
-
-Send your lineup - both will be disclosed simultaneously. Thanks!`;
+    // Gather personalization variables
+    const recipientFirstName = selectedCaptainName ? selectedCaptainName.split(' ')[0] : '[first name]';
+    const senderFirstName = window.sessionData.user.first_name || '[Sender first name]';
+    const senderLastName = window.sessionData.user.last_name || '[Sender last name]';
+    let clubName = '[club name]';
+    if (window.sessionData.user.club_name) {
+        clubName = window.sessionData.user.club_name;
+    } else if (window.sessionData.user.team && window.sessionData.user.team.club_name) {
+        clubName = window.sessionData.user.team.club_name;
     }
-    
+    const linkPlaceholder = '[link]';
+
+    // Compose the default message for both SMS and Email
+    const defaultMessage =
+        `Hi ${recipientFirstName},\n\n` +
+        `This is ${senderFirstName} ${senderLastName} from ${clubName}. Looking forward to our upcoming match.\n\n` +
+        `I'm using Lineup Escrow™ in the Rally app to share my lineup with you. Lineup Escrow™ is designed for each captain to send their lineup to the opposing captain before a match, with both lineups being disclosed at the exact same time. This ensures fairness and transparency for both teams.\n\n` +
+        `Once you share your lineup with me, both lineups will be disclosed simultaneously.\n\n` +
+        `Click the link below to get started...\n${linkPlaceholder}`;
+
+    messageBody.value = defaultMessage;
     updatePreviewAndCount();
 }
 
@@ -511,16 +549,107 @@ function updatePreview() {
     updatePreviewAndCount();
 }
 
-function sendMessage() {
+async function searchPlayer() {
+    const searchInput = document.getElementById('player-search');
+    const searchBtn = document.getElementById('search-btn');
+    const searchResults = document.getElementById('search-results');
+    const teamsList = document.getElementById('teams-list');
+    
+    const playerName = searchInput.value.trim();
+    
+    if (!playerName) {
+        alert('Please enter a player name to search.');
+        return;
+    }
+    
+    // Show loading state
+    const originalBtnText = searchBtn.textContent;
+    searchBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    searchBtn.disabled = true;
+    
+    try {
+        const response = await fetch('/api/lineup-escrow/search-player', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                player_name: playerName
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // Display teams
+            teamsList.innerHTML = '';
+            
+            if (result.teams.length === 0) {
+                teamsList.innerHTML = '<p class="text-sm text-gray-500">No teams found for this player.</p>';
+            } else {
+                result.teams.forEach(team => {
+                    const teamDiv = document.createElement('div');
+                    teamDiv.className = 'bg-gray-50 rounded-lg p-3 cursor-pointer hover:bg-gray-100 transition-colors';
+                    teamDiv.innerHTML = `
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h4 class="font-medium text-gray-900">${team.team_name}</h4>
+                                <p class="text-sm text-gray-600">${team.league_name} - ${team.club_name}</p>
+                                <p class="text-xs text-gray-500">Series: ${team.series_name}</p>
+                            </div>
+                            <button class="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 transition-colors" onclick="selectTeam(${team.team_id}, '${team.team_name}', '${team.player_name}')">
+                                Select
+                            </button>
+                        </div>
+                    `;
+                    teamsList.appendChild(teamDiv);
+                });
+            }
+            
+            searchResults.classList.remove('hidden');
+        } else {
+            alert(`Error: ${result.error}`);
+        }
+        
+    } catch (error) {
+        console.error('Error searching for player:', error);
+        alert('An error occurred while searching for the player. Please try again.');
+    } finally {
+        // Reset button
+        searchBtn.textContent = originalBtnText;
+        searchBtn.disabled = false;
+    }
+}
+
+function selectTeam(teamId, teamName, playerName) {
+    selectedTeamId = teamId;
+    selectedTeamName = teamName;
+    selectedCaptainName = playerName;
+    
+    // Update UI to show selected team
+    document.getElementById('selected-team-info').classList.remove('hidden');
+    document.getElementById('team-details').innerHTML = `
+        <p><strong>Team:</strong> ${teamName}</p>
+        <p><strong>Captain:</strong> ${playerName}</p>
+    `;
+    
+    // Hide search results
+    document.getElementById('search-results').classList.add('hidden');
+    
+    // Update message body with selected captain name
+    updateMessageBody();
+}
+
+async function sendMessage() {
     const btn = document.getElementById('send-message-btn');
     const originalHTML = btn.innerHTML;
-    const captainName = document.getElementById('captain-name').value.trim();
     const captainContact = document.getElementById('captain-contact').value.trim();
     const messageBody = document.getElementById('lineup-message').value.trim();
+    const subject = document.getElementById('subject-input').value.trim();
     
     // Validate required fields
-    if (!captainName) {
-        alert('Please enter the captain\'s name.');
+    if (!selectedTeamId) {
+        alert('Please search for and select a captain\'s team.');
         return;
     }
     
@@ -536,21 +665,51 @@ function sendMessage() {
     }
     
     // Show loading state
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Sending...';
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Creating Escrow...';
     btn.disabled = true;
     
-    // Simulate sending delay
-    setTimeout(() => {
-        const messageType = isEmailMode ? 'Email' : 'Text message';
-        alert(`${messageType} sent successfully to ${captainName}!`);
+    try {
+        // Create lineup escrow session
+        const response = await fetch('/api/lineup-escrow/create', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                recipient_name: selectedTeamName,
+                recipient_contact: captainContact,
+                contact_type: isEmailMode ? 'email' : 'sms',
+                initiator_lineup: lineupText,
+                subject: subject,
+                message_body: messageBody,
+                initiator_team_id: window.sessionData.user.team_id,
+                recipient_team_id: selectedTeamId
+            })
+        });
         
-        // Reset button and redirect
+        const result = await response.json();
+        
+        if (result.success) {
+            const messageType = isEmailMode ? 'Email' : 'Text message';
+            const notificationStatus = result.notification_sent ? 'sent' : 'failed to send';
+            alert(`${messageType} escrow created successfully! Notification ${notificationStatus} to ${selectedTeamName}.`);
+            
+            // Redirect back to home or lineup page
+            window.location.href = '/mobile';
+        } else {
+            alert(`Error: ${result.error}`);
+            // Reset button
+            btn.innerHTML = originalHTML;
+            btn.disabled = false;
+        }
+        
+    } catch (error) {
+        console.error('Error creating lineup escrow:', error);
+        alert('An error occurred while creating the lineup escrow. Please try again.');
+        // Reset button
         btn.innerHTML = originalHTML;
         btn.disabled = false;
-        
-        // Redirect back to home or lineup page
-        window.location.href = '/mobile';
-    }, 2000);
+    }
 }
 </script>
 

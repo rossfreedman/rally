@@ -75,7 +75,6 @@
                         class="w-full py-3 px-4 rounded-xl text-white font-semibold transition-all duration-200 hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                         style="background: linear-gradient(135deg, #085454 0%, #10645c 100%);"
                     >
-                        <i class="fas fa-paper-plane mr-2"></i>
                         Send Invitation
                     </button>
                 </form>
@@ -91,7 +90,7 @@
             <ul class="text-sm text-blue-700 space-y-2">
                 <li class="flex items-start">
                     <i class="fas fa-check-circle text-green-500 mr-2 mt-0.5 flex-shrink-0"></i>
-                    <span>Your friend will receive an SMS with information about Rally</span>
+                    <span>Your friend will receive an MMS with information about Rally</span>
                 </li>
                 <li class="flex items-start">
                     <i class="fas fa-check-circle text-green-500 mr-2 mt-0.5 flex-shrink-0"></i>
@@ -189,7 +188,7 @@ async function sendShareRallyInvitation(event) {
     
     // Show loading state
     button.disabled = true;
-    button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Sending...';
+    button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Sending MMS...';
     
     try {
         const response = await fetch('/api/share-rally', {
@@ -213,6 +212,7 @@ async function sendShareRallyInvitation(event) {
             form.reset();
             // Reset message to default
             document.getElementById('customMessage').value = 'Hey [Friend\'s Name], you should check out this new app for paddle, tennis and pickleball. It\'s called Rally. Click the link below to check it out....';
+            button.innerHTML = 'Send Invitation'; // Reset button text
         } else {
             showMessage(data.error || 'Failed to send invitation', 'error');
         }
@@ -223,7 +223,7 @@ async function sendShareRallyInvitation(event) {
     } finally {
         // Reset button state
         button.disabled = false;
-        button.innerHTML = '<i class="fas fa-paper-plane mr-2"></i>Send Invitation';
+        button.innerHTML = 'Send Invitation'; // Reset button text
     }
 }
 

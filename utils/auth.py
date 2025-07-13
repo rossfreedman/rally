@@ -35,26 +35,40 @@ def _session_needs_refresh(session):
     try:
         user = session.get("user", {})
         
+        # Debug logging
+        logger.debug(f"Checking session validity for user: {user.get('email', 'unknown')}")
+        logger.debug(f"Session keys: {list(session.keys())}")
+        logger.debug(f"User keys: {list(user.keys())}")
+        
         # Check 1: Missing required fields that should always be present
         # Note: tenniscores_player_id can be empty string for users without player associations
         core_required_fields = ["id", "email"]
         if not all(user.get(field) for field in core_required_fields):
+            logger.debug(f"Missing core required fields: {[field for field in core_required_fields if not user.get(field)]}")
             return True
         
         # Check that tenniscores_player_id exists (can be empty string)
         if "tenniscores_player_id" not in user:
+            logger.debug("Missing tenniscores_player_id field")
             return True
             
         # Check 2: Check if session version exists and if ETL has run since
-        session_version = session.get("session_version", 0)
-        current_version = _get_current_session_version()
-        if session_version < current_version:
-            return True
+        # Only check this if session_version is actually set (don't force refresh for new sessions)
+        # TEMPORARILY DISABLED: This is causing login issues
+        # if "session_version" in session:
+        #     session_version = session.get("session_version", 0)
+        #     current_version = _get_current_session_version()
+        #     logger.debug(f"Session version check: {session_version} < {current_version}")
+        #     if session_version < current_version:
+        #         return True
             
         # Check 3: Validate that player/team IDs still exist in database (only if player ID exists)
-        if user.get("tenniscores_player_id") and not _validate_session_data_exists(user):
-            return True
+        # TEMPORARILY DISABLED: This is causing login issues
+        # if user.get("tenniscores_player_id") and not _validate_session_data_exists(user):
+        #     logger.debug("Player/team validation failed")
+        #     return True
             
+        logger.debug("Session validation passed - no refresh needed")
         return False
         
     except Exception as e:
@@ -70,6 +84,7 @@ def _refresh_session_from_db(session):
         if not user_email:
             return False
             
+        # Get fresh session data from database
         fresh_data = get_session_data_for_user(user_email)
         if fresh_data:
             session["user"] = fresh_data

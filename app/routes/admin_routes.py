@@ -245,6 +245,17 @@ def serve_admin_test_notifications():
     )
 
 
+@admin_bp.route("/mobile/team-notifications")
+@login_required
+def serve_team_notifications():
+    """Serve the team notifications page for captains"""
+    log_user_activity(session["user"]["email"], "page_visit", page="team_notifications")
+    
+    return render_template(
+        "mobile/team_notifications.html", session_data={"user": session["user"]}
+    )
+
+
 # ==========================================
 # ETL API ENDPOINTS
 # ==========================================
@@ -2300,5 +2311,212 @@ def toggle_detailed_logging_notifications():
     except Exception as e:
         print(f"Error toggling detailed logging notifications: {str(e)}")
         return jsonify({"success": False, "error": str(e)}), 500
+
+
+# ==========================================
+# TEAM NOTIFICATIONS ENDPOINTS
+# ==========================================
+
+@admin_bp.route("/api/team-notifications/team-info")
+@login_required
+def get_team_notifications_team_info():
+    """Get team information for notifications"""
+    try:
+        user = session["user"]
+        user_id = user["id"]
+        
+        # Get user's team information
+        team_query = """
+            SELECT 
+                t.id as team_id,
+                t.team_name as team_name,
+                l.league_name as league_name,
+                s.name as series_name,
+                COUNT(p.id) as member_count,
+                COUNT(CASE WHEN u.phone_number IS NOT NULL AND u.phone_number != '' THEN 1 END) as members_with_phones
+            FROM teams t
+            JOIN leagues l ON t.league_id = l.id
+            JOIN series s ON t.series_id = s.id
+            JOIN players p ON t.id = p.team_id
+            LEFT JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
+            LEFT JOIN users u ON upa.user_id = u.id
+            WHERE upa.user_id = %s
+            GROUP BY t.id, t.team_name, l.league_name, s.name
+            LIMIT 1
+        """
+        
+        team_info = execute_query_one(team_query, [user_id])
+        
+        if not team_info:
+            return jsonify({
+                "status": "error",
+                "error": "No team found for user"
+            }), 404
+        
+        return jsonify({
+            "status": "success",
+            "team_info": {
+                "team_id": team_info["team_id"],
+                "team_name": team_info["team_name"],
+                "league_name": team_info["league_name"],
+                "series_name": team_info["series_name"],
+                "member_count": team_info["member_count"],
+                "members_with_phones": team_info["members_with_phones"]
+            }
+        })
+        
+    except Exception as e:
+        print(f"Error getting team info for notifications: {str(e)}")
+        return jsonify({"status": "error", "error": str(e)}), 500
+
+
+@admin_bp.route("/api/team-notifications/templates")
+@login_required
+def get_team_notification_templates():
+    """Get team notification templates"""
+    try:
+        from app.services.notifications_service import get_team_notification_templates
+        
+        templates = get_team_notification_templates()
+        return jsonify({"status": "success", "templates": templates})
+        
+    except Exception as e:
+        print(f"Error getting team notification templates: {str(e)}")
+        return jsonify({"status": "error", "error": str(e)}), 500
+
+
+@admin_bp.route("/api/team-notifications/send", methods=["POST"])
+@login_required
+def send_team_notification():
+    """Send notification to team members"""
+    try:
+        from app.services.notifications_service import send_sms_notification
+        
+        data = request.json
+        message = data.get("message", "").strip()
+        test_mode = data.get("test_mode", False)
+        
+        if not message:
+            return jsonify({"success": False, "error": "Message content is required"}), 400
+        
+        if len(message) > 1600:
+            return jsonify({"success": False, "error": "Message too long (max 1600 characters)"}), 400
+        
+        user = session["user"]
+        user_id = user["id"]
+        
+        # Get team members with phone numbers
+        members_query = """
+            SELECT DISTINCT
+                u.id,
+                u.first_name,
+                u.last_name,
+                u.phone_number
+            FROM users u
+            JOIN user_player_associations upa ON u.id = upa.user_id
+            JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id
+            JOIN teams t ON p.team_id = t.id
+            WHERE t.id = (
+                SELECT DISTINCT p2.team_id
+                FROM players p2
+                JOIN user_player_associations upa2 ON p2.tenniscores_player_id = upa2.tenniscores_player_id
+                WHERE upa2.user_id = %s AND p2.team_id IS NOT NULL
+                LIMIT 1
+            )
+            AND u.phone_number IS NOT NULL 
+            AND u.phone_number != ''
+            AND u.id != %s  -- Don't send to self
+        """
+        
+        team_members = execute_query(members_query, [user_id, user_id])
+        
+        if not team_members:
+            return jsonify({
+                "success": False,
+                "error": "No team members with phone numbers found"
+            }), 400
+        
+        # Log the action
+        log_user_activity(
+            user["email"],
+            "team_notification_sent",
+            action="send_team_notification",
+            details={
+                "recipient_count": len(team_members),
+                "message_preview": message[:50] + "..." if len(message) > 50 else message,
+                "test_mode": test_mode
+            }
+        )
+        
+        # Send SMS to each team member
+        successful_sends = 0
+        failed_sends = 0
+        send_results = []
+        
+        for member in team_members:
+            try:
+                result = send_sms_notification(
+                    to_number=member["phone_number"],
+                    message=message,
+                    test_mode=test_mode
+                )
+                
+                if result["success"]:
+                    successful_sends += 1
+                    send_results.append({
+                        "name": f"{member['first_name']} {member['last_name']}",
+                        "phone": member["phone_number"],
+                        "status": "sent",
+                        "message_sid": result.get("message_sid")
+                    })
+                else:
+                    failed_sends += 1
+                    send_results.append({
+                        "name": f"{member['first_name']} {member['last_name']}",
+                        "phone": member["phone_number"],
+                        "status": "failed",
+                        "error": result.get("error")
+                    })
+                    
+            except Exception as e:
+                failed_sends += 1
+                send_results.append({
+                    "name": f"{member['first_name']} {member['last_name']}",
+                    "phone": member["phone_number"],
+                    "status": "failed",
+                    "error": f"Unexpected error: {str(e)}"
+                })
+        
+        return jsonify({
+            "success": True,
+            "message": f"Team notification processed",
+            "recipients_sent": successful_sends,
+            "recipients_failed": failed_sends,
+            "total_recipients": len(team_members),
+            "test_mode": test_mode,
+            "send_results": send_results
+        })
+        
+    except Exception as e:
+        print(f"Error sending team notification: {str(e)}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@admin_bp.route('/admin/lineup-escrow-analytics')
+@login_required
+def admin_lineup_escrow_analytics():
+    """Admin page for lineup escrow analytics."""
+    if not session.get("user")["is_admin"]:
+        flash('Access denied. Admin privileges required.', 'error')
+        return redirect(url_for('index'))
+    
+    admin_service = AdminService()
+    analytics = admin_service.get_lineup_escrow_analytics()
+    
+    if analytics is None:
+        flash('Error loading analytics data.', 'error')
+        return redirect(url_for('admin_index'))
+    
+    return render_template('admin/lineup_escrow_analytics.html', analytics=analytics)
 
 

@@ -25,12 +25,28 @@ from app.models.database_models import Base, Club, League, Player, Series, Team,
 from app.services.auth_service_refactored import hash_password, register_user
 from database_config import get_db_url
 
+import random
+
+# Sample of 10 real users from the player JSON (update as needed)
+TEST_USERS = [
+    {"first_name": "Mark", "last_name": "Cunnington", "club": "Glen Ellyn", "series": "Series 1"},
+    {"first_name": "Reece", "last_name": "Acree", "club": "Glen Ellyn", "series": "Series 1"},
+    {"first_name": "Ryan", "last_name": "Edlefsen", "club": "Glen Ellyn", "series": "Series 1"},
+    {"first_name": "Mitch", "last_name": "Granger", "club": "Glen Ellyn", "series": "Series 1"},
+    {"first_name": "Radek", "last_name": "Guzik", "club": "Glen Ellyn", "series": "Series 1"},
+    {"first_name": "Anthony", "last_name": "McPherson", "club": "Glen Ellyn", "series": "Series 1"},
+    {"first_name": "Eric", "last_name": "Pohl", "club": "Glen Ellyn", "series": "Series 1"},
+    {"first_name": "Scott", "last_name": "Rutherford", "club": "Glen Ellyn", "series": "Series 1"},
+    {"first_name": "Adam", "last_name": "Schumacher", "club": "Glen Ellyn", "series": "Series 1"},
+    {"first_name": "Trey", "last_name": "Scott", "club": "Glen Ellyn", "series": "Series 1"},
+]
+
 # Test configuration
 TEST_DATABASE_URL = os.getenv(
     "TEST_DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/rally_test"
 )
-TEST_SERVER_URL = os.getenv("TEST_SERVER_URL", "http://localhost:5001")
-TEST_SERVER_PORT = int(os.getenv("TEST_SERVER_PORT", "5001"))
+TEST_SERVER_URL = os.getenv("TEST_SERVER_URL", "http://localhost:8080")
+TEST_SERVER_PORT = int(os.getenv("TEST_SERVER_PORT", "8080"))
 
 # Global Flask server process
 _flask_server = None
@@ -152,12 +168,67 @@ def ui_test_database():
 
     finally:
         session.close()
-        # Clean up database with CASCADE to handle foreign key constraints
-        with engine.connect() as conn:
-            conn.execute(text("DROP SCHEMA public CASCADE;"))
-            conn.execute(text("CREATE SCHEMA public;"))
-            conn.commit()
+        # Comprehensive cleanup of all test data
+        cleanup_test_database(engine)
         engine.dispose()
+
+
+def cleanup_test_database(engine):
+    """Comprehensive cleanup of all test data to prevent contamination"""
+    try:
+        with engine.connect() as conn:
+            # Clean up in order to respect foreign key constraints
+            cleanup_queries = [
+                # Clean up pickup games data
+                "DELETE FROM pickup_game_participants WHERE pickup_game_id IN (SELECT id FROM pickup_games WHERE creator_user_id IN (SELECT id FROM users WHERE email LIKE '%uitest%' OR email LIKE '%uiadmin%'))",
+                "DELETE FROM pickup_games WHERE creator_user_id IN (SELECT id FROM users WHERE email LIKE '%uitest%' OR email LIKE '%uiadmin%')",
+                
+                # Clean up availability data
+                "DELETE FROM player_availability WHERE user_id IN (SELECT id FROM users WHERE email LIKE '%uitest%' OR email LIKE '%uiadmin%')",
+                
+                # Clean up user associations
+                "DELETE FROM user_player_associations WHERE user_id IN (SELECT id FROM users WHERE email LIKE '%uitest%' OR email LIKE '%uiadmin%')",
+                
+                # Clean up test users
+                "DELETE FROM users WHERE email LIKE '%uitest%' OR email LIKE '%uiadmin%'",
+                
+                # Clean up test players
+                "DELETE FROM players WHERE tenniscores_player_id LIKE 'UI_TEST_%'",
+                
+                # Clean up test teams
+                "DELETE FROM teams WHERE team_name LIKE 'UI Test%'",
+                
+                # Clean up test series
+                "DELETE FROM series WHERE name LIKE 'UI Test%'",
+                
+                # Clean up test clubs
+                "DELETE FROM clubs WHERE name LIKE 'UI Test%'",
+                
+                # Clean up test leagues
+                "DELETE FROM leagues WHERE league_id LIKE 'UI_TEST_%'",
+            ]
+            
+            for query in cleanup_queries:
+                try:
+                    conn.execute(text(query))
+                except Exception as e:
+                    print(f"Warning: Cleanup query failed: {e}")
+                    # Continue with other cleanup queries
+            
+            conn.commit()
+            print("✅ Test database cleanup completed")
+            
+    except Exception as e:
+        print(f"❌ Error during test database cleanup: {e}")
+        # Fallback to schema drop if cleanup fails
+        try:
+            with engine.connect() as conn:
+                conn.execute(text("DROP SCHEMA public CASCADE;"))
+                conn.execute(text("CREATE SCHEMA public;"))
+                conn.commit()
+            print("✅ Fallback schema cleanup completed")
+        except Exception as fallback_error:
+            print(f"❌ Fallback cleanup also failed: {fallback_error}")
 
 
 def start_flask_server():
@@ -173,6 +244,10 @@ def start_flask_server():
             "DATABASE_URL": TEST_DATABASE_URL,
             "SECRET_KEY": "ui-test-secret-key",
             "WTF_CSRF_ENABLED": "False",  # Disable CSRF for UI tests
+            "TESTING_MODE": "true",  # Enable testing mode to prevent real notifications
+            "DISABLE_NOTIFICATIONS": "true",  # Disable all notifications during tests
+            "DISABLE_SMS": "true",  # Disable SMS notifications
+            "DISABLE_EMAIL": "true",  # Disable email notifications
         }
     )
 
@@ -223,6 +298,18 @@ def stop_flask_server():
 @pytest.fixture(scope="session")
 def flask_server(ui_test_database):
     """Manage Flask server lifecycle for UI tests"""
+    # Check if server is already running
+    try:
+        import requests
+        response = requests.get(f"{TEST_SERVER_URL}/health", timeout=2)
+        if response.status_code == 200:
+            print(f"✅ Using existing Flask server at {TEST_SERVER_URL}")
+            yield TEST_SERVER_URL
+            return
+    except:
+        pass
+    
+    # Start new server if none exists
     if not start_flask_server():
         pytest.skip("Flask server failed to start")
 
@@ -301,40 +388,184 @@ def page(context):
 
 
 @pytest.fixture
-def authenticated_page(page, flask_server, ui_test_database):
-    """Create a page with authenticated user session"""
-    test_user = ui_test_database["test_users"][0]  # Regular user
-
-    # Navigate to login page
+def parameterized_authenticated_page(page, flask_server, request):
+    user = request.param
+    email = f"{user['first_name'].lower()}.{user['last_name'].lower()}+ui-test@lovetorally.com"
+    password = "TestPassword123!"
+    # Step 1: Register the user via UI
     page.goto(f"{flask_server}/login")
-
-    # Fill and submit login form
-    page.fill('input[name="email"]', test_user["email"])
-    page.fill('input[name="password"]', test_user["password"])
+    page.click('text=Register')
+    page.wait_for_selector('#registerForm.active', timeout=10000)
+    page.fill('#registerEmail', email)
+    page.fill('#registerPassword', password)
+    page.fill('#confirmPassword', password)
+    page.fill('#firstName', user["first_name"])
+    page.fill('#lastName', user["last_name"])
+    page.fill('#phoneNumber', '555-123-4567')
+    page.wait_for_load_state('networkidle', timeout=10000)
+    page.wait_for_function('document.querySelector("#league").options.length > 1', timeout=10000)
+    page.select_option('#league', 'APTA_CHICAGO')
+    page.wait_for_timeout(1000)
+    page.wait_for_function('document.querySelector("#club").options.length > 1', timeout=10000)
+    page.select_option('#club', user["club"])
+    page.wait_for_timeout(1000)
+    page.wait_for_function('document.querySelector("#series").options.length > 1', timeout=10000)
+    options = page.eval_on_selector_all('#series option', 'els => els.map(e => ({value: e.value, text: e.textContent}))')
+    print('Available series options:', options)
+    page.select_option('#series', user["series"])
+    page.select_option('#adDeuce', 'Ad')
+    page.select_option('#dominantHand', 'Righty')
+    page.check('#textNotifications')
+    page.wait_for_selector('#registerForm.active button[type="submit"]:not([disabled])', timeout=10000)
+    page.click('#registerForm.active button[type="submit"]')
+    try:
+        page.wait_for_url(url=lambda url: url.endswith('/mobile') or url.endswith('/welcome') or url.endswith('/'), timeout=15000)
+    except Exception as e:
+        page.screenshot(path='registration_failure.png')
+        print('📸 Screenshot saved as registration_failure.png')
+        try:
+            error_text = page.inner_text('#registerErrorMessage')
+            print('Registration error message:', error_text)
+        except Exception:
+            print('No #registerErrorMessage found. Printing page content:')
+            print(page.content())
+        raise
+    # Step 2: Log out to test login flow
+    page.goto(f"{flask_server}/logout")
+    # Step 3: Login with the newly registered user
+    page.goto(f"{flask_server}/login")
+    page.fill('#loginEmail', email)
+    page.fill('#loginPassword', password)
     page.click('button[type="submit"]')
+    page.wait_for_url(url=lambda url: url.endswith('/mobile') or url.endswith('/welcome') or url.endswith('/'), timeout=10000)
+    yield page
 
-    # Wait for redirect to mobile page
-    page.wait_for_url(url=f"{flask_server}/mobile", timeout=5000)
-
+@pytest.fixture
+def authenticated_page(page, flask_server):
+    user = {
+        "first_name": "Tom",
+        "last_name": "Morton",
+        "club": "Wilmette PD I",
+        "series": "Series 2"
+    }
+    email = f"{user['first_name'].lower()}.{user['last_name'].lower()}+ui-test@lovetorally.com"
+    password = "TestPassword123!"
+    # Step 1: Register the user via UI
+    page.goto(f"{flask_server}/login")
+    page.click('text=Register')
+    page.wait_for_selector('#registerForm.active', timeout=10000)
+    page.fill('#registerEmail', email)
+    page.fill('#registerPassword', password)
+    page.fill('#confirmPassword', password)
+    page.fill('#firstName', user["first_name"])
+    page.fill('#lastName', user["last_name"])
+    page.fill('#phoneNumber', '555-123-4567')
+    page.wait_for_load_state('networkidle', timeout=10000)
+    page.wait_for_function('document.querySelector("#league").options.length > 1', timeout=10000)
+    page.select_option('#league', 'APTA_CHICAGO')
+    page.wait_for_timeout(1000)
+    page.wait_for_function('document.querySelector("#club").options.length > 1', timeout=10000)
+    page.select_option('#club', user["club"])
+    page.wait_for_timeout(1000)
+    page.wait_for_function('document.querySelector("#series").options.length > 1', timeout=10000)
+    options = page.eval_on_selector_all('#series option', 'els => els.map(e => ({value: e.value, text: e.textContent}))')
+    print('Available series options:', options)
+    page.select_option('#series', user["series"])
+    page.select_option('#adDeuce', 'Ad')
+    page.select_option('#dominantHand', 'Righty')
+    page.check('#textNotifications')
+    page.wait_for_selector('#registerForm.active button[type="submit"]:not([disabled])', timeout=10000)
+    page.click('#registerForm.active button[type="submit"]')
+    try:
+        page.wait_for_url(url=lambda url: url.endswith('/mobile') or url.endswith('/welcome') or url.endswith('/'), timeout=15000)
+    except Exception as e:
+        page.screenshot(path='registration_failure.png')
+        print('📸 Screenshot saved as registration_failure.png')
+        try:
+            error_text = page.inner_text('#registerErrorMessage')
+            print('Registration error message:', error_text)
+        except Exception:
+            print('No #registerErrorMessage found. Printing page content:')
+            print(page.content())
+        raise
+    # Step 2: Log out to test login flow
+    page.goto(f"{flask_server}/logout")
+    # Step 3: Login with the newly registered user
+    page.goto(f"{flask_server}/login")
+    page.fill('#loginEmail', email)
+    page.fill('#loginPassword', password)
+    page.click('button[type="submit"]')
+    page.wait_for_url(url=lambda url: url.endswith('/mobile') or url.endswith('/welcome') or url.endswith('/'), timeout=10000)
     yield page
 
 
 @pytest.fixture
 def admin_page(page, flask_server, ui_test_database):
-    """Create a page with authenticated admin user session"""
+    """Create a page with authenticated admin user session via UI registration and login"""
     admin_user = ui_test_database["test_users"][1]  # Admin user
-
-    # Navigate to login page
+    # Step 1: Register the admin user via UI
     page.goto(f"{flask_server}/login")
-
+    # Switch to registration tab
+    page.click('text=Register')
+    
+    # Wait for registration form to be visible
+    page.wait_for_selector('#registerForm.active', timeout=10000)
+    
+    # Fill registration form
+    page.fill('#registerEmail', admin_user["email"])
+    page.fill('#registerPassword', admin_user["password"])
+    page.fill('#confirmPassword', admin_user["password"])
+    page.fill('#firstName', admin_user["first_name"])
+    page.fill('#lastName', admin_user["last_name"])
+    page.fill('#phoneNumber', '555-987-6543')  # Default test phone
+    # Wait for leagues to load and select a real league
+    # Wait for the API call to complete by waiting for network idle
+    page.wait_for_load_state('networkidle', timeout=10000)
+    # Wait for the league dropdown to be populated (check for more than just the default option)
+    page.wait_for_function('document.querySelector("#league").options.length > 1', timeout=10000)
+    page.select_option('#league', 'APTA_CHICAGO')
+    page.wait_for_timeout(1000)
+    # Wait for clubs to load and select a real club
+    page.wait_for_function('document.querySelector("#club").options.length > 1', timeout=10000)
+    page.select_option('#club', 'Tennaqua')
+    page.wait_for_timeout(1000)
+    # Wait for series to load and select a real series
+    page.wait_for_function('document.querySelector("#series").options.length > 1', timeout=10000)
+    page.select_option('#series', 'Series 7')
+    # Select preferences
+    page.select_option('#adDeuce', 'Ad')
+    page.select_option('#dominantHand', 'Righty')
+    # Check the text notifications checkbox
+    page.check('#textNotifications')
+    # Wait for the submit button to be visible and enabled
+    page.wait_for_selector('#registerForm.active button[type="submit"]:not([disabled])', timeout=10000)
+    # Submit registration form
+    page.click('#registerForm.active button[type="submit"]')
+    # Wait for registration to complete and redirect
+    try:
+        page.wait_for_url(url=lambda url: url.endswith('/mobile') or url.endswith('/welcome') or url.endswith('/'), timeout=15000)
+    except Exception as e:
+        # Capture screenshot
+        page.screenshot(path='registration_failure.png')
+        print('📸 Screenshot saved as registration_failure.png')
+        # Try to print error message if present
+        try:
+            error_text = page.inner_text('#registerErrorMessage')
+            print('Registration error message:', error_text)
+        except Exception:
+            print('No #registerErrorMessage found. Printing page content:')
+            print(page.content())
+        raise
+    # Step 2: Log out to test login flow
+    page.goto(f"{flask_server}/logout")
+    # Step 3: Login with the newly registered admin user
+    page.goto(f"{flask_server}/login")
     # Fill and submit login form
-    page.fill('input[name="email"]', admin_user["email"])
-    page.fill('input[name="password"]', admin_user["password"])
+    page.fill('#loginEmail', admin_user["email"])
+    page.fill('#loginPassword', admin_user["password"])
     page.click('button[type="submit"]')
-
-    # Wait for redirect
-    page.wait_for_url(url=f"{flask_server}/mobile", timeout=5000)
-
+    # Wait for the JavaScript redirect to happen
+    page.wait_for_url(url=lambda url: url.endswith('/mobile') or url.endswith('/welcome') or url.endswith('/'), timeout=10000)
     yield page
 
 
