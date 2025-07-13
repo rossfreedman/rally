@@ -901,3 +901,104 @@ class GroupMember(Base):
 
     def __repr__(self):
         return f"<GroupMember(group_id={self.group_id}, user_id={self.user_id})>"
+
+
+class LineupEscrow(Base):
+    """
+    Lineup Escrow sessions for fair lineup disclosure
+    Stores lineup data that is revealed simultaneously to both captains
+    """
+
+    __tablename__ = "lineup_escrow"
+
+    id = Column(Integer, primary_key=True)
+    escrow_token = Column(String(255), nullable=False, unique=True)  # Unique token for sharing
+    initiator_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    recipient_name = Column(String(255), nullable=False)
+    recipient_contact = Column(String(255), nullable=False)  # Email or phone
+    contact_type = Column(String(20), nullable=False)  # 'email' or 'sms'
+    
+    # Team references
+    initiator_team_id = Column(Integer, ForeignKey("teams.id"), nullable=True)  # Initiator's team
+    recipient_team_id = Column(Integer, ForeignKey("teams.id"), nullable=True)  # Recipient's team
+    
+    # Lineup data
+    initiator_lineup = Column(Text, nullable=False)
+    recipient_lineup = Column(Text, nullable=True)  # Null until recipient submits
+    
+    # Status tracking
+    status = Column(String(50), nullable=False, default='pending')  # 'pending', 'both_submitted', 'expired'
+    initiator_submitted_at = Column(DateTime(timezone=True), default=func.now())
+    recipient_submitted_at = Column(DateTime(timezone=True), nullable=True)
+    expires_at = Column(DateTime(timezone=True), nullable=True)  # Optional expiration
+    
+    # Message details
+    subject = Column(String(255), nullable=True)  # For email
+    message_body = Column(Text, nullable=False)
+    
+    # Notification tracking
+    initiator_notified = Column(Boolean, default=False)
+    recipient_notified = Column(Boolean, default=False)
+    
+    created_at = Column(DateTime(timezone=True), default=func.now())
+    updated_at = Column(DateTime(timezone=True), default=func.now(), onupdate=func.now())
+
+    # Relationships
+    initiator = relationship("User", foreign_keys=[initiator_user_id])
+    initiator_team = relationship("Team", foreign_keys=[initiator_team_id])
+    recipient_team = relationship("Team", foreign_keys=[recipient_team_id])
+
+    def __repr__(self):
+        return f"<LineupEscrow(id={self.id}, token='{self.escrow_token}', status='{self.status}')>"
+
+
+class LineupEscrowView(Base):
+    """
+    Tracks who has viewed the lineup escrow results
+    """
+
+    __tablename__ = "lineup_escrow_views"
+
+    id = Column(Integer, primary_key=True)
+    escrow_id = Column(Integer, ForeignKey("lineup_escrow.id"), nullable=False)
+    viewer_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)  # Null for anonymous views
+    viewer_contact = Column(String(255), nullable=False)  # Email or phone of viewer
+    viewed_at = Column(DateTime(timezone=True), default=func.now())
+    ip_address = Column(String(45), nullable=True)
+
+    # Relationships
+    escrow = relationship("LineupEscrow")
+    viewer = relationship("User", foreign_keys=[viewer_user_id])
+
+    def __repr__(self):
+        return f"<LineupEscrowView(escrow_id={self.escrow_id}, viewer='{self.viewer_contact}')>"
+
+
+class SavedLineup(Base):
+    """
+    Saved lineups for users and teams
+    Allows users to save and reuse lineup configurations
+    """
+
+    __tablename__ = "saved_lineups"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    team_id = Column(Integer, ForeignKey("teams.id"), nullable=False)
+    lineup_name = Column(String(255), nullable=False)  # User-defined name for the lineup
+    lineup_data = Column(Text, nullable=False)  # JSON string containing lineup configuration
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), default=func.now())
+    updated_at = Column(DateTime(timezone=True), default=func.now(), onupdate=func.now())
+
+    # Relationships
+    user = relationship("User", backref="saved_lineups")
+    team = relationship("Team", backref="saved_lineups")
+
+    # Constraints
+    __table_args__ = (
+        UniqueConstraint("user_id", "team_id", "lineup_name", name="unique_user_team_lineup_name"),
+    )
+
+    def __repr__(self):
+        return f"<SavedLineup(id={self.id}, user_id={self.user_id}, team_id={self.team_id}, name='{self.lineup_name}')>"

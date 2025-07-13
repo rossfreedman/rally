@@ -514,6 +514,59 @@ def routes_info():
     )
 
 
+@app.route("/debug/test-session-validation")
+def test_session_validation():
+    """
+    Test session validation logic
+    """
+    try:
+        from utils.auth import _session_needs_refresh, _refresh_session_from_db
+        
+        # Test with a mock session
+        test_session = {
+            "user": {
+                "id": 904,
+                "email": "bpierson@gmail.com", 
+                "first_name": "Brett",
+                "last_name": "Pierson",
+                "is_admin": False,
+                "ad_deuce_preference": "Ad",
+                "dominant_hand": "Righty",
+                "league_context": 4763,
+                "club": "Tennaqua",
+                "club_logo": "static/images/clubs/tennaqua_logo.jpeg",
+                "series": "Chicago 7",
+                "club_id": 8888,
+                "series_id": 13994,
+                "team_id": 57325,
+                "team_name": "Tennaqua - 7",
+                "tenniscores_player_id": "nndz-WkNDd3liZitndz09",
+                "league_id": 4763,
+                "league_string_id": "APTA_CHICAGO",
+                "league_name": "APTA Chicago",
+                "settings": "{}"
+            }
+        }
+        
+        # Test session validation
+        needs_refresh = _session_needs_refresh(test_session)
+        
+        return jsonify({
+            "test": "session_validation",
+            "session_data": test_session["user"],
+            "needs_refresh": needs_refresh,
+            "session_keys": list(test_session.keys()),
+            "user_keys": list(test_session["user"].keys())
+        })
+        
+    except Exception as e:
+        import traceback
+        return jsonify({
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }), 500
+
+
 @app.route("/debug/test-wes-v2")
 def test_wes_v2():
     """
@@ -4452,3 +4505,6 @@ if __name__ == "__main__":
         else:
             print(f"Failed to start server: {e}")
         sys.exit(1)
+
+import os
+print("DEBUG: PORT ENV =", os.environ.get("PORT"))

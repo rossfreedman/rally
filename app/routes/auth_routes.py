@@ -1,4 +1,5 @@
 import logging
+import time
 
 from flask import (
     Blueprint,
@@ -112,34 +113,67 @@ def handle_register():
 
         logger.info(f"Registration: Session created for user {email} with player_id: {result['user'].get('tenniscores_player_id', 'None')}")
 
-        # 🔍 OPTIONAL: Run association discovery after successful registration to find additional associations
-        # This is now optional since the main registration already linked the primary player
+        # 🔍 ENHANCED: Run association discovery after successful registration with retry mechanism
+        # This finds additional associations for multi-league users
         try:
             user_id = result["user"]["id"]
             logger.info(f"🔍 Post-registration discovery: Looking for additional associations for {email}")
             
-            discovery_result = AssociationDiscoveryService.discover_missing_associations(user_id, email)
+            # Enhanced retry mechanism with 3 attempts
+            discovery_success = False
+            discovery_attempts = 0
+            max_attempts = 3
             
-            if discovery_result.get("success"):
-                associations_created = discovery_result.get("associations_created", 0)
-                
-                if associations_created > 0:
-                    logger.info(f"🎯 Post-registration discovery SUCCESS: Found {associations_created} additional associations for {email}")
+            while not discovery_success and discovery_attempts < max_attempts:
+                discovery_attempts += 1
+                try:
+                    # Small delay to ensure primary registration is fully committed
+                    time.sleep(0.1)
                     
-                    # Update session with any new associations found
-                    try:
-                        from app.services.session_service import get_session_data_for_user
-                        updated_session_data = get_session_data_for_user(email)
-                        if updated_session_data:
-                            session["user"] = updated_session_data
-                            logger.info(f"Registration: Updated session with additional associations")
-                    except Exception as session_update_error:
-                        logger.warning(f"Failed to update session with additional associations: {session_update_error}")
-                        # Continue anyway - user will see new associations on next login
-                else:
-                    logger.info(f"🔍 Post-registration discovery: No additional associations found for {email}")
-            else:
-                logger.info(f"🔍 Post-registration discovery: {discovery_result.get('error', 'No additional associations found')}")
+                    logger.info(f"🔍 Registration discovery attempt {discovery_attempts}/{max_attempts} for {email}")
+                    
+                    discovery_result = AssociationDiscoveryService.discover_missing_associations(user_id, email)
+                    
+                    if discovery_result.get("success"):
+                        discovery_success = True
+                        associations_created = discovery_result.get("associations_created", 0)
+                        
+                        if associations_created > 0:
+                            logger.info(f"🎯 Registration discovery SUCCESS: Found {associations_created} additional associations for {email}")
+                            
+                            # Update session with any new associations found
+                            try:
+                                from app.services.session_service import get_session_data_for_user
+                                updated_session_data = get_session_data_for_user(email)
+                                if updated_session_data:
+                                    session["user"] = updated_session_data
+                                    logger.info(f"Registration: Updated session with additional associations")
+                            except Exception as session_update_error:
+                                logger.warning(f"Failed to update session with additional associations: {session_update_error}")
+                                # Continue anyway - user will see new associations on next login
+                        else:
+                            logger.info(f"🔍 Registration discovery SUCCESS: No additional associations found for {email}")
+                    else:
+                        logger.info(f"🔍 Registration discovery FAILED (attempt {discovery_attempts}): {discovery_result.get('error', 'Unknown error')}")
+                        # Retry with backoff
+                        if discovery_attempts < max_attempts:
+                            logger.info(f"🔄 Retrying association discovery in 0.5 seconds...")
+                            time.sleep(0.5)
+                        
+                except Exception as discovery_error:
+                    # Enhanced error logging with full tracebacks
+                    logger.error(f"❌ Registration discovery ERROR (attempt {discovery_attempts}): {discovery_error}")
+                    import traceback
+                    logger.error(f"❌ Registration discovery TRACEBACK: {traceback.format_exc()}")
+                    
+                    if discovery_attempts < max_attempts:
+                        logger.info(f"🔄 Retrying association discovery after exception...")
+                        time.sleep(0.5)
+            
+            # If all attempts failed, log the fallback mechanism
+            if not discovery_success:
+                logger.warning(f"⚠️  Registration discovery FAILED after {max_attempts} attempts for {email}")
+                logger.info(f"🔄 Association Discovery will run automatically on next login for {email}")
                 
         except Exception as discovery_error:
             logger.warning(f"Post-registration discovery error for {email}: {discovery_error}")

@@ -20,9 +20,26 @@
     <!-- Content -->
     <div class="px-4 space-y-6" style="padding-top: calc(1.5rem - 5px); padding-bottom: 1.5rem;">
 
-
-
-        <!-- AI wizard steps removed - now handled by separate AI page -->
+        <!-- Saved Lineups Section -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-6">
+            <div class="px-6 py-4 border-b border-gray-50 flex items-center justify-between">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-save text-purple-500 mr-2"></i>
+                    Saved Lineups
+                </h2>
+                <button id="refresh-saved-lineups" class="text-xs text-blue-600 hover:underline">Refresh</button>
+            </div>
+            <div class="p-6">
+                <div id="saved-lineups-list" class="mb-4">
+                    <div class="text-gray-400 text-center text-sm">Loading saved lineups...</div>
+                </div>
+                <form id="save-lineup-form" class="flex flex-col sm:flex-row gap-2 items-center">
+                    <input type="text" id="save-lineup-name" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm" placeholder="Lineup name (e.g. vs Tennaqua)" required />
+                    <button type="submit" class="bg-green-600 text-white rounded-lg px-4 py-2 font-semibold shadow-sm hover:bg-green-700 transition-all">Save Current Lineup</button>
+                </form>
+                <div id="save-lineup-message" class="text-xs text-green-600 mt-2 hidden"></div>
+            </div>
+        </div>
 
         <!-- Manual Lineup Builder -->
         <div id="manual-page" class="wizard-page">
@@ -450,7 +467,7 @@ function handleTouchEnd(e) {
       
       // Move player to court position
       touchedPlayer.remove();
-      touchedPlayer.className = 'player-card bg-white border border-gray-300 rounded-lg p-2 text-center cursor-move';
+      touchedPlayer.className = 'player-card bg-white border border-gray-300 rounded p-2 text-center cursor-move';
       dropZone.innerHTML = '';
       dropZone.appendChild(touchedPlayer);
       
@@ -874,6 +891,171 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
+
+// Saved Lineups Logic
+async function fetchSavedLineups() {
+    const listDiv = document.getElementById('saved-lineups-list');
+    listDiv.innerHTML = '<div class="text-gray-400 text-center text-sm">Loading saved lineups...</div>';
+    try {
+        const res = await fetch(`/api/saved-lineups?team_id=${encodeURIComponent(teamId)}`);
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Failed to load');
+        if (!data.lineups.length) {
+            listDiv.innerHTML = '<div class="text-gray-400 text-center text-sm">No saved lineups yet.</div>';
+            return;
+        }
+        listDiv.innerHTML = '';
+        data.lineups.forEach(lineup => {
+            const div = document.createElement('div');
+            div.className = 'flex items-center justify-between border-b border-gray-100 py-2';
+            div.innerHTML = `
+                <div>
+                    <span class="font-medium text-gray-900">${lineup.name}</span>
+                    <span class="text-xs text-gray-500 ml-2">${new Date(lineup.updated_at).toLocaleDateString()}</span>
+                </div>
+                <div class="flex gap-2">
+                    <button class="text-blue-600 hover:underline text-xs" onclick="loadSavedLineup('${lineup.id}')">Load</button>
+                    <button class="text-red-500 hover:underline text-xs" onclick="deleteSavedLineup('${lineup.id}')">Delete</button>
+                </div>
+            `;
+            listDiv.appendChild(div);
+        });
+    } catch (err) {
+        listDiv.innerHTML = `<div class="text-red-500 text-center text-sm">${err.message}</div>`;
+    }
+}
+
+async function saveCurrentLineup(e) {
+    e.preventDefault();
+    const name = document.getElementById('save-lineup-name').value.trim();
+    if (!name) return;
+    const messageDiv = document.getElementById('save-lineup-message');
+    messageDiv.classList.add('hidden');
+    // Get current lineup as text (from summary or builder)
+    const lineupText = getCurrentLineupText();
+    if (!lineupText) {
+        messageDiv.textContent = 'No lineup to save.';
+        messageDiv.className = 'text-xs text-red-600 mt-2';
+        messageDiv.classList.remove('hidden');
+        return;
+    }
+    try {
+        const res = await fetch('/api/saved-lineups', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                team_id: teamId,
+                lineup_name: name,
+                lineup_data: lineupText
+            })
+        });
+        const data = await res.json();
+        if (data.success) {
+            messageDiv.textContent = 'Lineup saved!';
+            messageDiv.className = 'text-xs text-green-600 mt-2';
+            fetchSavedLineups();
+        } else {
+            messageDiv.textContent = data.error || 'Failed to save.';
+            messageDiv.className = 'text-xs text-red-600 mt-2';
+        }
+        messageDiv.classList.remove('hidden');
+    } catch (err) {
+        messageDiv.textContent = err.message;
+        messageDiv.className = 'text-xs text-red-600 mt-2';
+        messageDiv.classList.remove('hidden');
+    }
+}
+
+async function loadSavedLineup(lineupId) {
+    try {
+        const res = await fetch(`/api/saved-lineups?team_id=${encodeURIComponent(teamId)}`);
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Failed to load');
+        const lineup = data.lineups.find(l => l.id == lineupId);
+        if (!lineup) throw new Error('Lineup not found');
+        // Populate the courts with the loaded lineup
+        setLineupFromText(lineup.data);
+        alert('Lineup loaded!');
+    } catch (err) {
+        alert('Error loading lineup: ' + err.message);
+    }
+}
+
+async function deleteSavedLineup(lineupId) {
+    if (!confirm('Delete this saved lineup?')) return;
+    try {
+        const res = await fetch('/api/saved-lineups', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ lineup_id: lineupId, team_id: teamId })
+        });
+        const data = await res.json();
+        if (data.success) {
+            fetchSavedLineups();
+        } else {
+            alert(data.error || 'Failed to delete.');
+        }
+    } catch (err) {
+        alert('Error deleting lineup: ' + err.message);
+    }
+}
+
+document.getElementById('save-lineup-form').addEventListener('submit', saveCurrentLineup);
+document.getElementById('refresh-saved-lineups').addEventListener('click', fetchSavedLineups);
+fetchSavedLineups();
+
+// Helper: get current lineup as text (from summary or builder)
+function getCurrentLineupText() {
+    // Try to get from summary if visible
+    const summary = document.getElementById('manual-lineup-text');
+    if (summary && summary.textContent.trim()) {
+        return summary.textContent.trim();
+    }
+    // Otherwise, build from court positions
+    let text = '';
+    document.querySelectorAll('.court-container').forEach((court, i) => {
+        text += `Court ${i+1}:\n`;
+        court.querySelectorAll('.court-position').forEach((pos, j) => {
+            text += `  ${j === 0 ? 'Ad' : 'Deuce'}: ${pos.textContent.trim()}\n`;
+        });
+        text += '\n';
+    });
+    return text.trim();
+}
+
+// Helper: set lineup from text (populate courts)
+function setLineupFromText(lineupText) {
+    // Parse the text and fill the courts
+    // Expected format:
+    // Court 1:
+    //   Ad: Player Name
+    //   Deuce: Player Name
+    // ...
+    const lines = lineupText.split('\n');
+    let courtIdx = -1;
+    lines.forEach(line => {
+        const courtMatch = line.match(/^Court (\d+):/);
+        if (courtMatch) {
+            courtIdx = parseInt(courtMatch[1], 10) - 1;
+            return;
+        }
+        const adMatch = line.match(/^\s*Ad: (.+)$/);
+        const deuceMatch = line.match(/^\s*Deuce: (.+)$/);
+        if (courtIdx >= 0) {
+            if (adMatch) {
+                document.querySelectorAll('.court-container')[courtIdx].querySelectorAll('.court-position')[0].querySelector('.drop-text').textContent = adMatch[1];
+            }
+            if (deuceMatch) {
+                document.querySelectorAll('.court-container')[courtIdx].querySelectorAll('.court-position')[1].querySelector('.drop-text').textContent = deuceMatch[1];
+            }
+        }
+    });
+    // Optionally update summary
+    if (document.getElementById('manual-lineup-summary')) {
+        document.getElementById('manual-lineup-summary').classList.remove('hidden');
+        document.getElementById('manual-lineup-text').textContent = lineupText;
+    }
+}
 
 </script>
 

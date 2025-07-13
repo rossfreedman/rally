@@ -1,0 +1,363 @@
+{% extends "mobile/layout.html" %}
+{% set show_back_arrow = False %}
+
+{% block title %}Lineup Escrow™ Results | Rally{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    
+    <!-- Header -->
+    <div class="bg-white border-b border-gray-100">
+        <div class="flex items-center px-4 py-6">
+            <div class="w-12 h-12 bg-green-600 rounded-full flex items-center justify-center shadow-sm">
+                <i class="fas fa-check text-white text-lg"></i>
+            </div>
+            <div class="ml-4">
+                <h1 class="text-xl font-bold text-gray-900">
+                    Lineup Escrow<span class="align-super text-xs ml-1">™</span> Results
+                </h1>
+                <p class="text-sm text-gray-500">
+                    {% if both_lineups_visible %}
+                        Both lineups are now visible
+                    {% else %}
+                        Waiting for both lineups
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content -->
+    <div class="px-4 py-6 space-y-6">
+        
+        <!-- Status Card -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-info-circle text-blue-500 mr-2"></i>
+                    Escrow Status
+                </h2>
+            </div>
+            
+            <div class="p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-600">
+                            <strong>Status:</strong> 
+                            <span class="font-semibold text-{{ 'green' if both_lineups_visible else 'yellow' }}-600">
+                                {{ escrow_data.status.replace('_', ' ').title() }}
+                            </span>
+                        </p>
+                        <p class="text-sm text-gray-600 mt-1">
+                            <strong>Initiator submitted:</strong> 
+                            {{ escrow_data.initiator_submitted_at.split('T')[0] if escrow_data.initiator_submitted_at else 'Not submitted' }}
+                        </p>
+                        {% if escrow_data.recipient_submitted_at %}
+                        <p class="text-sm text-gray-600 mt-1">
+                            <strong>Recipient submitted:</strong> 
+                            {{ escrow_data.recipient_submitted_at.split('T')[0] }}
+                        </p>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="text-right">
+                        <div class="w-8 h-8 rounded-full flex items-center justify-center {{ 'bg-green-100' if both_lineups_visible else 'bg-yellow-100' }}">
+                            <i class="fas {{ 'fa-check' if both_lineups_visible else 'fa-clock' }} text-{{ 'green' if both_lineups_visible else 'yellow' }}-600 text-sm"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Message Card -->
+        {% if escrow_data.message_body %}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-envelope text-blue-500 mr-2"></i>
+                    Message
+                </h2>
+            </div>
+            
+            <div class="p-6">
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <p class="text-sm text-gray-800 whitespace-pre-wrap">{{ escrow_data.message_body }}</p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Initiator Lineup -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-users text-blue-500 mr-2"></i>
+                    {{ escrow_data.initiator_team_name }} ({{ escrow_data.initiator_club_name }})
+                </h2>
+            </div>
+            <div class="p-6">
+                <div class="{{ '' if both_lineups_visible else 'blur-sm select-none pointer-events-none' }}">
+                    {% if escrow_data.initiator_lineup %}
+                        <pre class="whitespace-pre-wrap text-gray-800 text-base">{{ escrow_data.initiator_lineup }}</pre>
+                    {% endif %}
+                </div>
+                {% if not both_lineups_visible %}
+                    <div class="mt-2 text-xs text-yellow-700 bg-yellow-50 rounded p-2 flex items-center">
+                        <i class="fas fa-lock mr-2"></i>
+                        Lineup will be revealed after both are submitted
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Recipient Lineup -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-50">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-users text-green-500 mr-2"></i>
+                    {{ escrow_data.recipient_team_name }} ({{ escrow_data.recipient_club_name }})
+                </h2>
+            </div>
+            <div class="p-6">
+                <div class="{{ '' if both_lineups_visible else 'blur-sm select-none pointer-events-none' }}">
+                    {% if escrow_data.recipient_lineup %}
+                        <pre class="whitespace-pre-wrap text-gray-800 text-base">{{ escrow_data.recipient_lineup }}</pre>
+                    {% endif %}
+                </div>
+                {% if not both_lineups_visible %}
+                    <div class="mt-2 text-xs text-yellow-700 bg-yellow-50 rounded p-2 flex items-center">
+                        <i class="fas fa-lock mr-2"></i>
+                        Lineup will be revealed after both are submitted
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        {% if not both_lineups_visible %}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div class="p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Submit Your Lineup</h3>
+                <p class="text-sm text-gray-600 mb-4">
+                    Enter your lineup below to complete the escrow. Both lineups will be revealed simultaneously once submitted.
+                </p>
+                
+                <form id="recipient-lineup-form">
+                    <div class="mb-4">
+                        <label for="recipient-contact" class="block text-sm font-medium text-gray-700 mb-2">
+                            Your Contact Information
+                        </label>
+                        <input 
+                            type="text" 
+                            id="recipient-contact"
+                            class="w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                            placeholder="Enter your email or phone number"
+                            required
+                        />
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="recipient-lineup" class="block text-sm font-medium text-gray-700 mb-2">
+                            Your Lineup
+                        </label>
+                        <textarea 
+                            id="recipient-lineup" 
+                            rows="8"
+                            class="w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm resize-vertical" 
+                            placeholder="Enter your lineup here..."
+                            required
+                        ></textarea>
+                    </div>
+                    
+                    <button 
+                        type="submit"
+                        class="w-full bg-blue-600 text-white rounded-lg px-6 py-3 shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-102 font-semibold"
+                    >
+                        Submit Lineup
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Footer -->
+        <div class="text-center py-4">
+            <p class="text-xs text-gray-500">
+                Lineup Escrow™ - Fair lineup disclosure between captains
+            </p>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Custom styles for modern mobile design */
+.min-h-screen {
+    min-height: 100vh;
+}
+
+/* iOS-style card enhancements */
+.ios-card {
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+/* Hover effects */
+.hover\:scale-102:hover {
+    transform: scale(1.02);
+}
+
+/* Transitions */
+.transition-all {
+    transition: all 0.2s ease-in-out;
+}
+
+/* Spacing */
+.space-y-6 > * + * {
+    margin-top: 1.5rem;
+}
+
+/* Colors */
+.bg-green-600 { background-color: #059669 !important; }
+.bg-blue-600 { background-color: #2563eb !important; }
+.bg-yellow-600 { background-color: #d97706 !important; }
+.bg-sky-600 { background-color: #0284c7 !important; }
+
+.text-green-600 { color: #059669 !important; }
+.text-blue-600 { color: #2563eb !important; }
+.text-yellow-600 { color: #d97706 !important; }
+.text-sky-600 { color: #0284c7 !important; }
+
+.bg-green-100 { background-color: #dcfce7 !important; }
+.bg-blue-100 { background-color: #dbeafe !important; }
+.bg-yellow-100 { background-color: #fef3c7 !important; }
+.bg-sky-100 { background-color: #e0f2fe !important; }
+
+.bg-green-50 { background-color: #f0fdf4 !important; }
+.bg-blue-50 { background-color: #eff6ff !important; }
+.bg-yellow-50 { background-color: #fffbeb !important; }
+.bg-sky-50 { background-color: #f0f9ff !important; }
+
+/* Typography */
+.font-semibold { font-weight: 600 !important; }
+.font-bold { font-weight: 700 !important; }
+
+/* Layout */
+.flex { display: flex !important; }
+.items-center { align-items: center !important; }
+.justify-center { justify-content: center !important; }
+.justify-between { justify-content: space-between !important; }
+
+/* Spacing */
+.px-4 { padding-left: 1rem; padding-right: 1rem; }
+.px-6 { padding-left: 1.5rem; padding-right: 1.5rem; }
+.py-3 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+.py-4 { padding-top: 1rem; padding-bottom: 1rem; }
+.py-6 { padding-top: 1.5rem; padding-bottom: 1.5rem; }
+.py-8 { padding-top: 2rem; padding-bottom: 2rem; }
+.p-6 { padding: 1.5rem; }
+.p-4 { padding: 1rem; }
+.p-1 { padding: 0.25rem; }
+.ml-4 { margin-left: 1rem; }
+.mr-2 { margin-right: 0.5rem; }
+.mb-2 { margin-bottom: 0.5rem; }
+.mb-4 { margin-bottom: 1rem; }
+
+/* Opacity */
+.opacity-75 { opacity: 0.75; }
+.opacity-90 { opacity: 0.9; }
+
+/* Font Awesome icons */
+.fas, .fa {
+    font-family: "Font Awesome 6 Free" !important;
+    font-weight: 900 !important;
+    font-style: normal !important;
+    display: inline-block !important;
+}
+
+/* Responsive design */
+@media (max-width: 640px) {
+    .px-6 { padding-left: 1rem; padding-right: 1rem; }
+    .py-4 { padding-top: 0.75rem; padding-bottom: 0.75rem; }
+    .text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+    .text-lg { font-size: 1.125rem; line-height: 1.75rem; }
+}
+</style>
+
+<script>
+// Initialize page data
+window.escrowData = {{ escrow_data | tojson | safe }};
+window.bothLineupsVisible = {{ both_lineups_visible | tojson | safe }};
+
+// Load and setup the page
+document.addEventListener('DOMContentLoaded', () => {
+    // Setup form submission if not both lineups visible
+    if (!window.bothLineupsVisible) {
+        setupFormSubmission();
+    }
+});
+
+function setupFormSubmission() {
+    const form = document.getElementById('recipient-lineup-form');
+    if (!form) return;
+    
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const recipientContact = document.getElementById('recipient-contact').value.trim();
+        const recipientLineup = document.getElementById('recipient-lineup').value.trim();
+        
+        if (!recipientContact || !recipientLineup) {
+            alert('Please fill in all required fields.');
+            return;
+        }
+        
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const originalHTML = submitBtn.innerHTML;
+        
+        // Show loading state
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Submitting...';
+        submitBtn.disabled = true;
+        
+        try {
+            // Get escrow token from URL
+            const escrowToken = window.location.pathname.split('/').pop();
+            
+            // Submit lineup
+            const response = await fetch('/api/lineup-escrow/submit', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    escrow_token: escrowToken,
+                    recipient_contact: recipientContact,
+                    recipient_lineup: recipientLineup
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                // Show success message and reload page to show both lineups
+                alert('Lineup submitted successfully! Both lineups are now visible.');
+                window.location.reload();
+            } else {
+                alert(`Error: ${result.error}`);
+                // Reset button
+                submitBtn.innerHTML = originalHTML;
+                submitBtn.disabled = false;
+            }
+            
+        } catch (error) {
+            console.error('Error submitting lineup:', error);
+            alert('An error occurred while submitting your lineup. Please try again.');
+            // Reset button
+            submitBtn.innerHTML = originalHTML;
+            submitBtn.disabled = false;
+        }
+    });
+}
+</script>
+
+{% endblock %} 
