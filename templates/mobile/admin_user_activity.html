@@ -560,51 +560,56 @@ function renderActivities(activities) {
     container.innerHTML = cardsHTML;
 }
 
-// Helper functions for the new modern UI
+// Function to get activity icon based on activity type
 function getActivityIcon(activityType) {
     const iconMap = {
         'page_visit': 'fas fa-eye',
-        'user_action': 'fas fa-mouse-pointer', 
-        'admin_action': 'fas fa-user-shield',
         'login': 'fas fa-sign-in-alt',
         'logout': 'fas fa-sign-out-alt',
-        'auth': 'fas fa-key',
-        'availability_update': 'fas fa-calendar-check',
+        'registration_successful': 'fas fa-user-plus text-green-600',
+        'registration_failed': 'fas fa-user-times text-red-600',
+        'player_search': 'fas fa-search',
+        'team_switch': 'fas fa-exchange-alt',
+        'settings_update': 'fas fa-cog',
         'poll_voted': 'fas fa-vote-yea',
         'poll_created': 'fas fa-poll',
+        'availability_update': 'fas fa-calendar-check',
         'ai_chat': 'fas fa-robot',
-        'simulation_run': 'fas fa-play-circle',
+        'simulation_run': 'fas fa-dice',
         'score_submitted': 'fas fa-trophy',
         'team_email': 'fas fa-envelope',
         'court_reservation': 'fas fa-calendar-plus',
-        'comprehensive_registration': 'fas fa-user-plus',
-        'match_created': 'fas fa-plus-circle',
-        'poll_response': 'fas fa-check-circle'
+        'admin_action': 'fas fa-shield-alt',
+        'user_action': 'fas fa-user-cog'
     };
-    return iconMap[activityType] || 'fas fa-circle';
+    
+    return iconMap[activityType] || 'fas fa-info-circle';
 }
 
+// Function to get activity color based on activity type
 function getActivityColor(activityType) {
     const colorMap = {
-        'page_visit': 'blue-theme',
-        'user_action': 'green-theme',
-        'admin_action': 'red-theme', 
-        'login': 'green-theme',
-        'logout': 'gray-theme',
-        'auth': 'purple-theme',
-        'availability_update': 'cyan-theme',
-        'poll_voted': 'purple-theme',
-        'poll_created': 'indigo-theme',
-        'ai_chat': 'indigo-theme',
-        'simulation_run': 'orange-theme',
-        'score_submitted': 'yellow-theme',
-        'team_email': 'blue-theme',
-        'court_reservation': 'green-theme',
-        'comprehensive_registration': 'purple-theme',
-        'match_created': 'green-theme',
-        'poll_response': 'blue-theme'
+        'page_visit': 'blue',
+        'login': 'green',
+        'logout': 'gray',
+        'registration_successful': 'green',
+        'registration_failed': 'red',
+        'player_search': 'blue',
+        'team_switch': 'purple',
+        'settings_update': 'orange',
+        'poll_voted': 'green',
+        'poll_created': 'blue',
+        'availability_update': 'green',
+        'ai_chat': 'purple',
+        'simulation_run': 'yellow',
+        'score_submitted': 'gold',
+        'team_email': 'blue',
+        'court_reservation': 'green',
+        'admin_action': 'red',
+        'user_action': 'gray'
     };
-    return colorMap[activityType] || 'gray-theme';
+    
+    return colorMap[activityType] || 'gray';
 }
 
 // Helper function to format user agent strings
@@ -619,29 +624,30 @@ function formatUserAgent(userAgent) {
     return `${browser} on ${os}${mobile ? ' (Mobile)' : ''}`;
 }
 
-// Helper function to get activity type display name
-function getActivityTypeDisplay(type) {
-    const typeMap = {
+// Function to get activity type display name
+function getActivityTypeDisplay(activityType) {
+    const displayMap = {
         'page_visit': 'Page Visit',
-        'user_action': 'User Action',
-        'admin_action': 'Admin Action',
-        'login': 'Login',
-        'logout': 'Logout',
-        'auth': 'Authentication',
-        'availability_update': 'Availability Update',
+        'login': 'User Login',
+        'logout': 'User Logout',
+        'registration_successful': 'Registration Successful',
+        'registration_failed': 'Registration Failed',
+        'player_search': 'Player Search',
+        'team_switch': 'Team Switch',
+        'settings_update': 'Settings Update',
         'poll_voted': 'Poll Vote',
         'poll_created': 'Poll Created',
+        'availability_update': 'Availability Update',
         'ai_chat': 'AI Chat',
-        'simulation_run': 'Simulation',
+        'simulation_run': 'Simulation Run',
         'score_submitted': 'Score Submitted',
         'team_email': 'Team Email',
         'court_reservation': 'Court Reservation',
-        'comprehensive_registration': 'User Registration',
-        'match_created': 'Match Created',
-        'poll_response': 'Poll Response'
+        'admin_action': 'Admin Action',
+        'user_action': 'User Action'
     };
     
-    return typeMap[type] || type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    return displayMap[activityType] || activityType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 }
 
 // Load activity data when page loads

@@ -146,8 +146,16 @@ class LineupEscrowService:
                     "error": "Escrow session not found or already completed"
                 }
             
-            # Verify recipient contact matches
-            if escrow.recipient_contact != recipient_contact:
+            # Normalize and compare contact info
+            def is_email(contact):
+                return '@' in contact
+            if is_email(escrow.recipient_contact):
+                stored = self._normalize_email(escrow.recipient_contact)
+                submitted = self._normalize_email(recipient_contact)
+            else:
+                stored = self._normalize_phone(escrow.recipient_contact)
+                submitted = self._normalize_phone(recipient_contact)
+            if stored != submitted:
                 return {
                     "success": False,
                     "error": "Contact information does not match"
@@ -486,7 +494,7 @@ class LineupEscrowService:
         try:
             # Get base URL from Flask request context or use relative path
             try:
-                from flask import request
+                from flask import request, session
                 base_url = request.host_url.rstrip('/')
             except RuntimeError:
                 base_url = ""
@@ -495,20 +503,37 @@ class LineupEscrowService:
             contact_param = escrow.recipient_contact
             view_url = f"{base_url}/mobile/lineup-escrow-view/{escrow.escrow_token}?contact={contact_param}" if base_url else f"/mobile/lineup-escrow-view/{escrow.escrow_token}?contact={contact_param}"
             
+            club_name = ""
+            # 1. Try team-based lookup
+            if escrow.initiator_team_id:
+                team = self.db_session.query(Team).filter(Team.id == escrow.initiator_team_id).first()
+                if team and team.club_id:
+                    from app.models.database_models import Club
+                    club = self.db_session.query(Club).filter(Club.id == team.club_id).first()
+                    if club and club.name:
+                        club_name = club.name
+            # 2. Fallback: session club_id
+            if not club_name:
+                try:
+                    from flask import session
+                    session_club_id = session.get('user', {}).get('club_id')
+                    if session_club_id:
+                        from app.models.database_models import Club
+                        club = self.db_session.query(Club).filter(Club.id == session_club_id).first()
+                        if club and club.name:
+                            club_name = club.name
+                except Exception:
+                    pass
+            # 3. Last resort
+            if not club_name:
+                club_name = "your club"
+            
             if escrow.contact_type == 'sms':
                 # Gather variables for personalized SMS
                 recipient_first_name = escrow.recipient_name.split()[0] if escrow.recipient_name else "Captain"
                 initiator = self.db_session.query(User).filter(User.id == escrow.initiator_user_id).first()
                 sender_first_name = initiator.first_name if initiator and initiator.first_name else "A fellow captain"
                 sender_last_name = initiator.last_name if initiator and initiator.last_name else ""
-                club_name = ""
-                if escrow.initiator_team_id:
-                    team = self.db_session.query(Team).filter(Team.id == escrow.initiator_team_id).first()
-                    if team and team.club_id:
-                        from app.models.database_models import Club
-                        club = self.db_session.query(Club).filter(Club.id == team.club_id).first()
-                        if club and club.name:
-                            club_name = club.name
                 # Compose message
                 message = (
                     f"Hi {recipient_first_name},\n\n"
@@ -525,8 +550,21 @@ class LineupEscrowService:
                 )
                 return result["success"]
             elif escrow.contact_type == 'email':
-                # Placeholder for email logic (can include user message)
-                logger.info(f"Email notification would be sent to {escrow.recipient_contact} with link: {view_url}")
+                recipient_first_name = escrow.recipient_name.split()[0] if escrow.recipient_name else "Captain"
+                initiator = self.db_session.query(User).filter(User.id == escrow.initiator_user_id).first()
+                sender_first_name = initiator.first_name if initiator and initiator.first_name else "A fellow captain"
+                sender_last_name = initiator.last_name if initiator and initiator.last_name else ""
+                # Compose message (same as SMS, but you can add more formatting if you want)
+                message = (
+                    f"Hi {recipient_first_name},\n\n"
+                    f"This is {sender_first_name} {sender_last_name} from {club_name}. Looking forward to our upcoming match.  \n\n"
+                    "I'm using Lineup Escrow™ in the Rally app to share my lineup with you. Lineup Escrow™ is designed for each captain to send their lineup to the opposing captain before a match, with both lineups being disclosed at the exact same time. This ensures fairness and transparency for both teams.\n\n"
+                    "Once you share your lineup with me, both lineups will be disclosed simultaneously.\n\n"
+                    "Click the link below to get started...\n"
+                    f"{view_url}"
+                )
+                # Send email here (or log for now)
+                logger.info(f"Email notification would be sent to {escrow.recipient_contact} with message:\n{message}")
                 return True
         except Exception as e:
             logger.error(f"Error sending escrow notification: {str(e)}")
@@ -664,3 +702,15 @@ Rally Team
         except Exception as e:
             logger.error(f"Error notifying escrow completion: {e}")
             return False 
+
+    def _normalize_email(self, email: str) -> str:
+        if not email:
+            return ''
+        return email.strip().lower()
+
+    def _normalize_phone(self, phone: str) -> str:
+        if not phone:
+            return ''
+        import re
+        # Remove all non-digit characters
+        return re.sub(r'\D', '', phone) 

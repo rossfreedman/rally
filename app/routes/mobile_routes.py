@@ -124,8 +124,17 @@ def serve_mobile():
                     print(f"[DEBUG] Using fallback session data: {session['user']}")
         
         # Log mobile access
-        log_user_activity(user_email, "page_visit", page="mobile_home")
-        
+        try:
+            log_user_activity(
+                session["user"]["email"], 
+                "page_visit", 
+                page="mobile_home",
+                first_name=session["user"].get("first_name"),
+                last_name=session["user"].get("last_name")
+            )
+        except Exception as e2:
+            print(f"Error logging mobile access: {str(e2)}")
+
     except Exception as e:
         print(f"Error with new session service: {str(e)}")
         # Fallback to old session
@@ -136,6 +145,91 @@ def serve_mobile():
             print(f"Error logging mobile access: {str(e2)}")
 
     return render_template("mobile/index.html", session_data=session_data)
+
+
+@mobile_bp.route("/mobile/alt1")
+@login_required
+def serve_mobile_alt1():
+    """Serve the alternative mobile home page with white buttons and borders"""
+    print(f"=== SERVE_MOBILE_ALT1 FUNCTION CALLED ===")
+    print(f"Request path: {request.path}")
+    print(f"Request method: {request.method}")
+
+    # Don't handle admin routes
+    if "/admin" in request.path:
+        print("Admin route detected in mobile, redirecting to serve_admin")
+        return redirect(url_for("admin.serve_admin"))
+
+    # Use new session service to get fresh session data, BUT preserve team switches
+    from app.services.session_service import get_session_data_for_user
+    
+    try:
+        user_email = session["user"]["email"]
+        
+        print(f"[DEBUG] Checking session for user: {user_email}")
+        
+        # Check if we're currently impersonating - if so, ALWAYS preserve session
+        is_impersonating = session.get("impersonation_active", False)
+        
+        if is_impersonating:
+            # During impersonation, never rebuild session - preserve manual selections
+            print(f"[DEBUG] Impersonation active - preserving session as-is")
+            session_data = {"user": session["user"], "authenticated": True}
+        else:
+            # Check if current session has valid team context - if so, preserve it
+            current_session = session.get("user", {})
+            has_valid_team_context = (
+                current_session.get("team_id") is not None and
+                current_session.get("league_id") is not None and
+                current_session.get("club") and
+                current_session.get("series")
+            )
+            
+            if has_valid_team_context:
+                # Current session already has valid team context (likely from team switch)
+                # Don't override it with database refresh
+                print(f"[DEBUG] Preserving existing team context: {current_session.get('club')} - {current_session.get('series')}")
+                session_data = {"user": current_session, "authenticated": True}
+            else:
+                # Session is incomplete or invalid, refresh from database
+                print(f"[DEBUG] Getting fresh session data for user: {user_email}")
+                fresh_session_data = get_session_data_for_user(user_email)
+                    
+                print(f"[DEBUG] Fresh session data result: {fresh_session_data}")
+                
+                if fresh_session_data:
+                    # Update the Flask session with fresh data
+                    session["user"] = fresh_session_data
+                    session.modified = True
+                    session_data = {"user": fresh_session_data, "authenticated": True}
+                    print(f"[DEBUG] Using fresh session data and updated Flask session")
+                else:
+                    # Fallback to old session if session service fails
+                    session_data = {"user": session["user"], "authenticated": True}
+                    print(f"[DEBUG] Using fallback session data: {session['user']}")
+        
+        # Log mobile access
+        try:
+            log_user_activity(
+                session["user"]["email"], 
+                "page_visit", 
+                page="mobile_home_alt1",
+                first_name=session["user"].get("first_name"),
+                last_name=session["user"].get("last_name")
+            )
+        except Exception as e2:
+            print(f"Error logging mobile access: {str(e2)}")
+
+    except Exception as e:
+        print(f"Error with new session service: {str(e)}")
+        # Fallback to old session
+        session_data = {"user": session["user"], "authenticated": True}
+        try:
+            log_user_activity(session["user"]["email"], "page_visit", page="mobile_home_alt1")
+        except Exception as e2:
+            print(f"Error logging mobile access: {str(e2)}")
+
+    return render_template("mobile/mobile_home_alt1.html", session_data=session_data)
 
 
 @mobile_bp.route("/mobile/rally")
@@ -1747,7 +1841,11 @@ def serve_mobile_my_series():
 
         print(f"📱 Calling log_user_activity for my-series...")
         log_result = log_user_activity(
-            session["user"]["email"], "page_visit", page="mobile_my_series"
+            session["user"]["email"], 
+            "page_visit", 
+            page="mobile_my_series",
+            first_name=session["user"].get("first_name"),
+            last_name=session["user"].get("last_name")
         )
         print(f"✅ Activity logged: {log_result}")
 
@@ -4130,6 +4228,69 @@ def serve_text_group(group_id):
             error="Failed to load group details",
             group=None
         )
+
+
+@mobile_bp.route("/mobile/lineup_escrow_confirmation")
+@login_required
+def serve_mobile_lineup_escrow_confirmation():
+    """Serve the mobile lineup escrow confirmation page"""
+    return render_template("mobile/lineup_escrow_confirmation.html")
+
+
+@mobile_bp.route("/mobile/ios")
+@login_required
+def serve_mobile_ios():
+    """Serve the iOS-style mobile home page"""
+    print(f"=== SERVE_MOBILE_IOS FUNCTION CALLED ===")
+    print(f"Request path: {request.path}")
+    print(f"Request method: {request.method}")
+
+    if "/admin" in request.path:
+        print("Admin route detected in mobile, redirecting to serve_admin")
+        return redirect(url_for("admin.serve_admin"))
+
+    from app.services.session_service import get_session_data_for_user
+    try:
+        user_email = session["user"]["email"]
+        is_impersonating = session.get("impersonation_active", False)
+        if is_impersonating:
+            session_data = {"user": session["user"], "authenticated": True}
+        else:
+            current_session = session.get("user", {})
+            has_valid_team_context = (
+                current_session.get("team_id") is not None and
+                current_session.get("league_id") is not None and
+                current_session.get("club") and
+                current_session.get("series")
+            )
+            if has_valid_team_context:
+                session_data = {"user": current_session, "authenticated": True}
+            else:
+                fresh_session_data = get_session_data_for_user(user_email)
+                if fresh_session_data:
+                    session["user"] = fresh_session_data
+                    session.modified = True
+                    session_data = {"user": fresh_session_data, "authenticated": True}
+                else:
+                    session_data = {"user": session["user"], "authenticated": True}
+        try:
+            log_user_activity(
+                session["user"]["email"],
+                "page_visit",
+                page="mobile_home_ios",
+                first_name=session["user"].get("first_name"),
+                last_name=session["user"].get("last_name")
+            )
+        except Exception as e2:
+            print(f"Error logging mobile access: {str(e2)}")
+    except Exception as e:
+        print(f"Error with new session service: {str(e)}")
+        session_data = {"user": session["user"], "authenticated": True}
+        try:
+            log_user_activity(session["user"]["email"], "page_visit", page="mobile_home_ios")
+        except Exception as e2:
+            print(f"Error logging mobile access: {str(e2)}")
+    return render_template("mobile/mobile_home_ios.html", session_data=session_data)
 
 
 

@@ -1268,7 +1268,13 @@ def init_rally_ai_routes(app):
         """Serve the mobile AI chat interface"""
         try:
             user = session["user"]
-            log_user_activity(user["email"], "page_visit", page="mobile_ask_ai")
+            log_user_activity(
+                user["email"], 
+                "page_visit", 
+                page="mobile_ask_ai",
+                first_name=user.get("first_name"),
+                last_name=user.get("last_name")
+            )
             return render_template(
                 "mobile/ask_ai.html", user=user, session_data={"user": user}
             )

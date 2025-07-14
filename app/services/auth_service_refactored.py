@@ -320,14 +320,55 @@ def register_user(email: str, password: str, first_name: str, last_name: str,
     """
     db_session = SessionLocal()
     
+    # Import activity logging at the top to avoid circular imports
+    from utils.logging import log_user_activity
+    
     try:
         # Check if user already exists
         existing_user = db_session.query(User).filter(User.email == email).first()
         if existing_user:
+            # Log registration failure due to existing user
+            log_user_activity(
+                email, 
+                "registration_failed", 
+                action="duplicate_email",
+                first_name=first_name,
+                last_name=last_name,
+                details={
+                    "reason": "User with this email already exists",
+                    "registration_data": {
+                        "first_name": first_name,
+                        "last_name": last_name,
+                        "league_id": league_id,
+                        "club_name": club_name,
+                        "series_name": series_name
+                    }
+                }
+            )
             return {"success": False, "error": "User with this email already exists"}
         
         # Validate required fields for player association
         if not league_id or not club_name or not series_name:
+            # Log registration failure due to missing required fields
+            log_user_activity(
+                email, 
+                "registration_failed", 
+                action="missing_required_fields",
+                first_name=first_name,
+                last_name=last_name,
+                details={
+                    "reason": "Missing required league/club/series information",
+                    "provided_data": {
+                        "league_id": league_id,
+                        "club_name": club_name,
+                        "series_name": series_name
+                    },
+                    "registration_data": {
+                        "first_name": first_name,
+                        "last_name": last_name
+                    }
+                }
+            )
             return {
                 "success": False, 
                 "error": "Registration was not successful. Rally was unable to link your user account to a player ID. Please contact support for assistance."
@@ -366,6 +407,27 @@ def register_user(email: str, password: str, first_name: str, last_name: str,
             # Check if player was found
             if not player_lookup_result or not player_lookup_result.get("player"):
                 logger.warning(f"Registration FAILED: No player found for {email} with provided details")
+                
+                # Log player ID linking failure
+                log_user_activity(
+                    email, 
+                    "registration_failed", 
+                    action="player_id_linking_failed",
+                    first_name=first_name,
+                    last_name=last_name,
+                    details={
+                        "reason": "No player found with provided details",
+                        "lookup_attempt": {
+                            "first_name": first_name,
+                            "last_name": last_name,
+                            "league_id": league_id,
+                            "club_name": club_name,
+                            "series_name": series_name
+                        },
+                        "player_lookup_result": player_lookup_result
+                    }
+                )
+                
                 db_session.rollback()
                 return {
                     "success": False, 
@@ -383,11 +445,68 @@ def register_user(email: str, password: str, first_name: str, last_name: str,
             
             if not player_record:
                 logger.warning(f"Registration FAILED: Player record not found in database for {email}, player_id: {player_id}")
+                
+                # Log player ID linking failure due to missing player record
+                log_user_activity(
+                    email, 
+                    "registration_failed", 
+                    action="player_record_not_found",
+                    details={
+                        "reason": "Player record not found in database",
+                        "player_id": player_id,
+                        "lookup_attempt": {
+                            "first_name": first_name,
+                            "last_name": last_name,
+                            "league_id": league_id,
+                            "club_name": club_name,
+                            "series_name": series_name
+                        }
+                    }
+                )
+                
                 db_session.rollback()
                 return {
                     "success": False, 
                     "error": "Registration was not successful. Rally was unable to link your user account to a player ID. Please contact support for assistance."
                 }
+            
+            # --- BEGIN TEAM CONTEXT FIX FOR MULTI-TEAM PLAYERS ---
+            # Find all teams for this player
+            player_teams = db_session.query(Player).filter(
+                Player.tenniscores_player_id == player_id,
+                Player.is_active == True
+            ).all()
+            preferred_team = None
+            for team_player in player_teams:
+                # Fetch club and series names for this player
+                club = db_session.query(Club).filter(Club.id == team_player.club_id).first()
+                series = db_session.query(Series).filter(Series.id == team_player.series_id).first()
+                db_club = (club.name if club else "").strip().lower()
+                db_series = (series.name if series else "").strip().lower()
+                reg_club = (club_name or "").strip().lower()
+                reg_series = (series_name or "").strip().lower()
+                if db_club == reg_club and db_series == reg_series:
+                    preferred_team = team_player
+                    break
+            # If not found, try to match just club
+            if not preferred_team:
+                for team_player in player_teams:
+                    club = db_session.query(Club).filter(Club.id == team_player.club_id).first()
+                    db_club = (club.name if club else "").strip().lower()
+                    reg_club = (club_name or "").strip().lower()
+                    if db_club == reg_club:
+                        preferred_team = team_player
+                        break
+            # If still not found, fall back to the first team
+            if not preferred_team and player_teams:
+                preferred_team = player_teams[0]
+            # Update player_record's team_id, club_id, series_id if needed
+            if preferred_team:
+                # Do NOT update player_record fields—just use for context/logging
+                club = db_session.query(Club).filter(Club.id == preferred_team.club_id).first()
+                series = db_session.query(Series).filter(Series.id == preferred_team.series_id).first()
+                logger.info(f"Registration: Set team context to {(club.name if club else '')} - {(series.name if series else '')} (team_id: {preferred_team.team_id}) for {email}")
+            # --- END TEAM CONTEXT FIX ---
             
             # ENHANCEMENT: Handle existing placeholder associations
             # Check if this player is already associated with a placeholder user
@@ -453,6 +572,25 @@ def register_user(email: str, password: str, first_name: str, last_name: str,
                     logger.warning(f"🚨 SECURITY: Player ID {player_id} already associated with real user {existing_user.email}")
                     logger.warning(f"🚨 SECURITY: Preventing registration of {email} with existing player identity")
                     
+                    # Log security issue - player ID already claimed
+                    log_user_activity(
+                        email, 
+                        "registration_failed", 
+                        action="security_issue_player_id_claimed",
+                        details={
+                            "reason": "Player ID already associated with another account",
+                            "player_id": player_id,
+                            "existing_user_email": existing_user.email if existing_user else "unknown",
+                            "lookup_attempt": {
+                                "first_name": first_name,
+                                "last_name": last_name,
+                                "league_id": league_id,
+                                "club_name": club_name,
+                                "series_name": series_name
+                            }
+                        }
+                    )
+                    
                     # Rollback and return error - don't create the user account
                     db_session.rollback()
                     return {
@@ -469,11 +607,16 @@ def register_user(email: str, password: str, first_name: str, last_name: str,
                 )
                 db_session.add(association)
             
-            # CRITICAL FIX: Set league_context based on the specific player they registered for
+            # CRITICAL FIX: Set league_context based on the preferred team they registered for
             # This ensures the session service will select the right team on login
-            new_user.league_context = player_record.league_id
-            
-            logger.info(f"Registration: Set league_context to {player_record.league_id} for player {player_data['club_name']} - {player_data['series_name']}")
+            if preferred_team:
+                # Use the preferred team's league_id to set the correct context
+                new_user.league_context = preferred_team.league_id
+                logger.info(f"Registration: Set league_context to {preferred_team.league_id} for preferred team {preferred_team.club_id} - {preferred_team.series_id}")
+            else:
+                # Fallback to original player record if no preferred team found
+                new_user.league_context = player_record.league_id
+                logger.info(f"Registration: Set league_context to {player_record.league_id} for player {player_data['club_name']} - {player_data['series_name']} (no preferred team found)")
             
             # Assign player to team for polls functionality
             team_assigned = assign_player_to_team(player_record, db_session)
@@ -488,6 +631,27 @@ def register_user(email: str, password: str, first_name: str, last_name: str,
             
         except Exception as e:
             logger.error(f"Registration FAILED: Player lookup error for {email}: {e}")
+            
+            # Log player ID linking failure due to exception
+            log_user_activity(
+                email, 
+                "registration_failed", 
+                action="player_lookup_exception",
+                first_name=first_name,
+                last_name=last_name,
+                details={
+                    "reason": "Exception during player lookup",
+                    "error": str(e),
+                    "lookup_attempt": {
+                        "first_name": first_name,
+                        "last_name": last_name,
+                        "league_id": league_id,
+                        "club_name": club_name,
+                        "series_name": series_name
+                    }
+                }
+            )
+            
             db_session.rollback()
             return {
                 "success": False, 
@@ -497,6 +661,34 @@ def register_user(email: str, password: str, first_name: str, last_name: str,
         # Commit the transaction - this is where the user record is actually saved
         db_session.commit()
         logger.info(f"Registration completed successfully for {email}")
+        
+        # Log successful player ID linking
+        log_user_activity(
+            email, 
+            "registration_successful", 
+            action="player_id_linking_successful",
+            first_name=first_name,
+            last_name=last_name,
+            details={
+                "player_id": player_id,
+                "player_data": {
+                    "first_name": player_data.get("first_name"),
+                    "last_name": player_data.get("last_name"),
+                    "club_name": player_data.get("club_name"),
+                    "series_name": player_data.get("series_name"),
+                    "league_id": player_data.get("league_id")
+                },
+                "team_assigned": team_assigned,
+                "registration_data": {
+                    "first_name": first_name,
+                    "last_name": last_name,
+                    "league_id": league_id,
+                    "club_name": club_name,
+                    "series_name": series_name,
+                    "phone_number_provided": bool(phone_number)
+                }
+            }
+        )
         
         # Build session data using our simple service
         from app.services.session_service import get_session_data_for_user
@@ -532,6 +724,27 @@ def register_user(email: str, password: str, first_name: str, last_name: str,
         
     except Exception as e:
         logger.error(f"Registration failed for {email}: {str(e)}")
+        
+        # Log general registration failure
+        log_user_activity(
+            email, 
+            "registration_failed", 
+            action="general_registration_error",
+            first_name=first_name,
+            last_name=last_name,
+            details={
+                "reason": "General registration error",
+                "error": str(e),
+                "registration_data": {
+                    "first_name": first_name,
+                    "last_name": last_name,
+                    "league_id": league_id,
+                    "club_name": club_name,
+                    "series_name": series_name
+                }
+            }
+        )
+        
         db_session.rollback()
         return {
             "success": False, 

@@ -109,7 +109,13 @@ def serve_admin():
     print(f"Request method: {request.method}")
     print(f"User in session: {session.get('user', 'No user')}")
 
-    log_user_activity(session["user"]["email"], "page_visit", page="admin")
+    log_user_activity(
+        session["user"]["email"], 
+        "page_visit", 
+        page="admin",
+        first_name=session["user"].get("first_name"),
+        last_name=session["user"].get("last_name")
+    )
 
     # Always use the mobile admin template since it's responsive and works on all devices
     print("Rendering mobile admin template (responsive design)")
@@ -198,7 +204,11 @@ def serve_admin_user_activity():
             user_data = None
     
     log_user_activity(
-        session["user"]["email"], "page_visit", page="admin_user_activity"
+        session["user"]["email"], 
+        "page_visit", 
+        page="admin_user_activity",
+        first_name=session["user"].get("first_name"),
+        last_name=session["user"].get("last_name")
     )
     
     return render_template(
@@ -1651,6 +1661,8 @@ def user_activity():
             "page_visit",
             page="user_activity",
             details="Accessed user activity page",
+            first_name=session["user"].get("first_name"),
+            last_name=session["user"].get("last_name")
         )
         print("Successfully logged user activity page visit")
     except Exception as e:
