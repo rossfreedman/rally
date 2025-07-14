@@ -2,56 +2,64 @@
 
 {% block content %}
 <style>
-  /* Override background for mobile home page */
   body {
-    background-color: white !important;
+    background-color: #f8f4f4 !important;
   }
   #main-content {
-    background-color: white !important;
+    background-color: #f8f4f4 !important;
+  }
+  /* iOS-style button styles */
+  .act-button, .analyze-button, .prepare-button, .play-button, .improve-button, .captain-button, .admin-button {
+    background: #fff !important;
+    border-radius: 1.5rem !important;
+    border: 1px solid #E0E0E0 !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08) !important;
+    color: #085454 !important;
+    font-weight: 500 !important;
+    transition: box-shadow 0.2s, transform 0.1s, background 0.2s;
+    padding: 1.5rem !important;
+  }
+  .act-button *, .analyze-button *, .prepare-button *, .play-button *, .improve-button *, .captain-button *, .admin-button * {
+    color: #085454 !important;
+    text-shadow: none !important;
+    font-weight: 500 !important;
+  }
+  .act-button:active, .analyze-button:active, .prepare-button:active, .play-button:active, .improve-button:active, .captain-button:active, .admin-button:active {
+    transform: scale(0.97);
+    background: #f2f2f7 !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
+  }
+  .act-button:hover, .analyze-button:hover, .prepare-button:hover, .play-button:hover, .improve-button:hover, .captain-button:hover, .admin-button:hover {
+    background: #f2f2f7 !important;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.12) !important;
+    color: #085454 !important;
+    border-color: #E0E0E0 !important;
+  }
+  .act-button:hover *, .analyze-button:hover *, .prepare-button:hover *, .play-button:hover *, .improve-button:hover *, .captain-button:hover *, .admin-button:hover * {
+    color: #085454 !important;
   }
   
-  /* Custom button styles for each section with consistent #10645c background */
-  .act-button {
-    background-color: #10645c !important;
-    color: #c4ff60 !important;
+  /* SF Symbols styling */
+  .sf-symbol {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    opacity: 0.9;
+    font-weight: 300;
+    -webkit-font-smoothing: antialiased;
   }
   
-  .analyze-button {
-    background-color: #10645c !important;
-    color: #c4ff60 !important;
-  }
-  
-  .prepare-button {
-    background-color: #10645c !important;
-    color: #c4ff60 !important;
-  }
-  
-  .play-button {
-    background-color: #10645c !important;
-    color: #c4ff60 !important;
-  }
-  
-  .improve-button {
-    background-color: #10645c !important;
-    color: #c4ff60 !important;
-  }
-  
-  .captain-button {
-    background-color: #10645c !important;
-    color: #c4ff60 !important;
-  }
-  
-  .admin-button {
-    background-color: #10645c !important;
-    color: #c4ff60 !important;
-  }
-  
-  /* Icon colors to match the text color */
-  .act-button i, .analyze-button i, .prepare-button i, .play-button i, 
-  .improve-button i, .captain-button i, .admin-button i {
-    color: #c4ff60 !important;
+  /* SF Symbols font fallback */
+  @font-face {
+    font-family: 'SF Symbols';
+    src: url('https://developer.apple.com/fonts/sf-symbols/SFSymbolsFallback.otf') format('opentype');
+    font-weight: normal;
+    font-style: normal;
   }
 </style>
+
+<!-- SF Symbols Web Library -->
+<script src="https://unpkg.com/sf-symbols-web@latest/dist/sf-symbols-web.js"></script>
+
 <div class="container mx-auto px-4 py-6">
   <!-- Welcome Section with Club Logo and Info -->
   <div class="welcome-section mb-8">
@@ -59,24 +67,24 @@
     <div class="flex items-center justify-center gap-4 mb-4">
       <!-- Column 1: Club Logo -->
       <div class="flex-shrink-0">
-        <div class="w-20 h-20 flex items-center justify-center">
+        <div class="w-20 h-20 flex items-center justify-center bg-transparent">
           {% if session_data and session_data.user and session_data.user.club_logo %}
             <img src="/{{ session_data.user.club_logo }}" 
                  alt="{{ session_data.user.club }} Logo" 
-                 class="w-20 h-20 object-contain"
+                 class="w-20 h-20 object-contain bg-transparent"
                  onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
           {% else %}
             <img src="/static/images/clubs/default_club_logo.png" 
                  alt="Club Logo" 
-                 class="w-20 h-20 object-contain"
+                 class="w-20 h-20 object-contain bg-transparent"
                  onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
           {% endif %}
           <!-- Fallback placeholder if logo doesn't load -->
           <div class="w-20 h-20 bg-green-600 rounded-lg flex items-center justify-center shadow-lg text-white text-center hidden">
             <div class="text-xs font-bold">{{ session_data.user.club[:8] if session_data and session_data.user and session_data.user.club else 'CLUB' }}</div>
             <div class="flex justify-center items-center mt-1">
-              <i class="fas fa-table-tennis text-xs mr-1"></i>
-              <i class="fas fa-tennis-ball text-xs"></i>
+              <span class="sf-symbol text-xs mr-1">􀆅</span>
+              <span class="sf-symbol text-xs">􀆅</span>
             </div>
             <div class="w-6 h-1 bg-blue-400 mx-auto mt-1 rounded"></div>
           </div>
@@ -115,209 +123,6 @@
         {% endif %}
       </div>
     </div>
-         
-    <script>
-      // Apply series alias transformation to the display and check for multiple leagues/clubs
-      document.addEventListener('DOMContentLoaded', function() {
-        const seriesElement = document.getElementById('seriesNameDisplay');
-        if (seriesElement) {
-          const originalSeries = seriesElement.getAttribute('data-series');
-          const clubName = seriesElement.getAttribute('data-club');
-          
-          if (originalSeries && clubName) {
-            // Transform the series name (e.g., "Chicago 22" -> "Series 22")
-            let displaySeries = originalSeries;
-            const numberMatch = originalSeries.match(/(\d+)(\s+\w+)*$/);
-            if (numberMatch) {
-              const seriesNumber = numberMatch[1];
-              const suffix = numberMatch[2] || '';
-              displaySeries = `Series ${seriesNumber}${suffix}`;
-            }
-            
-            // Update the display with the format "Series X @ Club"
-            seriesElement.textContent = `${displaySeries} @ ${clubName}`;
-          }
-        }
-        
-        // Check if user has multiple leagues
-        checkMultipleLeagues();
-        
-        // Check if user has multiple clubs in current league
-        checkMultipleClubs();
-      });
-      
-      async function checkMultipleLeagues() {
-        try {
-          // Check if this specific user has multiple leagues (including all associations)
-          const response = await fetch('/api/get-user-leagues');
-          const data = await response.json();
-          
-          if (data.success && data.has_multiple_leagues) {
-            const leagueButton = document.getElementById('leagueSwitcherTrigger');
-            if (leagueButton) {
-              leagueButton.classList.remove('hidden');
-              console.log(`✅ League selector shown - user has ${data.league_count} leagues`);
-            }
-          } else {
-            console.log(`❌ League selector hidden - user has ${data.league_count || 0} leagues`);
-          }
-        } catch (error) {
-          console.error('Error checking multiple leagues:', error);
-        }
-      }
-      
-      async function checkMultipleClubs() {
-        try {
-          // Check if this specific user has multiple teams in current league
-          const response = await fetch('/api/get-user-teams-in-current-league');
-          const data = await response.json();
-          
-          if (data.success && data.has_multiple_teams) {
-            const clubButton = document.getElementById('clubSwitcherTrigger');
-            if (clubButton) {
-              clubButton.classList.remove('hidden');
-            }
-          }
-        } catch (error) {
-          console.error('Error checking multiple clubs:', error);
-        }
-      }
-      
-      function showClubSwitcher() {
-        const modal = document.getElementById('clubSwitcherModal');
-        if (modal) {
-          modal.classList.remove('hidden');
-          document.body.style.overflow = 'hidden';
-          loadClubSwitcherOptions();
-        }
-      }
-      
-      async function loadClubSwitcherOptions() {
-        try {
-          const response = await fetch('/api/get-user-teams-in-current-league');
-          const data = await response.json();
-          
-          if (data.success && data.teams) {
-            const optionsContainer = document.querySelector('#clubSwitcherModal .club-options');
-            if (optionsContainer) {
-              optionsContainer.innerHTML = data.teams.map(team => `
-                <button onclick="switchTeamInLeague(${team.team_id}, '${team.team_name}', '${team.club_name}', '${team.series_name}')" 
-                        class="team-switch-btn w-full flex items-center justify-between p-4 rounded-lg bg-white hover:bg-green-50 transition-all duration-200 border-2 border-gray-300 hover:border-green-400 hover:shadow-md group
-                               ${team.is_current ? 'bg-green-100 border-green-400' : ''}">
-                    <div class="text-left">
-                        <div class="font-bold text-gray-900 group-hover:text-green-900">${team.club_name}</div>
-                        <div class="text-sm text-gray-600 group-hover:text-green-700">${team.series_name} • ${team.match_count} matches</div>
-                    </div>
-                    <div class="text-sm ${team.is_current ? 'bg-green-600 text-white px-3 py-1 rounded' : 'bg-green-500 group-hover:bg-green-600 text-white px-3 py-1 rounded'}">
-                        ${team.is_current ? 'Current' : 'Switch'}
-                    </div>
-                </button>
-              `).join('');
-            }
-          }
-        } catch (error) {
-          console.error('Error loading club switcher options:', error);
-        }
-      }
-      
-      async function switchTeamInLeague(teamId, teamName, clubName, seriesName) {
-        try {
-          // Close modal first
-          const modal = document.getElementById('clubSwitcherModal');
-          if (modal) {
-            modal.classList.add('hidden');
-            document.body.style.overflow = '';
-          }
-          
-          // Show loading
-          const clubButton = document.getElementById('clubSwitcherTrigger');
-          if (clubButton) {
-            clubButton.innerHTML = '<i class="fas fa-spinner fa-spin text-xs"></i>';
-            clubButton.disabled = true;
-          }
-          
-          const response = await fetch('/api/switch-team-in-league', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              team_id: teamId
-            })
-          });
-          
-          const data = await response.json();
-          
-          if (data.success) {
-            // Show success briefly then reload
-            if (clubButton) {
-              clubButton.innerHTML = '<i class="fas fa-check text-xs text-green-400"></i>';
-            }
-            
-            setTimeout(() => {
-              window.location.reload();
-            }, 1000);
-          } else {
-            throw new Error(data.error || 'Team switch failed');
-          }
-        } catch (error) {
-          console.error('Team switch error:', error);
-          alert(`Failed to switch teams: ${error.message}`);
-          
-          // Reset button
-          const clubButton = document.getElementById('clubSwitcherTrigger');
-          if (clubButton) {
-            clubButton.innerHTML = '(change)';
-            clubButton.disabled = false;
-          }
-        }
-      }
-    </script>
-  </div>
-    
-    <!-- Profile completion notification -->
-    {% if session_data and session_data.user and session_data.authenticated and (session_data.user.ad_deuce_preference is none or session_data.user.ad_deuce_preference == "" or session_data.user.dominant_hand is none or session_data.user.dominant_hand == "") %}
-    <div class="mt-4 p-3 rounded-lg shadow-sm" style="background-color: #FEF3C7; border: 1px solid #F59E0B;">
-      <div class="flex items-center gap-2">
-        <i class="fas fa-info-circle text-amber-600"></i>
-        <span class="text-sm text-gray-800">
-          <span class="font-medium">Reminder to complete your profile:</span> Add 
-          {% if (session_data.user.ad_deuce_preference is none or session_data.user.ad_deuce_preference == "") and (session_data.user.dominant_hand is none or session_data.user.dominant_hand == "") %}
-            ad/deuce preference and dominant hand in your <a href="/mobile/settings#player-preferences" class="underline font-medium text-amber-800 hover:text-amber-900">profile</a>.
-          {% elif session_data.user.ad_deuce_preference is none or session_data.user.ad_deuce_preference == "" %}
-            ad/deuce preference in your <a href="/mobile/settings#player-preferences" class="underline font-medium text-amber-800 hover:text-amber-900">profile</a>.
-          {% else %}
-            dominant hand in your <a href="/mobile/settings#player-preferences" class="underline font-medium text-amber-800 hover:text-amber-900">profile</a>.
-          {% endif %}
-        </span>
-      </div>
-    </div>
-    {% endif %}
-
-    <!-- Stop Impersonation Section (Only visible when impersonating) -->
-    <div id="home-impersonation-section" class="hidden mb-8">
-      <div class="text-white rounded-2xl p-6 shadow-lg" style="background: linear-gradient(to right, #f97316, #ef4444);">
-        <div class="flex items-center gap-4">
-          <div class="rounded-full p-3" style="background-color: rgba(255, 255, 255, 0.2);">
-            <i class="fas fa-user-secret text-2xl"></i>
-          </div>
-          <div class="flex-1">
-            <h3 class="text-lg font-bold mb-1">Admin Impersonation Active</h3>
-            <p class="text-sm" style="opacity: 0.9;" id="home-impersonated-info">
-              You are viewing as: <span id="home-impersonated-user-name" class="font-semibold"></span>
-            </p>
-          </div>
-        </div>
-        <div class="mt-4 flex gap-3">
-          <button onclick="stopHomeImpersonation()" class="flex-1 bg-white font-bold py-3 px-4 rounded-lg hover:bg-gray-100 transition-colors" style="color: #f97316;">
-            <i class="fas fa-stop mr-2"></i>Stop Impersonation
-          </button>
-          <a href="/admin" class="flex items-center justify-center text-white font-bold py-3 px-4 rounded-lg transition-colors" style="background-color: rgba(249, 115, 22, 0.3);" onmouseover="this.style.backgroundColor='rgba(249, 115, 22, 0.4)'" onmouseout="this.style.backgroundColor='rgba(249, 115, 22, 0.3)'">
-            <i class="fas fa-cog mr-2"></i>Admin Panel
-          </a>
-        </div>
-      </div>
-    </div>
   </div>
 
   <!-- Act Section -->
@@ -331,37 +136,63 @@
     </div>
     <div class="icon-grid grid grid-cols-2 gap-4" aria-label="Act">
       <a href="/mobile/availability" class="ios-card act-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-        <i class="fas fa-calendar text-3xl mb-4 opacity-90"></i>
+        <!-- Calendar Icon -->
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="7" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2" fill="none"/>
+          <path d="M16 3v4M8 3v4M3 11h18" stroke="currentColor" stroke-width="2"/>
+        </svg>
         <div class="text-left">
-          <span class="block text-lg font-semibold">View Schedule</span>
+          <div class="font-semibold text-lg">View Schedule</div>
         </div>
       </a>
       
       <a href="/mobile/availability-calendar" class="ios-card act-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-        <i class="fas fa-calendar-check text-3xl mb-4 opacity-90"></i>
+        <!-- Calendar Check Icon -->
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="7" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2" fill="none"/>
+          <path d="M16 3v4M8 3v4M3 11h18" stroke="currentColor" stroke-width="2"/>
+          <path d="M9 16l2 2 4-4" stroke="currentColor" stroke-width="2" fill="none"/>
+        </svg>
         <div class="text-left">
-          <span class="block text-lg font-semibold">Update Availability</span>
+          <div class="font-semibold text-lg">Update Availability</div>
         </div>
       </a>
       
       <a href="/mobile/track-byes-courts" class="ios-card act-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-        <i class="fas fa-clipboard-check text-3xl mb-4 opacity-90"></i>
+        <!-- Clipboard List Icon -->
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <rect x="9" y="2" width="6" height="4" rx="1" stroke="currentColor" stroke-width="2" fill="none"/>
+          <rect x="4" y="6" width="16" height="16" rx="2" stroke="currentColor" stroke-width="2" fill="none"/>
+          <path d="M9 10h6M9 14h6M9 18h2" stroke="currentColor" stroke-width="2"/>
+        </svg>
         <div class="text-left">
-          <span class="block text-lg font-semibold">Track Assignments</span>
+          <div class="font-semibold text-lg">Track Assignments</div>
         </div>
       </a>
       
+      <!-- Team Polls (Act section) -->
       <a href="/mobile/polls" class="ios-card act-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-        <i class="fas fa-poll text-3xl mb-4 opacity-90"></i>
+        <!-- Survey Choices Icon -->
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <circle cx="6" cy="7" r="1.5" stroke="currentColor" stroke-width="2" fill="#fff"/>
+          <line x1="10" y1="7" x2="20" y2="7" stroke="currentColor" stroke-width="2"/>
+          <circle cx="6" cy="12" r="1.5" stroke="currentColor" stroke-width="2" fill="#fff"/>
+          <line x1="10" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="2"/>
+          <circle cx="6" cy="17" r="1.5" stroke="currentColor" stroke-width="2" fill="#fff"/>
+          <line x1="10" y1="17" x2="20" y2="17" stroke="currentColor" stroke-width="2"/>
+        </svg>
         <div class="text-left">
-          <span class="block text-lg font-semibold">Respond to Polls</span>
+          <div class="font-semibold text-lg">Respond to Polls</div>
         </div>
       </a>
       
       <a href="/mobile/reserve-court" class="ios-card act-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-        <i class="fas fa-table-tennis text-3xl mb-4 opacity-90"></i>
+        <!-- Star Icon -->
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <polygon points="12 2 15 8.5 22 9.3 17 14.1 18.2 21 12 17.8 5.8 21 7 14.1 2 9.3 9 8.5 12 2" stroke="currentColor" stroke-width="2" fill="none"/>
+        </svg>
         <div class="text-left">
-          <span class="block text-lg font-semibold">Reserve a Court</span>
+          <div class="font-semibold text-lg">Reserve a Court</div>
         </div>
       </a>
     </div>
@@ -380,16 +211,25 @@
       <!-- First row - 2 items -->
       <div class="icon-grid grid grid-cols-2 gap-4">
         <a href="/mobile/analyze-me" class="ios-card analyze-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-          <i class="fas fa-user text-3xl mb-4 opacity-90"></i>
+          <!-- User Icon -->
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="2" fill="none"/>
+            <path d="M4 20v-2a4 4 0 014-4h8a4 4 0 014 4v2" stroke="currentColor" stroke-width="2"/>
+          </svg>
           <div class="text-left">
-            <span class="block text-lg font-semibold">Me</span>
+            <div class="font-semibold text-lg">Me</div>
           </div>
         </a>
         
         <a href="/mobile/myteam" class="ios-card analyze-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-          <i class="fas fa-users text-3xl mb-4 opacity-90"></i>
+          <!-- Users Icon -->
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <circle cx="8" cy="8" r="4" stroke="currentColor" stroke-width="2" fill="none"/>
+            <circle cx="16" cy="8" r="4" stroke="currentColor" stroke-width="2" fill="none"/>
+            <path d="M2 20v-2a4 4 0 014-4h2m8 0h2a4 4 0 014 4v2" stroke="currentColor" stroke-width="2"/>
+          </svg>
           <div class="text-left">
-            <span class="block text-lg font-semibold">My Team</span>
+            <div class="font-semibold text-lg">My Team</div>
           </div>
         </a>
       </div>
@@ -397,21 +237,28 @@
       <!-- Second row - 2 items -->
       <div class="icon-grid grid grid-cols-2 gap-4">
         <a href="/mobile/myseries" class="ios-card analyze-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-          <i class="fas fa-trophy text-3xl mb-4 opacity-90"></i>
+          <!-- Layers Icon (showing different levels) -->
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path d="M12 2L2 7l10 5 10-5-10-5z" stroke="currentColor" stroke-width="2" fill="none"/>
+            <path d="M2 17l10 5 10-5" stroke="currentColor" stroke-width="2" fill="none"/>
+            <path d="M2 12l10 5 10-5" stroke="currentColor" stroke-width="2" fill="none"/>
+          </svg>
           <div class="text-left">
-            <span class="block text-lg font-semibold">My Series</span>
+            <div class="font-semibold text-lg">My Series</div>
           </div>
         </a>
         
         <a href="/mobile/my-club" class="ios-card analyze-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-          <i class="fas fa-building text-3xl mb-4 opacity-90"></i>
+          <!-- Home/Clubhouse Icon -->
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke="currentColor" stroke-width="2" fill="none"/>
+            <polyline points="9,22 9,12 15,12 15,22" stroke="currentColor" stroke-width="2" fill="none"/>
+          </svg>
           <div class="text-left">
-            <span class="block text-lg font-semibold">My Club</span>
+            <div class="font-semibold text-lg">My Club</div>
           </div>
         </a>
       </div>
-      
-
     </div>
   </div>
 
@@ -426,30 +273,52 @@
     </div>
     <div class="icon-grid grid grid-cols-2 gap-4" aria-label="Prepare">
       <a href="/mobile/player-search" class="ios-card prepare-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-        <i class="fas fa-search text-3xl mb-4 opacity-90"></i>
+        <!-- Magnifying Glass Icon -->
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2" fill="none"/>
+          <line x1="16.65" y1="16.65" x2="21" y2="21" stroke="currentColor" stroke-width="2"/>
+        </svg>
         <div class="text-left">
-          <span class="block text-lg font-semibold">Scout Competition</span>
+          <div class="font-semibold text-lg">Scout Competition</div>
         </div>
       </a>
-      
       <a href="/mobile/teams-players" class="ios-card prepare-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-        <i class="fas fa-users text-3xl mb-4 opacity-90"></i>
+        <!-- Target Icon -->
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/>
+          <circle cx="12" cy="12" r="6" stroke="currentColor" stroke-width="2" fill="none"/>
+          <circle cx="12" cy="12" r="2" stroke="currentColor" stroke-width="2" fill="none"/>
+        </svg>
         <div class="text-left">
-          <span class="block text-lg font-semibold">Research Opponent Teams</span>
+          <div class="font-semibold text-lg">Research Opponent Teams</div>
         </div>
       </a>
-      
       <a href="/mobile/matchup-simulator" class="ios-card prepare-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-        <i class="fas fa-chart-line text-3xl mb-4 opacity-90"></i>
+        <!-- Shuffle Icon -->
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path d="M16 3h5v5" stroke="currentColor" stroke-width="2" fill="none"/>
+          <path d="M4 20l16-16" stroke="currentColor" stroke-width="2" fill="none"/>
+          <path d="M21 16v5h-5" stroke="currentColor" stroke-width="2" fill="none"/>
+          <path d="M15 15l6 6" stroke="currentColor" stroke-width="2" fill="none"/>
+        </svg>
         <div class="text-left">
-          <span class="block text-lg font-semibold">Matchup Simulator</span>
+          <div class="font-semibold text-lg">Matchup Simulator</div>
         </div>
       </a>
-
       <a href="/pti-calculator" class="ios-card prepare-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-        <i class="fas fa-calculator text-3xl mb-4 opacity-90"></i>
+        <!-- Calculator Icon -->
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <rect x="4" y="2" width="16" height="20" rx="2" stroke="currentColor" stroke-width="2" fill="none"/>
+          <line x1="8" y1="6" x2="16" y2="6" stroke="currentColor" stroke-width="2"/>
+          <line x1="8" y1="10" x2="10" y2="10" stroke="currentColor" stroke-width="2"/>
+          <line x1="8" y1="14" x2="10" y2="14" stroke="currentColor" stroke-width="2"/>
+          <line x1="8" y1="18" x2="10" y2="18" stroke="currentColor" stroke-width="2"/>
+          <line x1="14" y1="10" x2="16" y2="10" stroke="currentColor" stroke-width="2"/>
+          <line x1="14" y1="14" x2="16" y2="14" stroke="currentColor" stroke-width="2"/>
+          <line x1="14" y1="18" x2="16" y2="18" stroke="currentColor" stroke-width="2"/>
+        </svg>
         <div class="text-left">
-          <span class="block text-lg font-semibold">PTI Calculator</span>
+          <div class="font-semibold text-lg">PTI Calculator</div>
         </div>
       </a>
     </div>
@@ -466,16 +335,32 @@
     </div>
     <div class="icon-grid grid grid-cols-2 gap-4" aria-label="Play">
       <a href="/mobile/find-people-to-play" class="ios-card play-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-        <i class="fas fa-user-friends text-3xl mb-4 opacity-90"></i>
+        <!-- Users Icon -->
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" fill="none"/>
+          <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2" fill="none"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87" stroke="currentColor" stroke-width="2" fill="none"/>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="2" fill="none"/>
+        </svg>
         <div class="text-left">
-          <span class="block text-lg font-semibold">Find Players</span>
+          <div class="font-semibold text-lg">Find Players</div>
         </div>
       </a>
-      
       <a href="/mobile/pickup-games" class="ios-card play-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-        <i class="fas fa-calendar-plus text-3xl mb-4 opacity-90"></i>
+        <!-- Tennis Racquet Icon -->
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <!-- Tennis Racquet Head -->
+          <ellipse cx="12" cy="8" rx="6" ry="4" stroke="currentColor" stroke-width="2" fill="none"/>
+          <!-- Tennis Racquet Handle -->
+          <path d="M12 12v8" stroke="currentColor" stroke-width="2"/>
+          <path d="M10 16h4" stroke="currentColor" stroke-width="2"/>
+          <!-- Tennis Racquet Strings -->
+          <path d="M6 6l12 4" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M6 8l12 4" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M6 10l12 4" stroke="currentColor" stroke-width="1.5"/>
+        </svg>
         <div class="text-left">
-          <span class="block text-lg font-semibold">Pickup Games</span>
+          <div class="font-semibold text-lg">Pickup Games</div>
         </div>
       </a>
     </div>
@@ -492,16 +377,23 @@
     </div>
     <div class="icon-grid grid grid-cols-2 gap-4" aria-label="Improve">
       <a href="/mobile/improve" class="ios-card improve-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-        <i class="fas fa-chart-line text-3xl mb-4 opacity-90"></i>
+        <!-- Academic Cap Icon -->
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path d="M12 14l9-5-9-5-9 5 9 5z" stroke="currentColor" stroke-width="2" fill="none"/>
+          <path d="M12 14v7" stroke="currentColor" stroke-width="2" fill="none"/>
+          <path d="M7 19c0-1.657 2.686-3 6-3s6 1.343 6 3" stroke="currentColor" stroke-width="2" fill="none"/>
+        </svg>
         <div class="text-left">
-          <span class="block text-lg font-semibold">Improve My Game</span>
+          <div class="font-semibold text-lg">Improve My Game</div>
         </div>
       </a>
-      
       <a href="/mobile/schedule-lesson" class="ios-card improve-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-        <i class="fas fa-user-graduate text-3xl mb-4 opacity-90"></i>
+        <!-- Play Icon -->
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <polygon points="5 3 19 12 5 21 5 3" stroke="currentColor" stroke-width="2" fill="none"/>
+        </svg>
         <div class="text-left">
-          <span class="block text-lg font-semibold">Schedule Lesson with Pro</span>
+          <div class="font-semibold text-lg">Schedule Lesson</div>
         </div>
       </a>
     </div>
@@ -520,81 +412,100 @@
     <!-- Captain's Corner Notice -->
     <div class="mb-6 p-4 rounded-lg shadow-lg border-2 border-amber-300" style="background: linear-gradient(135deg, #FEF3C7, #FDE68A);">
       <div class="flex items-center justify-center gap-3 mb-2">
-        <i class="fas fa-info-circle text-amber-700 text-xl"></i>
+        <span class="sf-symbol text-xl text-amber-700">􀅴</span>
       </div>
       <p class="text-center text-base font-semibold text-amber-900">
         These features will only be available to team captains when Rally goes live.
       </p>
     </div>
     
-    <div class="icon-grid grid grid-cols-2 gap-4" aria-label="Captain's Corner">
+    <div class="icon-grid grid grid-cols-2 gap-4" aria-label="Captain">
+      <!-- Team Schedule -->
       <a href="/mobile/team-schedule" class="ios-card captain-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-        <i class="fas fa-calendar text-3xl mb-4 opacity-90"></i>
-        <div class="text-left">
-          <span class="block text-lg font-semibold">Team Schedule</span>
-        </div>
+        <!-- Calendar Icon -->
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="7" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2" fill="none"/>
+          <path d="M16 3v4M8 3v4M3 11h18" stroke="currentColor" stroke-width="2"/>
+        </svg>
+        <div class="text-left"><div class="font-semibold text-lg">Team Schedule</div></div>
       </a>
-      
-      <a href="/mobile/find-subs" class="ios-card captain-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-        <i class="fas fa-user-plus text-3xl mb-4 opacity-90"></i>
-        <div class="text-left">
-          <span class="block text-lg font-semibold">Find Subs</span>
-        </div>
+      <!-- Find Subs -->
+      <a href="/mobile/find-people-to-play" class="ios-card captain-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+        <!-- User Plus Icon -->
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path d="M16 14v6M19 17h-6" stroke="currentColor" stroke-width="2"/>
+          <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2" fill="none"/>
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" fill="none"/>
+        </svg>
+        <div class="text-left"><div class="font-semibold text-lg">Find Subs</div></div>
       </a>
-      
-      <a href="/mobile/lineup-selection" class="ios-card captain-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-        <i class="fas fa-clipboard-list text-3xl mb-4 opacity-90"></i>
-        <div class="text-left">
-          <span class="block text-lg font-semibold">Create Lineup</span>
-        </div>
-      </a>
-      
+      <!-- Create Lineup -->
       <a href="/mobile/lineup-escrow" class="ios-card captain-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-        <i class="fas fa-lock text-3xl mb-4 opacity-90"></i>
-        <div class="text-left">
-          <span class="block text-lg font-semibold">Lineup Escrow</span>
-        </div>
+        <!-- Clipboard List Icon -->
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <rect x="9" y="2" width="6" height="4" rx="1" stroke="currentColor" stroke-width="2" fill="none"/>
+          <rect x="4" y="6" width="16" height="16" rx="2" stroke="currentColor" stroke-width="2" fill="none"/>
+          <line x1="8" y1="10" x2="16" y2="10" stroke="currentColor" stroke-width="2"/>
+          <line x1="8" y1="14" x2="16" y2="14" stroke="currentColor" stroke-width="2"/>
+          <line x1="8" y1="18" x2="12" y2="18" stroke="currentColor" stroke-width="2"/>
+        </svg>
+        <div class="text-left"><div class="font-semibold text-lg">Create Lineup</div></div>
       </a>
-      
+      <!-- Lineup Escrow -->
+      <a href="/mobile/lineup-escrow-view" class="ios-card captain-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+        <!-- Eye Icon -->
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <ellipse cx="12" cy="12" rx="9" ry="6" stroke="currentColor" stroke-width="2" fill="none"/>
+          <circle cx="12" cy="12" r="2" stroke="currentColor" stroke-width="2" fill="none"/>
+        </svg>
+        <div class="text-left"><div class="font-semibold text-lg">Lineup Escrow</div></div>
+      </a>
+      <!-- Team Polls (Captain's Corner) -->
       <a href="/mobile/polls" class="ios-card captain-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-        <i class="fas fa-poll text-3xl mb-4 opacity-90"></i>
-        <div class="text-left">
-          <span class="block text-lg font-semibold">Team Polls</span>
-        </div>
+        <!-- Survey Choices Icon -->
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <circle cx="6" cy="7" r="1.5" stroke="currentColor" stroke-width="2" fill="#fff"/>
+          <line x1="10" y1="7" x2="20" y2="7" stroke="currentColor" stroke-width="2"/>
+          <circle cx="6" cy="12" r="1.5" stroke="currentColor" stroke-width="2" fill="#fff"/>
+          <line x1="10" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="2"/>
+          <circle cx="6" cy="17" r="1.5" stroke="currentColor" stroke-width="2" fill="#fff"/>
+          <line x1="10" y1="17" x2="20" y2="17" stroke="currentColor" stroke-width="2"/>
+        </svg>
+        <div class="text-left"><div class="font-semibold text-lg">Team Polls</div></div>
       </a>
-      
+      <!-- Update Byes & Assignments -->
       <a href="/mobile/track-byes-courts" class="ios-card captain-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-        <i class="fas fa-edit text-3xl mb-4 opacity-90"></i>
-        <div class="text-left">
-          <span class="block text-lg font-semibold">Update Byes & Assignments</span>
-        </div>
+        <!-- Pencil/Edit Icon -->
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path d="M15.232 5.232l3.536 3.536M9 13l6-6 3 3-6 6H9v-3z" stroke="currentColor" stroke-width="2" fill="none"/>
+          <path d="M16 7l1.5-1.5a2.121 2.121 0 0 1 3 3L19 10" stroke="currentColor" stroke-width="2" fill="none"/>
+        </svg>
+        <div class="text-left"><div class="font-semibold text-lg">Update Byes & Assignments</div></div>
       </a>
-      
+      <!-- Practice Times -->
       <a href="/mobile/practice-times" class="ios-card captain-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-        <i class="fas fa-clock text-3xl mb-4 opacity-90"></i>
-        <div class="text-left">
-          <span class="block text-lg font-semibold">Practice Times</span>
-        </div>
+        <!-- Clock Icon -->
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/>
+          <path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2"/>
+        </svg>
+        <div class="text-left"><div class="font-semibold text-lg">Practice Times</div></div>
       </a>
-      
-      <a href="/create-team" class="ios-card captain-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-        <i class="fas fa-users-cog text-3xl mb-4 opacity-90"></i>
-        <div class="text-left">
-          <span class="block text-lg font-semibold">Create Team</span>
-        </div>
-      </a>
-      
-      <a href="/mobile/team-notifications" class="ios-card captain-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-        <i class="fas fa-bell text-3xl mb-4 opacity-90"></i>
-        <div class="text-left">
-          <span class="block text-lg font-semibold">Team Notifications</span>
-        </div>
+      <!-- Create Team -->
+      <a href="/mobile/create-team" class="ios-card captain-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+        <!-- Users Group Icon -->
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <circle cx="8" cy="8" r="4" stroke="currentColor" stroke-width="2" fill="none"/>
+          <circle cx="16" cy="8" r="4" stroke="currentColor" stroke-width="2" fill="none"/>
+          <path d="M2 20v-2a4 4 0 014-4h2m8 0h2a4 4 0 014 4v2" stroke="currentColor" stroke-width="2"/>
+        </svg>
+        <div class="text-left"><div class="font-semibold text-lg">Create Team</div></div>
       </a>
     </div>
   </div>
 
-  <!-- Admin Section - Only show for admin users -->
-  {% if session_data and session_data.user and session_data.user.is_admin %}
+  <!-- Admin Section (if user is admin) -->
+  {% if session_data.user.is_admin %}
   <div class="icon-section mb-8">
     <div class="flex items-center justify-center mb-6">
       <div class="flex-grow border-t-2 border-gray-400"></div>
@@ -604,90 +515,186 @@
       <div class="flex-grow border-t-2 border-gray-400"></div>
     </div>
     <div class="icon-grid grid grid-cols-1 gap-4" aria-label="Admin">
-      <a href="/admin" class="ios-card admin-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
-        <i class="fas fa-cog text-3xl mb-4 opacity-90"></i>
+      <a href="/mobile/admin" class="ios-card admin-button rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+        <!-- Cog Icon -->
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" fill="none"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.09a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.09a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" stroke="currentColor" stroke-width="2" fill="none"/>
+        </svg>
         <div class="text-left">
-          <span class="block text-lg font-semibold">Admin Panel</span>
+          <div class="font-semibold text-lg">Admin Panel</div>
         </div>
       </a>
     </div>
   </div>
   {% endif %}
-  
+
   <!-- Alternative Style Link -->
-  <div class="text-center mt-8 mb-2">
-    <a href="/mobile/alt1" class="text-sm text-gray-500 hover:text-gray-700 underline">
-      Switch to white button style
-    </a>
-  </div>
-  <div class="text-center mb-4">
-    <a href="/mobile/ios" class="text-sm text-blue-500 hover:text-blue-700 underline">
-      Switch to iOS-style button design
+  <div class="text-center mt-8 mb-4">
+    <a href="/mobile/classic" class="text-sm text-gray-500 hover:text-gray-700 underline">
+      Switch to classic button style
     </a>
   </div>
 </div>
 
-<!-- League Switching Modal (Only on home page) -->
-{% if session_data and session_data.user and session_data.user.league_name %}
-<div id="leagueSwitcherModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-xl shadow-xl max-w-sm w-full max-h-96 overflow-hidden">
-        <!-- Modal Header -->
-        <div class="px-6 py-4 bg-black border-b border-gray-700 flex items-center justify-between">
-            <h3 class="text-lg font-semibold text-white">
-                Switch League
-            </h3>
-            <button id="closeLeagueModal" class="text-gray-300 hover:text-white transition-colors text-xl font-bold">
-                ×
-            </button>
-        </div>
-        
-        <!-- Current League Display -->
-        <div class="px-6 py-4" style="background: linear-gradient(135deg, #16a34a, #15803d); border-bottom: 2px solid #166534;">
-            <div class="flex items-center gap-3 mb-3">
-                <span class="bg-white text-green-700 px-3 py-1 rounded-full text-xs font-bold shadow-sm">
-                    CURRENT
-                </span>
-                <span class="text-white font-bold text-sm uppercase tracking-wide">ACTIVE LEAGUE</span>
-            </div>
-            <div class="font-bold text-white text-lg mb-1">{{ session_data.user.league_name }}</div>
-            <div class="text-white text-sm">{{ session_data.user.club }} - {{ session_data.user.series }}</div>
-        </div>
-        
-        <!-- Available League Options -->
-        <div class="p-4 bg-gray-50">
-            <div class="text-sm font-bold text-gray-800 mb-3 uppercase tracking-wide">
-                Switch to Different League
-            </div>
-            <div class="space-y-2">
-                {% if session_data.user.league_string_id != 'APTA_CHICAGO' %}
-                <button onclick="switchLeague('APTA_CHICAGO')" 
-                        class="league-switch-btn w-full flex items-center justify-between p-4 rounded-lg bg-white hover:bg-blue-50 transition-all duration-200 border-2 border-gray-300 hover:border-blue-400 hover:shadow-md group">
-                    <div class="text-left">
-                        <div class="font-bold text-gray-900 group-hover:text-blue-900">APTA Chicago</div>
-                        <div class="text-sm text-gray-600 group-hover:text-blue-700">Paddle tennis league</div>
-                    </div>
-                    <div class="bg-blue-500 group-hover:bg-blue-600 text-white px-3 py-1 rounded-md text-sm font-medium">
-                        Switch
-                    </div>
-                </button>
-                {% endif %}
-                
-                {% if session_data.user.league_string_id != 'NSTF' %}
-                <button onclick="switchLeague('NSTF')" 
-                        class="league-switch-btn w-full flex items-center justify-between p-4 rounded-lg bg-white hover:bg-blue-50 transition-all duration-200 border-2 border-gray-300 hover:border-blue-400 hover:shadow-md group">
-                    <div class="text-left">
-                        <div class="font-bold text-gray-900 group-hover:text-blue-900">North Shore Tennis Foundation</div>
-                        <div class="text-sm text-gray-600 group-hover:text-blue-700">Tennis league</div>
-                    </div>
-                    <div class="bg-blue-500 group-hover:bg-blue-600 text-white px-3 py-1 rounded-md text-sm font-medium">
-                        Switch
-                    </div>
-                </button>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-</div>
+<script>
+// Initialize SF Symbols
+document.addEventListener('DOMContentLoaded', function() {
+  // Apply series alias transformation to the display and check for multiple leagues/clubs
+  const seriesElement = document.getElementById('seriesNameDisplay');
+  if (seriesElement) {
+    const originalSeries = seriesElement.getAttribute('data-series');
+    const clubName = seriesElement.getAttribute('data-club');
+    
+    if (originalSeries && clubName) {
+      // Transform the series name (e.g., "Chicago 22" -> "Series 22")
+      let displaySeries = originalSeries;
+      const numberMatch = originalSeries.match(/(\d+)(\s+\w+)*$/);
+      if (numberMatch) {
+        const seriesNumber = numberMatch[1];
+        const suffix = numberMatch[2] || '';
+        displaySeries = `Series ${seriesNumber}${suffix}`;
+      }
+      
+      // Update the display with the format "Series X @ Club"
+      seriesElement.textContent = `${displaySeries} @ ${clubName}`;
+    }
+  }
+  
+  // Check if user has multiple leagues
+  checkMultipleLeagues();
+  
+  // Check if user has multiple clubs in current league
+  checkMultipleClubs();
+});
+
+async function checkMultipleLeagues() {
+  try {
+    // Check if this specific user has multiple leagues (including all associations)
+    const response = await fetch('/api/get-user-leagues');
+    const data = await response.json();
+    
+    if (data.success && data.has_multiple_leagues) {
+      const leagueButton = document.getElementById('leagueSwitcherTrigger');
+      if (leagueButton) {
+        leagueButton.classList.remove('hidden');
+        console.log(`✅ League selector shown - user has ${data.league_count} leagues`);
+      }
+    } else {
+      console.log(`❌ League selector hidden - user has ${data.league_count || 0} leagues`);
+    }
+  } catch (error) {
+    console.error('Error checking multiple leagues:', error);
+  }
+}
+
+async function checkMultipleClubs() {
+  try {
+    // Check if this specific user has multiple teams in current league
+    const response = await fetch('/api/get-user-teams-in-current-league');
+    const data = await response.json();
+    
+    if (data.success && data.has_multiple_teams) {
+      const clubButton = document.getElementById('clubSwitcherTrigger');
+      if (clubButton) {
+        clubButton.classList.remove('hidden');
+      }
+    }
+  } catch (error) {
+    console.error('Error checking multiple clubs:', error);
+  }
+}
+
+function showClubSwitcher() {
+  const modal = document.getElementById('clubSwitcherModal');
+  if (modal) {
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    loadClubSwitcherOptions();
+  }
+}
+
+async function loadClubSwitcherOptions() {
+  try {
+    const response = await fetch('/api/get-user-teams-in-current-league');
+    const data = await response.json();
+    
+    if (data.success && data.teams) {
+      const optionsContainer = document.querySelector('#clubSwitcherModal .club-options');
+      if (optionsContainer) {
+        optionsContainer.innerHTML = data.teams.map(team => `
+          <button onclick="switchTeamInLeague(${team.team_id}, '${team.team_name}', '${team.club_name}', '${team.series_name}')" 
+                  class="team-switch-btn w-full flex items-center justify-between p-4 rounded-lg bg-white hover:bg-green-50 transition-all duration-200 border-2 border-gray-300 hover:border-green-400 hover:shadow-md group
+                         ${team.is_current ? 'bg-green-100 border-green-400' : ''}">
+              <div class="text-left">
+                  <div class="font-bold text-gray-900 group-hover:text-green-900">${team.club_name}</div>
+                  <div class="text-sm text-gray-600 group-hover:text-green-700">${team.series_name} • ${team.match_count} matches</div>
+              </div>
+              <div class="text-sm ${team.is_current ? 'bg-green-600 text-white px-3 py-1 rounded' : 'bg-green-500 group-hover:bg-green-600 text-white px-3 py-1 rounded'}">
+                  ${team.is_current ? 'Current' : 'Switch'}
+              </div>
+          </button>
+        `).join('');
+      }
+    }
+  } catch (error) {
+    console.error('Error loading club switcher options:', error);
+  }
+}
+
+async function switchTeamInLeague(teamId, teamName, clubName, seriesName) {
+  try {
+    // Close modal first
+    const modal = document.getElementById('clubSwitcherModal');
+    if (modal) {
+      modal.classList.add('hidden');
+      document.body.style.overflow = '';
+    }
+    
+    // Show loading
+    const clubButton = document.getElementById('clubSwitcherTrigger');
+    if (clubButton) {
+      clubButton.innerHTML = '<span class="sf-symbol text-xs">􀋦</span>';
+      clubButton.disabled = true;
+    }
+    
+    const response = await fetch('/api/switch-team-in-league', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        team_id: teamId
+      })
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      // Show success briefly then reload
+      if (clubButton) {
+        clubButton.innerHTML = '<span class="sf-symbol text-xs">􀆅</span>';
+      }
+      
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } else {
+      throw new Error(data.error || 'Team switch failed');
+    }
+  } catch (error) {
+    console.error('Team switch error:', error);
+    alert(`Failed to switch teams: ${error.message}`);
+    
+    // Reset button
+    const clubButton = document.getElementById('clubSwitcherTrigger');
+    if (clubButton) {
+      clubButton.innerHTML = '(change)';
+      clubButton.disabled = false;
+    }
+  }
+}
+</script>
 
 <!-- Club/Team Switching Modal (Only on home page) -->
 <div id="clubSwitcherModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
@@ -722,63 +729,14 @@
             <div class="space-y-2 club-options">
                 <!-- Options will be loaded dynamically -->
                 <div class="text-center py-4 text-gray-500">
-                    <i class="fas fa-spinner fa-spin"></i> Loading teams...
+                    <span class="sf-symbol">􀋦</span> Loading teams...
                 </div>
             </div>
         </div>
     </div>
 </div>
-{% endif %}
 
 <script>
-// Initialize league switcher modal functionality (only on home page)
-document.addEventListener('DOMContentLoaded', function() {
-    const leagueSwitcherTrigger = document.getElementById('leagueSwitcherTrigger');
-    const leagueSwitcherModal = document.getElementById('leagueSwitcherModal');
-    const closeLeagueModal = document.getElementById('closeLeagueModal');
-    
-    if (leagueSwitcherTrigger && leagueSwitcherModal) {
-        // Open modal
-        leagueSwitcherTrigger.addEventListener('click', function(e) {
-            e.preventDefault();
-            leagueSwitcherModal.classList.remove('hidden');
-            document.body.style.overflow = 'hidden'; // Prevent background scrolling
-            
-            // Trigger enhanced context manager to add team options if needed
-            if (window.enhancedContextManager) {
-                setTimeout(() => {
-                    window.enhancedContextManager.updateContextSelectorUI();
-                }, 100); // Small delay to ensure modal is visible
-            }
-        });
-        
-        // Close modal with X button
-        if (closeLeagueModal) {
-            closeLeagueModal.addEventListener('click', function(e) {
-                e.preventDefault();
-                leagueSwitcherModal.classList.add('hidden');
-                document.body.style.overflow = ''; // Restore scrolling
-            });
-        }
-        
-        // Close modal when clicking outside
-        leagueSwitcherModal.addEventListener('click', function(e) {
-            if (e.target === leagueSwitcherModal) {
-                leagueSwitcherModal.classList.add('hidden');
-                document.body.style.overflow = ''; // Restore scrolling
-            }
-        });
-        
-        // Close on escape key
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape' && !leagueSwitcherModal.classList.contains('hidden')) {
-                leagueSwitcherModal.classList.add('hidden');
-                document.body.style.overflow = ''; // Restore scrolling
-            }
-        });
-    }
-});
-
 // Club Switcher Modal Event Handlers
 function closeClubSwitcher() {
     const modal = document.getElementById('clubSwitcherModal');
@@ -809,68 +767,4 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
-
-<script>
-// Home page impersonation status checker
-document.addEventListener('DOMContentLoaded', function() {
-    checkHomeImpersonationStatus();
-});
-
-async function checkHomeImpersonationStatus() {
-    try {
-        const response = await fetch('/api/admin/impersonation-status');
-        const status = await response.json();
-        
-        const impersonationSection = document.getElementById('home-impersonation-section');
-        const userNameElement = document.getElementById('home-impersonated-user-name');
-        
-        if (status.is_impersonating && impersonationSection && userNameElement) {
-            const playerContext = status.impersonated_user.player_context;
-            const displayText = playerContext && playerContext.club && playerContext.series 
-                ? `${status.impersonated_user.first_name} ${status.impersonated_user.last_name} as ${playerContext.club.name}, ${playerContext.series.name}`
-                : `${status.impersonated_user.first_name} ${status.impersonated_user.last_name}`;
-            
-            userNameElement.textContent = displayText;
-            impersonationSection.classList.remove('hidden');
-        } else if (impersonationSection) {
-            impersonationSection.classList.add('hidden');
-        }
-    } catch (error) {
-        console.error('Error checking home impersonation status:', error);
-    }
-}
-
-async function stopHomeImpersonation() {
-    if (!confirm('Stop impersonation and return to your admin session?')) {
-        return;
-    }
-    
-    try {
-        const response = await fetch('/api/admin/stop-impersonation', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            // Hide the impersonation section immediately
-            const impersonationSection = document.getElementById('home-impersonation-section');
-            if (impersonationSection) {
-                impersonationSection.classList.add('hidden');
-            }
-            
-            // Show success message and refresh page
-            alert('Impersonation stopped. Returning to admin session.');
-            window.location.reload();
-        } else {
-            alert(`Failed to stop impersonation: ${result.error}`);
-        }
-    } catch (error) {
-        console.error('Error stopping impersonation:', error);
-        alert('Error stopping impersonation');
-    }
-}
-</script>
-
 {% endblock %} 
