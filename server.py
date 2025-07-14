@@ -357,7 +357,13 @@ def redirect_index_html():
 def serve_interstitial():
     """Serve the interstitial welcome page shown after login/registration"""
     session_data = {"user": session["user"], "authenticated": True}
-    log_user_activity(session["user"]["email"], "page_visit", page="interstitial_welcome")
+    log_user_activity(
+        session["user"]["email"], 
+        "page_visit", 
+        page="interstitial_welcome",
+        first_name=session["user"].get("first_name"),
+        last_name=session["user"].get("last_name")
+    )
     return render_template("interstitial.html", session_data=session_data)
 
 
@@ -366,7 +372,13 @@ def serve_interstitial():
 def serve_contact_sub():
     """Serve the modern contact sub page"""
     session_data = {"user": session["user"], "authenticated": True}
-    log_user_activity(session["user"]["email"], "page_visit", page="contact_sub")
+    log_user_activity(
+        session["user"]["email"], 
+        "page_visit", 
+        page="contact_sub",
+        first_name=session["user"].get("first_name"),
+        last_name=session["user"].get("last_name")
+    )
     return render_template("mobile/contact_sub.html", session_data=session_data)
 
 
@@ -376,7 +388,11 @@ def serve_pti_analysis():
     """Serve the PTI vs Opponents Analysis page"""
     session_data = {"user": session["user"], "authenticated": True}
     log_user_activity(
-        session["user"]["email"], "page_visit", page="pti_vs_opponents_analysis"
+        session["user"]["email"], 
+        "page_visit", 
+        page="pti_vs_opponents_analysis",
+        first_name=session["user"].get("first_name"),
+        last_name=session["user"].get("last_name")
     )
     return render_template(
         "analysis/pti_vs_opponents_analysis.html", session_data=session_data
@@ -388,7 +404,13 @@ def serve_pti_analysis():
 def serve_schedule_page():
     """Serve the schedule page"""
     session_data = {"user": session["user"], "authenticated": True}
-    log_user_activity(session["user"]["email"], "page_visit", page="schedule")
+    log_user_activity(
+        session["user"]["email"], 
+        "page_visit", 
+        page="schedule",
+        first_name=session["user"].get("first_name"),
+        last_name=session["user"].get("last_name")
+    )
     return render_template("mobile/view_schedule.html", session_data=session_data)
 
 
@@ -397,7 +419,13 @@ def serve_schedule_page():
 def serve_create_team_page():
     """Serve the Create Team page using mobile layout"""
     session_data = {"user": session["user"], "authenticated": True}
-    log_user_activity(session["user"]["email"], "page_visit", page="create_team")
+    log_user_activity(
+        session["user"]["email"], 
+        "page_visit", 
+        page="create_team",
+        first_name=session["user"].get("first_name"),
+        last_name=session["user"].get("last_name")
+    )
     
     return render_template("mobile/create_team.html", session_data=session_data)
 

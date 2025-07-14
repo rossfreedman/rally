@@ -45,6 +45,7 @@
                 <h2 class="text-lg font-semibold text-gray-900 flex items-center">
                     <i class="fas fa-list text-purple-500 mr-2"></i>
                     Registered Users
+                    <span class="ml-2 text-sm font-normal text-gray-500">(sorted by recent activity)</span>
                 </h2>
             </div>
             
@@ -180,6 +181,7 @@ function renderUsers() {
         // Format dates
         const dateRegistered = user.created_at ? formatDate(user.created_at) : 'Unknown';
         const lastLogin = user.last_login ? formatTimestamp(user.last_login) : 'Never';
+        const mostRecentActivity = user.most_recent_activity ? formatTimestamp(user.most_recent_activity) : 'Unknown';
         
         // Add highlighting class for active users
         const cardClass = hasRecentActivity ? 
@@ -201,6 +203,7 @@ function renderUsers() {
                             <p><span class="font-medium">Series:</span> ${escapeHtml(user.series_name) || '-'}</p>
                             <p><span class="font-medium">Date Registered:</span> ${dateRegistered}</p>
                             <p><span class="font-medium">Last Login:</span> ${lastLogin}</p>
+                            <p><span class="font-medium">Most Recent Activity:</span> ${mostRecentActivity}</p>
                             ${hasRecentActivity ? `<p><span class="font-medium">Recent Activity:</span> ${user.recent_activity_count} actions in 24h</p>` : ''}
                         </div>
                     </div>

@@ -49,13 +49,11 @@ def get_session_data_for_user(user_email: str) -> Optional[Dict[str, Any]]:
             LEFT JOIN leagues l ON p.league_id = l.id
             WHERE u.email = %s
             ORDER BY u.id, 
+                     -- PRIORITY 1: League context match (most important)
                      (CASE WHEN p.league_id = u.league_context THEN 1 ELSE 2 END),
-                     -- Prefer lower series numbers (Series 7 over Series 8)
-                     CASE 
-                         WHEN s.name ~ 'Chicago [0-9]+' THEN 
-                             CAST(substring(s.name from 'Chicago ([0-9]+)') AS INTEGER)
-                         ELSE 999
-                     END ASC,
+                     -- PRIORITY 2: Team has team_id (prefer teams over unassigned players)
+                     (CASE WHEN p.team_id IS NOT NULL THEN 1 ELSE 2 END),
+                     -- PRIORITY 3: Most recent player record (newer registrations first)
                      p.id DESC
             LIMIT 1
         """

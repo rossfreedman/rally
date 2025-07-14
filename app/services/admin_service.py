@@ -11,7 +11,7 @@ from utils.logging import log_user_activity
 
 
 def get_all_users():
-    """Get all registered users with their club and series information"""
+    """Get all registered users with their club and series information, sorted by most recent activity"""
     try:
         users = execute_query(
             """
@@ -20,20 +20,39 @@ def get_all_users():
                 c.name as club_name, s.name as series_name,
                 -- Check for activity in past 24 hours
                 CASE 
-                    WHEN ual.recent_activity_count > 0 THEN true 
+                    WHEN (ual.recent_activity_count > 0 OR al.recent_activity_count > 0) THEN true 
                     ELSE false 
                 END as has_recent_activity,
-                ual.recent_activity_count
+                COALESCE(ual.recent_activity_count, 0) + COALESCE(al.recent_activity_count, 0) as recent_activity_count,
+                -- Get the most recent activity timestamp from either system
+                GREATEST(
+                    COALESCE(ual.latest_activity, '1970-01-01'::timestamp),
+                    COALESCE(al.latest_activity, '1970-01-01'::timestamp),
+                    COALESCE(u.last_login, '1970-01-01'::timestamp),
+                    COALESCE(u.created_at, '1970-01-01'::timestamp)
+                ) as most_recent_activity
             FROM users u
             LEFT JOIN (
-                -- Get recent activity count for each user
+                -- Get recent activity count and latest timestamp from legacy system
                 SELECT 
                     user_email,
-                    COUNT(*) as recent_activity_count
+                    COUNT(*) as recent_activity_count,
+                    MAX(timestamp) as latest_activity
                 FROM user_activity_logs 
                 WHERE timestamp > NOW() - INTERVAL '24 hours'
                 GROUP BY user_email
             ) ual ON u.email = ual.user_email
+            LEFT JOIN (
+                -- Get recent activity count and latest timestamp from comprehensive system
+                SELECT 
+                    user_id,
+                    COUNT(*) as recent_activity_count,
+                    MAX(timestamp) as latest_activity
+                FROM activity_log 
+                WHERE timestamp > NOW() - INTERVAL '24 hours'
+                AND user_id IS NOT NULL
+                GROUP BY user_id
+            ) al ON u.id = al.user_id
             LEFT JOIN user_player_associations upa ON u.id = upa.user_id
             LEFT JOIN players p ON upa.tenniscores_player_id = p.tenniscores_player_id 
                 AND (p.league_id = u.league_context OR u.league_context IS NULL)  -- Use league_context or fallback to any association
@@ -45,6 +64,10 @@ def get_all_users():
                      upa.created_at DESC NULLS LAST
         """
         )
+        
+        # Sort the results by most recent activity (newest first)
+        users.sort(key=lambda x: x['most_recent_activity'], reverse=True)
+        
         return users
     except Exception as e:
         print(f"Error getting admin users: {str(e)}")
@@ -424,11 +447,67 @@ def get_user_activity_logs(email):
                 except:
                     extra_data = None
 
+            # Create enhanced action description for registration activities
+            action_description = log["action_description"]
+            if log["action_type"] == "registration_successful":
+                if extra_data and extra_data.get("player_data"):
+                    player_data = extra_data["player_data"]
+                    player_name = f"{player_data.get('first_name', '')} {player_data.get('last_name', '')}".strip()
+                    club = player_data.get("club_name", "Unknown")
+                    series = player_data.get("series_name", "Unknown")
+                    player_id = extra_data.get("player_id", "Unknown")
+                    team_assigned = extra_data.get("team_assigned", False)
+                    
+                    action_description = f"✅ Registration successful - Linked to player {player_name} ({club} - {series})"
+                    if team_assigned:
+                        action_description += " with team assignment"
+                    else:
+                        action_description += " (no team assigned)"
+                        
+            elif log["action_type"] == "registration_failed":
+                if extra_data:
+                    reason = extra_data.get("reason", "Unknown error")
+                    action_type = log.get("action", "unknown_failure")
+                    
+                    if action_type == "player_id_linking_failed":
+                        lookup_attempt = extra_data.get("lookup_attempt", {})
+                        name = f"{lookup_attempt.get('first_name', '')} {lookup_attempt.get('last_name', '')}".strip()
+                        club = lookup_attempt.get("club_name", "Unknown")
+                        series = lookup_attempt.get("series_name", "Unknown")
+                        action_description = f"❌ Registration failed - Player ID linking failed for {name} ({club} - {series})"
+                        
+                    elif action_type == "security_issue_player_id_claimed":
+                        player_id = extra_data.get("player_id", "Unknown")
+                        existing_user = extra_data.get("existing_user_email", "Unknown")
+                        action_description = f"🚨 Security issue - Player ID {player_id[:15]}... already claimed by {existing_user}"
+                        
+                    elif action_type == "duplicate_email":
+                        action_description = f"❌ Registration failed - Duplicate email address"
+                        
+                    elif action_type == "missing_required_fields":
+                        provided_data = extra_data.get("provided_data", {})
+                        missing_fields = []
+                        if not provided_data.get("league_id"): missing_fields.append("league")
+                        if not provided_data.get("club_name"): missing_fields.append("club")
+                        if not provided_data.get("series_name"): missing_fields.append("series")
+                        action_description = f"❌ Registration failed - Missing required fields: {', '.join(missing_fields)}"
+                        
+                    elif action_type == "player_record_not_found":
+                        player_id = extra_data.get("player_id", "Unknown")
+                        action_description = f"❌ Registration failed - Player record not found for ID {player_id[:15]}..."
+                        
+                    elif action_type == "player_lookup_exception":
+                        error = extra_data.get("error", "Unknown error")
+                        action_description = f"❌ Registration failed - Player lookup exception: {error[:50]}..."
+                        
+                    else:
+                        action_description = f"❌ Registration failed - {reason}"
+
             formatted_comprehensive.append({
                 "id": str(log["id"]),
                 "system": "comprehensive",
                 "activity_type": log["action_type"],
-                "action_description": log["action_description"],
+                "action_description": action_description,
                 "page": extra_data.get("page") if extra_data else None,
                 "related_id": log["related_id"],
                 "related_type": log["related_type"],

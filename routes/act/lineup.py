@@ -902,13 +902,12 @@ def init_lineup_routes(app):
             with SessionLocal() as db_session:
                 # Search for players by name (first name, last name, or full name)
                 from app.models.database_models import Player, Team, League, Club, Series
-                
+                import re
                 # Split name into parts for flexible search
                 name_parts = player_name.split()
                 if len(name_parts) >= 2:
                     first_name = name_parts[0]
                     last_name = name_parts[-1]
-                    
                     # Search for exact matches first
                     players = db_session.query(Player).filter(
                         (Player.first_name.ilike(f"%{first_name}%") & Player.last_name.ilike(f"%{last_name}%")) |
@@ -920,14 +919,11 @@ def init_lineup_routes(app):
                         (Player.first_name.ilike(f"%{player_name}%")) |
                         (Player.last_name.ilike(f"%{player_name}%"))
                     ).all()
-                
                 if not players:
                     return jsonify({"error": "No players found with that name"}), 404
-                
                 # Get unique teams for these players
                 team_data = []
                 seen_teams = set()
-                
                 for player in players:
                     if player.team_id and player.team_id not in seen_teams:
                         team = db_session.query(Team).filter(Team.id == player.team_id).first()
@@ -935,23 +931,28 @@ def init_lineup_routes(app):
                             league = db_session.query(League).filter(League.id == team.league_id).first()
                             club = db_session.query(Club).filter(Club.id == team.club_id).first()
                             series = db_session.query(Series).filter(Series.id == team.series_id).first()
-                            
+                            # Always show 'Series X' format
+                            series_name = series.name if series else "Unknown Series"
+                            series_number = None
+                            if series_name:
+                                match = re.search(r'(\d+)', series_name)
+                                if match:
+                                    series_number = match.group(1)
+                            series_display = f"Series {series_number}" if series_number else series_name
                             team_data.append({
                                 "team_id": team.id,
                                 "team_name": team.display_name,
                                 "league_name": league.league_name if league else "Unknown League",
                                 "club_name": club.name if club else "Unknown Club",
-                                "series_name": series.name if series else "Unknown Series",
+                                "series_display": series_display,
                                 "player_name": f"{player.first_name} {player.last_name}",
                                 "player_id": player.id
                             })
                             seen_teams.add(team.id)
-                
                 return jsonify({
                     "success": True,
                     "teams": team_data
                 })
-                
         except Exception as e:
             print(f"Error searching for player: {str(e)}")
             return jsonify({"error": str(e)}), 500
@@ -964,6 +965,12 @@ def init_lineup_routes(app):
             user = session["user"]
             team_id = request.args.get("team_id") or request.json.get("team_id")
             
+            print(f"🔍 Saved Lineups API Debug:")
+            print(f"   User ID: {user.get('id')}")
+            print(f"   User Email: {user.get('email')}")
+            print(f"   Team ID from request: {team_id}")
+            print(f"   Request method: {request.method}")
+            
             if not team_id:
                 return jsonify({"error": "team_id is required"}), 400
             
@@ -972,6 +979,7 @@ def init_lineup_routes(app):
                 
                 if request.method == "GET":
                     result = escrow_service.get_saved_lineups(user["id"], int(team_id))
+                    print(f"   API Result: {result}")
                     return jsonify(result)
                     
                 elif request.method == "POST":

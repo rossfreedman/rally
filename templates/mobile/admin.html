@@ -155,7 +155,7 @@
             <h2 class="text-lg font-semibold text-gray-900">
               <i class="fas fa-star mr-2 text-yellow-600"></i>Most Active Users
             </h2>
-            <p class="text-sm text-gray-600 mt-1">Top performers today</p>
+            <p class="text-sm text-gray-600 mt-1">Top performers with recent activity</p>
           </div>
           <div class="p-4">
             <div id="top-players-content">
@@ -536,6 +536,7 @@ function renderTopPlayers() {
   
   const html = players.map((player, index) => {
     const rankIcon = index < 3 ? ['🥇', '🥈', '🥉'][index] : `#${index + 1}`;
+    const lastActivity = player.last_activity ? getTimeAgo(player.last_activity) : 'Unknown';
     
     return `
       <div class="flex items-center justify-between py-2 border-b border-gray-100 last:border-b-0">
@@ -547,6 +548,9 @@ function renderTopPlayers() {
             </p>
             <p class="text-xs text-gray-600">
               ${player.club_name || 'Unknown Club'}
+            </p>
+            <p class="text-xs text-gray-500">
+              <i class="fas fa-clock mr-1"></i>Last activity: ${lastActivity}
             </p>
           </div>
         </div>
@@ -660,33 +664,53 @@ function getTimeAgo(timestamp) {
 }
 
 function getActionTypeIcon(actionType) {
-  const iconMap = {
-    'page_visit': 'fas fa-eye',
-    'user_action': 'fas fa-mouse-pointer',
-    'login': 'fas fa-sign-in-alt',
-    'logout': 'fas fa-sign-out-alt',
-    'availability_update': 'fas fa-calendar-check',
-    'poll_voted': 'fas fa-vote-yea',
-    'ai_chat': 'fas fa-robot',
-    'simulation_run': 'fas fa-play-circle',
-    'admin_action': 'fas fa-user-shield'
-  };
-  return iconMap[actionType] || 'fas fa-circle';
+    const iconMap = {
+        'page_visit': 'fas fa-eye',
+        'login': 'fas fa-sign-in-alt',
+        'logout': 'fas fa-sign-out-alt',
+        'registration_successful': 'fas fa-user-plus',
+        'registration_failed': 'fas fa-user-times',
+        'player_search': 'fas fa-search',
+        'team_switch': 'fas fa-exchange-alt',
+        'settings_update': 'fas fa-cog',
+        'poll_voted': 'fas fa-vote-yea',
+        'poll_created': 'fas fa-poll',
+        'availability_update': 'fas fa-calendar-check',
+        'ai_chat': 'fas fa-robot',
+        'simulation_run': 'fas fa-dice',
+        'score_submitted': 'fas fa-trophy',
+        'team_email': 'fas fa-envelope',
+        'court_reservation': 'fas fa-calendar-plus',
+        'admin_action': 'fas fa-shield-alt',
+        'user_action': 'fas fa-user-cog'
+    };
+    
+    return iconMap[actionType] || 'fas fa-info-circle';
 }
 
 function getActionTypeColor(actionType) {
-  const colorMap = {
-    'page_visit': 'blue',
-    'user_action': 'green',
-    'login': 'green',
-    'logout': 'gray',
-    'availability_update': 'cyan',
-    'poll_voted': 'purple',
-    'ai_chat': 'indigo',
-    'simulation_run': 'orange',
-    'admin_action': 'red'
-  };
-  return colorMap[actionType] || 'gray';
+    const colorMap = {
+        'page_visit': 'blue',
+        'login': 'green',
+        'logout': 'gray',
+        'registration_successful': 'green',
+        'registration_failed': 'red',
+        'player_search': 'blue',
+        'team_switch': 'purple',
+        'settings_update': 'orange',
+        'poll_voted': 'green',
+        'poll_created': 'blue',
+        'availability_update': 'green',
+        'ai_chat': 'purple',
+        'simulation_run': 'yellow',
+        'score_submitted': 'gold',
+        'team_email': 'blue',
+        'court_reservation': 'green',
+        'admin_action': 'red',
+        'user_action': 'gray'
+    };
+    
+    return colorMap[actionType] || 'gray';
 }
 
 // Impersonation functions (existing code)

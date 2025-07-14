@@ -189,61 +189,93 @@ def get_recent_activities(
         # Format activities for frontend
         formatted_activities = []
         for activity in activities:
-            # Create descriptive action description
-            action_description = create_activity_description(
-                activity["action_type"],
-                activity["page"],
-                activity["details"],
-                activity["action"],
-            )
+            # Create enhanced description for registration activities
+            description = activity["details"] or f"{activity['action_type'].replace('_', ' ').title()} activity"
+            
+            # Handle registration activities with enhanced descriptions
+            if activity["action_type"] == "registration_successful":
+                # Try to parse details for enhanced description
+                try:
+                    if activity["details"]:
+                        import json
+                        details = json.loads(activity["details"])
+                        if details.get("player_data"):
+                            player_data = details["player_data"]
+                            player_name = f"{player_data.get('first_name', '')} {player_data.get('last_name', '')}".strip()
+                            club = player_data.get("club_name", "Unknown")
+                            series = player_data.get("series_name", "Unknown")
+                            team_assigned = details.get("team_assigned", False)
+                            
+                            description = f"✅ Registration successful - Linked to player {player_name} ({club} - {series})"
+                            if team_assigned:
+                                description += " with team assignment"
+                            else:
+                                description += " (no team assigned)"
+                except:
+                    description = "✅ Registration successful"
+                    
+            elif activity["action_type"] == "registration_failed":
+                # Try to parse details for enhanced description
+                try:
+                    if activity["details"]:
+                        import json
+                        details = json.loads(activity["details"])
+                        reason = details.get("reason", "Unknown error")
+                        action = activity.get("action", "unknown_failure")
+                        
+                        if action == "player_id_linking_failed":
+                            lookup_attempt = details.get("lookup_attempt", {})
+                            name = f"{lookup_attempt.get('first_name', '')} {lookup_attempt.get('last_name', '')}".strip()
+                            club = lookup_attempt.get("club_name", "Unknown")
+                            series = lookup_attempt.get("series_name", "Unknown")
+                            description = f"❌ Registration failed - Player ID linking failed for {name} ({club} - {series})"
+                            
+                        elif action == "security_issue_player_id_claimed":
+                            player_id = details.get("player_id", "Unknown")
+                            existing_user = details.get("existing_user_email", "Unknown")
+                            description = f"🚨 Security issue - Player ID {player_id[:15]}... already claimed by {existing_user}"
+                            
+                        elif action == "duplicate_email":
+                            description = f"❌ Registration failed - Duplicate email address"
+                            
+                        elif action == "missing_required_fields":
+                            provided_data = details.get("provided_data", {})
+                            missing_fields = []
+                            if not provided_data.get("league_id"): missing_fields.append("league")
+                            if not provided_data.get("club_name"): missing_fields.append("club")
+                            if not provided_data.get("series_name"): missing_fields.append("series")
+                            description = f"❌ Registration failed - Missing required fields: {', '.join(missing_fields)}"
+                            
+                        elif action == "player_record_not_found":
+                            player_id = details.get("player_id", "Unknown")
+                            description = f"❌ Registration failed - Player record not found for ID {player_id[:15]}..."
+                            
+                        elif action == "player_lookup_exception":
+                            error = details.get("error", "Unknown error")
+                            description = f"❌ Registration failed - Player lookup exception: {error[:50]}..."
+                            
+                        else:
+                            description = f"❌ Registration failed - {reason}"
+                except:
+                    description = "❌ Registration failed"
 
-            formatted_activity = {
-                "id": str(activity["id"]),
+            formatted_activities.append({
+                "id": activity["id"],
                 "action_type": activity["action_type"],
-                "action_description": action_description,
-                "timestamp": activity["timestamp"].isoformat(),
-                "related_id": activity["related_id"],
-                "related_type": activity["related_type"],
-                "user": None,
-                "player": None,
-                "team": None,
-                "extra_data": (
-                    json.loads(activity["extra_data"])
-                    if activity["extra_data"]
-                    else None
-                ),
-                "player_name": None,
-                "team_name": None,
-                "club_name": None,
-            }
-
-            # Add user info if available
-            if activity["user_first_name"]:
-                formatted_activity["user"] = {
+                "action_description": description,
+                "timestamp": activity["timestamp"].isoformat() if activity["timestamp"] else None,
+                "user": {
                     "first_name": activity["user_first_name"],
                     "last_name": activity["user_last_name"],
                     "email": activity["user_email"],
-                }
-
-            # Add player info if available
-            if activity["player_first_name"]:
-                formatted_activity["player"] = {
-                    "first_name": activity["player_first_name"],
-                    "last_name": activity["player_last_name"],
-                }
-                formatted_activity["player_name"] = f"{activity['player_first_name']} {activity['player_last_name']}"
-
-            # Add team info if available
-            if activity["team_name"]:
-                formatted_activity["team"] = {
-                    "name": activity["team_name"],
-                    "club_name": activity["club_name"],
-                    "series_name": activity["series_name"],
-                }
-                formatted_activity["team_name"] = activity["team_name"]
-                formatted_activity["club_name"] = activity["club_name"]
-
-            formatted_activities.append(formatted_activity)
+                },
+                "player_name": f"{activity['player_first_name'] or ''} {activity['player_last_name'] or ''}".strip() if activity['player_first_name'] else None,
+                "team_name": activity["team_name"],
+                "club_name": activity["club_name"],
+                "series_name": activity["series_name"],
+                "related_id": activity["related_id"],
+                "related_type": activity["related_type"],
+            })
 
         return formatted_activities
 

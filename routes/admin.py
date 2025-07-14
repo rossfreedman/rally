@@ -12,19 +12,48 @@ admin_bp = Blueprint("admin", __name__)
 @admin_bp.route("/users")
 @login_required
 def get_users():
-    """Get all users with their information"""
+    """Get all users with their information, sorted by most recent activity"""
     try:
         users = execute_query(
             """
-            SELECT u.id, u.email, u.first_name, u.last_name, 
-                   u.last_login, c.name as club_name, s.name as series_name,
-                   c.id as club_id, s.id as series_id
+            SELECT DISTINCT ON (u.id) 
+                u.id, u.email, u.first_name, u.last_name, 
+                u.last_login, c.name as club_name, s.name as series_name,
+                c.id as club_id, s.id as series_id,
+                -- Get the most recent activity timestamp from either system
+                GREATEST(
+                    COALESCE(ual.latest_activity, '1970-01-01'::timestamp),
+                    COALESCE(al.latest_activity, '1970-01-01'::timestamp),
+                    COALESCE(u.last_login, '1970-01-01'::timestamp),
+                    COALESCE(u.created_at, '1970-01-01'::timestamp)
+                ) as most_recent_activity
             FROM users u
+            LEFT JOIN (
+                -- Get latest timestamp from legacy system
+                SELECT 
+                    user_email,
+                    MAX(timestamp) as latest_activity
+                FROM user_activity_logs 
+                GROUP BY user_email
+            ) ual ON u.email = ual.user_email
+            LEFT JOIN (
+                -- Get latest timestamp from comprehensive system
+                SELECT 
+                    user_id,
+                    MAX(timestamp) as latest_activity
+                FROM activity_log 
+                WHERE user_id IS NOT NULL
+                GROUP BY user_id
+            ) al ON u.id = al.user_id
             LEFT JOIN clubs c ON u.club_id = c.id
             LEFT JOIN series s ON u.series_id = s.id
-            ORDER BY u.last_login DESC NULLS LAST
+            ORDER BY u.id
         """
         )
+        
+        # Sort the results by most recent activity (newest first)
+        users.sort(key=lambda x: x['most_recent_activity'], reverse=True)
+        
         return jsonify(users)
     except Exception as e:
         return jsonify({"error": str(e)}), 500

@@ -18,6 +18,8 @@ def log_user_activity(user_email, activity_type, **kwargs):
         page = kwargs.pop("page", None)
         action = kwargs.pop("action", None)
         details = kwargs.pop("details", None)
+        first_name = kwargs.pop("first_name", None)
+        last_name = kwargs.pop("last_name", None)
 
         # Check for impersonation in session (only if we're in a request context)
         is_impersonating = False
@@ -46,7 +48,7 @@ def log_user_activity(user_email, activity_type, **kwargs):
         # Check if detailed logging notifications are enabled and send SMS
         try:
             _send_detailed_logging_notification(
-                user_email, activity_type, page, action, details, is_impersonating
+                user_email, activity_type, page, action, details, is_impersonating, first_name, last_name
             )
         except Exception as sms_error:
             logger.error(f"SMS notification failed: {sms_error}")
@@ -92,7 +94,7 @@ def _log_to_database(user_email, activity_type, page, action, details_json, is_i
         raise
 
 
-def _send_detailed_logging_notification(user_email, activity_type, page, action, details, is_impersonating):
+def _send_detailed_logging_notification(user_email, activity_type, page, action, details, is_impersonating, first_name=None, last_name=None):
     """Send SMS notification if detailed logging notifications are enabled"""
     try:
         # Check if detailed logging notifications are enabled
@@ -111,7 +113,7 @@ def _send_detailed_logging_notification(user_email, activity_type, page, action,
         from app.services.notifications_service import send_sms_notification
 
         # Create a human-readable SMS message
-        message = _format_activity_for_sms(user_email, activity_type, page, action, details, is_impersonating)
+        message = _format_activity_for_sms(user_email, activity_type, page, action, details, is_impersonating, first_name, last_name)
 
         # Send SMS to admin
         send_sms_notification(ADMIN_PHONE_NUMBER, message)
@@ -156,18 +158,85 @@ def _is_user_admin(user_email):
         return False
 
 
-def _format_activity_for_sms(user_email, activity_type, page, action, details, is_impersonating):
+def _format_activity_for_sms(user_email, activity_type, page, action, details, is_impersonating, first_name=None, last_name=None):
     """Format user activity into a concise, readable SMS message"""
     
-    # Start with basic info
-    user_part = user_email.split('@')[0]  # Get username part
+    # Prefer first and last name if available, else fallback to email username
+    if first_name and last_name:
+        user_part = f"{first_name} {last_name}".strip()
+    elif first_name:
+        user_part = first_name
+    elif last_name:
+        user_part = last_name
+    else:
+        user_part = user_email.split('@')[0]  # Get username part
     impersonation_note = " [IMPERSONATED]" if is_impersonating else ""
     
     timestamp = datetime.now().strftime("%H:%M")
     base_message = f"🏓 Rally Activity ({timestamp})\n👤 {user_part}{impersonation_note}\n"
     
     # Format based on activity type
-    if activity_type == "player_search":
+    if activity_type == "registration_successful":
+        if action == "player_id_linking_successful":
+            player_data = details.get("player_data", {})
+            player_name = f"{player_data.get('first_name', '')} {player_data.get('last_name', '')}".strip()
+            club = player_data.get("club_name", "Unknown")
+            series = player_data.get("series_name", "Unknown")
+            player_id = details.get("player_id", "Unknown")
+            team_assigned = details.get("team_assigned", False)
+            
+            base_message += f"✅ Registration SUCCESS\n🎯 Player ID: {player_id[:15]}...\n👤 {player_name}\n🏢 {club} - {series}"
+            
+            if team_assigned:
+                base_message += "\n🏆 Team assigned"
+            else:
+                base_message += "\n⚠️ No team assigned"
+                
+        else:
+            base_message += f"✅ Registration successful\n🔧 Action: {action}"
+    
+    elif activity_type == "registration_failed":
+        reason = details.get("reason", "Unknown error")
+        action_type = action or "unknown_failure"
+        
+        if action_type == "player_id_linking_failed":
+            lookup_attempt = details.get("lookup_attempt", {})
+            name = f"{lookup_attempt.get('first_name', '')} {lookup_attempt.get('last_name', '')}".strip()
+            club = lookup_attempt.get("club_name", "Unknown")
+            series = lookup_attempt.get("series_name", "Unknown")
+            
+            base_message += f"❌ Registration FAILED\n🔍 Player ID linking failed\n👤 {name}\n🏢 {club} - {series}\n📝 {reason}"
+            
+        elif action_type == "security_issue_player_id_claimed":
+            player_id = details.get("player_id", "Unknown")
+            existing_user = details.get("existing_user_email", "Unknown")
+            
+            base_message += f"🚨 SECURITY ISSUE\n🔒 Player ID already claimed\n🎯 {player_id[:15]}...\n👤 Claimed by: {existing_user.split('@')[0]}"
+            
+        elif action_type == "duplicate_email":
+            base_message += f"❌ Registration FAILED\n📧 Duplicate email address\n📝 {reason}"
+            
+        elif action_type == "missing_required_fields":
+            provided_data = details.get("provided_data", {})
+            missing_fields = []
+            if not provided_data.get("league_id"): missing_fields.append("league")
+            if not provided_data.get("club_name"): missing_fields.append("club")
+            if not provided_data.get("series_name"): missing_fields.append("series")
+            
+            base_message += f"❌ Registration FAILED\n📋 Missing fields: {', '.join(missing_fields)}\n📝 {reason}"
+            
+        elif action_type == "player_record_not_found":
+            player_id = details.get("player_id", "Unknown")
+            base_message += f"❌ Registration FAILED\n🔍 Player record not found\n🎯 {player_id[:15]}...\n📝 {reason}"
+            
+        elif action_type == "player_lookup_exception":
+            error = details.get("error", "Unknown error")
+            base_message += f"❌ Registration FAILED\n💥 Player lookup exception\n📝 {error[:50]}..."
+            
+        else:
+            base_message += f"❌ Registration FAILED\n🔧 {action_type.replace('_', ' ').title()}\n📝 {reason}"
+    
+    elif activity_type == "player_search":
         if action == "search_executed":
             query = details.get("search_query", "Unknown")
             results = details.get("results_count", 0)
@@ -248,15 +317,18 @@ def _format_activity_for_sms(user_email, activity_type, page, action, details, i
             base_message += f"🔧 {activity_name}"
         
         # Add key details if available
-        if details and isinstance(details, dict):
-            if details.get("search_query"):
-                base_message += f" ('{details['search_query']}')"
-            elif details.get("results_count") is not None:
-                base_message += f" ({details['results_count']} results)"
-
-    # Ensure message isn't too long for SMS (160 chars is standard limit)
-    if len(base_message) > 155:
-        base_message = base_message[:152] + "..."
+        if details:
+            if isinstance(details, dict):
+                # Extract key information for SMS
+                key_info = []
+                if details.get("reason"): key_info.append(f"Reason: {details['reason']}")
+                if details.get("player_id"): key_info.append(f"Player ID: {details['player_id'][:15]}...")
+                if details.get("error"): key_info.append(f"Error: {details['error'][:30]}...")
+                
+                if key_info:
+                    base_message += f"\n📝 {key_info[0]}"  # Show first key detail
+            else:
+                base_message += f"\n📝 {str(details)[:50]}..."
     
     return base_message
 

@@ -10,46 +10,36 @@
     background-color: white !important;
   }
   
-  /* Custom button styles for each section with consistent #10645c background */
-  .act-button {
-    background-color: #10645c !important;
-    color: #c4ff60 !important;
+  /* Force button text and icons to #085454, override Tailwind and inline styles */
+  .act-button, .act-button *,
+  .analyze-button, .analyze-button *,
+  .prepare-button, .prepare-button *,
+  .play-button, .play-button *,
+  .improve-button, .improve-button *,
+  .captain-button, .captain-button *,
+  .admin-button, .admin-button * {
+    color: #085454 !important;
+    text-shadow: none !important;
   }
-  
-  .analyze-button {
-    background-color: #10645c !important;
-    color: #c4ff60 !important;
+
+  /* Keep the border and background rules as before */
+  .act-button, .analyze-button, .prepare-button, .play-button, .improve-button, .captain-button, .admin-button {
+    background-color: #f8f4f4 !important;
+    border: 2px solid #BBBBBB !important;
   }
-  
-  .prepare-button {
-    background-color: #10645c !important;
-    color: #c4ff60 !important;
+
+  /* Hover effects for light grayish-pink buttons */
+  .act-button:hover, .analyze-button:hover, .prepare-button:hover, 
+  .play-button:hover, .improve-button:hover, .captain-button:hover, 
+  .admin-button:hover {
+    background-color: #BBBBBB !important;
+    color: white !important;
+    border-color: #BBBBBB !important;
   }
-  
-  .play-button {
-    background-color: #10645c !important;
-    color: #c4ff60 !important;
-  }
-  
-  .improve-button {
-    background-color: #10645c !important;
-    color: #c4ff60 !important;
-  }
-  
-  .captain-button {
-    background-color: #10645c !important;
-    color: #c4ff60 !important;
-  }
-  
-  .admin-button {
-    background-color: #10645c !important;
-    color: #c4ff60 !important;
-  }
-  
-  /* Icon colors to match the text color */
-  .act-button i, .analyze-button i, .prepare-button i, .play-button i, 
-  .improve-button i, .captain-button i, .admin-button i {
-    color: #c4ff60 !important;
+  .act-button:hover *, .analyze-button:hover *, .prepare-button:hover *,
+  .play-button:hover *, .improve-button:hover *, .captain-button:hover *,
+  .admin-button:hover * {
+    color: white !important;
   }
 </style>
 <div class="container mx-auto px-4 py-6">
@@ -615,14 +605,9 @@
   {% endif %}
   
   <!-- Alternative Style Link -->
-  <div class="text-center mt-8 mb-2">
-    <a href="/mobile/alt1" class="text-sm text-gray-500 hover:text-gray-700 underline">
-      Switch to white button style
-    </a>
-  </div>
-  <div class="text-center mb-4">
-    <a href="/mobile/ios" class="text-sm text-blue-500 hover:text-blue-700 underline">
-      Switch to iOS-style button design
+  <div class="text-center mt-8 mb-4">
+    <a href="/mobile" class="text-sm text-gray-500 hover:text-gray-700 underline">
+      Switch to colored button style
     </a>
   </div>
 </div>

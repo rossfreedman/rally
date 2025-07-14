@@ -710,10 +710,10 @@
             if (textNotificationsCheckbox) {
                 textNotificationsCheckbox.addEventListener('change', function() {
                     if (this.checked) {
-                        // Smooth scroll to the very bottom of the page
+                        // Auto-scroll down by 100px when checkbox is checked
                         setTimeout(() => {
-                            window.scrollTo({
-                                top: document.body.scrollHeight,
+                            window.scrollBy({
+                                top: 100,
                                 behavior: 'smooth'
                             });
                         }, 100); // Small delay to ensure checkbox state is updated
@@ -928,12 +928,12 @@
         // Auto-scroll for specific fields
         document.addEventListener('DOMContentLoaded', function() {
             // Add auto-scroll for registration form fields
-            addAutoScrollOnSelect('confirmPassword', 75);
-            addAutoScrollOnSelect('league', 75);
-            addAutoScrollOnSelect('club', 75);
+            addAutoScrollOnSelect('confirmPassword', 100);
+            addAutoScrollOnSelect('league', 100);
+            addAutoScrollOnSelect('club', 100);
             addAutoScrollOnSelect('series', 100);
-            addAutoScrollOnSelect('adDeuce', 75);
-            addAutoScrollOnSelect('dominantHand', 75);
+            addAutoScrollOnSelect('adDeuce', 100);
+            addAutoScrollOnSelect('dominantHand', 100);
         });
     </script>
     <!-- Footer for branding -->

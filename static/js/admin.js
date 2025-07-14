@@ -112,6 +112,9 @@ function renderUsers() {
     tbody.innerHTML = '';
     
     users.forEach(user => {
+        // Format most recent activity if available
+        const mostRecentActivity = user.most_recent_activity ? formatTimestamp(user.most_recent_activity) : 'Unknown';
+        
         const row = document.createElement('tr');
         row.innerHTML = `
             <td>${escapeHtml(user.first_name)} ${escapeHtml(user.last_name)}</td>
@@ -119,6 +122,7 @@ function renderUsers() {
             <td>${escapeHtml(user.club_name) || '-'}</td>
             <td>${escapeHtml(user.series_name) || '-'}</td>
             <td>${user.last_login ? escapeHtml(formatTimestamp(user.last_login)) : 'Never'}</td>
+            <td>${mostRecentActivity}</td>
             <td class="space-x-2">
                 <button class="btn btn-sm" onclick="editUser('${escapeHtml(user.id)}')">
                     <i class="fas fa-edit"></i>
@@ -137,7 +141,10 @@ function renderUsers() {
     // Also update the mobile view
     const mobileView = document.getElementById('usersMobileView');
     if (mobileView) {
-        mobileView.innerHTML = users.map(user => `
+        mobileView.innerHTML = users.map(user => {
+            const mostRecentActivity = user.most_recent_activity ? formatTimestamp(user.most_recent_activity) : 'Unknown';
+            
+            return `
             <div class="card bg-white shadow-sm p-4">
                 <div class="flex justify-between items-start mb-2">
                     <div>
@@ -160,9 +167,10 @@ function renderUsers() {
                     <p><span class="font-semibold">Club:</span> ${escapeHtml(user.club_name) || 'None'}</p>
                     <p><span class="font-semibold">Series:</span> ${escapeHtml(user.series_name) || 'None'}</p>
                     <p><span class="font-semibold">Last Login:</span> ${user.last_login ? escapeHtml(formatTimestamp(user.last_login)) : 'Never'}</p>
+                    <p><span class="font-semibold">Most Recent Activity:</span> ${mostRecentActivity}</p>
                 </div>
             </div>
-        `).join('');
+        `}).join('');
     }
 }
 
@@ -666,10 +674,11 @@ async function deleteSeries(seriesId) {
 // Utility Functions
 function exportUsers() {
     const csvContent = "data:text/csv;charset=utf-8," + 
-        "Name,Email,Club,Series,Last Login\n" +
-        users.map(user => 
-            `"${user.first_name} ${user.last_name}","${user.email}","${user.club_name || ''}","${user.series_name || ''}","${user.last_login ? formatTimestamp(user.last_login) : 'Never'}"`
-        ).join("\n");
+        "Name,Email,Club,Series,Last Login,Most Recent Activity\n" +
+        users.map(user => {
+            const mostRecentActivity = user.most_recent_activity ? formatTimestamp(user.most_recent_activity) : 'Unknown';
+            return `"${user.first_name} ${user.last_name}","${user.email}","${user.club_name || ''}","${user.series_name || ''}","${user.last_login ? formatTimestamp(user.last_login) : 'Never'}","${mostRecentActivity}"`;
+        }).join("\n");
     
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");

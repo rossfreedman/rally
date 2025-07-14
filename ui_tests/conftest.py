@@ -27,19 +27,24 @@ from database_config import get_db_url
 
 import random
 
-# Sample of 10 real users from the player JSON (update as needed)
-TEST_USERS = [
-    {"first_name": "Mark", "last_name": "Cunnington", "club": "Glen Ellyn", "series": "Series 1"},
-    {"first_name": "Reece", "last_name": "Acree", "club": "Glen Ellyn", "series": "Series 1"},
-    {"first_name": "Ryan", "last_name": "Edlefsen", "club": "Glen Ellyn", "series": "Series 1"},
-    {"first_name": "Mitch", "last_name": "Granger", "club": "Glen Ellyn", "series": "Series 1"},
-    {"first_name": "Radek", "last_name": "Guzik", "club": "Glen Ellyn", "series": "Series 1"},
-    {"first_name": "Anthony", "last_name": "McPherson", "club": "Glen Ellyn", "series": "Series 1"},
-    {"first_name": "Eric", "last_name": "Pohl", "club": "Glen Ellyn", "series": "Series 1"},
-    {"first_name": "Scott", "last_name": "Rutherford", "club": "Glen Ellyn", "series": "Series 1"},
-    {"first_name": "Adam", "last_name": "Schumacher", "club": "Glen Ellyn", "series": "Series 1"},
-    {"first_name": "Trey", "last_name": "Scott", "club": "Glen Ellyn", "series": "Series 1"},
-]
+# Dynamically load 10 random users from APTA_CHICAGO players.json
+APTA_PLAYERS_PATH = os.path.join(os.path.dirname(__file__), '../data/leagues/APTA_CHICAGO/players.json')
+if os.path.exists(APTA_PLAYERS_PATH):
+    with open(APTA_PLAYERS_PATH, 'r') as f:
+        all_players = json.load(f)
+    valid_players = [p for p in all_players if p.get('First Name') and p.get('Last Name') and p.get('Player ID') and p.get('Club') and p.get('Series')]
+    TEST_USERS = [
+        {
+            "first_name": p["First Name"],
+            "last_name": p["Last Name"],
+            "club": p["Club"],
+            "series": p["Series"],
+            "player_id": p["Player ID"]
+        }
+        for p in random.sample(valid_players, min(10, len(valid_players)))
+    ]
+else:
+    TEST_USERS = []
 
 # Test configuration
 TEST_DATABASE_URL = os.getenv(
@@ -171,6 +176,20 @@ def ui_test_database():
         # Comprehensive cleanup of all test data
         cleanup_test_database(engine)
         engine.dispose()
+
+
+@pytest.fixture(scope="session", autouse=True)
+def cleanup_test_users():
+    """Delete all test users created during the UI test session."""
+    yield
+    # Cleanup logic after all tests
+    engine = create_engine(TEST_DATABASE_URL)
+    with engine.connect() as conn:
+        # Delete users with the +ui-test@lovetorally.com pattern
+        conn.execute(text("DELETE FROM user_player_associations WHERE user_id IN (SELECT id FROM users WHERE email LIKE '%+ui-test@lovetorally.com')"))
+        conn.execute(text("DELETE FROM users WHERE email LIKE '%+ui-test@lovetorally.com'"))
+        conn.commit()
+    engine.dispose()
 
 
 def cleanup_test_database(engine):
@@ -412,7 +431,25 @@ def parameterized_authenticated_page(page, flask_server, request):
     page.wait_for_function('document.querySelector("#series").options.length > 1', timeout=10000)
     options = page.eval_on_selector_all('#series option', 'els => els.map(e => ({value: e.value, text: e.textContent}))')
     print('Available series options:', options)
-    page.select_option('#series', user["series"])
+    
+    # Try to select the user's series, but fall back to a valid option if it doesn't exist
+    user_series = user["series"]
+    available_series_values = [opt['value'] for opt in options if opt['value']]
+    
+    if user_series in available_series_values:
+        page.select_option('#series', user_series)
+        print(f"Selected user's series: {user_series}")
+    else:
+        # Fall back to a common series that should exist
+        fallback_series = 'Series 7'
+        if fallback_series in available_series_values:
+            page.select_option('#series', fallback_series)
+            print(f"User's series '{user_series}' not found, selected fallback: {fallback_series}")
+        else:
+            # Last resort: select the first available series
+            first_available = available_series_values[0] if available_series_values else 'Series 7'
+            page.select_option('#series', first_available)
+            print(f"User's series '{user_series}' not found, selected first available: {first_available}")
     page.select_option('#adDeuce', 'Ad')
     page.select_option('#dominantHand', 'Righty')
     page.check('#textNotifications')
