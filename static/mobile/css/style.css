@@ -194,9 +194,9 @@ a:hover {
     }
 }
 
-/* Rally green for mobile top nav */
+/* Rally teal for mobile top nav */
 .navbar {
-  background-color: #085454 !important; /* Changed from Rally green (#007417) to teal */
+  background-color: #045454 !important; /* Changed to Rally teal */
 }
 
 /* Rally green for 'I can play' button */
@@ -506,6 +506,53 @@ a:hover {
   position: relative;
 }
 
+/* Bottom Navigation Dock - Off State Colors */
+.dock-item i {
+  color: #bff863 !important;
+}
+
+.dock-item span {
+  color: #bff863 !important;
+}
+
+/* Override any inline styles for dock items */
+.dock-item i[style*="color"] {
+  color: #bff863 !important;
+}
+
+.dock-item span[style*="color"] {
+  color: #bff863 !important;
+}
+
+/* Ensure off state colors are applied */
+.bottom-dock .dock-item i {
+  color: #bff863 !important;
+}
+
+.bottom-dock .dock-item span {
+  color: #bff863 !important;
+}
+
+/* Force active state colors to be the same */
+.bottom-dock .dock-item.active i {
+  color: #bff863 !important;
+}
+
+.bottom-dock .dock-item.active span {
+  color: #bff863 !important;
+}
+
+/* Maximum specificity override for any remaining black colors */
+.bottom-dock .dock-item i[style*="color"],
+.bottom-dock .dock-item.active i[style*="color"] {
+  color: #bff863 !important;
+}
+
+.bottom-dock .dock-item span[style*="color"],
+.bottom-dock .dock-item.active span[style*="color"] {
+  color: #bff863 !important;
+}
+
 .dock-item:hover {
   background-color: rgba(255, 255, 255, 0.1);
   text-decoration: none;
@@ -522,11 +569,11 @@ a:hover {
 }
 
 .dock-item.active i {
-  color: #c4ff60;
+  color: #bff863 !important;
 }
 
 .dock-item.active span {
-  color: #c4ff60;
+  color: #bff863 !important;
   font-weight: 600;
 }
 

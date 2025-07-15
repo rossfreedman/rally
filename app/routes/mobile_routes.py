@@ -62,6 +62,13 @@ logger = logging.getLogger(__name__)
 mobile_bp = Blueprint("mobile", __name__)
 
 
+@mobile_bp.route("/mobile/admin")
+@login_required
+def serve_mobile_admin():
+    """Serve the mobile admin page - redirects to main admin"""
+    return redirect(url_for("admin.serve_admin"))
+
+
 @mobile_bp.route("/mobile")
 @login_required
 def serve_mobile():
@@ -4320,6 +4327,13 @@ def serve_text_group(group_id):
 def serve_mobile_lineup_escrow_confirmation():
     """Serve the mobile lineup escrow confirmation page"""
     return render_template("mobile/lineup_escrow_confirmation.html")
+
+
+@mobile_bp.route('/mobile/home_submenu')
+@login_required
+def home_submenu():
+    session_data = {"user": session["user"], "authenticated": True}
+    return render_template("mobile/home_submenu.html", session_data=session_data)
 
 
 
