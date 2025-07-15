@@ -8,7 +8,7 @@ These routes handle API endpoints for data retrieval, research, analytics, and o
 import json
 import logging
 import os
-from datetime import datetime, date, time
+from datetime import datetime, date, time, timedelta
 from functools import wraps
 
 import pytz
@@ -24,6 +24,9 @@ from utils.database_player_lookup import find_player_by_database_lookup
 from utils.logging import log_user_activity
 
 api_bp = Blueprint("api", __name__)
+
+# Set up logger
+logger = logging.getLogger(__name__)
 
 
 def login_required(f):
@@ -6080,3 +6083,784 @@ def send_group_message():
             "success": False,
             "error": "System error occurred while sending messages. Please try again."
         }), 500
+
+
+@api_bp.route("/api/home/notifications")
+@login_required
+def get_home_notifications():
+    """Get personalized notifications for the home page"""
+    try:
+        user = session["user"]
+        user_id = user.get("id")
+        player_id = user.get("tenniscores_player_id")
+        league_id = user.get("league_id")
+        team_id = user.get("team_id")
+        
+        logger.info(f"Getting notifications for user {user_id}, player_id: {player_id}, league_id: {league_id}, team_id: {team_id}")
+        
+        if not user_id:
+            logger.error(f"No user_id found for user: {user}")
+            return jsonify({"error": "User ID not found"}), 404
+            
+        notifications = []
+        
+        # 1. Check for urgent match-related updates
+        try:
+            urgent_notifications = get_urgent_match_notifications(user_id, player_id, league_id, team_id)
+            notifications.extend(urgent_notifications)
+        except Exception as e:
+            logger.error(f"Error getting urgent notifications: {str(e)}")
+        
+        # 2. Check for recent match results
+        if len(notifications) < 3:
+            try:
+                result_notifications = get_recent_match_results(user_id, player_id, league_id, team_id)
+                notifications.extend(result_notifications[:3 - len(notifications)])
+            except Exception as e:
+                logger.error(f"Error getting recent results: {str(e)}")
+        
+        # 3. Check for team polls
+        if len(notifications) < 3:
+            try:
+                poll_notifications = get_team_poll_notifications(user_id, player_id, league_id, team_id)
+                notifications.extend(poll_notifications[:3 - len(notifications)])
+            except Exception as e:
+                logger.error(f"Error getting poll notifications: {str(e)}")
+        
+        # 4. Check for pickup games that match user criteria
+        if len(notifications) < 3:
+            try:
+                pickup_notifications = get_pickup_games_notifications(user_id, player_id, league_id, team_id)
+                notifications.extend(pickup_notifications[:3 - len(notifications)])
+            except Exception as e:
+                logger.error(f"Error getting pickup games notifications: {str(e)}")
+        
+        # 5. Check for personal performance highlights
+        if len(notifications) < 3:
+            try:
+                personal_notifications = get_personal_performance_highlights(user_id, player_id, league_id, team_id)
+                notifications.extend(personal_notifications[:3 - len(notifications)])
+            except Exception as e:
+                logger.error(f"Error getting personal highlights: {str(e)}")
+        
+        # 6. Check for team performance highlights
+        if len(notifications) < 3:
+            try:
+                team_notifications = get_team_performance_highlights(user_id, player_id, league_id, team_id)
+                notifications.extend(team_notifications[:3 - len(notifications)])
+            except Exception as e:
+                logger.error(f"Error getting team highlights: {str(e)}")
+        
+        # 7. Check for captain messages
+        if len(notifications) < 3:
+            try:
+                captain_notifications = get_captain_messages(user_id, player_id, league_id, team_id)
+                notifications.extend(captain_notifications[:3 - len(notifications)])
+            except Exception as e:
+                logger.error(f"Error getting captain messages: {str(e)}")
+        
+        # Sort by priority and limit to 3
+        notifications.sort(key=lambda x: x["priority"])
+        notifications = notifications[:3]
+        
+        # Ensure there are always notifications by adding fallbacks if needed
+        try:
+            if len(notifications) == 0:
+                notifications = get_fallback_notifications(user_id, player_id, league_id, team_id)
+            elif len(notifications) < 2:
+                # Add some fallback notifications to ensure we have at least 2
+                fallbacks = get_fallback_notifications(user_id, player_id, league_id, team_id)
+                # Add fallbacks that don't duplicate existing ones
+                existing_ids = {n["id"] for n in notifications}
+                for fallback in fallbacks:
+                    if fallback["id"] not in existing_ids and len(notifications) < 3:
+                        notifications.append(fallback)
+        except Exception as e:
+            logger.error(f"Error getting fallback notifications: {str(e)}")
+            # Ultimate fallback
+            notifications = [
+                {
+                    "id": "rally_welcome",
+                    "type": "personal",
+                    "title": "Welcome to Rally!",
+                    "message": "Explore your stats, team performance, and stay connected with your teammates.",
+                    "cta": {"label": "Get Started", "href": "/mobile/analyze-me"},
+                    "priority": 1
+                }
+            ]
+        
+        # Final safety check - ensure we always have notifications
+        if not notifications:
+            logger.warning("No notifications generated, using ultimate fallback")
+            notifications = [
+                {
+                    "id": "rally_welcome",
+                    "type": "personal",
+                    "title": "Welcome to Rally!",
+                    "message": "Explore your stats, team performance, and stay connected with your teammates.",
+                    "cta": {"label": "Get Started", "href": "/mobile/analyze-me"},
+                    "priority": 1
+                }
+            ]
+        
+        logger.info(f"Returning {len(notifications)} notifications for user {user_id}")
+        return jsonify({"notifications": notifications})
+        
+    except Exception as e:
+        logger.error(f"Error getting home notifications: {str(e)}")
+        # Return fallback notifications instead of error
+        fallback_notifications = [
+            {
+                "id": "rally_welcome",
+                "type": "personal",
+                "title": "Welcome to Rally!",
+                "message": "Explore your stats, team performance, and stay connected with your teammates.",
+                "cta": {"label": "Get Started", "href": "/mobile/analyze-me"},
+                "priority": 1
+            }
+        ]
+        return jsonify({"notifications": fallback_notifications})
+
+
+def get_urgent_match_notifications(user_id, player_id, league_id, team_id):
+    """Get urgent match-related notifications"""
+    notifications = []
+    
+    try:
+        # Check for tonight's match
+        tonight_query = """
+            SELECT 
+                match_date,
+                home_team,
+                away_team,
+                home_player_1_id,
+                home_player_2_id,
+                away_player_1_id,
+                away_player_2_id
+            FROM match_scores 
+            WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
+            AND league_id = %s
+            AND match_date = CURRENT_DATE
+            ORDER BY match_date DESC
+            LIMIT 1
+        """
+        
+        if league_id and player_id:
+            tonight_match = execute_query_one(tonight_query, [player_id, player_id, player_id, player_id, league_id])
+            
+            if tonight_match:
+                notifications.append({
+                    "id": f"tonight_match_{tonight_match['match_date']}",
+                    "type": "match",
+                    "title": "Tonight's Match",
+                    "message": f"You have a match tonight: {tonight_match['home_team']} vs {tonight_match['away_team']}",
+                    "cta": {"label": "View Details", "href": "/mobile/matches"},
+                    "priority": 1
+                })
+        
+        # Check for availability status
+        availability_query = """
+            SELECT 
+                match_date,
+                availability_status,
+                notes
+            FROM player_availability 
+            WHERE user_id = %s 
+            AND match_date >= CURRENT_DATE
+            ORDER BY match_date ASC
+            LIMIT 3
+        """
+        
+        availability_records = execute_query(availability_query, [user_id])
+        
+        for record in availability_records:
+            if record["availability_status"] == 3:  # Not sure
+                notifications.append({
+                    "id": f"availability_{record['match_date']}",
+                    "type": "match",
+                    "title": "Update Availability",
+                    "message": f"Please confirm your availability for {record['match_date'].strftime('%b %d')}",
+                    "cta": {"label": "Update Now", "href": "/mobile/availability-calendar"},
+                    "priority": 2
+                })
+                break
+        
+        # Check for latest team poll
+        poll_query = """
+            SELECT 
+                p.id,
+                p.question,
+                p.created_at,
+                u.first_name,
+                u.last_name
+            FROM polls p
+            JOIN users u ON p.created_by = u.id
+            WHERE p.team_id = %s
+            ORDER BY p.created_at DESC
+            LIMIT 1
+        """
+        
+        if team_id:
+            latest_poll = execute_query_one(poll_query, [team_id])
+            
+            if latest_poll:
+                captain_name = f"{latest_poll['first_name']} {latest_poll['last_name']}"
+                poll_age = datetime.now() - latest_poll['created_at']
+                
+                if poll_age.days == 0:
+                    time_text = "today"
+                elif poll_age.days == 1:
+                    time_text = "yesterday"
+                else:
+                    time_text = f"{poll_age.days} days ago"
+                
+                notifications.append({
+                    "id": f"poll_{latest_poll['id']}",
+                    "type": "captain",
+                    "title": "Latest Team Poll",
+                    "message": f"{captain_name} asked: {latest_poll['question'][:40]}... ({time_text})",
+                    "cta": {"label": "Respond Now", "href": f"/mobile/polls/{latest_poll['id']}"},
+                    "priority": 2
+                })
+            
+    except Exception as e:
+        logger.error(f"Error getting urgent notifications: {str(e)}")
+    
+    return notifications
+
+
+def get_recent_match_results(user_id, player_id, league_id, team_id):
+    """Get recent match result notifications - both personal and team results"""
+    notifications = []
+    
+    try:
+        if not player_id or not league_id:
+            return notifications
+            
+        # Get most recent match with detailed information
+        results_query = """
+            SELECT 
+                match_date,
+                home_team,
+                away_team,
+                winner,
+                scores,
+                home_player_1_id,
+                home_player_2_id,
+                away_player_1_id,
+                away_player_2_id,
+                CASE 
+                    WHEN home_player_1_id = %s OR home_player_2_id = %s THEN home_team
+                    ELSE away_team
+                END as player_team,
+                CASE 
+                    WHEN home_player_1_id = %s OR home_player_2_id = %s THEN 'home'
+                    ELSE 'away'
+                END as player_side
+            FROM match_scores 
+            WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
+            AND league_id = %s
+            ORDER BY match_date DESC
+            LIMIT 1
+        """
+        
+        recent_match = execute_query_one(results_query, [player_id, player_id, player_id, player_id, player_id, player_id, player_id, player_id, league_id])
+        
+        if recent_match:
+            is_winner = recent_match["winner"] == recent_match["player_team"]
+            result_text = "won" if is_winner else "lost"
+            match_date_str = recent_match["match_date"].strftime("%b %d")
+            
+            # Determine opponent team
+            if recent_match["player_side"] == "home":
+                opponent_team = recent_match["away_team"]
+            else:
+                opponent_team = recent_match["home_team"]
+            
+            # 1. Personal match result notification - FIXED: Show opponent instead of player's team
+            notifications.append({
+                "id": f"personal_result_{recent_match['match_date']}",
+                "type": "personal",
+                "title": f"Your Last Match - {result_text.title()}",
+                "message": f"On {match_date_str}, you {result_text} playing against {opponent_team}",
+                "cta": {"label": "View Your Stats", "href": "/mobile/analyze-me"},
+                "priority": 3
+            })
+            
+            # 2. Team match result notification
+            notifications.append({
+                "id": f"team_result_{recent_match['match_date']}",
+                "type": "team",
+                "title": f"Team {result_text.title()}",
+                "message": f"{recent_match['home_team']} vs {recent_match['away_team']} - {recent_match['winner']} took the win",
+                "cta": {"label": "View Team Stats", "href": "/mobile/myteam"},
+                "priority": 3
+            })
+            
+    except Exception as e:
+        logger.error(f"Error getting recent results: {str(e)}")
+    
+    return notifications
+
+
+def get_personal_performance_highlights(user_id, player_id, league_id, team_id):
+    """Get personal performance highlight notifications"""
+    notifications = []
+    
+    try:
+        if not player_id or not league_id:
+            return notifications
+            
+        # Check for win/loss streaks - FIXED: Proper streak calculation
+        streak_query = """
+            WITH match_results AS (
+                SELECT 
+                    match_date,
+                    CASE 
+                        WHEN home_player_1_id = %s OR home_player_2_id = %s THEN 
+                            CASE WHEN winner = home_team THEN 'W' ELSE 'L' END
+                        ELSE 
+                            CASE WHEN winner = away_team THEN 'W' ELSE 'L' END
+                    END as result
+                FROM match_scores 
+                WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
+                AND league_id = %s
+                ORDER BY match_date DESC
+            ),
+            streak_groups AS (
+                SELECT 
+                    result,
+                    match_date,
+                    ROW_NUMBER() OVER (ORDER BY match_date DESC) as rn,
+                    ROW_NUMBER() OVER (PARTITION BY result ORDER BY match_date DESC) as streak_rn,
+                    ROW_NUMBER() OVER (ORDER BY match_date DESC) - 
+                    ROW_NUMBER() OVER (PARTITION BY result ORDER BY match_date DESC) as streak_group
+                FROM match_results
+            ),
+            current_streak AS (
+                SELECT 
+                    result,
+                    COUNT(*) as streak_length
+                FROM streak_groups 
+                WHERE streak_group = 0  -- Current streak (most recent consecutive matches)
+                GROUP BY result
+                ORDER BY streak_length DESC
+                LIMIT 1
+            )
+            SELECT * FROM current_streak
+        """
+        
+        streak_result = execute_query_one(streak_query, [player_id, player_id, player_id, player_id, player_id, player_id, league_id])
+        
+        if streak_result and streak_result["streak_length"] >= 3:
+            streak_type = "win" if streak_result["result"] == "W" else "loss"
+            notifications.append({
+                "id": f"streak_{streak_type}",
+                "type": "personal",
+                "title": f"{streak_result['streak_length']}-Match {streak_type.title()} Streak",
+                "message": f"You're on a {streak_result['streak_length']}-match {streak_type} streak!",
+                "cta": {"label": "View Stats", "href": "/mobile/analyze-me"},
+                "priority": 4
+            })
+            
+        # Check for PTI changes since last match
+        pti_query = """
+            WITH player_current_pti AS (
+                SELECT p.pti as current_pti, p.updated_at
+                FROM players p
+                WHERE p.tenniscores_player_id = %s
+                AND p.league_id = %s
+            ),
+            player_last_match AS (
+                SELECT match_date
+                FROM match_scores 
+                WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
+                AND league_id = %s
+                ORDER BY match_date DESC
+                LIMIT 1
+            ),
+            player_pti_before_match AS (
+                SELECT ph.end_pti as previous_pti
+                FROM player_history ph
+                JOIN players p ON ph.player_id = p.id
+                WHERE p.tenniscores_player_id = %s
+                AND ph.league_id = %s
+                AND ph.date <= (SELECT match_date FROM player_last_match)
+                ORDER BY ph.date DESC
+                LIMIT 1
+            )
+            SELECT 
+                pcp.current_pti,
+                pcp.updated_at,
+                lmm.match_date as last_match_date,
+                ppbm.previous_pti
+            FROM player_current_pti pcp
+            LEFT JOIN player_last_match lmm ON TRUE
+            LEFT JOIN player_pti_before_match ppbm ON TRUE
+            WHERE pcp.current_pti IS NOT NULL
+            AND ppbm.previous_pti IS NOT NULL
+            AND ABS(pcp.current_pti - ppbm.previous_pti) >= 5
+        """
+        
+        pti_result = execute_query_one(pti_query, [player_id, league_id, player_id, player_id, player_id, player_id, league_id, player_id, league_id])
+        
+        if pti_result and pti_result["current_pti"] and pti_result["previous_pti"]:
+            pti_change = pti_result["current_pti"] - pti_result["previous_pti"]
+            change_direction = "increased" if pti_change > 0 else "decreased"
+            change_emoji = "📈" if pti_change > 0 else "📉"
+            notifications.append({
+                "id": f"pti_change",
+                "type": "personal",
+                "title": f"{change_emoji} PTI Rating Update",
+                "message": f"Your rating {change_direction} by {abs(pti_change)} points since your last match",
+                "cta": {"label": "View Your Progress", "href": "/mobile/analyze-me"},
+                "priority": 4
+            })
+            
+    except Exception as e:
+        logger.error(f"Error getting personal highlights: {str(e)}")
+    
+    return notifications
+
+
+def get_team_performance_highlights(user_id, player_id, league_id, team_id):
+    """Get team performance highlight notifications"""
+    notifications = []
+    
+    try:
+        if not team_id or not league_id:
+            return notifications
+            
+        # Check team standings
+        standings_query = """
+            SELECT 
+                team_name,
+                wins,
+                losses,
+                position,
+                total_matches
+            FROM series_stats 
+            WHERE team_id = %s 
+            AND league_id = %s
+            ORDER BY updated_at DESC
+            LIMIT 1
+        """
+        
+        team_stats = execute_query_one(standings_query, [team_id, league_id])
+        
+        if team_stats:
+            # Check if team is in playoff position (top 4)
+            if team_stats["position"] <= 4 and team_stats["total_matches"] >= 5:
+                notifications.append({
+                    "id": f"playoff_position",
+                    "type": "team",
+                    "title": "Playoff Position",
+                    "message": f"Your team is in {team_stats['position']}rd place - playoff bound!",
+                    "cta": {"label": "View Standings", "href": "/mobile/my-series"},
+                    "priority": 5
+                })
+            # Check for recent team success
+            elif team_stats["wins"] >= 3 and team_stats["losses"] <= 1:
+                notifications.append({
+                    "id": f"team_success",
+                    "type": "team",
+                    "title": "Team Success",
+                    "message": f"Your team is {team_stats['wins']}-{team_stats['losses']} this season!",
+                    "cta": {"label": "View Team", "href": "/mobile/myteam"},
+                    "priority": 5
+                })
+            
+    except Exception as e:
+        logger.error(f"Error getting team highlights: {str(e)}")
+    
+    return notifications
+
+
+def get_fallback_notifications(user_id, player_id, league_id, team_id):
+    """Provide fallback notifications when no specific notifications are available"""
+    notifications = []
+    
+    try:
+        # Get user info for personalized fallbacks
+        user_query = """
+            SELECT first_name, last_name
+            FROM users 
+            WHERE id = %s
+        """
+        user_info = execute_query_one(user_query, [user_id])
+        
+        # Always provide fallback notifications regardless of user data
+        first_name = user_info.get("first_name", "Player") if user_info else "Player"
+        
+        # Fallback notifications that are always relevant
+        fallback_notifications = [
+            {
+                "id": "welcome_back",
+                "type": "personal",
+                "title": f"Welcome back, {first_name}!",
+                "message": f"Ready to dominate the court today? Check your stats and see how you're performing.",
+                "cta": {"label": "View My Stats", "href": "/mobile/analyze-me"},
+                "priority": 1
+            },
+            {
+                "id": "team_overview",
+                "type": "team",
+                "title": "Team Overview",
+                "message": "Your team is ready for action. Check the latest standings and team performance.",
+                "cta": {"label": "View Team", "href": "/mobile/myteam"},
+                "priority": 2
+            },
+            {
+                "id": "stay_connected",
+                "type": "captain",
+                "title": "Stay Connected",
+                "message": "Keep up with your team! Check for polls, messages, and updates from your captain.",
+                "cta": {"label": "View Polls", "href": "/mobile/polls"},
+                "priority": 3
+            }
+        ]
+        
+        notifications = fallback_notifications
+            
+    except Exception as e:
+        logger.error(f"Error getting fallback notifications: {str(e)}")
+        
+        # Ultimate fallback if everything fails
+        notifications = [
+            {
+                "id": "rally_highlights",
+                "type": "personal",
+                "title": "Rally Highlights",
+                "message": "Welcome to Rally! Explore your stats, team performance, and stay connected with your teammates.",
+                "cta": {"label": "Get Started", "href": "/mobile/analyze-me"},
+                "priority": 1
+            }
+        ]
+    
+    return notifications
+
+
+def get_team_poll_notifications(user_id, player_id, league_id, team_id):
+    """Get team poll notifications - most recent poll for user's team"""
+    notifications = []
+    
+    try:
+        if not team_id:
+            return notifications
+            
+        # Get the most recent poll for the user's team
+        poll_query = """
+            SELECT 
+                p.id,
+                p.question,
+                p.created_at,
+                p.created_by,
+                u.first_name as creator_first_name,
+                u.last_name as creator_last_name,
+                COUNT(DISTINCT pr.player_id) as response_count
+            FROM polls p
+            LEFT JOIN users u ON p.created_by = u.id
+            LEFT JOIN poll_responses pr ON p.id = pr.poll_id
+            WHERE p.team_id = %s
+            GROUP BY p.id, p.question, p.created_at, p.created_by, u.first_name, u.last_name
+            ORDER BY p.created_at DESC
+            LIMIT 1
+        """
+        
+        recent_poll = execute_query_one(poll_query, [team_id])
+        
+        if recent_poll:
+            # Format the creation date
+            created_date = recent_poll["created_at"]
+            if hasattr(created_date, 'date'):
+                created_date = created_date.date()
+            
+            today = datetime.now().date()
+            if created_date == today:
+                date_display = "Today"
+            elif created_date == today - timedelta(days=1):
+                date_display = "Yesterday"
+            else:
+                date_display = created_date.strftime("%b %d")
+            
+            creator_name = f"{recent_poll['creator_first_name']} {recent_poll['creator_last_name']}"
+            
+            notifications.append({
+                "id": f"team_poll_{recent_poll['id']}",
+                "type": "team",
+                "title": "🗳️ Team Poll",
+                "message": f"{recent_poll['question']} - {date_display} by {creator_name}",
+                "cta": {"label": "Vote Now", "href": f"/mobile/polls/{recent_poll['id']}"},
+                "priority": 3
+            })
+            
+    except Exception as e:
+        logger.error(f"Error getting team poll notifications: {str(e)}")
+    
+    return notifications
+
+
+def get_captain_messages(user_id, player_id, league_id, team_id):
+    """Get captain message notifications"""
+    notifications = []
+    
+    try:
+        # For now, include a sample captain message
+        # In the future, this could be replaced with actual captain messages from a database table
+        
+        # Sample captain message - you can customize this or make it dynamic
+        sample_messages = [
+            {
+                "title": "🏆 Captain's Message",
+                "message": "Great work in practice this week! Let's keep the momentum going into our next match.",
+                "priority": 2
+            },
+            {
+                "title": "📢 Team Update",
+                "message": "New practice schedule posted. Check the team calendar for updated times.",
+                "priority": 2
+            },
+            {
+                "title": "🎯 Match Strategy",
+                "message": "Focus on strong serves and aggressive net play in our upcoming match.",
+                "priority": 2
+            }
+        ]
+        
+        # For now, show a sample message (in production, this would be from database)
+        if sample_messages:
+            sample_msg = sample_messages[0]  # Show first sample message
+            notifications.append({
+                "id": "captain_message_sample",
+                "type": "captain",
+                "title": sample_msg["title"],
+                "message": sample_msg["message"],
+                "cta": {"label": "View Team Chat", "href": "/mobile/polls"},
+                "priority": sample_msg["priority"]
+            })
+            
+    except Exception as e:
+        logger.error(f"Error getting captain messages: {str(e)}")
+    
+    return notifications
+
+
+def get_pickup_games_notifications(user_id, player_id, league_id, team_id):
+    """Get pickup games notifications for games where user meets criteria"""
+    notifications = []
+    
+    try:
+        # Get user's PTI and series information
+        user_info_query = """
+            SELECT 
+                p.pti as user_pti,
+                p.series_id as user_series_id,
+                s.name as user_series_name,
+                c.name as user_club_name
+            FROM players p
+            LEFT JOIN series s ON p.series_id = s.id
+            LEFT JOIN clubs c ON p.club_id = c.id
+            WHERE p.tenniscores_player_id = %s
+            ORDER BY p.id DESC
+            LIMIT 1
+        """
+        
+        user_info = execute_query_one(user_info_query, [player_id])
+        
+        if not user_info or not user_info.get("user_pti"):
+            return notifications
+        
+        user_pti = user_info["user_pti"]
+        user_series_id = user_info["user_series_id"]
+        user_club_name = user_info["user_club_name"]
+        
+        # Get current date/time for determining upcoming games
+        now = datetime.now()
+        current_date = now.date()
+        current_time = now.time()
+        
+        # Find pickup games where user meets criteria
+        pickup_games_query = """
+            SELECT 
+                pg.id,
+                pg.description,
+                pg.game_date,
+                pg.game_time,
+                pg.players_requested,
+                pg.pti_low,
+                pg.pti_high,
+                pg.series_low,
+                pg.series_high,
+                pg.club_only,
+                COUNT(pgp.id) as current_participants
+            FROM pickup_games pg
+            LEFT JOIN pickup_game_participants pgp ON pg.id = pgp.pickup_game_id
+            WHERE (pg.game_date > %s) OR (pg.game_date = %s AND pg.game_time > %s)
+            AND pg.pti_low <= %s AND pg.pti_high >= %s
+            AND (
+                (pg.series_low IS NULL AND pg.series_high IS NULL) OR
+                (pg.series_low IS NOT NULL AND pg.series_low <= %s) OR
+                (pg.series_high IS NOT NULL AND pg.series_high >= %s) OR
+                (pg.series_low IS NOT NULL AND pg.series_high IS NOT NULL AND pg.series_low <= %s AND pg.series_high >= %s)
+            )
+            AND (
+                pg.club_only = false OR 
+                (pg.club_only = true AND EXISTS (
+                    SELECT 1 FROM players p2 
+                    WHERE p2.tenniscores_player_id = %s 
+                    AND p2.club_id = (
+                        SELECT club_id FROM players WHERE tenniscores_player_id = %s LIMIT 1
+                    )
+                ))
+            )
+            AND NOT EXISTS (
+                SELECT 1 FROM pickup_game_participants pgp2 
+                WHERE pgp2.pickup_game_id = pg.id AND pgp2.user_id = %s
+            )
+            GROUP BY pg.id
+            HAVING COUNT(pgp.id) < pg.players_requested
+            ORDER BY pg.game_date ASC, pg.game_time ASC
+            LIMIT 3
+        """
+        
+        matching_games = execute_query(pickup_games_query, [
+            current_date, current_date, current_time,
+            user_pti, user_pti,
+            user_series_id, user_series_id, user_series_id, user_series_id,
+            player_id, player_id,
+            user_id
+        ])
+        
+        for game in matching_games:
+            # Format game date and time
+            game_date = game["game_date"]
+            game_time = game["game_time"]
+            
+            # Format date for display
+            if game_date == current_date:
+                date_display = "Today"
+            elif game_date == current_date + timedelta(days=1):
+                date_display = "Tomorrow"
+            else:
+                date_display = game_date.strftime("%A, %b %d")
+            
+            # Format time for display
+            time_display = game_time.strftime("%I:%M %p").lstrip('0')
+            
+            # Calculate available slots
+            available_slots = game["players_requested"] - game["current_participants"]
+            
+            # Create notification
+            notifications.append({
+                "id": f"pickup_game_{game['id']}",
+                "type": "match",
+                "title": "🎾 Pickup Game Available",
+                "message": f"{game['description']} - {date_display} at {time_display} ({available_slots} spots left)",
+                "cta": {"label": "Join Game", "href": "/mobile/pickup-games"},
+                "priority": 3
+            })
+            
+    except Exception as e:
+        logger.error(f"Error getting pickup games notifications: {str(e)}")
+    
+    return notifications
