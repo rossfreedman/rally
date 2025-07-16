@@ -6713,7 +6713,7 @@ def get_team_poll_notifications(user_id, player_id, league_id, team_id):
             notifications.append({
                 "id": f"team_poll_{recent_poll['id']}",
                 "type": "team",
-                "title": "🗳️ Team Poll",
+                "title": "Team Poll",
                 "message": f"{recent_poll['question']} - {date_display} by {creator_name}",
                 "cta": {"label": "Vote Now", "href": f"/mobile/polls/{recent_poll['id']}"},
                 "priority": 3
@@ -6831,7 +6831,7 @@ def get_captain_messages(user_id, player_id, league_id, team_id):
             notifications.append({
                 "id": f"captain_message_{captain_message['id']}",
                 "type": "captain",
-                "title": "🏆 Captain's Message",
+                "title": "Captain's Message",
                 "message": f"{captain_name}: {captain_message['message'][:60]}{'...' if len(captain_message['message']) > 60 else ''} ({time_text})",
                 "priority": 2
             })
@@ -6951,7 +6951,7 @@ def get_pickup_games_notifications(user_id, player_id, league_id, team_id):
             notifications.append({
                 "id": f"pickup_game_{game['id']}",
                 "type": "match",
-                "title": "🎾 Pickup Game Available",
+                "title": "Pickup Game Available",
                 "message": f"{game['description']} - {date_display} at {time_display} ({available_slots} spots left)",
                 "cta": {"label": "Join Game", "href": "/mobile/pickup-games"},
                 "priority": 3
