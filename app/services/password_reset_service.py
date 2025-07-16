@@ -13,7 +13,7 @@ from typing import Dict, Optional
 
 from app.models.database_models import SessionLocal, User
 from app.services.notifications_service import send_sms_notification
-from database_utils import execute_query_one, execute_update
+from database_utils import execute_query_one, execute_update, execute_query
 from utils.logging import log_user_activity
 
 logger = logging.getLogger(__name__)
@@ -23,64 +23,109 @@ RATE_LIMIT_ATTEMPTS = 3  # Max attempts per email per time window
 RATE_LIMIT_WINDOW = 300  # 5 minutes in seconds
 
 
-def send_password_via_sms(email: str) -> Dict[str, any]:
+def send_password_via_sms(phone: str, email: str = None) -> dict:
     """
     Send user's password via SMS to their registered phone number
-    
     Args:
-        email (str): User's email address
-        
+        phone (str): User's phone number
+        email (str, optional): User's email address (for disambiguation when multiple users have same phone)
     Returns:
         Dict: Result with success status and message/error
     """
     try:
-        # Normalize email
-        email = email.strip().lower()
+        # Normalize phone number
+        phone = phone.strip()
         
         # Check rate limiting first
-        if not _check_rate_limit(email):
-            logger.warning(f"Rate limit exceeded for password reset: {email}")
+        if not _check_rate_limit(phone):
+            logger.warning(f"Rate limit exceeded for password reset: {phone}")
             return {
                 "success": False,
                 "error": "Too many password reset attempts. Please try again in 5 minutes."
             }
         
-        # Find user by email
-        user = _find_user_by_email(email)
-        if not user:
-            # Log the attempt but don't reveal if email exists
-            logger.warning(f"Password reset attempted for non-existent email: {email}")
-            _log_password_reset_attempt(email, success=False, reason="user_not_found")
-            
-            # Return generic message for security
+        # Find all users with this phone number (using flexible matching)
+        # Use the same logic as _find_user_by_phone, but return all matches
+        normalized_phone = ''.join(filter(str.isdigit, phone))
+        if normalized_phone.startswith('1') and len(normalized_phone) == 11:
+            normalized_phone = normalized_phone[1:]
+        phone_variations = [
+            normalized_phone,
+            f"+1{normalized_phone}",
+            f"+{normalized_phone}",
+            f"1{normalized_phone}",
+        ]
+        all_matches = []
+        for phone_variation in phone_variations:
+            query = """
+                SELECT id, email, first_name, last_name, phone_number
+                FROM users
+                WHERE phone_number = %s
+            """
+            users = execute_query(query, [phone_variation])
+            if users:
+                for user in users:
+                    if not any(match['id'] == user['id'] for match in all_matches):
+                        all_matches.append(user)
+        # Also try partial match if no exact
+        if not all_matches:
+            partial_query = """
+                SELECT id, email, first_name, last_name, phone_number
+                FROM users
+                WHERE REPLACE(REPLACE(REPLACE(phone_number, '+', ''), '-', ''), ' ', '') LIKE %s
+            """
+            partial_phone = f"%{normalized_phone}%"
+            partial_users = execute_query(partial_query, [partial_phone])
+            if partial_users:
+                for user in partial_users:
+                    if not any(match['id'] == user['id'] for match in all_matches):
+                        all_matches.append(user)
+        
+        # No matches
+        if not all_matches:
+            logger.warning(f"Password reset attempted for non-existent phone: {phone}")
+            _log_password_reset_attempt(phone, success=False, reason="user_not_found")
             return {
                 "success": False,
-                "error": "If this email is registered, you will receive a text with your password."
+                "error": "If this phone number is registered, you will receive a text with your password."
             }
         
-        # Check if user has a phone number
-        if not user.get("phone_number"):
-            logger.warning(f"Password reset attempted for user without phone: {email}")
-            _log_password_reset_attempt(email, success=False, reason="no_phone")
-            return {
-                "success": False,
-                "error": "No phone number on file. Please contact support to update your profile."
-            }
+        # One match: proceed without requiring email
+        if len(all_matches) == 1:
+            user = all_matches[0]
+        else:
+            # Multiple matches: require email for disambiguation
+            if not email:
+                logger.warning(f"Multiple users found for phone {phone}, but no email provided.")
+                return {
+                    "success": False,
+                    "error": "multiple_users_found",
+                    "message": "Multiple accounts found with this phone number. Please enter your email address to continue."
+                }
+            
+            # Try to find user with both phone and email
+            user = next((u for u in all_matches if u['email'].lower() == email.strip().lower()), None)
+            if not user:
+                logger.warning(f"No user found for phone {phone} and email {email}")
+                return {
+                    "success": False,
+                    "error": "No account found matching that phone number and email."
+                }
         
         # Get the user's actual password
         # Note: In a production environment, you'd typically send a reset token instead
         # But the user specifically requested sending the actual password
         password = _get_user_password(user["id"])
         if not password:
-            logger.error(f"Could not retrieve password for user {email}")
-            _log_password_reset_attempt(email, success=False, reason="password_error")
+            logger.error(f"Could not retrieve password for user {phone}")
+            _log_password_reset_attempt(phone, success=False, reason="password_error")
             return {
                 "success": False,
                 "error": "Unable to retrieve password. Please contact support."
             }
         
-        # Create SMS message
-        message = f"🔐 Rally Password Reset\n\nYour temporary password is: {password}\n\nPlease log in and change this password immediately for security.\n\nAfter you login, you can change your password in your profile (bottom right corner in the app).\n\n- Rally Team"
+        # Create SMS message with link back to Rally
+        message = f"🔐 Rally Password Reset\n\nYour temporary password is: {password}\n\nPlease log in and change this password immediately for security.\n\nAfter you login, you can change your password in your profile (bottom right corner in the app).\n\nLogin: https://www.lovetorally.com/login\n\n- Rally Team"
         
         # Send SMS using existing notification service
         sms_result = send_sms_notification(
@@ -90,47 +135,120 @@ def send_password_via_sms(email: str) -> Dict[str, any]:
         )
         
         if sms_result["success"]:
-            logger.info(f"Password reset SMS sent successfully to {email}")
-            _log_password_reset_attempt(email, success=True, reason="sms_sent")
-            _record_rate_limit_attempt(email)
+            logger.info(f"Password reset SMS sent successfully to {phone}")
+            _log_password_reset_attempt(phone, success=True, reason="sms_sent")
+            _record_rate_limit_attempt(phone)
             
             return {
                 "success": True,
                 "message": f"Password sent to your phone ending in {user['phone_number'][-4:]}!"
             }
         else:
-            logger.error(f"Failed to send password reset SMS to {email}: {sms_result.get('error')}")
-            _log_password_reset_attempt(email, success=False, reason="sms_failed")
+            logger.error(f"Failed to send password reset SMS to {phone}: {sms_result.get('error')}")
+            _log_password_reset_attempt(phone, success=False, reason="sms_failed")
             return {
                 "success": False,
                 "error": "Failed to send text message. Please try again or contact support."
             }
     
     except Exception as e:
-        logger.error(f"Error in password reset for {email}: {str(e)}")
-        _log_password_reset_attempt(email, success=False, reason="system_error")
+        logger.error(f"Error in password reset for {phone}: {str(e)}")
+        _log_password_reset_attempt(phone, success=False, reason="system_error")
         return {
             "success": False,
             "error": "An error occurred. Please try again later."
         }
 
 
-def _find_user_by_email(email: str) -> Optional[Dict]:
-    """Find user by email address"""
+def _find_user_by_phone(phone: str) -> Optional[Dict]:
+    """Find user by phone number with flexible matching"""
     try:
-        query = """
-            SELECT 
-                id,
-                email,
-                first_name,
-                last_name,
-                phone_number
-            FROM users 
-            WHERE email = %s
+        # First check if phone_number column exists
+        column_check_query = """
+            SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_name = 'users' 
+            AND column_name = 'phone_number'
         """
-        return execute_query_one(query, [email])
+        column_exists = execute_query_one(column_check_query)
+        
+        if not column_exists:
+            logger.error("phone_number column does not exist in users table")
+            return None
+        
+        # Normalize phone number (remove +1, spaces, dashes, etc.)
+        normalized_phone = ''.join(filter(str.isdigit, phone))
+        if normalized_phone.startswith('1') and len(normalized_phone) == 11:
+            normalized_phone = normalized_phone[1:]  # Remove leading 1
+        
+        logger.info(f"Looking up user by normalized phone: {normalized_phone}")
+        
+        # Try multiple phone number formats and collect all matches
+        phone_variations = [
+            normalized_phone,                    # 7732138911
+            f"+1{normalized_phone}",            # +17732138911
+            f"+{normalized_phone}",             # +7732138911
+            f"1{normalized_phone}",             # 17732138911
+        ]
+        
+        all_matches = []
+        
+        for phone_variation in phone_variations:
+            query = """
+                SELECT 
+                    id,
+                    email,
+                    first_name,
+                    last_name,
+                    phone_number
+                FROM users 
+                WHERE phone_number = %s
+            """
+            users = execute_query(query, [phone_variation])
+            
+            if users:
+                for user in users:
+                    # Avoid duplicates
+                    if not any(match['id'] == user['id'] for match in all_matches):
+                        all_matches.append(user)
+                        logger.info(f"Found user by phone variation '{phone_variation}': {user['email']}")
+        
+        # If no exact matches, try partial match
+        if not all_matches:
+            partial_query = """
+                SELECT 
+                    id,
+                    email,
+                    first_name,
+                    last_name,
+                    phone_number
+                FROM users 
+                WHERE REPLACE(REPLACE(REPLACE(phone_number, '+', ''), '-', ''), ' ', '') LIKE %s
+            """
+            partial_phone = f"%{normalized_phone}%"
+            partial_users = execute_query(partial_query, [partial_phone])
+            
+            if partial_users:
+                for user in partial_users:
+                    if not any(match['id'] == user['id'] for match in all_matches):
+                        all_matches.append(user)
+                        logger.info(f"Found user by partial phone match: {user['email']}")
+        
+        # Handle multiple matches
+        if len(all_matches) == 0:
+            logger.warning(f"No user found for phone number: {phone} (normalized: {normalized_phone})")
+            return None
+        elif len(all_matches) == 1:
+            logger.info(f"Single user found: {all_matches[0]['email']}")
+            return all_matches[0]
+        else:
+            # Multiple users found - log all matches and return the first one
+            logger.warning(f"Multiple users found for phone {phone}: {[u['email'] for u in all_matches]}")
+            logger.info(f"Returning first match: {all_matches[0]['email']}")
+            return all_matches[0]
+        
     except Exception as e:
-        logger.error(f"Error finding user by email {email}: {str(e)}")
+        logger.error(f"Error finding user by phone {phone}: {str(e)}")
         return None
 
 
@@ -151,20 +269,23 @@ def _get_user_password(user_id: int) -> Optional[str]:
         # Hash the temporary password using pbkdf2:sha256 method (compatible with most environments)
         password_hash = generate_password_hash(temp_password, method='pbkdf2:sha256')
         
-        # Update user's password in database
+        # Update user's password in database and set temporary password flag
         update_query = """
             UPDATE users 
-            SET password_hash = %s 
+            SET password_hash = %s, 
+                has_temporary_password = TRUE,
+                temporary_password_set_at = NOW()
             WHERE id = %s
         """
         
+        logger.info(f"Attempting to update password for user {user_id}")
         result = execute_update(update_query, [password_hash, user_id])
         
         if result:
-            logger.info(f"Temporary password generated and set for user {user_id}")
+            logger.info(f"Temporary password generated and set for user {user_id} - {result} rows affected")
             return temp_password
         else:
-            logger.error(f"Failed to update password for user {user_id}")
+            logger.error(f"Failed to update password for user {user_id} - no rows affected")
             return None
         
     except Exception as e:
@@ -172,8 +293,8 @@ def _get_user_password(user_id: int) -> Optional[str]:
         return None
 
 
-def _check_rate_limit(email: str) -> bool:
-    """Check if email is within rate limit for password reset attempts"""
+def _check_rate_limit(phone: str) -> bool:
+    """Check if phone is within rate limit for password reset attempts"""
     try:
         # Check recent attempts in the time window
         since_time = datetime.utcnow() - timedelta(seconds=RATE_LIMIT_WINDOW)
@@ -185,31 +306,31 @@ def _check_rate_limit(email: str) -> bool:
             AND activity_type = 'password_reset'
             AND timestamp > %s
         """
-        result = execute_query_one(query, [email, since_time])
+        result = execute_query_one(query, [phone, since_time])
         
         if result and result["attempt_count"] >= RATE_LIMIT_ATTEMPTS:
             return False
         
         return True
     except Exception as e:
-        logger.error(f"Error checking rate limit for {email}: {str(e)}")
+        logger.error(f"Error checking rate limit for {phone}: {str(e)}")
         # If we can't check rate limit, allow the attempt
         return True
 
 
-def _record_rate_limit_attempt(email: str):
+def _record_rate_limit_attempt(phone: str):
     """Record a password reset attempt for rate limiting"""
     try:
-        _log_password_reset_attempt(email, success=True, reason="rate_limit_record")
+        _log_password_reset_attempt(phone, success=True, reason="rate_limit_record")
     except Exception as e:
-        logger.error(f"Error recording rate limit attempt for {email}: {str(e)}")
+        logger.error(f"Error recording rate limit attempt for {phone}: {str(e)}")
 
 
-def _log_password_reset_attempt(email: str, success: bool, reason: str):
+def _log_password_reset_attempt(phone: str, success: bool, reason: str):
     """Log password reset attempt for security monitoring"""
     try:
         log_user_activity(
-            user_email=email,
+            user_email=phone,  # Using phone as identifier since we don't have email
             activity_type="password_reset",
             details={
                 "success": success,
@@ -219,7 +340,7 @@ def _log_password_reset_attempt(email: str, success: bool, reason: str):
             }
         )
     except Exception as e:
-        logger.error(f"Error logging password reset attempt for {email}: {str(e)}")
+        logger.error(f"Error logging password reset attempt for {phone}: {str(e)}")
 
 
 def _get_request_ip() -> str:

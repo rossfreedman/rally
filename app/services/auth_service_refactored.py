@@ -888,6 +888,17 @@ def authenticate_user(email: str, password: str) -> Dict[str, Any]:
         if not check_password_hash(user.password_hash, password):
             return {"success": False, "error": "Invalid email or password"}
         
+        # Check if user has a temporary password
+        has_temporary_password = getattr(user, 'has_temporary_password', False)
+        
+        # Debug logging
+        print(f"[AUTH_DEBUG] User object type: {type(user)}")
+        print(f"[AUTH_DEBUG] User object attributes: {dir(user)}")
+        print(f"[AUTH_DEBUG] has_temporary_password attribute exists: {hasattr(user, 'has_temporary_password')}")
+        print(f"[AUTH_DEBUG] has_temporary_password value: {has_temporary_password}")
+        print(f"[AUTH_DEBUG] User ID: {user.id}")
+        print(f"[AUTH_DEBUG] User email: {user.email}")
+        
         # Update last login
         user.last_login = func.now()
         db_session.commit()
@@ -966,19 +977,24 @@ def authenticate_user(email: str, password: str) -> Dict[str, Any]:
                 })
                 logger.warning(f"No player associations found for {email}")
         
+        # Add temporary password flag to session data
+        session_data["has_temporary_password"] = has_temporary_password
+        
         # Log user activity
         log_user_activity(email, "login", details={
             "login_success": True,
             "league_context": session_data.get("league_name"),
-            "player_id": session_data.get("tenniscores_player_id")
+            "player_id": session_data.get("tenniscores_player_id"),
+            "has_temporary_password": has_temporary_password
         })
         
-        logger.info(f"Login successful: {email} -> {session_data.get('league_name', 'No League')} (Player: {session_data.get('tenniscores_player_id', 'None')})")
+        logger.info(f"Login successful: {email} -> {session_data.get('league_name', 'No League')} (Player: {session_data.get('tenniscores_player_id', 'None')}) - Temporary password: {has_temporary_password}")
         
         return {
             "success": True,
             "message": "Login successful",
-            "user": session_data
+            "user": session_data,
+            "has_temporary_password": has_temporary_password
         }
         
     except Exception as e:

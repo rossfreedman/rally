@@ -49,6 +49,9 @@ from utils.logging import log_user_activity
 # Import route validation utilities
 from utils.route_validation import validate_routes_on_startup
 
+# Import temporary password middleware
+from app.middleware.temporary_password_middleware import TemporaryPasswordMiddleware
+
 # Run database migrations before starting the application (non-blocking)
 print("=== Running Database Migrations ===")
 try:
@@ -144,6 +147,10 @@ CORS(
 
 # Initialize SocketIO
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
+
+# Initialize temporary password middleware
+TemporaryPasswordMiddleware(app)
+print("✅ Temporary password middleware initialized - users with temporary passwords will be redirected to change password page")
 
 # Configure logging
 logging.basicConfig(
