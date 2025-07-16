@@ -568,7 +568,7 @@
                 const icon = item.querySelector('i');
                 
                 // Handle specific routing logic
-                if (currentPath === '/mobile' && itemPath === '/mobile') {
+                if ((currentPath === '/mobile' || currentPath === '/mobile/home_submenu') && itemPath === '/mobile') {
                     // Home page
                     item.classList.add('active');
                 } else if (currentPath === '/mobile/availability-calendar' && itemPath === '/mobile/availability-calendar') {
