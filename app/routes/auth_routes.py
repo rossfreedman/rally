@@ -17,6 +17,7 @@ from app.services.auth_service_refactored import (
     register_user,
 )
 from app.services.association_discovery_service import AssociationDiscoveryService
+from utils.logging import log_user_activity
 
 # Create Blueprint
 auth_bp = Blueprint("auth", __name__)
@@ -41,6 +42,25 @@ def register():
 def forgot_password():
     """Serve the forgot password page"""
     return render_template("forgot_password.html")
+
+
+@auth_bp.route("/change-password", methods=["GET"])
+def change_password():
+    """Serve the change password page for users with temporary passwords"""
+    # Allow access if user has temporary password (middleware will handle redirects)
+    # This prevents circular redirects between login and change-password
+    if "user" not in session:
+        return redirect("/login")
+    
+    # Check if user actually has a temporary password
+    user_data = session.get("user", {})
+    has_temporary_password = user_data.get("has_temporary_password", False)
+    
+    if not has_temporary_password:
+        # User doesn't have temporary password, redirect to welcome
+        return redirect("/welcome")
+    
+    return render_template("change_password.html")
 
 
 @auth_bp.route("/api/register", methods=["POST"])
@@ -287,19 +307,26 @@ def handle_login():
 
         # Get user data for response
         user_data = result["user"]
+        has_temporary_password = result.get("has_temporary_password", False)
         
         # Extract club and series for response
         club = user_data.get("club", "")
         series = user_data.get("series", "")
 
-        # Check for redirect_after_login in session
-        redirect_url = session.pop("redirect_after_login", "/welcome")
+        # Determine redirect URL based on temporary password status
+        if has_temporary_password:
+            redirect_url = "/change-password"
+            logger.info(f"User {user_data['email']} has temporary password, redirecting to change password page")
+        else:
+            # Check for redirect_after_login in session
+            redirect_url = session.pop("redirect_after_login", "/welcome")
 
         return jsonify(
             {
                 "status": "success",
                 "message": result["message"],
                 "redirect": redirect_url,
+                "has_temporary_password": has_temporary_password,
                 "user": {
                     "email": user_data["email"],
                     "first_name": user_data["first_name"],
@@ -337,38 +364,133 @@ def handle_forgot_password():
             logger.error("No JSON data received for password reset")
             return jsonify({"error": "No data received"}), 400
 
+        phone = data.get("phone", "").strip()
         email = data.get("email", "").strip().lower()
         
-        if not email:
-            logger.warning("Missing email in password reset request")
-            return jsonify({"error": "Email address is required"}), 400
+        if not phone:
+            logger.warning("Missing phone in password reset request")
+            return jsonify({"error": "Phone number is required"}), 400
 
-        logger.info(f"Password reset attempt for email: {email}")
+        logger.info(f"Password reset attempt for phone: {phone} (email: {email})")
 
         # Import password reset service
         from app.services.password_reset_service import send_password_via_sms
         
         # Attempt to send password via SMS
-        result = send_password_via_sms(email)
+        result = send_password_via_sms(phone, email)
         
         if result["success"]:
-            logger.info(f"Password reset successful for {email}")
+            logger.info(f"Password reset successful for {phone}")
             return jsonify({
                 "success": True,
                 "message": result["message"]
             })
         else:
-            logger.warning(f"Password reset failed for {email}: {result['error']}")
-            return jsonify({
-                "success": False,
-                "error": result["error"]
-            }), 400
+            logger.warning(f"Password reset failed for {phone}: {result['error']}")
+            
+            # Handle special case where multiple users found and email is needed
+            if result["error"] == "multiple_users_found":
+                return jsonify({
+                    "success": False,
+                    "error": "multiple_users_found",
+                    "message": result.get("message", "Multiple accounts found with this phone number. Please enter your email address to continue.")
+                }), 400
+            else:
+                return jsonify({
+                    "success": False,
+                    "error": result["error"]
+                }), 400
 
     except Exception as e:
         logger.error(f"Password reset endpoint error: {str(e)}")
         import traceback
         logger.error(f"Password reset traceback: {traceback.format_exc()}")
         return jsonify({"error": "Password reset failed - server error"}), 500
+
+
+@auth_bp.route("/api/change-password", methods=["POST"])
+def handle_change_password():
+    """Handle password change for users with temporary passwords"""
+    try:
+        if "user" not in session:
+            return jsonify({"error": "Not authenticated"}), 401
+        
+        # Check if user has temporary password
+        user_data = session.get("user", {})
+        has_temporary_password = user_data.get("has_temporary_password", False)
+        
+        if not has_temporary_password:
+            return jsonify({"error": "No temporary password detected"}), 400
+        
+        # Parse request data
+        try:
+            data = request.get_json()
+        except Exception as json_error:
+            logger.error(f"Failed to parse JSON in change password: {json_error}")
+            return jsonify({"error": "Invalid JSON data"}), 400
+
+        if not data:
+            return jsonify({"error": "No data received"}), 400
+
+        new_password = data.get("newPassword", "").strip()
+        confirm_password = data.get("confirmPassword", "").strip()
+        
+        if not new_password:
+            return jsonify({"error": "New password is required"}), 400
+        
+        if new_password != confirm_password:
+            return jsonify({"error": "Passwords do not match"}), 400
+        
+        if len(new_password) < 8:
+            return jsonify({"error": "Password must be at least 8 characters long"}), 400
+        
+        # Update user's password in database
+        from database_utils import execute_update
+        from werkzeug.security import generate_password_hash
+        
+        user_id = user_data.get("id")
+        password_hash = generate_password_hash(new_password, method='pbkdf2:sha256')
+        
+        # Update password and clear temporary password flag
+        update_query = """
+            UPDATE users 
+            SET password_hash = %s, 
+                has_temporary_password = FALSE,
+                temporary_password_set_at = NULL
+            WHERE id = %s
+        """
+        
+        rows_updated = execute_update(update_query, [password_hash, user_id])
+        
+        if rows_updated == 0:
+            return jsonify({"error": "Failed to update password"}), 500
+        
+        # Update session to remove temporary password flag
+        session["user"]["has_temporary_password"] = False
+        
+        # Log the password change
+        log_user_activity(
+            user_data["email"], 
+            "password_changed", 
+            details={
+                "from_temporary": True,
+                "user_id": user_id
+            }
+        )
+        
+        logger.info(f"Password changed successfully for user {user_data['email']}")
+        
+        return jsonify({
+            "success": True,
+            "message": "Password changed successfully",
+            "redirect": "/welcome"
+        })
+        
+    except Exception as e:
+        logger.error(f"Change password endpoint error: {str(e)}")
+        import traceback
+        logger.error(f"Change password traceback: {traceback.format_exc()}")
+        return jsonify({"error": "Password change failed - server error"}), 500
 
 
 @auth_bp.route("/api/logout", methods=["POST"])

@@ -69,6 +69,10 @@ class User(Base):
     # Context persistence - remembers which league user was last active in
     league_context = Column(Integer, ForeignKey('leagues.id'))  # Last active league
 
+    # Temporary password fields
+    has_temporary_password = Column(Boolean, default=False)
+    temporary_password_set_at = Column(DateTime(timezone=True))
+
     created_at = Column(DateTime(timezone=True), default=func.now())
     last_login = Column(DateTime(timezone=True))
 
@@ -1002,3 +1006,23 @@ class SavedLineup(Base):
 
     def __repr__(self):
         return f"<SavedLineup(id={self.id}, user_id={self.user_id}, team_id={self.team_id}, name='{self.lineup_name}')>"
+
+
+class CaptainMessage(Base):
+    """
+    Stores captain messages for teams. These messages will appear in the notifications feed for all team members.
+    """
+    __tablename__ = "captain_messages"
+
+    id = Column(Integer, primary_key=True)
+    team_id = Column(Integer, ForeignKey("teams.id"), nullable=False)
+    captain_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    message = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=func.now())
+
+    # Relationships
+    team = relationship("Team", backref="captain_messages")
+    captain = relationship("User")
+
+    def __repr__(self):
+        return f"<CaptainMessage(id={self.id}, team_id={self.team_id}, captain_user_id={self.captain_user_id})>"

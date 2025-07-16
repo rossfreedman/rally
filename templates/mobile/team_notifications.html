@@ -13,8 +13,8 @@
                 <i class="fas fa-bell text-white text-lg"></i>
             </div>
             <div class="ml-4">
-                <h1 class="text-xl font-bold text-gray-900">Team Notifications</h1>
-                <p class="text-sm text-gray-500">Send notifications to your team members</p>
+                <h1 class="text-xl font-bold text-gray-900">Captain Messages</h1>
+                <p class="text-sm text-gray-500">Create messages that appear in team notifications</p>
             </div>
         </div>
     </div>
@@ -66,7 +66,7 @@
             <div class="px-6 py-4 border-b border-gray-50">
                 <h2 class="text-lg font-semibold text-gray-900 flex items-center">
                     <i class="fas fa-edit text-purple-500 mr-2"></i>
-                    Custom Message
+                    Create Captain Message
                 </h2>
             </div>
             
@@ -75,13 +75,13 @@
                     <!-- Message Content -->
                     <div>
                         <label for="messageContent" class="block text-sm font-medium text-gray-700 mb-2">
-                            Message Content <span class="text-red-500">*</span>
+                            Captain Message <span class="text-red-500">*</span>
                         </label>
                         <textarea 
                             id="messageContent" 
                             name="messageContent"
                             rows="4"
-                            placeholder="Enter your custom message here..."
+                            placeholder="Enter your captain message here... This will appear in team notifications on the home page."
                             class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors resize-none"
                             required
                         ></textarea>
@@ -93,18 +93,7 @@
                         </div>
                     </div>
                     
-                    <!-- Test Mode Toggle -->
-                    <div class="flex items-center space-x-3">
-                        <input 
-                            type="checkbox" 
-                            id="testMode" 
-                            name="testMode"
-                            class="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
-                        >
-                        <label for="testMode" class="text-sm font-medium text-gray-700">
-                            Test Mode (validate only, don't actually send)
-                        </label>
-                    </div>
+
                     
                     <!-- Submit Button -->
                     <div class="flex space-x-3">
@@ -114,7 +103,7 @@
                             class="flex-1 bg-purple-600 text-white py-3 px-6 rounded-lg hover:bg-purple-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <i class="fas fa-paper-plane mr-2"></i>
-                            Send to Team
+                            Create Captain Message
                         </button>
                         <button 
                             type="button" 
@@ -138,14 +127,14 @@
             <div id="resultsContent"></div>
         </div>
         
-        <!-- Recent Notifications History -->
+        <!-- Recent Captain Messages History -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
             <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                 <i class="fas fa-history text-gray-500 mr-2"></i>
-                Recent Notifications
+                Recent Captain Messages
             </h3>
             <div id="notificationHistory" class="space-y-3">
-                <p class="text-gray-500 text-sm">Recent team notifications will appear here...</p>
+                <p class="text-gray-500 text-sm">Recent captain messages will appear here...</p>
             </div>
         </div>
     </div>
@@ -217,9 +206,9 @@ function displayTeamInfo(info) {
             
             <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
                 <div class="text-sm text-blue-800">
-                    <p class="font-medium mb-1">📱 SMS Recipients:</p>
-                    <p>${info.members_with_phones} members have phone numbers</p>
-                    <p class="text-xs mt-1">Only members with phone numbers will receive SMS notifications</p>
+                    <p class="font-medium mb-1">📱 Notification Recipients:</p>
+                    <p>${info.member_count} team members will see captain messages</p>
+                    <p class="text-xs mt-1">Captain messages appear in the notifications section on the home page</p>
                 </div>
             </div>
         </div>
@@ -318,7 +307,6 @@ async function handleFormSubmit(e) {
     
     const formData = new FormData(e.target);
     const messageContent = formData.get('messageContent').trim();
-    const testMode = formData.has('testMode');
     
     // Validation
     if (!messageContent) {
@@ -344,14 +332,13 @@ async function handleFormSubmit(e) {
     sendButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Sending...';
     
     try {
-        const response = await fetch('/api/team-notifications/send', {
+        const response = await fetch('/api/captain-messages', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                message: messageContent,
-                test_mode: testMode
+                message: messageContent
             })
         });
         
@@ -361,7 +348,6 @@ async function handleFormSubmit(e) {
         addToNotificationHistory({
             timestamp: new Date().toISOString(),
             message: messageContent.substring(0, 50) + (messageContent.length > 50 ? '...' : ''),
-            testMode: testMode,
             success: result.success,
             result: result
         });
@@ -369,7 +355,7 @@ async function handleFormSubmit(e) {
         showResults(result);
         
         // Clear form on success
-        if (result.success && !testMode) {
+        if (result.success) {
             clearForm();
         }
         
@@ -392,34 +378,33 @@ function showResults(result) {
     
     resultsArea.classList.remove('hidden');
     
-    if (result.success) {
-        resultsContent.innerHTML = `
-            <div class="bg-green-50 border border-green-200 rounded-lg p-4">
-                <div class="flex items-center text-green-800 mb-3">
-                    <i class="fas fa-check-circle mr-2"></i>
-                    <span class="font-medium">Notification sent successfully!</span>
+            if (result.success) {
+            resultsContent.innerHTML = `
+                <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div class="flex items-center text-green-800 mb-3">
+                        <i class="fas fa-check-circle mr-2"></i>
+                        <span class="font-medium">Captain message created successfully!</span>
+                    </div>
+                    <div class="text-sm text-green-700 space-y-1">
+                        <p><strong>Message ID:</strong> ${result.message_id}</p>
+                        <p><strong>Status:</strong> Message will appear in team notifications</p>
+                        <p class="text-xs mt-2">The message will be visible to all team members on their home page</p>
+                    </div>
                 </div>
-                <div class="text-sm text-green-700 space-y-1">
-                    <p><strong>Message:</strong> ${escapeHtml(result.message)}</p>
-                    <p><strong>Recipients:</strong> ${result.recipients_sent || 0} team members</p>
-                    <p><strong>Failed:</strong> ${result.recipients_failed || 0} team members</p>
-                    ${result.test_mode ? '<p><strong>Mode:</strong> Test mode (not actually sent)</p>' : ''}
+            `;
+                } else {
+            resultsContent.innerHTML = `
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <div class="flex items-center text-red-800 mb-3">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                        <span class="font-medium">Failed to create captain message</span>
+                    </div>
+                    <div class="text-sm text-red-700">
+                        <p><strong>Error:</strong> ${escapeHtml(result.error)}</p>
+                    </div>
                 </div>
-            </div>
-        `;
-    } else {
-        resultsContent.innerHTML = `
-            <div class="bg-red-50 border border-red-200 rounded-lg p-4">
-                <div class="flex items-center text-red-800 mb-3">
-                    <i class="fas fa-exclamation-triangle mr-2"></i>
-                    <span class="font-medium">Failed to send notification</span>
-                </div>
-                <div class="text-sm text-red-700">
-                    <p><strong>Error:</strong> ${escapeHtml(result.error)}</p>
-                </div>
-            </div>
-        `;
-    }
+            `;
+        }
 }
 
 function clearForm() {

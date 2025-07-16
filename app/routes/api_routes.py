@@ -3348,7 +3348,10 @@ def switch_league():
         logger = logging.getLogger(__name__)
         data = request.get_json()
         
+        logger.info(f"Received switch league request data: {data}")
+        
         if not data or not data.get("league_id"):
+            logger.error(f"Missing league_id in request data: {data}")
             return jsonify({"success": False, "error": "league_id required"}), 400
         
         user_email = session["user"]["email"]
@@ -3491,12 +3494,27 @@ def get_user_leagues():
         user_id = session["user"]["id"]
         
         # Get all leagues user has associations in (regardless of team assignments)
+        current_league_context = session["user"].get("league_context")
+        
+        # If no league context, try to get it from league_id
+        if not current_league_context:
+            current_league_context = session["user"].get("league_id")
+        
+        # If still no league context, use NULL for the comparison
+        if not current_league_context:
+            current_league_context = None
+        
+        # Add logging to debug the issue
+        logger.info(f"get_user_leagues - user_id: {user_id}, current_league_context: {current_league_context}")
+        logger.info(f"Session user data: {session.get('user', {})}")
+        
         leagues_query = """
             SELECT DISTINCT 
                 l.id as league_db_id,
                 l.league_id as league_string_id,
                 l.league_name,
-                COUNT(p.id) as player_count
+                COUNT(p.id) as player_count,
+                CASE WHEN l.id = %s THEN true ELSE false END as is_current
             FROM leagues l
             JOIN players p ON l.id = p.league_id
             JOIN user_player_associations upa ON p.tenniscores_player_id = upa.tenniscores_player_id
@@ -3506,7 +3524,8 @@ def get_user_leagues():
             ORDER BY l.league_name
         """
         
-        leagues_result = execute_query(leagues_query, [user_id])
+        leagues_result = execute_query(leagues_query, [current_league_context, user_id])
+        logger.info(f"Query returned {len(leagues_result) if leagues_result else 0} leagues")
         leagues = [dict(league) for league in leagues_result] if leagues_result else []
         
         return jsonify({
@@ -6377,25 +6396,27 @@ def get_recent_match_results(user_id, player_id, league_id, team_id):
             else:
                 opponent_team = recent_match["home_team"]
             
-            # 1. Personal match result notification - FIXED: Show opponent instead of player's team
-            notifications.append({
-                "id": f"personal_result_{recent_match['match_date']}",
-                "type": "personal",
-                "title": f"Your Last Match - {result_text.title()}",
-                "message": f"On {match_date_str}, you {result_text} playing against {opponent_team}",
-                "cta": {"label": "View Your Stats", "href": "/mobile/analyze-me"},
-                "priority": 3
-            })
-            
-            # 2. Team match result notification
-            notifications.append({
-                "id": f"team_result_{recent_match['match_date']}",
-                "type": "team",
-                "title": f"Team {result_text.title()}",
-                "message": f"{recent_match['home_team']} vs {recent_match['away_team']} - {recent_match['winner']} took the win",
-                "cta": {"label": "View Team Stats", "href": "/mobile/myteam"},
-                "priority": 3
-            })
+            # TEMPORARILY HIDE LOSS NOTIFICATIONS - Only show wins
+            if is_winner:
+                # 1. Personal match result notification - Only show wins
+                notifications.append({
+                    "id": f"personal_result_{recent_match['match_date']}",
+                    "type": "personal",
+                    "title": f"Your Last Match - {result_text.title()}",
+                    "message": f"On {match_date_str}, you {result_text} playing against {opponent_team}",
+                    "cta": {"label": "View Your Stats", "href": "/mobile/analyze-me"},
+                    "priority": 3
+                })
+                
+                # 2. Team match result notification - Only show wins
+                notifications.append({
+                    "id": f"team_result_{recent_match['match_date']}",
+                    "type": "team",
+                    "title": f"Team {result_text.title()}",
+                    "message": f"{recent_match['home_team']} vs {recent_match['away_team']} - {recent_match['winner']} took the win",
+                    "cta": {"label": "View Team Stats", "href": "/mobile/myteam"},
+                    "priority": 3
+                })
             
     except Exception as e:
         logger.error(f"Error getting recent results: {str(e)}")
@@ -6452,8 +6473,9 @@ def get_personal_performance_highlights(user_id, player_id, league_id, team_id):
         
         streak_result = execute_query_one(streak_query, [player_id, player_id, player_id, player_id, player_id, player_id, league_id])
         
-        if streak_result and streak_result["streak_length"] >= 3:
-            streak_type = "win" if streak_result["result"] == "W" else "loss"
+        # TEMPORARILY HIDE LOSS STREAKS - Only show win streaks
+        if streak_result and streak_result["streak_length"] >= 3 and streak_result["result"] == "W":
+            streak_type = "win"
             notifications.append({
                 "id": f"streak_{streak_type}",
                 "type": "personal",
@@ -6504,18 +6526,20 @@ def get_personal_performance_highlights(user_id, player_id, league_id, team_id):
         
         pti_result = execute_query_one(pti_query, [player_id, league_id, player_id, player_id, player_id, player_id, league_id, player_id, league_id])
         
+        # TEMPORARILY HIDE PTI DECREASES - Only show increases
         if pti_result and pti_result["current_pti"] and pti_result["previous_pti"]:
             pti_change = pti_result["current_pti"] - pti_result["previous_pti"]
-            change_direction = "increased" if pti_change > 0 else "decreased"
-            change_emoji = "📈" if pti_change > 0 else "📉"
-            notifications.append({
-                "id": f"pti_change",
-                "type": "personal",
-                "title": f"{change_emoji} PTI Rating Update",
-                "message": f"Your rating {change_direction} by {abs(pti_change)} points since your last match",
-                "cta": {"label": "View Your Progress", "href": "/mobile/analyze-me"},
-                "priority": 4
-            })
+            if pti_change > 0:  # Only show positive changes
+                change_direction = "increased"
+                change_emoji = "📈"
+                notifications.append({
+                    "id": f"pti_change",
+                    "type": "personal",
+                    "title": f"{change_emoji} PTI Rating Update",
+                    "message": f"Your rating {change_direction} by {abs(pti_change)} points since your last match",
+                    "cta": {"label": "View Your Progress", "href": "/mobile/analyze-me"},
+                    "priority": 4
+                })
             
     except Exception as e:
         logger.error(f"Error getting personal highlights: {str(e)}")
@@ -6549,6 +6573,7 @@ def get_team_performance_highlights(user_id, player_id, league_id, team_id):
         team_stats = execute_query_one(standings_query, [team_id, league_id])
         
         if team_stats:
+            # TEMPORARILY HIDE TEAM LOSSES - Only show positive team performance
             # Check if team is in playoff position (top 4)
             if team_stats["position"] <= 4 and team_stats["total_matches"] >= 5:
                 notifications.append({
@@ -6559,7 +6584,7 @@ def get_team_performance_highlights(user_id, player_id, league_id, team_id):
                     "cta": {"label": "View Standings", "href": "/mobile/my-series"},
                     "priority": 5
                 })
-            # Check for recent team success
+            # Check for recent team success (only show if wins significantly outweigh losses)
             elif team_stats["wins"] >= 3 and team_stats["losses"] <= 1:
                 notifications.append({
                     "id": f"team_success",
@@ -6700,43 +6725,115 @@ def get_team_poll_notifications(user_id, player_id, league_id, team_id):
     return notifications
 
 
+@api_bp.route("/api/captain-messages", methods=["POST"])
+@login_required
+def create_captain_message():
+    """Create a new captain message for the team"""
+    try:
+        user = session["user"]
+        user_id = user.get("id")
+        team_id = user.get("team_id")
+        
+        if not user_id:
+            return jsonify({"error": "User ID not found"}), 400
+            
+        if not team_id:
+            return jsonify({"error": "Team ID not found"}), 400
+        
+        data = request.get_json()
+        message = data.get("message", "").strip()
+        
+        if not message:
+            return jsonify({"error": "Message content is required"}), 400
+        
+        if len(message) > 1000:
+            return jsonify({"error": "Message too long (max 1000 characters)"}), 400
+        
+        # Insert the captain message into the database
+        insert_query = """
+            INSERT INTO captain_messages (team_id, captain_user_id, message, created_at)
+            VALUES (%s, %s, %s, NOW())
+            RETURNING id
+        """
+        
+        result = execute_query_one(insert_query, [team_id, user_id, message])
+        
+        if result:
+            message_id = result["id"]
+            
+            # Log the activity
+            log_user_activity(
+                user.get("email"),
+                "captain_message_created",
+                details=f"Created captain message for team {team_id}: {message[:50]}..."
+            )
+            
+            return jsonify({
+                "success": True,
+                "message_id": message_id,
+                "message": "Captain message created successfully"
+            }), 201
+        else:
+            return jsonify({"error": "Failed to create captain message"}), 500
+            
+    except Exception as e:
+        logger.error(f"Error creating captain message: {str(e)}")
+        return jsonify({"error": "Failed to create captain message"}), 500
+
+
 def get_captain_messages(user_id, player_id, league_id, team_id):
-    """Get captain message notifications"""
+    """Get captain message notifications from database"""
     notifications = []
     
     try:
-        # For now, include a sample captain message
-        # In the future, this could be replaced with actual captain messages from a database table
+        if not team_id:
+            return notifications
         
-        # Sample captain message - you can customize this or make it dynamic
-        sample_messages = [
-            {
-                "title": "🏆 Captain's Message",
-                "message": "Great work in practice this week! Let's keep the momentum going into our next match.",
-                "priority": 2
-            },
-            {
-                "title": "📢 Team Update",
-                "message": "New practice schedule posted. Check the team calendar for updated times.",
-                "priority": 2
-            },
-            {
-                "title": "🎯 Match Strategy",
-                "message": "Focus on strong serves and aggressive net play in our upcoming match.",
-                "priority": 2
-            }
-        ]
+        # Get the most recent captain message for the team
+        message_query = """
+            SELECT 
+                cm.id,
+                cm.message,
+                cm.created_at,
+                u.first_name,
+                u.last_name
+            FROM captain_messages cm
+            JOIN users u ON cm.captain_user_id = u.id
+            WHERE cm.team_id = %s
+            ORDER BY cm.created_at DESC
+            LIMIT 1
+        """
         
-        # For now, show a sample message (in production, this would be from database)
-        if sample_messages:
-            sample_msg = sample_messages[0]  # Show first sample message
+        captain_message = execute_query_one(message_query, [team_id])
+        
+        if captain_message:
+            # Calculate how long ago the message was created
+            # Handle timezone-aware datetime comparison
+            now = datetime.now()
+            created_at = captain_message['created_at']
+            
+            # If created_at is timezone-aware, make now timezone-aware too
+            if created_at.tzinfo is not None:
+                from datetime import timezone
+                now = now.replace(tzinfo=timezone.utc)
+            
+            message_age = now - created_at
+            
+            if message_age.days == 0:
+                time_text = "today"
+            elif message_age.days == 1:
+                time_text = "yesterday"
+            else:
+                time_text = f"{message_age.days} days ago"
+            
+            captain_name = f"{captain_message['first_name']} {captain_message['last_name']}"
+            
             notifications.append({
-                "id": "captain_message_sample",
+                "id": f"captain_message_{captain_message['id']}",
                 "type": "captain",
-                "title": sample_msg["title"],
-                "message": sample_msg["message"],
-                "cta": {"label": "View Team Chat", "href": "/mobile/polls"},
-                "priority": sample_msg["priority"]
+                "title": "🏆 Captain's Message",
+                "message": f"{captain_name}: {captain_message['message'][:60]}{'...' if len(captain_message['message']) > 60 else ''} ({time_text})",
+                "priority": 2
             })
             
     except Exception as e:

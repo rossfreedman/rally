@@ -618,8 +618,8 @@
     <div class="bg-white rounded-xl shadow-xl max-w-sm w-full max-h-96 overflow-hidden">
         <!-- Modal Header -->
         <div class="px-6 py-4 bg-black border-b border-gray-700 flex items-center justify-between">
-            <h3 class="text-lg font-semibold text-white">
-                Switch League
+            <h3 class="text-lg font-semibold text-white" style="color: white !important;">
+                Switch League or Team
             </h3>
             <button id="closeLeagueModal" class="text-gray-300 hover:text-white transition-colors text-xl font-bold">
                 ×
@@ -634,7 +634,7 @@
                 </span>
                 <span class="text-white font-bold text-sm uppercase tracking-wide">ACTIVE LEAGUE</span>
             </div>
-            <div class="font-bold text-white text-lg mb-1">{{ session_data.user.league_name }}</div>
+            <div class="font-bold text-white text-lg mb-1" style="color: white !important;">{{ session_data.user.league_name }}</div>
             <div class="text-white text-sm">{{ session_data.user.club }} - {{ session_data.user.series }}</div>
         </div>
         
@@ -646,10 +646,10 @@
             <div class="space-y-2">
                 {% if session_data.user.league_string_id != 'APTA_CHICAGO' %}
                 <button onclick="switchLeague('APTA_CHICAGO')" 
-                        class="league-switch-btn w-full flex items-center justify-between p-4 rounded-lg bg-white hover:bg-blue-50 transition-all duration-200 border-2 border-gray-300 hover:border-blue-400 hover:shadow-md group">
+                        class="league-switch-btn w-full flex items-center justify-between p-4 rounded-lg bg-gray-800 hover:bg-gray-700 transition-all duration-200 border-2 border-gray-600 hover:border-blue-400 hover:shadow-md group">
                     <div class="text-left">
-                        <div class="font-bold text-gray-900 group-hover:text-blue-900">APTA Chicago</div>
-                        <div class="text-sm text-gray-600 group-hover:text-blue-700">Paddle tennis league</div>
+                        <div class="font-bold text-white group-hover:text-blue-200">APTA Chicago</div>
+                        <div class="text-sm text-gray-300 group-hover:text-blue-300">Paddle tennis league</div>
                     </div>
                     <div class="bg-blue-500 group-hover:bg-blue-600 text-white px-3 py-1 rounded-md text-sm font-medium">
                         Switch
@@ -659,10 +659,10 @@
                 
                 {% if session_data.user.league_string_id != 'NSTF' %}
                 <button onclick="switchLeague('NSTF')" 
-                        class="league-switch-btn w-full flex items-center justify-between p-4 rounded-lg bg-white hover:bg-blue-50 transition-all duration-200 border-2 border-gray-300 hover:border-blue-400 hover:shadow-md group">
+                        class="league-switch-btn w-full flex items-center justify-between p-4 rounded-lg bg-gray-800 hover:bg-gray-700 transition-all duration-200 border-2 border-gray-600 hover:border-blue-400 hover:shadow-md group">
                     <div class="text-left">
-                        <div class="font-bold text-gray-900 group-hover:text-blue-900">North Shore Tennis Foundation</div>
-                        <div class="text-sm text-gray-600 group-hover:text-blue-700">Tennis league</div>
+                        <div class="font-bold text-white group-hover:text-blue-200">North Shore Tennis Foundation</div>
+                        <div class="text-sm text-gray-300 group-hover:text-blue-300">Tennis league</div>
                     </div>
                     <div class="bg-blue-500 group-hover:bg-blue-600 text-white px-3 py-1 rounded-md text-sm font-medium">
                         Switch
