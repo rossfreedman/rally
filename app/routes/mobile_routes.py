@@ -339,7 +339,7 @@ def serve_rally_mobile():
     except Exception as e:
         print(f"Error logging rally mobile redirect: {str(e)}")
 
-    return redirect(url_for("mobile.serve_mobile"))
+    return redirect("/mobile/home_submenu")
 
 
 @mobile_bp.route("/mobile/matches")

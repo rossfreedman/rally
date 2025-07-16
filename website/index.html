@@ -121,6 +121,14 @@
     </style>
 </head>
 <body>
+    <!-- Redirect authenticated users to mobile home submenu -->
+    <script>
+        // Check if user is authenticated (has session cookie)
+        if (document.cookie.includes('rally_session=')) {
+            window.location.href = '/mobile/home_submenu';
+        }
+    </script>
+    
     <!-- Hero Section with Overlaid Navigation -->
     <section class="hero-section bg-gradient-to-br from-rally-blue to-slate-900 text-white">
         <!-- Background Image -->

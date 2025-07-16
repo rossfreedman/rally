@@ -51,7 +51,7 @@ function initLoadingIndicator() {
     createLoadingOverlay();
     
     // Initialize home page buttons (if on home page)
-    if (window.location.pathname.endsWith('/mobile') || window.location.pathname.endsWith('/mobile/')) {
+    if (window.location.pathname.endsWith('/mobile') || window.location.pathname.endsWith('/mobile/') || window.location.pathname.endsWith('/mobile/home_submenu')) {
         initHomePageButtons();
     }
     
@@ -218,6 +218,7 @@ function getLoadingTextForUrl(url) {
         // Home navigation
         '/mobile': 'Loading Home...',
         '/mobile/': 'Loading Home...',
+        '/mobile/home_submenu': 'Loading Home...',
         
         // Act section
         '/mobile/availability': 'Loading Schedule...',
