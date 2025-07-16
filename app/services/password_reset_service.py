@@ -127,7 +127,7 @@ def send_password_via_sms(phone: str, email: str = None) -> dict:
             }
         
         # Create SMS message with link back to Rally
-        message = f"🔐 Rally Password Reset\n\nYour temporary password is: {password}\n\nPlease log in and change this password immediately for security.\n\nAfter you login, you can change your password in your profile (bottom right corner in the app).\n\nLogin: https://www.lovetorally.com/login\n\n- Rally Team"
+        message = f"🔐 Rally Password Reset\n\nForgot your password? No problem!\n\nYour temporary password is: {password}\n\nPlease log in and change your password to something you will remember.\n\nLogin: https://www.lovetorally.com/login\n\n- Rally Team"
         
         # Send SMS using existing notification service
         sms_result = send_sms_notification(
