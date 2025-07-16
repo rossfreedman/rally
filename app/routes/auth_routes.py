@@ -387,19 +387,10 @@ def handle_forgot_password():
             })
         else:
             logger.warning(f"Password reset failed for {phone}: {result['error']}")
-            
-            # Handle special case where multiple users found and email is needed
-            if result["error"] == "multiple_users_found":
-                return jsonify({
-                    "success": False,
-                    "error": "multiple_users_found",
-                    "message": result.get("message", "Phone number not found. Please try again.")
-                }), 400
-            else:
-                return jsonify({
-                    "success": False,
-                    "error": result["error"]
-                }), 400
+            return jsonify({
+                "success": False,
+                "error": result["error"]
+            }), 400
 
     except Exception as e:
         logger.error(f"Password reset endpoint error: {str(e)}")

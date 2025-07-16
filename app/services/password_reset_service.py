@@ -58,7 +58,7 @@ def send_password_via_sms(phone: str, email: str = None) -> dict:
         all_matches = []
         for phone_variation in phone_variations:
             query = """
-                SELECT id, email, first_name, last_name, phone_number
+                SELECT id, email, first_name, last_name, phone_number, last_login, created_at
                 FROM users
                 WHERE phone_number = %s
             """
@@ -70,7 +70,7 @@ def send_password_via_sms(phone: str, email: str = None) -> dict:
         # Also try partial match if no exact
         if not all_matches:
             partial_query = """
-                SELECT id, email, first_name, last_name, phone_number
+                SELECT id, email, first_name, last_name, phone_number, last_login, created_at
                 FROM users
                 WHERE REPLACE(REPLACE(REPLACE(phone_number, '+', ''), '-', ''), ' ', '') LIKE %s
             """
@@ -94,23 +94,25 @@ def send_password_via_sms(phone: str, email: str = None) -> dict:
         if len(all_matches) == 1:
             user = all_matches[0]
         else:
-            # Multiple matches: require email for disambiguation
-            if not email:
-                logger.warning(f"Multiple users found for phone {phone}, but no email provided.")
-                return {
-                    "success": False,
-                    "error": "multiple_users_found",
-                    "message": "Phone number not found. Please try again."
-                }
+            # Multiple matches: automatically select the most recently active user
+            # Sort by last_login (most recent first), then by created_at (most recent first)
+            all_matches.sort(key=lambda u: (
+                u['last_login'] or datetime.min,  # None values go to the end
+                u['created_at'] or datetime.min
+            ), reverse=True)
             
-            # Try to find user with both phone and email
-            user = next((u for u in all_matches if u['email'].lower() == email.strip().lower()), None)
-            if not user:
-                logger.warning(f"No user found for phone {phone} and email {email}")
-                return {
-                    "success": False,
-                    "error": "No account found matching that phone number and email."
-                }
+            # Select the most recently active user
+            user = all_matches[0]
+            
+            # Log which user was selected for transparency
+            logger.info(f"Multiple users found for phone {phone}, selected most recent: {user['email']} (last_login: {user['last_login']})")
+            
+            # If email was provided, try to match it first
+            if email:
+                email_match = next((u for u in all_matches if u['email'].lower() == email.strip().lower()), None)
+                if email_match:
+                    user = email_match
+                    logger.info(f"Email match found, using: {user['email']}")
         
         # Get the user's actual password
         # Note: In a production environment, you'd typically send a reset token instead
