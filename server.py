@@ -2236,6 +2236,132 @@ def run_temp_password_migration():
         }), 500
 
 
+@app.route("/admin/run-captain-messages-migration")
+def run_captain_messages_migration():
+    """
+    Web endpoint to run captain messages migration on staging or production
+    """
+    railway_env = os.environ.get("RAILWAY_ENVIRONMENT", "not_set")
+    
+    if railway_env not in ["staging", "production"]:
+        return jsonify({
+            "error": "This migration endpoint only works on staging or production",
+            "railway_env": railway_env,
+            "instructions": "Visit this URL on staging or production environment to run the migration"
+        }), 403
+    
+    try:
+        from database_utils import execute_query_one, execute_update
+        
+        results = {
+            "railway_env": railway_env,
+            "timestamp": datetime.now().isoformat(),
+            "migration_steps": []
+        }
+        
+        # Step 1: Check if table already exists
+        results["migration_steps"].append("🔍 Checking if captain_messages table exists...")
+        
+        try:
+            table_check = execute_query_one("""
+                SELECT EXISTS (
+                    SELECT FROM information_schema.tables 
+                    WHERE table_name = 'captain_messages'
+                )
+            """)
+            
+            if table_check and table_check["exists"]:
+                results["migration_steps"].append("✅ Captain messages table already exists")
+                results["table_exists"] = True
+                return jsonify({
+                    "status": "success",
+                    "message": "Captain messages table already exists - no migration needed",
+                    "results": results
+                })
+            else:
+                results["migration_steps"].append("📋 Table needs to be created")
+                results["table_exists"] = False
+                
+        except Exception as e:
+            results["migration_steps"].append(f"⚠️ Could not check table: {str(e)}")
+            results["table_exists"] = False
+        
+        # Step 2: Run the migration
+        results["migration_steps"].append("🔄 Running captain messages migration...")
+        
+        migration_sql = """
+        -- Migration: Add Captain Messages Table
+        -- Date: 2025-07-13 12:00:00
+        -- Description: Adds captain_messages table for team captain messages
+
+        CREATE TABLE IF NOT EXISTS captain_messages (
+            id SERIAL PRIMARY KEY,
+            team_id INTEGER NOT NULL REFERENCES teams(id),
+            captain_user_id INTEGER NOT NULL REFERENCES users(id),
+            message TEXT NOT NULL,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        );
+
+        -- Index for fast lookup by team
+        CREATE INDEX IF NOT EXISTS idx_captain_messages_team_id ON captain_messages(team_id);
+
+        -- Add comment for documentation
+        COMMENT ON TABLE captain_messages IS 'Stores captain messages for teams. These messages appear in the notifications feed for all team members.';
+        """
+        
+        execute_update(migration_sql)
+        results["migration_steps"].append("✅ Migration SQL executed successfully")
+        
+        # Step 3: Verify the migration
+        results["migration_steps"].append("🧪 Verifying migration...")
+        
+        verify_query = """
+            SELECT EXISTS (
+                SELECT FROM information_schema.tables 
+                WHERE table_name = 'captain_messages'
+            )
+        """
+        
+        verify_table = execute_query_one(verify_query)
+        results["verification"] = {
+            "table_exists": verify_table["exists"] if verify_table else False
+        }
+        
+        if verify_table and verify_table["exists"]:
+            results["migration_steps"].append("✅ Migration verification successful")
+            results["success"] = True
+            
+            return jsonify({
+                "status": "success",
+                "message": "Captain messages migration completed successfully!",
+                "results": results,
+                "next_steps": [
+                    "✅ Migration complete",
+                    "👉 Captain messages functionality should now work",
+                    "🎯 Team notifications should display captain messages"
+                ]
+            })
+        else:
+            results["migration_steps"].append("❌ Migration verification failed")
+            results["success"] = False
+            
+            return jsonify({
+                "status": "error",
+                "message": "Migration ran but verification failed",
+                "results": results
+            }), 500
+        
+    except Exception as e:
+        import traceback
+        return jsonify({
+            "status": "error",
+            "message": "Migration endpoint error",
+            "error": str(e),
+            "traceback": traceback.format_exc(),
+            "railway_env": railway_env
+        }), 500
+
+
 @app.route("/admin/run-pickup-games-migration")
 def run_pickup_games_migration():
     """
