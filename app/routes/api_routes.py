@@ -6107,7 +6107,7 @@ def send_group_message():
 @api_bp.route("/api/home/notifications")
 @login_required
 def get_home_notifications():
-    """Get personalized notifications for the home page"""
+    """Get personalized notifications for the home page in the specified order"""
     try:
         user = session["user"]
         user_id = user.get("id")
@@ -6123,64 +6123,51 @@ def get_home_notifications():
             
         notifications = []
         
-        # 1. Check for urgent match-related updates
+        # 1. Captains Message (highest priority)
         try:
-            urgent_notifications = get_urgent_match_notifications(user_id, player_id, league_id, team_id)
-            notifications.extend(urgent_notifications)
+            captain_notifications = get_captain_messages(user_id, player_id, league_id, team_id)
+            notifications.extend(captain_notifications)
         except Exception as e:
-            logger.error(f"Error getting urgent notifications: {str(e)}")
+            logger.error(f"Error getting captain messages: {str(e)}")
         
-        # 2. Check for recent match results
-        if len(notifications) < 3:
-            try:
-                result_notifications = get_recent_match_results(user_id, player_id, league_id, team_id)
-                notifications.extend(result_notifications[:3 - len(notifications)])
-            except Exception as e:
-                logger.error(f"Error getting recent results: {str(e)}")
+        # 2. Upcoming Schedule (always include)
+        try:
+            schedule_notifications = get_upcoming_schedule_notifications(user_id, player_id, league_id, team_id)
+            notifications.extend(schedule_notifications)
+        except Exception as e:
+            logger.error(f"Error getting schedule notifications: {str(e)}")
         
-        # 3. Check for team polls
-        if len(notifications) < 3:
-            try:
-                poll_notifications = get_team_poll_notifications(user_id, player_id, league_id, team_id)
-                notifications.extend(poll_notifications[:3 - len(notifications)])
-            except Exception as e:
-                logger.error(f"Error getting poll notifications: {str(e)}")
+        # 3. Team Position (new notification)
+        try:
+            team_position_notifications = get_team_position_notifications(user_id, player_id, league_id, team_id)
+            notifications.extend(team_position_notifications)
+        except Exception as e:
+            logger.error(f"Error getting team position notifications: {str(e)}")
         
-        # 4. Check for pickup games that match user criteria
-        if len(notifications) < 3:
-            try:
-                pickup_notifications = get_pickup_games_notifications(user_id, player_id, league_id, team_id)
-                notifications.extend(pickup_notifications[:3 - len(notifications)])
-            except Exception as e:
-                logger.error(f"Error getting pickup games notifications: {str(e)}")
+        # 4. Team Poll
+        try:
+            poll_notifications = get_team_poll_notifications(user_id, player_id, league_id, team_id)
+            notifications.extend(poll_notifications)
+        except Exception as e:
+            logger.error(f"Error getting poll notifications: {str(e)}")
         
-        # 5. Check for personal performance highlights
-        if len(notifications) < 3:
-            try:
-                personal_notifications = get_personal_performance_highlights(user_id, player_id, league_id, team_id)
-                notifications.extend(personal_notifications[:3 - len(notifications)])
-            except Exception as e:
-                logger.error(f"Error getting personal highlights: {str(e)}")
+        # 5. My Win Streaks (new notification)
+        try:
+            win_streaks_notifications = get_my_win_streaks_notifications(user_id, player_id, league_id, team_id)
+            notifications.extend(win_streaks_notifications)
+        except Exception as e:
+            logger.error(f"Error getting win streaks notifications: {str(e)}")
         
-        # 6. Check for team performance highlights
-        if len(notifications) < 3:
-            try:
-                team_notifications = get_team_performance_highlights(user_id, player_id, league_id, team_id)
-                notifications.extend(team_notifications[:3 - len(notifications)])
-            except Exception as e:
-                logger.error(f"Error getting team highlights: {str(e)}")
+        # 6. Pickup Games Available
+        try:
+            pickup_notifications = get_pickup_games_notifications(user_id, player_id, league_id, team_id)
+            notifications.extend(pickup_notifications)
+        except Exception as e:
+            logger.error(f"Error getting pickup games notifications: {str(e)}")
         
-        # 7. Check for captain messages
-        if len(notifications) < 3:
-            try:
-                captain_notifications = get_captain_messages(user_id, player_id, league_id, team_id)
-                notifications.extend(captain_notifications[:3 - len(notifications)])
-            except Exception as e:
-                logger.error(f"Error getting captain messages: {str(e)}")
-        
-        # Sort by priority and limit to 3
+        # Sort by priority and limit to 6 notifications
         notifications.sort(key=lambda x: x["priority"])
-        notifications = notifications[:3]
+        notifications = notifications[:6]
         
         # Ensure there are always notifications by adding fallbacks if needed
         try:
@@ -6336,10 +6323,10 @@ def get_urgent_match_notifications(user_id, player_id, league_id, team_id):
                 notifications.append({
                     "id": f"poll_{latest_poll['id']}",
                     "type": "captain",
-                    "title": "Latest Team Poll",
+                    "title": "Team Poll",
                     "message": f"{captain_name} asked: {latest_poll['question'][:40]}... ({time_text})",
                     "cta": {"label": "Respond Now", "href": f"/mobile/polls/{latest_poll['id']}"},
-                    "priority": 2
+                    "priority": 4
                 })
             
     except Exception as e:
@@ -6832,12 +6819,202 @@ def get_captain_messages(user_id, player_id, league_id, team_id):
                 "id": f"captain_message_{captain_message['id']}",
                 "type": "captain",
                 "title": "Captain's Message",
-                "message": f"{captain_name}: {captain_message['message'][:60]}{'...' if len(captain_message['message']) > 60 else ''} ({time_text})",
-                "priority": 2
+                "message": f"{captain_message['message'][:60]}{'...' if len(captain_message['message']) > 60 else ''}",
+                "priority": 1
             })
             
     except Exception as e:
         logger.error(f"Error getting captain messages: {str(e)}")
+    
+    return notifications
+
+
+def get_upcoming_schedule_notifications(user_id, player_id, league_id, team_id):
+    """Get upcoming practice and match notifications from schedule with weather data"""
+    notifications = []
+    
+    try:
+        if not team_id:
+            return notifications
+        
+        # Get user's team information from database instead of session
+        user_info_query = """
+            SELECT 
+                c.name as club_name,
+                s.name as series_name
+            FROM players p
+            LEFT JOIN clubs c ON p.club_id = c.id
+            LEFT JOIN series s ON p.series_id = s.id
+            WHERE p.tenniscores_player_id = %s
+            ORDER BY p.id DESC
+            LIMIT 1
+        """
+        
+        user_info = execute_query_one(user_info_query, [player_id])
+        if not user_info:
+            return notifications
+            
+        user_club = user_info.get("club_name")
+        user_series = user_info.get("series_name")
+        
+        if not user_club or not user_series:
+            return notifications
+        
+        # Build team pattern for matches
+        if "Series" in user_series:
+            # NSTF format: "Series 2B" -> "S2B"
+            series_code = user_series.replace("Series ", "S")
+            team_pattern = f"{user_club} {series_code} - {user_series}"
+        elif "Division" in user_series:
+            # CNSWPL format: "Division 12" -> "12"
+            division_num = user_series.replace("Division ", "")
+            team_pattern = f"{user_club} {division_num} - Series {division_num}"
+        else:
+            # APTA format: "Chicago 22" -> extract number
+            series_num = user_series.split()[-1] if user_series else ""
+            team_pattern = f"{user_club} - {series_num}"
+        
+        # Build practice pattern
+        if "Division" in user_series:
+            division_num = user_series.replace("Division ", "")
+            practice_pattern = f"{user_club} Practice - Series {division_num}"
+        else:
+            practice_pattern = f"{user_club} Practice - {user_series}"
+        
+        # Get current date/time
+        now = datetime.now()
+        current_date = now.date()
+        
+        # Query upcoming schedule entries with enhanced location data
+        schedule_query = """
+            SELECT 
+                s.id,
+                s.match_date,
+                s.match_time,
+                s.home_team,
+                s.away_team,
+                s.location,
+                c.club_address,
+                CASE 
+                    WHEN s.home_team ILIKE %s THEN 'practice'
+                    ELSE 'match'
+                END as type
+            FROM schedule s
+            LEFT JOIN teams t ON (s.home_team_id = t.id OR s.away_team_id = t.id)
+            LEFT JOIN clubs c ON t.club_id = c.id
+            WHERE (
+                (s.home_team ILIKE %s OR s.away_team ILIKE %s) OR  -- Regular matches
+                (s.home_team ILIKE %s)  -- Practices
+            )
+            AND s.match_date >= %s
+            ORDER BY s.match_date ASC, s.match_time ASC
+            LIMIT 10
+        """
+        
+        schedule_entries = execute_query(schedule_query, [
+            practice_pattern,  # For type detection
+            f"%{team_pattern}%", f"%{team_pattern}%",  # Regular matches
+            f"%{practice_pattern}%",  # Practices
+            current_date
+        ])
+        
+        if not schedule_entries:
+            return notifications
+        
+        # Find next practice and next match
+        next_practice = None
+        next_match = None
+        
+        for entry in schedule_entries:
+            if entry["type"] == "practice" and not next_practice:
+                next_practice = entry
+            elif entry["type"] == "match" and not next_match:
+                next_match = entry
+            
+            if next_practice and next_match:
+                break
+        
+        # Get weather data for upcoming events
+        weather_data = {}
+        try:
+            from app.services.weather_service import WeatherService
+            weather_service = WeatherService()
+            
+            # Prepare schedule entries for weather lookup
+            weather_entries = []
+            if next_practice:
+                weather_entries.append({
+                    'id': f"practice_{next_practice['id']}",
+                    'location': next_practice.get('club_address') or next_practice.get('location') or f"{user_club}, IL",
+                    'match_date': next_practice['match_date'].strftime('%Y-%m-%d')
+                })
+            
+            if next_match:
+                weather_entries.append({
+                    'id': f"match_{next_match['id']}",
+                    'location': next_match.get('club_address') or next_match.get('location') or f"{user_club}, IL",
+                    'match_date': next_match['match_date'].strftime('%Y-%m-%d')
+                })
+            
+            # Get weather forecasts
+            weather_data = weather_service.get_weather_for_schedule_entries(weather_entries)
+            
+        except Exception as e:
+            logger.warning(f"Could not fetch weather data: {str(e)}")
+        
+        # Build notification message with weather
+        practice_text = "No upcoming practices"
+        match_text = "No upcoming matches"
+        
+        if next_practice:
+            practice_date = next_practice["match_date"].strftime("%b %d")
+            practice_time = next_practice["match_time"].strftime("%I:%M %p").lstrip("0") if next_practice["match_time"] else ""
+            practice_text = f"Practice: {practice_date}"
+            if practice_time:
+                practice_text += f" at {practice_time}"
+            
+            # Add weather info for practice
+            practice_weather_key = f"practice_{next_practice['id']}"
+            if practice_weather_key in weather_data:
+                forecast = weather_data[practice_weather_key]
+                weather_msg = weather_service.format_weather_message(forecast)
+                practice_text += f" • {weather_msg}"
+        
+        if next_match:
+            match_date = next_match["match_date"].strftime("%b %d")
+            match_time = next_match["match_time"].strftime("%I:%M %p").lstrip("0") if next_match["match_time"] else ""
+            opponent = next_match["away_team"] if next_match["home_team"] and team_pattern in next_match["home_team"] else next_match["home_team"]
+            match_text = f"Match: {match_date}"
+            if match_time:
+                match_text += f" at {match_time}"
+            if opponent:
+                match_text += f" vs {opponent}"
+            
+            # Add weather info for match
+            match_weather_key = f"match_{next_match['id']}"
+            if match_weather_key in weather_data:
+                forecast = weather_data[match_weather_key]
+                weather_msg = weather_service.format_weather_message(forecast)
+                match_text += f" • {weather_msg}"
+        
+        # Create notification with weather data
+        notification_data = {
+            "id": "upcoming_schedule",
+            "type": "schedule",
+            "title": "Upcoming Schedule",
+            "message": f"{practice_text}\n{match_text}",
+            "cta": {"label": "View Schedule", "href": "/mobile/availability"},
+            "priority": 2
+        }
+        
+        # Add weather data to notification if available
+        if weather_data:
+            notification_data["weather"] = weather_data
+        
+        notifications.append(notification_data)
+        
+    except Exception as e:
+        logger.error(f"Error getting schedule notifications: {str(e)}")
     
     return notifications
 
@@ -6954,10 +7131,173 @@ def get_pickup_games_notifications(user_id, player_id, league_id, team_id):
                 "title": "Pickup Game Available",
                 "message": f"{game['description']} - {date_display} at {time_display} ({available_slots} spots left)",
                 "cta": {"label": "Join Game", "href": "/mobile/pickup-games"},
-                "priority": 3
+                "priority": 6
             })
             
     except Exception as e:
         logger.error(f"Error getting pickup games notifications: {str(e)}")
+    
+    return notifications
+
+
+def get_team_position_notifications(user_id, player_id, league_id, team_id):
+    """Get team position notifications showing current standings"""
+    notifications = []
+    
+    try:
+        if not team_id or not league_id:
+            return notifications
+            
+        # Get team standings information
+        standings_query = """
+            SELECT 
+                ss.team,
+                ss.points,
+                ss.matches_won,
+                ss.matches_lost,
+                ss.matches_tied,
+                t.team_name,
+                t.series_id,
+                s.name as series_name,
+                c.name as club_name
+            FROM series_stats ss
+            JOIN teams t ON ss.team_id = t.id
+            JOIN series s ON t.series_id = s.id
+            JOIN clubs c ON t.club_id = c.id
+            WHERE ss.team_id = %s 
+            AND ss.league_id = %s
+            ORDER BY ss.updated_at DESC
+            LIMIT 1
+        """
+        
+        team_stats = execute_query_one(standings_query, [team_id, league_id])
+        
+        if not team_stats:
+            return notifications
+            
+        # Get all teams in the same series for ranking
+        all_teams_query = """
+            SELECT 
+                ss.team,
+                ss.points,
+                ss.matches_won,
+                ss.matches_lost,
+                ss.matches_tied
+            FROM series_stats ss
+            WHERE ss.league_id = %s
+            AND ss.team_id IN (
+                SELECT t.id FROM teams t 
+                WHERE t.series_id = %s
+            )
+            ORDER BY ss.points DESC
+        """
+        
+        all_teams = execute_query(all_teams_query, [league_id, team_stats.get("series_id")])
+        
+        if not all_teams:
+            return notifications
+            
+        # Find team's position
+        team_position = 1
+        first_place_points = all_teams[0]["points"] if all_teams else 0
+        
+        for i, team in enumerate(all_teams, 1):
+            if team["team"] == team_stats["team"]:
+                team_position = i
+                break
+        
+        # Calculate average points per week
+        total_matches = team_stats["matches_won"] + team_stats["matches_lost"] + (team_stats["matches_tied"] or 0)
+        avg_points_per_week = round(team_stats["points"] / total_matches, 1) if total_matches > 0 else 0
+        
+        # Calculate points back from first place
+        points_back = first_place_points - team_stats["points"]
+        
+        # Format team name
+        team_display_name = team_stats["team_name"] or team_stats["team"]
+        
+        # Create notification message
+        if points_back == 0:
+            position_text = f"{team_display_name} is in 1st place with {team_stats['points']} total points, averaging {avg_points_per_week} points per week."
+        else:
+            position_text = f"{team_display_name} has {team_stats['points']} total points, averaging {avg_points_per_week} points per week and is currently {points_back} points back."
+        
+        notifications.append({
+            "id": f"team_position_{team_id}",
+            "type": "team",
+            "title": "Team Position",
+            "message": position_text,
+            "cta": {"label": "View Standings", "href": "/mobile/my-series"},
+            "priority": 3
+        })
+            
+    except Exception as e:
+        logger.error(f"Error getting team position notifications: {str(e)}")
+    
+    return notifications
+
+
+def get_my_win_streaks_notifications(user_id, player_id, league_id, team_id):
+    """Get current player's win streaks notification"""
+    notifications = []
+    
+    try:
+        if not player_id or not league_id:
+            return notifications
+            
+        # Calculate current player's win streak using the same logic as my-club page
+        streak_query = """
+            WITH match_results AS (
+                SELECT 
+                    match_date,
+                    CASE 
+                        WHEN home_player_1_id = %s OR home_player_2_id = %s THEN 
+                            CASE WHEN winner = home_team THEN 'W' ELSE 'L' END
+                        ELSE 
+                            CASE WHEN winner = away_team THEN 'W' ELSE 'L' END
+                    END as result
+                FROM match_scores 
+                WHERE (home_player_1_id = %s OR home_player_2_id = %s OR away_player_1_id = %s OR away_player_2_id = %s)
+                AND league_id = %s
+                ORDER BY match_date DESC
+            ),
+            streak_groups AS (
+                SELECT 
+                    result,
+                    match_date,
+                    ROW_NUMBER() OVER (ORDER BY match_date DESC) as rn,
+                    ROW_NUMBER() OVER (PARTITION BY result ORDER BY match_date DESC) as streak_rn,
+                    ROW_NUMBER() OVER (ORDER BY match_date DESC) - 
+                    ROW_NUMBER() OVER (PARTITION BY result ORDER BY match_date DESC) as streak_group
+                FROM match_results
+            ),
+            current_streak AS (
+                SELECT 
+                    result,
+                    COUNT(*) as streak_length
+                FROM streak_groups 
+                WHERE streak_group = 0  -- Current streak (most recent consecutive matches)
+                GROUP BY result
+                ORDER BY streak_length DESC
+                LIMIT 1
+            )
+            SELECT * FROM current_streak
+        """
+        
+        streak_result = execute_query_one(streak_query, [player_id, player_id, player_id, player_id, player_id, player_id, league_id])
+        
+        # Only show win streaks of 3 or more
+        if streak_result and streak_result["streak_length"] >= 3 and streak_result["result"] == "W":
+            notifications.append({
+                "id": f"my_win_streak_{player_id}",
+                "type": "personal",
+                "title": "My Win Streaks",
+                "message": f"You're on a {streak_result['streak_length']}-match win streak! Keep the momentum going.",
+                "cta": {"label": "View My Stats", "href": "/mobile/analyze-me"},
+                "priority": 5
+            })
+            
+    except Exception as e:
+        logger.error(f"Error getting my win streaks notifications: {str(e)}")
     
     return notifications

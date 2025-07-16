@@ -350,7 +350,7 @@ def serve_index():
     """Serve the index page"""
     if "user" not in session:
         return redirect("/login")
-    return redirect("/mobile/home_submenu")
+    return redirect("/mobile")
 
 
 
@@ -3845,7 +3845,7 @@ def add_unique_player_constraint_production():
             "checks": {}
         }
         
-        # Check for existing violations
+        # Check for existing violationsYeah
         violations_query = """
             SELECT 
                 upa.tenniscores_player_id,

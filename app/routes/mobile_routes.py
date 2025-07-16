@@ -72,7 +72,7 @@ def serve_mobile_admin():
 @mobile_bp.route("/mobile")
 @login_required
 def serve_mobile():
-    """Serve the iOS-style mobile home page (main mobile landing page)"""
+    """Serve the mobile home page (submenu layout - primary layout)"""
     print(f"=== SERVE_MOBILE FUNCTION CALLED ===")
     print(f"Request path: {request.path}")
     print(f"Request method: {request.method}")
@@ -135,7 +135,7 @@ def serve_mobile():
             log_user_activity(
                 session["user"]["email"], 
                 "page_visit", 
-                page="mobile_home_ios",
+                page="mobile_home_submenu",
                 first_name=session["user"].get("first_name"),
                 last_name=session["user"].get("last_name")
             )
@@ -147,11 +147,11 @@ def serve_mobile():
         # Fallback to old session
         session_data = {"user": session["user"], "authenticated": True}
         try:
-            log_user_activity(session["user"]["email"], "page_visit", page="mobile_home_ios")
+            log_user_activity(session["user"]["email"], "page_visit", page="mobile_home_submenu")
         except Exception as e2:
             print(f"Error logging mobile access: {str(e2)}")
 
-    return render_template("mobile/index.html", session_data=session_data)
+    return render_template("mobile/home_submenu.html", session_data=session_data)
 
 
 @mobile_bp.route("/mobile/alt1")
@@ -339,7 +339,7 @@ def serve_rally_mobile():
     except Exception as e:
         print(f"Error logging rally mobile redirect: {str(e)}")
 
-    return redirect("/mobile/home_submenu")
+    return redirect("/mobile")
 
 
 @mobile_bp.route("/mobile/matches")
@@ -4329,11 +4329,19 @@ def serve_mobile_lineup_escrow_confirmation():
     return render_template("mobile/lineup_escrow_confirmation.html")
 
 
-@mobile_bp.route('/mobile/home_submenu')
+@mobile_bp.route('/mobile/grid-layout')
 @login_required
-def home_submenu():
+def mobile_grid_layout():
+    """Serve the old grid layout as an alternative option"""
     session_data = {"user": session["user"], "authenticated": True}
-    return render_template("mobile/home_submenu.html", session_data=session_data)
+    log_user_activity(
+        session["user"]["email"], 
+        "page_visit", 
+        page="mobile_grid_layout",
+        first_name=session["user"].get("first_name"),
+        last_name=session["user"].get("last_name")
+    )
+    return render_template("mobile/index.html", session_data=session_data)
 
 
 
