@@ -85,22 +85,9 @@
     color: #033333 !important;
   }
   
-  /* Layout Toggle Styles */
+  /* Layout Toggle Styles - HIDDEN */
   .layout-toggle-btn {
-    color: #6b7280;
-    background: transparent;
-    border: none;
-    cursor: pointer;
-  }
-  
-  .layout-toggle-btn.active {
-    color: #045454;
-    background: #ffffff;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  }
-  
-  .layout-toggle-btn:hover {
-    color: #045454;
+    display: none !important;
   }
 </style>
 
@@ -257,17 +244,18 @@
     </div>
   </div>
 
+  <!-- Menu Separator -->
+  <div class="flex items-center justify-center mb-6" style="margin-top: 32px;">
+    <div class="flex-grow border-t-2 border-gray-400"></div>
+    <div class="section-header text-xl font-bold px-4 text-center">
+      Menu
+    </div>
+    <div class="flex-grow border-t-2 border-gray-400"></div>
+  </div>
+
   <!-- Layout Toggle -->
   <div class="flex justify-center mb-4" style="margin-top: 20px;">
     <div class="flex items-center space-x-2 bg-gray-100 rounded-full p-1">
-      <button id="grid-layout-btn" class="layout-toggle-btn active p-2 rounded-full transition-all duration-200" onclick="switchToGridLayout()" title="Grid Layout">
-        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-          <rect x="3" y="3" width="7" height="7" rx="1"/>
-          <rect x="14" y="3" width="7" height="7" rx="1"/>
-          <rect x="3" y="14" width="7" height="7" rx="1"/>
-          <rect x="14" y="14" width="7" height="7" rx="1"/>
-        </svg>
-      </button>
       <button id="column-layout-btn" class="layout-toggle-btn p-2 rounded-full transition-all duration-200" onclick="switchToColumnLayout()" title="Column Layout">
         <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
           <rect x="6" y="3" width="12" height="2" rx="1"/>
@@ -275,6 +263,14 @@
           <rect x="6" y="11" width="12" height="2" rx="1"/>
           <rect x="6" y="15" width="12" height="2" rx="1"/>
           <rect x="6" y="19" width="12" height="2" rx="1"/>
+        </svg>
+      </button>
+      <button id="grid-layout-btn" class="layout-toggle-btn active p-2 rounded-full transition-all duration-200" onclick="switchToGridLayout()" title="Grid Layout">
+        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+          <rect x="3" y="3" width="7" height="7" rx="1"/>
+          <rect x="14" y="3" width="7" height="7" rx="1"/>
+          <rect x="3" y="14" width="7" height="7" rx="1"/>
+          <rect x="14" y="14" width="7" height="7" rx="1"/>
         </svg>
       </button>
     </div>
@@ -703,10 +699,38 @@
 
   <!-- Alternative Style Link -->
   <div class="text-center mt-8 mb-4">
-    <a href="/mobile/home_submenu" class="text-sm text-gray-500 hover:text-gray-700 underline">
+    <a href="/mobile" class="text-sm text-gray-500 hover:text-gray-700 underline">
       Switch to single column layout
     </a>
   </div>
+
+  <!-- DEBUG SECTION - TEMPORARY -->
+  <div class="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded mb-4">
+    <div class="flex">
+      <div class="flex-shrink-0">
+        <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+        </svg>
+      </div>
+      <div class="ml-3">
+        <h3 class="text-sm font-medium">DEBUG: Team Switching Test</h3>
+        <div class="mt-2 text-sm">
+          <p>Current user: {{ session_data.user.email }}</p>
+          <p>League: {{ session_data.user.league_name }} ({{ session_data.user.league_id }})</p>
+          <p>Team: {{ session_data.user.team_name }} ({{ session_data.user.team_id }})</p>
+          <p>Club: {{ session_data.user.club }} - {{ session_data.user.series }}</p>
+          <div class="mt-2 space-x-2">
+            <button onclick="checkMultipleLeagues()" class="bg-blue-500 text-white px-3 py-1 rounded text-xs">Check Leagues</button>
+            <button onclick="checkMultipleClubs()" class="bg-green-500 text-white px-3 py-1 rounded text-xs">Check Teams</button>
+            <button onclick="showLeagueSwitcher()" class="bg-purple-500 text-white px-3 py-1 rounded text-xs">Show League Modal</button>
+            <button onclick="showClubSwitcher()" class="bg-orange-500 text-white px-3 py-1 rounded text-xs">Show Team Modal</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HomePageNotifications Section -->
 </div>
 
 <script>
@@ -742,38 +766,51 @@ document.addEventListener('DOMContentLoaded', function() {
 
 async function checkMultipleLeagues() {
   try {
+    console.log('🔍 Checking for multiple leagues...');
     // Check if this specific user has multiple leagues (including all associations)
     const response = await fetch('/api/get-user-leagues');
     const data = await response.json();
+    
+    console.log('📊 League check response:', data);
     
     if (data.success && data.has_multiple_leagues) {
       const leagueButton = document.getElementById('leagueSwitcherTrigger');
       if (leagueButton) {
         leagueButton.classList.remove('hidden');
         console.log(`✅ League selector shown - user has ${data.league_count} leagues`);
+      } else {
+        console.log('❌ League button element not found');
       }
     } else {
       console.log(`❌ League selector hidden - user has ${data.league_count || 0} leagues`);
     }
   } catch (error) {
-    console.error('Error checking multiple leagues:', error);
+    console.error('❌ Error checking multiple leagues:', error);
   }
 }
 
 async function checkMultipleClubs() {
   try {
+    console.log('🔍 Checking for multiple clubs/teams...');
     // Check if this specific user has multiple teams in current league
     const response = await fetch('/api/get-user-teams-in-current-league');
     const data = await response.json();
+    
+    console.log('📊 Club check response:', data);
     
     if (data.success && data.has_multiple_teams) {
       const clubButton = document.getElementById('clubSwitcherTrigger');
       if (clubButton) {
         clubButton.classList.remove('hidden');
+        console.log(`✅ Club selector shown - user has ${data.teams.length} teams in current league`);
+      } else {
+        console.log('❌ Club button element not found');
       }
+    } else {
+      console.log(`❌ Club selector hidden - user has ${data.teams ? data.teams.length : 0} teams in current league`);
     }
   } catch (error) {
-    console.error('Error checking multiple clubs:', error);
+    console.error('❌ Error checking multiple clubs:', error);
   }
 }
 
@@ -1249,11 +1286,24 @@ function renderNotifications(notifications) {
 
 function createNotificationElement(notification, index) {
     const element = document.createElement('div');
-    element.className = `notification-card bg-white rounded-xl shadow-lg border border-gray-200 p-4 transform transition-all duration-300 ease-out opacity-100 translate-y-0`;
+    
+    // Add special background color for captain messages
+    let bgClass = 'bg-white';
+    if (notification.type === 'captain') {
+        bgClass = 'bg-blue-50 border-blue-200';
+    }
+    
+    element.className = `notification-card ${bgClass} rounded-xl shadow-lg border border-gray-200 p-3 transform transition-all duration-300 ease-out opacity-100 translate-y-0`;
     element.style.animationDelay = `${index * 100}ms`;
     
     const icon = getNotificationIcon(notification.type);
     const bgColor = getNotificationBgColor(notification.type);
+    
+    // Generate weather icons if available
+    let weatherIcons = '';
+    if (notification.type === 'schedule' && notification.weather) {
+        weatherIcons = generateWeatherIcons(notification.weather);
+    }
     
     element.innerHTML = `
         <div class="relative">
@@ -1263,41 +1313,42 @@ function createNotificationElement(notification, index) {
                        style="
                            display: inline-flex; 
                            align-items: center; 
-                           padding: 8px 12px; 
-                           border-radius: 25px; 
+                           padding: 6px 10px; 
+                           border-radius: 20px; 
                            background: #bff863; 
                            color: #045454; 
                            text-decoration: none;
-                           box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-                           font-size: 12px;
+                           box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+                           font-size: 11px;
                            font-weight: 600;
                            transition: all 0.2s ease;
                        "
                        onmouseover="this.style.transform='scale(1.05)'" 
                        onmouseout="this.style.transform='scale(1)'">
-                        <svg style="width: 14px; height: 14px; color: #045454;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg style="width: 12px; height: 12px; color: #045454;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                         </svg>
                     </a>
                 </div>
             ` : ''}
             
-            <div class="flex items-start gap-4">
+            <div class="flex items-start gap-3">
                 <!-- Icon -->
                 <div class="flex-shrink-0">
-                    <div class="w-12 h-12 flex items-center justify-center">
+                    <div class="w-10 h-10 flex items-center justify-center">
                         ${icon}
                     </div>
                 </div>
                 
                 <!-- Content -->
                 <div class="flex-1 min-w-0">
-                    <h3 class="font-semibold text-gray-900 text-base mb-1">
+                    <h3 class="font-semibold text-gray-900 text-sm mb-1">
                         ${notification.title}
                     </h3>
-                    <p class="text-gray-600 text-sm leading-relaxed mb-3">
-                        ${notification.message}
+                    <p class="text-gray-600 text-sm leading-relaxed mb-2">
+                        ${notification.type === 'schedule' ? notification.message.split('\n').map(line => `<div class="text-sm">${line}</div>`).join('') : notification.message}
                     </p>
+                    ${weatherIcons ? `<div class="flex gap-2 mt-2">${weatherIcons}</div>` : ''}
                 </div>
             </div>
         </div>
@@ -1306,9 +1357,33 @@ function createNotificationElement(notification, index) {
     return element;
 }
 
+function generateWeatherIcons(weatherData) {
+    let icons = '';
+    
+    Object.values(weatherData).forEach(forecast => {
+        if (forecast && forecast.icon) {
+            const iconUrl = `http://openweathermap.org/img/wn/${forecast.icon}@2x.png`;
+            const tempHigh = Math.round(forecast.temperature_high);
+            const tempLow = Math.round(forecast.temperature_low);
+            
+            icons += `
+                <div class="flex items-center gap-1 bg-blue-50 rounded-lg px-2 py-1">
+                    <img src="${iconUrl}" alt="${forecast.condition}" class="w-6 h-6" 
+                         onerror="this.style.display='none'">
+                    <span class="text-xs font-medium text-gray-700">
+                        ${tempHigh}°/${tempLow}°
+                    </span>
+                </div>
+            `;
+        }
+    });
+    
+    return icons;
+}
+
 function getNotificationIcon(type) {
     // Pickup Games - Tennis Court Icon (matches pickup games button)
-    const pickupGamesIcon = `<svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    const pickupGamesIcon = `<svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <!-- Outer court -->
         <rect x="4" y="4" width="16" height="16" rx="2" stroke="currentColor" stroke-width="2" fill="none"/>
         <!-- Net (center line) -->
@@ -1322,7 +1397,7 @@ function getNotificationIcon(type) {
     </svg>`;
     
     // Team Polls - Survey Icon (matches team polls button)
-    const teamPollIcon = `<svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    const teamPollIcon = `<svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <circle cx="6" cy="7" r="1.5" stroke="currentColor" stroke-width="2" fill="#fff"/>
         <line x1="10" y1="7" x2="20" y2="7" stroke="currentColor" stroke-width="2"/>
         <circle cx="6" cy="12" r="1.5" stroke="currentColor" stroke-width="2" fill="#fff"/>
@@ -1332,17 +1407,43 @@ function getNotificationIcon(type) {
     </svg>`;
     
     // Captain/Calendar Icon (matches calendar buttons)
-    const captainIcon = `<svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    const captainIcon = `<svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <rect x="3" y="7" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2" fill="none"/>
         <path d="M16 3v4M8 3v4M3 11h18" stroke="currentColor" stroke-width="2"/>
+    </svg>`;
+    
+    // Schedule Icon (calendar with clock)
+    const scheduleIcon = `<svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <rect x="3" y="7" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2" fill="none"/>
+        <path d="M16 3v4M8 3v4M3 11h18" stroke="currentColor" stroke-width="2"/>
+        <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" fill="none"/>
+        <path d="M12 9v3l2 2" stroke="currentColor" stroke-width="2"/>
+    </svg>`;
+    
+    // Trophy Icon for Team Position
+    const trophyIcon = `<svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" stroke="currentColor" stroke-width="2"/>
+        <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" stroke="currentColor" stroke-width="2"/>
+        <path d="M4 22h16" stroke="currentColor" stroke-width="2"/>
+        <path d="M10 14.66V17c0 1.1.9 2 2 2s2-.9 2-2v-2.34" stroke="currentColor" stroke-width="2"/>
+        <path d="M12 14.66V9c0-1.1-.9-2-2-2H8" stroke="currentColor" stroke-width="2"/>
+        <path d="M12 14.66V9c0-1.1.9-2 2-2h2" stroke="currentColor" stroke-width="2"/>
+    </svg>`;
+    
+    // Fire Icon for Win Streaks
+    const fireIcon = `<svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path d="M12 2c-1.1 0-2 .9-2 2v2c0 1.1.9 2 2 2s2-.9 2-2V4c0-1.1-.9-2-2-2z" stroke="currentColor" stroke-width="2"/>
+        <path d="M12 8c-1.1 0-2 .9-2 2v2c0 1.1.9 2 2 2s2-.9 2-2v-2c0-1.1-.9-2-2-2z" stroke="currentColor" stroke-width="2"/>
+        <path d="M12 14c-1.1 0-2 .9-2 2v2c0 1.1.9 2 2 2s2-.9 2-2v-2c0-1.1-.9-2-2-2z" stroke="currentColor" stroke-width="2"/>
     </svg>`;
     
     const icons = {
         'match': pickupGamesIcon,      // Pickup games use tennis court icon
         'captain': captainIcon,        // Captain messages use calendar icon
         'result': captainIcon,         // Results use calendar icon
-        'personal': captainIcon,       // Personal notifications use calendar icon
-        'team': teamPollIcon           // Team notifications use poll icon
+        'personal': fireIcon,          // Personal notifications (win streaks) use fire icon
+        'team': trophyIcon,            // Team notifications (position) use trophy icon
+        'schedule': scheduleIcon       // Schedule notifications use calendar with clock icon
     };
     
     return icons[type] || captainIcon;
@@ -1354,7 +1455,8 @@ function getNotificationBgColor(type) {
         'captain': 'bg-purple-500',
         'result': 'bg-green-500',
         'personal': 'bg-orange-500',
-        'team': 'bg-indigo-500'
+        'team': 'bg-indigo-500',
+        'schedule': 'bg-teal-500'
     };
     
     return colors[type] || 'bg-gray-500';
@@ -1431,8 +1533,8 @@ function switchToGridLayout() {
     document.getElementById('grid-layout-btn').classList.add('active');
     document.getElementById('column-layout-btn').classList.remove('active');
     
-    // Navigate to grid layout
-            window.location.href = '/mobile/home_submenu';
+    // Navigate to grid layout (current page - alternative layout)
+    window.location.href = '/mobile/grid-layout';
 }
 
 function switchToColumnLayout() {
@@ -1440,8 +1542,8 @@ function switchToColumnLayout() {
     document.getElementById('column-layout-btn').classList.add('active');
     document.getElementById('grid-layout-btn').classList.remove('active');
     
-    // Navigate to column layout
-    window.location.href = '/mobile/home_submenu';
+    // Navigate to column layout (primary layout)
+    window.location.href = '/mobile';
 }
 </script>
 {% endblock %} 

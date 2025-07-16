@@ -226,6 +226,73 @@
             color: #000000 !important;
         }
         
+        /* Hamburger Menu Styles (matching home_submenu) */
+        .category-button {
+            background: #fff !important;
+            border-radius: 1.5rem !important;
+            border: 1px solid #E0E0E0 !important;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08) !important;
+            color: #045454 !important;
+            font-weight: 500 !important;
+            transition: box-shadow 0.2s, transform 0.1s, background 0.2s;
+            padding: 1.5rem !important;
+            width: 100%;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .category-button * { color: #045454 !important; font-weight: 500 !important; }
+        .category-button:active { transform: scale(0.97); background: #f2f2f7 !important; box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important; }
+        .category-button:hover { background: #f2f2f7 !important; box-shadow: 0 6px 20px rgba(0,0,0,0.12) !important; color: #045454 !important; border-color: #E0E0E0 !important; }
+        .category-button:hover * { color: #045454 !important; }
+        
+        /* Active category button styling when submenu is open */
+        .category-button.active {
+            background: #045454 !important;
+            color: #bff863 !important;
+            border-color: #045454 !important;
+            box-shadow: 0 4px 16px rgba(4, 84, 84, 0.3) !important;
+        }
+        .category-button.active * { 
+            color: #bff863 !important; 
+        }
+        .category-button.active svg { 
+            color: #bff863 !important; 
+        }
+        .submenu { display: none; background: #fff; border-radius: 1rem; margin-top: 0.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1); overflow: hidden; }
+        .submenu.active { display: block; }
+        .submenu-item { 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            padding: 1.5rem; 
+            border-bottom: 1px solid #f0f0f0; 
+            text-decoration: none; 
+            color: #045454; 
+            transition: background-color 0.2s; 
+            text-align: center;
+            min-height: 120px;
+        }
+        .submenu-item:last-child { border-bottom: none; }
+        .submenu-item:hover { background-color: #f8f9fa; }
+        .submenu-item .icon { 
+            width: 2rem; 
+            height: 2rem; 
+            margin-bottom: 0.75rem; 
+            display: block;
+        }
+        .submenu-item .text { 
+            font-weight: 500; 
+            text-align: center;
+            line-height: 1.3;
+        }
+        .submenu-item .arrow { 
+            display: none; 
+        }
+        
         /* Responsive adjustments - Keep 2 columns on mobile */
         @media (max-width: 768px) {
             .candy-grid {
@@ -304,134 +371,220 @@
             <!-- Navigation Content -->
             <div class="flex-1 overflow-y-auto" id="navContent">
                 <div class="px-4 py-6">
-                    <!-- Candy Box Grid Layout -->
-                    <div class="max-w-lg mx-auto">
-                        
-                        <!-- Act Section -->
-                        <div class="mb-6">
-                            <h2 class="text-lg font-bold mb-3 text-gray-800 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">Act</h2>
-                            <div class="candy-grid">
-                                <a href="/mobile/availability" class="candy-box-item bg-gradient-to-br from-teal-50 to-teal-100 border border-teal-200 rounded-xl p-3 flex flex-col items-center text-center hover:shadow-md transition-all duration-200 hover:scale-105" style="background: #10645c !important; border-color: #10645c !important;">
-                                    <i class="fas fa-calendar text-xl mb-2" style="color: white !important;"></i>
-                                    <span class="text-xs font-medium text-white" style="color: white !important;">View Schedule</span>
-                                </a>
-                                <a href="/mobile/availability-calendar" class="candy-box-item bg-gradient-to-br from-teal-50 to-teal-100 border border-teal-200 rounded-xl p-3 flex flex-col items-center text-center hover:shadow-md transition-all duration-200 hover:scale-105" style="background: #10645c !important; border-color: #10645c !important;">
-                                    <i class="fas fa-calendar-check text-xl mb-2" style="color: white !important;"></i>
-                                    <span class="text-xs font-medium text-white" style="color: white !important;">Update Availability</span>
-                                </a>
-                                <a href="/mobile/track-byes-courts" class="candy-box-item bg-gradient-to-br from-teal-50 to-teal-100 border border-teal-200 rounded-xl p-3 flex flex-col items-center text-center hover:shadow-md transition-all duration-200 hover:scale-105" style="background: #10645c !important; border-color: #10645c !important;">
-                                    <i class="fas fa-clipboard-check text-xl mb-2" style="color: white !important;"></i>
-                                    <span class="text-xs font-medium text-white" style="color: white !important;">Track Assignments</span>
-                                </a>
-                                <a href="/mobile/polls" class="candy-box-item bg-gradient-to-br from-teal-50 to-teal-100 border border-teal-200 rounded-xl p-3 flex flex-col items-center text-center hover:shadow-md transition-all duration-200 hover:scale-105" style="background: #10645c !important; border-color: #10645c !important;">
-                                    <i class="fas fa-poll text-xl mb-2" style="color: white !important;"></i>
-                                    <span class="text-xs font-medium text-white" style="color: white !important;">Respond to Polls</span>
-                                </a>
-                                <a href="/mobile/reserve-court" class="candy-box-item bg-gradient-to-br from-teal-50 to-teal-100 border border-teal-200 rounded-xl p-3 flex flex-col items-center text-center hover:shadow-md transition-all duration-200 hover:scale-105" style="background: #10645c !important; border-color: #10645c !important;">
-                                    <i class="fas fa-table-tennis text-xl mb-2" style="color: white !important;"></i>
-                                    <span class="text-xs font-medium text-white" style="color: white !important;">Reserve Court</span>
-                                </a>
-                            </div>
-                        </div>
-                        
-                        <!-- Analyze Section -->
-                        <div class="mb-6">
-                            <h2 class="text-lg font-bold mb-3 text-gray-800 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">Analyze</h2>
-                            <div class="candy-grid">
-                                <a href="/mobile/analyze-me" class="candy-box-item bg-gradient-to-br from-teal-50 to-teal-100 border border-teal-200 rounded-xl p-3 flex flex-col items-center text-center hover:shadow-md transition-all duration-200 hover:scale-105" style="background: #10645c !important; border-color: #10645c !important;">
-                                    <i class="fas fa-user text-xl mb-2" style="color: white !important;"></i>
-                                    <span class="text-xs font-medium text-white" style="color: white !important;">Me</span>
-                                </a>
-                                <a href="/mobile/myteam" class="candy-box-item bg-gradient-to-br from-teal-50 to-teal-100 border border-teal-200 rounded-xl p-3 flex flex-col items-center text-center hover:shadow-md transition-all duration-200 hover:scale-105" style="background: #10645c !important; border-color: #10645c !important;">
-                                    <i class="fas fa-users text-xl mb-2" style="color: white !important;"></i>
-                                    <span class="text-xs font-medium text-white" style="color: white !important;">My Team</span>
-                                </a>
-                                <a href="/mobile/myseries" class="candy-box-item bg-gradient-to-br from-teal-50 to-teal-100 border border-teal-200 rounded-xl p-3 flex flex-col items-center text-center hover:shadow-md transition-all duration-200 hover:scale-105" style="background: #10645c !important; border-color: #10645c !important;">
-                                    <i class="fas fa-trophy text-xl mb-2" style="color: white !important;"></i>
-                                    <span class="text-xs font-medium text-white" style="color: white !important;">My Series</span>
-                                </a>
-                                <a href="/mobile/my-club" class="candy-box-item bg-gradient-to-br from-teal-50 to-teal-100 border border-teal-200 rounded-xl p-3 flex flex-col items-center text-center hover:shadow-md transition-all duration-200 hover:scale-105" style="background: #10645c !important; border-color: #10645c !important;">
-                                    <i class="fas fa-building text-xl mb-2" style="color: white !important;"></i>
-                                    <span class="text-xs font-medium text-white" style="color: white !important;">My Club</span>
-                                </a>
-                            </div>
-                        </div>
-                        
-                        <!-- Prepare Section -->
-                        <div class="mb-6">
-                            <h2 class="text-lg font-bold mb-3 text-gray-800 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">Prepare</h2>
-                            <div class="candy-grid">
-                                <a href="/mobile/player-search" class="candy-box-item bg-gradient-to-br from-teal-50 to-teal-100 border border-teal-200 rounded-xl p-3 flex flex-col items-center text-center hover:shadow-md transition-all duration-200 hover:scale-105" style="background: #10645c !important; border-color: #10645c !important;">
-                                    <i class="fas fa-search text-xl mb-2" style="color: white !important;"></i>
-                                    <span class="text-xs font-medium text-white" style="color: white !important;">Scout Competition</span>
-                                </a>
-                                <a href="/mobile/teams-players" class="candy-box-item bg-gradient-to-br from-teal-50 to-teal-100 border border-teal-200 rounded-xl p-3 flex flex-col items-center text-center hover:shadow-md transition-all duration-200 hover:scale-105" style="background: #10645c !important; border-color: #10645c !important;">
-                                    <i class="fas fa-users text-xl mb-2" style="color: white !important;"></i>
-                                    <span class="text-xs font-medium text-white" style="color: white !important;">Research Teams</span>
-                                </a>
-                                <a href="/mobile/matchup-simulator" class="candy-box-item bg-gradient-to-br from-teal-50 to-teal-100 border border-teal-200 rounded-xl p-3 flex flex-col items-center text-center hover:shadow-md transition-all duration-200 hover:scale-105" style="background: #10645c !important; border-color: #10645c !important;">
-                                    <i class="fas fa-chart-line text-xl mb-2" style="color: white !important;"></i>
-                                    <span class="text-xs font-medium text-white" style="color: white !important;">Matchup Simulator</span>
-                                </a>
-                                <a href="/pti-calculator" class="candy-box-item bg-gradient-to-br from-teal-50 to-teal-100 border border-teal-200 rounded-xl p-3 flex flex-col items-center text-center hover:shadow-md transition-all duration-200 hover:scale-105" style="background: #10645c !important; border-color: #10645c !important;">
-                                    <i class="fas fa-calculator text-xl mb-2" style="color: white !important;"></i>
-                                    <span class="text-xs font-medium text-white" style="color: white !important;">PTI Calculator</span>
-                                </a>
-                            </div>
-                        </div>
-                        
-                        <!-- Play Section -->
-                        <div class="mb-6">
-                            <h2 class="text-lg font-bold mb-3 text-gray-800 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">Play</h2>
-                            <div class="candy-grid">
-                                <a href="/mobile/find-people-to-play" class="candy-box-item bg-gradient-to-br from-teal-50 to-teal-100 border border-teal-200 rounded-xl p-3 flex flex-col items-center text-center hover:shadow-md transition-all duration-200 hover:scale-105" style="background: #10645c !important; border-color: #10645c !important;">
-                                    <i class="fas fa-user-friends text-xl mb-2" style="color: white !important;"></i>
-                                    <span class="text-xs font-medium text-white" style="color: white !important;">Find Players</span>
-                                </a>
-                                <a href="/mobile/pickup-games" class="candy-box-item bg-gradient-to-br from-teal-50 to-teal-100 border border-teal-200 rounded-xl p-3 flex flex-col items-center text-center hover:shadow-md transition-all duration-200 hover:scale-105" style="background: #10645c !important; border-color: #10645c !important;">
-                                    <i class="fas fa-calendar-plus text-xl mb-2" style="color: white !important;"></i>
-                                    <span class="text-xs font-medium text-white" style="color: white !important;">Pickup Games</span>
-                                </a>
-                            </div>
-                        </div>
-                        
-                        <!-- Improve Section -->
-                        <div class="mb-6">
-                            <h2 class="text-lg font-bold mb-3 text-gray-800 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">Improve</h2>
-                            <div class="candy-grid">
-                                <a href="/mobile/improve" class="candy-box-item bg-gradient-to-br from-teal-50 to-teal-100 border border-teal-200 rounded-xl p-3 flex flex-col items-center text-center hover:shadow-md transition-all duration-200 hover:scale-105" style="background: #10645c !important; border-color: #10645c !important;">
-                                    <i class="fas fa-chart-bar text-xl mb-2" style="color: white !important;"></i>
-                                    <span class="text-xs font-medium text-white" style="color: white !important;">My Game</span>
-                                </a>
-                                <a href="/mobile/schedule-lesson" class="candy-box-item bg-gradient-to-br from-teal-50 to-teal-100 border border-teal-200 rounded-xl p-3 flex flex-col items-center text-center hover:shadow-md transition-all duration-200 hover:scale-105" style="background: #10645c !important; border-color: #10645c !important;">
-                                    <i class="fas fa-graduation-cap text-xl mb-2" style="color: white !important;"></i>
-                                    <span class="text-xs font-medium text-white" style="color: white !important;">Schedule Lesson</span>
-                                </a>
-                            </div>
-                        </div>
-                        
-                        <!-- Settings Section -->
-                        <div class="mb-6">
-                            <h2 class="text-lg font-bold mb-3 text-gray-800 text-center" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;">Settings</h2>
-                            <div class="candy-grid">
-                                <a href="/mobile/settings" class="candy-box-item bg-gradient-to-br from-teal-50 to-teal-100 border border-teal-200 rounded-xl p-3 flex flex-col items-center text-center hover:shadow-md transition-all duration-200 hover:scale-105" style="background: #10645c !important; border-color: #10645c !important;">
-                                    <i class="fas fa-cog text-xl mb-2" style="color: white !important;"></i>
-                                    <span class="text-xs font-medium text-white" style="color: white !important;">Profile</span>
-                                </a>
-                                <a href="/admin" class="candy-box-item bg-gradient-to-br from-teal-50 to-teal-100 border border-teal-200 rounded-xl p-3 flex flex-col items-center text-center hover:shadow-md transition-all duration-200 hover:scale-105" style="background: #10645c !important; border-color: #10645c !important;">
-                                    <i class="fas fa-shield-alt text-xl mb-2" style="color: white !important;"></i>
-                                    <span class="text-xs font-medium text-white" style="color: white !important;">Admin</span>
-                                </a>
-                                <button onclick="logoutUser()" class="candy-box-item bg-gradient-to-br from-red-50 to-red-100 border border-red-200 rounded-xl p-3 flex flex-col items-center text-center hover:shadow-md transition-all duration-200 hover:scale-105 cursor-pointer">
-                                    <i class="fas fa-sign-out-alt text-red-600 text-xl mb-2"></i>
-                                    <span class="text-xs font-medium text-gray-700">Logout</span>
-                                </button>
-                            </div>
-                        </div>
-                        
+                  <!-- Menu Separator -->
+                  <div class="flex items-center justify-center mb-6" style="margin-top: -18px;">
+                    <div class="flex-grow border-t-2 border-gray-400"></div>
+                    <div class="section-header text-xl font-bold px-4 text-center">
+                      Menu
                     </div>
+                    <div class="flex-grow border-t-2 border-gray-400"></div>
+                  </div>
+                  
+                  <!-- Single Column Navigation (matches home_submenu) -->
+                  <div class="space-y-4">
+                    <!-- Home Category -->
+                    <div class="category-section">
+                      <button class="category-button rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 w-full text-center" onclick="window.location.href='/mobile'">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke="currentColor" stroke-width="2" fill="none"/><polyline points="9,22 9,12 15,12 15,22" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                        <div class="font-semibold text-lg">Home</div>
+                      </button>
+                    </div>
+                    <!-- Act Category -->
+                    <div class="category-section">
+                      <button class="category-button rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 w-full text-center" onclick="toggleSubmenu('drawer-act-submenu')">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                        <div class="font-semibold text-lg">Act</div>
+                      </button>
+                      <div id="drawer-act-submenu" class="submenu">
+                        <a href="/mobile/availability" class="submenu-item">
+                          <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2" fill="none"/><path d="M16 3v4M8 3v4M3 11h18" stroke="currentColor" stroke-width="2"/></svg>
+                          <span class="text">View Schedule</span><span class="arrow">→</span>
+                        </a>
+                        <a href="/mobile/availability-calendar" class="submenu-item">
+                          <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2" fill="none"/><path d="M16 3v4M8 3v4M3 11h18" stroke="currentColor" stroke-width="2"/><path d="M9 16l2 2 4-4" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                          <span class="text">Update Availability</span><span class="arrow">→</span>
+                        </a>
+                        <a href="/mobile/track-byes-courts" class="submenu-item">
+                          <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="9" y="2" width="6" height="4" rx="1" stroke="currentColor" stroke-width="2" fill="none"/><rect x="4" y="6" width="16" height="16" rx="2" stroke="currentColor" stroke-width="2" fill="none"/><path d="M9 10h6M9 14h6M9 18h2" stroke="currentColor" stroke-width="2"/></svg>
+                          <span class="text">Track Assignments</span><span class="arrow">→</span>
+                        </a>
+                        <a href="/mobile/polls" class="submenu-item">
+                          <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="6" cy="7" r="1.5" stroke="currentColor" stroke-width="2" fill="#fff"/><line x1="10" y1="7" x2="20" y2="7" stroke="currentColor" stroke-width="2"/><circle cx="6" cy="12" r="1.5" stroke="currentColor" stroke-width="2" fill="#fff"/><line x1="10" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="2"/><circle cx="6" cy="17" r="1.5" stroke="currentColor" stroke-width="2" fill="#fff"/><line x1="10" y1="17" x2="20" y2="17" stroke="currentColor" stroke-width="2"/></svg>
+                          <span class="text">Respond to Polls</span><span class="arrow">→</span>
+                        </a>
+                        <a href="/mobile/reserve-court" class="submenu-item">
+                          <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polygon points="12 2 15 8.5 22 9.3 17 14.1 18.2 21 12 17.8 5.8 21 7 14.1 2 9.3 9 8.5 12 2" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                          <span class="text">Reserve a Court</span><span class="arrow">→</span>
+                        </a>
+                      </div>
+                    </div>
+                    <!-- Analyze Category -->
+                    <div class="category-section">
+                      <button class="category-button rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 w-full text-center" onclick="toggleSubmenu('drawer-analyze-submenu')">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18" stroke="currentColor" stroke-width="2" fill="none"/><path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                        <div class="font-semibold text-lg">Analyze</div>
+                      </button>
+                      <div id="drawer-analyze-submenu" class="submenu">
+                        <a href="/mobile/analyze-me" class="submenu-item">
+                          <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="2" fill="none"/><path d="M4 20v-2a4 4 0 014-4h8a4 4 0 014 4v2" stroke="currentColor" stroke-width="2"/></svg>
+                          <span class="text">Me</span><span class="arrow">→</span>
+                        </a>
+                        <a href="/mobile/myteam" class="submenu-item">
+                          <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="8" cy="8" r="4" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="16" cy="8" r="4" stroke="currentColor" stroke-width="2" fill="none"/><path d="M2 20v-2a4 4 0 014-4h2m8 0h2a4 4 0 014 4v2" stroke="currentColor" stroke-width="2"/></svg>
+                          <span class="text">My Team</span><span class="arrow">→</span>
+                        </a>
+                        <a href="/mobile/myseries" class="submenu-item">
+                          <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z" stroke="currentColor" stroke-width="2" fill="none"/><path d="M2 17l10 5 10-5" stroke="currentColor" stroke-width="2" fill="none"/><path d="M2 12l10 5 10-5" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                          <span class="text">My Series</span><span class="arrow">→</span>
+                        </a>
+                        <a href="/mobile/my-club" class="submenu-item">
+                          <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" stroke="currentColor" stroke-width="2" fill="none"/><polyline points="9,22 9,12 15,12 15,22" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                          <span class="text">My Club</span><span class="arrow">→</span>
+                        </a>
+                      </div>
+                    </div>
+                    <!-- Prepare Category -->
+                    <div class="category-section">
+                      <button class="category-button rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 w-full text-center" onclick="toggleSubmenu('drawer-prepare-submenu')">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z" stroke="currentColor" stroke-width="2" fill="none"/><path d="M2 17l10 5 10-5" stroke="currentColor" stroke-width="2" fill="none"/><path d="M2 12l10 5 10-5" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                        <div class="font-semibold text-lg">Prepare</div>
+                      </button>
+                      <div id="drawer-prepare-submenu" class="submenu">
+                        <a href="/mobile/player-search" class="submenu-item">
+                          <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2" fill="none"/><line x1="16.65" y1="16.65" x2="21" y2="21" stroke="currentColor" stroke-width="2"/></svg>
+                          <span class="text">Scout Competition</span><span class="arrow">→</span>
+                        </a>
+                        <a href="/mobile/teams-players" class="submenu-item">
+                          <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="12" cy="12" r="6" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="12" cy="12" r="2" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                          <span class="text">Research Teams</span><span class="arrow">→</span>
+                        </a>
+                        <a href="/mobile/matchup-simulator" class="submenu-item">
+                          <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M16 3h5v5" stroke="currentColor" stroke-width="2" fill="none"/><path d="M4 20l16-16" stroke="currentColor" stroke-width="2" fill="none"/><path d="M21 16v5h-5" stroke="currentColor" stroke-width="2" fill="none"/><path d="M15 15l6 6" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                          <span class="text">Matchup Simulator</span><span class="arrow">→</span>
+                        </a>
+                        <a href="/pti-calculator" class="submenu-item">
+                          <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2" stroke="currentColor" stroke-width="2" fill="none"/><line x1="8" y1="6" x2="16" y2="6" stroke="currentColor" stroke-width="2"/><line x1="8" y1="10" x2="10" y2="10" stroke="currentColor" stroke-width="2"/><line x1="8" y1="14" x2="10" y2="14" stroke="currentColor" stroke-width="2"/><line x1="8" y1="18" x2="10" y2="18" stroke="currentColor" stroke-width="2"/><line x1="14" y1="10" x2="16" y2="10" stroke="currentColor" stroke-width="2"/><line x1="14" y1="14" x2="16" y2="14" stroke="currentColor" stroke-width="2"/><line x1="14" y1="18" x2="16" y2="18" stroke="currentColor" stroke-width="2"/></svg>
+                          <span class="text">PTI Calculator</span><span class="arrow">→</span>
+                        </a>
+                      </div>
+                    </div>
+                    <!-- Play Category -->
+                    <div class="category-section">
+                      <button class="category-button rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 w-full text-center" onclick="toggleSubmenu('drawer-play-submenu')">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                        <div class="font-semibold text-lg">Play</div>
+                      </button>
+                      <div id="drawer-play-submenu" class="submenu">
+                        <a href="/mobile/find-people-to-play" class="submenu-item">
+                          <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2" fill="none"/><path d="M23 21v-2a4 4 0 0 0-3-3.87" stroke="currentColor" stroke-width="2" fill="none"/><path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                          <span class="text">Find Players</span><span class="arrow">→</span>
+                        </a>
+                        <a href="/mobile/pickup-games" class="submenu-item">
+                          <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="4" y="4" width="16" height="16" rx="2" stroke="currentColor" stroke-width="2" fill="none"/><line x1="12" y1="4" x2="12" y2="20" stroke="currentColor" stroke-width="1.5"/><line x1="4" y1="8" x2="20" y2="8" stroke="currentColor" stroke-width="1.2"/><line x1="4" y1="16" x2="20" y2="16" stroke="currentColor" stroke-width="1.2"/><line x1="8" y1="4" x2="8" y2="20" stroke="currentColor" stroke-width="1"/><line x1="16" y1="4" x2="16" y2="20" stroke="currentColor" stroke-width="1"/></svg>
+                          <span class="text">Pickup Games</span><span class="arrow">→</span>
+                        </a>
+                      </div>
+                    </div>
+                    <!-- Improve Category -->
+                    <div class="category-section">
+                      <button class="category-button rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 w-full text-center" onclick="toggleSubmenu('drawer-improve-submenu')">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18" stroke="currentColor" stroke-width="2" fill="none"/><path d="M6 16l3-3 3 3 6-6" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="6" cy="16" r="1" fill="currentColor"/><circle cx="9" cy="13" r="1" fill="currentColor"/><circle cx="12" cy="16" r="1" fill="currentColor"/><circle cx="18" cy="10" r="1" fill="currentColor"/></svg>
+                        <div class="font-semibold text-lg">Improve</div>
+                      </button>
+                      <div id="drawer-improve-submenu" class="submenu">
+                        <a href="/mobile/improve" class="submenu-item">
+                          <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18" stroke="currentColor" stroke-width="2" fill="none"/><path d="M6 16l3-3 3 3 6-6" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="6" cy="16" r="1" fill="currentColor"/><circle cx="9" cy="13" r="1" fill="currentColor"/><circle cx="12" cy="16" r="1" fill="currentColor"/><circle cx="18" cy="10" r="1" fill="currentColor"/></svg>
+                          <span class="text">Improve My Game</span><span class="arrow">→</span>
+                        </a>
+                        <a href="/mobile/schedule-lesson" class="submenu-item">
+                          <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 14l9-5-9-5-9 5 9 5z" stroke="currentColor" stroke-width="2" fill="none"/><path d="M12 14v7" stroke="currentColor" stroke-width="2" fill="none"/><path d="M7 19c0-1.657 2.686-3 6-3s6 1.343 6 3" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                          <span class="text">Schedule Lesson</span><span class="arrow">→</span>
+                        </a>
+                      </div>
+                    </div>
+                    <!-- Captain's Corner Category -->
+                    <div class="category-section">
+                      <button class="category-button rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 w-full text-center" onclick="toggleSubmenu('drawer-captain-submenu')">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 mb-4 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2" fill="none"/><path d="M23 21v-2a4 4 0 0 0-3-3.87" stroke="currentColor" stroke-width="2" fill="none"/><path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                        <div class="font-semibold text-lg">Captain's Corner</div>
+                      </button>
+                      <div id="drawer-captain-submenu" class="submenu">
+                        <a href="/mobile/team-schedule" class="submenu-item">
+                          <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="14" rx="2" stroke="currentColor" stroke-width="2" fill="none"/><path d="M16 3v4M8 3v4M3 11h18" stroke="currentColor" stroke-width="2"/></svg>
+                          <span class="text">Team Schedule</span><span class="arrow">→</span>
+                        </a>
+                        <a href="/mobile/find-subs" class="submenu-item">
+                          <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="8" cy="8" r="3" stroke="currentColor" stroke-width="2" fill="none"/><path d="M2 18v-2a3 3 0 013-3h6a3 3 0 013 3v2" stroke="currentColor" stroke-width="2" fill="none"/><path d="M18 12v6" stroke="currentColor" stroke-width="2" fill="none"/><path d="M21 15h-6" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                          <span class="text">Find Subs</span><span class="arrow">→</span>
+                        </a>
+                        <a href="/mobile/lineup-escrow" class="submenu-item">
+                          <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="9" y="2" width="6" height="4" rx="1" stroke="currentColor" stroke-width="2" fill="none"/><rect x="4" y="6" width="16" height="16" rx="2" stroke="currentColor" stroke-width="2" fill="none"/><line x1="8" y1="10" x2="16" y2="10" stroke="currentColor" stroke-width="2"/><line x1="8" y1="14" x2="16" y2="14" stroke="currentColor" stroke-width="2"/><line x1="8" y1="18" x2="12" y2="18" stroke="currentColor" stroke-width="2"/></svg>
+                          <span class="text">Create Lineup</span><span class="arrow">→</span>
+                        </a>
+                        <a href="/mobile/lineup-escrow-view" class="submenu-item">
+                          <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="12" rx="9" ry="6" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="12" cy="12" r="2" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                          <span class="text">Lineup Escrow</span><span class="arrow">→</span>
+                        </a>
+                        <a href="/mobile/polls" class="submenu-item">
+                          <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="6" cy="7" r="1.5" stroke="currentColor" stroke-width="2" fill="#fff"/><line x1="10" y1="7" x2="20" y2="7" stroke="currentColor" stroke-width="2"/><circle cx="6" cy="12" r="1.5" stroke="currentColor" stroke-width="2" fill="#fff"/><line x1="10" y1="12" x2="20" y2="12" stroke="currentColor" stroke-width="2"/><circle cx="6" cy="17" r="1.5" stroke="currentColor" stroke-width="2" fill="#fff"/><line x1="10" y1="17" x2="20" y2="17" stroke="currentColor" stroke-width="2"/></svg>
+                          <span class="text">Team Polls</span><span class="arrow">→</span>
+                        </a>
+                        <a href="/mobile/track-byes-courts" class="submenu-item">
+                          <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><rect x="9" y="2" width="6" height="4" rx="1" stroke="currentColor" stroke-width="2" fill="none"/><rect x="4" y="6" width="16" height="16" rx="2" stroke="currentColor" stroke-width="2" fill="none"/><path d="M9 10h6M9 14h6M9 18h2" stroke="currentColor" stroke-width="2"/></svg>
+                          <span class="text">Track Assignments</span><span class="arrow">→</span>
+                        </a>
+                        <a href="/mobile/practice-times" class="submenu-item">
+                          <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none"/><path d="M12 6v6l4 2" stroke="currentColor" stroke-width="2"/></svg>
+                          <span class="text">Practice Times</span><span class="arrow">→</span>
+                        </a>
+                        <a href="/mobile/create-team" class="submenu-item">
+                          <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="8" cy="8" r="4" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="16" cy="8" r="4" stroke="currentColor" stroke-width="2" fill="none"/><path d="M2 20v-2a4 4 0 014-4h2m8 0h2a4 4 0 014 4v2" stroke="currentColor" stroke-width="2"/></svg>
+                          <span class="text">Create Team</span><span class="arrow">→</span>
+                        </a>
+                        {% if session_data.user.is_admin %}
+                        <a href="/mobile/admin" class="submenu-item">
+                          <svg class="icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" fill="none"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.09a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.09a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" stroke="currentColor" stroke-width="2" fill="none"/></svg>
+                          <span class="text">Admin</span><span class="arrow">→</span>
+                        </a>
+                        {% endif %}
+                      </div>
+                    </div>
+
+                  </div>
                 </div>
             </div>
+
+            <script>
+            // Drawer submenu toggle logic (copied from home_submenu)
+            function toggleSubmenu(submenuId) {
+              const submenu = document.getElementById(submenuId);
+              const allSubmenus = document.querySelectorAll('.submenu');
+              const allCategoryButtons = document.querySelectorAll('.category-button');
+              
+              // Close all other submenus and remove active class from their buttons
+              allSubmenus.forEach(menu => { 
+                if (menu.id !== submenuId) { 
+                  menu.classList.remove('active'); 
+                } 
+              });
+              
+              // Remove active class from all category buttons
+              allCategoryButtons.forEach(button => {
+                button.classList.remove('active');
+              });
+              
+              // Toggle the current submenu
+              const isActive = submenu.classList.toggle('active');
+              
+              // Add active class to the current category button if submenu is now active
+              if (isActive) {
+                const categoryButton = submenu.previousElementSibling;
+                if (categoryButton && categoryButton.classList.contains('category-button')) {
+                  categoryButton.classList.add('active');
+                }
+              }
+            }
+            </script>
             
             <!-- Scroll Indicator -->
             <div id="scrollIndicator" class="scroll-indicator">
@@ -568,7 +721,7 @@
                 const icon = item.querySelector('i');
                 
                 // Handle specific routing logic
-                if ((currentPath === '/mobile' || currentPath === '/mobile/home_submenu') && itemPath === '/mobile') {
+                if (currentPath === '/mobile' && itemPath === '/mobile') {
                     // Home page
                     item.classList.add('active');
                 } else if (currentPath === '/mobile/availability-calendar' && itemPath === '/mobile/availability-calendar') {
