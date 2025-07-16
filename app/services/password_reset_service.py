@@ -323,7 +323,7 @@ def _check_rate_limit(phone: str) -> bool:
 def _record_rate_limit_attempt(phone: str):
     """Record a password reset attempt for rate limiting"""
     try:
-        _log_password_reset_attempt(phone, success=True, reason="rate_limit_record")
+        _log_password_reset_attempt(phone, success=True, reason="sms_sent")
     except Exception as e:
         logger.error(f"Error recording rate limit attempt for {phone}: {str(e)}")
 
