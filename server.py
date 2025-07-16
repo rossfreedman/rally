@@ -2118,11 +2118,11 @@ def run_temp_password_migration():
     """
     railway_env = os.environ.get("RAILWAY_ENVIRONMENT", "not_set")
     
-    if railway_env != "staging":
+    if railway_env not in ["staging", "production"]:
         return jsonify({
-            "error": "This migration endpoint only works on staging",
+            "error": "This migration endpoint only works on staging or production",
             "railway_env": railway_env,
-            "instructions": "Visit this URL on staging environment to run the migration"
+            "instructions": "Visit this URL on staging or production environment to run the migration"
         }), 403
     
     try:
