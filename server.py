@@ -4523,6 +4523,139 @@ def delete_remaining_victor_forman_production():
         }), 500
 
 
+@app.route("/debug/investigate-ross-phone-production")
+def investigate_ross_phone_production():
+    """
+    Detailed investigation of Ross's phone number in production
+    """
+    railway_env = os.environ.get("RAILWAY_ENVIRONMENT", "not_set")
+    
+    if railway_env != "production":
+        return jsonify({
+            "error": "This endpoint only works on production",
+            "railway_env": railway_env
+        }), 403
+    
+    try:
+        from database_utils import execute_query, execute_query_one
+        
+        results = {
+            "railway_env": railway_env,
+            "timestamp": datetime.now().isoformat(),
+            "phone_analysis": {}
+        }
+        
+        # Ross's phone number
+        ross_phone = "7732138911"
+        
+        # Test 1: Exact match
+        exact_query = """
+            SELECT id, email, first_name, last_name, phone_number, created_at, last_login
+            FROM users
+            WHERE phone_number = %s
+        """
+        exact_matches = execute_query(exact_query, [ross_phone])
+        results["phone_analysis"]["exact_match"] = {
+            "count": len(exact_matches),
+            "users": [{"id": u["id"], "email": u["email"], "name": f"{u['first_name']} {u['last_name']}", "phone": u["phone_number"], "created": str(u["created_at"]), "last_login": str(u["last_login"]) if u["last_login"] else None} for u in exact_matches]
+        }
+        
+        # Test 2: Phone number variations (like the password reset service)
+        phone_variations = [
+            ross_phone,                    # 7732138911
+            f"+1{ross_phone}",            # +17732138911
+            f"+{ross_phone}",             # +7732138911
+            f"1{ross_phone}",             # 17732138911
+        ]
+        
+        all_variation_matches = []
+        for variation in phone_variations:
+            variation_query = """
+                SELECT id, email, first_name, last_name, phone_number, created_at, last_login
+                FROM users
+                WHERE phone_number = %s
+            """
+            matches = execute_query(variation_query, [variation])
+            if matches:
+                for match in matches:
+                    if not any(m['id'] == match['id'] for m in all_variation_matches):
+                        all_variation_matches.append(match)
+        
+        results["phone_analysis"]["variation_matches"] = {
+            "count": len(all_variation_matches),
+            "users": [{"id": u["id"], "email": u["email"], "name": f"{u['first_name']} {u['last_name']}", "phone": u["phone_number"], "created": str(u["created_at"]), "last_login": str(u["last_login"]) if u["last_login"] else None} for u in all_variation_matches]
+        }
+        
+        # Test 3: Partial match (digits only)
+        normalized_phone = ''.join(filter(str.isdigit, ross_phone))
+        partial_query = """
+            SELECT id, email, first_name, last_name, phone_number, created_at, last_login
+            FROM users
+            WHERE REPLACE(REPLACE(REPLACE(phone_number, '+', ''), '-', ''), ' ', '') LIKE %s
+        """
+        partial_phone = f"%{normalized_phone}%"
+        partial_matches = execute_query(partial_query, [partial_phone])
+        
+        results["phone_analysis"]["partial_matches"] = {
+            "count": len(partial_matches),
+            "users": [{"id": u["id"], "email": u["email"], "name": f"{u['first_name']} {u['last_name']}", "phone": u["phone_number"], "created": str(u["created_at"]), "last_login": str(u["last_login"]) if u["last_login"] else None} for u in partial_matches]
+        }
+        
+        # Test 4: Check all phone numbers in the database
+        all_phones_query = """
+            SELECT phone_number, COUNT(*) as count
+            FROM users
+            WHERE phone_number IS NOT NULL AND phone_number != ''
+            GROUP BY phone_number
+            ORDER BY count DESC, phone_number
+        """
+        all_phones = execute_query(all_phones_query)
+        
+        results["phone_analysis"]["all_phones_summary"] = {
+            "total_unique_phones": len(all_phones),
+            "phones_with_multiple_users": [p for p in all_phones if p["count"] > 1],
+            "sample_phones": all_phones[:10]  # First 10 for reference
+        }
+        
+        # Test 5: Check Ross's specific user record
+        ross_user_query = """
+            SELECT id, email, first_name, last_name, phone_number, created_at, last_login
+            FROM users
+            WHERE email = 'rossfreedman@gmail.com'
+        """
+        ross_user = execute_query_one(ross_user_query)
+        
+        if ross_user:
+            results["phone_analysis"]["ross_user"] = {
+                "id": ross_user["id"],
+                "email": ross_user["email"],
+                "name": f"{ross_user['first_name']} {ross_user['last_name']}",
+                "phone": ross_user["phone_number"],
+                "created": str(ross_user["created_at"]),
+                "last_login": str(ross_user["last_login"]) if ross_user["last_login"] else None
+            }
+        
+        return jsonify({
+            "debug": "investigate_ross_phone_production",
+            "results": results,
+            "analysis": {
+                "exact_matches_found": results["phone_analysis"]["exact_match"]["count"],
+                "variation_matches_found": results["phone_analysis"]["variation_matches"]["count"],
+                "partial_matches_found": results["phone_analysis"]["partial_matches"]["count"],
+                "ross_user_found": "ross_user" in results["phone_analysis"],
+                "likely_cause": "Phone number format differences or the password reset service is using different logic"
+            }
+        })
+        
+    except Exception as e:
+        import traceback
+        return jsonify({
+            "error": str(e),
+            "traceback": traceback.format_exc(),
+            "railway_env": railway_env
+        }), 500
+
+
 @app.route("/debug/check-duplicate-phones-production")
 def check_duplicate_phones_production():
     """
