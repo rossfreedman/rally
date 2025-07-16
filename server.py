@@ -2111,6 +2111,131 @@ def check_recent_database_changes():
         }), 500
 
 
+@app.route("/admin/run-temp-password-migration")
+def run_temp_password_migration():
+    """
+    Web endpoint to run temporary password migration on staging
+    """
+    railway_env = os.environ.get("RAILWAY_ENVIRONMENT", "not_set")
+    
+    if railway_env != "staging":
+        return jsonify({
+            "error": "This migration endpoint only works on staging",
+            "railway_env": railway_env,
+            "instructions": "Visit this URL on staging environment to run the migration"
+        }), 403
+    
+    try:
+        from database_utils import execute_update
+        
+        results = {
+            "railway_env": railway_env,
+            "timestamp": datetime.now().isoformat(),
+            "migration_steps": []
+        }
+        
+        # Step 1: Check if columns already exist
+        results["migration_steps"].append("🔍 Checking if temporary password columns exist...")
+        
+        try:
+            check_query = """
+                SELECT column_name 
+                FROM information_schema.columns 
+                WHERE table_name = 'users' 
+                AND column_name IN ('has_temporary_password', 'temporary_password_set_at')
+            """
+            from database_utils import execute_query
+            existing_columns = execute_query(check_query)
+            
+            if existing_columns and len(existing_columns) >= 2:
+                results["migration_steps"].append("✅ Temporary password columns already exist")
+                results["columns_exist"] = True
+                return jsonify({
+                    "status": "success",
+                    "message": "Temporary password columns already exist - no migration needed",
+                    "results": results
+                })
+            else:
+                results["migration_steps"].append("📋 Columns need to be added")
+                results["columns_exist"] = False
+                
+        except Exception as e:
+            results["migration_steps"].append(f"⚠️ Could not check columns: {str(e)}")
+            results["columns_exist"] = False
+        
+        # Step 2: Run the migration
+        results["migration_steps"].append("🔄 Running temporary password migration...")
+        
+        migration_sql = """
+        -- Add columns to track temporary passwords
+        ALTER TABLE users 
+        ADD COLUMN IF NOT EXISTS has_temporary_password BOOLEAN DEFAULT FALSE,
+        ADD COLUMN IF NOT EXISTS temporary_password_set_at TIMESTAMP;
+
+        -- Add index for efficient querying
+        CREATE INDEX IF NOT EXISTS idx_users_temporary_password 
+        ON users(has_temporary_password) 
+        WHERE has_temporary_password = TRUE;
+
+        -- Add comment for documentation
+        COMMENT ON COLUMN users.has_temporary_password IS 'Flag indicating if user has a temporary password that needs to be changed';
+        COMMENT ON COLUMN users.temporary_password_set_at IS 'Timestamp when temporary password was set';
+        """
+        
+        execute_update(migration_sql)
+        results["migration_steps"].append("✅ Migration SQL executed successfully")
+        
+        # Step 3: Verify the migration
+        results["migration_steps"].append("🧪 Verifying migration...")
+        
+        verify_query = """
+            SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_name = 'users' 
+            AND column_name IN ('has_temporary_password', 'temporary_password_set_at')
+        """
+        
+        verify_columns = execute_query(verify_query)
+        results["verification"] = {
+            "columns_found": len(verify_columns) if verify_columns else 0,
+            "column_names": [col["column_name"] for col in verify_columns] if verify_columns else []
+        }
+        
+        if len(verify_columns) >= 2:
+            results["migration_steps"].append("✅ Migration verification successful")
+            results["success"] = True
+            
+            return jsonify({
+                "status": "success",
+                "message": "Temporary password migration completed successfully!",
+                "results": results,
+                "next_steps": [
+                    "✅ Migration complete",
+                    "👉 Try logging in again - the temporary password functionality should now work",
+                    "🎯 The login error should be resolved"
+                ]
+            })
+        else:
+            results["migration_steps"].append("❌ Migration verification failed")
+            results["success"] = False
+            
+            return jsonify({
+                "status": "error",
+                "message": "Migration ran but verification failed",
+                "results": results
+            }), 500
+        
+    except Exception as e:
+        import traceback
+        return jsonify({
+            "status": "error",
+            "message": "Migration endpoint error",
+            "error": str(e),
+            "traceback": traceback.format_exc(),
+            "railway_env": railway_env
+        }), 500
+
+
 @app.route("/admin/run-pickup-games-migration")
 def run_pickup_games_migration():
     """
