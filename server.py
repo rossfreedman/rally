@@ -4523,6 +4523,121 @@ def delete_remaining_victor_forman_production():
         }), 500
 
 
+@app.route("/debug/check-duplicate-phones-production")
+def check_duplicate_phones_production():
+    """
+    Check for duplicate phone numbers in production database
+    """
+    railway_env = os.environ.get("RAILWAY_ENVIRONMENT", "not_set")
+    
+    if railway_env != "production":
+        return jsonify({
+            "error": "This endpoint only works on production",
+            "railway_env": railway_env
+        }), 403
+    
+    try:
+        from database_utils import execute_query, execute_query_one
+        
+        results = {
+            "railway_env": railway_env,
+            "timestamp": datetime.now().isoformat(),
+            "duplicate_analysis": {}
+        }
+        
+        # Find all phone numbers that appear more than once
+        duplicate_phones_query = """
+            SELECT 
+                phone_number,
+                COUNT(*) as user_count,
+                ARRAY_AGG(id) as user_ids,
+                ARRAY_AGG(email) as emails,
+                ARRAY_AGG(first_name) as first_names,
+                ARRAY_AGG(last_name) as last_names,
+                ARRAY_AGG(created_at) as created_dates,
+                ARRAY_AGG(last_login) as last_logins
+            FROM users
+            WHERE phone_number IS NOT NULL AND phone_number != ''
+            GROUP BY phone_number
+            HAVING COUNT(*) > 1
+            ORDER BY COUNT(*) DESC, phone_number
+        """
+        
+        duplicate_phones = execute_query(duplicate_phones_query)
+        
+        if not duplicate_phones:
+            results["message"] = "No duplicate phone numbers found"
+            return jsonify({
+                "debug": "check_duplicate_phones_production",
+                "results": results
+            })
+        
+        results["total_duplicate_phones"] = len(duplicate_phones)
+        
+        # Analyze each duplicate phone number
+        for dup in duplicate_phones:
+            phone = dup['phone_number']
+            user_count = dup['user_count']
+            user_ids = dup['user_ids']
+            emails = dup['emails']
+            first_names = dup['first_names']
+            last_names = dup['last_names']
+            created_dates = dup['created_dates']
+            last_logins = dup['last_logins']
+            
+            # Create user details for each duplicate
+            users = []
+            for i in range(user_count):
+                user_info = {
+                    "user_id": user_ids[i],
+                    "email": emails[i],
+                    "name": f"{first_names[i]} {last_names[i]}",
+                    "created_at": str(created_dates[i]) if created_dates[i] else None,
+                    "last_login": str(last_logins[i]) if last_logins[i] else None,
+                    "has_logged_in": last_logins[i] is not None
+                }
+                users.append(user_info)
+            
+            # Sort users by activity (most recent first)
+            users.sort(key=lambda x: (x['last_login'] or '1900-01-01', x['created_at'] or '1900-01-01'), reverse=True)
+            
+            # Determine which user would be selected for password reset
+            selected_user = users[0] if users else None
+            
+            duplicate_info = {
+                "phone_number": phone,
+                "user_count": user_count,
+                "users": users,
+                "selected_for_password_reset": selected_user,
+                "selection_reason": "Most recently active user"
+            }
+            
+            results["duplicate_analysis"][phone] = duplicate_info
+        
+        # Special focus on Ross's phone number
+        ross_phone = "7732138911"
+        if ross_phone in results["duplicate_analysis"]:
+            results["ross_phone_analysis"] = results["duplicate_analysis"][ross_phone]
+        
+        return jsonify({
+            "debug": "check_duplicate_phones_production",
+            "results": results,
+            "summary": {
+                "total_duplicate_phones": len(duplicate_phones),
+                "ross_phone_has_duplicates": ross_phone in results["duplicate_analysis"],
+                "recommendation": "Consider cleaning up duplicate accounts or implementing better phone number validation"
+            }
+        })
+        
+    except Exception as e:
+        import traceback
+        return jsonify({
+            "error": str(e),
+            "traceback": traceback.format_exc(),
+            "railway_env": railway_env
+        }), 500
+
+
 @app.route("/debug/delete-user-complete-production")
 def delete_user_complete_production():
     """
