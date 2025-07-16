@@ -100,7 +100,7 @@ def send_password_via_sms(phone: str, email: str = None) -> dict:
                 return {
                     "success": False,
                     "error": "multiple_users_found",
-                    "message": "Multiple accounts found with this phone number. Please enter your email address to continue."
+                    "message": "Phone number not found. Please try again."
                 }
             
             # Try to find user with both phone and email
@@ -262,9 +262,9 @@ def _get_user_password(user_id: int) -> Optional[str]:
         import string
         from werkzeug.security import generate_password_hash
         
-        # Generate a random temporary password (8 characters, mix of letters and numbers)
+        # Generate a random temporary password (6 characters, mix of letters and numbers)
         alphabet = string.ascii_letters + string.digits
-        temp_password = ''.join(secrets.choice(alphabet) for _ in range(8))
+        temp_password = ''.join(secrets.choice(alphabet) for _ in range(6))
         
         # Hash the temporary password using pbkdf2:sha256 method (compatible with most environments)
         password_hash = generate_password_hash(temp_password, method='pbkdf2:sha256')
