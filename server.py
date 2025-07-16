@@ -350,13 +350,10 @@ def serve_index():
     """Serve the index page"""
     if "user" not in session:
         return redirect("/login")
-    return redirect("/mobile")
+    return redirect("/mobile/home_submenu")
 
 
-@app.route("/index.html")
-def redirect_index_html():
-    """Redirect index.html to mobile"""
-    return redirect("/mobile")
+
 
 
 @app.route("/welcome")
@@ -444,6 +441,7 @@ def serve_static(path):
         "login.html",
         "signup.html",
         "forgot-password.html",
+        "index.html",  # Allow public access to marketing site index
         "rally-logo.png",
         "rally-icon.png",
         "favicon.ico",
@@ -462,7 +460,11 @@ def serve_static(path):
             or file_path.startswith("website/")  # Allow public access to marketing site
         )
 
+    # Handle public files (including index.html) regardless of authentication
     if is_public_file(path):
+        # Special handling for index.html - serve from website directory
+        if path == "index.html":
+            return send_from_directory("website", path)
         return send_from_directory(".", path)
 
     # Require authentication for all other files
