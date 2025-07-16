@@ -393,7 +393,7 @@ def handle_forgot_password():
                 return jsonify({
                     "success": False,
                     "error": "multiple_users_found",
-                    "message": result.get("message", "Multiple accounts found with this phone number. Please enter your email address to continue.")
+                    "message": result.get("message", "Phone number not found. Please try again.")
                 }), 400
             else:
                 return jsonify({
@@ -441,8 +441,8 @@ def handle_change_password():
         if new_password != confirm_password:
             return jsonify({"error": "Passwords do not match"}), 400
         
-        if len(new_password) < 8:
-            return jsonify({"error": "Password must be at least 8 characters long"}), 400
+        if len(new_password) == 0:
+            return jsonify({"error": "Password cannot be empty"}), 400
         
         # Update user's password in database
         from database_utils import execute_update
