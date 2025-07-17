@@ -614,6 +614,7 @@ function createNotificationElement(notification, index) {
     if (notification.type === 'schedule' && notification.weather) {
         console.log('🌦️ Weather data found for schedule notification');
         weatherIcons = generateWeatherIconsForSchedule(notification);
+        console.log('🌦️ Generated weather icons HTML:', weatherIcons);
     } else if (notification.type === 'schedule') {
         console.log('🌦️ No weather data found for schedule notification');
     }
@@ -638,6 +639,15 @@ function createNotificationElement(notification, index) {
                     </p>
                 </div>
             </div>
+            
+            <!-- Weather Icons Section -->
+            ${weatherIcons ? `
+                <div class="mt-4 pt-4 border-t border-gray-100">
+                    <div class="flex flex-wrap gap-3 justify-center">
+                        ${weatherIcons}
+                    </div>
+                </div>
+            ` : ''}
         </div>
     `;
     
